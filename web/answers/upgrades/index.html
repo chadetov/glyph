@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Will a new Glyph release break my build?","item":"https://glyphlang.io/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/upgrades/#article","headline":"Will a new Glyph release break my build?","description":"A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.","url":"https://glyphlang.io/answers/upgrades/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/upgrades/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Will a new Glyph release break my build?","item":"https://glyphlang.io/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/upgrades/#article","headline":"Will a new Glyph release break my build?","description":"A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it.","url":"https://glyphlang.io/answers/upgrades/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/upgrades/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/upgrades/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/upgrades/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">08 &middot; Upgrades</p>
       <h1 class="q-title">Will a new Glyph release break my build?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -489,24 +489,7 @@
         release, so the decision to take one is yours and it is one command.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          Most tools you pin with a caret, because a patch release is a bug fix.
-          A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and
-          getting better at it means new errors: a stricter check on an import, an
-          exhaustiveness hole that used to slip through, an arity the checker had not
-          modeled. Those releases are the good ones. They are also exactly the ones you do
-          not want arriving through an <code>npm install</code> you ran to add a date
-          library.
-        </p>
-        <p>
-          So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code>
-          version a caret still floats the patch, which is the trap:
-          <code>^0.1.9</code> quietly accepts every later 0.1.x.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">package.json, as scaffolded</span>
 <pre><span class="pk">"devDependencies"</span>: {
@@ -516,23 +499,57 @@
   <span class="pk">"tsx"</span>: <span class="s">"^4.19.0"</span>
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why the pin is exact</a></li>
+          <li><a href="#the-other-half">Finding out a release exists</a></li>
+          <li><a href="#taking-the-upgrade">Taking the upgrade</a></li>
+          <li><a href="#moving-the-tool-not-the-project">Moving the compiler itself</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Most tools you pin with a caret, because a patch release is a bug fix.
+        A compiler before 1.0 is not that.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why new errors are the good releases</span></summary><div class="body">
         <p>
-          Commit the <code>package-lock.json</code> next to it and a fresh clone builds
-          with the toolchain you tested, not with whatever shipped since.
+          Glyph's whole job is to reject programs, and
+          getting better at it means new errors: a stricter check on an import, an
+          exhaustiveness hole that used to slip through, an arity the checker had not
+          modeled. Those releases are the good ones. They are also exactly the ones you do
+          not want arriving through an <code>npm install</code> you ran to add a date
+          library.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code>
+        version a caret still floats the patch, which is the trap:
+        <code>^0.1.9</code> quietly accepts every later 0.1.x.
+      </p></div>
+      <p>
+        Commit the <code>package-lock.json</code> next to it and a fresh clone builds
+        with the toolchain you tested, not with whatever shipped since.
+      </p>
 
-        <h2 class="block-label" id="the-other-half">The other half<a class="h-anchor" href="#the-other-half" aria-label="Link to this section">#</a></h2>
+      <h2 class="ak-h" id="the-other-half">The other half<a class="ak-anchor" href="#the-other-half" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A pin has one obvious failure mode: you sit on an old compiler for a year and
+        never find out. So the compiler tells you, when you ask it anything about your setup:
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why the compiler is the channel</span></summary><div class="body">
         <p>
-          A pin has one obvious failure mode: you sit on an old compiler for a year and
-          never find out. Nothing on your machine would tell you, and a website you have to
-          remember to visit is not a channel. So the compiler tells you, when you ask it
-          anything about your setup:
+          Nothing on your machine would tell you, and a website you have to
+          remember to visit is not a channel.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre class="wraps">glyph — 0.1.72
   <span class="w">[update]</span>   0.1.73 is published — <span class="q">`glyph --update`</span> moves this compiler, <span class="q">`glyph upgrade`</span> moves a project's pin
@@ -545,10 +562,13 @@ glyph doctor — JavaScript toolchain
 All good. <span class="q">`glyph run`</span> and <span class="q">`glyph build --check`</span> are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Finding a newer release <em>never</em> changes the exit code, so this is safe to
+        run in CI.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">CI, offline, and what never touches the network</span></summary><div class="body">
         <p>
-          Finding a newer release <em>never</em> changes the exit code, so this is safe to
-          run in CI. A published release is not a broken toolchain, and a green pipeline
+          A published release is not a broken toolchain, and a green pipeline
           should not go red because somebody shipped ten minutes ago. If the machine is
           offline the check says so and moves on; <code>--offline</code> skips it entirely
           and makes no network call at all.
@@ -558,11 +578,17 @@ All good. <span class="q">`glyph run`</span> and <span class="q">`glyph build --
           <code>check</code> never do. A compiler that phones home on every build is a
           different product.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="taking-the-upgrade">Taking the upgrade<a class="h-anchor" href="#taking-the-upgrade" aria-label="Link to this section">#</a></h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">Taking the upgrade<a class="ak-anchor" href="#taking-the-upgrade" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        It rewrites one line and runs <code>npm install</code>. It does not touch your
+        source, and it does not pretend the upgrade is finished: building afterwards is
+        the point, because the release you just took is allowed to have opinions your
+        code has not met yet.
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">One line changes, and you decide when</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> upgrade <span class="fl">--dry-run</span>
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -574,32 +600,34 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">picking a version, skipping the install</span></summary><div class="body">
         <p>
-          It rewrites one line and runs <code>npm install</code>. It does not touch your
-          source, and it does not pretend the upgrade is finished: building afterwards is
-          the point, because the release you just took is allowed to have opinions your
-          code has not met yet. <code>--to &lt;version&gt;</code> names a specific one,
+          <code>--to &lt;version&gt;</code> names a specific one,
           including an older one when you want to go back, and <code>--no-install</code>
           leaves the install to you.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="moving-the-tool-not-the-project">Moving the tool, not the project<a class="h-anchor" href="#moving-the-tool-not-the-project" aria-label="Link to this section">#</a></h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">Moving the tool, not the project<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code> moves a pin in a <code>package.json</code>. <code>glyph --update</code> is the other half.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        The
+        split is a rule now rather than a coincidence: flags act on the tool, the way
+        <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and
+        subcommands act on your code.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what doctor used to print</span></summary><div class="body">
         <p>
-          <code>upgrade</code> moves a pin in a <code>package.json</code>. That is the
+          <code>upgrade</code> is the
           wrong command when what is behind is the compiler on your <code>PATH</code>, and
           for a while <code>doctor</code> printed it anyway, pointing a global install at a
-          manifest it may not have. <code>glyph --update</code> is the other half. The
-          split is a rule now rather than a coincidence: flags act on the tool, the way
-          <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and
-          subcommands act on your code. <code>--update-dry-run</code> stops after printing
-          the <code>npm</code> command it would have run.
+          manifest it may not have.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> <span class="fl">--update</span>
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -613,32 +641,46 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          It only moves an install it can identify. A compiler reached through
+      <p>
+        <code>--update-dry-run</code> stops after printing
+        the <code>npm</code> command it would have run.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Only an install it can identify</b>It only moves an install it can identify. A compiler reached through
           <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does
           not recognise gets the command printed and nothing overwritten, because
           replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess
-          leaves <code>PATH</code> pointing at something nobody chose. It also stops short
+          leaves <code>PATH</code> pointing at something nobody chose.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>No claim that it landed</b>It also stops short
           of claiming the update landed: npm can exit zero having skipped an
           <code>optionalDependency</code> it could not fetch, which is how a Glyph release
           once shipped with no platform binary, so the last line names
-          <code>glyph --version</code> as the check rather than asserting success.
-        </p>
-      </div>
+          <code>glyph --version</code> as the check rather than asserting success.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Getting sharper</h3>
-          <p>The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Scaffolded projects pin exactly, so no release reaches a build by accident.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/ai-authoring/">
           <span class="dir">&larr; Previous</span>

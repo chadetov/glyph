@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"Glyph の新しいリリースでビルドが壊れることはないか？","item":"https://glyphlang.io/ja/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/upgrades/#article","headline":"Glyph の新しいリリースでビルドが壊れることはないか？","description":"Glyph のプロジェクトはコンパイラのバージョンを厳密に固定するので、リリースが勝手に届くことはありません。glyph doctor が新しいリリースの存在を知らせ、glyph upgrade でそれに移行します。","url":"https://glyphlang.io/ja/answers/upgrades/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/upgrades/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"Glyph の新しいリリースでビルドが壊れることはないか？","item":"https://glyphlang.io/ja/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/upgrades/#article","headline":"Glyph の新しいリリースでビルドが壊れることはないか？","description":"Glyph のプロジェクトはコンパイラのバージョンを厳密に固定するので、リリースが勝手に届くことはありません。glyph doctor が新しいリリースの存在を知らせ、glyph upgrade でそれに移行します。","url":"https://glyphlang.io/ja/answers/upgrades/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/upgrades/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/upgrades/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/upgrades/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">08 &middot; アップグレード</p>
       <h1 class="q-title">Glyph の新しいリリースでビルドが壊れることはないか？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,16 +480,7 @@
         自分で求めない限り、壊れません。Glyph のプロジェクトはコンパイラを<strong>厳密なバージョン</strong>に固定するので、今朝公開されたリリースが今日の午後のビルドに入り込むことはありません。1.0 より前のリリースは、昨日コンパイルできたコードを拒否する診断を追加してもよいことになっていて、たいていはそれがリリースの目的です。だから取り込むかどうかはあなたが決めることで、それはコマンド 1 つで済みます。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          ほとんどのツールはキャレットで固定します。パッチリリースはバグ修正だからです。1.0 より前のコンパイラはそうではありません。Glyph の仕事はプログラムを拒否することであり、それが上達するとは新しいエラーが増えることです。import に対するより厳しい検査、以前はすり抜けていた網羅性の穴、型検査器がモデル化していなかった引数の数。こうしたリリースは良いリリースです。そして同時に、日付ライブラリを追加するために実行した <code>npm install</code> 経由で入ってきてほしくないものでもあります。
-        </p>
-        <p>
-          そのため <code>glyph init</code> は <code>^</code> を書きません。<code>0.x</code> のバージョンでもキャレットはパッチを変動させるので、そこが落とし穴です。<code>^0.1.9</code> は、それ以降のすべての 0.1.x を黙って受け入れます。
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">生成直後の package.json</span>
 <pre><span class="pk">"devDependencies"</span>: {
@@ -499,19 +490,46 @@
   <span class="pk">"tsx"</span>: <span class="s">"^4.19.0"</span>
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">厳密に固定する理由</a></li>
+          <li><a href="#the-other-half">リリースに気づく</a></li>
+          <li><a href="#taking-the-upgrade">アップグレードを取り込む</a></li>
+          <li><a href="#moving-the-tool-not-the-project">コンパイラ自体を更新する</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ほとんどのツールはキャレットで固定します。パッチリリースはバグ修正だからです。1.0 より前のコンパイラはそうではありません。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">新しいエラーが良いリリースである理由</span></summary><div class="body">
         <p>
-          隣にある <code>package-lock.json</code> もコミットすれば、新しくクローンしたリポジトリは、その後に出たものではなく、テストしたツールチェーンでビルドされます。
+          Glyph の仕事はプログラムを拒否することであり、それが上達するとは新しいエラーが増えることです。import に対するより厳しい検査、以前はすり抜けていた網羅性の穴、型検査器がモデル化していなかった引数の数。こうしたリリースは良いリリースです。そして同時に、日付ライブラリを追加するために実行した <code>npm install</code> 経由で入ってきてほしくないものでもあります。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        そのため <code>glyph init</code> は <code>^</code> を書きません。<code>0.x</code> のバージョンでもキャレットはパッチを変動させるので、そこが落とし穴です。<code>^0.1.9</code> は、それ以降のすべての 0.1.x を黙って受け入れます。
+      </p></div>
+      <p>
+        隣にある <code>package-lock.json</code> もコミットすれば、新しくクローンしたリポジトリは、その後に出たものではなく、テストしたツールチェーンでビルドされます。
+      </p>
 
-        <h2 class="block-label" id="the-other-half">もう半分<a class="h-anchor" href="#the-other-half" aria-label="このセクションへのリンク">#</a></h2>
+      <h2 class="ak-h" id="the-other-half">もう半分<a class="ak-anchor" href="#the-other-half" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        固定にはわかりやすい失敗の形が 1 つあります。古いコンパイラのまま 1 年過ごし、それに気づかないことです。そこで、セットアップについて何かを尋ねたときに、コンパイラが知らせます：
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">コンパイラが連絡手段になる理由</span></summary><div class="body">
         <p>
-          固定にはわかりやすい失敗の形が 1 つあります。古いコンパイラのまま 1 年過ごし、それに気づかないことです。手元のマシンには知らせてくれるものが何もなく、覚えて見に行かなければならない Web サイトは連絡手段とは言えません。そこで、セットアップについて何かを尋ねたときに、コンパイラが知らせます：
+          手元のマシンには知らせてくれるものが何もなく、覚えて見に行かなければならない Web サイトは連絡手段とは言えません。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre class="wraps">glyph — 0.1.72
   <span class="w">[update]</span>   0.1.73 is published — <span class="q">`glyph --update`</span> moves this compiler, <span class="q">`glyph upgrade`</span> moves a project's pin
@@ -524,18 +542,24 @@ glyph doctor — JavaScript toolchain
 All good. <span class="q">`glyph run`</span> and <span class="q">`glyph build --check`</span> are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        新しいリリースが見つかっても、終了コードは<em>決して</em>変わらないので、CI で実行しても安全です。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">CI、オフライン、ネットワークに触れないもの</span></summary><div class="body">
         <p>
-          新しいリリースが見つかっても、終了コードは<em>決して</em>変わらないので、CI で実行しても安全です。公開されたリリースはツールチェーンの故障ではありませんし、誰かが 10 分前にリリースしたからといって、成功していたパイプラインが失敗に変わるべきではありません。マシンがオフラインなら、確認はそう伝えて先に進みます。<code>--offline</code> を付ければ確認自体を飛ばし、ネットワークにはまったくアクセスしません。
+          公開されたリリースはツールチェーンの故障ではありませんし、誰かが 10 分前にリリースしたからといって、成功していたパイプラインが失敗に変わるべきではありません。マシンがオフラインなら、確認はそう伝えて先に進みます。<code>--offline</code> を付ければ確認自体を飛ばし、ネットワークにはまったくアクセスしません。
         </p>
         <p>
           レジストリにアクセスするものは他にありません。<code>build</code>、<code>run</code>、<code>check</code> は決してアクセスしません。ビルドのたびに外部と通信するコンパイラは、別の製品です。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="taking-the-upgrade">アップグレードを取り込む<a class="h-anchor" href="#taking-the-upgrade" aria-label="このセクションへのリンク">#</a></h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">アップグレードを取り込む<a class="ak-anchor" href="#taking-the-upgrade" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        1 行を書き換えて <code>npm install</code> を実行します。ソースコードには触れませんし、アップグレードが完了したふりもしません。その後にビルドすることが肝心です。取り込んだばかりのリリースは、あなたのコードがまだ出会っていない判断を下してよいことになっているからです。
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">変わるのは 1 行で、いつ変えるかはあなたが決める</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> upgrade <span class="fl">--dry-run</span>
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -547,20 +571,26 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">バージョンの指定、インストールの省略</span></summary><div class="body">
         <p>
-          1 行を書き換えて <code>npm install</code> を実行します。ソースコードには触れませんし、アップグレードが完了したふりもしません。その後にビルドすることが肝心です。取り込んだばかりのリリースは、あなたのコードがまだ出会っていない判断を下してよいことになっているからです。<code>--to &lt;version&gt;</code> で特定のバージョンを指定でき、戻したいときは古いバージョンも指定できます。<code>--no-install</code> を付ければ、インストールはあなたに任されます。
+          <code>--to &lt;version&gt;</code> で特定のバージョンを指定でき、戻したいときは古いバージョンも指定できます。<code>--no-install</code> を付ければ、インストールはあなたに任されます。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="moving-the-tool-not-the-project">プロジェクトではなくツールを更新する<a class="h-anchor" href="#moving-the-tool-not-the-project" aria-label="このセクションへのリンク">#</a></h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">プロジェクトではなくツールを更新する<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code> が動かすのは <code>package.json</code> の中の固定バージョンです。もう半分を担うのが <code>glyph --update</code> です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        この分担は今では偶然ではなくルールです。<code>--version</code>、<code>--help</code>、<code>--explain</code> と同じく、フラグはツールに作用し、サブコマンドはあなたのコードに作用します。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">以前 doctor が表示していたもの</span></summary><div class="body">
         <p>
-          <code>upgrade</code> が動かすのは <code>package.json</code> の中の固定バージョンです。古くなっているのが <code>PATH</code> 上のコンパイラである場合、それは誤ったコマンドですが、しばらくの間 <code>doctor</code> はそれでもこのコマンドを表示し、グローバルインストールに対して、ないかもしれないマニフェストを指し示していました。もう半分を担うのが <code>glyph --update</code> です。この分担は今では偶然ではなくルールです。<code>--version</code>、<code>--help</code>、<code>--explain</code> と同じく、フラグはツールに作用し、サブコマンドはあなたのコードに作用します。<code>--update-dry-run</code> は、実行するはずだった <code>npm</code> のコマンドを表示したところで止まります。
+          古くなっているのが <code>PATH</code> 上のコンパイラである場合、<code>upgrade</code> は誤ったコマンドですが、しばらくの間 <code>doctor</code> はそれでもこのコマンドを表示し、グローバルインストールに対して、ないかもしれないマニフェストを指し示していました。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> <span class="fl">--update</span>
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -574,24 +604,37 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          更新するのは、識別できるインストールだけです。<code>npx</code> 経由で使っているコンパイラ、Glyph のソースツリーからビルドしたコンパイラ、見覚えのないパスにあるコンパイラについては、コマンドを表示するだけで何も上書きしません。推測で Homebrew のバイナリや誰かの <code>cargo build</code> の成果物を置き換えると、<code>PATH</code> が誰も選んでいないものを指すことになるからです。また、更新が成功したとまでは主張しません。npm は取得できなかった <code>optionalDependency</code> を飛ばしたまま 0 で終了することがあり、実際に Glyph のリリースがプラットフォーム用のバイナリなしで出荷されたことがありました。そのため最後の行では成功を断言せず、確認方法として <code>glyph --version</code> を示します。
-        </p>
-      </div>
+      <p>
+        <code>--update-dry-run</code> は、実行するはずだった <code>npm</code> のコマンドを表示したところで止まります。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>識別できるインストールだけ</b>更新するのは、識別できるインストールだけです。<code>npx</code> 経由で使っているコンパイラ、Glyph のソースツリーからビルドしたコンパイラ、見覚えのないパスにあるコンパイラについては、コマンドを表示するだけで何も上書きしません。推測で Homebrew のバイナリや誰かの <code>cargo build</code> の成果物を置き換えると、<code>PATH</code> が誰も選んでいないものを指すことになるからです。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>成功したとは主張しない</b>また、更新が成功したとまでは主張しません。npm は取得できなかった <code>optionalDependency</code> を飛ばしたまま 0 で終了することがあり、実際に Glyph のリリースがプラットフォーム用のバイナリなしで出荷されたことがありました。そのため最後の行では成功を断言せず、確認方法として <code>glyph --version</code> を示します。</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>生成されたプロジェクトはバージョンを厳密に固定するので、リリースが勝手にビルドに入り込むことはありません。<code>glyph doctor</code> は使っているコンパイラをレジストリと比較して報告し、リリースノートへのリンクを示します。終了コードに影響することはなく、<code>build</code>/<code>run</code>/<code>check</code> から呼ばれることもありません。<code>glyph upgrade</code> は固定バージョンを動かしてインストールし、古いプロジェクトのキャレット指定も読み取るので、既存のプロジェクトも厳密な固定に移行できます。<code>glyph --update</code> はグローバルな npm インストールのコンパイラそのものを更新し、それ以外の方法で入ったコンパイラについては、推測せずに報告します。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">改善中</h3>
-          <p>リリースノートは 0.1 系全体で 1 ページなので、<code>glyph upgrade</code> は移行先のバージョンのエントリではなく、そのページにリンクします。新しいリリースのどの診断にあなたのコードが引っかかりそうかを教えてくれるものは、まだありません。それを知るにはビルドするしかなく、だからコマンドがそう促しています。また、複数のリリースをまたいでアップグレードしても、1 つ分と同じ 1 ステップで、その間に積み重なった変更の要約はありません。<code>glyph --update</code> は npm を呼び出してその終了コードを読むので、npm が終了したことはわかっても、<code>PATH</code> 上のバイナリが求めたバージョンであることまではわかりません。そのため、成功したと言う代わりに <code>glyph --version</code> を示します。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">生成されたプロジェクトはバージョンを厳密に固定するので、リリースが勝手にビルドに入り込むことはありません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code> は使っているコンパイラをレジストリと比較して報告し、リリースノートへのリンクを示します。終了コードに影響することはなく、<code>build</code>/<code>run</code>/<code>check</code> から呼ばれることもありません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> は固定バージョンを動かしてインストールし、古いプロジェクトのキャレット指定も読み取るので、既存のプロジェクトも厳密な固定に移行できます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code> はグローバルな npm インストールのコンパイラそのものを更新し、それ以外の方法で入ったコンパイラについては、推測せずに報告します。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">リリースノートは 0.1 系全体で 1 ページなので、<code>glyph upgrade</code> は移行先のバージョンのエントリではなく、そのページにリンクします。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">新しいリリースのどの診断にあなたのコードが引っかかりそうかを教えてくれるものは、まだありません。それを知るにはビルドするしかなく、だからコマンドがそう促しています。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">また、複数のリリースをまたいでアップグレードしても、1 つ分と同じ 1 ステップで、その間に積み重なった変更の要約はありません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code> は npm を呼び出してその終了コードを読むので、npm が終了したことはわかっても、<code>PATH</code> 上のバイナリが求めたバージョンであることまではわかりません。そのため、成功したと言う代わりに <code>glyph --version</code> を示します。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/ai-authoring/">
           <span class="dir">&larr; 前へ</span>

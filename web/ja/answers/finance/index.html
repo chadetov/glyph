@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"お金や信頼できない入力を任せられるか","item":"https://glyphlang.io/ja/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/finance/#article","headline":"お金や信頼できない入力を任せられるか","description":"金額は正確に扱われ（10 進数、そして 2^53 を超える整数）、不変条件は境界で強制される型になり、信頼できない入力はサニタイズされずに SQL やシェルのシンクに届くことはありません。","url":"https://glyphlang.io/ja/answers/finance/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/finance/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"お金や信頼できない入力を任せられるか","item":"https://glyphlang.io/ja/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/finance/#article","headline":"お金や信頼できない入力を任せられるか","description":"金額は正確に扱われ（10 進数、そして 2^53 を超える整数）、不変条件は境界で強制される型になり、信頼できない入力はサニタイズされずに SQL やシェルのシンクに届くことはありません。","url":"https://glyphlang.io/ja/answers/finance/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/finance/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/finance/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/finance/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">16 &middot; お金と安全性</p>
       <h1 class="q-title">お金や、自分で制御できない入力を任せられるか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,47 +480,62 @@
         任せられます。金額は<strong>正確</strong>に扱われ、「負でない」のような不変条件は<strong>境界で強制される型</strong>になり、信頼できない入力はサニタイズされないかぎり <strong>SQL やシェルのシンクに届きません</strong>。どれも、間違えればコンパイルエラーかパースエラーになります。3 つ離れた関数で誰かが覚えておかなければならない慣習ではありません。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-is-not-a-float">お金は浮動小数点数ではない<a class="h-anchor" href="#money-is-not-a-float" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          IEEE-754 の <code>number</code> で作った金融システムは、報告されるのを待っているバグです。<code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は黙って精度を失います。<code>std/decimal</code> は BigInt の上に作られた正確な 10 進固定小数点数です。加算、減算、乗算は正確で、除算は明示的なスケールを取り、ちょうど半分の端数は 0 から遠ざかる方向に丸めます。不正な金額は黙って <code>NaN</code> になるのではなく、<code>Err</code> としてパースされます。
-        </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
 <span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">取り除かれるバグ</span>
+          </div>
+          <div class="code">
+            <span class="cap">取り除かれるバグ</span>
 <pre><span class="c">// JS number, the default everywhere:</span>
 <span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
 <span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
 <span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
 <span class="c">// None of these are your money anymore.</span></pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>IEEE-754 の <code>number</code> で作った金融システムは、報告されるのを待っているバグです。<code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は黙って精度を失います。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="ids-and-counters-stay-exact-past-253">ID やカウンタは 2<sup>53</sup> を超えても正確<a class="h-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          アカウント ID や台帳のカウンタが浮動小数点数の範囲を超えて丸められるのは、また別の種類の大惨事です。<code>bigint</code> は <code>123n</code> リテラルを持つ正確な任意精度整数で、<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証します。そのため JSON の <code>number</code> として届いた ID は、黙って切り捨てられるのではなく拒否されます。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">お金は浮動小数点数ではない</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">ID とカウンタ</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">型としての不変条件</a></li>
+          <li><a href="#injection-is-a-compile-error">インジェクション</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-invariant-is-a-type-not-a-comment">不変条件はコメントではなく型<a class="h-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          「金額は負でない」や「評価は 1 から 5」は、一度書かれてその後忘れられるチェックです。<code>where</code> による絞り込みは不変条件を型に入れ、ディスクリプタがそれを境界で強制します。述語を満たさない値は、そもそも <code>Amount</code> になりません。
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">お金は浮動小数点数ではない<a class="ak-anchor" href="#money-is-not-a-float" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code> は BigInt の上に作られた正確な 10 進固定小数点数です。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>正確な演算</b>加算、減算、乗算は正確です。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>除算</b>除算は明示的なスケールを取り、ちょうど半分の端数は 0 から遠ざかる方向に丸めます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>不正な入力</b>不正な金額は黙って <code>NaN</code> になるのではなく、<code>Err</code> としてパースされます。</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">ID やカウンタは 2<sup>53</sup> を超えても正確<a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        アカウント ID や台帳のカウンタが浮動小数点数の範囲を超えて丸められるのは、また別の種類の大惨事です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code> は <code>123n</code> リテラルを持つ正確な任意精度整数で、<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証します。そのため JSON の <code>number</code> として届いた ID は、黙って切り捨てられるのではなく拒否されます。
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">不変条件はコメントではなく型<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        「金額は負でない」や「評価は 1 から 5」は、一度書かれてその後忘れられるチェックです。<code>where</code> による絞り込みは不変条件を型に入れ、ディスクリプタがそれを境界で強制します。
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
@@ -530,14 +545,18 @@ decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span c
 <span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
 <span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        述語を満たさない値は、そもそも <code>Amount</code> になりません。
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="injection-is-a-compile-error">インジェクションはコンパイルエラー<a class="h-anchor" href="#injection-is-a-compile-error" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          リモートコード実行の典型的な経路は、信頼できない入力が SQL クエリ、シェルコマンド、HTML テンプレートに届くことです。<code>std/taint</code> はそれを型エラーにします。外部から来た値は <code>Tainted</code> で、保護したいシンクは <code>Trusted</code> を受け取ります。この 2 つは構造的に別物なので、一方から他方へ移る方法は明示的な <code>sanitize</code> しかありません。汚染された値をシンクに直接渡すと、<code>tsc</code> がコンパイルを拒否します。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">インジェクションはコンパイルエラー<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        リモートコード実行の典型的な経路は、信頼できない入力が SQL クエリ、シェルコマンド、HTML テンプレートに届くことです。<code>std/taint</code> はそれを型エラーにします。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>2 つの型</b>外部から来た値は <code>Tainted</code> で、保護したいシンクは <code>Trusted</code> を受け取ります。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>渡る道は 1 つ</b>この 2 つは構造的に別物なので、一方から他方へ移る方法は明示的な <code>sanitize</code> しかありません。</li>
+      </ul>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">安全な経路はコンパイルが通る</span>
@@ -566,19 +585,36 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
 <span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        汚染された値をシンクに直接渡すと、<code>tsc</code> がコンパイルを拒否します。
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>正確な金額のための <code>std/decimal</code>、正確な大きい整数のための <code>bigint</code>、不変条件を境界で検証する <code>where</code> による絞り込み、そして信頼できない入力が明示的な <code>sanitize</code> なしに保護されたシンクへ届かないようにする <code>std/taint</code>。どれも検査されます。不正な金額や ID は <code>parse</code> で失敗し、不変条件を満たさない値も <code>parse</code> で失敗し、サニタイズされていない値は <code>tsc</code> で失敗します。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">限界</h3>
-          <p><code>where</code> による絞り込みは、現在はプリミティブの基底型に対応しています。レコードやフィールドをまたぐ不変条件（<code>where value.paid &lt;= value.total</code>）は今後の拡張として計画しています。taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではありません。コンパイラは宣言した境界を強制しますが、プログラム全体にわたる汚染を推論してくれるわけではありません。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">正確な金額のための <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">正確な大きい整数のための <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">不変条件を境界で検証する <code>where</code> による絞り込み</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">信頼できない入力が明示的な <code>sanitize</code> なしに保護されたシンクへ届かないようにする <code>std/taint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">どれも検査されます。不正な金額や ID は <code>parse</code> で失敗し、不変条件を満たさない値も <code>parse</code> で失敗し、サニタイズされていない値は <code>tsc</code> で失敗します。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 限界</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>where</code> による絞り込みは、現在はプリミティブの基底型に対応しています。レコードやフィールドをまたぐ不変条件（<code>where value.paid &lt;= value.total</code>）は今後の拡張として計画しています。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではありません。コンパイラは宣言した境界を強制しますが、プログラム全体にわたる汚染を推論してくれるわけではありません。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/language/">
           <span class="dir">&larr; 前へ</span>

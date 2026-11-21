@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Останутся ли правки агента чистыми, или он переформатирует файл?","item":"https://glyphlang.io/ru/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/diff-stability/#article","headline":"Останутся ли правки агента чистыми, или он переформатирует файл?","description":"В Glyph одна каноническая раскладка и обязательные завершающие запятые, поэтому изменение в одну строку даёт дифф в одну строку. Агент не может спрятать настоящее изменение под шумом переформатирования.","url":"https://glyphlang.io/ru/answers/diff-stability/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/diff-stability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Останутся ли правки агента чистыми, или он переформатирует файл?","item":"https://glyphlang.io/ru/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/diff-stability/#article","headline":"Останутся ли правки агента чистыми, или он переформатирует файл?","description":"В Glyph одна каноническая раскладка и обязательные завершающие запятые, поэтому изменение в одну строку даёт дифф в одну строку. Агент не может спрятать настоящее изменение под шумом переформатирования.","url":"https://glyphlang.io/ru/answers/diff-stability/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/diff-stability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/diff-stability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">02 &middot; Изменения, которые можно проверить</p>
       <h1 class="q-title">Останутся ли правки агента чистыми, или он переформатирует весь файл?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,50 +478,61 @@
         Изменение в одну строку всегда даёт <strong>дифф в одну строку</strong>. В Glyph одна каноническая раскладка, поэтому агент <strong>не может похоронить настоящее изменение под стеной переформатирования</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Когда агент открывает pull request, дифф <em>и есть</em> ревью. Если настоящее исправление в одну строку приходит как переформатирование на 200 строк, никто не видит, что на самом деле изменилось, и именно в этом шуме проскакивает баг. Стабильность диффов значит, что дифф показывает изменение и <strong>ничего, кроме изменения</strong>.
-        </p>
-        <p>Основную работу делают два правила. Вот каждое из них в виде диффа, который вы бы проверяли.</p>
-
-        <h2 class="block-label" id="example-1-trailing-commas-one-item-per-line">Пример 1: завершающие запятые, один элемент на строку<a class="h-anchor" href="#example-1-trailing-commas-one-item-per-line" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>Добавим маршрут. В распространённом стиле TypeScript прежняя последняя строка меняется только ради того, чтобы получить запятую. Для изменения в один элемент двигаются две строки:</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript: добавить "/billing"</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript: добавить "/billing"</span>
 <pre> <span class="k">const</span> routes = [
    <span class="s">"/home"</span>,
 <span class="del">-  <span class="s">"/about"</span></span>
 <span class="add">+  <span class="s">"/about"</span>,</span>
 <span class="add">+  <span class="s">"/billing"</span></span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">3 строки затронуты ради 1 изменения</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph: добавить "/billing"</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">3 строки затронуты ради 1 изменения</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph: добавить "/billing"</span>
 <pre> <span class="k">let</span> routes = [
    <span class="s">"/home"</span>,
    <span class="s">"/about"</span>,
 <span class="add">+  <span class="s">"/billing"</span>,</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">добавлена 1 строка, ровно изменение</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">добавлена 1 строка, ровно изменение</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Добавим маршрут. В распространённом стиле TypeScript прежняя последняя строка меняется только ради того, чтобы получить запятую. Для изменения в один элемент двигаются две строки.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Завершающие запятые <strong>обязательны</strong>, а список, который не помещается в одну строку, раскладывается по одному элементу на строку, а не переупаковывается, поэтому вставка, удаление или перестановка элемента никогда не задевают соседей. То же верно для полей записей, параметров, веток match и импортов. У порога есть цена: переименование, из-за которого вызов вылезает за 100 столбцов, разворачивает весь список аргументов по одному на строку.
-        </p>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#trailing-commas">Завершающие запятые</a></li>
+          <li><a href="#example-2-one-canonical-layout">Одна каноническая раскладка</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">Комментарии остаются на месте</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">Может ли fmt сломать сборку?</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="example-2-one-canonical-layout">Пример 2: одна каноническая раскладка<a class="h-anchor" href="#example-2-one-canonical-layout" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Правильное форматирование ровно одно, и его выдаёт <code>glyph fmt</code>. Пробелы, переносы и выравнивание это не выбор, который агент может «подчистить», поэтому смысловая правка не может потащить за собой переразбивку строк. Поменяйте тип одного поля, и это весь дифф:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Когда агент открывает pull request, дифф <em>и есть</em> ревью. Если настоящее исправление в одну строку приходит как переформатирование на 200 строк, никто не видит, что на самом деле изменилось, и именно в этом шуме проскакивает баг.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Стабильность диффов значит, что дифф показывает изменение и <strong>ничего, кроме изменения</strong>.</p></div>
+      <p class="ak-lede">Основную работу делают два правила. Вот каждое из них в виде диффа, который вы бы проверяли.</p>
 
+      <h2 class="ak-h" id="trailing-commas">Завершающие запятые, один элемент на строку<a class="ak-anchor" href="#trailing-commas" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Завершающие запятые <strong>обязательны</strong>, а список, который не помещается в одну строку, раскладывается по одному элементу на строку, а не переупаковывается, поэтому вставка, удаление или перестановка элемента никогда не задевают соседей.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>То же верно для полей записей, параметров, веток match и импортов.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>У порога есть цена: переименование, из-за которого вызов вылезает за 100 столбцов, разворачивает весь список аргументов по одному на строку.</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">Одна каноническая раскладка<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Правильное форматирование ровно одно, и его выдаёт <code>glyph fmt</code>. Пробелы, переносы и выравнивание это не выбор, который агент может «подчистить», поэтому смысловая правка не может потащить за собой переразбивку строк. Поменяйте тип одного поля, и это весь дифф:
+      </p>
       <div class="code">
         <span class="cap">user.glyph: меняете одно поле, проверяете одну строку</span>
 <pre> <span class="k">type</span> <span class="t">User</span> = {
@@ -531,18 +542,17 @@
    email: <span class="t">string</span>,
  }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Поскольку раскладка фиксирована, два разных агента, правящих один файл, дают <strong>побайтно одинаковое</strong> форматирование: никакой переразбивки, никакого шума «мой форматтер против твоего» и чистый <code>git blame</code>, который указывает на коммит, действительно изменивший строку, а не на тот, что её переформатировал.</p></div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Раскладка одна, но не двигает ли форматтер мои комментарии?<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Раньше двигал, и это был баг, который стоит назвать. Теперь правило такое: комментарий выводится над тем элементом, над которым был написан, внутри тела записи, списка вариантов union, литерала массива или объекта, списка аргументов или параметров и <code>match</code>.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">как сползали комментарии и приложение, на котором это выяснилось</span></summary><div class="body">
         <p>
-          Поскольку раскладка фиксирована, два разных агента, правящих один файл, дают <strong>побайтно одинаковое</strong> форматирование: никакой переразбивки, никакого шума «мой форматтер против твоего» и чистый <code>git blame</code>, который указывает на коммит, действительно изменивший строку, а не на тот, что её переформатировал.
+          В Glyph нет блочных комментариев и синтаксиса doc-комментариев, поэтому строка <code>//</code> это единственный способ пояснить поле записи, вариант union или ветку <code>match</code>. Форматтер выводил накопленные комментарии только на границах объявлений и операторов, а значит, комментарий, написанный <em>внутри</em> конструкции, сползал вниз к следующему объявлению и читался как документация к тому, на что попал. Выяснилось это, когда на Glyph писали «Сапёра». Эти два объявления взяты из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">настоящего приложения</a> (комментарии сокращены) и пропущены через старый форматтер и через новый.
         </p>
-
-        <h2 class="block-label" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Раскладка одна, но не двигает ли форматтер мои комментарии?<a class="h-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Раньше двигал, и это был баг, который стоит назвать. В Glyph нет блочных комментариев и синтаксиса doc-комментариев, поэтому строка <code>//</code> это единственный способ пояснить поле записи, вариант union или ветку <code>match</code>. Форматтер выводил накопленные комментарии только на границах объявлений и операторов, а значит, комментарий, написанный <em>внутри</em> конструкции, сползал вниз к следующему объявлению и читался как документация к тому, на что попал. Выяснилось это, когда на Glyph писали «Сапёра». Эти два объявления взяты из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">настоящего приложения</a> (комментарии сокращены) и пропущены через старый форматтер и через новый.
-        </p>
-      </div>
-
+      </div></details>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">0.1.37: один проход fmt</span>
@@ -579,45 +589,71 @@
           <div style="padding:0 16px 14px"><span class="verdict good">каждый комментарий над тем, что он описывает</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          Теперь правило такое: комментарий выводится над тем элементом, над которым был написан, внутри тела записи, списка вариантов union, литерала массива или объекта, списка аргументов или параметров и <code>match</code>. А конструкция с комментарием внутри всегда принимает форму «один элемент на строку» при любом размере, чтобы комментарию было над чем стоять. Так что <code>type Shape = { w: int, h: int }</code> по-прежнему сворачивается в одну строку, но как только вы документируете <code>h</code>, запись остаётся развёрнутой.
-        </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>А конструкция с комментарием внутри всегда принимает форму «один элемент на строку» при любом размере, чтобы комментарию было над чем стоять. Так что <code>type Shape = { w: int, h: int }</code> по-прежнему сворачивается в одну строку, но как только вы документируете <code>h</code>, запись остаётся развёрнутой.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему это считается ошибкой корректности</span></summary><div class="body">
         <p>
           Почему это считается ошибкой корректности, а не косметикой: ничего не падало. Сборка завершалась с кодом 0, <code>tsc</code> проходил, а испорченный вывод сам был неподвижной точкой, так что <code>glyph fmt --check</code> в CI был зелёным на файле, комментарии которого теперь утверждали неправду. Это тот же класс сбоев, ради устранения которого существует Glyph, только в форматтере, а не в системе типов.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="can-glyph-fmt-break-a-program-that-builds">Может ли <code>glyph fmt</code> сломать программу, которая собирается?<a class="h-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Ссылка на этот раздел">#</a></h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds">Может ли <code>glyph fmt</code> сломать программу, которая собирается?<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Мог, и один случай всё ещё открыт. Форматтер, который вашей программе приходится переживать, хуже отсутствующей возможности, потому что он портит код, который уже работал.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>Тела веток</b>Теперь принтер берёт в скобки тело ветки, чей самый левый токен это <code>{</code>, который при повторном разборе стал бы блоком, то есть пустой объект и всё, что на нём построено (<code>({}).size</code> возвращается как <code>({}.size)</code>).</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Фаззер</b>Теперь фаззер разбирает отформатированный файл и сравнивает дерево с исходным, так что раскладка, меняющая смысл файла, падает на первом же проходе, а не ждёт, пока кто-то заметит.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">пустая запись, из-за которой сборка перестала проходить</span></summary><div class="body">
         <p>
-          Мог, и один случай всё ещё открыт. Сначала исправленный. Ветка, означающая «пустая запись», пишется как <code>true =&gt; ({})</code>. Позиция тела ветки это единственное место в грамматике, где открывающая <code>{</code> неоднозначна, и парсер решает это, требуя сразу после скобки <code>key:</code> или <code>...</code>. У пустого объекта нет ни того, ни другого, поэтому когда форматтер убирал скобки и печатал <code>true =&gt; {}</code>, ветка возвращалась пустым <em>блоком</em>, и файл переставал собираться: <code>E0223</code>, ветка не даёт значения. Вы запускали форматтер на рабочем коде и получали код, который больше не компилируется.
+          Сначала исправленный. Ветка, означающая «пустая запись», пишется как <code>true =&gt; ({})</code>. Позиция тела ветки это единственное место в грамматике, где открывающая <code>{</code> неоднозначна, и парсер решает это, требуя сразу после скобки <code>key:</code> или <code>...</code>. У пустого объекта нет ни того, ни другого, поэтому когда форматтер убирал скобки и печатал <code>true =&gt; {}</code>, ветка возвращалась пустым <em>блоком</em>, и файл переставал собираться: <code>E0223</code>, ветка не даёт значения. Вы запускали форматтер на рабочем коде и получали код, который больше не компилируется.
         </p>
         <p>
-          Теперь принтер берёт в скобки тело ветки, чей самый левый токен это <code>{</code>, который при повторном разборе стал бы блоком, то есть пустой объект и всё, что на нём построено (<code>({}).size</code> возвращается как <code>({}.size)</code>). Тело ветки, которое и так читается однозначно, вроде <code>false =&gt; { a: "x" }</code>, остаётся без скобок, так что больше нигде новой пунктуации не появляется. <code>fmt</code> на результате даёт неподвижную точку, а сгенерированный TypeScript не меняется. Форматтер, который вашей программе приходится переживать, хуже отсутствующей возможности, потому что он портит код, который уже работал.
+          Тело ветки, которое и так читается однозначно, вроде <code>false =&gt; { a: "x" }</code>, остаётся без скобок, так что больше нигде новой пунктуации не появляется. <code>fmt</code> на результате даёт неподвижную точку, а сгенерированный TypeScript не меняется.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">ещё два случая, исправленные в 0.1.138</span></summary><div class="body">
         <p>
-          Ещё два случая исправлены в 0.1.138. Внутри блока строка, начинающаяся с <code>(</code>, продолжает строку выше, а до 0.1.137 форматтер печатал <code>load()?</code> с последующим <code>.run()</code> как <code>(load()?).run()</code>, так что после <code>let a = 1</code> отформатированный файл означал <code>let a = 1(…).run()</code>. Теперь он оставляет <code>load()?</code>, а <code>.run()</code> с отступом на следующей строке, и пишет <code>e?(x)</code>, <code>e?[0]</code> и <code>e? ?</code> без скобок. Второй случай касался уточнения <code>where</code> у union: форматтер его выбрасывал, и программа, которую <code>check</code> отклонял, превращалась в принимаемую. Теперь фаззер разбирает отформатированный файл и сравнивает дерево с исходным, так что раскладка, меняющая смысл файла, падает на первом же проходе, а не ждёт, пока кто-то заметит.
+          Ещё два случая исправлены в 0.1.138. Внутри блока строка, начинающаяся с <code>(</code>, продолжает строку выше, а до 0.1.137 форматтер печатал <code>load()?</code> с последующим <code>.run()</code> как <code>(load()?).run()</code>, так что после <code>let a = 1</code> отформатированный файл означал <code>let a = 1(…).run()</code>. Теперь он оставляет <code>load()?</code>, а <code>.run()</code> с отступом на следующей строке, и пишет <code>e?(x)</code>, <code>e?[0]</code> и <code>e? ?</code> без скобок. Второй случай касался уточнения <code>where</code> у union: форматтер его выбрасывал, и программа, которую <code>check</code> отклонял, превращалась в принимаемую.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Правила форматирования, на которых это держится, и компромисс, на который они идут, описаны на <a href="/ru/pillars/diff-stability/">странице принципа стабильности диффов</a>.</p></div>
 
-      <div class="detail">
-        <p>
-          Правила форматирования, на которых это держится, и компромисс, на который они идут, описаны на <a href="/ru/pillars/diff-stability/">странице принципа стабильности диффов</a>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Обязательные завершающие запятые, списки по одному элементу на строку и единственная каноническая раскладка <code>glyph fmt</code>, без потерь при круговом преобразовании и идемпотентная, с форматированием при сохранении в редакторе.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> никогда не переносит комментарий туда, где ему не место.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Комментарии остаются над тем элементом, над которым были написаны</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Комментарии остаются над тем элементом, над которым были написаны, в том числе внутри записи, литерала, списка аргументов, <code>match</code>, между операндами оператора и между шагами цепочки методов, которая тогда раскладывается по одному шагу на строку с точкой в начале.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Обязательные завершающие запятые, списки по одному элементу на строку и единственная каноническая раскладка <code>glyph fmt</code>, без потерь при круговом преобразовании и идемпотентная, с форматированием при сохранении в редакторе. <code>glyph fmt</code> никогда не переносит комментарий туда, где ему не место. Комментарии остаются над тем элементом, над которым были написаны, в том числе внутри записи, литерала, списка аргументов, <code>match</code>, между операндами оператора и между шагами цепочки методов, которая тогда раскладывается по одному шагу на строку с точкой в начале.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Ограничения и что дальше</h3>
-          <p>Комментарий всегда выводится на отдельной строке, поэтому написанный в конце строки кода (<code>w: int, // width in cells</code>) переезжает на строку над следующим элементом. Границу объявления он больше не пересекает, но всё-таки двигается; чтобы оставить его в конце строки, принтер должен отслеживать, какую строку делит комментарий. Комментарий там, где раскладке некуда его поставить, например внутри индекса, после аргументов вызова посреди цепочки или перед операндом <code>!</code> или <code>await</code>, больше не переносится: <code>glyph fmt</code> отказывается форматировать файл, оставляет его как был и называет строку и место, куда поставить комментарий, а <code>glyph check</code> сообщает то же самое как предупреждение E0500. Комментарий между атрибутами JSX или между полями паттерна объекта тоже отклоняется, хотя раскладка по одному на строку могла бы его разместить; эти раскладки в списке задач. Кроме того, у принтера пока нет правила для разбивки длинной цепочки методов или <code>+</code>, поэтому слишком длинная цепочка вместо этого разбивает самый внутренний список аргументов, а это неправильное место. Ещё мы строим бенчмарк размера диффов на тех же правках в TypeScript, чтобы этот принцип стал числом, которое можно проверить.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ограничения и что дальше</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Комментарий в конце строки кода переезжает на строку над следующим элементом</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Комментарий всегда выводится на отдельной строке, поэтому написанный в конце строки кода (<code>w: int, // width in cells</code>) переезжает на строку над следующим элементом. Границу объявления он больше не пересекает, но всё-таки двигается; чтобы оставить его в конце строки, принтер должен отслеживать, какую строку делит комментарий.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Комментарий, которому в раскладке негде стоять, отклоняется, а не переносится</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Комментарий там, где раскладке некуда его поставить, например внутри индекса, после аргументов вызова посреди цепочки или перед операндом <code>!</code> или <code>await</code>, больше не переносится: <code>glyph fmt</code> отказывается форматировать файл, оставляет его как был и называет строку и место, куда поставить комментарий, а <code>glyph check</code> сообщает то же самое как предупреждение E0500.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Комментарий между атрибутами JSX или между полями паттерна объекта тоже отклоняется, хотя раскладка по одному на строку могла бы его разместить; эти раскладки в списке задач.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Кроме того, у принтера пока нет правила для разбивки длинной цепочки методов или <code>+</code>, поэтому слишком длинная цепочка вместо этого разбивает самый внутренний список аргументов, а это неправильное место.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ещё мы строим бенчмарк размера диффов на тех же правках в TypeScript, чтобы этот принцип стал числом, которое можно проверить.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/verifiability/">
           <span class="dir">&larr; Назад</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Wird die Dokumentation, die mein Agent liest, generiert?","item":"https://glyphlang.io/de/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/generated-docs/#article","headline":"Wird die Dokumentation, die mein Agent liest, generiert?","description":"glyph llms --json gibt die Diagnosen, das Prelude, die Stdlib-Signaturen und die Sprachentscheidungen aus den eigenen Tabellen des Compilers aus, also können sie nicht veralten.","url":"https://glyphlang.io/de/answers/generated-docs/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/generated-docs/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Wird die Dokumentation, die mein Agent liest, generiert?","item":"https://glyphlang.io/de/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/generated-docs/#article","headline":"Wird die Dokumentation, die mein Agent liest, generiert?","description":"glyph llms --json gibt die Diagnosen, das Prelude, die Stdlib-Signaturen und die Sprachentscheidungen aus den eigenen Tabellen des Compilers aus, also können sie nicht veralten.","url":"https://glyphlang.io/de/answers/generated-docs/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/generated-docs/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/generated-docs/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/generated-docs/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">24 &middot; Doku, die nicht veraltet</p>
       <h1 class="q-title">Ist die Dokumentation, die mein Agent liest, generiert oder von Hand geschrieben und veraltet?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,22 +478,8 @@
         Generiert. <code>glyph llms --json</code> gibt den Diagnosekatalog, das Prelude, die Stdlib-Signaturen, die Sprachentscheidungen und das Tool-Handbuch aus den eigenen Tabellen des Compilers aus, und ein Gate lässt den Build fehlschlagen, wenn eine handgeschriebene Kopie abweicht. Jedes Glyph-Beispiel in dem Dokument, mit dem ein Agent einsteigt, wird kompiliert, auch die falschen.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Die Frage ist nicht rhetorisch, denn die ehrliche Antwort lautete früher "von Hand geschrieben, und ja". Das Einstiegsdokument für Agenten sagte, der MCP-Server "stellt fünf Tools bereit", und listete fünf. Der Server stellte sieben bereit. Die zwei, zu denen die eigenen Anweisungen des Servers einem Agenten zuerst raten, kamen darin kein einziges Mal vor. Die 58 Fehlercodes lebten in drei von Hand gepflegten Kopien, nur daraufhin geprüft, ob der Code-String vorhanden war. Von 19 Glyph-Beispielen in diesem Dokument wurden 2 kompiliert und 17 als Fragmente übersprungen.
-        </p>
-        <p>
-          Jedes davon ist derselbe Mangel. Ein Dokument über einen Compiler, neben dem Compiler gepflegt, von Leuten, die es gut meinten. Ein Agent, der es liest, kann nicht erkennen, welche Sätze noch stimmen, und wir konnten es auch nicht.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Sieben Abschnitte, jeder aus einer Tabelle gelesen, die der Compiler schon hat. Ein Diagnoseeintrag enthält den Satz aus dem Katalog, den einzeiligen Fix, die ausführliche Erklärung und die Hilfe und den Hinweis aus einer Diagnose, die der Compiler ausgelöst hat. 51 der 77 Codes enthalten außerdem ein fehlerhaftes Programm, das den Code auslöst, kompiliert in dem Moment, in dem du fragst; die anderen 26 sagen, dass der Korpus keinen Fall dafür hat.
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
         <span class="cap">glyph llms --json, der Eintrag E0200 (gekürzt)</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
@@ -518,19 +504,49 @@
       invented here would compile nowhere and be checked by nothing."</span>
   }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Sieben Abschnitte, jeder aus einer Tabelle gelesen, die der Compiler schon hat.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#diagnostics">Diagnosen</a></li>
+          <li><a href="#the-prelude-the-stdlib-and-the-decisions">Prelude, Stdlib, Entscheidungen</a></li>
+          <li><a href="#the-wrong-programs-are-readable-too">Fehlerhafte Programme</a></li>
+          <li><a href="#every-example-compiles-including-the-wrong-ones">Kompilierte Beispiele</a></li>
+          <li><a href="#what-it-costs-to-hand-over-and-what-it-stopped-costing">Was es kostet</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die Frage ist nicht rhetorisch, denn die ehrliche Antwort lautete früher "von Hand geschrieben, und ja".
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Die Toolliste</b>Das Einstiegsdokument für Agenten sagte, der MCP-Server "stellt fünf Tools bereit", und listete fünf. Der Server stellte sieben bereit. Die zwei, zu denen die eigenen Anweisungen des Servers einem Agenten zuerst raten, kamen darin kein einziges Mal vor.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Die Fehlercodes</b>Die 58 Fehlercodes lebten in drei von Hand gepflegten Kopien, nur daraufhin geprüft, ob der Code-String vorhanden war.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Die Beispiele</b>Von 19 Glyph-Beispielen in diesem Dokument wurden 2 kompiliert und 17 als Fragmente übersprungen.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Jedes davon ist derselbe Mangel. Ein Dokument über einen Compiler, neben dem Compiler gepflegt, von Leuten, die es gut meinten. Ein Agent, der es liest, kann nicht erkennen, welche Sätze noch stimmen, und wir konnten es auch nicht.</p></div>
+
+      <h2 class="ak-h" id="diagnostics">Eine Tabelle für die Diagnosen<a class="ak-anchor" href="#diagnostics" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Diagnoseeintrag enthält den Satz aus dem Katalog, den einzeiligen Fix, die ausführliche Erklärung und die Hilfe und den Hinweis aus einer Diagnose, die der Compiler ausgelöst hat.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>51 der 77 Codes enthalten außerdem ein fehlerhaftes Programm, das den Code auslöst, kompiliert in dem Moment, in dem du fragst; die anderen 26 sagen, dass der Korpus keinen Fall dafür hat.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">drei Kopien, zu einer zusammengeführt</span></summary><div class="body">
         <p>
           77 Codes kommen aus einer Tabelle im Compiler, und <code>docs/error-codes.md</code> und die Katalogtabelle im Einstiegsdokument werden daraus von einem Skript geschrieben, das bei Abweichungen fehlschlägt. Beim Zusammenführen der drei Kopien, die es früher gab, tauchten ein Code mit Erklärung, aber ohne Platz in der Liste, und eine Zeile auf, deren escapte Pipe stillschweigend die Tabelle kaputtgemacht hatte, in der sie stand.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-prelude-the-stdlib-and-the-decisions">Das Prelude, die Stdlib und die Entscheidungen<a class="h-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Das Prelude sind die 24 Namen, gegen die der Resolver auflöst, mit dem, was jeder davon ist. Die Stdlib sind 40 Module und 340 Exports, und jede Signatur wird aus den eigenen Tabellen des Checkers gelesen und vom selben Typ-Printer ausgegeben, den eine Diagnose verwendet, also ist die Signatur im Dokument die Signatur, an die dich der Checker hält. Die Exports teilen sich in drei Gruppen und nie in zwei: 129 Signaturen sind an jeder Position modelliert, 46 haben ein <code>?</code>, wo ein Parametertyp hingehört, und werden als <code>partially_modeled</code> gezählt, mit einer Zeile, die sagt, wie viele Positionen noch offen sind, und 165 haben überhaupt keine Signatur. Ein <code>?</code> ist gerendertes <code>unknown</code>, also wird es nie als vollständige Signatur veröffentlicht.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-prelude-the-stdlib-and-the-decisions">Das Prelude, die Stdlib und die Entscheidungen<a class="ak-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Das Prelude sind die 24 Namen, gegen die der Resolver auflöst, mit dem, was jeder davon ist. Die Stdlib sind 40 Module und 340 Exports, und jede Signatur wird aus den eigenen Tabellen des Checkers gelesen und vom selben Typ-Printer ausgegeben, den eine Diagnose verwendet, also ist die Signatur im Dokument die Signatur, an die dich der Checker hält.
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">"stdlib"</span>
@@ -565,18 +581,22 @@
         head is a variant reference ..."</span> }, <span class="c">...</span> ] }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wie sich die Exports aufteilen</span></summary><div class="body">
+        <p>
+          Die Exports teilen sich in drei Gruppen und nie in zwei: 129 Signaturen sind an jeder Position modelliert, 46 haben ein <code>?</code>, wo ein Parametertyp hingehört, und werden als <code>partially_modeled</code> gezählt, mit einer Zeile, die sagt, wie viele Positionen noch offen sind, und 165 haben überhaupt keine Signatur. Ein <code>?</code> ist gerendertes <code>unknown</code>, also wird es nie als vollständige Signatur veröffentlicht.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">warum es <code>duplicate_numbers</code> gibt</span></summary><div class="body">
         <p>
           <code>duplicate_numbers</code> gibt es, weil der Generator die eigene Liste der Spezifikation liest, und beim ersten Lauf fand er zwei verschiedene Entscheidungen, beide als D43 nummeriert, und gab <code>"duplicate_numbers": [43]</code> aus. Er meldet eine Kollision, statt sie zu bereinigen, und nur so hat es überhaupt jemand bemerkt. Nichts im Compiler hängt an einer D-Nummer, also war kein Programm betroffen; ein Leser, der einem Verweis folgte, schon. Das ist behoben: D43 ist die Regel zu <code>mut</code> über <code>await</code> hinweg und <code>never</code> ist D47, also kommt die Liste leer zurück. Heute gibt es 49 Entscheidungen, D1 bis D49.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-wrong-programs-are-readable-too">Auch die fehlerhaften Programme lassen sich lesen<a class="h-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Der Negativ-Korpus des Compilers ist eine Menge von Programmen, die fehlschlagen müssen, mit dem Code, den jedes auslösen muss. Früher war er nur für <code>cargo test</code> sichtbar. Ein Agent, der lernt, was eine Regel ablehnt, ist genau der Leser, für den er geschrieben wurde, also antwortet er jetzt, und jeder Fall wird kompiliert, wenn du fragst, damit die Diagnose daneben die dieses Compilers ist.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-wrong-programs-are-readable-too">Auch die fehlerhaften Programme lassen sich lesen<a class="ak-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Der Negativ-Korpus des Compilers ist eine Menge von Programmen, die fehlschlagen müssen, mit dem Code, den jedes auslösen muss. Früher war er nur für <code>cargo test</code> sichtbar.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ein Agent, der lernt, was eine Regel ablehnt, ist genau der Leser, für den er geschrieben wurde, also antwortet er jetzt, und jeder Fall wird kompiliert, wenn du fragst, damit die Diagnose daneben die dieses Compilers ist.</p></div>
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
@@ -599,44 +619,92 @@
   <span class="pk">"catches_absent"</span>: <span class="s">"`catches/` pairs no TypeScript-accepted program with E0008"</span>
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Abdeckung und der Korpus <code>catches/</code></span></summary><div class="body">
         <p>
           Ohne Code listet es in 0.1.149 117 Fälle über 53 der 77 Codes und nennt die 24, die keinen haben, statt dich die Abdeckung aus dem ableiten zu lassen, was zurückkam. Ein zweiter Korpus, <code>catches/</code>, paart ein Programm, das <code>tsc --strict</code> akzeptiert, mit dem Glyph, das es ablehnt, und wo es solche gibt, kommen sie in derselben Antwort zurück. Beide sind direkt aus den Verzeichnissen eingebettet, also ist ein Fall, der zu einem davon hinzukommt, in der Antwort, ohne dass man an eine zweite Änderung denken muss.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="every-example-compiles-including-the-wrong-ones">Jedes Beispiel kompiliert, auch die falschen<a class="h-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Die Referenz zu generieren ist die eine Hälfte. Die andere Hälfte ist der Fließtext, mit dem ein Agent einsteigt, in dem die Beispiele der Teil sind, den er kopiert. Jeder Glyph-Codeblock in diesem Dokument ist entweder ein vollständiges Programm, das kompiliert, oder als Fragment eines benannten vollständigen Beispiels markiert, in dessen Zeilen es vorkommen muss. Es waren 19 Codeblöcke, davon 2 kompiliert; jetzt sind es 24, davon 20 kompiliert und 4 markiert, und keiner übersprungen. Die Stdlib-Referenz ging von 4 von 8 auf 8 von 8.
-        </p>
-        <p>
-          Ein Codeblock kann auch als Programm markiert werden, das fehlschlagen muss, mit dem Code, den es auslöst, und so enthält das Dokument die fünf falschen Formen, vor denen es dich warnt: die, die <code>E0228</code> auslöst, die, die <code>E0008</code> auslöst, und drei weitere. Eine Warnung, die mit der Diagnose gepaart ist, lässt sich prüfen. Eine Warnung im Fließtext ist ein Versprechen.
-        </p>
+      <h2 class="ak-h" id="every-example-compiles-including-the-wrong-ones">Jedes Beispiel kompiliert, auch die falschen<a class="ak-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die Referenz zu generieren ist die eine Hälfte. Die andere Hälfte ist der Fließtext, mit dem ein Agent einsteigt, in dem die Beispiele der Teil sind, den er kopiert.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Jeder Glyph-Codeblock in diesem Dokument ist entweder ein vollständiges Programm, das kompiliert, oder als Fragment eines benannten vollständigen Beispiels markiert, in dessen Zeilen es vorkommen muss.</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Das Einstiegsdokument</b>Es waren 19 Codeblöcke, davon 2 kompiliert; jetzt sind es 24, davon 20 kompiliert und 4 markiert, und keiner übersprungen.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Die Stdlib-Referenz</b>Die Stdlib-Referenz ging von 4 von 8 auf 8 von 8.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Die falschen Formen</b>Ein Codeblock kann auch als Programm markiert werden, das fehlschlagen muss, mit dem Code, den es auslöst, und so enthält das Dokument die fünf falschen Formen, vor denen es dich warnt: die, die <code>E0228</code> auslöst, die, die <code>E0008</code> auslöst, und drei weitere. Eine Warnung, die mit der Diagnose gepaart ist, lässt sich prüfen. Eine Warnung im Fließtext ist ein Versprechen.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">zwei Dinge, die das Kompilieren der Dokumente gefunden hat</span></summary><div class="body">
         <p>
           Das Kompilieren der Dokumente fand zwei Dinge, die beim Lesen nie aufgefallen wären. Ein inline geschriebenes dreifaches Backtick war als Beginn eines Codeblocks gelesen worden, also zählten 250 Zeilen als ein einziger Schnipsel, und nichts darin wurde geprüft. Und ein durchgearbeiteter Server in der Stdlib-Referenz rief <code>http.serve</code> auf, das <code>std/http</code> nicht exportiert. Die Funktion heißt <code>listen</code>.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Was die Übergabe kostet, und was sie nicht mehr kostet<a class="h-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <h2 class="ak-h" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Was die Übergabe kostet, und was sie nicht mehr kostet<a class="ak-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die elf MCP-Tools trugen früher ihr ganzes Handbuch in der Antwort auf <code>tools/list</code>, die jede Session beim Verbinden bezahlt: 31.446 Bytes Beschreibung in einer Antwort von 45.509 Bytes. Dieselben elf Tools tragen jetzt 8.627 in einer Antwort von 20.386 Bytes.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Nichts wurde gelöscht. Der bisherige Text wird wörtlich aufbewahrt, nach Toolnamen geordnet, und in <code>glyph llms --json</code> veröffentlicht, also steht der Vertrag, den du im Moment des Aufrufs brauchst, in der Beschreibung, und der Rest ist einen Befehl entfernt statt in der ersten Antwort jeder Session.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Test, der die Zahl festhält</span></summary><div class="body">
         <p>
-          Die elf MCP-Tools trugen früher ihr ganzes Handbuch in der Antwort auf <code>tools/list</code>, die jede Session beim Verbinden bezahlt: 31.446 Bytes Beschreibung in einer Antwort von 45.509 Bytes. Dieselben elf Tools tragen jetzt 8.627 in einer Antwort von 20.386 Bytes. Nichts wurde gelöscht. Der bisherige Text wird wörtlich aufbewahrt, nach Toolnamen geordnet, und in <code>glyph llms --json</code> veröffentlicht, also steht der Vertrag, den du im Moment des Aufrufs brauchst, in der Beschreibung, und der Rest ist einen Befehl entfernt statt in der ersten Antwort jeder Session. Ein Test liest die Toolliste und das Dokument zusammen, also lässt ein Dokument, das ein Tool nennt, das der Server nicht anbietet, oder eine Zahl, die nicht zur Liste passt, den Build fehlschlagen. Genau diese Prüfung hätte "stellt fünf Tools bereit" gebraucht.
+          Ein Test liest die Toolliste und das Dokument zusammen, also lässt ein Dokument, das ein Tool nennt, das der Server nicht anbietet, oder eine Zahl, die nicht zur Liste passt, den Build fehlschlagen. Genau diese Prüfung hätte "stellt fünf Tools bereit" gebraucht.
         </p>
-        <p>
-          All das ist offline und lokal. <code>glyph llms</code> gibt den Fließtext aus, <code>glyph llms --json</code> die Daten, <code>glyph llms --negative</code> die fehlerhaften Programme. Derselbe Fließtext wird unter <a href="/llms.txt">llms.txt</a> für einen Agenten mit Netzwerk und ohne Binary ausgeliefert. Was ein Agent über <em>deinen</em> Code fragt statt über die Sprache, beantworten die <a href="/de/answers/ask-the-compiler/">Abfrage-Tools</a>.
-        </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p><code>glyph llms --json</code> gibt sieben Abschnitte aus dem Compiler aus: 77 Diagnosecodes, 51 davon mit einem kompilierten Gegenbeispiel, die 32 reservierten Wörter, die 24 Prelude-Namen, 40 Stdlib-Module mit 340 Exports, 49 aus der Spezifikation geparste Sprachentscheidungen und die elf Tools mit ihren Verben von <code>glyph query</code> und vollständigen Handbüchern. <code>docs/error-codes.md</code> und die Diagnosetabelle des Einstiegsdokuments werden aus der eigenen Code-Tabelle des Compilers von einem Skript geschrieben, das bei Abweichungen fehlschlägt und <code>llms.txt</code> gleich mit spiegelt. Ein Test hält den Tool-Katalog an das, was der Server anbietet. Jeder Glyph-Codeblock im Einstiegsdokument und in der Stdlib-Referenz kompiliert oder ist ein markiertes Fragment eines Blocks, der kompiliert, und fünf falsche Formen sind Programme, die mit dem Code gepaart sind, den jedes auslöst. <code>glyph llms --negative</code> antwortet aus denselben Korpora, die <code>cargo test</code> ausführt.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Wo es aufhört</h3>
-          <p>In diesem Dokument erscheinen zwei Zählungen der fehlerhaften Programme, und sie zählen verschiedene Dinge: 51 der 77 Codes haben ein Gegenbeispiel aus <code>tests/negative/</code>, und <code>glyph llms --negative</code> listet in 0.1.149 117 Fälle über 53 Codes, weil es auch die Ablehnungen in <code>catches/</code> liest; das nächste Release ergänzt die 22 Ablehnungen, die seitdem zu <code>catches/</code> hinzugekommen sind, auf 139 Fälle über 55 Codes. In 0.1.149 haben 24 Codes in keinem der beiden Korpora ein fehlerhaftes Programm, und die Antwort nennt sie, statt eins zu erfinden. 165 der 340 Stdlib-Exports kommen ohne Signatur zurück: Die Implementierung ist TypeScript, das <code>tsc</code> prüft, und die eigenen Tabellen des Compilers modellieren nichts dafür, also meldet <code>glyph_symbol</code> auf <code>std/result::all</code> oder <code>std/io::println</code> <code>kind: null</code> mit diesem Grund. Von den 175, die eine haben, tragen 46 noch ein <code>?</code>, wo ein Parametertyp hingehört. Und das Dokument ist ein Schnappschuss, den du abrufst, kein Dienst: Es gibt keine Retrieval-Schicht, keine Embeddings und keine Chat-Oberfläche darüber.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h3 class="ak-h3" id="offline-and-local">Offline und lokal<a class="ak-anchor" href="#offline-and-local" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        All das ist offline und lokal. <code>glyph llms</code> gibt den Fließtext aus, <code>glyph llms --json</code> die Daten, <code>glyph llms --negative</code> die fehlerhaften Programme.
+      </p>
+      <p>
+        Derselbe Fließtext wird unter <a href="/llms.txt">llms.txt</a> für einen Agenten mit Netzwerk und ohne Binary ausgeliefert. Was ein Agent über <em>deinen</em> Code fragt statt über die Sprache, beantworten die <a href="/de/answers/ask-the-compiler/">Abfrage-Tools</a>.
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --json</code> gibt sieben Abschnitte aus dem Compiler aus</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>glyph llms --json</code> gibt sieben Abschnitte aus dem Compiler aus: 77 Diagnosecodes, 51 davon mit einem kompilierten Gegenbeispiel, die 32 reservierten Wörter, die 24 Prelude-Namen, 40 Stdlib-Module mit 340 Exports, 49 aus der Spezifikation geparste Sprachentscheidungen und die elf Tools mit ihren Verben von <code>glyph query</code> und vollständigen Handbüchern.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>docs/error-codes.md</code> und die Diagnosetabelle des Einstiegsdokuments werden aus der eigenen Code-Tabelle des Compilers geschrieben</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>docs/error-codes.md</code> und die Diagnosetabelle des Einstiegsdokuments werden aus der eigenen Code-Tabelle des Compilers von einem Skript geschrieben, das bei Abweichungen fehlschlägt und <code>llms.txt</code> gleich mit spiegelt.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Test hält den Tool-Katalog an das, was der Server anbietet.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Jeder Glyph-Codeblock im Einstiegsdokument und in der Stdlib-Referenz kompiliert oder ist ein markiertes Fragment eines Blocks, der kompiliert</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Jeder Glyph-Codeblock im Einstiegsdokument und in der Stdlib-Referenz kompiliert oder ist ein markiertes Fragment eines Blocks, der kompiliert, und fünf falsche Formen sind Programme, die mit dem Code gepaart sind, den jedes auslöst.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --negative</code> antwortet aus denselben Korpora, die <code>cargo test</code> ausführt.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wo es aufhört</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">In diesem Dokument erscheinen zwei Zählungen der fehlerhaften Programme, und sie zählen verschiedene Dinge</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>In diesem Dokument erscheinen zwei Zählungen der fehlerhaften Programme, und sie zählen verschiedene Dinge: 51 der 77 Codes haben ein Gegenbeispiel aus <code>tests/negative/</code>, und <code>glyph llms --negative</code> listet in 0.1.149 117 Fälle über 53 Codes, weil es auch die Ablehnungen in <code>catches/</code> liest; das nächste Release ergänzt die 22 Ablehnungen, die seitdem zu <code>catches/</code> hinzugekommen sind, auf 139 Fälle über 55 Codes.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">In 0.1.149 haben 24 Codes in keinem der beiden Korpora ein fehlerhaftes Programm, und die Antwort nennt sie, statt eins zu erfinden.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">165 der 340 Stdlib-Exports kommen ohne Signatur zurück</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>165 der 340 Stdlib-Exports kommen ohne Signatur zurück: Die Implementierung ist TypeScript, das <code>tsc</code> prüft, und die eigenen Tabellen des Compilers modellieren nichts dafür, also meldet <code>glyph_symbol</code> auf <code>std/result::all</code> oder <code>std/io::println</code> <code>kind: null</code> mit diesem Grund.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Von den 175, die eine haben, tragen 46 noch ein <code>?</code>, wo ein Parametertyp hingehört.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Und das Dokument ist ein Schnappschuss, den du abrufst, kein Dienst: Es gibt keine Retrieval-Schicht, keine Embeddings und keine Chat-Oberfläche darüber.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/repair-protocol/">
           <span class="dir">&larr; Zurück</span>

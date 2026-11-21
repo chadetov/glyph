@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/pillars/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"diff ที่คงที่","item":"https://glyphlang.io/th/pillars/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/pillars/diff-stability/#article","headline":"diff ที่คงที่ · แก้หนึ่งบรรทัด diff หนึ่งบรรทัด","description":"เสาหลักข้อที่สามของ Glyph: รูปแบบมาตรฐานเดียว trailing comma list ที่ไม่ถูกจัดกลุ่มใหม่ ไม่มีไฟล์ barrel และ codegen ที่รันซ้ำได้ผลเท่าเดิม diff แสดงการเปลี่ยนแปลง ไม่ใช่ความวุ่นวาย","url":"https://glyphlang.io/th/pillars/diff-stability/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/pillars/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/diff-stability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">เสาหลัก 04 &middot; <span class="polish">ส่วนเสริม</span></p>
       <h1 class="q-title">diff ที่คงที่</h1>
 
@@ -435,65 +435,85 @@
         การแก้หนึ่งบรรทัดคือ<strong>diff หนึ่งบรรทัด</strong> รูปแบบมาตรฐานเดียว trailing comma และ list ที่อยู่ในบรรทัดเดียวทั้งหมด หรือหนึ่ง element ต่อบรรทัดทั้งหมด ไม่มีการจัดกลุ่มใหม่ การรีวิวจึงแสดงการเปลี่ยนแปลงที่เกิดขึ้น ไม่ใช่ความวุ่นวายรอบๆ
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="review-is-reading-diffs">การรีวิวคือการอ่าน diff<a class="h-anchor" href="#review-is-reading-diffs" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p class="lede">
-          แทบทุกอย่างที่เราเชื่อถือเกี่ยวกับการเปลี่ยนแปลง (การรีวิว blame การ revert การ bisect) สร้างบน diff อัตราส่วนสัญญาณต่อสิ่งรบกวนของ diff จึงเป็นสกุลเงินจริง ใน codebase ส่วนใหญ่มันแย่มาก: formatter จัดบรรทัดที่ตัดไว้ใหม่ ตัวเรียง import สลับทั้ง block การเปลี่ยนชื่อแตะ whitespace ของทุกจุดที่เรียก และบรรทัดเดียวที่<em>สำคัญ</em>ก็จมอยู่ในห้าสิบบรรทัดที่ไม่สำคัญ
-        </p>
-        <p class="lede">
-          เอเจนต์ทำให้เรื่องนี้แย่ลงมาก เมื่อได้งานเล็กๆ โมเดลยินดีเขียนทั้งฟังก์ชันหรือทั้งไฟล์ใหม่เพื่อเปลี่ยนสิ่งเดียว เพราะการสร้างใหม่ง่ายกว่าการแก้อย่างแม่นยำสำหรับมัน คนรีวิวต้องมาเทียบ diff ระหว่างของที่เขียนใหม่กับต้นฉบับ และ<em>หวัง</em>ว่าการเปลี่ยนแปลงจริงมีแค่ที่ตั้งใจ Glyph สร้างมาให้ layout ไม่มีอะไรให้โมเดลปั่นป่วน
-        </p>
-
-        <h2 class="block-label" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> layout มาตรฐานเดียว ไม่มีตัวเลือก<a class="h-anchor" href="#one-canonical-layout-no-choices" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          <code>glyph fmt</code> พิมพ์ทุกไฟล์ใหม่ใน layout ตายตัวแบบเดียว: ย่อหน้าสองช่อง trailing comma ในทุก list ที่มีหลายบรรทัด และ list ที่อยู่ในบรรทัดเดียวขณะที่ยังพอดีใน 100 คอลัมน์ และเป็นหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี เป็นแบบทั้งหมดหรือไม่มีเลย formatter ไม่เคยจัดกลุ่ม element ใหม่ให้เต็มบรรทัด list จึงไม่มีวันอยู่บรรทัดหนึ่งบางส่วนและบรรทัดถัดไปบางส่วน และการเพิ่ม field คือการเพิ่มหนึ่งบรรทัด เพราะมีรูปร่างที่ถูกต้องเพียงแบบเดียว จึงไม่มีอะไรให้เถียงกัน และไม่มีอะไรให้เครื่องมือแอบ "แก้" ไปด้วย
-        </p>
-        <p>
-          เกณฑ์ความกว้างคือต้นทุนของเรื่องนี้ เปลี่ยนชื่อ binding จนการเรียกเกิน 100 คอลัมน์ แล้วการเรียกจะขยายเป็นหนึ่ง argument ต่อบรรทัด: แก้หนึ่ง token ได้ diff สี่บรรทัด สิ่งที่แลกมาคือ layout ขึ้นกับโค้ดและคอลัมน์ที่มันเริ่มเท่านั้น เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้ไบต์ที่ตรงกัน
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">สไตล์ที่จัดบรรทัดใหม่: การเปลี่ยนแปลงหนึ่งครั้ง แตะสามบรรทัด</span>
-          <span class="cap">git diff (การจัดรูปแบบแบบอัดแน่น)</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">สไตล์ที่จัดบรรทัดใหม่: การเปลี่ยนแปลงหนึ่งครั้ง แตะสามบรรทัด</span>
+            <span class="cap">git diff (การจัดรูปแบบแบบอัดแน่น)</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: การเปลี่ยนแปลงหนึ่งครั้ง เพิ่มหนึ่งบรรทัด</span>
-          <span class="cap">git diff (แบบมาตรฐาน)</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: การเปลี่ยนแปลงหนึ่งครั้ง เพิ่มหนึ่งบรรทัด</span>
+            <span class="cap">git diff (แบบมาตรฐาน)</span>
 <pre>  <span class="k">type</span> <span class="t">User</span> = {
     id: <span class="t">number</span>,
     name: <span class="t">string</span>,
 <span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          trailing comma ทำงานอย่างเงียบๆ: เพราะ element สุดท้ายลงท้ายด้วย comma อยู่แล้ว การเพิ่มตัวข้างเคียง<strong>จึงไม่เคยแก้บรรทัดข้างบน</strong> แทรกหนึ่งครั้ง หนึ่งบรรทัด
-        </p>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">การรีวิวคือการอ่าน diff</a></li>
+          <li><a href="#one-canonical-layout-no-choices">layout มาตรฐานแบบเดียว</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">ลำดับที่คงที่</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">ไม่มี barrel file</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">การ generate ที่ idempotent</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">benchmark</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> ลำดับคงที่ ประวัติจึงอ่านได้<a class="h-anchor" href="#order-is-stable-so-history-is-legible" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">การรีวิวคือการอ่าน diff<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        แทบทุกอย่างที่เราเชื่อถือเกี่ยวกับการเปลี่ยนแปลง (การรีวิว blame การ revert การ bisect) สร้างบน diff อัตราส่วนสัญญาณต่อสิ่งรบกวนของ diff จึงเป็นสกุลเงินจริง
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งรบกวนมาจากไหน</span></summary><div class="body">
         <p>
-          หนึ่ง element ต่อบรรทัดหมายความว่าการสลับลำดับ แทรก หรือลบรายการ แตะเฉพาะบรรทัดของรายการนั้น ไม่เคยแตะเพื่อนข้างเคียง <code>git blame</code> ยังมีความหมาย: commit ล่าสุดที่แตะแต่ละบรรทัดคือ commit ที่เปลี่ยน element <em>นั้น</em>จริง ไม่ใช่รอบจัดรูปแบบที่บังเอิญจัดแถวที่มันอยู่ร่วมใหม่
+          ใน codebase ส่วนใหญ่มันแย่มาก: formatter จัดบรรทัดที่ตัดไว้ใหม่ ตัวเรียง import สลับทั้ง block การเปลี่ยนชื่อแตะ whitespace ของทุกจุดที่เรียก และบรรทัดเดียวที่<em>สำคัญ</em>ก็จมอยู่ในห้าสิบบรรทัดที่ไม่สำคัญ
         </p>
-
-        <h2 class="block-label" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> ไม่มีไฟล์ barrel: ไม่มีความวุ่นวายใน import<a class="h-anchor" href="#no-barrel-files-no-import-churn" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          เพราะ import ไม่เคย re-export และไม่มีชั้นรวม <code>index.ts</code> (<code>E0102</code>) การเพิ่มหรือย้ายสัญลักษณ์จึงไม่กระเพื่อมผ่าน barrel ที่ผู้ใช้ทุกคน import เส้น dependency ที่คุณแก้คือเส้นที่คุณตั้งใจ ส่วนที่เหลือของกราฟ import ไม่ขยับ
+          เอเจนต์ทำให้เรื่องนี้แย่ลงมาก เมื่อได้งานเล็กๆ โมเดลยินดีเขียนทั้งฟังก์ชันหรือทั้งไฟล์ใหม่เพื่อเปลี่ยนสิ่งเดียว เพราะการสร้างใหม่ง่ายกว่าการแก้อย่างแม่นยำสำหรับมัน คนรีวิวต้องมาเทียบ diff ระหว่างของที่เขียนใหม่กับต้นฉบับ และ<em>หวัง</em>ว่าการเปลี่ยนแปลงจริงมีแค่ที่ตั้งใจ
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph สร้างมาให้ layout ไม่มีอะไรให้โมเดลปั่นป่วน</p></div>
 
-        <h2 class="block-label" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> การ generate ให้ผลเท่าเดิมเมื่อรันซ้ำ ไม่ใช่ก้อนทึบ<a class="h-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> layout มาตรฐานเดียว ไม่มีตัวเลือก<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> พิมพ์ทุกไฟล์ใหม่ใน layout ตายตัวแบบเดียว: ย่อหน้าสองช่อง trailing comma ในทุก list ที่มีหลายบรรทัด และ list ที่อยู่ในบรรทัดเดียวขณะที่ยังพอดีใน 100 คอลัมน์ และเป็นหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี เป็นแบบทั้งหมดหรือไม่มีเลย
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ไม่จัดกลุ่มใหม่ มีรูปร่างที่ถูกต้องแบบเดียว</span></summary><div class="body">
         <p>
-          วินัยเดียวกันขยายไปถึงโค้ดที่ generate <code>glyph gen</code> และ <code>glyph regen</code> พิมพ์ output ใหม่ผ่าน formatter มาตรฐาน การ generate ใหม่หลังสเปกเปลี่ยนจึงได้ diff ที่<em>เล็กที่สุด</em>ซึ่งรีวิวได้จริง เปลี่ยนไม่กี่บรรทัด ไม่ใช่แทนที่ไฟล์ที่เครื่องเขียนทั้งไฟล์ และทุก <code>.ts</code> ที่ emit มี source map มาด้วย แม้แต่ output ที่คอมไพล์แล้วก็ไล่กลับไปยังบรรทัดที่คุณแก้ได้สะอาด
+          formatter ไม่เคยจัดกลุ่ม element ใหม่ให้เต็มบรรทัด list จึงไม่มีวันอยู่บรรทัดหนึ่งบางส่วนและบรรทัดถัดไปบางส่วน และการเพิ่ม field คือการเพิ่มหนึ่งบรรทัด เพราะมีรูปร่างที่ถูกต้องเพียงแบบเดียว จึงไม่มีอะไรให้เถียงกัน และไม่มีอะไรให้เครื่องมือแอบ "แก้" ไปด้วย
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>เกณฑ์ความกว้างคือต้นทุนของเรื่องนี้ เปลี่ยนชื่อ binding จนการเรียกเกิน 100 คอลัมน์ แล้วการเรียกจะขยายเป็นหนึ่ง argument ต่อบรรทัด: แก้หนึ่ง token ได้ diff สี่บรรทัด สิ่งที่แลกมาคือ layout ขึ้นกับโค้ดและคอลัมน์ที่มันเริ่มเท่านั้น เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้ไบต์ที่ตรงกัน</p></div>
+      <p class="pull-quote">
+        trailing comma ทำงานอย่างเงียบๆ: เพราะ element สุดท้ายลงท้ายด้วย comma อยู่แล้ว การเพิ่มตัวข้างเคียง<strong>จึงไม่เคยแก้บรรทัดข้างบน</strong> แทรกหนึ่งครั้ง หนึ่งบรรทัด
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> ลำดับคงที่ ประวัติจึงอ่านได้<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        หนึ่ง element ต่อบรรทัดหมายความว่าการสลับลำดับ แทรก หรือลบรายการ แตะเฉพาะบรรทัดของรายการนั้น ไม่เคยแตะเพื่อนข้างเคียง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>git blame</code> ยังมีความหมาย: commit ล่าสุดที่แตะแต่ละบรรทัดคือ commit ที่เปลี่ยน element <em>นั้น</em>จริง ไม่ใช่รอบจัดรูปแบบที่บังเอิญจัดแถวที่มันอยู่ร่วมใหม่</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> ไม่มีไฟล์ barrel: ไม่มีความวุ่นวายใน import<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เพราะ import ไม่เคย re-export และไม่มีชั้นรวม <code>index.ts</code> (<code>E0102</code>) การเพิ่มหรือย้ายสัญลักษณ์จึงไม่กระเพื่อมผ่าน barrel ที่ผู้ใช้ทุกคน import เส้น dependency ที่คุณแก้คือเส้นที่คุณตั้งใจ ส่วนที่เหลือของกราฟ import ไม่ขยับ
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> การ generate ให้ผลเท่าเดิมเมื่อรันซ้ำ ไม่ใช่ก้อนทึบ<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        วินัยเดียวกันขยายไปถึงโค้ดที่ generate <code>glyph gen</code> และ <code>glyph regen</code> พิมพ์ output ใหม่ผ่าน formatter มาตรฐาน การ generate ใหม่หลังสเปกเปลี่ยนจึงได้ diff ที่<em>เล็กที่สุด</em>ซึ่งรีวิวได้จริง เปลี่ยนไม่กี่บรรทัด ไม่ใช่แทนที่ไฟล์ที่เครื่องเขียนทั้งไฟล์
+      </p>
       <div class="code">
         <span class="cap">เพิ่ม field ในสเปก &rarr; diff ที่ generate ใหม่</span>
 <pre>  <span class="k">type</span> <span class="t">Task</span> = {
@@ -503,36 +523,27 @@
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>และทุก <code>.ts</code> ที่ emit มี source map มาด้วย แม้แต่ output ที่คอมไพล์แล้วก็ไล่กลับไปยังบรรทัดที่คุณแก้ได้สะอาด</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript ทำแบบนี้ได้ด้วย Prettier"<a class="h-anchor" href="#typescript-can-do-this-with-prettier" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          สำหรับการจัดรูปแบบส่วนใหญ่ ทำได้ Prettier ที่ตั้ง <code>trailingComma: "all"</code> ใส่ comma ให้ element สุดท้าย และพิมพ์ list ยาวเป็นหนึ่งตัวต่อบรรทัด ซึ่งได้ส่วนใหญ่ของหัวข้อ 01 แล้ว ความต่างอยู่สามที่
-        </p>
-        <p>
-          <strong>layout ขึ้นกับโค้ดเท่านั้น</strong> Prettier คง object literal ไว้แบบขยายถ้าคนเขียนขึ้นบรรทัดใหม่หลัง <code>{</code> และยุบมันถ้าไม่ได้ขึ้น object เดียวกันจึงพิมพ์ได้สองแบบขึ้นกับว่าพิมพ์มาแบบไหนตอนแรก เอเจนต์สองตัวที่เขียนสิ่งเดียวกันได้สอง layout และการแก้ครั้งถัดไปของตัวใดตัวหนึ่งจะโผล่เป็นการจัดบรรทัดใหม่ <code>glyph fmt</code> พิมพ์ <code>{ a: 1, b: 2 }</code> แบบเดียวกันไม่ว่า input จะถูกตัดบรรทัดอย่างไร
-        </p>
-        <p>
-          <strong>ไม่มีอะไรให้ตั้งค่า</strong> output ของ Prettier เป็นไปตามไฟล์ config ของ repository และบาง repository ก็ไม่มี เอเจนต์ที่ย้ายไปมาระหว่างโปรเจกต์ TypeScript จะเจอ layout ต่างกันในแต่ละที่ ไฟล์ Glyph มี layout เดียวกันในทุกโปรเจกต์ เพราะ formatter ไม่มีตัวเลือก
-        </p>
-        <p>
-          <strong>formatter เปลี่ยนความหมายของไฟล์ไม่ได้</strong> <code>glyph fmt</code> ถูกทดสอบโดย parse output ของตัวเองแล้วเทียบ syntax tree กับของ input บนทุกตัวอย่างใน repository และภายใต้ fuzzer เมื่อ comment อยู่ในที่ที่ layout ไม่มีบรรทัดให้ มันจะปฏิเสธไฟล์ (<code>E0500</code>) แทนที่จะย้าย comment ไปอยู่ข้างโค้ดที่มันไม่ได้อธิบาย
-        </p>
-        <p>
-          มีอย่างหนึ่งในรายการที่ยังไม่เสร็จ: <code>glyph fmt</code> ไม่เรียง import เอเจนต์สองตัวที่เพิ่ม import คนละตำแหน่งจึงยังได้ block ของ import ต่างกัน (G358)
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript ทำแบบนี้ได้ด้วย Prettier"<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        สำหรับการจัดรูปแบบส่วนใหญ่ ทำได้ Prettier ที่ตั้ง <code>trailingComma: "all"</code> ใส่ comma ให้ element สุดท้าย และพิมพ์ list ยาวเป็นหนึ่งตัวต่อบรรทัด ซึ่งได้ส่วนใหญ่ของหัวข้อ 01 แล้ว ความต่างอยู่สามที่
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>layout ขึ้นกับโค้ดเท่านั้น</b>Prettier คง object literal ไว้แบบขยายถ้าคนเขียนขึ้นบรรทัดใหม่หลัง <code>{</code> และยุบมันถ้าไม่ได้ขึ้น object เดียวกันจึงพิมพ์ได้สองแบบขึ้นกับว่าพิมพ์มาแบบไหนตอนแรก เอเจนต์สองตัวที่เขียนสิ่งเดียวกันได้สอง layout และการแก้ครั้งถัดไปของตัวใดตัวหนึ่งจะโผล่เป็นการจัดบรรทัดใหม่ <code>glyph fmt</code> พิมพ์ <code>{ a: 1, b: 2 }</code> แบบเดียวกันไม่ว่า input จะถูกตัดบรรทัดอย่างไร</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>ไม่มีอะไรให้ตั้งค่า</b>output ของ Prettier เป็นไปตามไฟล์ config ของ repository และบาง repository ก็ไม่มี เอเจนต์ที่ย้ายไปมาระหว่างโปรเจกต์ TypeScript จะเจอ layout ต่างกันในแต่ละที่ ไฟล์ Glyph มี layout เดียวกันในทุกโปรเจกต์ เพราะ formatter ไม่มีตัวเลือก</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>formatter เปลี่ยนความหมายของไฟล์ไม่ได้</b><code>glyph fmt</code> ถูกทดสอบโดย parse output ของตัวเองแล้วเทียบ syntax tree กับของ input บนทุกตัวอย่างใน repository และภายใต้ fuzzer เมื่อ comment อยู่ในที่ที่ layout ไม่มีบรรทัดให้ มันจะปฏิเสธไฟล์ (<code>E0500</code>) แทนที่จะย้าย comment ไปอยู่ข้างโค้ดที่มันไม่ได้อธิบาย</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>มีอย่างหนึ่งในรายการที่ยังไม่เสร็จ: <code>glyph fmt</code> ไม่เรียง import เอเจนต์สองตัวที่เพิ่ม import คนละตำแหน่งจึงยังได้ block ของ import ต่างกัน (G358)</p></div>
+      <p class="pull-quote">
+        diff ที่คงที่คือสิ่งที่เปลี่ยน "เอเจนต์เปลี่ยนอะไรบางอย่าง" ให้เป็น "เอเจนต์เปลี่ยน<strong>สิ่งนี้พอดี</strong>" เมื่อระดับสิ่งรบกวนเป็นศูนย์ การรีวิวก็เร็วและความไว้ใจก็ได้มาง่าย
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          diff ที่คงที่คือสิ่งที่เปลี่ยน "เอเจนต์เปลี่ยนอะไรบางอย่าง" ให้เป็น "เอเจนต์เปลี่ยน<strong>สิ่งนี้พอดี</strong>" เมื่อระดับสิ่งรบกวนเป็นศูนย์ การรีวิวก็เร็วและความไว้ใจก็ได้มาง่าย
-        </p>
-
-        <h2 class="block-label" id="the-benchmark-coming">benchmark: กำลังมา<a class="h-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ตัวเลขที่จับเรื่องนี้ได้คือขนาดของ diff ต่อการเปลี่ยนแปลงเชิงตรรกะหนึ่งครั้ง: มีกี่บรรทัดที่ขยับเมื่อคุณแก้ตามที่ตั้งใจหนึ่งครั้ง ใน Glyph เทียบกับการเปลี่ยนแปลง TypeScript ที่เทียบเท่าซึ่งผ่าน formatter ทั่วไป Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีประวัติจริงให้ดึงมา
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">benchmark: กำลังมา<a class="ak-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัวเลขที่จับเรื่องนี้ได้คือขนาดของ diff ต่อการเปลี่ยนแปลงเชิงตรรกะหนึ่งครั้ง: มีกี่บรรทัดที่ขยับเมื่อคุณแก้ตามที่ตั้งใจหนึ่งครั้ง ใน Glyph เทียบกับการเปลี่ยนแปลง TypeScript ที่เทียบเท่าซึ่งผ่าน formatter ทั่วไป
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีประวัติจริงให้ดึงมา</p></div>
 
       <div class="chart">
         <span class="label">จำนวนบรรทัดใน diff ต่อการเปลี่ยน field หนึ่งตัว &middot; ยิ่งน้อยยิ่งดี</span>
@@ -550,17 +561,13 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          มันแลกอิสระไปเล็กน้อย (คุณจัดบรรทัดเองตามใจไม่ได้) และได้ความอ่านง่ายกลับมามาก นั่นคือสิ่งที่เสาหลักส่วนเสริมทุกข้อแลก: ยอมทิ้งตัวเลือกที่ไม่สำคัญ เพื่อรักษาสัญญาณที่สำคัญไว้
-        </p>
-      </div>
+      <p class="ak-lede">
+        มันแลกอิสระไปเล็กน้อย (คุณจัดบรรทัดเองตามใจไม่ได้) และได้ความอ่านง่ายกลับมามาก นั่นคือสิ่งที่เสาหลักส่วนเสริมทุกข้อแลก: ยอมทิ้งตัวเลือกที่ไม่สำคัญ เพื่อรักษาสัญญาณที่สำคัญไว้
+      </p>
 
-      <div class="detail">
-        <p>
-          สิ่งนี้มีความหมายอย่างไรต่อการแก้ของเอเจนต์ในการรีวิว พร้อม diff ก่อนและหลัง ดู <a href="/th/answers/diff-stability/">การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        สิ่งนี้มีความหมายอย่างไรต่อการแก้ของเอเจนต์ในการรีวิว พร้อม diff ก่อนและหลัง ดู <a href="/th/answers/diff-stability/">การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?</a>
+      </p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/pillars/abstraction/">
           <span class="dir">&larr; เสาหลักก่อนหน้า</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему Glyph ловит то же, что tsc, но раньше?","item":"https://glyphlang.io/ru/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/early-errors/#article","headline":"Почему Glyph ловит то же, что tsc, но раньше?","description":"Glyph сообщает await вне async fn, ветку match без значения и пропущенный mut относительно вашего исходного кода, с правилом и исправлением, ещё до tsc.","url":"https://glyphlang.io/ru/answers/early-errors/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/early-errors/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему Glyph ловит то же, что tsc, но раньше?","item":"https://glyphlang.io/ru/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/early-errors/#article","headline":"Почему Glyph ловит то же, что tsc, но раньше?","description":"Glyph сообщает await вне async fn, ветку match без значения и пропущенный mut относительно вашего исходного кода, с правилом и исправлением, ещё до tsc.","url":"https://glyphlang.io/ru/answers/early-errors/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/early-errors/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/early-errors/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/early-errors/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
-      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/early-errors/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -426,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">26 &middot; Пойманное раньше</p>
       <h1 class="q-title">Почему Glyph ловит то же, что tsc, но раньше?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -479,23 +478,9 @@
         Потому что ошибка в сгенерированном TypeScript это ошибка в коде, который вы не писали. Glyph сообщает о таких ошибках относительно вашего исходного кода, с правилом, которое вы нарушили, и правкой, которая это исправляет.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Glyph компилируется в TypeScript, а затем проверяет типы результата через <code>tsc --strict</code>, так что ошибка, которую Glyph не моделирует, не теряется. Она возвращается на шаг позже, сформулированная в терминах сгенерированного файла: <code>TS1308</code>, указывающий на <code>await</code> в функции, которую вы не писали, или <code>TS2366</code> о <code>switch</code>, которого вы не писали. Строка отображается обратно в ваш <code>.glyph</code>, а объяснение нет.
-        </p>
-        <p>
-          В этом зазоре компилятор перестаёт учить. Поэтому каждое правило, которое Glyph может проверить сам, переносится раньше: <code>await</code> вне <code>async fn</code> (<code>E0222</code>), ветка <code>match</code>, которая не даёт значения, когда <code>match</code> используется как значение (<code>E0223</code>), и присваивание без <code>mut</code> (<code>E0008</code>). Каждая ошибка называет правило, ссылается на стоящее за ним решение и показывает код до и после.
-        </p>
-
-        <h2 class="block-label" id="see-it">Посмотрите сами<a class="h-anchor" href="#see-it" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Случай с веткой раньше проскакивал полностью. <code>{}</code> в позиции ветки это пустой <em>блок</em>, а не пустая запись, поэтому ветка выполнялась и ничего не давала:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">status.glyph: ветка, которая ничего не даёт, в позиции, где нужно значение</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">status.glyph: ветка, которая ничего не даёт, в позиции, где нужно значение</span>
 <pre><span class="k">fn</span> label(s: <span class="t">Status</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">let</span> text = <span class="k">match</span> s {
 <span class="del">    <span class="t">Loading</span> <span class="op">=&gt;</span> {},          <span class="c">// an empty block: the arm produces no value</span></span>
@@ -504,27 +489,64 @@
   }
   <span class="k">return</span> text
 }</pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0223]</span> this <span class="q">`match`</span> arm produces no value, but the <span class="q">`match`</span> is used as a value</span>
    <span class="bx">╰─</span> End the arm with an expression, or <span class="q">`return`</span> from it. <span class="q">`X =&gt; {}`</span> is a no-op
       only where the <span class="q">`match`</span> is a statement.
    <span class="f">note:</span> A value-position arm lowers to <span class="q">`case X: { break; }`</span> when it yields
          nothing, so the value would be <span class="q">`undefined`</span> at run time.</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Случай с веткой раньше проскакивал полностью. <code>{}</code> в позиции ветки это пустой <em>блок</em>, а не пустая запись, поэтому ветка выполнялась и ничего не давала.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          До этого сгенерированный <code>switch</code> проваливался мимо своих case, и <code>text</code> содержал <code>undefined</code>, хотя его тип говорил <code>string</code>. <code>tsc</code> ловит одни формы этой ошибки и пропускает другие. Теперь Glyph решает это везде, где позиция позволяет: в <code>let</code>, в <code>mut</code>, в <code>return</code> или в последнем выражении функции, объявляющей тип возврата. В <code>match</code> на уровне инструкции <code>X =&gt; {}</code> остаётся намеренным no-op, которым он и является.
-        </p>
-        <p>
-          С <code>await</code> то же самое. В Glyph нет видимого пользователю <code>Promise</code>: <code>async fn -&gt; T</code> при ожидании даёт <code>T</code>, поэтому <code>await</code> в любом другом месте нечего приостанавливать. Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#value-arm">Ветка без значения</a></li>
+          <li><a href="#await">await вне async</a></li>
+          <li><a href="#missing-mut">Пропущенный mut</a></li>
+          <li><a href="#the-worse-case-when-tsc-is-happy-too">Когда tsc тоже доволен</a></li>
+          <li><a href="#a-wrong-message-is-worse-than-no-message">Неверное сообщение</a></li>
+          <li><a href="#naming-the-rule-not-the-token">Правило, а не токен</a></li>
+          <li><a href="#two-more-the-checker-took-over-in-0-1-121">Забранные в 0.1.121</a></li>
+          <li><a href="#and-three-more-since-0-1-133">Начиная с 0.1.133</a></li>
+          <li><a href="#and-two-more-in-0-1-122">В 0.1.122</a></li>
+          <li><a href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">Литеральные типы, 0.1.123</a></li>
+          <li><a href="#a-module-under-std-was-dead-code-with-no-diagnostic">Модуль под std/</a></li>
+          <li><a href="#nesting-limit">Предел вложенности</a></li>
+          <li><a href="#when-neither-compiler-is-wrong">Когда никто не ошибается</a></li>
+          <li><a href="#the-same-typo-two-answers">Одна опечатка</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-      <div class="code">
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph компилируется в TypeScript, а затем проверяет типы результата через <code>tsc --strict</code>, так что ошибка, которую Glyph не моделирует, не теряется. Она возвращается на шаг позже, сформулированная в терминах сгенерированного файла: <code>TS1308</code>, указывающий на <code>await</code> в функции, которую вы не писали, или <code>TS2366</code> о <code>switch</code>, которого вы не писали.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Строка отображается обратно в ваш <code>.glyph</code>, а объяснение нет. В этом зазоре компилятор перестаёт учить.</p></div>
+      <p class="ak-lede">Поэтому каждое правило, которое Glyph может проверить сам, переносится раньше:</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>await</code> вне <code>async fn</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b>ветка <code>match</code>, которая не даёт значения, когда <code>match</code> используется как значение</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>Присваивание без <code>mut</code></li>
+      </ul>
+      <p class="ak-lede">Каждая ошибка называет правило, ссылается на стоящее за ним решение и показывает код до и после.</p>
+
+      <h2 class="ak-h" id="value-arm">Ветка, которая не даёт значения<a class="ak-anchor" href="#value-arm" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        До этого сгенерированный <code>switch</code> проваливался мимо своих case, и <code>text</code> содержал <code>undefined</code>, хотя его тип говорил <code>string</code>. <code>tsc</code> ловит одни формы этой ошибки и пропускает другие.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Теперь Glyph решает это везде, где позиция позволяет: в <code>let</code>, в <code>mut</code>, в <code>return</code> или в последнем выражении функции, объявляющей тип возврата. В <code>match</code> на уровне инструкции <code>X =&gt; {}</code> остаётся намеренным no-op, которым он и является.</p></div>
+
+      <h2 class="ak-h" id="await">await вне async fn<a class="ak-anchor" href="#await" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        С <code>await</code> то же самое. В Glyph нет видимого пользователю <code>Promise</code>: <code>async fn -&gt; T</code> при ожидании даёт <code>T</code>, поэтому <code>await</code> в любом другом месте нечего приостанавливать.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build, для `fn total() -&gt; number { return await fetch_count() }`</span>
 <pre class="wraps"><span class="del"><span class="e">[E0222]</span> <span class="q">`await`</span> is only valid inside an <span class="q">`async fn`</span></span>
    <span class="bx">╰─</span> Mark the enclosing function <span class="q">`async fn`</span>, or call a non-async function here.
@@ -533,27 +555,30 @@
 <span class="dim"><span class="lc">dist/main.ts:14:18</span> - <span class="e">error</span> <span class="e">TS1308</span>: 'await' expressions are only allowed
 within async functions and at the top levels of modules.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">какая вызываемая конструкция решает</span></summary><div class="body">
         <p>
-          Третья касается правила, которое нарушают в первый же день. Glyph помечает каждое изменение, поэтому переприсваивание привязки пишется <code>mut x = e</code>, а её введение <code>let x = e</code>. Голое <code>x = e</code> раньше давало «unexpected token: Equals», что называет символ, а не правило. Теперь это <code>E0008</code>, и <code>glyph --explain E0008</code> объясняет, зачем нужна пометка: каждое место, где меняется значение, начинается с <code>mut</code>, так что <code>grep "mut total"</code> находит их все.
+          Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="missing-mut">Присваивание без mut<a class="ak-anchor" href="#missing-mut" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Третья касается правила, которое нарушают в первый же день. Glyph помечает каждое изменение, поэтому переприсваивание привязки пишется <code>mut x = e</code>, а её введение <code>let x = e</code>.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0008</span><span class="chip code">E0302</span><span class="chip code">E0303</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Голое <code>x = e</code> раньше давало «unexpected token: Equals», что называет символ, а не правило. Теперь это <code>E0008</code>, и <code>glyph --explain E0008</code> объясняет, зачем нужна пометка: каждое место, где меняется значение, начинается с <code>mut</code>, так что <code>grep "mut total"</code> находит их все.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">оператор <code>?</code>, E0302 и E0303</span></summary><div class="body">
         <p>
           Оператор <code>?</code> получает то же обращение с другой стороны. <code>?</code> раскрывается в привязку плюс ранний <code>return</code>, поставленный перед инструкцией, в которой он находится, поэтому ему нужна инструкция, в которую можно раскрыться. Он работает в <code>let</code>, в <code>return</code>, в аргументе, а теперь и в теле ветки <code>match</code>. Там, где он работать не может, сообщение говорит, что это за позиция и как вынести значение в привязку (<code>E0302</code> и <code>E0303</code>), вместо того чтобы утверждать, что оператор не реализован.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-worse-case-when-tsc-is-happy-too">Случай хуже: когда tsc тоже доволен<a class="h-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Ошибка <code>tsc</code> не в том месте раздражает. Чистая сборка программы, которая означает что-то другое, это настоящая проблема, и в Glyph такая была. Каждое объявленное вами имя верхнего уровня попадает в сгенерированный модуль как есть, включая конструкторы вариантов размеченного объединения, поэтому вариант с именем <code>Error</code> даёт <code>export function Error(...)</code> на верхнем уровне модуля. И <code>new Error(...)</code>, который компилятор пишет ниже, вызывает уже ваш вариант.
-        </p>
-        <p>
-          <code>type Key = string | number</code> это тот же дефект с более дружелюбным лицом. В Glyph <code>A | B</code> объявляет размеченное объединение, члены которого это <em>конструкторы</em> вариантов, поэтому эта строка объявляет варианты с именами <code>string</code> и <code>number</code>. Она компилировалась, проходила <code>tsc --strict</code> и генерировала <code>export const number</code>, который перекрывал пространство имён <code>number</code> из прелюдии. Ничего не падало, пока не упал более поздний вызов <code>number.to_string</code>.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-worse-case-when-tsc-is-happy-too">Случай хуже: когда tsc тоже доволен<a class="ak-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ошибка <code>tsc</code> не в том месте раздражает. Чистая сборка программы, которая означает что-то другое, это настоящая проблема, и в Glyph такая была.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Каждое объявленное вами имя верхнего уровня попадает в сгенерированный модуль как есть, включая конструкторы вариантов размеченного объединения, поэтому вариант с именем <code>Error</code> даёт <code>export function Error(...)</code> на верхнем уровне модуля. И <code>new Error(...)</code>, который компилятор пишет ниже, вызывает уже ваш вариант.</p></div>
+      <div class="code term">
         <span class="cap">glyph build, для union с вариантом `Error`</span>
 <pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Error`</span> cannot name a type, variant, or function: the emitted module
         references the JavaScript global <span class="q">`Error`</span>, and this declaration would
@@ -567,51 +592,62 @@ within async functions and at the top levels of modules.</span></pre>
 <span class="dim"><span class="lc">dist/main.ts:31:12</span> - <span class="e">error</span> <span class="e">TS2345</span>: Argument of type 'string' is not
 assignable to parameter of type ...</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0110</span><span class="chip code">E0111</span><span class="chip code">E0109</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint"><code>type Key = string | number</code>, список защищённых имён, E0111</span></summary><div class="body">
+        <p>
+          <code>type Key = string | number</code> это тот же дефект с более дружелюбным лицом. В Glyph <code>A | B</code> объявляет размеченное объединение, члены которого это <em>конструкторы</em> вариантов, поэтому эта строка объявляет варианты с именами <code>string</code> и <code>number</code>. Она компилировалась, проходила <code>tsc --strict</code> и генерировала <code>export const number</code>, который перекрывал пространство имён <code>number</code> из прелюдии. Ничего не падало, пока не упал более поздний вызов <code>number.to_string</code>.
+        </p>
         <p>
           Ошибка указывает на объявление, потому что переименовывать нужно именно там. Защищаемый список берётся из эмиттера, а не из общего списка глобальных объектов JavaScript, и тест проходит grep по эмиттеру и падает, когда появляется новая ссылка на глобальный объект без соответствующей записи. В этом тесте весь смысл: <code>Number</code> был безобиден, пока не вышел <code>int</code> и не начал генерировать <code>Number.isInteger</code>, и именно так этот дефект вообще попал в выпуск. <code>Date</code>, <code>Math</code> и <code>JSON</code> остаются свободными, потому что ничто из генерируемого Glyph их не упоминает.
         </p>
         <p>
           Для union из примитивов есть отдельный код, <code>E0111</code>, потому что отказ без объяснения ничему не учит. Он говорит, как на самом деле разобралась строка, указывает на именованные варианты и называет <code>extern_ts("string | number")</code> для границы, где вам нужен настоящий union из TypeScript. Каждое имя, которое Glyph не даст использовать, перечислено в <code>docs/reference/reserved-words.md</code>: 32 ключевых слова, 33 зарезервированных слова TypeScript, стоящих за <code>E0109</code>, и список перекрываемых имён, у каждого указано, почему имя занято.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Важно ясно сказать, чего это не делает. Назвать тип или вариант <code>Error</code> по-прежнему нельзя, и электронная таблица, на которой это обнаружилось, из-за этого содержит вариант <code>Cellerr</code>. Программу, которой она хотела быть, по-прежнему нельзя написать; изменилось то, что компилятор теперь говорит об этом на объявлении, а не даёт сборке позеленеть и означать что-то другое.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему имя просто не сделать доступным</span></summary><div class="body">
         <p>
-          Важно ясно сказать, чего это не делает. Назвать тип или вариант <code>Error</code> по-прежнему нельзя, и электронная таблица, на которой это обнаружилось, из-за этого содержит вариант <code>Cellerr</code>. Программу, которой она хотела быть, по-прежнему нельзя написать; изменилось то, что компилятор теперь говорит об этом на объявлении, а не даёт сборке позеленеть и означать что-то другое. Чтобы имя стало доступным, нужно искажать имена Glyph при переходе в TypeScript, а это меняет то, что видят стектрейс, <code>grep</code> по <code>dist/</code> и рукописная прослойка в <code>extern/</code>, так что тихо такое не исправить.
+          Чтобы имя стало доступным, нужно искажать имена Glyph при переходе в TypeScript, а это меняет то, что видят стектрейс, <code>grep</code> по <code>dist/</code> и рукописная прослойка в <code>extern/</code>, так что тихо такое не исправить.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-wrong-message-is-worse-than-no-message">Неверное сообщение хуже, чем никакого<a class="h-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Список перекрываемых имён начинался с имён, которые эмиттер пишет как <em>значения</em>. В нём не хватало тех, что он пишет как <em>типы</em>, и это дало самую острую версию всей проблемы. <code>parse</code> каждого дескриптора возвращает <code>Result&lt;T, Issue[]&gt;</code>, поэтому сгенерированный модуль пишет <code>Issue</code> независимо от того, писали ли его вы. Объявите в своём модуле <code>type Issue = { path: Array&lt;string&gt;, message: string }</code>, и победит ваш тип, сгенерированные объекты <code>Issue</code> несут поле <code>code</code>, о котором ваш тип ничего не знает, и сборка падает с ошибкой <code>tsc</code> о сгенерированном коде, указывающей куда-то в другое место.
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, раньше: пятнадцать таких ошибок, и ни одна не рядом с причиной</span>
+      <h2 class="ak-h" id="a-wrong-message-is-worse-than-no-message">Неверное сообщение хуже, чем никакого<a class="ak-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Список перекрываемых имён начинался с имён, которые эмиттер пишет как <em>значения</em>. В нём не хватало тех, что он пишет как <em>типы</em>, и это дало самую острую версию всей проблемы.
+      </p>
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code term">
+            <span class="cap">glyph build, раньше: пятнадцать таких ошибок, и ни одна не рядом с причиной</span>
 <pre class="wraps"><span class="dim"><span class="lc">dist/corpus/infer_output.ts:52:9</span> - <span class="e">error</span> <span class="e">TS2353</span>: Object literal may only
 specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, теперь</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code term">
+            <span class="cap">glyph build, теперь</span>
 <pre class="wraps"><span class="del"><span class="e">[E0110]</span> <span class="q">`Issue`</span> cannot name a type, variant, or function: the emitted module
         references the Glyph prelude global <span class="q">`Issue`</span>, and this declaration
         would shadow it</span>
    <span class="bx">╰─</span> Rename it. The name is legal TypeScript, so nothing downstream catches
       the rebinding.</pre>
+          </div>
+        </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему <code>Issue</code> конфликтует, и <code>Record</code></span></summary><div class="body">
+        <p>
+          <code>parse</code> каждого дескриптора возвращает <code>Result&lt;T, Issue[]&gt;</code>, поэтому сгенерированный модуль пишет <code>Issue</code> независимо от того, писали ли его вы. Объявите в своём модуле <code>type Issue = { path: Array&lt;string&gt;, message: string }</code>, и победит ваш тип, сгенерированные объекты <code>Issue</code> несут поле <code>code</code>, о котором ваш тип ничего не знает, и сборка падает с ошибкой <code>tsc</code> о сгенерированном коде, указывающей куда-то в другое место.
+        </p>
         <p>
           <code>Record</code> попал в список одновременно с ним, причём среди глобальных объектов JavaScript, а не среди имён прелюдии, потому что это встроенный тип TypeScript, и иначе сообщение неверно говорило бы, откуда взялось имя. Тест на расхождение, который проходит grep по эмиттеру, теперь покрывает и встроенные типы, и ему пришлось научиться видеть <code>Issue[]</code> в позиции типа: именно поэтому дефект дошёл до выпуска. <code>Schema</code>, <code>Component</code> и <code>Option</code> остаются допустимыми по тому же правилу, по которому свободен <code>Date</code>: эмиттер пишет их только потому, что вы написали их в аннотации, так что объявление такого имени ничего не перекрывает.
         </p>
-        <p>
-          Другой случай этого класса касался импорта. Локальный путь импорта разрешается от корня сборки, каталога, который вы передаёте <code>glyph build</code>, а не от каталога импортирующего файла. Соберите охватывающее дерево, и <code>import catalog</code> ничего не находит, а до сих пор об этом ничего не сообщалось. Тип вырождался в unknown, <code>match</code> по нему терял варианты, которые сопоставлял, и вы получали <code>E0218</code>, неполный match, на <code>match</code>, который покрывал все случаи. Сделав то, что просило сообщение, вы добавили бы мёртвую ветку <code>else</code> в правильный код.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h3 class="ak-h3" id="wrong-cause-import">Импорт, из-за которого винили match<a class="ak-anchor" href="#wrong-cause-import" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Другой случай этого класса касался импорта. Локальный путь импорта разрешается от корня сборки, каталога, который вы передаёте <code>glyph build</code>, а не от каталога импортирующего файла.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build examples/apps, для `import catalog` внутри csvql/</span>
 <pre class="wraps"><span class="del"><span class="e">[E0104]</span> unresolved import <span class="q">`catalog`</span>: no module <span class="q">`catalog`</span> under the build
         root <span class="q">`examples/apps`</span>. There is a <span class="q">`csvql/catalog.glyph`</span> under the
@@ -623,24 +659,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// before: no import diagnostic, then</span>
 <span class="dim"><span class="e">[E0218]</span> non-exhaustive match on string   // on a match over all four values</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что сообщалось раньше и как избегаются ложные срабатывания</span></summary><div class="body">
+        <p>
+          Соберите охватывающее дерево, и <code>import catalog</code> ничего не находит, а до сих пор об этом ничего не сообщалось. Тип вырождался в unknown, <code>match</code> по нему терял варианты, которые сопоставлял, и вы получали <code>E0218</code>, неполный match, на <code>match</code>, который покрывал все случаи. Сделав то, что просило сообщение, вы добавили бы мёртвую ветку <code>else</code> в правильный код.
+        </p>
         <p>
           Риск такой проверки в том, что она срабатывает на нормальном коде, а проверка импортов, которая поднимает ложную тревогу на каждом пакете из npm, хуже молчания, которое она заменила. Поэтому сборка сначала собирает имена модулей, которые можно разрешить без файла <code>.glyph</code>: каждый <code>declare module "X"</code> в <code>&lt;root&gt;/.types/</code> и во встроенной прослойке Node, плюс каждый пакет в <code>node_modules</code> проекта. Об имени из этого списка никогда не сообщается, даже если у локального файла случайно такое же базовое имя. Когда у проекта вообще нет <code>node_modules</code>, компилятор не может отличить неустановленную зависимость от опечатки, поэтому сообщает только то, что может доказать: импорт, которому соответствует какой-то файл <code>.glyph</code> под корнем.
         </p>
-        <p>
-          Само разрешение не изменилось. Те же программы собираются, те же падают. Изменилось то, что ошибка теперь называет импорт, а не обвиняет <code>match</code> через два файла, и в этом всё дело: компилятор, который называет неверную причину, стоит вам часа на её поиски, а потом и доверия к каждому следующему сообщению.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Само разрешение не изменилось. Те же программы собираются, те же падают. Изменилось то, что ошибка теперь называет импорт, а не обвиняет <code>match</code> через два файла, и в этом всё дело: компилятор, который называет неверную причину, стоит вам часа на её поиски, а потом и доверия к каждому следующему сообщению.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="naming-the-rule-not-the-token">Называть правило, а не токен<a class="h-anchor" href="#naming-the-rule-not-the-token" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Более тихая версия той же проблемы это ошибка, которая верна и всё равно ничего вам не говорит. Агент, писавший красно-чёрное дерево, потянулся к позиционному конструктору, который есть в каждом языке семейства ML, и парсер остановился на первой запятой с &ldquo;expected <code>)</code>&rdquo; и советом &ldquo;add the expected token&rdquo;. Если поставить там <code>)</code>, получится другая программа, а не работающая. Вариант в Glyph несёт одно содержимое, а содержимое с несколькими полями это запись. Ни одной из этих фраз в выводе не было.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="naming-the-rule-not-the-token">Называть правило, а не токен<a class="ak-anchor" href="#naming-the-rule-not-the-token" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Более тихая версия той же проблемы это ошибка, которая верна и всё равно ничего вам не говорит.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, раньше и теперь</span>
 <pre class="wraps"><span class="dim"><span class="e">[E0002]</span> parse: expected <span class="q">`)`</span> after variant payload, found Comma
    <span class="bx">╰─</span> Add the expected token.</span>
@@ -652,27 +685,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
               /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
       and destructure it by those names in a match arm.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">красно-чёрное дерево и как исправление называет вашу программу</span></summary><div class="body">
+        <p>
+          Агент, писавший красно-чёрное дерево, потянулся к позиционному конструктору, который есть в каждом языке семейства ML, и парсер остановился на первой запятой с &ldquo;expected <code>)</code>&rdquo; и советом &ldquo;add the expected token&rdquo;. Если поставить там <code>)</code>, получится другая программа, а не работающая. Вариант в Glyph несёт одно содержимое, а содержимое с несколькими полями это запись. Ни одной из этих фраз в выводе не было.
+        </p>
         <p>
           Чтобы сказать это, парсеру пришлось прочитать весь список, прежде чем отказать, и это же позволяет ему считать. Подчёркнуты все шесть полей, а не разделитель, на котором он случайно остановился, а предлагаемая запись построена из имени варианта и шести типов из файла, так что исправление называет вашу программу, а не чей-то пример. Имена полей это единственное, что компилятор подставить не может, поэтому он оставляет на их месте пропуски.
         </p>
-        <p>
-          Правило за этим сообщением это выбор, а не пробел. <code>Node(Black, l, x, b, h, r)</code> это перестановка аргументов, которая проходит проверку типов, а четвёртая позиция ничего не говорит читателю. Запись называет каждое поле, ветка match называет только те поля, которые использует, и и то и другое можно найти через <code>grep</code>.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Правило за этим сообщением это выбор, а не пробел. <code>Node(Black, l, x, b, h, r)</code> это перестановка аргументов, которая проходит проверку типов, а четвёртая позиция ничего не говорит читателю. Запись называет каждое поле, ветка match называет только те поля, которые использует, и и то и другое можно найти через <code>grep</code>.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="two-more-the-checker-took-over-in-0-1-121">Ещё две, которые проверка забрала себе в 0.1.121<a class="h-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          <code>Order { id: "a", total: 1 }</code> это то, что пишет пришедший из TypeScript, чтобы создать запись, а такой формы в Glyph нет: значение пишется само по себе, а тип ставится в аннотации. Раньше на такую строку компилятор говорил <code>E0108</code>, недостижимый код, при сборке, которая завершалась с кодом 0, потому что имя разрешалось в тип, а фигурные скобки разбирались как блок после <code>return</code>. Имя типа, записанное как значение, это <code>E0228</code>, а сообщение берётся из объявления, так что для записи перечисляются её поля, для размеченного объединения его варианты с формой содержимого, а для union строковых литералов его литералы. <code>Order.parse(raw)</code> и <code>Order.is(v)</code> остаются допустимыми, потому что получатель собственного дескриптора типа это единственная позиция выражения, где имени типа место.
-        </p>
-        <p>
-          Это исправило случай, когда имя было типом, но разбор остался прежним, так что <code>return h() { k: 2 }</code> по-прежнему возвращал <code>h()</code> и выбрасывал фигурные скобки с предупреждением. Начиная с 0.1.146 <code>{</code> на строке, где закончилась инструкция, это <code>E0013</code> при разборе, каким бы ни было имя перед ней, и подсказка предлагает ту же переделку. Начиная с 0.1.149 правило покрывает любую инструкцию, а не только ту, что начинается с фигурной скобки: <code>let s = "a" "b"</code> раньше связывал <code>"a"</code> и выбрасывал <code>"b"</code>, а <code>return x as User</code> был тремя инструкциями, потому что в Glyph нет приведения типов. Каждая инструкция в блоке начинается с новой строки.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="two-more-the-checker-took-over-in-0-1-121">Ещё две, которые проверка забрала себе в 0.1.121<a class="ak-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Order { id: "a", total: 1 }</code> это то, что пишет пришедший из TypeScript, чтобы создать запись, а такой формы в Glyph нет: значение пишется само по себе, а тип ставится в аннотации.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, для записи, созданной по-TypeScript</span>
 <pre class="wraps"><span class="del"><span class="e">[E0013]</span> a statement cannot begin on the line where
         <span class="q">`return Order`</span> ends</span>
@@ -682,43 +709,71 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
 <span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0228</span><span class="chip code">E0013</span><span class="chip since">начиная с 0.1.146</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">от E0108 к E0228 и к E0013</span></summary><div class="body">
         <p>
-          Другая касается контейнера из прелюдии, присвоенного примитиву. <code>let x: string = o</code> при <code>o: Option&lt;int&gt;</code> ничего не вызывал у проверки Glyph, как и передача <code>Nullable&lt;int&gt;</code> в параметр, объявленный как <code>int</code>. Теперь пять контейнеров покрыты в обе стороны: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> и <code>Nullable</code> никогда не являются <code>string</code>, <code>number</code> или <code>bool</code>, какими бы ни были их аргументы, а <code>Nullable&lt;T&gt;</code> против скаляра решается на уровень глубже, против <code>T</code>, так что <code>let v: Nullable&lt;int&gt; = 3</code> остаётся правильным, а <code>let v: Nullable&lt;int&gt; = "three"</code> даёт <code>E0204</code>. Случаю с <code>Nullable</code> на этой странице место больше, чем остальным, потому что его <code>tsc</code> поймать не может: сгенерированный <code>const v: number | null = 3</code> сужается обратно до <code>number</code> до проверки вызова, так что граничный тип, который существует, чтобы сделать <code>null</code> видимым, молча проходил там, где объявлен <code>int</code>, и поймать это могла только проверка Glyph.
+          Раньше на такую строку компилятор говорил <code>E0108</code>, недостижимый код, при сборке, которая завершалась с кодом 0, потому что имя разрешалось в тип, а фигурные скобки разбирались как блок после <code>return</code>. Имя типа, записанное как значение, это <code>E0228</code>, а сообщение берётся из объявления, так что для записи перечисляются её поля, для размеченного объединения его варианты с формой содержимого, а для union строковых литералов его литералы. <code>Order.parse(raw)</code> и <code>Order.is(v)</code> остаются допустимыми, потому что получатель собственного дескриптора типа это единственная позиция выражения, где имени типа место.
         </p>
-      </div>
+        <p>
+          Это исправило случай, когда имя было типом, но разбор остался прежним, так что <code>return h() { k: 2 }</code> по-прежнему возвращал <code>h()</code> и выбрасывал фигурные скобки с предупреждением. Начиная с 0.1.146 <code>{</code> на строке, где закончилась инструкция, это <code>E0013</code> при разборе, каким бы ни было имя перед ней, и подсказка предлагает ту же переделку. Начиная с 0.1.149 правило покрывает любую инструкцию, а не только ту, что начинается с фигурной скобки: <code>let s = "a" "b"</code> раньше связывал <code>"a"</code> и выбрасывал <code>"b"</code>, а <code>return x as User</code> был тремя инструкциями, потому что в Glyph нет приведения типов.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Каждая инструкция в блоке начинается с новой строки.</p></div>
 
-      <div class="detail">
+      <h3 class="ak-h3" id="prelude-containers">Контейнер там, где объявлен примитив<a class="ak-anchor" href="#prelude-containers" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Другая касается контейнера из прелюдии, присвоенного примитиву. <code>let x: string = o</code> при <code>o: Option&lt;int&gt;</code> ничего не вызывал у проверки Glyph, как и передача <code>Nullable&lt;int&gt;</code> в параметр, объявленный как <code>int</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Теперь пять контейнеров покрыты в обе стороны: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> и <code>Nullable</code> никогда не являются <code>string</code>, <code>number</code> или <code>bool</code>, какими бы ни были их аргументы, а <code>Nullable&lt;T&gt;</code> против скаляра решается на уровень глубже, против <code>T</code>, так что <code>let v: Nullable&lt;int&gt; = 3</code> остаётся правильным, а <code>let v: Nullable&lt;int&gt; = "three"</code> даёт <code>E0204</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">случай, который может поймать только Glyph, и записи начиная с 0.1.130</span></summary><div class="body">
+        <p>
+          Случаю с <code>Nullable</code> на этой странице место больше, чем остальным, потому что его <code>tsc</code> поймать не может: сгенерированный <code>const v: number | null = 3</code> сужается обратно до <code>number</code> до проверки вызова, так что граничный тип, который существует, чтобы сделать <code>null</code> видимым, молча проходил там, где объявлен <code>int</code>, и поймать это могла только проверка Glyph.
+        </p>
         <p>
           Следующими стали те же контейнеры против объявленной записи или union. Начиная с 0.1.130 <code>let user: User = json.parse(body)</code> даёт <code>E0204</code>, ожидался <code>User</code>, найден <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Раньше об этом говорил только <code>tsc</code>, а значит <code>glyph check --no-tsc</code>, редактор и песочница показывали чистый файл ровно на той строке, ради правильности которой и существует граница.
         </p>
-        <p>
-          Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям. <code>tsc</code> отклонил бы оба случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-three-more-since-0-1-133">И ещё три, начиная с 0.1.133<a class="h-anchor" href="#and-three-more-since-0-1-133" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          <code>let up = s.toUpperCase</code> проходит проверку типов в TypeScript и бросает исключение при вызове <code>up()</code>, потому что при чтении теряется строка, которой метод принадлежит. Glyph отклоняет это как <code>E0234</code>, и отклоняет и <code>.bind(s)</code> на нём: вместо этого оберните вызов в лямбду. Проверка теперь знает, что возвращает каждый метод массивов и строк, по таблице, сгенерированной из собственных объявлений TypeScript.
-        </p>
-        <p>
-          <code>r?.label</code> на <code>Result</code> читается как «пробросить ошибку, потом прочитать поле». Но это опциональная цепочка, а <code>Result</code> никогда не равен null, так что она читает поле самого объекта <code>Result</code> и ничего не пробрасывает. Агент написал ровно это, когда делал инструмент для запросов к CSV. Теперь это <code>E0236</code>, и на <code>Option</code> тоже, а подсказка говорит сначала связать значение через <code>?</code>.
-        </p>
-        <p>
-          <code>json.parse(body)</code> без аргумента типа это непроверенное чтение, <code>Result&lt;unknown, ...&gt;</code>. Если написать его там, где объявлен <code>Result&lt;User, ...&gt;</code>, <code>tsc</code> раньше выводил <code>User</code> из объявления, и программа падала на первом чтении поля. Теперь эмиттер явно пишет <code>unknown</code>, так что <code>glyph check</code> отклоняет это через <code>tsc</code>. Собственная проверка Glyph пока не ловит <code>unknown</code>, попадающий внутрь объявленного типа, так что <code>--no-tsc</code> и редактор всё ещё пропускают <code>Result&lt;unknown, ...&gt;</code>, записанный там, где объявлен <code>Result&lt;User, ...&gt;</code>. (Голый <code>let user: User = json.parse(body)</code> даёт <code>E0204</code> от собственной проверки Glyph, потому что внешний тип уже неверен.) Отклонение <code>unknown</code> на любой глубине запланировано как G325 в <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">плане релизов</a>.
-        </p>
-      </div>
+      <h3 class="ak-h3" id="member-typo">Опечатка в имени члена массива или строки<a class="ak-anchor" href="#member-typo" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> отклонил бы оба случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-two-more-in-0-1-122">И ещё две в 0.1.122<a class="h-anchor" href="#and-two-more-in-0-1-122" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          <code>type Mode = "read" | "write"</code> объявляет конечное множество строк, а проверка Glyph сравнивала с ним значение вообще никак. Число, <code>bool</code>, запись и строка вне множества проходили <code>glyph check --no-tsc</code> лишь с предупреждениями о неиспользуемых переменных, тогда как <code>tsc</code> отклонял каждое из них в сгенерированном TypeScript. Так что полный <code>glyph build</code> здесь никогда не ошибался, а вот четыре поверхности, где <code>tsc</code> не участвует, ошибались: <code>--no-tsc</code>, языковой сервер, инструменты MCP и песочница.
-        </p>
-      </div>
+      <h2 class="ak-h" id="and-three-more-since-0-1-133">И ещё три, начиная с 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
-      <div class="code">
+      <h3 class="ak-h3" id="detached-method">Метод, прочитанный со своей строки<a class="ak-anchor" href="#detached-method" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>let up = s.toUpperCase</code> проходит проверку типов в TypeScript и бросает исключение при вызове <code>up()</code>, потому что при чтении теряется строка, которой метод принадлежит. Glyph отклоняет это как <code>E0234</code>, и отклоняет и <code>.bind(s)</code> на нём: вместо этого оберните вызов в лямбду.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0234</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">откуда берутся типы методов</span></summary><div class="body">
+        <p>
+          Проверка теперь знает, что возвращает каждый метод массивов и строк, по таблице, сгенерированной из собственных объявлений TypeScript.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="optional-chain-result">Опциональная цепочка на Result<a class="ak-anchor" href="#optional-chain-result" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>r?.label</code> на <code>Result</code> читается как «пробросить ошибку, потом прочитать поле». Но это опциональная цепочка, а <code>Result</code> никогда не равен null, так что она читает поле самого объекта <code>Result</code> и ничего не пробрасывает.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0236</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Агент написал ровно это, когда делал инструмент для запросов к CSV. Теперь это <code>E0236</code>, и на <code>Option</code> тоже, а подсказка говорит сначала связать значение через <code>?</code>.</p></div>
+
+      <h3 class="ak-h3" id="unchecked-parse">Непроверенный json.parse<a class="ak-anchor" href="#unchecked-parse" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>json.parse(body)</code> без аргумента типа это непроверенное чтение, <code>Result&lt;unknown, ...&gt;</code>. Если написать его там, где объявлен <code>Result&lt;User, ...&gt;</code>, <code>tsc</code> раньше выводил <code>User</code> из объявления, и программа падала на первом чтении поля.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Теперь эмиттер явно пишет <code>unknown</code>, так что <code>glyph check</code> отклоняет это через <code>tsc</code>.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Собственная проверка Glyph пока не ловит <code>unknown</code>, попадающий внутрь объявленного типа, так что <code>--no-tsc</code> и редактор всё ещё пропускают <code>Result&lt;unknown, ...&gt;</code>, записанный там, где объявлен <code>Result&lt;User, ...&gt;</code>. (Голый <code>let user: User = json.parse(body)</code> даёт <code>E0204</code> от собственной проверки Glyph, потому что внешний тип уже неверен.) Отклонение <code>unknown</code> на любой глубине запланировано как G325 в <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">плане релизов</a>.</p></div>
+      <div class="ak-chips"><span class="chip gap">G325</span></div>
+
+      <h2 class="ak-h" id="and-two-more-in-0-1-122">И ещё две в 0.1.122<a class="ak-anchor" href="#and-two-more-in-0-1-122" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> объявляет конечное множество строк, а проверка Glyph сравнивала с ним значение вообще никак. Число, <code>bool</code>, запись и строка вне множества проходили <code>glyph check --no-tsc</code> лишь с предупреждениями о неиспользуемых переменных, тогда как <code>tsc</code> отклонял каждое из них в сгенерированном TypeScript.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Так что полный <code>glyph build</code> здесь никогда не ошибался, а вот четыре поверхности, где <code>tsc</code> не участвует, ошибались: <code>--no-tsc</code>, языковой сервер, инструменты MCP и песочница.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, для типа, перечисляющего допустимые строки</span>
 <pre>type Mode = "read" | "write"
 
@@ -732,30 +787,26 @@ let d: Mode = { x: 1 }
 <span class="e">[E0211]</span> argument type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`bool`</span>
 <span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`record`</span></span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как сравнивается union</span></summary><div class="body">
         <p>
           Это те же четыре ошибки, что сообщал <code>tsc</code>, на тех же четырёх инструкциях, без запуска <code>tsc</code>. Правило читает union как то, чем он является во время выполнения, то есть <code>string</code>, и задаёт проверке соответствующий вопрос о <code>string</code> в каждую сторону, так что наследует правила, которые уже отклоняют запись или контейнер против <code>string</code>, а не переписывает их для каждой формы. Два множества литералов сравниваются как множества, так что более узкий union можно передать туда, где объявлен более широкий; цепочка псевдонимов прослеживается с обеих сторон; импортированный union решается так же, как локальный; а внутрь <code>Nullable&lt;Mode&gt;</code> проверка спускается, сохраняя union.
         </p>
         <p>
           Union, вложенный в поле записи или в аргумент дженерика, в 0.1.122 оставался на <code>tsc</code>, а в 0.1.123 решается сам. Смотрите ниже.
         </p>
-        <p>
-          Вторая вообще не про <code>tsc</code>. Парсер это рекурсивный спуск без ограничения глубины, поэтому выражение с вложенностью в две тысячи уровней исчерпывало стек процесса и аварийно завершалось с кодом 134. Это плохо для <code>glyph check</code> и ещё хуже для <code>glyph lsp</code> и <code>glyph mcp</code>, которые читают каждый файл под корнем: один патологический файл ронял сервер для всего рабочего пространства. Теперь это <code>E0011</code>, которое выдаётся на токене, открывшем бы 65-й уровень.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: литерал, которым является значение, а не <code>string</code>, в который он генерируется<a class="h-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="Ссылка на этот раздел">#</a></h2>
+      <h2 class="ak-h" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: литерал, которым является значение, а не <code>string</code>, в который он генерируется<a class="ak-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> задавал множество в объявлении и ничего не задавал значению, так что <code>"read"</code> был <code>string</code>, а <code>["read", "write"]</code> был <code>Array&lt;string&gt;</code>.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">от чего отказался 0.1.122</span></summary><div class="body">
         <p>
-          <code>type Mode = "read" | "write"</code> задавал множество в объявлении и ничего не задавал значению, так что <code>"read"</code> был <code>string</code>, а <code>["read", "write"]</code> был <code>Array&lt;string&gt;</code>. Из-за этого две программы были неразличимы: <code>return ["read", "write"]</code> там, где объявлен <code>Array&lt;Mode&gt;</code>, что <code>tsc</code> компилирует, и <code>return xs</code> для <code>xs: Array&lt;string&gt;</code>, что он отклоняет. 0.1.122 отказался решать такую пару, чтобы не решить её неправильно, и купил этим правильную программу ценой пропуска неправильной: <code>{ mode: "nope" }</code> против <code>{ mode: Mode }</code> ничего не вызывал.
+          Из-за этого две программы были неразличимы: <code>return ["read", "write"]</code> там, где объявлен <code>Array&lt;Mode&gt;</code>, что <code>tsc</code> компилирует, и <code>return xs</code> для <code>xs: Array&lt;string&gt;</code>, что он отклоняет. 0.1.122 отказался решать такую пару, чтобы не решить её неправильно, и купил этим правильную программу ценой пропуска неправильной: <code>{ mode: "nope" }</code> против <code>{ mode: Mode }</code> ничего не вызывал.
         </p>
-        <p>
-          Записанный строковый литерал теперь имеет тип из одного литерала, который он и записывает, тип элемента литерала массива это объединение типов его элементов, а записанный литерал массива или объекта проверяется против объявленного типа поэлементно и поле за полем, так что диагностика называет литерал и подчёркивает его.
-        </p>
-      </div>
-
-      <div class="code">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Записанный строковый литерал теперь имеет тип из одного литерала, который он и записывает, тип элемента литерала массива это объединение типов его элементов, а записанный литерал массива или объекта проверяется против объявленного типа поэлементно и поле за полем, так что диагностика называет литерал и подчёркивает его.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, для литерала на уровень внутри контейнера</span>
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
@@ -766,24 +817,21 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// 0.1.122: nothing, on all three</span>
 <span class="del"><span class="e">[E0204]</span> type mismatch: expected <span class="q">`Mode`</span>, found <span class="q">`"nope"`</span>   (twice)</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">где литерал расширяется, и ключи <code>Record</code> начиная с 0.1.153</span></summary><div class="body">
         <p>
           Литерал расширяется обратно до <code>string</code> там же, где его расширяет TypeScript: в <code>let</code> без аннотации, сгенерированный <code>let</code> которого в TypeScript расширяется так же, и в привязке элемента <code>for</code> по записанному массиву. Так что <code>let l = "read"</code>, а затем <code>takes_mode(l)</code> отклоняется здесь и даёт <code>TS2345</code> там. <code>const</code> генерирует <code>const</code> в TypeScript и сохраняет свой литерал, так что <code>takes_mode(CM)</code> компилируется в обоих. Литеральный тип, пришедший через имя, не расширяется: это собственное правило свежести TypeScript. Каждая строка этого была выяснена запуском <code>tsc --strict</code> на эквивалентном TypeScript, а не рассуждением.
         </p>
         <p>
-          Одна пара по-прежнему не решается: аргумент-ключ <code>Record</code> против ключа другого <code>Record</code>. TypeScript записывает <code>Record&lt;string, V&gt;</code> как индексную сигнатуру, покрывающую каждый ключ, объявленный в <code>Record&lt;Mode, V&gt;</code>, и принимает её в обе стороны, так что отказ отклонил бы компилирующуюся программу. Ещё о двух формах проверка пока ничего не говорит: литерал внутри <code>Some(...)</code>, потому что у конструктора из прелюдии здесь пока нет типа, и литерал записи, привязанный к <code>let</code> без аннотации, потому что для объектного литерала тип записи не синтезируется.
+          Начиная с 0.1.153 аргумент-ключ <code>Record</code> проверяется строже, чем его проверяет <code>tsc</code>. TypeScript записывает <code>Record&lt;string, V&gt;</code> как индексную сигнатуру и принимает её против <code>Record&lt;Mode, V&gt;</code> в обе стороны. Glyph отклоняет оба направления: открытая таблица может содержать ключи вне <code>Mode</code> или не содержать какого-то из них, а в <code>Record&lt;Mode, V&gt;</code>, переданный дальше как открытый, можно записать лишний ключ. Переход от одного к другому идёт через ветку <code>is</code> или через <code>json.parse</code>.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>О двух формах проверка пока ничего не говорит: литерал внутри <code>Some(...)</code>, потому что у конструктора из прелюдии здесь пока нет типа, и литерал записи, привязанный к <code>let</code> без аннотации, потому что для объектного литерала тип записи не синтезируется.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-module-under-std-was-dead-code-with-no-diagnostic">Модуль под <code>std/</code> был мёртвым кодом без диагностики<a class="h-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          <code>std/</code> и <code>extern/</code> называют модули, которые несёт компилятор, и резолвер резервировал их для импортов. Но ничто не мешало файлу проекта <em>объявить</em> такой модуль. <code>module std/io</code> в вашем собственном <code>src/io.glyph</code> компилировался чисто, а затем <code>import std/io { shout }</code> разрешался в заглушку и сообщал, что <code>shout</code> не экспортируется: ваш файл ни разу не читался. Файл, который не вызывает ни одной диагностики и не выполняет ни строчки кода, это худшее, в чём компилятор может вас оставить, потому что ничего в нём не выглядит неправильным.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-module-under-std-was-dead-code-with-no-diagnostic">Модуль под <code>std/</code> был мёртвым кодом без диагностики<a class="ak-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/</code> и <code>extern/</code> называют модули, которые несёт компилятор, и резолвер резервировал их для импортов. Но ничто не мешало файлу проекта <em>объявить</em> такой модуль.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, для src/io.glyph с объявлением `module std/io`</span>
 <pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
 
@@ -793,14 +841,22 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
    <span class="bx">│</span> <span class="bx">──────┬──────</span>
    <span class="bx">╰─</span> Rename the module to a path of your own (<span class="q">`io`</span>, <span class="q">`app/io`</span>).</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что происходило раньше и какие пути зарезервированы</span></summary><div class="body">
+        <p>
+          <code>module std/io</code> в вашем собственном <code>src/io.glyph</code> компилировался чисто, а затем <code>import std/io { shout }</code> разрешался в заглушку и сообщал, что <code>shout</code> не экспортируется: ваш файл ни разу не читался.
+        </p>
         <p>
           Префикс сопоставляется как целый первый сегмент, так что <code>standard</code>, <code>externals/io</code>, <code>app/std</code> и <code>app/extern/helper</code> не затронуты, а импорт под любым из префиксов работает как всегда.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Файл, который не вызывает ни одной диагностики и не выполняет ни строчки кода, это худшее, в чём компилятор может вас оставить, потому что ничего в нём не выглядит неправильным.</p></div>
 
-      <div class="code">
+      <p class="ak-kicker">Вторая в 0.1.122</p>
+      <h2 class="ak-h" id="nesting-limit">Предел глубины парсера<a class="ak-anchor" href="#nesting-limit" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Вторая вообще не про <code>tsc</code>. Парсер это рекурсивный спуск без ограничения глубины, поэтому выражение с вложенностью в две тысячи уровней исчерпывало стек процесса и аварийно завершалось с кодом 134.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, для `const x = `, за которым идут 2,000 вложенных скобок</span>
 <pre><span class="cm">// before: thread 'main' has overflowed its stack
 //         fatal runtime error: stack overflow, aborting   (exit 134)</span>
@@ -810,23 +866,23 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       <span class="q">`fn`</span> that returns one of them, so no single expression, type or
       pattern is more than 64 levels deep.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему это было важно для языкового сервера</span></summary><div class="body">
         <p>
-          Предел равен 64, и он измерен, а не выбран наугад. Один уровень самой затратной конструкции, вложенного литерала массива, стоит 7,792 байта стека в release-сборке и 8,810 в debug, что выяснили двоичным поиском наименьшего стека потока, на котором разбирается заданная глубина. Самый тонкий стек, на котором работает парсер, это 2 MiB порождённого потока, столько получают воркеры языкового сервера, и 64 уровня тратят меньше трети этого в более затратной сборке. Самая глубокая вложенность среди 343 файлов <code>.glyph</code> в этом репозитории равна 16. Предел одинаково покрывает выражения, типы, паттерны, блоки и дочерние элементы JSX, а тысяча соседних массивов по-прежнему разбирается, потому что глубина это вложенность конструкций, а не бюджет, расходуемый по всему файлу.
+          Это плохо для <code>glyph check</code> и ещё хуже для <code>glyph lsp</code> и <code>glyph mcp</code>, которые читают каждый файл под корнем: один патологический файл ронял сервер для всего рабочего пространства. Теперь это <code>E0011</code>, которое выдаётся на токене, открывшем бы 65-й уровень.
         </p>
-      </div>
-
-      <h2 class="block-label" id="when-neither-compiler-is-wrong">Когда ни один компилятор не ошибается<a class="h-anchor" href="#when-neither-compiler-is-wrong" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="detail">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Предел равен 64, и он измерен, а не выбран наугад.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как измеряли 64</span></summary><div class="body">
         <p>
-          Есть и третья форма, и выглядит она хуже всех. Glyph ничего не сообщает, <code>tsc</code> сообщает правду, а написанная вами программа была в порядке. Сломался перевод между ними.
+          Один уровень самой затратной конструкции, вложенного литерала массива, стоит 7,792 байта стека в release-сборке и 8,810 в debug, что выяснили двоичным поиском наименьшего стека потока, на котором разбирается заданная глубина. Самый тонкий стек, на котором работает парсер, это 2 MiB порождённого потока, столько получают воркеры языкового сервера, и 64 уровня тратят меньше трети этого в более затратной сборке. Самая глубокая вложенность среди 343 файлов <code>.glyph</code> в этом репозитории равна 16. Предел одинаково покрывает выражения, типы, паттерны, блоки и дочерние элементы JSX, а тысяча соседних массивов по-прежнему разбирается, потому что глубина это вложенность конструкций, а не бюджет, расходуемый по всему файлу.
         </p>
-        <p>
-          Привязка в Glyph имеет один тип на всё время жизни. TypeScript сужает привязку до того, что видел присвоенным последним, а его <code>boolean</code> это union <code>true | false</code>, поэтому <code>let done = false</code> доходил до <code>tsc</code> с типом <code>false</code>, и ветке <code>true</code> в сгенерированном <code>switch</code> не с чем было сопоставляться.
-        </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="when-neither-compiler-is-wrong">Когда ни один компилятор не ошибается<a class="ak-anchor" href="#when-neither-compiler-is-wrong" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Есть и третья форма, и выглядит она хуже всех. Glyph ничего не сообщает, <code>tsc</code> сообщает правду, а написанная вами программа была в порядке.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Сломался перевод между ними.</p></div>
       <div class="code">
         <span class="cap">poll.glyph и что о нём говорил tsc до 0.1.89</span>
 <pre><span class="k">fn</span> classify() <span class="op">-&gt;</span> <span class="t">int</span> {
@@ -840,13 +896,18 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// no Glyph diagnostic, then</span>
 <span class="del">[<span class="t">TS2678</span>] <span class="t">Type</span> <span class="s">'true'</span> <span class="k">is</span> not comparable to <span class="k">type</span> <span class="s">'false'</span>.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему <code>tsc</code> видел <code>false</code>, и приложение, которое на это наткнулось</span></summary><div class="body">
+        <p>
+          Привязка в Glyph имеет один тип на всё время жизни. TypeScript сужает привязку до того, что видел присвоенным последним, а его <code>boolean</code> это union <code>true | false</code>, поэтому <code>let done = false</code> доходил до <code>tsc</code> с типом <code>false</code>, и ветке <code>true</code> в сгенерированном <code>switch</code> не с чем было сопоставляться.
+        </p>
         <p>
           Тип, объявленный как множество строковых литералов, ломался так же, как и <code>==</code>, только с <code>TS2367</code>: два сообщения, два кода, одна причина. Приложение, которое на это наткнулось, опрашивало флаг, выставляемый колбэком таймера: так превращают событийный API в значение, пока в Glyph нет <code>Promise</code>, который можно создать вручную. Колбэк оказался ни при чём: хватает четырёх строк без всякого колбэка.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Исправление не новая диагностика, потому что диагностировать нечего. Эмиттер теперь повторяет тип, который уже определила проверка, в двух местах, где значение различается по вариантам: в выражении, по которому идёт <code>match</code>, и с обеих сторон <code>==</code> или <code>!=</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">какие проверки по-прежнему срабатывают и чего это стоит</span></summary><div class="body">
         <p>
-          Исправление не новая диагностика, потому что диагностировать нечего. Эмиттер теперь повторяет тип, который уже определила проверка, в двух местах, где значение различается по вариантам: в выражении, по которому идёт <code>match</code>, и с обеих сторон <code>==</code> или <code>!=</code>. Каждая сторона определяется своим типом и не зависит от соседней, так что сравнение двух привязок покрыто так же, как сравнение с литералом.
+          Каждая сторона определяется своим типом и не зависит от соседней, так что сравнение двух привязок покрыто так же, как сравнение с литералом.
         </p>
         <p>
           Нужные проверки по-прежнему срабатывают. <code>m == "nope"</code>, где <code>m</code> это <code>Mode</code>, по-прежнему отклоняется, и теперь сообщение называет <code>Mode</code>, а не тот единственный член, который <code>m</code> случайно содержал. Сделать это в месте присваивания было бы меньше кода, и это бы всё испортило: приведение к <code>Mode</code> принимается там, где присваивание с аннотацией нет, а проверку принадлежности Glyph намеренно оставляет <code>tsc</code>.
@@ -854,49 +915,112 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <p>
           Цена небольшая, но её стоит назвать. Приведение может как подтверждать тип, так и сужать его, поэтому значение, которое Glyph типизирует как <code>bool</code>, а его тип в TypeScript получился <code>unknown</code>, теперь проходит там, где раньше жаловался <code>switch</code>. Два типа всё ещё должны быть сравнимы, так что модель, разошедшаяся достаточно сильно, чтобы это имело значение (<code>string</code> против <code>bool</code>), даёт <code>TS2352</code>, а не тишину.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="the-same-typo-two-answers">Одна опечатка, два ответа<a class="h-anchor" href="#the-same-typo-two-answers" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="detail">
-        <p>
-          Опечатка в имени функции стандартной библиотеки раньше получала разный ответ в зависимости от того, как вы написали импорт, а такая непоследовательность приучает не доверять ни одному из ответов.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-same-typo-two-answers">Одна опечатка, два ответа<a class="ak-anchor" href="#the-same-typo-two-answers" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Опечатка в имени функции стандартной библиотеки раньше получала разный ответ в зависимости от того, как вы написали импорт, а такая непоследовательность приучает не доверять ни одному из ответов.
+      </p>
       <div class="code">
         <span class="cap">именованный импорт, всегда E0105</span>
 <pre>import std/string { repeeat }
 <span class="del"><span class="e">[E0105]</span> import: <span class="q">`repeeat`</span> is not exported by <span class="q">`std/string`</span></span></pre>
       </div>
-
       <div class="code">
         <span class="cap">чтение через пространство имён, до 0.1.72</span>
 <pre><span class="k">import</span> std/<span class="t">string</span>
 <span class="t">string</span>.repeeat(s, <span class="n">2</span>)
 <span class="del">[<span class="t">TS2551</span>] <span class="t">Property</span> <span class="s">'repeeat'</span> does not exist on <span class="k">type</span> ... <span class="t">Did</span> you mean <span class="s">'repeat'</span><span class="op">?</span></span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Теперь оба варианта проходят через список экспортов, и оба дают <code>E0105</code>, называя член и модуль, в котором его нет.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему два варианта записи различались и что нашлось, когда проверку включили</span></summary><div class="body">
         <p>
-          Первый вариант записи проверялся по списку экспортов модуля при разрешении имён. Второй не проверялся вообще, поэтому доходил до <code>tsc</code>, который видел обращение к свойству объекта и отвечал в этих терминах. Теперь оба варианта проходят через список экспортов, и оба дают <code>E0105</code>, называя член и модуль, в котором его нет.
+          Первый вариант записи проверялся по списку экспортов модуля при разрешении имён. Второй не проверялся вообще, поэтому доходил до <code>tsc</code>, который видел обращение к свойству объекта и отвечал в этих терминах.
         </p>
         <p>
           Включение проверки сразу нашло то, что никто не искал: тестовая фикстура вызывала <code>fs.write</code>, хотя функция называется <code>write_text</code>. Это месяцами проходило, потому что фикстура запускается с выключенной проверкой типов, а больше ничто в компиляторе не смотрело на члены пространств имён. Теперь список экспортов это авторитет для обоих вариантов записи, так что отдельная проверка следит, чтобы он совпадал с тем, что runtime на самом деле экспортирует. Эту проверку написали, а затем намеренно сломали, чтобы убедиться, что она падает, и так обнаружили, что её первая версия молча ничего не проверяла.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p><code>E0222</code> для <code>await</code> вне <code>async fn</code>, <code>E0223</code> для ветки <code>match</code> в позиции значения, которая не даёт значения, <code>E0008</code> для присваивания без <code>mut</code>, <code>E0010</code> для варианта с несколькими позиционными полями содержимого там, где существует только форма записи, <code>E0302</code>/<code>E0303</code> для <code>?</code> в позиции, из которой он не может пробросить ошибку, <code>E0110</code>/<code>E0111</code> для объявления, которое перекрыло бы имя, от которого уже зависит сгенерированный модуль, <code>E0104</code> для локального импорта, не называющего ни одного модуля под корнем сборки, <code>E0105</code> для имени, которое модуль не экспортирует, неважно, через именованный импорт или через пространство имён, <code>E0228</code> для имени типа, записанного там, где ожидается значение, <code>E0013</code> для инструкции, начинающейся на строке, где закончилась другая, что раньше выбрасывало значение после неё, <code>E0204</code>/<code>E0211</code> для контейнера из прелюдии, присвоенного или переданного как примитив либо как объявленная запись или union, включая случай <code>Nullable&lt;T&gt;</code>, который <code>tsc</code> сужает и теряет, <code>E0210</code> для члена, которого нет у массива или строки, те же два кода для значения, не входящего в объявленное множество union строковых литералов, <code>E0011</code> для конструкции с вложенностью больше 64 уровней, <code>E0101</code> для относительного пути импорта, который раньше останавливался в парсере с общим «expected module path segment», и <code>E0113</code> для модуля проекта, объявленного под <code>std/</code> или <code>extern/</code>, который раньше компилировался чисто и был недостижим. Список перекрываемых имён покрывает типы, которые эмиттер пишет сам, так что <code>Issue</code> и <code>Record</code> ловятся на объявлении. У каждого кода есть исправление в одну строку, примечание с объяснением правила и подробный текст для <code>glyph --explain</code>; <code>docs/error-codes.md</code> содержит каталог, а тест следит, чтобы они совпадали.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Становится точнее</h3>
-          <p><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт. У инициализатора <code>const</code> на уровне модуля нет охватывающей вызываемой конструкции, поэтому <code>await</code> на верхнем уровне разрешён, и сгенерированный ESM его выполняет; нужна ли Glyph неявная асинхронная инициализация модулей, пока открытый вопрос спецификации. <code>E0223</code> может оценить завершающий <code>match</code>, только когда функция объявляет тип возврата, так что ветка внутри лямбды без аннотации всё ещё доходит до <code>tsc</code>. Со стороны перекрываемых имён две вещи сделаны наполовину. <code>E0110</code> велит переименовать, а не позволяет сохранить имя, так что <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> и <code>Promise</code> по-прежнему недоступны для типа или варианта. А <code>E0111</code> не даёт <code>type Key = string | number</code> означать не то, но и не даёт способа сказать то, что нужно: у union из двух примитивных типов нет записи в Glyph, кроме <code>extern_ts</code>, содержимое которого собственная проверка считает непрозрачным. Неразмеченные union затрагивают исчерпываемость, дескрипторы для проверки во время выполнения и <code>is</code>, так что это решение о системе типов, и оно не запланировано. <code>E0104</code> доходит до <code>glyph build</code> и <code>glyph check</code>, но не до редактора: LSP анализирует текст документа без корня сборки, а папка рабочего пространства корнем тоже не является, так что догадки дали бы те самые ложные срабатывания, которых проверка должна была избегать. И параметр с зарезервированным именем по-прежнему прячется за посторонней ошибкой в том же файле, потому что сбой на проходе сбора пропускает проход разрешения имён, который бы его нашёл. Отдельно: закрепление типа в месте чтения, которое сохраняет возможность сопоставления для привязки <code>bool</code> или union строковых литералов, следует за псевдонимом типа только внутри генерируемого модуля, так что <code>pub type Ready = bool</code> в одном модуле и <code>let r: catalog.Ready = false</code> в другом всё ещё доходят до <code>tsc</code> как <code>TS2678</code>. Union строковых литералов покрыты между модулями во всех трёх вариантах записи импорта, и начиная с 0.1.123 диагностика при любой записи называет объявление (ожидался <code>Mode</code>), а не печатает множество литералов в одной из них.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+
+          <p class="ak-st-group">Инструкции и синтаксис</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> вне <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ветка <code>match</code> в позиции значения, которая не даёт значения</span><span class="chip code">E0223</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Присваивание без <code>mut</code></span><span class="chip code">E0008</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Вариант с несколькими позиционными полями содержимого там, где существует только форма записи</span><span class="chip code">E0010</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>?</code> в позиции, из которой он не может пробросить ошибку</span><span class="chip code">E0302</span><span class="chip code">E0303</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Имя типа, записанное там, где ожидается значение</span><span class="chip code">E0228</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Инструкция, начинающаяся на строке, где закончилась другая, что раньше выбрасывало значение после неё</span><span class="chip code">E0013</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Конструкция с вложенностью больше 64 уровней</span><span class="chip code">E0011</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Имена и модули</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объявление, которое перекрыло бы имя, от которого уже зависит сгенерированный модуль</span><span class="chip code">E0110</span><span class="chip code">E0111</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Список перекрываемых имён покрывает типы, которые эмиттер пишет сам, так что <code>Issue</code> и <code>Record</code> ловятся на объявлении.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Локальный импорт, не называющий ни одного модуля под корнем сборки</span><span class="chip code">E0104</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Имя, которое модуль не экспортирует, неважно, через именованный импорт или через пространство имён</span><span class="chip code">E0105</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Относительный путь импорта, который раньше останавливался в парсере с общим «expected module path segment»</span><span class="chip code">E0101</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Модуль проекта, объявленный под <code>std/</code> или <code>extern/</code>, который раньше компилировался чисто и был недостижим</span><span class="chip code">E0113</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Типы</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Контейнер из прелюдии, присвоенный или переданный как примитив либо как объявленная запись или union, включая случай <code>Nullable&lt;T&gt;</code>, который <code>tsc</code> сужает и теряет</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Член, которого нет у массива или строки</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Те же два кода для значения, не входящего в объявленное множество union строковых литералов</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Каждый код</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">У каждого кода есть исправление в одну строку, примечание с объяснением правила и подробный текст для <code>glyph --explain</code>; <code>docs/error-codes.md</code> содержит каталог, а тест следит, чтобы они совпадали.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> на верхнем уровне разрешён</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>У инициализатора <code>const</code> на уровне модуля нет охватывающей вызываемой конструкции, поэтому <code>await</code> на верхнем уровне разрешён, и сгенерированный ESM его выполняет; нужна ли Glyph неявная асинхронная инициализация модулей, пока открытый вопрос спецификации.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0223</code> может оценить завершающий <code>match</code>, только когда функция объявляет тип возврата, так что ветка внутри лямбды без аннотации всё ещё доходит до <code>tsc</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0110</code> велит переименовать, а не позволяет сохранить имя</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Со стороны перекрываемых имён две вещи сделаны наполовину. <code>E0110</code> велит переименовать, а не позволяет сохранить имя, так что <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> и <code>Promise</code> по-прежнему недоступны для типа или варианта.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0111</code> не даёт <code>type Key = string | number</code> означать не то, но и не даёт способа сказать то, что нужно</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>А <code>E0111</code> не даёт <code>type Key = string | number</code> означать не то, но и не даёт способа сказать то, что нужно: у union из двух примитивных типов нет записи в Glyph, кроме <code>extern_ts</code>, содержимое которого собственная проверка считает непрозрачным. Неразмеченные union затрагивают исчерпываемость, дескрипторы для проверки во время выполнения и <code>is</code>, так что это решение о системе типов, и оно не запланировано.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0104</code> доходит до <code>glyph build</code> и <code>glyph check</code>, но не до редактора</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>E0104</code> доходит до <code>glyph build</code> и <code>glyph check</code>, но не до редактора: LSP анализирует текст документа без корня сборки, а папка рабочего пространства корнем тоже не является, так что догадки дали бы те самые ложные срабатывания, которых проверка должна была избегать.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Параметр с зарезервированным именем по-прежнему прячется за посторонней ошибкой в том же файле, потому что сбой на проходе сбора пропускает проход разрешения имён, который бы его нашёл.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Закрепление типа в месте чтения следует за псевдонимом типа только внутри генерируемого модуля</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Отдельно: закрепление типа в месте чтения, которое сохраняет возможность сопоставления для привязки <code>bool</code> или union строковых литералов, следует за псевдонимом типа только внутри генерируемого модуля, так что <code>pub type Ready = bool</code> в одном модуле и <code>let r: catalog.Ready = false</code> в другом всё ещё доходят до <code>tsc</code> как <code>TS2678</code>. Union строковых литералов покрыты между модулями во всех трёх вариантах записи импорта, и начиная с 0.1.123 диагностика при любой записи называет объявление (ожидался <code>Mode</code>), а не печатает множество литералов в одной из них.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/tooling/">
           <span class="dir">&larr; Назад</span>

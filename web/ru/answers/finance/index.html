@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Можно ли доверить ему деньги и недоверенный ввод?","item":"https://glyphlang.io/ru/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/finance/#article","headline":"Можно ли доверить ему деньги и недоверенный ввод?","description":"Деньги считаются точно (десятичные числа и целые больше 2^53), инварианты это типы, которые проверяются на границе, а недоверенный ввод не может попасть в SQL или shell без очистки.","url":"https://glyphlang.io/ru/answers/finance/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/finance/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Можно ли доверить ему деньги и недоверенный ввод?","item":"https://glyphlang.io/ru/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/finance/#article","headline":"Можно ли доверить ему деньги и недоверенный ввод?","description":"Деньги считаются точно (десятичные числа и целые больше 2^53), инварианты это типы, которые проверяются на границе, а недоверенный ввод не может попасть в SQL или shell без очистки.","url":"https://glyphlang.io/ru/answers/finance/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/finance/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/finance/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/finance/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">16 &middot; Деньги и безопасность</p>
       <h1 class="q-title">Можно ли доверить ему деньги и ввод, который я не контролирую?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,47 +478,62 @@
         Да. Деньги считаются <strong>точно</strong>, инвариант вроде неотрицательности это <strong>тип, который проверяется на границе</strong>, а недоверенный ввод <strong>не может попасть в SQL или shell</strong> без очистки. Ошибка в любом из этих мест это ошибка компиляции или разбора, а не соглашение, о котором кто-то должен помнить через три функции.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-is-not-a-float">Деньги это не float<a class="h-anchor" href="#money-is-not-a-float" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Финансовая система на IEEE-754 <code>number</code> это баг, который ждёт своего отчёта: <code>0.1 + 0.2</code> не равно <code>0.3</code>, а значения больше 2<sup>53</sup> молча теряют точность. <code>std/decimal</code> это точная десятичная арифметика с фиксированной точкой поверх BigInt. Сложение, вычитание и умножение точные; деление принимает явный масштаб и округляет половину от нуля; некорректная сумма разбирается в <code>Err</code>, а не в молчаливый <code>NaN</code>.
-        </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
 <span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">ошибка, которую это убирает</span>
+          </div>
+          <div class="code">
+            <span class="cap">ошибка, которую это убирает</span>
 <pre><span class="c">// JS number, the default everywhere:</span>
 <span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
 <span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
 <span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
 <span class="c">// None of these are your money anymore.</span></pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Финансовая система на IEEE-754 <code>number</code> это баг, который ждёт своего отчёта: <code>0.1 + 0.2</code> не равно <code>0.3</code>, а значения больше 2<sup>53</sup> молча теряют точность.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="ids-and-counters-stay-exact-past-253">Идентификаторы и счётчики остаются точными после 2<sup>53</sup><a class="h-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Идентификатор счёта или счётчик в реестре, который выходит за диапазон float и округляется, это катастрофа другого рода. <code>bigint</code> это точное целое произвольной точности с литералами вида <code>123n</code>, а поле записи типа <code>bigint</code> проверяет <code>typeof === "bigint"</code> на границе, поэтому идентификатор, пришедший как JSON <code>number</code>, отклоняется, а не тихо обрезается.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">Деньги это не float</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">Идентификаторы и счётчики</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">Инварианты как типы</a></li>
+          <li><a href="#injection-is-a-compile-error">Инъекции</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-invariant-is-a-type-not-a-comment">Инвариант это тип, а не комментарий<a class="h-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          «Сумма неотрицательна» и «оценка от 1 до 5» это проверки, которые пишут один раз и потом забывают. Уточнение <code>where</code> переносит инвариант в тип, и дескриптор обеспечивает его на границе. Значение, не прошедшее предикат, вообще не становится <code>Amount</code>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">Деньги это не float<a class="ak-anchor" href="#money-is-not-a-float" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code> это точная десятичная арифметика с фиксированной точкой поверх BigInt.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Точная арифметика</b>Сложение, вычитание и умножение точные.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Деление</b>Деление принимает явный масштаб и округляет половину от нуля.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>Некорректный ввод</b>Некорректная сумма разбирается в <code>Err</code>, а не в молчаливый <code>NaN</code>.</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">Идентификаторы и счётчики остаются точными после 2<sup>53</sup><a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Идентификатор счёта или счётчик в реестре, который выходит за диапазон float и округляется, это катастрофа другого рода.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code> это точное целое произвольной точности с литералами вида <code>123n</code>, а поле записи типа <code>bigint</code> проверяет <code>typeof === "bigint"</code> на границе, поэтому идентификатор, пришедший как JSON <code>number</code>, отклоняется, а не тихо обрезается.
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">Инвариант это тип, а не комментарий<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        «Сумма неотрицательна» и «оценка от 1 до 5» это проверки, которые пишут один раз и потом забывают. Уточнение <code>where</code> переносит инвариант в тип, и дескриптор обеспечивает его на границе.
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
@@ -528,14 +543,18 @@ decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span c
 <span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
 <span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Значение, не прошедшее предикат, вообще не становится <code>Amount</code>.
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="injection-is-a-compile-error">Инъекция это ошибка компиляции<a class="h-anchor" href="#injection-is-a-compile-error" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Классический путь к удалённому выполнению кода это недоверенный ввод, который попадает в SQL-запрос, shell-команду или HTML-шаблон. <code>std/taint</code> делает это ошибкой типов. Значение извне имеет тип <code>Tainted</code>; приёмник, который вы хотите защитить, принимает <code>Trusted</code>. Эти типы структурно различны, поэтому перейти от одного к другому можно только через явный <code>sanitize</code>. Передайте приёмнику tainted-значение напрямую, и <code>tsc</code> откажется это компилировать.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">Инъекция это ошибка компиляции<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Классический путь к удалённому выполнению кода это недоверенный ввод, который попадает в SQL-запрос, shell-команду или HTML-шаблон. <code>std/taint</code> делает это ошибкой типов.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Два типа</b>Значение извне имеет тип <code>Tainted</code>; приёмник, который вы хотите защитить, принимает <code>Trusted</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Один путь между ними</b>Эти типы структурно различны, поэтому перейти от одного к другому можно только через явный <code>sanitize</code>.</li>
+      </ul>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">безопасный путь компилируется</span>
@@ -564,19 +583,36 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
 <span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Передайте приёмнику tainted-значение напрямую, и <code>tsc</code> откажется это компилировать.
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p><code>std/decimal</code> для точных денег, <code>bigint</code> для точных больших целых, уточнения <code>where</code>, чтобы инвариант проверялся на границе, и <code>std/taint</code>, чтобы недоверенный ввод не мог попасть в защищённый приёмник без явного <code>sanitize</code>. Всё это проверяется: некорректная сумма или идентификатор не проходят <code>parse</code>, нарушенный инвариант не проходит <code>parse</code>, а неочищенное значение не проходит <code>tsc</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Где это заканчивается</h3>
-          <p>Уточнение <code>where</code> сегодня работает для примитивных базовых типов; инварианты записей и связи между полями (<code>where value.paid &lt;= value.total</code>) это запланированное расширение. Taint это дисциплина, которую вы включаете сами, объявляя тип приёмника <code>Trusted</code>, а не автоматический анализ потоков: компилятор обеспечивает объявленную вами границу и не выводит taint по всей программе за вас.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> для точных денег</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> для точных больших целых</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Уточнения <code>where</code>, чтобы инвариант проверялся на границе</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/taint</code>, чтобы недоверенный ввод не мог попасть в защищённый приёмник без явного <code>sanitize</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Всё это проверяется: некорректная сумма или идентификатор не проходят <code>parse</code>, нарушенный инвариант не проходит <code>parse</code>, а неочищенное значение не проходит <code>tsc</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Где это заканчивается</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Уточнение <code>where</code> сегодня работает для примитивных базовых типов; инварианты записей и связи между полями (<code>where value.paid &lt;= value.total</code>) это запланированное расширение.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Taint это дисциплина, которую вы включаете сами, объявляя тип приёмника <code>Trusted</code>, а не автоматический анализ потоков</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Taint это дисциплина, которую вы включаете сами, объявляя тип приёмника <code>Trusted</code>, а не автоматический анализ потоков: компилятор обеспечивает объявленную вами границу и не выводит taint по всей программе за вас.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/language/">
           <span class="dir">&larr; Назад</span>

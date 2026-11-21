@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?","item":"https://glyphlang.io/tr/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/language/#article","headline":"Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?","description":"Modül görünürlüğü, generic sınırları için yapısal interface'ler, defer, yapılandırılmış eşzamanlılık, bir değer olarak match ve JavaScript'ten devraldığı semantik.","url":"https://glyphlang.io/tr/answers/language/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/language/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?","item":"https://glyphlang.io/tr/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/language/#article","headline":"Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?","description":"Modül görünürlüğü, generic sınırları için yapısal interface'ler, defer, yapılandırılmış eşzamanlılık, bir değer olarak match ve JavaScript'ten devraldığı semantik.","url":"https://glyphlang.io/tr/answers/language/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/language/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">15 &middot; Dilin eksiksizliği</p>
       <h1 class="q-title">Bu gerçek bir dil mi, yoksa eksikleri olan bir oyuncak mı?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,31 +478,52 @@
         Gerçek bir kod tabanında ihtiyaç duyduğunuz şeyler var: <strong>modül görünürlüğü</strong>, generic'leri kısıtlayan <strong>interface'ler</strong>, temizlik için <strong>defer</strong> ve <strong>eşzamanlılık</strong> yardımcıları. JavaScript'e dayandığı yerlerde bunu gizlemek yerine açıkça söyler.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Tek bir dosya yazabildiğiniz ama bir projeyi yapılandıramadığınız bir dile kod tabanınızı emanet etmezsiniz. Önemli eksikler egzotik değil: bir yardımcı fonksiyonu gizleyebilir miyim, bir generic bir yetenek şart koşabilir mi, bir dosya handle'ını her çıkış yolunda serbest bırakabilir miyim, iki işi aynı anda çalıştırıp ikisini de bekleyebilir miyim. Glyph bu dördüne de yanıt verir ve bunu, bilerek bıraktığı yoğun annotation'lı yöne geri dönmeden yapar.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Tanımlar siz <code>pub</code> olarak işaretleyene kadar modüllerine özeldir; böylece public yüzey tek bir aramadır (<code>grep '^pub'</code>) ve bir yardımcı fonksiyon asla kazara dışarı sızmaz:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">görünürlük: varsayılan olarak private</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">görünürlük: varsayılan olarak private</span>
 <pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
 
 <span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Tanımlar siz <code>pub</code> olarak işaretleyene kadar modüllerine özeldir; böylece public yüzey tek bir aramadır (<code>grep '^pub'</code>) ve bir yardımcı fonksiyon asla kazara dışarı sızmaz.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Bir <code>interface</code>, TypeScript'teki gibi yapısaldır: bir generic'in şart koşabileceği üye imzalarından oluşan bir kümedir. <code>implements</code> yok, nominal tören yok. Bu üyelere sahip her değer uyar ve bunu <code>tsc</code> zorunlu kılar.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#interfaces">Interface'ler</a></li>
+          <li><a href="#defer">defer ve görevler</a></li>
+          <li><a href="#javascript">Neyi devralıyor</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">Değer olarak match</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">İç içe pattern'ler</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">Tipli match sonuçları</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">String ve dizi yardımcıları</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">Dizinler ve fs hataları</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">Fonksiyonlar nasıl kontrol edildi</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">Para</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">Async fonksiyon tipleri</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">Özyinelemeli tipler</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Tek bir dosya yazabildiğiniz ama bir projeyi yapılandıramadığınız bir dile kod tabanınızı emanet etmezsiniz. Önemli eksikler egzotik değil:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Görünürlük</b>Bir yardımcı fonksiyonu gizleyebilir miyim?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Generic sınırları</b>Bir generic bir yetenek şart koşabilir mi?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Temizlik</b>Bir dosya handle'ını her çıkış yolunda serbest bırakabilir miyim?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Eşzamanlılık</b>İki işi aynı anda çalıştırıp ikisini de bekleyebilir miyim?</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph bu dördüne de yanıt verir ve bunu, bilerek bıraktığı yoğun annotation'lı yöne geri dönmeden yapar.</p></div>
+
+      <h2 class="ak-h" id="interfaces">Interface'ler generic'leri kısıtlar<a class="ak-anchor" href="#interfaces" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir <code>interface</code>, TypeScript'teki gibi yapısaldır: bir generic'in şart koşabileceği üye imzalarından oluşan bir kümedir. <code>implements</code> yok, nominal tören yok. Bu üyelere sahip her değer uyar ve bunu <code>tsc</code> zorunlu kılar.
+      </p>
       <div class="code">
         <span class="cap">interface'ler generic'leri kısıtlar</span>
 <pre><span class="add">interface</span> <span class="t">Named</span> {
@@ -514,32 +535,34 @@
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          <code>defer</code>, blok çıkarken temizlik kodunu her yolda çalıştırır; erken bir return ya da fırlatılan bir hata da buna dahildir. Birden fazla defer son giren ilk çıkar sırasıyla çalışır ve <code>owned</code> handle'larla birlikte kullanılabilir. <code>std/task</code> ise eşzamanlı işleri sahipsiz promise'ler bırakmak yerine tek bir ömür altında birleştirir.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="defer"><code>defer</code> ve yapılandırılmış eşzamanlılık<a class="ak-anchor" href="#defer" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>defer</code>, blok çıkarken temizlik kodunu her yolda çalıştırır; erken bir return ya da fırlatılan bir hata da buna dahildir. <code>std/task</code> ise eşzamanlı işleri sahipsiz promise'ler bırakmak yerine tek bir ömür altında birleştirir.
+      </p>
       <div class="code">
         <span class="cap">defer + yapılandırılmış eşzamanlılık</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 <span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">sıralama ve owned handle'lar</span></summary><div class="body">
         <p>
-          Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırasını, değişiklik için referans semantiğini ve tek iş parçacıklı, çöp toplayıcılı modeli devralır. Farklı olduğu yer eşitliktir: <code>==</code> değerleri karşılaştırır, record'ları alan alan; JavaScript'in <code>===</code> operatörü ise referansları karşılaştırır. Spesifikasyon bunları sonradan keşfetmenize bırakmak yerine garanti olarak yazar. Elle bellek yönetimi ve çöp toplayıcısız bir model yol haritasında yok; TypeScript'e derlenen bir dilin kapsamı dışındalar.
+          Birden fazla defer son giren ilk çıkar sırasıyla çalışır ve <code>owned</code> handle'larla birlikte kullanılabilir.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> yok, bu yüzden her şeyi <code>match</code> taşımak zorunda<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir TypeScript geliştiricisinin kapsam kontrolü anlatıldıktan sonra sorduğu ilk şey, <code>match</code>'in gerçekten genel amaçlı bir koşul ifadesi mi yoksa bir union'ı parçalamanın şık bir yolu mu olduğudur. İlkidir ve bunu kanıtlayan yer atamadır. Bir <code>let</code> ya da <code>mut</code>'un değerinin tamamı olan bir <code>match</code>, bir statement'ın alabildiği her şeyi alır: bir arm bir blok olabilir, bir arm <code>await</code> edebilir, bir arm çevreleyen döngüden <code>break</code> ile çıkabilir ve bir arm atamakta olduğu binding'i okuyabilir; bir <code>if</code> olmadan durumu bir döngü boyunca bu şekilde biriktirirsiniz.
-        </p>
-      </div>
+      <h2 class="ak-h" id="javascript">JavaScript'ten neyi devralıyor<a class="ak-anchor" href="#javascript" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph TypeScript'e derlenir ve bir JavaScript motorunda çalışır; bu yüzden değerlendirme sırasını, değişiklik için referans semantiğini ve tek iş parçacıklı, çöp toplayıcılı modeli devralır. Spesifikasyon bunları sonradan keşfetmenize bırakmak yerine garanti olarak yazar.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Farklı olduğu yer eşitliktir: <code>==</code> değerleri karşılaştırır, record'ları alan alan; JavaScript'in <code>===</code> operatörü ise referansları karşılaştırır.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Elle bellek yönetimi ve çöp toplayıcısız bir model yol haritasında yok; TypeScript'e derlenen bir dilin kapsamı dışındalar.</p></div>
 
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> yok, bu yüzden her şeyi <code>match</code> taşımak zorunda<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir TypeScript geliştiricisinin kapsam kontrolü anlatıldıktan sonra sorduğu ilk şey, <code>match</code>'in gerçekten genel amaçlı bir koşul ifadesi mi yoksa bir union'ı parçalamanın şık bir yolu mu olduğudur. İlkidir ve bunu kanıtlayan yer atamadır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir <code>let</code> ya da <code>mut</code>'un değerinin tamamı olan bir <code>match</code>, bir statement'ın alabildiği her şeyi alır: bir arm bir blok olabilir, bir arm <code>await</code> edebilir, bir arm çevreleyen döngüden <code>break</code> ile çıkabilir ve bir arm atamakta olduğu binding'i okuyabilir; bir <code>if</code> olmadan durumu bir döngü boyunca bu şekilde biriktirirsiniz.</p></div>
       <div class="code">
         <span class="cap">link denetleyicisinden: fence takibi ve await edilen bir arm</span>
 <pre><span class="k">for</span> raw <span class="k">in</span> lines {
@@ -555,20 +578,17 @@
   <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">neye derlendiği ve örneklerin nereden geldiği</span></summary><div class="body">
         <p>
-          İkisi de binding'i her arm'da atayan düz bir <code>switch</code>'e derlenir; böylece <code>await</code> çevreleyen async fonksiyonun içinde durur ve biriktirici, TypeScript'in çıkarım yapabildiği normal bir değişkendir. Daha büyük bir ifadenin <em>içinde</em>, bir argüman ya da operand olarak kullanılan bir <code>match</code> hâlâ bir closure'a dönüşür; bu da arm'larının tek ifade olması gerektiği anlamına gelir. Onu kendi <code>let</code>'ine taşımak bu kısıtı kaldırır. İki örnek de tam olarak bu tür şeyleri bulmak için yazılmış bir Markdown link denetleyicisi olan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> dosyasından.
+          İkisi de binding'i her arm'da atayan düz bir <code>switch</code>'e derlenir; böylece <code>await</code> çevreleyen async fonksiyonun içinde durur ve biriktirici, TypeScript'in çıkarım yapabildiği normal bir değişkendir. İki örnek de tam olarak bu tür şeyleri bulmak için yazılmış bir Markdown link denetleyicisi olan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> dosyasından.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Daha büyük bir ifadenin <em>içinde</em>, bir argüman ya da operand olarak kullanılan bir <code>match</code> hâlâ bir closure'a dönüşür; bu da arm'larının tek ifade olması gerektiği anlamına gelir. Onu kendi <code>let</code>'ine taşımak bu kısıtı kaldırır.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">Bir pattern birden fazla seviye derindeki bir şekli adlandırabilir<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Birden fazla alanı olan bir variant bir record taşır; bu yüzden bir şekli tanımak isteyen bir arm'ın record'un alanlarının içine uzanması gerekir. 0.1.90'a kadar alan pozisyonu bir isimden başka bir şey almıyordu: onu yeniden adlandırabilirdiniz, o kadar. Orada bir tag eşlemek derleme hatasıydı ve iç içe bir constructor parser'dan düşüyordu. Geçici çözüm her alanı bağlamak ve her seviye için iç içe bir <code>match</code> yazmaktı; bu da red-black tree dengeleme gibi bir şey için bambaşka bir program demekti: arm'lar durumlarla hizalanmayı bırakır ve her seviye üstündeki binding'leri yeniden taşır.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">Bir pattern birden fazla seviye derindeki bir şekli adlandırabilir<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Birden fazla alanı olan bir variant bir record taşır; bu yüzden bir şekli tanımak isteyen bir arm'ın record'un alanlarının içine uzanması gerekir. Bir alan artık her pattern'i alıyor: bir variant tag'i, iç içe bir constructor, iç içe bir destructure, bir literal, bir array pattern'i.
+      </p>
       <div class="code">
         <span class="cap">bir red-black dengelemesinin bir rotasyon durumu, tek bir arm olarak</span>
 <pre><span class="k">type</span> <span class="t">Tree</span> =
@@ -581,23 +601,26 @@
   other <span class="op">=&gt;</span> other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.90 öncesindeki geçici çözüm</span></summary><div class="body">
         <p>
-          Bir alan artık her pattern'i alıyor: bir variant tag'i, iç içe bir constructor, iç içe bir destructure, bir literal, bir array pattern'i. Birini yazmadan önce bilmeye değer bir sonucu var. Bir değeri test eden alan başarısız olabilir, dolayısıyla arm artık variant'ını kapsıyor sayılmaz ve tek <code>Node</code> arm'ı <code>Node({ color: Red, ... })</code> olan bir match, kalanını bir kardeş arm ya da bir <code>else</code> alana kadar kapsamı eksik olarak raporlanır. Checker kapsamı alanların çarpımı üzerinden değil, bir tag kümesi üzerinden kanıtlar; bu yüzden bir <code>Red</code> arm'ı ile bir <code>Black</code> arm'ının birlikte <code>Node</code>'u tükettiğini çıkaramaz. Catch-all istemek, bir match'in çalışma zamanında sonuna düşmesine izin veremeyecek tek yorumdur. Aynısı sayılacak hiç variant'ın olmadığı yerde de geçerli: her arm'ı bir alanı test eden düz bir record üzerindeki match'in arkasında bir <code>else</code> olmalıdır.
+          0.1.90'a kadar alan pozisyonu bir isimden başka bir şey almıyordu: onu yeniden adlandırabilirdiniz, o kadar. Orada bir tag eşlemek derleme hatasıydı ve iç içe bir constructor parser'dan düşüyordu. Geçici çözüm her alanı bağlamak ve her seviye için iç içe bir <code>match</code> yazmaktı; bu da red-black tree dengeleme gibi bir şey için bambaşka bir program demekti: arm'lar durumlarla hizalanmayı bırakır ve her seviye üstündeki binding'leri yeniden taşır.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Birini yazmadan önce bilmeye değer bir sonucu var. Bir değeri test eden alan başarısız olabilir, dolayısıyla arm artık variant'ını kapsıyor sayılmaz ve tek <code>Node</code> arm'ı <code>Node({ color: Red, ... })</code> olan bir match, kalanını bir kardeş arm ya da bir <code>else</code> alana kadar kapsamı eksik olarak raporlanır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">neden catch-all istiyor ve dizi pozisyonu</span></summary><div class="body">
+        <p>
+          Checker kapsamı alanların çarpımı üzerinden değil, bir tag kümesi üzerinden kanıtlar; bu yüzden bir <code>Red</code> arm'ı ile bir <code>Black</code> arm'ının birlikte <code>Node</code>'u tükettiğini çıkaramaz. Catch-all istemek, bir match'in çalışma zamanında sonuna düşmesine izin veremeyecek tek yorumdur. Aynısı sayılacak hiç variant'ın olmadığı yerde de geçerli: her arm'ı bir alanı test eden düz bir record üzerindeki match'in arkasında bir <code>else</code> olmalıdır.
         </p>
         <p>
           Bunun beklemeyebileceğiniz bir yere uzandığı nokta array pozisyonu. Bütün bir arm olarak <code>[Black]</code> eskiden herhangi bir tek elemanlı array'i eşliyor sayılıyordu; bu yüzden ona dayanan bir match kapsamı tam olarak onaylanıyor ve sonra <code>[Red]</code> için de o arm'ı alıyordu. PascalCase bir eleman burada da bir variant referansıdır, dolayısıyla böyle bir match artık uzunluğu 1 olan array'lerde <code>E0208</code> verir. Elemanı bağlayın ve onu ayrı olarak eşleyin. Altta yatan lowering hâlâ eskisi; kontrolün önce yayınlanan yarı olmasının nedeni bu.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">Derleyici <code>match</code>'in ne ürettiğini de bilir<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bunların hiçbirinin gerçekten yük taşıyıp taşımadığına karar veren soru şu: bir dalın içinden bir değer bağladığınızda Glyph onun tipini biliyor mu, yoksa omuz silkip sonradan <code>tsc</code>'nin halletmesine mi bırakıyor? 0.1.45'e kadar omuz silkiyordu. Her <code>match</code> ifadesinin tipi unknown'du; yani dildeki tek dallanma yapısından çıkan bir değer o noktadan sonra tipsizdi. Bir <code>match</code> artık arm'ları uyuştuğunda onların tipini alıyor ve <code>T.parse</code>'ın <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> döndürdüğü biliniyor; gerçek kodun çoğunun üzerinde dallandığı şekil de bu.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">Derleyici <code>match</code>'in ne ürettiğini de bilir<a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bunların hiçbirinin gerçekten yük taşıyıp taşımadığına karar veren soru şu: bir dalın içinden bir değer bağladığınızda Glyph onun tipini biliyor mu, yoksa omuz silkip sonradan <code>tsc</code>'nin halletmesine mi bırakıyor? Bir <code>match</code> artık arm'ları uyuştuğunda onların tipini alıyor ve <code>T.parse</code>'ın <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> döndürdüğü biliniyor; gerçek kodun çoğunun üzerinde dallandığı şekil de bu.
+      </p>
       <div class="code">
         <span class="cap">masraf paylaştırıcısından: annotation yok ve <code>i</code> bir number</span>
 <pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
@@ -611,13 +634,24 @@
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.45 öncesi</span></summary><div class="body">
         <p>
-          Bunun iki yarısı da eskiden sessizce ters giden şeylerdi. Döngü <code>wire.expenses.entries()</code> üretir; yinelenen değerin tipi unknown olduğunda bunun yerine <code>Object.entries(...)</code> üretir ve <code>i</code> <em>string</em> olan <code>"0"</code> olur. Bu geçerli TypeScript'tir, yani build temizdi ve program <code>1:a</code> demek isterken <code>01:a</code> yazdırıyordu. <code>wire.expensez</code> ise artık üretilen TypeScript üzerinde bir <code>TS2339</code> yerine Glyph'ten, <code>.glyph</code> satırında gelen <code>[E0210] type WireLedger has no field expensez</code>. Birleştirme baştaki eşitliğe bakar: <code>return</code> ile biten bir arm oy kullanmaz ve tipleri uyuşmayan arm'lar sonucu eskisi gibi unknown bırakır. Yalnızca bir tip argümanında bir seviye daha derine bakar; böylece <code>None =&gt; []</code>, tüm <code>match</code>'i batırmak yerine bir <code>Array&lt;string&gt;</code> arm'ıyla uyuşur ve ondan sonraki döngü yine bir number bağlar. <code>record.get</code> üzerindeki aynı zincir de aynı nedenle çalışır: altı <code>std/record</code> fonksiyonunun hepsi değer tipini verdiğiniz record'dan alır. Örnek, bu değişikliğin sildiği annotation'ı taşıyan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> dosyasından.
+          0.1.45'e kadar omuz silkiyordu. Her <code>match</code> ifadesinin tipi unknown'du; yani dildeki tek dallanma yapısından çıkan bir değer o noktadan sonra tipsizdi.
         </p>
-      </div>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">sessizce ters giden şeyler ve birleştirmenin nasıl çalıştığı</span></summary><div class="body">
+        <p>
+          Bunun iki yarısı da eskiden sessizce ters giden şeylerdi. Döngü <code>wire.expenses.entries()</code> üretir; yinelenen değerin tipi unknown olduğunda bunun yerine <code>Object.entries(...)</code> üretir ve <code>i</code> <em>string</em> olan <code>"0"</code> olur. Bu geçerli TypeScript'tir, yani build temizdi ve program <code>1:a</code> demek isterken <code>01:a</code> yazdırıyordu. <code>wire.expensez</code> ise artık üretilen TypeScript üzerinde bir <code>TS2339</code> yerine Glyph'ten, <code>.glyph</code> satırında gelen <code>[E0210] type WireLedger has no field expensez</code>.
+        </p>
+        <p>
+          Birleştirme baştaki eşitliğe bakar: <code>return</code> ile biten bir arm oy kullanmaz ve tipleri uyuşmayan arm'lar sonucu eskisi gibi unknown bırakır. Yalnızca bir tip argümanında bir seviye daha derine bakar; böylece <code>None =&gt; []</code>, tüm <code>match</code>'i batırmak yerine bir <code>Array&lt;string&gt;</code> arm'ıyla uyuşur ve ondan sonraki döngü yine bir number bağlar. <code>record.get</code> üzerindeki aynı zincir de aynı nedenle çalışır: altı <code>std/record</code> fonksiyonunun hepsi değer tipini verdiğiniz record'dan alır. Örnek, bu değişikliğin sildiği annotation'ı taşıyan <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> dosyasından.
+        </p>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">Boş bir yedeği olan bir arama<a class="ak-anchor" href="#empty-fallback" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bunun en pahalıya mal olduğu şekil bu. Bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>[]</code> belirli bir şeyin array'i değildir; dolayısıyla iki arm <code>Array</code> üzerinde uyuşur ve eleman tipi, eleman tipi olan arm'dan gelir.
+      </p>
       <div class="code">
         <span class="cap">bağımlılık çözücüsünden: bir arama, boş bir yedek, indeksli bir dolaşma</span>
 <pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
@@ -630,20 +664,16 @@
   <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.55 öncesi</span></summary><div class="body">
         <p>
-          Bunun en pahalıya mal olduğu şekil bu. Bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>[]</code> belirli bir şeyin array'i değildir; dolayısıyla iki arm <code>Array</code> üzerinde uyuşur ve eleman tipi, eleman tipi olan arm'dan gelir. 0.1.55'e kadar eşitlik için karşılaştırılıyorlardı, <code>[]</code> bir uyuşmazlık sayılıyordu ve aşağıdaki döngü, hiç diagnostic olmayan ve <code>tsc --strict</code>'ten geçen bir build'de <code>01:x</code> yazdırıyordu. Kod <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>; eskiden annotation'ın yük taşıdığını açıklayan üç satırlık bir yorumun altında <code>let path: Array&lt;string&gt;</code> ile başlıyordu.
+          0.1.55'e kadar eşitlik için karşılaştırılıyorlardı, <code>[]</code> bir uyuşmazlık sayılıyordu ve aşağıdaki döngü, hiç diagnostic olmayan ve <code>tsc --strict</code>'ten geçen bir build'de <code>01:x</code> yazdırıyordu. Kod <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>; eskiden annotation'ın yük taşıdığını açıklayan üç satırlık bir yorumun altında <code>let path: Array&lt;string&gt;</code> ile başlıyordu.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code>'ı kendim mi yazmak zorundayım?<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Gerçek bir programda ilk karşılaştığınız eksik bir tip sistemi özelliği değil. <code>string.slice</code>'a uzanıp orada hiçbir şey bulamamaktır. Art arda beş dogfooding turu aynı listeyi kaydetti ve 0.1.47'ye kadar bu repodaki altı uygulama kendi <code>repeat</code>'ini, beşi kendi <code>pad_start</code>'ını taşıyordu ve hepsinde bir fold'un yeri olan bir döngü vardı. Bu on bir isim artık hazır geliyor ve kopyalar, onları barındıran yedi uygulamanın hepsinden silindi.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code>'ı kendim mi yazmak zorundayım?<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Gerçek bir programda ilk karşılaştığınız eksik bir tip sistemi özelliği değil. <code>string.slice</code>'a uzanıp orada hiçbir şey bulamamaktır.
+      </p>
       <div class="code">
         <span class="cap">gelenler</span>
 <pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
@@ -655,29 +685,53 @@
 <span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
 io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu on bir isim artık hazır geliyor ve kopyalar, onları barındıran yedi uygulamanın hepsinden silindi.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.47 öncesinde uygulamaların taşıdığı kopyalar</span></summary><div class="body">
+        <p>
+          Art arda beş dogfooding turu aynı listeyi kaydetti ve 0.1.47'ye kadar bu repodaki altı uygulama kendi <code>repeat</code>'ini, beşi kendi <code>pad_start</code>'ını taşıyordu ve hepsinde bir fold'un yeri olan bir döngü vardı.
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">TypeScript'ten nerede ayrılıyorlar<a class="ak-anchor" href="#namesakes" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bunlardan üçü TypeScript'teki adaşlarından bilerek ayrılıyor.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code>, negatif bir sayıda TS'nin hata fırlattığı yerde <code>""</code> döndürür; <code>repeat(pad, width - len(s))</code>'i zaten fazla uzun olan bir string'de güvenli kılan da budur.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>İki <code>index_of</code> fonksiyonu da <code>-1</code> yerine <code>Option&lt;number&gt;</code> döndürür, çünkü <code>-1</code> gerçek bir indeksin geçtiği her yerde tip kontrolünden geçen ve çağrıdan çok uzakta patlayan bir sayıdır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>Değiştirme yalnızca <code>replace_all</code> olarak geliyor; böylece sessizce tek bir eşleşmeyi değiştiren <code>String.prototype.replace</code> ile karıştırılacak yalnızca-ilkini değiştiren bir biçim yok.</li>
+      </ul>
+      <h3 class="ak-h3" id="fold"><code>fold</code> neden önemli<a class="ak-anchor" href="#fold" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>fold</code>, yazma tasarrufu yerine bir temel ilkeye hizmet eden fonksiyon. <code>mut</code>, durumun değiştiği her yerin grep'lenebilir kaydıdır ve fold olmadan <code>grep mut</code>, bir reviewer'ın umursadığı hiçbir şeyi değiştirmeyen sayma döngüleriyle dolu döner.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Elle yazılmış sürümleri silmek <code>examples/apps/</code>'i 192 mutation noktasından 161'e indirdi.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">yeniden yazım nasıl kontrol edildi</span></summary><div class="body">
+        <p>
+          Yeniden yazım review ile değil çıktıyla kontrol edildi: yedi uygulamanın hepsi öncesinde ve sonrasında sabit girdilerle çalıştırıldı; stdout, çıkış kodları ve HTTP yanıtlarından oluşan 26 dosyanın hepsi byte byte aynıydı.
+        </p>
+      </div></details>
 
-      <div class="detail">
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">Bir dizini dolaşıp neyin bozulduğunu söyleyebilir miyim?<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/fs</code> altı fonksiyonla geldi ve hiçbiri bir dizini listelemiyordu.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code> bir seviye aşağıdaki girdi adlarını döndürür.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code> tıpkı <code>fs.exists</code> gibi bir <code>bool</code> ile yanıt verir.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code>, <code>is_dir</code>, <code>is_file</code>, byte cinsinden <code>size</code> ve epoch milisaniyesi cinsinden <code>modified</code> içeren bir <code>FileInfo</code> döndürür; bunu <code>time.format_iso</code> doğrudan biçimlendirir.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Özyinelemeli bir <code>walk</code> ve glob yok; bir dolaşma, bu üçü artı <code>path.join</code> ile yaklaşık on satır tutar.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">bunların yerini aldığı geçici çözüm</span></summary><div class="body">
         <p>
-          Bunlardan üçü TypeScript'teki adaşlarından bilerek ayrılıyor. <code>repeat</code>, negatif bir sayıda TS'nin hata fırlattığı yerde <code>""</code> döndürür; <code>repeat(pad, width - len(s))</code>'i zaten fazla uzun olan bir string'de güvenli kılan da budur. İki <code>index_of</code> fonksiyonu da <code>-1</code> yerine <code>Option&lt;number&gt;</code> döndürür, çünkü <code>-1</code> gerçek bir indeksin geçtiği her yerde tip kontrolünden geçen ve çağrıdan çok uzakta patlayan bir sayıdır. Değiştirme yalnızca <code>replace_all</code> olarak geliyor; böylece sessizce tek bir eşleşmeyi değiştiren <code>String.prototype.replace</code> ile karıştırılacak yalnızca-ilkini değiştiren bir biçim yok.
+          Bu repodaki link denetleyicisi stdlib'in ötesine geçip node'un <code>readdirSync</code>'ine uzanıyor ve hangi yolların dizin olduğunu onları okumayı deneyip geri dönen <code>errno</code>'yu inceleyerek buluyordu. İki yarısı da düzeltildi.
         </p>
-        <p>
-          <code>fold</code>, yazma tasarrufu yerine bir temel ilkeye hizmet eden fonksiyon. <code>mut</code>, durumun değiştiği her yerin grep'lenebilir kaydıdır ve fold olmadan <code>grep mut</code>, bir reviewer'ın umursadığı hiçbir şeyi değiştirmeyen sayma döngüleriyle dolu döner. Elle yazılmış sürümleri silmek <code>examples/apps/</code>'i 192 mutation noktasından 161'e indirdi. Yeniden yazım review ile değil çıktıyla kontrol edildi: yedi uygulamanın hepsi öncesinde ve sonrasında sabit girdilerle çalıştırıldı; stdout, çıkış kodları ve HTTP yanıtlarından oluşan 26 dosyanın hepsi byte byte aynıydı.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">Bir dizini dolaşıp neyin bozulduğunu söyleyebilir miyim?<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>std/fs</code> altı fonksiyonla geldi ve hiçbiri bir dizini listelemiyordu. Bu repodaki link denetleyicisi stdlib'in ötesine geçip node'un <code>readdirSync</code>'ine uzanıyor ve hangi yolların dizin olduğunu onları okumayı deneyip geri dönen <code>errno</code>'yu inceleyerek buluyordu. İki yarısı da düzeltildi. <code>fs.read_dir</code> bir seviye aşağıdaki girdi adlarını döndürür, <code>fs.is_dir</code> tıpkı <code>fs.exists</code> gibi bir <code>bool</code> ile yanıt verir ve <code>fs.stat</code>, <code>is_dir</code>, <code>is_file</code>, byte cinsinden <code>size</code> ve epoch milisaniyesi cinsinden <code>modified</code> içeren bir <code>FileInfo</code> döndürür; bunu <code>time.format_iso</code> doğrudan biçimlendirir. Özyinelemeli bir <code>walk</code> ve glob yok; bir dolaşma, bu üçü artı <code>path.join</code> ile yaklaşık on satır tutar.
-        </p>
-        <p>
-          Hata tarafı daha çok değişti. <code>FsError.kind</code>, tüm sınıflandırması <code>NotFound</code> olan bir <code>{ tag: string }</code> idi; dolayısıyla &ldquo;bu yol bir dizin&rdquo; ile &ldquo;bu yol yok&rdquo;u ayırt etmek bir errno string'ini karşılaştırmak demekti. Artık bir programın gerçekten toparlanabildiği beş türün adı var ve adı olmayan bir errno <code>Other</code> kuyruğunda olduğu gibi gelir.
-        </p>
-        <p>
-          Checker bu sınıflandırmanın kapalı olduğunu bilir; bu yüzden <code>err.kind</code> üzerindeki bir <code>match</code>, kendi tanımladığınız bir union ile aynı çıtaya tabidir: altısını kapsarsanız <code>else</code>'e ihtiyacınız olmaz, birini atlarsanız build <code>fs.ErrorKind</code>'ı adlandıran <code>E0200</code> ile başarısız olur. <code>fs.FsError</code> ve <code>fs.FileInfo</code>'nun alanları da kontrol edilir; böylece <code>err.mesage</code>, üretilen TypeScript'e karşı bir <code>tsc</code> hatası değil, Glyph kaynağınıza karşı <code>E0210</code> olur.
-        </p>
-      </div>
-
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">Hataların adları var<a class="ak-anchor" href="#fs-errors" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Hata tarafı daha çok değişti. Artık bir programın gerçekten toparlanabildiği beş türün adı var ve adı olmayan bir errno <code>Other</code> kuyruğunda olduğu gibi gelir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Checker bu sınıflandırmanın kapalı olduğunu bilir; bu yüzden <code>err.kind</code> üzerindeki bir <code>match</code>, kendi tanımladığınız bir union ile aynı çıtaya tabidir: altısını kapsarsanız <code>else</code>'e ihtiyacınız olmaz, birini atlarsanız build <code>fs.ErrorKind</code>'ı adlandıran <code>E0200</code> ile başarısız olur.</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">bir ağacı dolaş ve neyin ters gittiğini adlandır</span>
 <pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
@@ -701,36 +755,50 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
   fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">eski sınıflandırma, kontrol edilen alanlar ve kontrolü kendiniz denemek</span></summary><div class="body">
         <p>
-          Onunla birlikte, ikisi de aynı uygulamadan gelen iki küçük ekleme daha geldi. <code>regex.captures_all</code> yalnızca eşleşen metni değil, her eşleşmenin capture group'larını verir; böylece düz bir <code>key=value</code> taraması elle yazılmış bir döngü olmaktan çıkar. <code>task.pool_settled</code> ise <code>all_settled</code>&rsquo;ın hata davranışına sahip bir <code>task.pool</code>'dur: sınırlı eşzamanlılık, görev başına bir sonuç ve çökmüş bir host size havuzun topladığı tüm sonuçları değil, yalnızca o host'un sonucunu kaybettirir.
+          <code>FsError.kind</code>, tüm sınıflandırması <code>NotFound</code> olan bir <code>{ tag: string }</code> idi; dolayısıyla &ldquo;bu yol bir dizin&rdquo; ile &ldquo;bu yol yok&rdquo;u ayırt etmek bir errno string'ini karşılaştırmak demekti.
+        </p>
+        <p>
+          <code>fs.FsError</code> ve <code>fs.FileInfo</code>'nun alanları da kontrol edilir; böylece <code>err.mesage</code>, üretilen TypeScript'e karşı bir <code>tsc</code> hatası değil, Glyph kaynağınıza karşı <code>E0210</code> olur.
         </p>
         <p>
           Bu kontrol devrede. Yukarıdaki <code>match</code>'ten <code>PermissionDenied</code> arm'ını silin, <code>glyph check --no-tsc</code> <code>E0200</code> ile durur: <code>fs.ErrorKind</code> üzerinde kapsamı eksik match, eksik variant'lar <code>PermissionDenied</code>. Stdlib modeli ilk yazıldığında yalnızca dönüş tiplerini kapsıyordu ve bunun gibi bir match temiz derlenip çalışma zamanında hata fırlatıyordu; <code>fs.FsError</code>, <code>fs.FileInfo</code> ve <code>fs.ErrorKind</code>'ın alan ve variant şekilleri artık modellenmiş durumda.
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">İki küçük ekleme<a class="ak-anchor" href="#captures-all" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Onunla birlikte, ikisi de aynı uygulamadan gelen iki küçük ekleme daha geldi.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code> yalnızca eşleşen metni değil, her eşleşmenin capture group'larını verir; böylece düz bir <code>key=value</code> taraması elle yazılmış bir döngü olmaktan çıkar.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code>, <code>all_settled</code>&rsquo;ın hata davranışına sahip bir <code>task.pool</code>'dur: sınırlı eşzamanlılık, görev başına bir sonuç ve çökmüş bir host size havuzun topladığı tüm sonuçları değil, yalnızca o host'un sonucunu kaybettirir.</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">Fonksiyonların doğru fonksiyonlar olduğunu nereden biliyorsunuz?<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Çünkü sürümün tamamlanmış sayılması için onları isteyen uygulamanın etraflarından dolaşmayı bırakması gerekiyordu. Yayınlanan bir kütüphane fonksiyonu ile ondan uzun yaşayan bir geçici çözüm farklı iddialardır; bu yüzden bu dördünü ekleyen değişiklik link denetleyicisindeki kopyaları da sildi: <code>readdirSync</code> import'unu, iki <code>errno</code> string karşılaştırmasını, elle yazılmış tarayıcının 97 satırını ve ilk hatada duran havuzu. 122 satır çıktı.
-        </p>
-        <p>
-          Bu silmelerden ikisi programın yaptığı şeyi değiştirdi ve fark tartışılarak değil ölçülerek ortaya kondu. Eski ve yeni sürümleri okuyamadığınız bir dizin içeren bir ağaca yöneltin: yenisi <code>permission denied</code> yazdırır ve yolu okunamaz olarak sayar; yalnızca errno'nun <code>EISDIR</code> olup olmadığını sorabilen eskisi ise onu rapordan tamamen çıkarıyordu. Üç URL'den birinin hata fırlatmasını sağlayın: <code>pool_settled</code> üç satırın hepsini yazdırdı ve hatayı adlandırdı, <code>pool</code> ise hiçbir şey yazdırmadı ve işlenmemiş bir rejection ile çöktü, iki iyi sonucu da beraberinde götürerek.
-        </p>
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">Fonksiyonların doğru fonksiyonlar olduğunu nereden biliyorsunuz?<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Çünkü sürümün tamamlanmış sayılması için onları isteyen uygulamanın etraflarından dolaşmayı bırakması gerekiyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yayınlanan bir kütüphane fonksiyonu ile ondan uzun yaşayan bir geçici çözüm farklı iddialardır; bu yüzden bu dördünü ekleyen değişiklik link denetleyicisindeki kopyaları da sildi: <code>readdirSync</code> import'unu, iki <code>errno</code> string karşılaştırmasını, elle yazılmış tarayıcının 97 satırını ve ilk hatada duran havuzu. 122 satır çıktı.</p></div>
+      <h3 class="ak-h3" id="measured">Ölçülen iki davranış değişikliği<a class="ak-anchor" href="#measured" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bu silmelerden ikisi programın yaptığı şeyi değiştirdi ve fark tartışılarak değil ölçülerek ortaya kondu.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>Okunamayan bir dizin</b>Eski ve yeni sürümleri okuyamadığınız bir dizin içeren bir ağaca yöneltin: yenisi <code>permission denied</code> yazdırır ve yolu okunamaz olarak sayar; yalnızca errno'nun <code>EISDIR</code> olup olmadığını sorabilen eskisi ise onu rapordan tamamen çıkarıyordu.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Başarısız olan bir URL</b>Üç URL'den birinin hata fırlatmasını sağlayın: <code>pool_settled</code> üç satırın hepsini yazdırdı ve hatayı adlandırdı, <code>pool</code> ise hiçbir şey yazdırmadı ve işlenmemiş bir rejection ile çöktü, iki iyi sonucu da beraberinde götürerek.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">tarayıcının yeniden yazımı ve alternation endişesi</span></summary><div class="body">
         <p>
           Tarayıcının yeniden yazımı bir tasarım endişesini de çözdü. Katılmayan bir capture group, boş eşleşen bir grupla aynı şekilde <code>""</code> olarak okunduğundan, <code>captures_all</code> bir alternation'ın hangi dalının tetiklendiğini söyleyemiyor gibi görünüyordu. Söyleyebilir, yeter ki her dalın grubunu istediğiniz parçanın değil tüm yapının etrafına yazın: tetiklenen bir grup bu durumda <code>`</code>, <code>[</code>, <code>!</code> ya da <code>&lt;</code> ile başlar ve boş olamaz. Boş olabilecek parça, yani link hedefi, içeride iç içe durur ve hiçbir zaman sorduğunuz şey değildir. Bu, 180 satırlık bir karakter dolaşmasını iki pattern'e ve 12 satırlık bir dağıtıma dönüştürdü; çıktı hem reponun kendi dokümanlarında hem de onu bozmak için kurulmuş bir fixture'da byte byte aynıydı.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-doesn-t-run-on-floats">Para float'larla yürümez<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir fintech değerlendirmesini anında bitirecek eksik, parayı IEEE-754 <code>number</code> ile hesaplamaktır; orada <code>0.1 + 0.2</code>, <code>0.3</code> değildir ve 2<sup>53</sup>'ün ötesindeki değerler sessizce hassasiyet kaybeder. <code>std/decimal</code>, BigInt üzerinde kesin, 10 tabanlı sabit noktalı sayıdır: sabit sayıda ondalık basamağı olan keyfi hassasiyetli bir tamsayı. Bu yüzden toplama, çıkarma ve çarpma kesindir, bölme ise açık bir ölçek ve yuvarlama alır. Bozuk bir tutar parse edildiğinde asla sessiz bir <code>NaN</code> değil, bir <code>Err</code> olur.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">Para float'larla yürümez<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir fintech değerlendirmesini anında bitirecek eksik, parayı IEEE-754 <code>number</code> ile hesaplamaktır; orada <code>0.1 + 0.2</code>, <code>0.3</code> değildir ve 2<sup>53</sup>'ün ötesindeki değerler sessizce hassasiyet kaybeder.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>std/decimal</code>, BigInt üzerinde kesin, 10 tabanlı sabit noktalı sayıdır: sabit sayıda ondalık basamağı olan keyfi hassasiyetli bir tamsayı. Bu yüzden toplama, çıkarma ve çarpma kesindir, bölme ise açık bir ölçek ve yuvarlama alır. Bozuk bir tutar parse edildiğinde asla sessiz bir <code>NaN</code> değil, bir <code>Err</code> olur.</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
@@ -740,23 +808,16 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
       </div>
+      <h3 class="ak-h3" id="bigint">Büyük tam sayılar<a class="ak-anchor" href="#bigint" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Kesin, büyük <em>tam</em> sayılar, yani hesap id'leri ve sayaçlar için <code>bigint</code> tipi var: literal'ler <code>123n</code> biçimindedir, gerçek bir TypeScript <code>bigint</code>'ine derlenir ve <code>bigint</code> tipli bir record alanı sınırda <code>typeof === "bigint"</code> doğrulaması yapar; böylece JSON <code>number</code> olarak gönderilen bir id, 2<sup>53</sup>'ün ötesinde sessizce yuvarlanmak yerine reddedilir.
+      </p>
 
-      <div class="detail">
-        <p>
-          Kesin, büyük <em>tam</em> sayılar, yani hesap id'leri ve sayaçlar için <code>bigint</code> tipi var: literal'ler <code>123n</code> biçimindedir, gerçek bir TypeScript <code>bigint</code>'ine derlenir ve <code>bigint</code> tipli bir record alanı sınırda <code>typeof === "bigint"</code> doğrulaması yapar; böylece JSON <code>number</code> olarak gönderilen bir id, 2<sup>53</sup>'ün ötesinde sessizce yuvarlanmak yerine reddedilir.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="an-async-callback-finally-has-a-type">Async bir callback'in nihayet bir tipi var<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir fonksiyon tipi <code>fn(A) -&gt; T</code> idi ve başka bir şey değildi; bu da <code>(a: A) =&gt; T</code> üretir. Async bir gövde buna uymaz; bu yüzden ertelenmiş bir görev döndüren bir fonksiyon ya da async handler'lardan oluşan bir record annotation'sız kalmak zorundaydı ve checker bakmayı bırakıyordu. <code>async fn(A) -&gt; T</code> o eksik tiptir. <code>(a0: A) =&gt; Promise&lt;T&gt;</code> üretir; dönüşü olmayan <code>async fn()</code> ise <code>() =&gt; Promise&lt;void&gt;</code> üretir.
-        </p>
-        <p>
-          Glyph ikisini <code>tsc</code>'ye bırakmadan kendisi ayırır: async bir fonksiyon beklenen yerde düz bir fonksiyon, bir return'de <code>E0204</code>, bir çağrı argümanında <code>E0211</code> olur ve mesaj iki tarafı da adlandırır. Yargılamadığı tek durum, TypeScript'in her fonksiyonun yerine geçmesine izin verdiği bir <code>void</code> dönüşüdür.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">Async bir callback'in nihayet bir tipi var<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir fonksiyon tipi <code>fn(A) -&gt; T</code> idi ve başka bir şey değildi; bu da <code>(a: A) =&gt; T</code> üretir. Async bir gövde buna uymaz; bu yüzden ertelenmiş bir görev döndüren bir fonksiyon ya da async handler'lardan oluşan bir record annotation'sız kalmak zorundaydı ve checker bakmayı bırakıyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt; T</code> o eksik tiptir. <code>(a0: A) =&gt; Promise&lt;T&gt;</code> üretir; dönüşü olmayan <code>async fn()</code> ise <code>() =&gt; Promise&lt;void&gt;</code> üretir.</p></div>
       <div class="code">
         <span class="cap">ertelenmiş bir görev ve bir handler map'i</span>
 <pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
@@ -772,14 +833,17 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">Sonuna kadar eşlenen özyinelemeli bir tip<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">Glyph düz ve async fonksiyonları nasıl ayırt ediyor</span></summary><div class="body">
         <p>
-          Bir union kendi payload'ının içinde, tip parametreleriyle birlikte kendini adlandırabilir ve bir match arm'ı bir constructor pattern'ini başka bir constructor pattern&rsquo;inin alanının içine yerleştirebilir. Bunları bir araya getirin, bir red-black tree'nin dengeleme kuralları dört arm olur: her biri yeniden yazdığı şekli tam olarak adlandırır ve şekli kontrol eden şey, üstündeki bunu iddia eden bir yorum değil derleyicidir. <code>examples/apps/leaderboard/main.glyph</code> programın tamamıdır: her skoru ağaçta tutan ve sıralama, ilk N ve aralık sorgularını bir log'u yeniden sıralamak yerine ağacı dolaşarak yanıtlayan bir skor tablosu.
+          Glyph ikisini <code>tsc</code>'ye bırakmadan kendisi ayırır: async bir fonksiyon beklenen yerde düz bir fonksiyon, bir return'de <code>E0204</code>, bir çağrı argümanında <code>E0211</code> olur ve mesaj iki tarafı da adlandırır.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Yargılamadığı tek durum, TypeScript'in her fonksiyonun yerine geçmesine izin verdiği bir <code>void</code> dönüşüdür.</p></div>
 
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">Sonuna kadar eşlenen özyinelemeli bir tip<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir union kendi payload'ının içinde, tip parametreleriyle birlikte kendini adlandırabilir ve bir match arm'ı bir constructor pattern'ini başka bir constructor pattern&rsquo;inin alanının içine yerleştirebilir. Bunları bir araya getirin, bir red-black tree'nin dengeleme kuralları dört arm olur: her biri yeniden yazdığı şekli tam olarak adlandırır ve şekli kontrol eden şey, üstündeki bunu iddia eden bir yorum değil derleyicidir.
+      </p>
       <div class="code">
         <span class="cap">dört rotasyon durumundan biri</span>
 <pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
@@ -800,19 +864,140 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code> programın tamamıdır: her skoru ağaçta tutan ve sıralama, ilk N ve aralık sorgularını bir log'u yeniden sıralamak yerine ağacı dolaşarak yanıtlayan bir skor tablosu.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Bir kardeş modülün tipini adlandırmanın iki yolunda da (adlı import ve <code>lib.Secret</code> annotation'ı) zorunlu kılınan <code>pub</code> görünürlüğü, yapısal <code>interface</code> sınırları, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), yazılı bir tip olarak <code>async fn(A) -&gt; T</code>, kendi payload'ında kendini adlandıran ve bir constructor pattern'ini bir diğerinin alanına yerleştiren bir arm ile eşlenen bir union, arm'larında bloklar, <code>await</code> ve döngü kontrolü olan, bir <code>let</code> ya da <code>mut</code>'un değeri olarak <code>match</code>, arm'ları uyuştuğunda tiplerini programın geri kalanına taşıyan bir <code>match</code>, tipli bir <code>T.parse</code>, kesin para hesabı için <code>std/decimal</code>, kesin büyük tamsayılar için <code>bigint</code>, basamak ayırıcılar, JS'ten devralınan semantiği üstlenen bir spec bölümü ve <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> ile <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code> içeren bir standart kütüphane; ayrıca <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, checker'ın sizi tuttuğu bir <code>FsError.kind</code> sınıflandırması ve <code>regex.captures_all</code>. <code>std/string</code> ve <code>std/array</code>'in çoğu artık dönüş tiplerini programınıza taşıyor; böylece <code>string.split</code> bir <code>Array&lt;string&gt;</code> olur ve üzerindeki döngü sayısal bir indeks bağlar. <code>std/record</code> da modellendi; değer tipi verdiğiniz record'dan okunur: bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get(t, k)</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>record.keys(t)</code> bir <code>Array&lt;string&gt;</code>'dir; böylece <code>array.sort(record.keys(t), cmp)</code> eleman tipini korur.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p>Private bir import, eksik bir isimle aynı mesajı, &ldquo;not exported by M&rdquo; raporlar; &ldquo;private, <code>pub</code> olarak işaretle&rdquo; ile &ldquo;böyle bir isim yok&rdquo;u ayırt etmek sıradaki bir iyileştirme. Görünürlük tip annotation'larında kontrol edilir, bir namespace üzerinden okunan değerlerde değil: <code>helper</code> private iken <code>lib.helper()</code> hâlâ Glyph hatası değil bir <code>tsc</code> hatasıdır. Async bağlamı artık kontrol ediliyor (<code>E0222</code>), tek bir yer hariç: modül seviyesindeki bir <code>const</code> başlatıcısının çevreleyen bir çağrılabilir yapısı yoktur, bu yüzden orada üst seviye bir <code>await</code>'e izin verilir ve üretilen ESM onu çalıştırır. Arm birleştirmesi hâlâ arm'ların tipin başında uyuşmasını gerektirir: farklı tipler ürettiklerinde sonuç Glyph için unknown olur ve onunla ne yaptığınızı yalnızca <code>tsc</code> kontrol eder. Dokuz stdlib fonksiyonu da aynı durumda. Altısı isteğe bağlı bir son argüman alır (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve arity kontrolü bir sayıyı bir sayıyla karşılaştırır; bu yüzden onları modellemek son argümanı atlayan her çağrıda yanlış bir hata raporlar. <code>array.map</code>, <code>flat_map</code> ve <code>zip</code> ise eleman tiplerini checker'ın içine girmediği bir callback'ten alır. Bu dokuzundan doğrudan çıkan bir değer, onu bir indeksle dolaşmadan önce bir annotation gerektirir ve <code>None</code> arm'ı olmayan bir <code>string.index_of</code> üzerindeki <code>match</code> hâlâ temiz derlenip çalışma zamanında hata fırlatır. <code>array.index_of</code> modellendi ve <code>E0200</code> raporluyor. Checker'ın tipini çıkaramadığı bir değere karşı üyeler ve çağrı arity'si o sınırda hata olmak yerine hâlâ kontrol edilmiyor. Kütüphane tarafında <code>string</code>, <code>len</code> ve <code>split</code>'in her zaman yaptığı gibi UTF-16 kod birimlerini indeksler ve bu karara bağlandı: <code>chars</code> ya da <code>char_at</code> yok ve planlanmıyor, çünkü döndürülen bir surrogate yarısı tam yazdırıldığı ana kadar bir karakter gibi görünür. <code>encoding.hex_encode</code> ile kodlayın ve iki hex basamağı birden okuyun. <code>captures_all</code> grupları verir, offset vermez; bu yüzden bir eşleşmenin satırın neresinde başladığını bilmesi gereken bir tarayıcı hâlâ kendi döngüsünü yazar. <code>fs.read_dir</code> ise girdileri işletim sisteminin sırasıyla verir, yani çıktının tekrarlanabilir olması gerekiyorsa onları sıralayın. İç içe alan pattern'inin bir kenar durumu kaldı: bir namespace import'u üzerinden erişilen bir union'da, bir alanda duran, payload taşıyan bir constructor. <code>import tree { Node }</code> ardından <code>Node({ left: Node({ key: k }) })</code> derlenir; <code>import tree</code> ardından <code>tree.Node({ left: tree.Node({ key: k }) })</code> ise aynı union'da <code>E0300</code> olur. Diğer kenar durumu ortadan kalktı: kendi parametresi üzerinde generic olan bir union (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) eskiden parametresiz aynı union'ın kabul ettiği iç içe arm'ı reddediyordu; artık hem açık bir tip parametresinde hem de somut bir örneklemede kabul ediyor. Aynı arama, match'in eksik variant'lar için kontrol edilip edilmeyeceğine de karar veriyordu; bu yüzden bu sürüme kadar <code>Tree&lt;K&gt;</code> üzerindeki bir <code>match</code>, generic olmayan yazımın <code>E0200</code> olduğu yerde <code>Leaf</code>'i atlayabiliyor, temiz derleniyor, <code>tsc --strict</code>'ten geçiyor ve çalışma zamanında hata fırlatıyordu. Artık iki yazım da bunu raporluyor ve union'ı bir import uzağa taşımak yanıtı değiştirmiyor: import edilmiş bir <code>Tree&lt;string&gt;</code> üzerinde <code>Leaf</code>'i atlayan bir <code>match</code>, import edilmiş generic olmayan <code>Tree</code> ile aynı şekilde <code>Leaf</code>'i adlandıran <code>E0200</code> olur. Bu ayrı kontrol edilen farklı bir kod yoluydu ve bu sürüme kadar tersine gidiyor, temiz derlenip çalışma zamanında hata fırlatıyordu. Import edilmiş bir union'ın kapsamı hakkında ona güvenmeden önce bilmeye değer bir şey daha var: variant payload'ları da hiç kontrol edilmez; bu yüzden <code>X</code>, payload'ın kendi union'ının bir variant'ı iken <code>B(X)</code>, eksik <code>Y</code>'yi raporlamak yerine her <code>B</code>'yi eşler ve bunun generic'lerle hiçbir ilgisi yok. Bir alanı bağlamak ya da bir alanda payload'sız bir tag eşlemek her durumda çalışır.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında <span class="count">19</span></h3>
+
+          <p class="ak-st-group">Modüller ve tipler</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir kardeş modülün tipini adlandırmanın iki yolunda da (adlı import ve <code>lib.Secret</code> annotation'ı) zorunlu kılınan <code>pub</code> görünürlüğü</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yapısal <code>interface</code> sınırları</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yazılı bir tip olarak <code>async fn(A) -&gt; T</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kendi payload'ında kendini adlandıran ve bir constructor pattern'ini bir diğerinin alanına yerleştiren bir arm ile eşlenen bir union</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Kontrol akışı ve <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Arm'larında bloklar, <code>await</code> ve döngü kontrolü olan, bir <code>let</code> ya da <code>mut</code>'un değeri olarak <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Arm'ları uyuştuğunda tiplerini programın geri kalanına taşıyan bir <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tipli bir <code>T.parse</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Sayılar ve semantik</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kesin para hesabı için <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kesin büyük tamsayılar için <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Basamak ayırıcılar</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JS'ten devralınan semantiği üstlenen bir spec bölümü</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Standart kütüphane</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> ile <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code> içeren bir standart kütüphane</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Checker'ın sizi tuttuğu bir <code>FsError.kind</code> sınıflandırması</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/string</code> ve <code>std/array</code>'in çoğu dönüş tiplerini programınıza taşıyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>std/string</code> ve <code>std/array</code>'in çoğu artık dönüş tiplerini programınıza taşıyor; böylece <code>string.split</code> bir <code>Array&lt;string&gt;</code> olur ve üzerindeki döngü sayısal bir indeks bağlar.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/record</code> modellendi; değer tipi verdiğiniz record'dan okunur</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>std/record</code> da modellendi; değer tipi verdiğiniz record'dan okunur: bir <code>Record&lt;string, Array&lt;string&gt;&gt;</code> üzerinde <code>record.get(t, k)</code> bir <code>Option&lt;Array&lt;string&gt;&gt;</code>'dir ve <code>record.keys(t)</code> bir <code>Array&lt;string&gt;</code>'dir; böylece <code>array.sort(record.keys(t), cmp)</code> eleman tipini korur.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor <span class="count">11</span></h3>
+
+          <p class="ak-st-group">Görünürlük</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Private bir import, eksik bir isimle aynı mesajı raporlar</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Private bir import, eksik bir isimle aynı mesajı, &ldquo;not exported by M&rdquo; raporlar; &ldquo;private, <code>pub</code> olarak işaretle&rdquo; ile &ldquo;böyle bir isim yok&rdquo;u ayırt etmek sıradaki bir iyileştirme.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir namespace üzerinden okunan private bir değer Glyph hatası değil, bir <code>tsc</code> hatasıdır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Görünürlük tip annotation'larında kontrol edilir, bir namespace üzerinden okunan değerlerde değil: <code>helper</code> private iken <code>lib.helper()</code> hâlâ Glyph hatası değil bir <code>tsc</code> hatasıdır.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Async</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Modül seviyesindeki bir <code>const</code> başlatıcısında üst seviye bir <code>await</code>'e izin verilir</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Async bağlamı artık kontrol ediliyor (<code>E0222</code>), tek bir yer hariç: modül seviyesindeki bir <code>const</code> başlatıcısının çevreleyen bir çağrılabilir yapısı yoktur, bu yüzden orada üst seviye bir <code>await</code>'e izin verilir ve üretilen ESM onu çalıştırır.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Çıkarılan tipler</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Tipin başında uyuşmayan arm'lar, sonucu Glyph için unknown bırakır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Arm birleştirmesi hâlâ arm'ların tipin başında uyuşmasını gerektirir: farklı tipler ürettiklerinde sonuç Glyph için unknown olur ve onunla ne yaptığınızı yalnızca <code>tsc</code> kontrol eder.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dokuz stdlib fonksiyonu da aynı durumda</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Dokuz stdlib fonksiyonu da aynı durumda. Altısı isteğe bağlı bir son argüman alır (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve arity kontrolü bir sayıyı bir sayıyla karşılaştırır; bu yüzden onları modellemek son argümanı atlayan her çağrıda yanlış bir hata raporlar. <code>array.map</code>, <code>flat_map</code> ve <code>zip</code> ise eleman tiplerini checker'ın içine girmediği bir callback'ten alır.</p>
+                <p>Bu dokuzundan doğrudan çıkan bir değer, onu bir indeksle dolaşmadan önce bir annotation gerektirir ve <code>None</code> arm'ı olmayan bir <code>string.index_of</code> üzerindeki <code>match</code> hâlâ temiz derlenip çalışma zamanında hata fırlatır. <code>array.index_of</code> modellendi ve <code>E0200</code> raporluyor.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Checker'ın tipini çıkaramadığı bir değere karşı üyeler ve çağrı arity'si kontrol edilmiyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Checker'ın tipini çıkaramadığı bir değere karşı üyeler ve çağrı arity'si o sınırda hata olmak yerine hâlâ kontrol edilmiyor.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Kütüphane</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code> UTF-16 kod birimlerini indeksler ve <code>chars</code> ya da <code>char_at</code> planlanmıyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Kütüphane tarafında <code>string</code>, <code>len</code> ve <code>split</code>'in her zaman yaptığı gibi UTF-16 kod birimlerini indeksler ve bu karara bağlandı: <code>chars</code> ya da <code>char_at</code> yok ve planlanmıyor, çünkü döndürülen bir surrogate yarısı tam yazdırıldığı ana kadar bir karakter gibi görünür. <code>encoding.hex_encode</code> ile kodlayın ve iki hex basamağı birden okuyun.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code> offset vermez; <code>fs.read_dir</code> işletim sisteminin sırasını korur</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>captures_all</code> grupları verir, offset vermez; bu yüzden bir eşleşmenin satırın neresinde başladığını bilmesi gereken bir tarayıcı hâlâ kendi döngüsünü yazar. <code>fs.read_dir</code> ise girdileri işletim sisteminin sırasıyla verir, yani çıktının tekrarlanabilir olması gerekiyorsa onları sıralayın.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Pattern'ler</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir alandaki payload'lı bir constructor, bir namespace import'u üzerinden erişilen bir union'da başarısız olur</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>İç içe alan pattern'inin bir kenar durumu kaldı: bir namespace import'u üzerinden erişilen bir union'da, bir alanda duran, payload taşıyan bir constructor. <code>import tree { Node }</code> ardından <code>Node({ left: Node({ key: k }) })</code> derlenir; <code>import tree</code> ardından <code>tree.Node({ left: tree.Node({ key: k }) })</code> ise aynı union'da <code>E0300</code> olur.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Kendi parametresi üzerinde generic olan bir union iç içe arm'ı kabul eder ve eksik variant'lar için kontrol edilir</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Diğer kenar durumu ortadan kalktı: kendi parametresi üzerinde generic olan bir union (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) eskiden parametresiz aynı union'ın kabul ettiği iç içe arm'ı reddediyordu; artık hem açık bir tip parametresinde hem de somut bir örneklemede kabul ediyor. Aynı arama, match'in eksik variant'lar için kontrol edilip edilmeyeceğine de karar veriyordu; bu yüzden bu sürüme kadar <code>Tree&lt;K&gt;</code> üzerindeki bir <code>match</code>, generic olmayan yazımın <code>E0200</code> olduğu yerde <code>Leaf</code>'i atlayabiliyor, temiz derleniyor, <code>tsc --strict</code>'ten geçiyor ve çalışma zamanında hata fırlatıyordu.</p>
+                <p>Artık iki yazım da bunu raporluyor ve union'ı bir import uzağa taşımak yanıtı değiştirmiyor: import edilmiş bir <code>Tree&lt;string&gt;</code> üzerinde <code>Leaf</code>'i atlayan bir <code>match</code>, import edilmiş generic olmayan <code>Tree</code> ile aynı şekilde <code>Leaf</code>'i adlandıran <code>E0200</code> olur. Bu ayrı kontrol edilen farklı bir kod yoluydu ve bu sürüme kadar tersine gidiyor, temiz derlenip çalışma zamanında hata fırlatıyordu.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Import edilmiş bir union'ın kapsam kontrolü variant payload'larını hiç kontrol etmez</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Import edilmiş bir union'ın kapsamı hakkında ona güvenmeden önce bilmeye değer bir şey daha var: variant payload'ları da hiç kontrol edilmez; bu yüzden <code>X</code>, payload'ın kendi union'ının bir variant'ı iken <code>B(X)</code>, eksik <code>Y</code>'yi raporlamak yerine her <code>B</code>'yi eşler ve bunun generic'lerle hiçbir ilgisi yok.</p>
+                <p>Bir alanı bağlamak ya da bir alanda payload'sız bir tag eşlemek her durumda çalışır.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/state/">
           <span class="dir">&larr; Önceki</span>

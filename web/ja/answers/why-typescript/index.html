@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"なぜ Go や新しい言語ではなく TypeScript なのか","item":"https://glyphlang.io/ja/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/why-typescript/#article","headline":"なぜ Go や新しい言語ではなく TypeScript なのか","description":"TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、npm、React、Node がある場所です。Glyph を 1 ファイルずつ導入できるのは、ターゲットが TS だからこそです。","url":"https://glyphlang.io/ja/answers/why-typescript/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/why-typescript/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"なぜ Go や新しい言語ではなく TypeScript なのか","item":"https://glyphlang.io/ja/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/why-typescript/#article","headline":"なぜ Go や新しい言語ではなく TypeScript なのか","description":"TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、npm、React、Node がある場所です。Glyph を 1 ファイルずつ導入できるのは、ターゲットが TS だからこそです。","url":"https://glyphlang.io/ja/answers/why-typescript/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/why-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/why-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/why-typescript/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">04 &middot; 位置づけ</p>
       <h1 class="q-title">なぜ Go や新しい言語ではなく TypeScript なのか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,43 +480,49 @@
         TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、あなたのエコシステム（npm、React、Node）がある場所だからです。Glyph を 1 ファイルずつ導入できるのは、<strong>ターゲットが TS だからこそ</strong>です。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          新しい言語が使われるかどうかは、ゼロから出荷までをどう進めるかで決まります。TypeScript にコンパイルされるので、今のコードベース、バンドラ、テストランナー、デプロイ環境から離れる必要がありません。Glyph は手元の <code>.ts</code> ファイルの隣に置けて、どちらの方向にもそのまま import できます。
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">同じプロジェクトに .glyph と .ts を並べて置く</span>
+      <figure class="ak-hero">
+        <div class="code">
+          <span class="cap">同じプロジェクトに .glyph と .ts を並べて置く</span>
 <pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 <span class="k">import</span> { formatPrice } <span class="k">from</span> <span class="s">"./format.ts"</span>
 
 <span class="cm">// checkout.ts: existing, untouched</span>
 <span class="k">import</span> { total } <span class="k">from</span> <span class="s">"./cart.glyph"</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Go を TypeScript のコードベースに 1 ファイルずつ入れることはできません。ランタイムもモジュールシステムもエコシステムも違うからです。ターゲットが TS である理由は、この 1 点に尽きます。
-        </p>
-        <p>
-          <strong>Go について認めるべき点：</strong>キーワードが少なく安定しているので、エージェントが間違える余地が少ないことです。これには同意します。Glyph が意図的に小さなコアを保ち、1 つのことに 1 つのやり方しか用意していないのもそのためです。Go は比較のために、記述密度の<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">ベンチマーク</a>に含めています。
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>読みやすい TypeScript 出力、既存の <code>.ts</code> との双方向 import、そして Node やブラウザのバンドルが動く場所ならどこでも動く小さなコア。</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">測定中</h3>
-          <p>言語横断のベンチマーク（Glyph、TS、Go、Python、Rust）はコーパスの成長とともに拡大します。そのため「表面積が小さい」という主張は、主張のままではなく数値として扱われます。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph は手元の <code>.ts</code> ファイルの隣に置けて、どちらの方向にもそのまま import できます。</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        新しい言語が使われるかどうかは、ゼロから出荷までをどう進めるかで決まります。TypeScript にコンパイルされるので、今のコードベース、バンドラ、テストランナー、デプロイ環境から離れる必要がありません。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go を TypeScript のコードベースに 1 ファイルずつ入れることはできません。ランタイムもモジュールシステムもエコシステムも違うからです。ターゲットが TS である理由は、この 1 点に尽きます。</p></div>
+
+      <h2 class="ak-h" id="go">Go について認めるべき点<a class="ak-anchor" href="#go" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        キーワードが少なく安定しているので、エージェントが間違える余地が少ないことです。これには同意します。Glyph が意図的に小さなコアを保ち、1 つのことに 1 つのやり方しか用意していないのもそのためです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go は比較のために、記述密度の<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">ベンチマーク</a>に含めています。</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">読みやすい TypeScript 出力。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">既存の <code>.ts</code> との双方向 import。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node やブラウザのバンドルが動く場所ならどこでも動く小さなコア。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 測定中 <span class="count">1</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">言語横断のベンチマーク（Glyph、TS、Go、Python、Rust）はコーパスの成長とともに拡大します。そのため「表面積が小さい」という主張は、主張のままではなく数値として扱われます。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/greppability/">
           <span class="dir">&larr; 前へ</span>

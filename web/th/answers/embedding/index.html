@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?","item":"https://glyphlang.io/th/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/embedding/#article","headline":"นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?","description":"ไม่ต้องเขียนใหม่: แอปยังเป็น TypeScript เขียนแกนของโดเมนด้วย Glyph แล้ว import module ที่คอมไพล์แล้วเหมือนไฟล์ในเครื่องทั่วไป ใช้ได้กับ Vite แบบมาตรฐาน","url":"https://glyphlang.io/th/answers/embedding/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/embedding/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?","item":"https://glyphlang.io/th/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/embedding/#article","headline":"นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม?","description":"ไม่ต้องเขียนใหม่: แอปยังเป็น TypeScript เขียนแกนของโดเมนด้วย Glyph แล้ว import module ที่คอมไพล์แล้วเหมือนไฟล์ในเครื่องทั่วไป ใช้ได้กับ Vite แบบมาตรฐาน","url":"https://glyphlang.io/th/answers/embedding/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/embedding/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/embedding/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/embedding/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">10 &middot; ภายในแอปของคุณ</p>
       <h1 class="q-title">นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,16 +480,7 @@
         ไม่ต้องเขียนใหม่ แอปยังเป็น TypeScript และเขียนส่วนที่พลาดไม่ได้ (model, สิทธิ์, การเปลี่ยนสถานะ, การคำนวณเงิน) ด้วย Glyph <code>glyph build</code> emit module ที่แอปของคุณ import ได้<strong>เหมือนไฟล์ในเครื่องทั่วไป</strong> ไม่ต้องตั้งค่า bundler และไม่ต้องมี path alias
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ทีมส่วนใหญ่เขียนแอปใหม่ทั้งหมดไม่ได้ และแอปส่วนใหญ่ก็ไม่จำเป็นต้องใช้ Glyph ส่วนที่จำเป็นคือแกนของโดเมน: กฎที่เอเจนต์ AI จะมาแก้เดือนหน้า และไม่มีใครอยากให้ผิดแบบเงียบๆ การเก็บแกนนั้นไว้ใน Glyph ทำให้คุณได้ <code>match</code> ที่ต้องครบทุกกรณี ไม่มี cast และขอบเขตที่ถูก validate ตรงจุดที่คุ้มค่า ขณะที่ React component, การจัดสไตล์ และ infrastructure ยังเป็น TypeScript ธรรมดา
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>ไดเรกทอรีเดียวของซอร์ส Glyph คอมไพล์เข้าไปในแอป และ UI import ไปใช้:</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">layout แบบผสม: แกนของโดเมนเป็น Glyph ที่เหลือเป็น TypeScript</span>
 <pre>src/
@@ -502,25 +493,45 @@
 
 <span class="k">const</span> parsed = <span class="t">TaskCard</span>.parse(payload);  <span class="c">// Result, not an exception</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ไดเรกทอรีเดียวของซอร์ส Glyph คอมไพล์เข้าไปในแอป และ UI import ไปใช้</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          ทุกอย่างที่โค้ดที่ emit ออกมาต้องใช้เดินทางไปพร้อมกับมัน import เป็นแบบ relative รวมถึง standard library ที่ bundle มาด้วย <code>tsconfig.json</code> และ bundler ของโปรเจกต์จึงไม่ต้องเพิ่มอะไร: Vite scaffold แบบมาตรฐานคอมไพล์และ bundle output ได้ตามที่เป็น และไฟล์ชุดเดียวกันผ่าน <code>tsc --strict</code> ของโปรเจกต์หลักด้วย ทำเครื่องหมายสิ่งที่แอป import ด้วย <code>pub</code> declaration ที่ไม่มีมันจะเป็น private ของ module นั้น นี่ไม่ใช่สมมติฐาน: วิศวกรภายนอก<a href="https://github.com/yildizadem/glyph-kanban">สร้าง Kanban board ด้วย React แบบนี้</a> โดยมี RBAC matrix สูตร analytics และการเปลี่ยนสถานะอยู่ใน module ของ Glyph สี่ตัว ใต้ UI React ที่เขียนเอง
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ทีมส่วนใหญ่เขียนแอปใหม่ทั้งหมดไม่ได้ และแอปส่วนใหญ่ก็ไม่จำเป็นต้องใช้ Glyph ส่วนที่จำเป็นคือแกนของโดเมน: กฎที่เอเจนต์ AI จะมาแก้เดือนหน้า และไม่มีใครอยากให้ผิดแบบเงียบๆ
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>การเก็บแกนนั้นไว้ใน Glyph ทำให้คุณได้ <code>match</code> ที่ต้องครบทุกกรณี ไม่มี cast และขอบเขตที่ถูก validate ตรงจุดที่คุ้มค่า ขณะที่ React component, การจัดสไตล์ และ infrastructure ยังเป็น TypeScript ธรรมดา</p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>output ที่ emit ออกมาวางลงในโปรเจกต์หลักได้โดยไม่ต้องแก้: ใช้ specifier แบบ relative ตลอด type ของ prelude ติดมากับโค้ดเอง ตรวจแล้วกับ Vite scaffold แบบมาตรฐาน, <code>tsc --strict</code> ของโปรเจกต์หลัก, esbuild และ <code>tsx</code> <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">คู่มือการ deploy</a> อธิบาย layout แบบผสมไว้</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>ยังไม่มี watch mode: ต้องรัน <code>glyph build</code> ใหม่หลังแก้ซอร์ส <code>.glyph</code> (ผูกไว้ในสคริปต์ <code>dev</code>) module ที่ใช้ <code>std/fs</code> หรือ <code>std/net</code> ต้องมี <code>@types/node</code> ในโปรเจกต์หลัก เหมือน TypeScript ที่แตะ Node ทั่วไป</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">ไม่ต้องเพิ่มอะไรในโปรเจกต์หลัก<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ทุกอย่างที่โค้ดที่ emit ออกมาต้องใช้เดินทางไปพร้อมกับมัน
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>import แบบ relative</b>import เป็นแบบ relative รวมถึง standard library ที่ bundle มาด้วย <code>tsconfig.json</code> และ bundler ของโปรเจกต์จึงไม่ต้องเพิ่มอะไร: Vite scaffold แบบมาตรฐานคอมไพล์และ bundle output ได้ตามที่เป็น และไฟล์ชุดเดียวกันผ่าน <code>tsc --strict</code> ของโปรเจกต์หลักด้วย</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>export ด้วย <code>pub</code></b>ทำเครื่องหมายสิ่งที่แอป import ด้วย <code>pub</code> declaration ที่ไม่มีมันจะเป็น private ของ module นั้น</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>นี่ไม่ใช่สมมติฐาน: วิศวกรภายนอก<a href="https://github.com/yildizadem/glyph-kanban">สร้าง Kanban board ด้วย React แบบนี้</a> โดยมี RBAC matrix สูตร analytics และการเปลี่ยนสถานะอยู่ใน module ของ Glyph สี่ตัว ใต้ UI React ที่เขียนเอง</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">output ที่ emit ออกมาวางลงในโปรเจกต์หลักได้โดยไม่ต้องแก้: ใช้ specifier แบบ relative ตลอด type ของ prelude ติดมากับโค้ดเอง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตรวจแล้วกับ Vite scaffold แบบมาตรฐาน, <code>tsc --strict</code> ของโปรเจกต์หลัก, esbuild และ <code>tsx</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">คู่มือการ deploy</a> อธิบาย layout แบบผสมไว้</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ยังไม่มี watch mode: ต้องรัน <code>glyph build</code> ใหม่หลังแก้ซอร์ส <code>.glyph</code> (ผูกไว้ในสคริปต์ <code>dev</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">module ที่ใช้ <code>std/fs</code> หรือ <code>std/net</code> ต้องมี <code>@types/node</code> ในโปรเจกต์หลัก เหมือน TypeScript ที่แตะ Node ทั่วไป</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/imports/">
           <span class="dir">&larr; ก่อนหน้า</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo?","item":"https://glyphlang.io/es/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/diff-stability/#article","headline":"¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo?","description":"Glyph tiene un único formato canónico y exige comas finales, así que un cambio de una línea es un diff de una línea. Los agentes no pueden enterrar un cambio real bajo ruido de reformateo.","url":"https://glyphlang.io/es/answers/diff-stability/","inLanguage":"es","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/diff-stability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo?","item":"https://glyphlang.io/es/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/diff-stability/#article","headline":"¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo?","description":"Glyph tiene un único formato canónico y exige comas finales, así que un cambio de una línea es un diff de una línea. Los agentes no pueden enterrar un cambio real bajo ruido de reformateo.","url":"https://glyphlang.io/es/answers/diff-stability/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/diff-stability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/diff-stability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">02 &middot; Cambios revisables</p>
       <h1 class="q-title">¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respuestas">
@@ -478,50 +478,61 @@
         Un cambio de una línea es un <strong>diff de una línea</strong>, siempre. Glyph tiene un único formato canónico, así que un agente <strong>no puede enterrar un cambio real bajo un muro de reformateo</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por qué importa<a class="h-anchor" href="#why-it-matters" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Cuando un agente abre un pull request, el diff <em>es</em> la revisión. Si un arreglo de una línea llega como un reformateo de 200 líneas, nadie puede ver qué ha cambiado, y ese ruido es justo por donde se cuela un bug. Estabilidad de los diffs significa que el diff muestra el cambio y <strong>nada más que el cambio</strong>.
-        </p>
-        <p>Dos reglas hacen casi todo el trabajo. Aquí está cada una, mostrada como el diff que revisarías.</p>
-
-        <h2 class="block-label" id="example-1-trailing-commas-one-item-per-line">Ejemplo 1: comas finales, un elemento por línea<a class="h-anchor" href="#example-1-trailing-commas-one-item-per-line" aria-label="Enlace a esta sección">#</a></h2>
-        <p>Añade una ruta. En el estilo habitual de TypeScript, la que antes era la última línea tiene que cambiar solo para ganar una coma. Se mueven dos líneas para un cambio de un elemento:</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript: añadir "/billing"</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript: añadir "/billing"</span>
 <pre> <span class="k">const</span> routes = [
    <span class="s">"/home"</span>,
 <span class="del">-  <span class="s">"/about"</span></span>
 <span class="add">+  <span class="s">"/about"</span>,</span>
 <span class="add">+  <span class="s">"/billing"</span></span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">3 líneas movidas para 1 cambio</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph: añadir "/billing"</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">3 líneas movidas para 1 cambio</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph: añadir "/billing"</span>
 <pre> <span class="k">let</span> routes = [
    <span class="s">"/home"</span>,
    <span class="s">"/about"</span>,
 <span class="add">+  <span class="s">"/billing"</span>,</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">1 línea añadida, exactamente el cambio</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">1 línea añadida, exactamente el cambio</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Añade una ruta. En el estilo habitual de TypeScript, la que antes era la última línea tiene que cambiar solo para ganar una coma. Se mueven dos líneas para un cambio de un elemento.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Las comas finales son <strong>obligatorias</strong>, y una lista que no cabe en una línea va con un elemento por línea en lugar de reempaquetarse, así que insertar, quitar o reordenar una entrada nunca toca a sus vecinas. Lo mismo vale para campos de records, parámetros, brazos de match e imports. El umbral tiene un coste: un renombrado que lleva una llamada más allá de las 100 columnas expande toda la lista de argumentos a uno por línea.
-        </p>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por qué importa</a></li>
+          <li><a href="#trailing-commas">Comas finales</a></li>
+          <li><a href="#example-2-one-canonical-layout">Un único formato canónico</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">Los comentarios se quedan en su sitio</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">¿Puede fmt romper un build?</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="example-2-one-canonical-layout">Ejemplo 2: un único formato canónico<a class="h-anchor" href="#example-2-one-canonical-layout" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Hay exactamente un formato correcto, el que produce <code>glyph fmt</code>. Los espacios, los saltos de línea y la alineación no son decisiones que un agente pueda &ldquo;ordenar&rdquo;, así que una edición semántica no puede arrastrar un reflujo con ella. Cambia el tipo de un campo, y ese es todo el diff:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Cuando un agente abre un pull request, el diff <em>es</em> la revisión. Si un arreglo de una línea llega como un reformateo de 200 líneas, nadie puede ver qué ha cambiado, y ese ruido es justo por donde se cuela un bug.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Estabilidad de los diffs significa que el diff muestra el cambio y <strong>nada más que el cambio</strong>.</p></div>
+      <p class="ak-lede">Dos reglas hacen casi todo el trabajo. Aquí está cada una, mostrada como el diff que revisarías.</p>
 
+      <h2 class="ak-h" id="trailing-commas">Comas finales, un elemento por línea<a class="ak-anchor" href="#trailing-commas" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Las comas finales son <strong>obligatorias</strong>, y una lista que no cabe en una línea va con un elemento por línea en lugar de reempaquetarse, así que insertar, quitar o reordenar una entrada nunca toca a sus vecinas.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Lo mismo vale para campos de records, parámetros, brazos de match e imports.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>El umbral tiene un coste: un renombrado que lleva una llamada más allá de las 100 columnas expande toda la lista de argumentos a uno por línea.</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">Un único formato canónico<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Hay exactamente un formato correcto, el que produce <code>glyph fmt</code>. Los espacios, los saltos de línea y la alineación no son decisiones que un agente pueda &ldquo;ordenar&rdquo;, así que una edición semántica no puede arrastrar un reflujo con ella. Cambia el tipo de un campo, y ese es todo el diff:
+      </p>
       <div class="code">
         <span class="cap">user.glyph: cambias un campo, revisas una línea</span>
 <pre> <span class="k">type</span> <span class="t">User</span> = {
@@ -531,18 +542,17 @@
    email: <span class="t">string</span>,
  }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Como el formato es fijo, dos agentes distintos que editan el mismo archivo producen un formato <strong>idéntico byte a byte</strong>, sin reflujos, sin el ruido de &ldquo;mi formateador frente al tuyo&rdquo;, y con un <code>git blame</code> limpio que apunta al commit que cambió de verdad una línea, no al que la reformateó.</p></div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Un único formato canónico, entonces, ¿el formateador mueve mis comentarios?<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Lo hacía, y fue un bug que merece la pena nombrar. La regla ahora: un comentario se vuelve a emitir encima del elemento sobre el que se escribió, dentro del cuerpo de un record, de la lista de variantes de una unión, de un literal de array u objeto, de una lista de argumentos o parámetros, y de un <code>match</code>.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">cómo se desplazaban los comentarios, y la app que lo destapó</span></summary><div class="body">
         <p>
-          Como el formato es fijo, dos agentes distintos que editan el mismo archivo producen un formato <strong>idéntico byte a byte</strong>, sin reflujos, sin el ruido de &ldquo;mi formateador frente al tuyo&rdquo;, y con un <code>git blame</code> limpio que apunta al commit que cambió de verdad una línea, no al que la reformateó.
+          Glyph no tiene comentarios de bloque ni sintaxis de comentarios de documentación, así que una línea <code>//</code> es la única forma de explicar un campo de un record, una variante de una unión o un brazo de <code>match</code>. El formateador solo volcaba los comentarios pendientes en los límites de declaraciones y sentencias, lo que significaba que un comentario escrito <em>dentro</em> de una construcción bajaba hasta la siguiente declaración y se leía como documentación de aquello donde caía. Escribir un buscaminas en Glyph es lo que lo destapó. Estas dos declaraciones vienen de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">la app real</a> (con los comentarios recortados para que quepan), pasadas por el formateador antiguo y por el nuevo.
         </p>
-
-        <h2 class="block-label" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Un único formato canónico, entonces, ¿el formateador mueve mis comentarios?<a class="h-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Lo hacía, y fue un bug que merece la pena nombrar. Glyph no tiene comentarios de bloque ni sintaxis de comentarios de documentación, así que una línea <code>//</code> es la única forma de explicar un campo de un record, una variante de una unión o un brazo de <code>match</code>. El formateador solo volcaba los comentarios pendientes en los límites de declaraciones y sentencias, lo que significaba que un comentario escrito <em>dentro</em> de una construcción bajaba hasta la siguiente declaración y se leía como documentación de aquello donde caía. Escribir un buscaminas en Glyph es lo que lo destapó. Estas dos declaraciones vienen de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">la app real</a> (con los comentarios recortados para que quepan), pasadas por el formateador antiguo y por el nuevo.
-        </p>
-      </div>
-
+      </div></details>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">0.1.37: una pasada de fmt</span>
@@ -579,45 +589,71 @@
           <div style="padding:0 16px 14px"><span class="verdict good">cada comentario sobre lo que describe</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          La regla ahora: un comentario se vuelve a emitir encima del elemento sobre el que se escribió, dentro del cuerpo de un record, de la lista de variantes de una unión, de un literal de array u objeto, de una lista de argumentos o parámetros, y de un <code>match</code>. Y una construcción que contiene un comentario interior siempre usa la forma de un elemento por línea, sea cual sea su tamaño, para que el comentario tenga un elemento sobre el que colocarse. Así, <code>type Shape = { w: int, h: int }</code> sigue quedando en una línea, y en cuanto documentas <code>h</code> el record se queda expandido.
-        </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Y una construcción que contiene un comentario interior siempre usa la forma de un elemento por línea, sea cual sea su tamaño, para que el comentario tenga un elemento sobre el que colocarse. Así, <code>type Shape = { w: int, h: int }</code> sigue quedando en una línea, y en cuanto documentas <code>h</code> el record se queda expandido.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">por qué esto cuenta como un bug de corrección</span></summary><div class="body">
         <p>
           Por qué esto cuenta como un bug de corrección y no como uno estético: nada falló. El build salió con 0, <code>tsc</code> pasó y la salida destrozada era a su vez un punto fijo, así que <code>glyph fmt --check</code> en CI salía en verde sobre un archivo cuyos comentarios ahora decían algo falso. Es la misma clase de fallo que Glyph existe para eliminar, solo que en el formateador y no en el sistema de tipos.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="can-glyph-fmt-break-a-program-that-builds">¿Puede <code>glyph fmt</code> romper un programa que compila?<a class="h-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Enlace a esta sección">#</a></h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds">¿Puede <code>glyph fmt</code> romper un programa que compila?<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Podía, y un caso sigue abierto. Un formateador al que tu programa tiene que sobrevivir es peor que una funcionalidad que falta, porque daña código que ya funcionaba.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>Cuerpos de brazos</b>Ahora el printer pone entre paréntesis el cuerpo de un brazo cuyo primer token es una <code>{</code> que se volvería a parsear como bloque, es decir, el objeto vacío y todo lo que se construye sobre él (<code>({}).size</code> vuelve como <code>({}.size)</code>).</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>El fuzzer</b>El fuzzer ahora parsea el archivo formateado y compara el árbol con el del original, así que un formato que cambia lo que significa un archivo falla en la primera pasada en lugar de esperar a que alguien se dé cuenta.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">el record vacío que dejó de compilar</span></summary><div class="body">
         <p>
-          Podía, y un caso sigue abierto. Primero el que está corregido. Un brazo que significa &ldquo;el record vacío&rdquo; se escribe <code>true =&gt; ({})</code>. La posición del cuerpo de un brazo es el único sitio de la gramática donde una <code>{</code> inicial es ambigua, y el parser lo resuelve exigiendo <code>key:</code> o <code>...</code> justo después de la llave. Un objeto vacío no tiene ninguna de las dos cosas, así que cuando el formateador quitaba los paréntesis y volvía a imprimir <code>true =&gt; {}</code>, el brazo volvía como un <em>bloque</em> vacío y el archivo dejaba de compilar: <code>E0223</code>, el brazo no produce ningún valor. Pasabas un formateador sobre código que funcionaba y obtenías código que ya no compilaba.
+          Primero el que está corregido. Un brazo que significa &ldquo;el record vacío&rdquo; se escribe <code>true =&gt; ({})</code>. La posición del cuerpo de un brazo es el único sitio de la gramática donde una <code>{</code> inicial es ambigua, y el parser lo resuelve exigiendo <code>key:</code> o <code>...</code> justo después de la llave. Un objeto vacío no tiene ninguna de las dos cosas, así que cuando el formateador quitaba los paréntesis y volvía a imprimir <code>true =&gt; {}</code>, el brazo volvía como un <em>bloque</em> vacío y el archivo dejaba de compilar: <code>E0223</code>, el brazo no produce ningún valor. Pasabas un formateador sobre código que funcionaba y obtenías código que ya no compilaba.
         </p>
         <p>
-          Ahora el printer pone entre paréntesis el cuerpo de un brazo cuyo primer token es una <code>{</code> que se volvería a parsear como bloque, es decir, el objeto vacío y todo lo que se construye sobre él (<code>({}).size</code> vuelve como <code>({}.size)</code>). El cuerpo de un brazo que ya se lee sin ambigüedad, como <code>false =&gt; { a: "x" }</code>, se queda sin paréntesis, así que no aparece puntuación nueva en ningún otro sitio. <code>fmt</code> es un punto fijo sobre el resultado y el TypeScript generado no cambia. Un formateador al que tu programa tiene que sobrevivir es peor que una funcionalidad que falta, porque daña código que ya funcionaba.
+          El cuerpo de un brazo que ya se lee sin ambigüedad, como <code>false =&gt; { a: "x" }</code>, se queda sin paréntesis, así que no aparece puntuación nueva en ningún otro sitio. <code>fmt</code> es un punto fijo sobre el resultado y el TypeScript generado no cambia.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">dos más corregidos en la 0.1.138</span></summary><div class="body">
         <p>
-          Se corrigieron dos más en la 0.1.138. Dentro de un bloque, una línea que empieza con <code>(</code> continúa la línea anterior, y hasta la 0.1.137 el formateador imprimía <code>load()?</code> seguido de <code>.run()</code> como <code>(load()?).run()</code>, así que después de <code>let a = 1</code> el archivo formateado significaba <code>let a = 1(…).run()</code>. Ahora mantiene <code>load()?</code> con <code>.run()</code> indentado en la línea siguiente, y escribe <code>e?(x)</code>, <code>e?[0]</code> y <code>e? ?</code> sin paréntesis. El otro era el refinamiento <code>where</code> de una unión, que el formateador eliminaba, convirtiendo un programa que <code>check</code> rechazaba en uno que aceptaba. El fuzzer ahora parsea el archivo formateado y compara el árbol con el del original, así que un formato que cambia lo que significa un archivo falla en la primera pasada en lugar de esperar a que alguien se dé cuenta.
+          Se corrigieron dos más en la 0.1.138. Dentro de un bloque, una línea que empieza con <code>(</code> continúa la línea anterior, y hasta la 0.1.137 el formateador imprimía <code>load()?</code> seguido de <code>.run()</code> como <code>(load()?).run()</code>, así que después de <code>let a = 1</code> el archivo formateado significaba <code>let a = 1(…).run()</code>. Ahora mantiene <code>load()?</code> con <code>.run()</code> indentado en la línea siguiente, y escribe <code>e?(x)</code>, <code>e?[0]</code> y <code>e? ?</code> sin paréntesis. El otro era el refinamiento <code>where</code> de una unión, que el formateador eliminaba, convirtiendo un programa que <code>check</code> rechazaba en uno que aceptaba.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Las reglas de formato que hay detrás, y el intercambio que suponen, están en la <a href="/es/pillars/diff-stability/">página del pilar de estabilidad de los diffs</a>.</p></div>
 
-      <div class="detail">
-        <p>
-          Las reglas de formato que hay detrás, y el intercambio que suponen, están en la <a href="/es/pillars/diff-stability/">página del pilar de estabilidad de los diffs</a>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Comas finales obligatorias, listas con un elemento por línea y el formato canónico único de <code>glyph fmt</code>, que hace round-trip y es idempotente, con formateo al guardar en el editor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> nunca mueve un comentario a un sitio donde no corresponde.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Los comentarios se mantienen encima del elemento sobre el que se escribieron</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Los comentarios se mantienen encima del elemento sobre el que se escribieron, también dentro de un record, un literal, una lista de argumentos, un <code>match</code>, entre los operandos de un operador y entre los pasos de una cadena de métodos, que entonces va con un paso por línea y el punto delante.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label" id="where-it-stands">Dónde está<a class="h-anchor" href="#where-it-stands" aria-label="Enlace a esta sección">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p>Comas finales obligatorias, listas con un elemento por línea y el formato canónico único de <code>glyph fmt</code>, que hace round-trip y es idempotente, con formateo al guardar en el editor. <code>glyph fmt</code> nunca mueve un comentario a un sitio donde no corresponde. Los comentarios se mantienen encima del elemento sobre el que se escribieron, también dentro de un record, un literal, una lista de argumentos, un <code>match</code>, entre los operandos de un operador y entre los pasos de una cadena de métodos, que entonces va con un paso por línea y el punto delante.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">El límite, y lo que viene</h3>
-          <p>Un comentario siempre se emite en su propia línea, así que uno escrito al final de una línea de código (<code>w: int, // width in cells</code>) se mueve a la línea de encima del siguiente elemento. Ya no cruza el límite de una declaración, pero sí se mueve; mantenerlo al final de la línea requiere que el printer sepa con qué línea comparte un comentario. Un comentario donde el formato no tiene dónde ponerlo, como dentro de un índice, después de los argumentos de una llamada en medio de una cadena, o antes de un operando de <code>!</code> o <code>await</code>, ya no se mueve: <code>glyph fmt</code> rechaza el archivo, lo deja como estaba y nombra la línea y dónde poner el comentario, y <code>glyph check</code> informa de lo mismo como el aviso E0500. Un comentario entre atributos de JSX o entre los campos de un patrón de objeto también se rechaza, aunque un formato de uno por línea podría colocarlo; esos formatos están en la lista. El printer tampoco tiene todavía una regla para partir una cadena larga de métodos o de <code>+</code>, así que una cadena demasiado larga parte la lista de argumentos más interna, que es el sitio equivocado. También estamos construyendo un benchmark de tamaño de diffs frente a las mismas ediciones en TypeScript, para que este pilar sea una cifra que puedas comprobar.</p>
-        </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> El límite, y lo que viene</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un comentario al final de una línea de código se mueve a la línea de encima del siguiente elemento</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Un comentario siempre se emite en su propia línea, así que uno escrito al final de una línea de código (<code>w: int, // width in cells</code>) se mueve a la línea de encima del siguiente elemento. Ya no cruza el límite de una declaración, pero sí se mueve; mantenerlo al final de la línea requiere que el printer sepa con qué línea comparte un comentario.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un comentario que el formato no tiene dónde poner se rechaza, no se mueve</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Un comentario donde el formato no tiene dónde ponerlo, como dentro de un índice, después de los argumentos de una llamada en medio de una cadena, o antes de un operando de <code>!</code> o <code>await</code>, ya no se mueve: <code>glyph fmt</code> rechaza el archivo, lo deja como estaba y nombra la línea y dónde poner el comentario, y <code>glyph check</code> informa de lo mismo como el aviso E0500.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un comentario entre atributos de JSX o entre los campos de un patrón de objeto también se rechaza, aunque un formato de uno por línea podría colocarlo; esos formatos están en la lista.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El printer tampoco tiene todavía una regla para partir una cadena larga de métodos o de <code>+</code>, así que una cadena demasiado larga parte la lista de argumentos más interna, que es el sitio equivocado.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">También estamos construyendo un benchmark de tamaño de diffs frente a las mismas ediciones en TypeScript, para que este pilar sea una cifra que puedas comprobar.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/verifiability/">
           <span class="dir">&larr; Anterior</span>

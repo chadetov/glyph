@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"이것은 진짜 언어인가요, 구멍 많은 장난감인가요?","item":"https://glyphlang.io/ko/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/language/#article","headline":"이것은 진짜 언어인가요, 구멍 많은 장난감인가요?","description":"모듈 가시성, 제네릭 제약을 위한 구조적 인터페이스, defer, 구조적 동시성, 값으로서의 match, 그리고 JavaScript에서 물려받은 의미.","url":"https://glyphlang.io/ko/answers/language/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/language/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"이것은 진짜 언어인가요, 구멍 많은 장난감인가요?","item":"https://glyphlang.io/ko/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/language/#article","headline":"이것은 진짜 언어인가요, 구멍 많은 장난감인가요?","description":"모듈 가시성, 제네릭 제약을 위한 구조적 인터페이스, defer, 구조적 동시성, 값으로서의 match, 그리고 JavaScript에서 물려받은 의미.","url":"https://glyphlang.io/ko/answers/language/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/language/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">15 &middot; 언어의 완성도</p>
       <h1 class="q-title">이것은 진짜 언어인가요, 구멍 많은 장난감인가요?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="답변">
@@ -480,31 +480,52 @@
         실제 코드베이스에서 찾게 되는 것들이 있습니다. <strong>모듈 가시성</strong>, 제네릭을 제약하는 <strong>인터페이스</strong>, 정리를 위한 <strong>defer</strong>, 그리고 <strong>동시성</strong> 헬퍼입니다. JavaScript에 기대는 부분은 아닌 척하지 않고 그렇다고 밝힙니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">왜 중요한가<a class="h-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          파일 하나는 쓸 수 있지만 프로젝트를 구조화할 수 없는 언어에 코드베이스를 걸 사람은 없습니다. 중요한 빈틈은 특이한 것이 아닙니다. 헬퍼를 숨길 수 있는가, 제네릭이 어떤 능력을 요구할 수 있는가, 모든 종료 경로에서 파일 핸들을 해제할 수 있는가, 두 가지를 동시에 실행하고 둘 다 기다릴 수 있는가. Glyph는 이 네 가지에 답하며, 의도적으로 버린 표기가 많은 방향을 다시 열지 않고 그렇게 합니다.
-        </p>
-
-        <h2 class="block-label" id="see-it">직접 보기<a class="h-anchor" href="#see-it" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          선언은 <code>pub</code>를 붙이기 전까지 모듈 안에서만 보이므로, 공개 표면은 검색 한 번(<code>grep '^pub'</code>)으로 나오고 헬퍼가 실수로 새어 나가는 일이 없습니다.
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">가시성: 기본은 비공개</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">가시성: 기본은 비공개</span>
 <pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
 
 <span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>선언은 <code>pub</code>를 붙이기 전까지 모듈 안에서만 보이므로, 공개 표면은 검색 한 번(<code>grep '^pub'</code>)으로 나오고 헬퍼가 실수로 새어 나가는 일이 없습니다.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>interface</code>는 TypeScript처럼 구조적입니다. 제네릭이 요구할 수 있는 멤버 시그니처의 집합입니다. <code>implements</code>도, 명목적 형식도 없습니다. 그 멤버를 가진 값이면 무엇이든 해당되며, <code>tsc</code>가 이를 강제합니다.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-it-matters">왜 중요한가</a></li>
+          <li><a href="#interfaces">인터페이스</a></li>
+          <li><a href="#defer">defer와 task</a></li>
+          <li><a href="#javascript">물려받은 것</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">값으로서의 match</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">중첩 패턴</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">타입이 있는 match 결과</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">문자열과 배열 헬퍼</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">디렉터리와 fs 오류</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">함수를 확인한 방법</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">돈</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">async 함수 타입</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">재귀 타입</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        파일 하나는 쓸 수 있지만 프로젝트를 구조화할 수 없는 언어에 코드베이스를 걸 사람은 없습니다. 중요한 빈틈은 특이한 것이 아닙니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>가시성</b>헬퍼를 숨길 수 있는가?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>제네릭 제약</b>제네릭이 어떤 능력을 요구할 수 있는가?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>정리</b>모든 종료 경로에서 파일 핸들을 해제할 수 있는가?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>동시성</b>두 가지를 동시에 실행하고 둘 다 기다릴 수 있는가?</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph는 이 네 가지에 답하며, 의도적으로 버린 표기가 많은 방향을 다시 열지 않고 그렇게 합니다.</p></div>
+
+      <h2 class="ak-h" id="interfaces">인터페이스로 제네릭 제약하기<a class="ak-anchor" href="#interfaces" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>interface</code>는 TypeScript처럼 구조적입니다. 제네릭이 요구할 수 있는 멤버 시그니처의 집합입니다. <code>implements</code>도, 명목적 형식도 없습니다. 그 멤버를 가진 값이면 무엇이든 해당되며, <code>tsc</code>가 이를 강제합니다.
+      </p>
       <div class="code">
         <span class="cap">인터페이스로 제네릭 제약하기</span>
 <pre><span class="add">interface</span> <span class="t">Named</span> {
@@ -516,32 +537,34 @@
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          <code>defer</code>는 블록이 끝날 때 조기 반환이나 던진 오류를 포함한 모든 경로에서 정리 코드를 실행합니다. 여러 defer는 나중에 등록한 것부터 실행되고, <code>owned</code> 핸들과 함께 쓸 수 있습니다. 그리고 <code>std/task</code>는 떨어져 나간 promise를 남기는 대신 하나의 수명으로 동시 작업을 합칩니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="defer"><code>defer</code>와 구조적 동시성<a class="ak-anchor" href="#defer" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>defer</code>는 블록이 끝날 때 조기 반환이나 던진 오류를 포함한 모든 경로에서 정리 코드를 실행합니다. 그리고 <code>std/task</code>는 떨어져 나간 promise를 남기는 대신 하나의 수명으로 동시 작업을 합칩니다.
+      </p>
       <div class="code">
         <span class="cap">defer + 구조적 동시성</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 <span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">실행 순서, 그리고 owned 핸들</span></summary><div class="body">
         <p>
-          Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다.
+          여러 defer는 나중에 등록한 것부터 실행되고, <code>owned</code> 핸들과 함께 쓸 수 있습니다.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code>가 없으므로 <code>match</code>가 모든 것을 감당해야 합니다<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          망라성 이야기를 들은 TypeScript 개발자가 가장 먼저 묻는 것은 <code>match</code>가 정말 범용 조건문인지, 아니면 유니언을 구조 분해하는 멋진 방법일 뿐인지입니다. 전자이며, 이를 증명하는 곳은 대입입니다. <code>let</code>이나 <code>mut</code>의 값 전체인 <code>match</code>는 문장이 받는 것은 무엇이든 받습니다. arm은 블록일 수 있고, <code>await</code>할 수 있고, 둘러싼 반복문을 <code>break</code>로 빠져나갈 수 있으며, 대입 중인 바인딩을 읽을 수도 있습니다. <code>if</code> 없이 반복문에서 상태를 누적하는 방법이 바로 이것입니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="javascript">JavaScript에서 물려받은 것<a class="ak-anchor" href="#javascript" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다.</p></div>
 
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code>가 없으므로 <code>match</code>가 모든 것을 감당해야 합니다<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        망라성 이야기를 들은 TypeScript 개발자가 가장 먼저 묻는 것은 <code>match</code>가 정말 범용 조건문인지, 아니면 유니언을 구조 분해하는 멋진 방법일 뿐인지입니다. 전자이며, 이를 증명하는 곳은 대입입니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>let</code>이나 <code>mut</code>의 값 전체인 <code>match</code>는 문장이 받는 것은 무엇이든 받습니다. arm은 블록일 수 있고, <code>await</code>할 수 있고, 둘러싼 반복문을 <code>break</code>로 빠져나갈 수 있으며, 대입 중인 바인딩을 읽을 수도 있습니다. <code>if</code> 없이 반복문에서 상태를 누적하는 방법이 바로 이것입니다.</p></div>
       <div class="code">
         <span class="cap">링크 검사기에서: 코드 블록 추적, 그리고 await하는 arm</span>
 <pre><span class="k">for</span> raw <span class="k">in</span> lines {
@@ -557,20 +580,17 @@
   <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">무엇으로 컴파일되는가, 그리고 코드 조각의 출처</span></summary><div class="body">
         <p>
-          둘 다 arm마다 바인딩에 대입하는 평범한 <code>switch</code>로 컴파일되므로, <code>await</code>는 둘러싼 async 함수 안에 있고 누적 변수는 TypeScript가 추론할 수 있는 일반 변수입니다. 더 큰 표현식 <em>안에서</em> 인자나 피연산자로 쓴 <code>match</code>는 여전히 클로저가 되므로, arm은 단일 표현식이어야 합니다. 별도의 <code>let</code>으로 끌어올리면 이 제약이 사라집니다. 두 코드 조각 모두 바로 이런 것을 찾으려고 만든 Markdown 링크 검사기 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>에서 가져왔습니다.
+          둘 다 arm마다 바인딩에 대입하는 평범한 <code>switch</code>로 컴파일되므로, <code>await</code>는 둘러싼 async 함수 안에 있고 누적 변수는 TypeScript가 추론할 수 있는 일반 변수입니다. 두 코드 조각 모두 바로 이런 것을 찾으려고 만든 Markdown 링크 검사기 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>에서 가져왔습니다.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>더 큰 표현식 <em>안에서</em> 인자나 피연산자로 쓴 <code>match</code>는 여전히 클로저가 되므로, arm은 단일 표현식이어야 합니다. 별도의 <code>let</code>으로 끌어올리면 이 제약이 사라집니다.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">패턴은 한 단계 이상 아래의 모양을 지정할 수 있습니다<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          필드가 여러 개인 variant는 레코드를 담으므로, 모양을 알아보려는 arm은 레코드의 필드 속으로 들어가야 합니다. 0.1.90까지 필드 위치에는 이름만 올 수 있었습니다. 이름을 바꿀 수는 있었지만 그게 전부였습니다. 거기서 태그를 매칭하면 컴파일 오류였고, 중첩된 생성자는 파서가 처리하지 못했습니다. 우회 방법은 모든 필드를 바인딩하고 단계마다 중첩된 <code>match</code>를 쓰는 것이었는데, 레드-블랙 트리 재균형 같은 것에서는 아예 다른 프로그램이 됩니다. arm이 case와 나란히 맞지 않게 되고, 각 단계가 위의 바인딩을 다시 이어 받아야 합니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">패턴은 한 단계 이상 아래의 모양을 지정할 수 있습니다<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        필드가 여러 개인 variant는 레코드를 담으므로, 모양을 알아보려는 arm은 레코드의 필드 속으로 들어가야 합니다. 이제 필드에는 어떤 패턴이든 올 수 있습니다. variant 태그, 중첩된 생성자, 중첩된 구조 분해, 리터럴, 배열 패턴입니다.
+      </p>
       <div class="code">
         <span class="cap">레드-블랙 재균형의 회전 case 하나를 arm 하나로</span>
 <pre><span class="k">type</span> <span class="t">Tree</span> =
@@ -583,23 +603,26 @@
   other <span class="op">=&gt;</span> other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.90 이전의 우회 방법</span></summary><div class="body">
         <p>
-          이제 필드에는 어떤 패턴이든 올 수 있습니다. variant 태그, 중첩된 생성자, 중첩된 구조 분해, 리터럴, 배열 패턴입니다. 작성하기 전에 알아 둘 결과가 하나 있습니다. 값을 검사하는 필드는 실패할 수 있으므로 그 arm은 더 이상 variant를 다룬 것으로 치지 않으며, <code>Node</code> arm이 <code>Node({ color: Red, ... })</code> 하나뿐인 match는 형제 arm이나 <code>else</code>가 나머지를 받을 때까지 비망라적이라고 보고됩니다. 검사기는 필드의 곱이 아니라 태그 집합에 대해 커버리지를 증명하므로, <code>Red</code> arm과 <code>Black</code> arm이 함께 <code>Node</code>를 다 다룬다는 것을 알아내지 못합니다. catch-all을 요구하는 것이 match가 런타임에 끝까지 빠져나가는 일을 막을 수 있는 해석입니다. 셀 variant가 아예 없는 곳에서도 마찬가지입니다. 모든 arm이 필드를 검사하는 평범한 레코드에 대한 match에는 뒤에 <code>else</code>가 필요합니다.
+          0.1.90까지 필드 위치에는 이름만 올 수 있었습니다. 이름을 바꿀 수는 있었지만 그게 전부였습니다. 거기서 태그를 매칭하면 컴파일 오류였고, 중첩된 생성자는 파서가 처리하지 못했습니다. 우회 방법은 모든 필드를 바인딩하고 단계마다 중첩된 <code>match</code>를 쓰는 것이었는데, 레드-블랙 트리 재균형 같은 것에서는 아예 다른 프로그램이 됩니다. arm이 case와 나란히 맞지 않게 되고, 각 단계가 위의 바인딩을 다시 이어 받아야 합니다.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>작성하기 전에 알아 둘 결과가 하나 있습니다. 값을 검사하는 필드는 실패할 수 있으므로 그 arm은 더 이상 variant를 다룬 것으로 치지 않으며, <code>Node</code> arm이 <code>Node({ color: Red, ... })</code> 하나뿐인 match는 형제 arm이나 <code>else</code>가 나머지를 받을 때까지 비망라적이라고 보고됩니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">catch-all을 요구하는 이유, 그리고 배열 위치</span></summary><div class="body">
+        <p>
+          검사기는 필드의 곱이 아니라 태그 집합에 대해 커버리지를 증명하므로, <code>Red</code> arm과 <code>Black</code> arm이 함께 <code>Node</code>를 다 다룬다는 것을 알아내지 못합니다. catch-all을 요구하는 것이 match가 런타임에 끝까지 빠져나가는 일을 막을 수 있는 해석입니다. 셀 variant가 아예 없는 곳에서도 마찬가지입니다. 모든 arm이 필드를 검사하는 평범한 레코드에 대한 match에는 뒤에 <code>else</code>가 필요합니다.
         </p>
         <p>
           예상하지 못했을 수도 있는 곳이 배열 위치입니다. arm 전체로 쓴 <code>[Black]</code>은 예전에 요소 하나짜리 배열이면 무엇이든 매칭하는 것으로 쳤으므로, 그에 기댄 match는 망라적이라고 인정받은 뒤 <code>[Red]</code>에도 그 arm을 택했습니다. 여기서도 PascalCase 요소는 variant 참조이므로, 그런 match는 이제 길이 1인 배열에 대해 <code>E0208</code>입니다. 요소를 바인딩하고 따로 match하세요. 그 아래의 변환은 여전히 예전 것이며, 그래서 검사가 먼저 배포된 절반입니다.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">그리고 컴파일러는 <code>match</code>가 무엇을 만들었는지 압니다<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          이 모든 것이 실제로 쓸모 있는지를 가르는 다음 질문은 이것입니다. 분기에서 값을 바인딩하면 Glyph가 그 타입을 아는가, 아니면 어깨를 으쓱하고 나중에 <code>tsc</code>가 정리하게 두는가? 0.1.45까지는 후자였습니다. 모든 <code>match</code> 표현식의 타입이 unknown이었으므로, 언어의 유일한 분기 구문에서 나온 값은 그때부터 타입이 없었습니다. 이제 <code>match</code>는 arm들이 일치하면 그 타입을 가지고, <code>T.parse</code>는 실제 코드 대부분이 분기하는 모양인 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>를 반환한다고 알려져 있습니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">그리고 컴파일러는 <code>match</code>가 무엇을 만들었는지 압니다<a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        이 모든 것이 실제로 쓸모 있는지를 가르는 다음 질문은 이것입니다. 분기에서 값을 바인딩하면 Glyph가 그 타입을 아는가, 아니면 어깨를 으쓱하고 나중에 <code>tsc</code>가 정리하게 두는가? 이제 <code>match</code>는 arm들이 일치하면 그 타입을 가지고, <code>T.parse</code>는 실제 코드 대부분이 분기하는 모양인 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>를 반환한다고 알려져 있습니다.
+      </p>
       <div class="code">
         <span class="cap">비용 정산 앱에서: 타입 표기 없이도 <code>i</code>는 숫자</span>
 <pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
@@ -613,13 +636,24 @@
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.45 이전</span></summary><div class="body">
         <p>
-          두 쪽 모두 예전에는 조용히 잘못되던 것입니다. 반복문은 <code>wire.expenses.entries()</code>를 생성합니다. 반복 대상의 타입이 unknown이면 대신 <code>Object.entries(...)</code>를 생성하고 <code>i</code>는 <em>문자열</em> <code>"0"</code>이 되는데, 이는 올바른 TypeScript이므로 빌드는 깔끔했고 프로그램은 <code>1:a</code>를 의도한 곳에서 <code>01:a</code>를 출력했습니다. 그리고 <code>wire.expensez</code>는 이제 생성된 TypeScript의 <code>TS2339</code>가 아니라 <code>.glyph</code> 줄에서 Glyph가 내는 <code>[E0210] type WireLedger has no field expensez</code>입니다. 합치는 규칙은 머리에서의 동등성입니다. <code>return</code>으로 끝나는 arm은 투표하지 않고, 타입이 다른 arm들은 결과를 예전처럼 unknown으로 둡니다. 한 단계 더 깊이 보는 곳은 타입 인자뿐이므로, <code>None =&gt; []</code>는 <code>match</code> 전체를 망치지 않고 <code>Array&lt;string&gt;</code> arm과 일치하며, 그 뒤의 반복문도 여전히 숫자를 바인딩합니다. <code>record.get</code>에 대한 같은 연쇄도 같은 이유로 동작합니다. <code>std/record</code> 함수 여섯 개 모두 넘긴 레코드에서 값 타입을 가져옵니다. 코드 조각은 이 변경으로 지워진 타입 표기를 갖고 있던 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>에서 가져왔습니다.
+          0.1.45까지는 후자였습니다. 모든 <code>match</code> 표현식의 타입이 unknown이었으므로, 언어의 유일한 분기 구문에서 나온 값은 그때부터 타입이 없었습니다.
         </p>
-      </div>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">조용히 잘못되던 것, 그리고 합치는 방식</span></summary><div class="body">
+        <p>
+          두 쪽 모두 예전에는 조용히 잘못되던 것입니다. 반복문은 <code>wire.expenses.entries()</code>를 생성합니다. 반복 대상의 타입이 unknown이면 대신 <code>Object.entries(...)</code>를 생성하고 <code>i</code>는 <em>문자열</em> <code>"0"</code>이 되는데, 이는 올바른 TypeScript이므로 빌드는 깔끔했고 프로그램은 <code>1:a</code>를 의도한 곳에서 <code>01:a</code>를 출력했습니다. 그리고 <code>wire.expensez</code>는 이제 생성된 TypeScript의 <code>TS2339</code>가 아니라 <code>.glyph</code> 줄에서 Glyph가 내는 <code>[E0210] type WireLedger has no field expensez</code>입니다.
+        </p>
+        <p>
+          합치는 규칙은 머리에서의 동등성입니다. <code>return</code>으로 끝나는 arm은 투표하지 않고, 타입이 다른 arm들은 결과를 예전처럼 unknown으로 둡니다. 한 단계 더 깊이 보는 곳은 타입 인자뿐이므로, <code>None =&gt; []</code>는 <code>match</code> 전체를 망치지 않고 <code>Array&lt;string&gt;</code> arm과 일치하며, 그 뒤의 반복문도 여전히 숫자를 바인딩합니다. <code>record.get</code>에 대한 같은 연쇄도 같은 이유로 동작합니다. <code>std/record</code> 함수 여섯 개 모두 넘긴 레코드에서 값 타입을 가져옵니다. 코드 조각은 이 변경으로 지워진 타입 표기를 갖고 있던 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>에서 가져왔습니다.
+        </p>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">빈 기본값을 둔 조회<a class="ak-anchor" href="#empty-fallback" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        가장 비용이 컸던 모양이 이것입니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get</code>은 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>[]</code>는 특정한 무엇도 아닌 것의 배열이므로, 두 arm은 <code>Array</code>에서 일치하고 요소 타입은 그것을 가진 arm에서 옵니다.
+      </p>
       <div class="code">
         <span class="cap">의존성 해석기에서: 조회, 빈 기본값, 인덱스를 쓰는 순회</span>
 <pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
@@ -632,20 +666,16 @@
   <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.55 이전</span></summary><div class="body">
         <p>
-          가장 비용이 컸던 모양이 이것입니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get</code>은 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>[]</code>는 특정한 무엇도 아닌 것의 배열이므로, 두 arm은 <code>Array</code>에서 일치하고 요소 타입은 그것을 가진 arm에서 옵니다. 0.1.55까지는 동등성으로 비교했으므로 <code>[]</code>는 불일치로 쳤고, 아래 반복문은 진단도 없고 <code>tsc --strict</code>도 통과한 빌드에서 <code>01:x</code>를 출력했습니다. 코드는 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>이며, 예전에는 이 타입 표기가 꼭 필요하다는 세 줄짜리 주석 아래에 <code>let path: Array&lt;string&gt;</code>으로 시작했습니다.
+          0.1.55까지는 동등성으로 비교했으므로 <code>[]</code>는 불일치로 쳤고, 아래 반복문은 진단도 없고 <code>tsc --strict</code>도 통과한 빌드에서 <code>01:x</code>를 출력했습니다. 코드는 <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>이며, 예전에는 이 타입 표기가 꼭 필요하다는 세 줄짜리 주석 아래에 <code>let path: Array&lt;string&gt;</code>으로 시작했습니다.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code>를 직접 작성해야 하나요?<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          실제 프로그램에서 처음 부딪히는 빈틈은 타입 시스템 기능이 아닙니다. <code>string.slice</code>를 찾았는데 아무것도 없는 것입니다. 연속된 도그푸딩 다섯 번이 같은 목록을 제출했고, 0.1.47까지 이 저장소의 앱 여섯 개가 자체 <code>repeat</code>를, 다섯 개가 자체 <code>pad_start</code>를 갖고 있었으며, 모두 fold가 있어야 할 곳에 반복문이 있었습니다. 이제 그 이름 열한 개가 제공되고, 그것을 갖고 있던 앱 일곱 개 모두에서 사본을 지웠습니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code>를 직접 작성해야 하나요?<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        실제 프로그램에서 처음 부딪히는 빈틈은 타입 시스템 기능이 아닙니다. <code>string.slice</code>를 찾았는데 아무것도 없는 것입니다.
+      </p>
       <div class="code">
         <span class="cap">추가된 것</span>
 <pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
@@ -657,29 +687,53 @@
 <span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
 io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>이제 그 이름 열한 개가 제공되고, 그것을 갖고 있던 앱 일곱 개 모두에서 사본을 지웠습니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.47 이전에 앱들이 갖고 있던 사본</span></summary><div class="body">
+        <p>
+          연속된 도그푸딩 다섯 번이 같은 목록을 제출했고, 0.1.47까지 이 저장소의 앱 여섯 개가 자체 <code>repeat</code>를, 다섯 개가 자체 <code>pad_start</code>를 갖고 있었으며, 모두 fold가 있어야 할 곳에 반복문이 있었습니다.
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">TypeScript와 다른 점<a class="ak-anchor" href="#namesakes" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        그중 세 개는 의도적으로 TypeScript의 같은 이름 함수와 다르게 동작합니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code>는 TS가 예외를 던지는 음수 횟수에서 <code>""</code>를 반환하며, 덕분에 이미 너무 긴 문자열에 대해서도 <code>repeat(pad, width - len(s))</code>가 안전합니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>두 <code>index_of</code> 함수는 <code>-1</code> 대신 <code>Option&lt;number&gt;</code>를 반환합니다. <code>-1</code>은 실제 인덱스가 쓰이는 모든 곳에서 타입 검사를 통과하고, 호출 지점에서 한참 떨어진 곳에서 실패하는 숫자이기 때문입니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>치환은 <code>replace_all</code>로만 제공되므로, 조용히 한 번만 바꾸는 <code>String.prototype.replace</code>와 헷갈릴 첫 번째만 바꾸는 형태가 없습니다.</li>
+      </ul>
+      <h3 class="ak-h3" id="fold"><code>fold</code>가 중요한 이유<a class="ak-anchor" href="#fold" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>fold</code>는 타이핑을 줄이는 것이 아니라 기둥 하나를 지켜 주는 함수입니다. <code>mut</code>는 상태가 바뀌는 모든 곳의 grep할 수 있는 기록인데, fold가 없으면 <code>grep mut</code> 결과가 리뷰어가 신경 쓸 것은 아무것도 바꾸지 않는 카운팅 반복문으로 가득 찹니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>직접 만든 버전을 지우자 <code>examples/apps/</code>의 변경 위치가 192곳에서 161곳으로 줄었습니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">다시 쓴 코드를 확인한 방법</span></summary><div class="body">
+        <p>
+          다시 쓴 코드는 리뷰가 아니라 출력으로 확인했습니다. 앱 일곱 개를 모두 고정된 입력으로 전후에 실행했고, stdout, 종료 코드, HTTP 응답 파일 26개가 바이트 단위로 같았습니다.
+        </p>
+      </div></details>
 
-      <div class="detail">
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">디렉터리를 순회하고 무엇이 잘못됐는지 알 수 있나요?<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/fs</code>에는 함수 여섯 개가 있었는데 어느 것도 디렉터리를 나열하지 않았습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code>는 한 단계 아래의 항목 이름을 반환합니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code>는 <code>fs.exists</code>처럼 <code>bool</code>로 답합니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code>은 <code>is_dir</code>, <code>is_file</code>, 바이트 단위의 <code>size</code>, epoch 밀리초 단위의 <code>modified</code>로 된 <code>FileInfo</code>를 반환하고, <code>time.format_iso</code>로 바로 출력할 수 있습니다.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>재귀적인 <code>walk</code>와 glob은 없습니다. 순회는 이 세 가지와 <code>path.join</code>으로 열 줄 정도면 됩니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">이것들이 대신한 우회 방법</span></summary><div class="body">
         <p>
-          그중 세 개는 의도적으로 TypeScript의 같은 이름 함수와 다르게 동작합니다. <code>repeat</code>는 TS가 예외를 던지는 음수 횟수에서 <code>""</code>를 반환하며, 덕분에 이미 너무 긴 문자열에 대해서도 <code>repeat(pad, width - len(s))</code>가 안전합니다. 두 <code>index_of</code> 함수는 <code>-1</code> 대신 <code>Option&lt;number&gt;</code>를 반환합니다. <code>-1</code>은 실제 인덱스가 쓰이는 모든 곳에서 타입 검사를 통과하고, 호출 지점에서 한참 떨어진 곳에서 실패하는 숫자이기 때문입니다. 치환은 <code>replace_all</code>로만 제공되므로, 조용히 한 번만 바꾸는 <code>String.prototype.replace</code>와 헷갈릴 첫 번째만 바꾸는 형태가 없습니다.
+          이 저장소의 링크 검사기는 stdlib를 넘어 node의 <code>readdirSync</code>에 손을 뻗었고, 어떤 경로가 디렉터리인지는 읽어 보고 돌아온 <code>errno</code>를 살펴서 알아냈습니다. 두 쪽 모두 고쳐졌습니다.
         </p>
-        <p>
-          <code>fold</code>는 타이핑을 줄이는 것이 아니라 기둥 하나를 지켜 주는 함수입니다. <code>mut</code>는 상태가 바뀌는 모든 곳의 grep할 수 있는 기록인데, fold가 없으면 <code>grep mut</code> 결과가 리뷰어가 신경 쓸 것은 아무것도 바꾸지 않는 카운팅 반복문으로 가득 찹니다. 직접 만든 버전을 지우자 <code>examples/apps/</code>의 변경 위치가 192곳에서 161곳으로 줄었습니다. 다시 쓴 코드는 리뷰가 아니라 출력으로 확인했습니다. 앱 일곱 개를 모두 고정된 입력으로 전후에 실행했고, stdout, 종료 코드, HTTP 응답 파일 26개가 바이트 단위로 같았습니다.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">디렉터리를 순회하고 무엇이 잘못됐는지 알 수 있나요?<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          <code>std/fs</code>에는 함수 여섯 개가 있었는데 어느 것도 디렉터리를 나열하지 않았습니다. 이 저장소의 링크 검사기는 stdlib를 넘어 node의 <code>readdirSync</code>에 손을 뻗었고, 어떤 경로가 디렉터리인지는 읽어 보고 돌아온 <code>errno</code>를 살펴서 알아냈습니다. 두 쪽 모두 고쳐졌습니다. <code>fs.read_dir</code>는 한 단계 아래의 항목 이름을 반환하고, <code>fs.is_dir</code>는 <code>fs.exists</code>처럼 <code>bool</code>로 답하며, <code>fs.stat</code>은 <code>is_dir</code>, <code>is_file</code>, 바이트 단위의 <code>size</code>, epoch 밀리초 단위의 <code>modified</code>로 된 <code>FileInfo</code>를 반환하고, <code>time.format_iso</code>로 바로 출력할 수 있습니다. 재귀적인 <code>walk</code>와 glob은 없습니다. 순회는 이 세 가지와 <code>path.join</code>으로 열 줄 정도면 됩니다.
-        </p>
-        <p>
-          실패 쪽은 더 많이 바뀌었습니다. <code>FsError.kind</code>는 <code>{ tag: string }</code>이었고 분류는 <code>NotFound</code>가 전부였으므로, &ldquo;그 경로는 디렉터리다&rdquo;와 &ldquo;그 경로는 없다&rdquo;를 구분하려면 errno 문자열을 비교해야 했습니다. 이제 프로그램이 실제로 복구하는 다섯 가지 종류에는 이름이 있고, 이름이 없는 errno는 <code>Other</code> 꼬리에 그대로 담겨 도착합니다.
-        </p>
-        <p>
-          검사기는 이 분류가 닫혀 있다는 것을 알기 때문에, <code>err.kind</code>에 대한 <code>match</code>는 직접 선언한 유니언과 같은 기준을 적용받습니다. 여섯 가지를 다루면 <code>else</code>가 필요 없고, 하나를 빠뜨리면 <code>fs.ErrorKind</code>를 짚는 <code>E0200</code>으로 빌드가 실패합니다. <code>fs.FsError</code>와 <code>fs.FileInfo</code>의 필드도 검사되므로, <code>err.mesage</code>는 생성된 TypeScript에 대한 <code>tsc</code> 오류가 아니라 Glyph 소스에 대한 <code>E0210</code>입니다.
-        </p>
-      </div>
-
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">실패에는 이름이 있습니다<a class="ak-anchor" href="#fs-errors" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        실패 쪽은 더 많이 바뀌었습니다. 이제 프로그램이 실제로 복구하는 다섯 가지 종류에는 이름이 있고, 이름이 없는 errno는 <code>Other</code> 꼬리에 그대로 담겨 도착합니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>검사기는 이 분류가 닫혀 있다는 것을 알기 때문에, <code>err.kind</code>에 대한 <code>match</code>는 직접 선언한 유니언과 같은 기준을 적용받습니다. 여섯 가지를 다루면 <code>else</code>가 필요 없고, 하나를 빠뜨리면 <code>fs.ErrorKind</code>를 짚는 <code>E0200</code>으로 빌드가 실패합니다.</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">트리를 순회하고, 무엇이 잘못됐는지 짚기</span>
 <pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
@@ -703,36 +757,50 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
   fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">예전 분류, 검사되는 필드, 그리고 검사를 직접 해 보기</span></summary><div class="body">
         <p>
-          같은 앱에서 나온 작은 것 두 개도 함께 들어왔습니다. <code>regex.captures_all</code>은 매칭된 텍스트만이 아니라 모든 매칭의 캡처 그룹을 주므로, 단순한 <code>key=value</code> 스캔이 더 이상 직접 만든 반복문이 아닙니다. 그리고 <code>task.pool_settled</code>는 <code>all_settled</code>의 실패 동작을 가진 <code>task.pool</code>입니다. 동시성에 한도가 있고, 작업마다 결과 하나가 나오며, 죽은 호스트 하나는 pool이 모은 모든 결과가 아니라 그 호스트의 결과만 잃게 합니다.
+          <code>FsError.kind</code>는 <code>{ tag: string }</code>이었고 분류는 <code>NotFound</code>가 전부였으므로, &ldquo;그 경로는 디렉터리다&rdquo;와 &ldquo;그 경로는 없다&rdquo;를 구분하려면 errno 문자열을 비교해야 했습니다.
+        </p>
+        <p>
+          <code>fs.FsError</code>와 <code>fs.FileInfo</code>의 필드도 검사되므로, <code>err.mesage</code>는 생성된 TypeScript에 대한 <code>tsc</code> 오류가 아니라 Glyph 소스에 대한 <code>E0210</code>입니다.
         </p>
         <p>
           그 검사는 실제로 동작합니다. 위의 <code>match</code>에서 <code>PermissionDenied</code> arm을 지우면 <code>glyph check --no-tsc</code>가 <code>E0200</code>으로 멈춥니다. <code>fs.ErrorKind</code>에 대한 비망라적 match, 빠진 variant <code>PermissionDenied</code>. stdlib 모델을 처음 작성했을 때는 반환 타입만 다뤘으므로, 이런 match가 깔끔하게 컴파일되고 런타임에 예외를 던졌습니다. 이제 <code>fs.FsError</code>, <code>fs.FileInfo</code>, <code>fs.ErrorKind</code>의 필드와 variant 모양이 모델링되어 있습니다.
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">작은 추가 두 가지<a class="ak-anchor" href="#captures-all" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        같은 앱에서 나온 작은 것 두 개도 함께 들어왔습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code>은 매칭된 텍스트만이 아니라 모든 매칭의 캡처 그룹을 주므로, 단순한 <code>key=value</code> 스캔이 더 이상 직접 만든 반복문이 아닙니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code>는 <code>all_settled</code>의 실패 동작을 가진 <code>task.pool</code>입니다. 동시성에 한도가 있고, 작업마다 결과 하나가 나오며, 죽은 호스트 하나는 pool이 모은 모든 결과가 아니라 그 호스트의 결과만 잃게 합니다.</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">그 함수들이 올바른 것이라는 걸 어떻게 아나요?<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          그것을 요청한 앱이 우회 방법을 그만 써야만 릴리스가 완료된 것으로 쳤기 때문입니다. 배포된 라이브러리 함수와 그보다 오래 살아남은 우회 방법은 서로 다른 주장이므로, 이 네 가지를 추가한 같은 변경에서 링크 검사기의 사본을 지웠습니다. <code>readdirSync</code> import, <code>errno</code> 문자열 비교 두 개, 직접 만든 스캐너 97줄, 그리고 실패 즉시 멈추는 pool입니다. 122줄이 빠졌습니다.
-        </p>
-        <p>
-          그중 두 가지 삭제는 프로그램의 동작을 바꿨고, 그 차이는 논쟁이 아니라 측정으로 확인했습니다. 읽을 수 없는 디렉터리가 있는 트리를 이전 버전과 새 버전에 주면, 새 버전은 <code>permission denied</code>를 출력하고 그 경로를 읽을 수 없는 것으로 세지만, errno가 <code>EISDIR</code>인지만 물을 수 있었던 이전 버전은 보고서에서 아예 빼 버렸습니다. URL 세 개 중 하나가 예외를 던지게 하면, <code>pool_settled</code>는 세 행을 모두 출력하고 실패를 짚었지만, <code>pool</code>은 아무것도 출력하지 않고 처리되지 않은 rejection으로 죽으며 좋은 결과 두 개까지 함께 잃었습니다.
-        </p>
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">그 함수들이 올바른 것이라는 걸 어떻게 아나요?<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        그것을 요청한 앱이 우회 방법을 그만 써야만 릴리스가 완료된 것으로 쳤기 때문입니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>배포된 라이브러리 함수와 그보다 오래 살아남은 우회 방법은 서로 다른 주장이므로, 이 네 가지를 추가한 같은 변경에서 링크 검사기의 사본을 지웠습니다. <code>readdirSync</code> import, <code>errno</code> 문자열 비교 두 개, 직접 만든 스캐너 97줄, 그리고 실패 즉시 멈추는 pool입니다. 122줄이 빠졌습니다.</p></div>
+      <h3 class="ak-h3" id="measured">측정한 동작 변화 두 가지<a class="ak-anchor" href="#measured" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        그중 두 가지 삭제는 프로그램의 동작을 바꿨고, 그 차이는 논쟁이 아니라 측정으로 확인했습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>읽을 수 없는 디렉터리</b>읽을 수 없는 디렉터리가 있는 트리를 이전 버전과 새 버전에 주면, 새 버전은 <code>permission denied</code>를 출력하고 그 경로를 읽을 수 없는 것으로 세지만, errno가 <code>EISDIR</code>인지만 물을 수 있었던 이전 버전은 보고서에서 아예 빼 버렸습니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>실패하는 URL</b>URL 세 개 중 하나가 예외를 던지게 하면, <code>pool_settled</code>는 세 행을 모두 출력하고 실패를 짚었지만, <code>pool</code>은 아무것도 출력하지 않고 처리되지 않은 rejection으로 죽으며 좋은 결과 두 개까지 함께 잃었습니다.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">스캐너 재작성과 대안 분기에 대한 걱정</span></summary><div class="body">
         <p>
           스캐너를 다시 쓰면서 설계상의 걱정도 하나 해결되었습니다. 참여하지 않은 캡처 그룹은 빈 문자열과 매칭된 그룹처럼 <code>""</code>로 읽히므로, <code>captures_all</code>은 대안 중 어느 분기가 실행되었는지 알려 줄 수 없을 것처럼 보였습니다. 원하는 부분이 아니라 구문 전체를 감싸도록 각 분기의 그룹을 쓰면 알 수 있습니다. 실행된 그룹은 <code>`</code>, <code>[</code>, <code>!</code>, <code>&lt;</code> 중 하나로 시작하고 비어 있을 수 없습니다. 비어 있을 수 있는 부분인 링크 대상은 그 안에 중첩되며, 묻는 대상이 되지 않습니다. 덕분에 180줄짜리 문자 순회가 패턴 두 개와 12줄짜리 분기로 바뀌었고, 저장소 자체 문서와 이를 깨뜨리려고 만든 fixture에서 출력이 바이트 단위로 같았습니다.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-doesn-t-run-on-floats">돈은 float로 계산하지 않습니다<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          핀테크 평가를 그 자리에서 끝낼 빈틈은 <code>0.1 + 0.2</code>가 <code>0.3</code>이 아니고 2<sup>53</sup>을 넘는 값이 조용히 정밀도를 잃는 IEEE-754 <code>number</code>로 돈을 계산하는 것입니다. <code>std/decimal</code>은 BigInt 위의 정확한 10진 고정소수점입니다. 소수 자릿수가 고정된 임의 정밀도 정수이므로 덧셈, 뺄셈, 곱셈은 정확하고, 나눗셈은 명시적인 자릿수와 반올림 방식을 받습니다. 형식이 잘못된 금액은 조용한 <code>NaN</code>이 아니라 <code>Err</code>로 파싱됩니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">돈은 float로 계산하지 않습니다<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        핀테크 평가를 그 자리에서 끝낼 빈틈은 <code>0.1 + 0.2</code>가 <code>0.3</code>이 아니고 2<sup>53</sup>을 넘는 값이 조용히 정밀도를 잃는 IEEE-754 <code>number</code>로 돈을 계산하는 것입니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>std/decimal</code>은 BigInt 위의 정확한 10진 고정소수점입니다. 소수 자릿수가 고정된 임의 정밀도 정수이므로 덧셈, 뺄셈, 곱셈은 정확하고, 나눗셈은 명시적인 자릿수와 반올림 방식을 받습니다. 형식이 잘못된 금액은 조용한 <code>NaN</code>이 아니라 <code>Err</code>로 파싱됩니다.</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
@@ -742,23 +810,16 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
       </div>
+      <h3 class="ak-h3" id="bigint">큰 정수<a class="ak-anchor" href="#bigint" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        계정 id나 카운터처럼 정확해야 하는 큰 <em>정수</em>에는 <code>bigint</code> 타입이 있습니다. 리터럴은 <code>123n</code>이고, 실제 TypeScript <code>bigint</code>로 생성되며, <code>bigint</code> 타입의 레코드 필드는 경계에서 <code>typeof === "bigint"</code>를 검증하므로, JSON <code>number</code>로 보낸 id는 2<sup>53</sup>을 넘어 조용히 반올림되지 않고 거부됩니다.
+      </p>
 
-      <div class="detail">
-        <p>
-          계정 id나 카운터처럼 정확해야 하는 큰 <em>정수</em>에는 <code>bigint</code> 타입이 있습니다. 리터럴은 <code>123n</code>이고, 실제 TypeScript <code>bigint</code>로 생성되며, <code>bigint</code> 타입의 레코드 필드는 경계에서 <code>typeof === "bigint"</code>를 검증하므로, JSON <code>number</code>로 보낸 id는 2<sup>53</sup>을 넘어 조용히 반올림되지 않고 거부됩니다.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="an-async-callback-finally-has-a-type">비동기 콜백에 드디어 타입이 생겼습니다<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          함수 타입은 <code>fn(A) -&gt; T</code>뿐이었고, 이는 <code>(a: A) =&gt; T</code>로 생성됩니다. 비동기 본문은 여기에 맞지 않으므로, 지연된 작업을 반환하는 함수나 비동기 핸들러를 담은 레코드는 타입 표기 없이 둬야 했고 검사기는 더 이상 보지 않았습니다. <code>async fn(A) -&gt; T</code>가 그 빠진 타입입니다. <code>(a0: A) =&gt; Promise&lt;T&gt;</code>로 생성되고, 반환이 없는 <code>async fn()</code>은 <code>() =&gt; Promise&lt;void&gt;</code>로 생성됩니다.
-        </p>
-        <p>
-          Glyph는 이 둘을 <code>tsc</code>에 맡기지 않고 직접 구분합니다. async 함수가 필요한 곳의 평범한 함수는 return에서 <code>E0204</code>, 호출 인자에서 <code>E0211</code>이며, 메시지는 양쪽을 모두 짚습니다. 판단하지 않는 경우는 하나, <code>void</code> 반환인데, TypeScript는 여기에 어떤 함수든 허용합니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">비동기 콜백에 드디어 타입이 생겼습니다<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        함수 타입은 <code>fn(A) -&gt; T</code>뿐이었고, 이는 <code>(a: A) =&gt; T</code>로 생성됩니다. 비동기 본문은 여기에 맞지 않으므로, 지연된 작업을 반환하는 함수나 비동기 핸들러를 담은 레코드는 타입 표기 없이 둬야 했고 검사기는 더 이상 보지 않았습니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt; T</code>가 그 빠진 타입입니다. <code>(a0: A) =&gt; Promise&lt;T&gt;</code>로 생성되고, 반환이 없는 <code>async fn()</code>은 <code>() =&gt; Promise&lt;void&gt;</code>로 생성됩니다.</p></div>
       <div class="code">
         <span class="cap">지연된 작업, 그리고 핸들러 맵</span>
 <pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
@@ -774,14 +835,17 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">끝까지 매칭되는 재귀 타입<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">Glyph가 평범한 함수와 async 함수를 구분하는 방식</span></summary><div class="body">
         <p>
-          유니언은 자신의 payload 안에서 타입 매개변수와 함께 자기 자신을 가리킬 수 있고, match arm은 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩할 수 있습니다. 둘을 합치면 레드-블랙 트리의 균형 규칙이 arm 네 개가 됩니다. 각각은 다시 쓰는 정확한 모양을 지정하고, 그 모양을 위의 주석이 주장하는 것이 아니라 컴파일러가 검사합니다. <code>examples/apps/leaderboard/main.glyph</code>가 그 프로그램 전체로, 모든 점수를 트리에 두고 로그를 다시 정렬하는 대신 트리를 순회해서 순위, 상위 N개, 범위 쿼리에 답하는 리더보드입니다.
+          Glyph는 이 둘을 <code>tsc</code>에 맡기지 않고 직접 구분합니다. async 함수가 필요한 곳의 평범한 함수는 return에서 <code>E0204</code>, 호출 인자에서 <code>E0211</code>이며, 메시지는 양쪽을 모두 짚습니다.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>판단하지 않는 경우는 하나, <code>void</code> 반환인데, TypeScript는 여기에 어떤 함수든 허용합니다.</p></div>
 
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">끝까지 매칭되는 재귀 타입<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        유니언은 자신의 payload 안에서 타입 매개변수와 함께 자기 자신을 가리킬 수 있고, match arm은 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩할 수 있습니다. 둘을 합치면 레드-블랙 트리의 균형 규칙이 arm 네 개가 됩니다. 각각은 다시 쓰는 정확한 모양을 지정하고, 그 모양을 위의 주석이 주장하는 것이 아니라 컴파일러가 검사합니다.
+      </p>
       <div class="code">
         <span class="cap">회전 case 네 개 중 하나</span>
 <pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
@@ -802,19 +866,140 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code>가 그 프로그램 전체로, 모든 점수를 트리에 두고 로그를 다시 정렬하는 대신 트리를 순회해서 순위, 상위 N개, 범위 쿼리에 답하는 리더보드입니다.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">현재 상태<a class="h-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p>형제 모듈의 타입을 가리키는 두 방식(이름 import와 <code>lib.Secret</code> 타입 표기) 모두에서 강제되는 <code>pub</code> 가시성, 구조적 <code>interface</code> 제약, <code>defer</code>, <code>std/task</code>(<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), 작성할 수 있는 타입으로서의 <code>async fn(A) -&gt; T</code>, 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩한 arm으로 매칭되는 자기 자신을 payload에 담은 유니언, arm 안에 블록, <code>await</code>, 반복문 제어를 쓸 수 있는 <code>let</code>이나 <code>mut</code>의 값으로서의 <code>match</code>, arm이 일치하면 그 타입을 프로그램의 나머지로 가져가는 <code>match</code>, 타입이 있는 <code>T.parse</code>, 정확한 금액 계산을 위한 <code>std/decimal</code>, 정확한 큰 정수를 위한 <code>bigint</code>, 숫자 구분자, JS에서 물려받은 의미를 다루는 명세 절, 그리고 <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code>와 <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, 그리고 <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, 검사기가 지키게 하는 <code>FsError.kind</code> 분류, <code>regex.captures_all</code>을 갖춘 표준 라이브러리. <code>std/string</code>과 <code>std/array</code>의 대부분은 이제 반환 타입을 프로그램으로 가져가므로, <code>string.split</code>은 <code>Array&lt;string&gt;</code>이고 그에 대한 반복문은 숫자 인덱스를 바인딩합니다. <code>std/record</code>도 넘긴 레코드에서 값 타입을 읽어 모델링됩니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get(t, k)</code>는 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>record.keys(t)</code>는 <code>Array&lt;string&gt;</code>이므로 <code>array.sort(record.keys(t), cmp)</code>는 요소 타입을 유지합니다.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">한계</h3>
-          <p>비공개 import는 없는 이름과 같은 &ldquo;not exported by M&rdquo; 메시지를 보고합니다. &ldquo;비공개이니 <code>pub</code>를 붙이라&rdquo;와 &ldquo;그런 이름 없음&rdquo;을 구분하는 것은 대기 중인 개선입니다. 가시성은 타입 표기에서 검사하고, 네임스페이스를 통해 읽는 값에서는 검사하지 않습니다. <code>helper</code>가 비공개인 <code>lib.helper()</code>는 여전히 Glyph 오류가 아니라 <code>tsc</code> 오류입니다. 비동기 문맥은 이제 검사되지만(<code>E0222</code>) 한 곳은 예외입니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로, 거기서의 최상위 <code>await</code>는 허용되고 생성된 ESM이 이를 실행합니다. arm 합치기는 여전히 arm들이 타입의 머리에서 일치해야 합니다. 서로 다른 타입을 만들면 결과는 Glyph에게 unknown이고, 그것으로 무엇을 하든 <code>tsc</code>만 검사합니다. stdlib 함수 아홉 개도 같은 처지입니다. 여섯 개는 선택적인 마지막 인자를 받는데(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), 인자 개수 검사는 숫자 하나와 숫자 하나를 비교하므로 이를 모델링하면 마지막 인자를 생략하는 모든 호출에서 거짓 오류를 보고하게 됩니다. <code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 검사기가 들어가지 않는 콜백에서 요소 타입을 가져옵니다. 이 아홉 개에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요하고, <code>None</code> arm이 없는 <code>string.index_of</code>에 대한 <code>match</code>는 여전히 깔끔하게 빌드되고 런타임에 예외를 던집니다. <code>array.index_of</code>는 모델링되어 있어 <code>E0200</code>을 보고합니다. 검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 그 경계에서 오류가 아니라 여전히 검사되지 않습니다. 라이브러리 쪽에서 <code>string</code>은 <code>len</code>과 <code>split</code>이 늘 그랬듯 UTF-16 코드 단위로 인덱싱하며, 이는 확정되었습니다. <code>chars</code>나 <code>char_at</code>은 없고 계획도 없습니다. 반환된 서로게이트 반쪽은 출력되는 순간까지 문자처럼 보이기 때문입니다. <code>encoding.hex_encode</code>로 인코딩하고 16진수 두 자리씩 읽으세요. <code>captures_all</code>은 그룹만 돌려주고 오프셋은 주지 않으므로, 줄의 어디서 매칭이 시작되었는지 알아야 하는 스캐너는 여전히 직접 반복문을 씁니다. <code>fs.read_dir</code>는 OS 순서대로 항목을 주므로, 출력이 재현 가능해야 하면 정렬하세요. 중첩된 필드 패턴에는 한계가 하나 남았습니다. 네임스페이스 import로 닿는 유니언에서, 필드 안에 놓인 payload를 가진 생성자입니다. <code>import tree { Node }</code> 다음 <code>Node({ left: Node({ key: k }) })</code>는 컴파일되지만, <code>import tree</code> 다음 <code>tree.Node({ left: tree.Node({ key: k }) })</code>는 같은 유니언에서 <code>E0300</code>입니다. 다른 한계는 사라졌습니다. 자신의 매개변수에 대해 제네릭인 유니언(<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>)은 매개변수가 없는 같은 유니언이 받아들이는 중첩 arm을 예전에는 거부했는데, 이제는 열린 타입 매개변수에서든 구체적인 인스턴스화에서든 받아들입니다. 같은 조회가 match에서 빠진 variant를 검사할지 자체를 결정하고 있었으므로, 이 릴리스 전까지는 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>가 <code>Leaf</code>를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었고, 제네릭이 아닌 표기는 <code>E0200</code>이었습니다. 이제 두 표기 모두 보고하며, 유니언을 import 한 단계 떨어진 곳으로 옮겨도 답이 바뀌지 않습니다. <code>Leaf</code>를 빠뜨린 import한 <code>Tree&lt;string&gt;</code>에 대한 <code>match</code>는 import한 제네릭이 아닌 <code>Tree</code>와 똑같이 <code>Leaf</code>를 짚는 <code>E0200</code>입니다. 이는 별도로 검사되는 다른 코드 경로였고, 이 릴리스 전까지는 반대로 깔끔하게 빌드되고 런타임에 예외를 던졌습니다. import한 유니언의 커버리지에 기대기 전에 알아 둘 것이 하나 더 있습니다. variant payload도 검사되지 않으므로, <code>X</code>가 payload 자신의 유니언의 variant인 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 이는 제네릭과 아무 관계가 없습니다. 필드를 바인딩하거나, payload가 없는 태그를 필드에서 매칭하는 것은 모든 경우에 동작합니다.</p>
-        </div>
-        <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.153으로 검사합니다. 마지막 변경: <time datetime="2026-11-20">2026년 11월 20일</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">19</span></h3>
+
+          <p class="ak-st-group">모듈과 타입</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">형제 모듈의 타입을 가리키는 두 방식(이름 import와 <code>lib.Secret</code> 타입 표기) 모두에서 강제되는 <code>pub</code> 가시성</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">구조적 <code>interface</code> 제약</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">작성할 수 있는 타입으로서의 <code>async fn(A) -&gt; T</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩한 arm으로 매칭되는 자기 자신을 payload에 담은 유니언</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">제어 흐름과 <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">arm 안에 블록, <code>await</code>, 반복문 제어를 쓸 수 있는 <code>let</code>이나 <code>mut</code>의 값으로서의 <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">arm이 일치하면 그 타입을 프로그램의 나머지로 가져가는 <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">타입이 있는 <code>T.parse</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">숫자와 의미론</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">정확한 금액 계산을 위한 <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">정확한 큰 정수를 위한 <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">숫자 구분자</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JS에서 물려받은 의미를 다루는 명세 절</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">표준 라이브러리</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code>와 <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>을 갖춘 표준 라이브러리</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">검사기가 지키게 하는 <code>FsError.kind</code> 분류</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/string</code>과 <code>std/array</code>의 대부분이 반환 타입을 프로그램으로 가져갑니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>std/string</code>과 <code>std/array</code>의 대부분은 이제 반환 타입을 프로그램으로 가져가므로, <code>string.split</code>은 <code>Array&lt;string&gt;</code>이고 그에 대한 반복문은 숫자 인덱스를 바인딩합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">넘긴 레코드에서 값 타입을 읽어 모델링되는 <code>std/record</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>std/record</code>도 넘긴 레코드에서 값 타입을 읽어 모델링됩니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get(t, k)</code>는 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>record.keys(t)</code>는 <code>Array&lt;string&gt;</code>이므로 <code>array.sort(record.keys(t), cmp)</code>는 요소 타입을 유지합니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 한계 <span class="count">11</span></h3>
+
+          <p class="ak-st-group">가시성</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">비공개 import는 없는 이름과 같은 메시지를 보고합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>비공개 import는 없는 이름과 같은 &ldquo;not exported by M&rdquo; 메시지를 보고합니다. &ldquo;비공개이니 <code>pub</code>를 붙이라&rdquo;와 &ldquo;그런 이름 없음&rdquo;을 구분하는 것은 대기 중인 개선입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">네임스페이스를 통해 읽은 비공개 값은 Glyph 오류가 아니라 <code>tsc</code> 오류입니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>가시성은 타입 표기에서 검사하고, 네임스페이스를 통해 읽는 값에서는 검사하지 않습니다. <code>helper</code>가 비공개인 <code>lib.helper()</code>는 여전히 Glyph 오류가 아니라 <code>tsc</code> 오류입니다.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">비동기</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">모듈 수준 <code>const</code> 초기값의 최상위 <code>await</code>는 허용됩니다</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>비동기 문맥은 이제 검사되지만(<code>E0222</code>) 한 곳은 예외입니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로, 거기서의 최상위 <code>await</code>는 허용되고 생성된 ESM이 이를 실행합니다.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">추론된 타입</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">타입의 머리가 다른 arm들은 결과를 Glyph에게 unknown으로 둡니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>arm 합치기는 여전히 arm들이 타입의 머리에서 일치해야 합니다. 서로 다른 타입을 만들면 결과는 Glyph에게 unknown이고, 그것으로 무엇을 하든 <code>tsc</code>만 검사합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">stdlib 함수 아홉 개도 같은 처지입니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>stdlib 함수 아홉 개도 같은 처지입니다. 여섯 개는 선택적인 마지막 인자를 받는데(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), 인자 개수 검사는 숫자 하나와 숫자 하나를 비교하므로 이를 모델링하면 마지막 인자를 생략하는 모든 호출에서 거짓 오류를 보고하게 됩니다. <code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 검사기가 들어가지 않는 콜백에서 요소 타입을 가져옵니다.</p>
+                <p>이 아홉 개에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요하고, <code>None</code> arm이 없는 <code>string.index_of</code>에 대한 <code>match</code>는 여전히 깔끔하게 빌드되고 런타임에 예외를 던집니다. <code>array.index_of</code>는 모델링되어 있어 <code>E0200</code>을 보고합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 검사되지 않습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 그 경계에서 오류가 아니라 여전히 검사되지 않습니다.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">라이브러리</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code>은 UTF-16 코드 단위로 인덱싱하며, <code>chars</code>나 <code>char_at</code>은 계획에 없습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>라이브러리 쪽에서 <code>string</code>은 <code>len</code>과 <code>split</code>이 늘 그랬듯 UTF-16 코드 단위로 인덱싱하며, 이는 확정되었습니다. <code>chars</code>나 <code>char_at</code>은 없고 계획도 없습니다. 반환된 서로게이트 반쪽은 출력되는 순간까지 문자처럼 보이기 때문입니다. <code>encoding.hex_encode</code>로 인코딩하고 16진수 두 자리씩 읽으세요.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code>은 오프셋을 주지 않고, <code>fs.read_dir</code>는 OS의 순서를 따릅니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>captures_all</code>은 그룹만 돌려주고 오프셋은 주지 않으므로, 줄의 어디서 매칭이 시작되었는지 알아야 하는 스캐너는 여전히 직접 반복문을 씁니다. <code>fs.read_dir</code>는 OS 순서대로 항목을 주므로, 출력이 재현 가능해야 하면 정렬하세요.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">패턴</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">네임스페이스 import로 닿는 유니언에서는 필드 안의 payload 생성자가 실패합니다</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>중첩된 필드 패턴에는 한계가 하나 남았습니다. 네임스페이스 import로 닿는 유니언에서, 필드 안에 놓인 payload를 가진 생성자입니다. <code>import tree { Node }</code> 다음 <code>Node({ left: Node({ key: k }) })</code>는 컴파일되지만, <code>import tree</code> 다음 <code>tree.Node({ left: tree.Node({ key: k }) })</code>는 같은 유니언에서 <code>E0300</code>입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">자신의 매개변수에 대해 제네릭인 유니언도 중첩 arm을 받아들이고 빠진 variant를 검사받습니다</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>다른 한계는 사라졌습니다. 자신의 매개변수에 대해 제네릭인 유니언(<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>)은 매개변수가 없는 같은 유니언이 받아들이는 중첩 arm을 예전에는 거부했는데, 이제는 열린 타입 매개변수에서든 구체적인 인스턴스화에서든 받아들입니다. 같은 조회가 match에서 빠진 variant를 검사할지 자체를 결정하고 있었으므로, 이 릴리스 전까지는 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>가 <code>Leaf</code>를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었고, 제네릭이 아닌 표기는 <code>E0200</code>이었습니다.</p>
+                <p>이제 두 표기 모두 보고하며, 유니언을 import 한 단계 떨어진 곳으로 옮겨도 답이 바뀌지 않습니다. <code>Leaf</code>를 빠뜨린 import한 <code>Tree&lt;string&gt;</code>에 대한 <code>match</code>는 import한 제네릭이 아닌 <code>Tree</code>와 똑같이 <code>Leaf</code>를 짚는 <code>E0200</code>입니다. 이는 별도로 검사되는 다른 코드 경로였고, 이 릴리스 전까지는 반대로 깔끔하게 빌드되고 런타임에 예외를 던졌습니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 유니언의 커버리지는 variant payload를 검사하지 않습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>import한 유니언의 커버리지에 기대기 전에 알아 둘 것이 하나 더 있습니다. variant payload도 검사되지 않으므로, <code>X</code>가 payload 자신의 유니언의 variant인 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 이는 제네릭과 아무 관계가 없습니다.</p>
+                <p>필드를 바인딩하거나, payload가 없는 태그를 필드에서 매칭하는 것은 모든 경우에 동작합니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.153으로 검사합니다. 마지막 변경: <time datetime="2026-11-21">2026년 11월 21일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/state/">
           <span class="dir">&larr; 이전</span>

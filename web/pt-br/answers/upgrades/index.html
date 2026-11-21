@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Uma release nova do Glyph vai quebrar meu build?","item":"https://glyphlang.io/pt-br/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/upgrades/#article","headline":"Uma release nova do Glyph vai quebrar meu build?","description":"Um projeto Glyph fixa a versão exata do compilador, então uma release nunca chega até você por acidente. glyph doctor avisa que ela existe e glyph upgrade leva você até ela.","url":"https://glyphlang.io/pt-br/answers/upgrades/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/upgrades/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/upgrades/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Uma release nova do Glyph vai quebrar meu build?","item":"https://glyphlang.io/pt-br/answers/upgrades/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/upgrades/#article","headline":"Uma release nova do Glyph vai quebrar meu build?","description":"Um projeto Glyph fixa a versão exata do compilador, então uma release nunca chega até você por acidente. glyph doctor avisa que ela existe e glyph upgrade leva você até ela.","url":"https://glyphlang.io/pt-br/answers/upgrades/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/upgrades/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/upgrades/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/upgrades/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">08 &middot; Atualizações</p>
       <h1 class="q-title">Uma release nova do Glyph vai quebrar meu build?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respostas">
@@ -478,16 +478,7 @@
         Não sem você pedir. Um projeto Glyph fixa o compilador em uma <strong>versão exata</strong>, então uma release publicada hoje de manhã não chega ao seu build hoje à tarde. Antes da 1.0, uma release pode adicionar um diagnóstico que recusa código que compilava ontem, e geralmente esse é o objetivo da release. Por isso a decisão de adotá-la é sua, e é um comando só.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por que isso importa<a class="h-anchor" href="#why-it-matters" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          A maioria das ferramentas você fixa com um caret, porque uma release de patch é correção de bug. Um compilador antes da 1.0 não é assim. O trabalho do Glyph é recusar programas, e melhorar nisso significa erros novos: uma checagem mais rígida em um import, uma brecha de exaustividade que antes passava, uma aridade que o checker não modelava. Essas são as releases boas. E são exatamente as que você não quer que cheguem por um <code>npm install</code> que você rodou para adicionar uma biblioteca de datas.
-        </p>
-        <p>
-          Por isso o <code>glyph init</code> não escreve <code>^</code>. Em uma versão <code>0.x</code>, um caret ainda deixa o patch flutuar, e essa é a armadilha: <code>^0.1.9</code> aceita em silêncio toda 0.1.x posterior.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">package.json, como o scaffold gera</span>
 <pre><span class="pk">"devDependencies"</span>: {
@@ -497,19 +488,46 @@
   <span class="pk">"tsx"</span>: <span class="s">"^4.19.0"</span>
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que a versão é exata</a></li>
+          <li><a href="#the-other-half">Saber que existe uma release</a></li>
+          <li><a href="#taking-the-upgrade">Fazendo o upgrade</a></li>
+          <li><a href="#moving-the-tool-not-the-project">Atualizando o próprio compilador</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A maioria das ferramentas você fixa com um caret, porque uma release de patch é correção de bug. Um compilador antes da 1.0 não é assim.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">por que erros novos são as releases boas</span></summary><div class="body">
         <p>
-          Faça commit do <code>package-lock.json</code> ao lado dele e um clone novo builda com o toolchain que você testou, não com o que saiu depois.
+          O trabalho do Glyph é recusar programas, e melhorar nisso significa erros novos: uma checagem mais rígida em um import, uma brecha de exaustividade que antes passava, uma aridade que o checker não modelava. Essas são as releases boas. E são exatamente as que você não quer que cheguem por um <code>npm install</code> que você rodou para adicionar uma biblioteca de datas.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Por isso o <code>glyph init</code> não escreve <code>^</code>. Em uma versão <code>0.x</code>, um caret ainda deixa o patch flutuar, e essa é a armadilha: <code>^0.1.9</code> aceita em silêncio toda 0.1.x posterior.
+      </p></div>
+      <p>
+        Faça commit do <code>package-lock.json</code> ao lado dele e um clone novo builda com o toolchain que você testou, não com o que saiu depois.
+      </p>
 
-        <h2 class="block-label" id="the-other-half">A outra metade<a class="h-anchor" href="#the-other-half" aria-label="Link para esta seção">#</a></h2>
+      <h2 class="ak-h" id="the-other-half">A outra metade<a class="ak-anchor" href="#the-other-half" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Fixar a versão tem um modo de falha óbvio: você fica um ano num compilador velho e nunca fica sabendo. Então o compilador avisa, quando você pergunta qualquer coisa sobre o seu setup:
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">por que o compilador é o canal</span></summary><div class="body">
         <p>
-          Fixar a versão tem um modo de falha óbvio: você fica um ano num compilador velho e nunca fica sabendo. Nada na sua máquina avisaria, e um site que você precisa lembrar de visitar não é um canal. Então o compilador avisa, quando você pergunta qualquer coisa sobre o seu setup:
+          Nada na sua máquina avisaria, e um site que você precisa lembrar de visitar não é um canal.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre class="wraps">glyph — 0.1.72
   <span class="w">[update]</span>   0.1.73 is published — <span class="q">`glyph --update`</span> moves this compiler, <span class="q">`glyph upgrade`</span> moves a project's pin
@@ -522,18 +540,24 @@ glyph doctor — JavaScript toolchain
 All good. <span class="q">`glyph run`</span> and <span class="q">`glyph build --check`</span> are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Encontrar uma release mais nova <em>nunca</em> muda o código de saída, então é seguro rodar isso na CI.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">CI, offline, e o que nunca usa a rede</span></summary><div class="body">
         <p>
-          Encontrar uma release mais nova <em>nunca</em> muda o código de saída, então é seguro rodar isso na CI. Uma release publicada não é um toolchain quebrado, e um pipeline verde não deveria ficar vermelho porque alguém publicou algo dez minutos atrás. Se a máquina estiver offline, a checagem diz isso e segue em frente; <code>--offline</code> pula a checagem e não faz nenhuma chamada de rede.
+          Uma release publicada não é um toolchain quebrado, e um pipeline verde não deveria ficar vermelho porque alguém publicou algo dez minutos atrás. Se a máquina estiver offline, a checagem diz isso e segue em frente; <code>--offline</code> pula a checagem e não faz nenhuma chamada de rede.
         </p>
         <p>
           Nada mais acessa o registry. <code>build</code>, <code>run</code> e <code>check</code> nunca acessam. Um compilador que liga para casa a cada build é outro produto.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="taking-the-upgrade">Fazendo o upgrade<a class="h-anchor" href="#taking-the-upgrade" aria-label="Link para esta seção">#</a></h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">Fazendo o upgrade<a class="ak-anchor" href="#taking-the-upgrade" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ele reescreve uma linha e roda <code>npm install</code>. Não mexe no seu código-fonte e não finge que o upgrade terminou: buildar depois é o ponto, porque a release que você acabou de adotar pode ter opiniões que o seu código ainda não conheceu.
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">Uma linha muda, e você decide quando</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> upgrade <span class="fl">--dry-run</span>
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -545,20 +569,26 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">escolher uma versão, pular a instalação</span></summary><div class="body">
         <p>
-          Ele reescreve uma linha e roda <code>npm install</code>. Não mexe no seu código-fonte e não finge que o upgrade terminou: buildar depois é o ponto, porque a release que você acabou de adotar pode ter opiniões que o seu código ainda não conheceu. <code>--to &lt;version&gt;</code> escolhe uma versão específica, inclusive uma mais antiga quando você quer voltar, e <code>--no-install</code> deixa a instalação com você.
+          <code>--to &lt;version&gt;</code> escolhe uma versão específica, inclusive uma mais antiga quando você quer voltar, e <code>--no-install</code> deixa a instalação com você.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="moving-the-tool-not-the-project">Atualizando a ferramenta, não o projeto<a class="h-anchor" href="#moving-the-tool-not-the-project" aria-label="Link para esta seção">#</a></h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">Atualizando a ferramenta, não o projeto<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code> move uma versão fixada em um <code>package.json</code>. <code>glyph --update</code> é a outra metade.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        A divisão agora é uma regra, não uma coincidência: flags agem sobre a ferramenta, como <code>--version</code>, <code>--help</code> e <code>--explain</code>, e subcomandos agem sobre o seu código.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">o que o doctor sugeria antes</span></summary><div class="body">
         <p>
-          <code>upgrade</code> move uma versão fixada em um <code>package.json</code>. É o comando errado quando o que está desatualizado é o compilador no seu <code>PATH</code>, e por um tempo o <code>doctor</code> sugeria ele mesmo assim, apontando uma instalação global para um manifest que ela talvez nem tenha. <code>glyph --update</code> é a outra metade. A divisão agora é uma regra, não uma coincidência: flags agem sobre a ferramenta, como <code>--version</code>, <code>--help</code> e <code>--explain</code>, e subcomandos agem sobre o seu código. <code>--update-dry-run</code> para depois de imprimir o comando <code>npm</code> que teria rodado.
+          <code>upgrade</code> é o comando errado quando o que está desatualizado é o compilador no seu <code>PATH</code>, e por um tempo o <code>doctor</code> sugeria ele mesmo assim, apontando uma instalação global para um manifest que ela talvez nem tenha.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre class="wraps"><span class="pr">$</span> <span class="f">glyph</span> <span class="fl">--update</span>
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -572,24 +602,37 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          Ele só atualiza uma instalação que consegue identificar. Um compilador acessado via <code>npx</code>, buildado a partir de uma árvore de código do Glyph ou num caminho que ele não reconhece recebe o comando impresso e nada sobrescrito, porque substituir um binário do Homebrew ou o <code>cargo build</code> de alguém no chute deixa o <code>PATH</code> apontando para algo que ninguém escolheu. Ele também não afirma que a atualização deu certo: o npm pode sair com zero tendo pulado uma <code>optionalDependency</code> que não conseguiu baixar, e foi assim que uma release do Glyph saiu uma vez sem binário de plataforma. Por isso a última linha indica <code>glyph --version</code> como a checagem em vez de declarar sucesso.
-        </p>
-      </div>
+      <p>
+        <code>--update-dry-run</code> para depois de imprimir o comando <code>npm</code> que teria rodado.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Só uma instalação que ele consegue identificar</b>Ele só atualiza uma instalação que consegue identificar. Um compilador acessado via <code>npx</code>, buildado a partir de uma árvore de código do Glyph ou num caminho que ele não reconhece recebe o comando impresso e nada sobrescrito, porque substituir um binário do Homebrew ou o <code>cargo build</code> de alguém no chute deixa o <code>PATH</code> apontando para algo que ninguém escolheu.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>Sem afirmar que deu certo</b>Ele também não afirma que a atualização deu certo: o npm pode sair com zero tendo pulado uma <code>optionalDependency</code> que não conseguiu baixar, e foi assim que uma release do Glyph saiu uma vez sem binário de plataforma. Por isso a última linha indica <code>glyph --version</code> como a checagem em vez de declarar sucesso.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Situação atual<a class="h-anchor" href="#where-it-stands" aria-label="Link para esta seção">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Projetos criados pelo scaffold fixam a versão exata, então nenhuma release chega a um build por acidente. <code>glyph doctor</code> compara seu compilador com o registry e linka as notas de versão, sem nunca afetar o código de saída e sem ser acionado por <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> move a versão fixada, instala e lê o caret de um projeto mais antigo, para que projetos existentes também possam passar para uma versão exata. <code>glyph --update</code> atualiza o próprio compilador, numa instalação global via npm, e para todas as outras formas de instalação ele informa em vez de chutar.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Ficando mais preciso</h3>
-          <p>As notas de versão são uma página só para a linha inteira, então <code>glyph upgrade</code> linka a página, não a entrada da versão para a qual você está indo. Ainda nada diz quais diagnósticos da release nova o seu código vai disparar: para saber, é preciso buildar, e é por isso que o comando manda fazer isso. E fazer upgrade passando por várias releases de uma vez é o mesmo passo único de uma só, sem resumo do que se acumulou no meio. <code>glyph --update</code> chama o npm e lê o código de saída dele, então consegue dizer que o npm terminou, mas não que o binário no <code>PATH</code> é a versão que você pediu; é por isso que ele aponta para <code>glyph --version</code> em vez de dizer que funcionou.</p>
-        </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Projetos criados pelo scaffold fixam a versão exata, então nenhuma release chega a um build por acidente.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code> compara seu compilador com o registry e linka as notas de versão, sem nunca afetar o código de saída e sem ser acionado por <code>build</code>/<code>run</code>/<code>check</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> move a versão fixada, instala e lê o caret de um projeto mais antigo, para que projetos existentes também possam passar para uma versão exata.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code> atualiza o próprio compilador, numa instalação global via npm, e para todas as outras formas de instalação ele informa em vez de chutar.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ficando mais preciso</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">As notas de versão são uma página só para a linha inteira, então <code>glyph upgrade</code> linka a página, não a entrada da versão para a qual você está indo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ainda nada diz quais diagnósticos da release nova o seu código vai disparar: para saber, é preciso buildar, e é por isso que o comando manda fazer isso.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">E fazer upgrade passando por várias releases de uma vez é o mesmo passo único de uma só, sem resumo do que se acumulou no meio.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code> chama o npm e lê o código de saída dele, então consegue dizer que o npm terminou, mas não que o binário no <code>PATH</code> é a versão que você pediu; é por isso que ele aponta para <code>glyph --version</code> em vez de dizer que funcionou.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/ai-authoring/">
           <span class="dir">&larr; Anterior</span>

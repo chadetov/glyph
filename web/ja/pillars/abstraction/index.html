@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/pillars/abstraction/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"抽象化","item":"https://glyphlang.io/ja/pillars/abstraction/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/pillars/abstraction/#article","headline":"抽象化 · 小さく直交したコア","description":"Glyph の第 4 の柱：1 つの概念に 1 つのやり方。switch の連なりの代わりにパターンマッチ、例外の代わりに Result、タプルの代わりにレコード、そして条件分岐としての match。","url":"https://glyphlang.io/ja/pillars/abstraction/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/pillars/abstraction/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/abstraction/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">柱 03 &middot; <span class="polish">仕上げ</span></p>
       <h1 class="q-title">抽象化</h1>
 
@@ -435,21 +435,7 @@
         <strong>小さく直交したコア</strong>で、意図をそのまま書きます。switch の連なりの代わりにパターンマッチ、throw される例外の代わりに <code>Result</code>、タプルの代わりに名前付きレコード。TypeScript のように積み重なった層ではなく、1 つの概念に 1 つの良いやり方です。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="too-many-ways-to-say-the-same-thing">同じことを言う方法が多すぎる<a class="h-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="このセクションへのリンク">#</a></h2>
-        <p class="lede">
-          TypeScript は積み重ねで成長し、どの層も残してきました。決まったケースの集合は、<code>enum</code>、文字列リテラルのユニオン、<code>const</code> オブジェクトのどれでも表現できます。形は <code>interface</code>、<code>type</code>、<code>class</code> のどれでも記述できます。<code>namespace</code> とモジュール、デコレータと高階関数があり、ほぼすべてに 5 通りのイディオムがあって、それぞれに独自の落とし穴があります。
-        </p>
-        <p class="lede">
-          人間にとってそれは柔軟性です。<strong>エージェント</strong>にとっては地雷原です。表現方法が多いほど、落とし穴のある方法を選ぶ可能性が増え、その間に覚えておくべきイディオムも増えます。Glyph の抽象化の柱は意図した引き算です。仕事ごとに 1 つの鋭い道具を、わかりやすいやり方がそのまま安全なやり方になるように選んでいます。
-        </p>
-
-        <h2 class="block-label" id="match-is-the-only-conditional"><span class="ex-label">01</span> 条件分岐は <code>match</code> だけ<a class="h-anchor" href="#match-is-the-only-conditional" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>if</code>/<code>else</code> 文はありません。分岐はどこでも <code>match</code> で、<code>match</code> は値を生む式です。1 つの構文で真偽の判定、ユニオンの振り分け、値の表のすべてを扱うので、<em>どの</em>分岐の形を使うかを決める必要がありません。
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript：値ではなく文</span>
@@ -471,14 +457,47 @@
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> タグ付きユニオンとパターンマッチ<a class="h-anchor" href="#tagged-unions-and-pattern-matching" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          「これらの形のどれか 1 つ」を表すにはタグ付きユニオンを使い、それを分解するには <code>match</code> を使います。ケースを選ぶのと同じステップでペイロードを分解します。手で管理する判別用フィールドも、文字列タグに対する <code>switch</code> の連なりも、形を取り戻すために各分岐の中で書くキャストもありません。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">多すぎる書き方</a></li>
+          <li><a href="#match-is-the-only-conditional">条件分岐としての <code>match</code></a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">タグ付きユニオン</a></li>
+          <li><a href="#result-over-exceptions">例外より <code>Result</code></a></li>
+          <li><a href="#named-records-over-positional-tuples">名前付きレコード</a></li>
+          <li><a href="#one-primitive-per-job">仕事ごとに 1 つのプリミティブ</a></li>
+          <li><a href="#the-benchmark-coming">ベンチマーク</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">同じことを言う方法が多すぎる<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript は積み重ねで成長し、どの層も残してきました。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>決まったケース</b>決まったケースの集合は、<code>enum</code>、文字列リテラルのユニオン、<code>const</code> オブジェクトのどれでも表現できます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>形</b>形は <code>interface</code>、<code>type</code>、<code>class</code> のどれでも記述できます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>そのほかすべて</b><code>namespace</code> とモジュール、デコレータと高階関数があり、ほぼすべてに 5 通りのイディオムがあって、それぞれに独自の落とし穴があります。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          人間にとってそれは柔軟性です。<strong>エージェント</strong>にとっては地雷原です。表現方法が多いほど、落とし穴のある方法を選ぶ可能性が増え、その間に覚えておくべきイディオムも増えます。
+      </p></div>
+      <p class="ak-lede">
+          Glyph の抽象化の柱は意図した引き算です。仕事ごとに 1 つの鋭い道具を、わかりやすいやり方がそのまま安全なやり方になるように選んでいます。
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> 条件分岐は <code>match</code> だけ<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          <code>if</code>/<code>else</code> 文はありません。分岐はどこでも <code>match</code> で、<code>match</code> は値を生む式です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>1 つの構文で真偽の判定、ユニオンの振り分け、値の表のすべてを扱うので、<em>どの</em>分岐の形を使うかを決める必要がありません。</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> タグ付きユニオンとパターンマッチ<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          「これらの形のどれか 1 つ」を表すにはタグ付きユニオンを使い、それを分解するには <code>match</code> を使います。ケースを選ぶのと同じステップでペイロードを分解します。
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre><span class="k">type</span> <span class="t">Feed</span> =
@@ -494,19 +513,22 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="result-over-exceptions"><span class="ex-label">03</span> 例外より <code>Result</code><a class="h-anchor" href="#result-over-exceptions" aria-label="このセクションへのリンク">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">もう手で書かなくてよいもの</span></summary><div class="body">
         <p>
-          失敗は隠れた制御フローのジャンプではなく値です。失敗しうる関数はそのことを戻り値の型（<code>Result&lt;T, E&gt;</code>）で示し、呼び出し箇所を <code>try</code>/<code>catch</code> で囲んで正しいものが正しいクラスを throw することを祈る代わりに、<code>?</code> 演算子で失敗を合成します。エラーの経路は正常な経路と同じくらいよく見えます。
+          手で管理する判別用フィールドも、文字列タグに対する <code>switch</code> の連なりも、形を取り戻すために各分岐の中で書くキャストもありません。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="named-records-over-positional-tuples"><span class="ex-label">04</span> 位置で決まるタプルより名前付きレコード<a class="h-anchor" href="#named-records-over-positional-tuples" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          データは常に名前付きのフィールドで記述します。オブジェクトリテラルの省略記法はなく、<code>[0]</code> と <code>[1]</code> が何だったかを覚えておかなければならない無名のタプルに頼ることもありません。形は定義でも、構築でも、利用でも同じように読めます。
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> 例外より <code>Result</code><a class="ak-anchor" href="#result-over-exceptions" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          失敗は隠れた制御フローのジャンプではなく値です。失敗しうる関数はそのことを戻り値の型（<code>Result&lt;T, E&gt;</code>）で示し、呼び出し箇所を <code>try</code>/<code>catch</code> で囲んで正しいものが正しいクラスを throw することを祈る代わりに、<code>?</code> 演算子で失敗を合成します。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>エラーの経路は正常な経路と同じくらいよく見えます。</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> 位置で決まるタプルより名前付きレコード<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          データは常に名前付きのフィールドで記述します。形は定義でも、構築でも、利用でも同じように読めます。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript：[0] と [1] は何か</span>
@@ -527,23 +549,34 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="one-primitive-per-job"><span class="ex-label">05</span> 仕事ごとに 1 つのプリミティブ<a class="h-anchor" href="#one-primitive-per-job" aria-label="このセクションへのリンク">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">省略記法なし、無名のタプルなし</span></summary><div class="body">
         <p>
-          ある概念に専用の道具が必要なとき、Glyph はちょうど 1 つだけ用意します。共有される変更可能な状態は <code>std/store</code> に置きます。一度だけ閉じなければならないファイルやソケットのハンドルは <code>owned</code> リソースです。反復は <code>for x in xs</code> です。どれも名前の付いた専用のプリミティブで、汎用部品の寄せ集めから毎回組み立て直して微妙に間違えるパターンではありません。
+          オブジェクトリテラルの省略記法はなく、<code>[0]</code> と <code>[1]</code> が何だったかを覚えておかなければならない無名のタプルに頼ることもありません。
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> 仕事ごとに 1 つのプリミティブ<a class="ak-anchor" href="#one-primitive-per-job" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ある概念に専用の道具が必要なとき、Glyph はちょうど 1 つだけ用意します。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>共有状態</b>共有される変更可能な状態は <code>std/store</code> に置きます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>ハンドル</b>一度だけ閉じなければならないファイルやソケットのハンドルは <code>owned</code> リソースです。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>反復</b>反復は <code>for x in xs</code> です。</li>
+      </ul>
+      <p class="ak-lede">
+          どれも名前の付いた専用のプリミティブで、汎用部品の寄せ集めから毎回組み立て直して微妙に間違えるパターンではありません。
+      </p>
 
         <p class="pull-quote">
           ここでの抽象化とは、道具を増やすことではなく<strong>少なく鋭くすること</strong>です。どの概念にもわかりやすい形があり、そのわかりやすい形こそが使うべきものです。
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">ベンチマーク：準備中<a class="h-anchor" href="#the-benchmark-coming" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          これを測る方法は表面積です。プログラムを理解するために読む人が頭に置いておくべき概念がいくつあるか、よくあるタスクをきれいに表現するのにどれだけのコードが必要か、です。Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、比較できる実際のプログラムがそろったら実測値で埋まります。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">ベンチマーク：準備中<a class="ak-anchor" href="#the-benchmark-coming" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          これを測る方法は表面積です。プログラムを理解するために読む人が頭に置いておくべき概念がいくつあるか、よくあるタスクをきれいに表現するのにどれだけのコードが必要か、です。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、比較できる実際のプログラムがそろったら実測値で埋まります。</p></div>
       <div class="chart">
         <span class="label">典型的なモジュールを読むのに必要な概念の数 &middot; 少ないほど良い</span>
         <h3>TypeScript と Glyph</h3>
@@ -560,11 +593,9 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           コアが小さければ、人は一度で覚えやすく、モデルは毎回正しく書きやすくなります。仕上げの層を一言で言えばこうなります。リスクを増やすだけだった選択肢を取り除けば、意図をそのまま表す言語が残ります。
-        </p>
-      </div>
+      </p></div>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/pillars/greppability/">
           <span class="dir">&larr; 前の柱</span>

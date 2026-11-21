@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"可验证性","item":"https://glyphlang.io/zh-cn/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#article","headline":"可验证性 · 没有 any，match 必须穷尽","description":"Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。","url":"https://glyphlang.io/zh-cn/pillars/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"可验证性","item":"https://glyphlang.io/zh-cn/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#article","headline":"可验证性 · 没有 any，match 必须穷尽","description":"Glyph 的第一个支柱：没有 any 和 as，match 必须穷尽，你声明的类型自带运行时校验器。这是 tsc 之上的一层严格检查，并写明了它的边界。","url":"https://glyphlang.io/zh-cn/pillars/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/pillars/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">支柱 01 &middot; <span class="wedge">切入点</span></p>
       <h1 class="q-title">可验证性</h1>
 
@@ -435,54 +435,71 @@
         Glyph 堵上了智能体会掉进去的漏洞：<strong>没有可以写的 <code>any</code> 和 <code>as</code></strong>，<code>match</code> <strong>可证明是穷尽的</strong>，你声明的类型会得到<strong>严格的运行时校验器</strong>，这些都作为 <code>tsc</code> 之上的一层严格检查来强制执行。它并不自己验证一切，下文会明确说明保证在哪里止步。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-lie-a-type-can-tell">类型会说的谎<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="链接到本节">#</a></h2>
-        <p class="lede">
-          在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。
-        </p>
-        <p class="lede">
-          Glyph 的首要任务就是堵上这些漏洞。不是靠更多的标注，而是去掉逃生口，让每个类型把它的证明一直带到运行时。下面逐条说明这意味着什么。
-        </p>
-
-        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> 没有 <code>any</code><a class="h-anchor" href="#there-is-no-any" aria-label="链接到本节">#</a></h2>
-        <p>
-          <code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript：能编译，然后崩溃</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript：能编译，然后崩溃</span>
+            <span class="cap">handler.ts</span>
 <pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph：收窄本身就是证明</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph：收窄本身就是证明</span>
+            <span class="cap">handler.glyph</span>
 <pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
     <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
     <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          不经过编译器看得见的检查，你就无法从 <code>unknown</code> 中得到有类型的值。在 Glyph 中，收窄<strong>就是</strong>运行时证明。没有任何语法可以跳过它。
-        </p>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">类型会说的谎</a></li>
+          <li><a href="#there-is-no-any">没有 any</a></li>
+          <li><a href="#types-are-real-at-runtime">运行时的类型</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">每一种情况</a></li>
+          <li><a href="#errors-are-values-not-surprises">错误即值</a></li>
+          <li><a href="#even-pii-is-type-level">PII</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">保证在哪里止步</a></li>
+          <li><a href="#the-benchmark-coming">基准测试</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">严格 TS 与 lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> 类型在运行时是真实存在的<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="链接到本节">#</a></h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">类型会说的谎<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。</p></div>
+      <p class="ak-lede">
+        Glyph 的首要任务就是堵上这些漏洞。不是靠更多的标注，而是去掉逃生口，让每个类型把它的证明一直带到运行时。下面逐条说明这意味着什么。
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> 没有 <code>any</code><a class="ak-anchor" href="#there-is-no-any" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么一个 any 的代价这么高</span></summary><div class="body">
         <p>
-          <code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。
+          <code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        不经过编译器看得见的检查，你就无法从 <code>unknown</code> 中得到有类型的值。在 Glyph 中，收窄<strong>就是</strong>运行时证明。没有任何语法可以跳过它。
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> 类型在运行时是真实存在的<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。
+      </p>
       <div class="code">
         <span class="cap">你写的类型，以及由它生成的描述符</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
@@ -500,21 +517,24 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">描述符检查什么</span></summary><div class="body">
         <p>
-          这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。
+          记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。
         </p>
         <p>
-          它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。
+          边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。
         </p>
-
-        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> 覆盖每种情况，否则无法编译<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="链接到本节">#</a></h2>
         <p>
-          对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。
+          它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> 覆盖每种情况，否则无法编译<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -528,7 +548,7 @@
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">编译错误，而不是运行时的 undefined</span>
           <span class="cap">$ glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
@@ -539,14 +559,17 @@
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> 错误是值，不是意外<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="链接到本节">#</a></h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">对数字与字符串的 match</span></summary><div class="body">
         <p>
-          可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。
+          新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> 错误是值，不是意外<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
@@ -560,14 +583,12 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> 连 PII 也在类型层面处理<a class="h-anchor" href="#even-pii-is-type-level" aria-label="链接到本节">#</a></h2>
-        <p>
-          同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> 连 PII 也在类型层面处理<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre><span class="k">@redact</span> fields: [diagnosis, notes]
@@ -580,28 +601,35 @@
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。</p></div>
+      <p class="pull-quote">
+        五种不同的失败方式（未检查的输入、漏掉的情况、丢掉的错误、泄露的机密、未校验的键），每一种的修复都是同一个形状：<strong>编译器拒绝假装。</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          五种不同的失败方式（未检查的输入、漏掉的情况、丢掉的错误、泄露的机密、未校验的键），每一种的修复都是同一个形状：<strong>编译器拒绝假装。</strong>
-        </p>
-
-        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">如何强制执行，以及保证在哪里止步<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="链接到本节">#</a></h2>
-        <p>
-          这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">如何强制执行，以及保证在哪里止步<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>由 Glyph 证明</b>有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>通过 tsc 强制执行</b>其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.10 中堵上的边界，泛型的深度校验</span></summary><div class="body">
         <p>
           这里早先的两个边界在 0.1.10 中已经堵上。代码生成器过去会在<em>每个</em>泛型函数中插入一个由 Glyph 而不是 <code>tsc</code> 检查的返回值类型断言；现在只有在校验器组合子组装一个由结构推导出的类型（<code>infer_output&lt;Shape&gt;</code>）的值时才会插入，所有正常的泛型生成的代码都完全没有类型断言。另外，校验器的输出类型不再被无条件信任：<code>infer_output</code> 根据你传入的结构推导它，<code>tsc</code> 会拿你的标注去对照：如果结构缺少你所声称类型中的某个字段，现在就无法编译。
         </p>
         <p>
-          泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。
+          泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。</p></div>
 
-        <h2 class="block-label" id="the-benchmark-coming">基准测试：即将进行<a class="h-anchor" href="#the-benchmark-coming" aria-label="链接到本节">#</a></h2>
-        <p>
-          这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">基准测试：即将进行<a class="ak-anchor" href="#the-benchmark-coming" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。</p></div>
 
       <div class="chart">
         <span class="label">发现的智能体引入的 bug &middot; 越高越好</span>
@@ -619,27 +647,22 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          这一切都不靠繁琐的仪式换来。没有证明标注，没有契约，没有需要满足的验证器。上面的代码就是普通的 Glyph。可验证性不是一个需要打开的特性；它是撒谎的途径都被去掉之后剩下的东西。
-        </p>
-      </div>
+      <p class="ak-lede">
+        这一切都不靠繁琐的仪式换来。没有证明标注，没有契约，没有需要满足的验证器。上面的代码就是普通的 Glyph。可验证性不是一个需要打开的特性；它是撒谎的途径都被去掉之后剩下的东西。
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">“严格模式的 TypeScript 加一套 lint 配置也能做到”<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="链接到本节">#</a></h2>
-        <p>
-          在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。<code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。
-        </p>
-        <p>
-          另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">“严格模式的 TypeScript 加一套 lint 配置也能做到”<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>在边界处</b><code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>跨仓库</b>另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          同样的保证，从智能体会犯的错误以及拦住它们的报错的角度，在<a href="/zh-cn/answers/verifiability/">什么能防止智能体悄悄改坏我的代码？</a>中有解答。
-        </p>
-      </div>
+      <p class="ak-lede">
+        同样的保证，从智能体会犯的错误以及拦住它们的报错的角度，在<a href="/zh-cn/answers/verifiability/">什么能防止智能体悄悄改坏我的代码？</a>中有解答。
+      </p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/">
           <span class="dir">&larr; 首页</span>

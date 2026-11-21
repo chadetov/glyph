@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Нужно ли писать валидатор для каждого API вручную?","item":"https://glyphlang.io/ru/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/typed-apis/#article","headline":"Нужно ли писать валидатор для каждого API вручную?","description":"Нет. В Glyph тип сам является своим валидатором во время выполнения, поэтому тела запросов и ответов проверяются без рукописного валидатора, а сами типы можно получить из спецификации OpenAPI или из .d.ts.","url":"https://glyphlang.io/ru/answers/typed-apis/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Нужно ли писать валидатор для каждого API вручную?","item":"https://glyphlang.io/ru/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/typed-apis/#article","headline":"Нужно ли писать валидатор для каждого API вручную?","description":"Нет. В Glyph тип сам является своим валидатором во время выполнения, поэтому тела запросов и ответов проверяются без рукописного валидатора, а сами типы можно получить из спецификации OpenAPI или из .d.ts.","url":"https://glyphlang.io/ru/answers/typed-apis/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/typed-apis/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
-      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/typed-apis/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -693,7 +692,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           Тело запроса приходит уже декодированным как <code>unknown</code>, поэтому там используется <code>T.parse(value)</code>: та же гарантия, без приведения.
         </p>
         <p>
-          Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть.
+          Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть. Поле тела подчиняется тому же правилу: <code>timeout_ms?: number</code> это отсутствующий ключ или число, поэтому <code>{"timeout_ms": null}</code> даёт <code>Err</code> в <code>["timeout_ms"]</code>, одинаково из <code>T.parse</code>, <code>is T</code> и <code>json.parse&lt;T&gt;</code>. Объявите <code>timeout_ms?: Nullable&lt;number&gt;</code>, если отправитель пишет <code>null</code>. До 0.1.152 этот <code>null</code> возвращался внутри <code>Ok</code>.
         </p>
       </div></details>
 
@@ -706,15 +705,15 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           <thead><tr><th>Тип ключа</th><th>Что <code>parse</code> проверяет для каждого ключа</th></tr></thead>
           <tbody>
             <tr><td>Union строковых литералов</td><td>ровно перечисленные ключи, без пропущенных и без лишних</td></tr>
-            <tr><td>Тип, уточнённый через <code>where</code></td><td>предикат</td></tr>
+            <tr><td><code>string</code> или число, уточнённые через <code>where</code></td><td>предикат</td></tr>
             <tr><td><code>int</code></td><td>обычную запись целого числа; <code>"01"</code> и <code>"1.5"</code> не проходят</td></tr>
             <tr><td><code>string</code></td><td>ничего нового</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробности <span class="hint">уточнённые и int-ключи и что пока остаётся за tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробности <span class="hint">уточнённые и int-ключи и что держит проверка</span></summary><div class="body">
         <p>
-          Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>"01"</code> и <code>"1.5"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. Собственная проверка Glyph по-прежнему оставляет ключи значения, написанного в коде, на <code>tsc</code>, а обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>.
+          Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>"01"</code> и <code>"1.5"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. <code>where</code> не может уточнить объединение строковых литералов (<code>type T2 = Tier where value != "pro"</code> это <code>E0300</code> начиная с 0.1.152); запишите нужные члены отдельным объединением, <code>type T2 = "free"</code>, и оно станет ключом <code>Record</code> с той же проверкой точного набора ключей. Начиная с 0.1.153 собственная проверка Glyph держит и ключ значения, написанного в коде: <code>Record&lt;string, int&gt;</code> не подставляется туда, где объявлен <code>Record&lt;Tier, int&gt;</code>, и наоборот, поэтому переход идёт через <code>json.parse</code> или ветку <code>is Record&lt;Tier, int&gt;</code>, а <code>record.set</code> сохраняет переданный ему ключ. Обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>.
         </p>
       </div></details>
 
@@ -1010,7 +1009,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/embedding/">
           <span class="dir">&larr; Назад</span>

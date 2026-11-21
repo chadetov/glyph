@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Kararlı diff","item":"https://glyphlang.io/tr/pillars/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/diff-stability/#article","headline":"Kararlı diff · tek satırlık değişiklik, tek satırlık diff","description":"Glyph'in üçüncü temel ilkesi: tek bir kanonik biçim, sondaki virgüller, asla yeniden paketlenmeyen listeler, barrel dosyası yok ve idempotent kod üretimi. Diff gereksiz değişiklikleri değil, değişikliğin kendisini gösterir.","url":"https://glyphlang.io/tr/pillars/diff-stability/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/diff-stability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">İlke 04 &middot; <span class="polish">Cila</span></p>
       <h1 class="q-title">Kararlı diff</h1>
 
@@ -433,65 +433,85 @@
         Tek satırlık bir değişiklik <strong>tek satırlık bir diff'tir</strong>. Tek bir kanonik biçim, sondaki virgüller ve ya tamamen tek satırda ya da tamamen satır başına bir eleman olan, asla yeniden paketlenmeyen listeler; böylece bir review çevresindeki gereksiz değişiklikleri değil, yapılan değişikliği gösterir.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="review-is-reading-diffs">Review, diff okumaktır<a class="h-anchor" href="#review-is-reading-diffs" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p class="lede">
-          Bir değişiklik hakkında güvendiğimiz neredeyse her şey (review, blame, revert, bisect) diff üzerine kuruludur. Bu yüzden asıl değerli olan diff'in sinyal/gürültü oranıdır. Çoğu kod tabanında bu oran berbattır: bir formatter sarılmış bir satırı yeniden akıtır, bir import sıralayıcı bir bloğu karıştırır, bir yeniden adlandırma her çağrı yerinin boşluklarına dokunur ve <em>önemli olan</em> tek satır, önemsiz elli satırın arasına gömülür.
-        </p>
-        <p class="lede">
-          Ajanlar bunu ciddi şekilde kötüleştirir. Küçük bir görev verildiğinde bir model tek bir şeyi değiştirmek için seve seve bütün bir fonksiyonu ya da bütün bir dosyayı yeniden yazar, çünkü yeniden üretmek onun için cerrahi bir düzenlemeden daha kolaydır. Review yapan kişiye, yeniden yazılmış hali orijinalle karşılaştırmak ve tek gerçek değişikliğin amaçlanan değişiklik olmasını <em>ummak</em> kalır. Glyph, düzenin modele karıştıracak hiçbir şey bırakmayacağı şekilde tasarlanmıştır.
-        </p>
-
-        <h2 class="block-label" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Tek bir kanonik düzen, seçenek yok<a class="h-anchor" href="#one-canonical-layout-no-choices" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>glyph fmt</code> her dosyayı tek ve sabit bir düzende yeniden yazar: iki boşluklu girinti, çok satırlı her listede sondaki virgül ve 100 sütuna sığdığı sürece tek satırda kalan, sığmadığında satır başına bir eleman olan bir liste. Seçim ya hep ya hiçtir. Formatter bir satırı doldurmak için elemanlarınızı asla yeniden paketlemez; böylece bir liste asla kısmen bir satırda, kısmen sonraki satırda olmaz ve bir alan eklemek tek bir eklenen satırdır. Geçerli tam olarak tek bir biçim olduğu için tartışılacak bir şey ve bir aracın yan tarafta "düzelteceği" bir şey yoktur.
-        </p>
-        <p>
-          Bunun bedeli genişlik eşiğidir. Bir çağrı 100 sütunu aşacak şekilde bir bağlamayı yeniden adlandırın, çağrı satır başına bir argümana açılır: tek token'lık bir düzenleme, dört satırlık bir diff. Karşılığında düzen yalnızca koda ve başladığı sütuna bağlıdır, başka hiçbir şeye değil; bu yüzden aynı dosyayı düzenleyen iki ajan aynı byte'larda buluşur.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">Yeniden akıtılan stil: tek değişiklik, dokunulan üç satır</span>
-          <span class="cap">git diff (paketlenmiş biçimlendirme)</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">Yeniden akıtılan stil: tek değişiklik, dokunulan üç satır</span>
+            <span class="cap">git diff (paketlenmiş biçimlendirme)</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: tek değişiklik, eklenen tek satır</span>
-          <span class="cap">git diff (kanonik)</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: tek değişiklik, eklenen tek satır</span>
+            <span class="cap">git diff (kanonik)</span>
 <pre>  <span class="k">type</span> <span class="t">User</span> = {
     id: <span class="t">number</span>,
     name: <span class="t">string</span>,
 <span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Sondaki virgül sessizce iş görür: son eleman zaten virgülle bittiği için bir kardeş eleman eklemek <strong>asla üstündeki satırı düzenlemez.</strong> Tek ekleme, tek satır.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">Review, diff okumaktır</a></li>
+          <li><a href="#one-canonical-layout-no-choices">Tek kanonik düzen</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">Kararlı sıra</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">Barrel dosyası yok</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">Idempotent üretim</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">Benchmark</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> Sıra kararlıdır, bu yüzden geçmiş okunaklıdır<a class="h-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">Review, diff okumaktır<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir değişiklik hakkında güvendiğimiz neredeyse her şey (review, blame, revert, bisect) diff üzerine kuruludur. Bu yüzden asıl değerli olan diff'in sinyal/gürültü oranıdır.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">gürültünün nereden geldiği</span></summary><div class="body">
         <p>
-          Satır başına bir eleman, bir öğeyi yeniden sıralamanın, eklemenin ya da çıkarmanın yalnızca o öğenin satırlarına dokunması, komşularına asla dokunmaması demektir. <code>git blame</code> anlamlı kalır: her satırın en son dokunulduğu commit, paylaştığı satırı tesadüfen yeniden paketleyen biçimlendirme geçişi değil, <em>o</em> elemanı gerçekten değiştiren commit'tir.
+          Çoğu kod tabanında bu oran berbattır: bir formatter sarılmış bir satırı yeniden akıtır, bir import sıralayıcı bir bloğu karıştırır, bir yeniden adlandırma her çağrı yerinin boşluklarına dokunur ve <em>önemli olan</em> tek satır, önemsiz elli satırın arasına gömülür.
         </p>
-
-        <h2 class="block-label" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Barrel dosyası yok: import kargaşası yok<a class="h-anchor" href="#no-barrel-files-no-import-churn" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Import'lar asla yeniden export etmediği ve <code>index.ts</code> toplama katmanları olmadığı için (<code>E0102</code>), bir sembol eklemek ya da taşımak, her tüketicinin import ettiği bir barrel üzerinden dalgalanmaz. Düzenlediğiniz bağımlılık kenarları, kastettiğiniz kenarlardır; import grafiğinin geri kalanı yerinden oynamaz.
+          Ajanlar bunu ciddi şekilde kötüleştirir. Küçük bir görev verildiğinde bir model tek bir şeyi değiştirmek için seve seve bütün bir fonksiyonu ya da bütün bir dosyayı yeniden yazar, çünkü yeniden üretmek onun için cerrahi bir düzenlemeden daha kolaydır. Review yapan kişiye, yeniden yazılmış hali orijinalle karşılaştırmak ve tek gerçek değişikliğin amaçlanan değişiklik olmasını <em>ummak</em> kalır.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph, düzenin modele karıştıracak hiçbir şey bırakmayacağı şekilde tasarlanmıştır.</p></div>
 
-        <h2 class="block-label" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> Kod üretimi idempotenttir, bir yığın değil<a class="h-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Tek bir kanonik düzen, seçenek yok<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> her dosyayı tek ve sabit bir düzende yeniden yazar: iki boşluklu girinti, çok satırlı her listede sondaki virgül ve 100 sütuna sığdığı sürece tek satırda kalan, sığmadığında satır başına bir eleman olan bir liste. Seçim ya hep ya hiçtir.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">yeniden paketleme yok, tek geçerli biçim</span></summary><div class="body">
         <p>
-          Aynı disiplin üretilen koda da uzanır. <code>glyph gen</code> ve <code>glyph regen</code> çıktılarını kanonik formatter'dan geçirerek yazar; bu yüzden bir spesifikasyon değişikliğinden sonra yeniden üretmek, makinenin yazdığı bir dosyanın toptan değiştirilmesi değil, gerçekten review edebileceğiniz <em>minimal</em> bir diff, birkaç değişen satır üretir. Ayrıca üretilen her <code>.ts</code> bir source map ile gelir; böylece derlenmiş çıktı bile değiştirdiğiniz satıra temiz şekilde geri izlenir.
+          Formatter bir satırı doldurmak için elemanlarınızı asla yeniden paketlemez; böylece bir liste asla kısmen bir satırda, kısmen sonraki satırda olmaz ve bir alan eklemek tek bir eklenen satırdır. Geçerli tam olarak tek bir biçim olduğu için tartışılacak bir şey ve bir aracın yan tarafta "düzelteceği" bir şey yoktur.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Bunun bedeli genişlik eşiğidir. Bir çağrı 100 sütunu aşacak şekilde bir bağlamayı yeniden adlandırın, çağrı satır başına bir argümana açılır: tek token'lık bir düzenleme, dört satırlık bir diff. Karşılığında düzen yalnızca koda ve başladığı sütuna bağlıdır, başka hiçbir şeye değil; bu yüzden aynı dosyayı düzenleyen iki ajan aynı byte'larda buluşur.</p></div>
+      <p class="pull-quote">
+        Sondaki virgül sessizce iş görür: son eleman zaten virgülle bittiği için bir kardeş eleman eklemek <strong>asla üstündeki satırı düzenlemez.</strong> Tek ekleme, tek satır.
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> Sıra kararlıdır, bu yüzden geçmiş okunaklıdır<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Satır başına bir eleman, bir öğeyi yeniden sıralamanın, eklemenin ya da çıkarmanın yalnızca o öğenin satırlarına dokunması, komşularına asla dokunmaması demektir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>git blame</code> anlamlı kalır: her satırın en son dokunulduğu commit, paylaştığı satırı tesadüfen yeniden paketleyen biçimlendirme geçişi değil, <em>o</em> elemanı gerçekten değiştiren commit'tir.</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Barrel dosyası yok: import kargaşası yok<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Import'lar asla yeniden export etmediği ve <code>index.ts</code> toplama katmanları olmadığı için (<code>E0102</code>), bir sembol eklemek ya da taşımak, her tüketicinin import ettiği bir barrel üzerinden dalgalanmaz. Düzenlediğiniz bağımlılık kenarları, kastettiğiniz kenarlardır; import grafiğinin geri kalanı yerinden oynamaz.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> Kod üretimi idempotenttir, bir yığın değil<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Aynı disiplin üretilen koda da uzanır. <code>glyph gen</code> ve <code>glyph regen</code> çıktılarını kanonik formatter'dan geçirerek yazar; bu yüzden bir spesifikasyon değişikliğinden sonra yeniden üretmek, makinenin yazdığı bir dosyanın toptan değiştirilmesi değil, gerçekten review edebileceğiniz <em>minimal</em> bir diff, birkaç değişen satır üretir.
+      </p>
       <div class="code">
         <span class="cap">spesifikasyona eklenen bir alan &rarr; yeniden üretilen diff</span>
 <pre>  <span class="k">type</span> <span class="t">Task</span> = {
@@ -501,36 +521,27 @@
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ayrıca üretilen her <code>.ts</code> bir source map ile gelir; böylece derlenmiş çıktı bile değiştirdiğiniz satıra temiz şekilde geri izlenir.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript bunu Prettier ile yapabilir"<a class="h-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Biçimlendirmenin büyük kısmı için evet. <code>trailingComma: "all"</code> ayarlı Prettier son elemana virgül koyar ve uzun listeleri satır başına bir eleman olarak yazar; bu, 01. bölümün çoğunu sağlar. Farklar üç yerde.
-        </p>
-        <p>
-          <strong>Düzen yalnızca koda bağlıdır.</strong> Prettier, yazarı <code>{</code>'den sonra satır sonu koyduysa bir nesne literal'ini açık tutar, koymadıysa daraltır; bu yüzden aynı nesne, ilk nasıl yazıldığına bağlı olarak iki farklı şekilde yazdırılabilir. Aynı şeyi yazan iki ajan iki farklı düzen üretir ve bunlardan birine yapılan bir sonraki düzenleme yeniden akıtma olarak görünür. <code>glyph fmt</code>, girdi nasıl sarılmış olursa olsun <code>{ a: 1, b: 2 }</code>'yi aynı şekilde yazdırır.
-        </p>
-        <p>
-          <strong>Yapılandırılacak bir şey yoktur.</strong> Prettier'ın çıktısı, deponun yapılandırma dosyası ne diyorsa odur ve bazı depoların böyle bir dosyası yoktur. TypeScript projeleri arasında dolaşan bir ajan her birinde farklı bir düzenle karşılaşır. Bir Glyph dosyası her projede aynı düzene sahiptir, çünkü formatter'ın hiçbir seçeneği yoktur.
-        </p>
-        <p>
-          <strong>Formatter bir dosyanın ne söylediğini değiştiremez.</strong> <code>glyph fmt</code>, depodaki her örnekte ve bir fuzzer altında, kendi çıktısını parse edip sözdizimi ağacını girdininkiyle karşılaştırarak test edilir. Bir yorum, düzende satırı olmayan bir yerde durduğunda, yorumu tarif etmediği kodun yanına taşımak yerine dosyayı reddeder (<code>E0500</code>).
-        </p>
-        <p>
-          Listedeki bir şey henüz yapılmadı: <code>glyph fmt</code> import'ları sıralamıyor; bu yüzden farklı yerlere import ekleyen iki ajan hâlâ farklı import blokları üretiyor (G358).
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript bunu Prettier ile yapabilir"<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Biçimlendirmenin büyük kısmı için evet. <code>trailingComma: "all"</code> ayarlı Prettier son elemana virgül koyar ve uzun listeleri satır başına bir eleman olarak yazar; bu, 01. bölümün çoğunu sağlar. Farklar üç yerde.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>Düzen yalnızca koda bağlıdır.</b>Prettier, yazarı <code>{</code>'den sonra satır sonu koyduysa bir nesne literal'ini açık tutar, koymadıysa daraltır; bu yüzden aynı nesne, ilk nasıl yazıldığına bağlı olarak iki farklı şekilde yazdırılabilir. Aynı şeyi yazan iki ajan iki farklı düzen üretir ve bunlardan birine yapılan bir sonraki düzenleme yeniden akıtma olarak görünür. <code>glyph fmt</code>, girdi nasıl sarılmış olursa olsun <code>{ a: 1, b: 2 }</code>'yi aynı şekilde yazdırır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>Yapılandırılacak bir şey yoktur.</b>Prettier'ın çıktısı, deponun yapılandırma dosyası ne diyorsa odur ve bazı depoların böyle bir dosyası yoktur. TypeScript projeleri arasında dolaşan bir ajan her birinde farklı bir düzenle karşılaşır. Bir Glyph dosyası her projede aynı düzene sahiptir, çünkü formatter'ın hiçbir seçeneği yoktur.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Formatter bir dosyanın ne söylediğini değiştiremez.</b><code>glyph fmt</code>, depodaki her örnekte ve bir fuzzer altında, kendi çıktısını parse edip sözdizimi ağacını girdininkiyle karşılaştırarak test edilir. Bir yorum, düzende satırı olmayan bir yerde durduğunda, yorumu tarif etmediği kodun yanına taşımak yerine dosyayı reddeder (<code>E0500</code>).</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Listedeki bir şey henüz yapılmadı: <code>glyph fmt</code> import'ları sıralamıyor; bu yüzden farklı yerlere import ekleyen iki ajan hâlâ farklı import blokları üretiyor (G358).</p></div>
+      <p class="pull-quote">
+        Kararlı diff, "ajan bir şeyi değiştirdi"yi "ajan <strong>tam olarak bunu</strong> değiştirdi"ye dönüştüren şeydir. Gürültü sıfır olduğunda review hızlı, güven de ucuzdur.
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Kararlı diff, "ajan bir şeyi değiştirdi"yi "ajan <strong>tam olarak bunu</strong> değiştirdi"ye dönüştüren şeydir. Gürültü sıfır olduğunda review hızlı, güven de ucuzdur.
-        </p>
-
-        <h2 class="block-label" id="the-benchmark-coming">Benchmark: yakında<a class="h-anchor" href="#the-benchmark-coming" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bunu yakalayan rakam, mantıksal değişiklik başına diff boyutudur: amaçlanan tek bir düzenleme yaptığınızda, Glyph'te ve tipik bir formatter'dan geçirilmiş eşdeğer bir TypeScript değişikliğinde kaç satır yer değiştirir. Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, yararlanılacak gerçek bir geçmiş olduğunda gerçek ölçümlerle dolacak bir yer tutucudur.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">Benchmark: yakında<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bunu yakalayan rakam, mantıksal değişiklik başına diff boyutudur: amaçlanan tek bir düzenleme yaptığınızda, Glyph'te ve tipik bir formatter'dan geçirilmiş eşdeğer bir TypeScript değişikliğinde kaç satır yer değiştirir.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, yararlanılacak gerçek bir geçmiş olduğunda gerçek ölçümlerle dolacak bir yer tutucudur.</p></div>
 
       <div class="chart">
         <span class="label">Tek alanlık değişiklik başına diff satırı &middot; düşük olan daha iyi</span>
@@ -548,17 +559,13 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Biraz özgürlüğe mal olur (bir satırı istediğiniz gibi elle paketleyemezsiniz) ve karşılığında çok fazla okunabilirlik kazandırır. Her cila ilkesinin yaptığı takas budur: önemli olan bir sinyali korumak için önemsiz bir seçimden vazgeçmek.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Biraz özgürlüğe mal olur (bir satırı istediğiniz gibi elle paketleyemezsiniz) ve karşılığında çok fazla okunabilirlik kazandırır. Her cila ilkesinin yaptığı takas budur: önemli olan bir sinyali korumak için önemsiz bir seçimden vazgeçmek.
+      </p>
 
-      <div class="detail">
-        <p>
-          Bunun bir ajanın düzenlemeleri için review'da ne anlama geldiğini, önce ve sonra diff'iyle birlikte, <a href="/tr/answers/diff-stability/">Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?</a> sayfasında görebilirsiniz.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Bunun bir ajanın düzenlemeleri için review'da ne anlama geldiğini, önce ve sonra diff'iyle birlikte, <a href="/tr/answers/diff-stability/">Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?</a> sayfasında görebilirsiniz.
+      </p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/pillars/abstraction/">
           <span class="dir">&larr; Önceki ilke</span>

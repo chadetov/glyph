@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"これは本物の言語か、それとも穴だらけのおもちゃか","item":"https://glyphlang.io/ja/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/language/#article","headline":"これは本物の言語か、それとも穴だらけのおもちゃか","description":"モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。","url":"https://glyphlang.io/ja/answers/language/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/language/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"これは本物の言語か、それとも穴だらけのおもちゃか","item":"https://glyphlang.io/ja/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/language/#article","headline":"これは本物の言語か、それとも穴だらけのおもちゃか","description":"モジュールの可視性、ジェネリクスの境界を指定する構造的インターフェース、defer、構造化並行性、値としての match、そして JavaScript から受け継ぐセマンティクス。","url":"https://glyphlang.io/ja/answers/language/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/language/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">15 &middot; 言語としての完成度</p>
       <h1 class="q-title">これは本物の言語ですか。それとも穴だらけのおもちゃですか。</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,31 +480,52 @@
         実際のコードベースで必要になるものは揃っています。<strong>モジュールの可視性</strong>、ジェネリクスを制約する<strong>インターフェース</strong>、後始末のための <strong>defer</strong>、そして<strong>並行処理</strong>のヘルパーです。JavaScript に頼っている部分は、そうでないふりをせずにそう明記しています。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。ヘルパーを隠せるか、ジェネリクスにある能力を要求できるか、どの終了経路でもファイルハンドルを解放できるか、2 つの処理を同時に走らせて両方を待てるか。Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">可視性：デフォルトで非公開</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">可視性：デフォルトで非公開</span>
 <pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
 
 <span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>interface</code> は TypeScript と同じく構造的です。ジェネリクスが要求できるメンバーシグネチャの集合です。<code>implements</code> も名前的型付けの儀式もありません。そのメンバーを持つ値ならどれでも当てはまり、<code>tsc</code> がそれを強制します。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#interfaces">インターフェース</a></li>
+          <li><a href="#defer">defer とタスク</a></li>
+          <li><a href="#javascript">受け継ぐもの</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">値としての match</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">入れ子のパターン</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">match の結果の型</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">文字列と配列のヘルパー</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">ディレクトリと fs のエラー</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">関数をどう確かめたか</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">お金</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">非同期関数の型</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">再帰的な型</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>可視性</b>ヘルパーを隠せるか。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>ジェネリクスの境界</b>ジェネリクスにある能力を要求できるか。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>後始末</b>どの終了経路でもファイルハンドルを解放できるか。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>並行性</b>2 つの処理を同時に走らせて両方を待てるか。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。</p></div>
+
+      <h2 class="ak-h" id="interfaces">インターフェースでジェネリクスを制約する<a class="ak-anchor" href="#interfaces" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>interface</code> は TypeScript と同じく構造的です。ジェネリクスが要求できるメンバーシグネチャの集合です。<code>implements</code> も名前的型付けの儀式もありません。そのメンバーを持つ値ならどれでも当てはまり、<code>tsc</code> がそれを強制します。
+      </p>
       <div class="code">
         <span class="cap">インターフェースでジェネリクスを制約する</span>
 <pre><span class="add">interface</span> <span class="t">Named</span> {
@@ -516,32 +537,34 @@
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          <code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="defer"><code>defer</code> と構造化並行性<a class="ak-anchor" href="#defer" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。
+      </p>
       <div class="code">
         <span class="cap">defer と構造化並行性</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 <span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">実行順序と owned ハンドル</span></summary><div class="body">
         <p>
-          Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。仕様はこれらを、あとで気づくものではなく保証として明記しています。手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。
+          複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> がないので、<code>match</code> がすべてを担う<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。<code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。
-        </p>
-      </div>
+      <h2 class="ak-h" id="javascript">JavaScript から受け継ぐもの<a class="ak-anchor" href="#javascript" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。仕様はこれらを、あとで気づくものではなく保証として明記しています。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。</p></div>
 
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> がないので、<code>match</code> がすべてを担う<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。</p></div>
       <div class="code">
         <span class="cap">リンクチェッカーより：コードブロックの追跡と、await するアーム</span>
 <pre><span class="k">for</span> raw <span class="k">in</span> lines {
@@ -557,20 +580,17 @@
   <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">何にコンパイルされるか、スニペットの出どころ</span></summary><div class="body">
         <p>
-          どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。どちらのスニペットも <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。
+          どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。どちらのスニペットも <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">パターンで 2 段以上深い形を指定できる<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">パターンで 2 段以上深い形を指定できる<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。
+      </p>
       <div class="code">
         <span class="cap">赤黒木のリバランスの回転ケース 1 つを、1 つのアームで</span>
 <pre><span class="k">type</span> <span class="t">Tree</span> =
@@ -583,23 +603,26 @@
   other <span class="op">=&gt;</span> other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.90 より前の回避策</span></summary><div class="body">
         <p>
-          今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。
+          0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">なぜ catch-all を求めるのか、そして配列の位置</span></summary><div class="body">
+        <p>
+          チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。
         </p>
         <p>
           意外かもしれない影響が 1 つ、配列の位置に及びます。以前はアーム全体としての <code>[Black]</code> が任意の 1 要素配列にマッチするとみなされていたので、それに頼った match は網羅的と認定され、<code>[Red]</code> でもそのアームに入っていました。ここでも PascalCase の要素はバリアントの参照なので、そうした match は今、長さ 1 の配列に対して <code>E0208</code> になります。要素を束縛して、それ自体を match してください。下の変換処理はまだ古いままで、検査の側が先に提供されたのはそのためです。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">そしてコンパイラは <code>match</code> が何を生んだかを知っている<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">そしてコンパイラは <code>match</code> が何を生んだかを知っている<a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。
+      </p>
       <div class="code">
         <span class="cap">割り勘アプリより：アノテーションなしで、<code>i</code> は number</span>
 <pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
@@ -613,13 +636,24 @@
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.45 より前</span></summary><div class="body">
         <p>
-          どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>"0"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。
+          0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。
         </p>
-      </div>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">気づかれずにおかしくなっていたことと、型の合流の仕組み</span></summary><div class="body">
+        <p>
+          どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>"0"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。
+        </p>
+        <p>
+          型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。
+        </p>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">空のフォールバック付きの検索<a class="ak-anchor" href="#empty-fallback" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。
+      </p>
       <div class="code">
         <span class="cap">依存関係リゾルバより：検索、空のフォールバック、インデックス付きの走査</span>
 <pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
@@ -632,20 +666,16 @@
   <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.55 より前</span></summary><div class="body">
         <p>
-          これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。
+          0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code> は自分で書く必要があるか<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself"><code>pad_start</code> は自分で書く必要があるか<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。
+      </p>
       <div class="code">
         <span class="cap">追加されたもの</span>
 <pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
@@ -657,29 +687,53 @@
 <span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
 io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.47 より前にアプリが持っていたコピー</span></summary><div class="body">
+        <p>
+          ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">TypeScript と違うところ<a class="ak-anchor" href="#namesakes" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>""</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。</li>
+      </ul>
+      <h3 class="ak-h3" id="fold"><code>fold</code> が重要な理由<a class="ak-anchor" href="#fold" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">書き換えをどう確認したか</span></summary><div class="body">
+        <p>
+          この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。
+        </p>
+      </div></details>
 
-      <div class="detail">
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">ディレクトリを走査して、何が壊れたかを判別できるか<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code> は 1 階層下のエントリ名を返します。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">これらが置き換えた回避策</span></summary><div class="body">
         <p>
-          そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。<code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>""</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。
+          このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。
         </p>
-        <p>
-          <code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">ディレクトリを走査して、何が壊れたかを判別できるか<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。<code>fs.read_dir</code> は 1 階層下のエントリ名を返し、<code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。<code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。
-        </p>
-        <p>
-          失敗の側はもっと大きく変わりました。<code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。
-        </p>
-        <p>
-          チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。<code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。
-        </p>
-      </div>
-
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">失敗には名前がある<a class="ak-anchor" href="#fs-errors" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        失敗の側はもっと大きく変わりました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">ツリーを走査し、何がおかしかったかを名前で示す</span>
 <pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
@@ -703,36 +757,50 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
   fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">以前の分類、検査されるフィールド、検査を自分で試す方法</span></summary><div class="body">
         <p>
-          同じアプリから出た小さなものが 2 つ、一緒に入りました。<code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。また <code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。
+          <code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。
+        </p>
+        <p>
+          <code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。
         </p>
         <p>
           この検査は実際に動いています。上の <code>match</code> から <code>PermissionDenied</code> のアームを消すと、<code>glyph check --no-tsc</code> は <code>E0200</code> で止まります。<code>fs.ErrorKind</code> に対する網羅的でない match で、欠けているバリアントは <code>PermissionDenied</code> です。stdlib のモデルを最初に書いたときは戻り値の型しか扱っていなかったので、このような match はきれいにコンパイルされ、実行時に例外を投げていました。今は <code>fs.FsError</code>、<code>fs.FileInfo</code>、<code>fs.ErrorKind</code> のフィールドとバリアントの形もモデル化されています。
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">小さな追加が 2 つ<a class="ak-anchor" href="#captures-all" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        同じアプリから出た小さなものが 2 つ、一緒に入りました。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">それが正しい関数だと、どうしてわかるのか<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。
-        </p>
-        <p>
-          そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。
-        </p>
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">それが正しい関数だと、どうしてわかるのか<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。</p></div>
+      <h3 class="ak-h3" id="measured">測定した 2 つの動作の変化<a class="ak-anchor" href="#measured" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>読み取れないディレクトリ</b>読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>失敗する URL</b>3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">スキャナの書き換えと、選択（alternation）の懸念</span></summary><div class="body">
         <p>
           スキャナの書き換えは設計上の懸念も解消しました。参加しなかったキャプチャグループは、空文字列にマッチしたグループと同じく <code>""</code> として読まれるので、<code>captures_all</code> では選択肢のどの分岐がマッチしたのかわからないように見えました。実際にはわかります。各分岐のグループを、欲しい部分ではなく構文全体を囲むように書けばよいのです。マッチしたグループは <code>`</code>、<code>[</code>、<code>!</code>、<code>&lt;</code> のいずれかで始まり、空にはなりません。空になりうる部分、つまりリンク先はその内側に入れ子になり、判定に使うことはありません。これで 180 行の文字単位の走査が、2 つのパターンと 12 行の振り分けになりました。リポジトリ自身のドキュメントと、壊すために作った fixture の両方で、出力はバイト単位で一致しました。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-doesn-t-run-on-floats">お金の計算に浮動小数点数は使わない<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。<code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">お金の計算に浮動小数点数は使わない<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
@@ -742,23 +810,16 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
       </div>
+      <h3 class="ak-h3" id="bigint">大きな整数<a class="ak-anchor" href="#bigint" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        大きな<em>整数</em>を正確に扱う必要がある場合、たとえばアカウント ID やカウンタには <code>bigint</code> 型があります。リテラルは <code>123n</code> で、TypeScript の本物の <code>bigint</code> として出力されます。<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証するので、JSON の <code>number</code> として送られてきた ID は、2<sup>53</sup> を超えて黙って丸められるのではなく拒否されます。
+      </p>
 
-      <div class="detail">
-        <p>
-          大きな<em>整数</em>を正確に扱う必要がある場合、たとえばアカウント ID やカウンタには <code>bigint</code> 型があります。リテラルは <code>123n</code> で、TypeScript の本物の <code>bigint</code> として出力されます。<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === "bigint"</code> を検証するので、JSON の <code>number</code> として送られてきた ID は、2<sup>53</sup> を超えて黙って丸められるのではなく拒否されます。
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="an-async-callback-finally-has-a-type">非同期コールバックにようやく型ができた<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。<code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。
-        </p>
-        <p>
-          Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">非同期コールバックにようやく型ができた<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。</p></div>
       <div class="code">
         <span class="cap">遅延タスクと、ハンドラのマップ</span>
 <pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
@@ -774,14 +835,17 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">再帰的な型を、最後までマッチする<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="このセクションへのリンク">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">Glyph が普通の関数と非同期関数をどう区別するか</span></summary><div class="body">
         <p>
-          ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。<code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。
+          Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。</p></div>
 
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">再帰的な型を、最後までマッチする<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。
+      </p>
       <div class="code">
         <span class="cap">4 つの回転ケースのうちの 1 つ</span>
 <pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
@@ -802,19 +866,140 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。</p></div>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性、構造的な <code>interface</code> による境界、<code>defer</code>、<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>）、型として書ける <code>async fn(A) -&gt; T</code>、自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム、アームにブロック・<code>await</code>・ループ制御を書ける <code>let</code> や <code>mut</code> の値としての <code>match</code>、アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code>、型付きの <code>T.parse</code>、正確なお金の計算のための <code>std/decimal</code>、大きな整数を正確に扱う <code>bigint</code>、数値の桁区切り、JS から受け継ぐセマンティクスを定める仕様書の節、そして <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code>、さらに <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、チェッカーが網羅を求める <code>FsError.kind</code> の分類、<code>regex.captures_all</code> を備えた標準ライブラリです。<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">限界</h3>
-          <p>非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。<code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">19</span></h3>
+
+          <p class="ak-st-group">モジュールと型</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">構造的な <code>interface</code> による境界</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">型として書ける <code>async fn(A) -&gt; T</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">制御フローと <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">アームにブロック・<code>await</code>・ループ制御を書ける、<code>let</code> や <code>mut</code> の値としての <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">型付きの <code>T.parse</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">数値とセマンティクス</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">正確なお金の計算のための <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">大きな整数を正確に扱う <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">数値の桁区切り</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JS から受け継ぐセマンティクスを定める仕様書の節</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">標準ライブラリ</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code> を備えた標準ライブラリ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">チェッカーが網羅を求める <code>FsError.kind</code> の分類</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込む</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 限界 <span class="count">11</span></h3>
+
+          <p class="ak-st-group">可視性</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">非公開のものを import すると、存在しない名前と同じメッセージが出る</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">名前空間を通して読む非公開の値は、Glyph ではなく <code>tsc</code> のエラーになる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">非同期</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">モジュールレベルの <code>const</code> の初期化式では、トップレベルの <code>await</code> が許される</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">推論される型</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">型の先頭が食い違うアームがあると、結果は Glyph にとって unknown になる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">stdlib の 9 つの関数も同じ状況</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。</p>
+                <p>この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">チェッカーが型付けできなかった値に対するメンバーや引数の個数は検査されない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">ライブラリ</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code> は UTF-16 のコード単位でインデックスし、<code>chars</code> や <code>char_at</code> の予定はない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code> はオフセットを返さず、<code>fs.read_dir</code> は OS の順序のまま</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">パターン</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">名前空間 import を通して参照するユニオンでは、フィールドに置いたペイロード付きのコンストラクタが失敗する</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">自身のパラメータについてジェネリックなユニオンも、入れ子のアームを受け入れ、欠けたバリアントが検査される</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。</p>
+                <p>今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import したユニオンの網羅性検査は、バリアントのペイロードを検査しない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。</p>
+                <p>フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/state/">
           <span class="dir">&larr; 前へ</span>

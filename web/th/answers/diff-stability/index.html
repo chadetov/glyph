@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่?","item":"https://glyphlang.io/th/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/diff-stability/#article","headline":"การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่?","description":"Glyph มี layout มาตรฐานแบบเดียวและบังคับ trailing comma การแก้หนึ่งบรรทัดจึงเป็น diff หนึ่งบรรทัด เอเจนต์ฝังการเปลี่ยนแปลงจริงไว้ใต้การจัดรูปแบบที่รกไม่ได้","url":"https://glyphlang.io/th/answers/diff-stability/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/diff-stability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่?","item":"https://glyphlang.io/th/answers/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/diff-stability/#article","headline":"การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่?","description":"Glyph มี layout มาตรฐานแบบเดียวและบังคับ trailing comma การแก้หนึ่งบรรทัดจึงเป็น diff หนึ่งบรรทัด เอเจนต์ฝังการเปลี่ยนแปลงจริงไว้ใต้การจัดรูปแบบที่รกไม่ได้","url":"https://glyphlang.io/th/answers/diff-stability/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/diff-stability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/diff-stability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">02 &middot; การเปลี่ยนแปลงที่รีวิวได้</p>
       <h1 class="q-title">การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,50 +480,61 @@
         การแก้หนึ่งบรรทัดคือ<strong>diff หนึ่งบรรทัด</strong>ทุกครั้ง Glyph มี layout มาตรฐานแบบเดียว เอเจนต์จึง<strong>ฝังการเปลี่ยนแปลงจริงไว้ใต้กำแพงของการจัดรูปแบบใหม่ไม่ได้</strong>
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เมื่อเอเจนต์เปิด pull request diff <em>คือ</em>การรีวิว ถ้าการแก้หนึ่งบรรทัดจริงๆ มาในรูปการจัดรูปแบบใหม่ 200 บรรทัด ก็ไม่มีใครเห็นว่าอะไรเปลี่ยนจริง และความรกนั้นคือที่ที่บั๊กหลุดผ่านไป diff ที่คงที่หมายความว่า diff แสดงการเปลี่ยนแปลง และ<strong>ไม่มีอะไรนอกจากการเปลี่ยนแปลง</strong>
-        </p>
-        <p>กฎสองข้อทำงานส่วนใหญ่ นี่คือแต่ละข้อ แสดงเป็น diff ที่คุณจะรีวิว</p>
-
-        <h2 class="block-label" id="example-1-trailing-commas-one-item-per-line">ตัวอย่างที่ 1: trailing comma และหนึ่งรายการต่อบรรทัด<a class="h-anchor" href="#example-1-trailing-commas-one-item-per-line" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>เพิ่ม route หนึ่งตัว ในสไตล์ที่พบบ่อยของ TypeScript บรรทัดสุดท้ายเดิมต้องเปลี่ยนเพื่อเพิ่ม comma สองบรรทัดขยับสำหรับการเปลี่ยนรายการเดียว:</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript: เพิ่ม "/billing"</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript: เพิ่ม "/billing"</span>
 <pre> <span class="k">const</span> routes = [
    <span class="s">"/home"</span>,
 <span class="del">-  <span class="s">"/about"</span></span>
 <span class="add">+  <span class="s">"/about"</span>,</span>
 <span class="add">+  <span class="s">"/billing"</span></span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">3 บรรทัดขยับสำหรับ 1 การเปลี่ยนแปลง</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph: เพิ่ม "/billing"</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">3 บรรทัดขยับสำหรับ 1 การเปลี่ยนแปลง</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph: เพิ่ม "/billing"</span>
 <pre> <span class="k">let</span> routes = [
    <span class="s">"/home"</span>,
    <span class="s">"/about"</span>,
 <span class="add">+  <span class="s">"/billing"</span>,</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">เพิ่ม 1 บรรทัด ตรงกับการเปลี่ยนแปลงพอดี</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">เพิ่ม 1 บรรทัด ตรงกับการเปลี่ยนแปลงพอดี</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>เพิ่ม route หนึ่งตัว ในสไตล์ที่พบบ่อยของ TypeScript บรรทัดสุดท้ายเดิมต้องเปลี่ยนเพื่อเพิ่ม comma สองบรรทัดขยับสำหรับการเปลี่ยนรายการเดียว</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          trailing comma เป็น<strong>สิ่งบังคับ</strong> และ list ที่ไม่พอดีในบรรทัดเดียวจะเป็นหนึ่ง element ต่อบรรทัดแทนที่จะถูกจัดกลุ่มใหม่ การแทรก ลบ หรือสลับลำดับรายการจึงไม่กระทบรายการข้างเคียง เช่นเดียวกับ field ของ record, parameter, arm ของ match และ import เกณฑ์นี้มีต้นทุน: การเปลี่ยนชื่อที่ดันการเรียกให้เกิน 100 คอลัมน์จะขยาย argument list ทั้งหมดเป็นหนึ่งตัวต่อบรรทัด
-        </p>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#trailing-commas">Trailing comma</a></li>
+          <li><a href="#example-2-one-canonical-layout">layout มาตรฐานแบบเดียว</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">comment อยู่ที่เดิม</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">fmt ทำ build พังได้ไหม?</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="example-2-one-canonical-layout">ตัวอย่างที่ 2: layout มาตรฐานแบบเดียว<a class="h-anchor" href="#example-2-one-canonical-layout" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          มีการจัดรูปแบบที่ถูกต้องเพียงแบบเดียว ซึ่ง <code>glyph fmt</code> สร้างขึ้น whitespace การตัดบรรทัด และการจัดแนว ไม่ใช่ตัวเลือกที่เอเจนต์จะ &ldquo;จัดให้เรียบร้อย&rdquo; ได้ การแก้เชิงความหมายจึงลากการจัดวางใหม่ไปด้วยไม่ได้ เปลี่ยน type ของ field หนึ่งตัว นั่นคือ diff ทั้งหมด:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เมื่อเอเจนต์เปิด pull request diff <em>คือ</em>การรีวิว ถ้าการแก้หนึ่งบรรทัดจริงๆ มาในรูปการจัดรูปแบบใหม่ 200 บรรทัด ก็ไม่มีใครเห็นว่าอะไรเปลี่ยนจริง และความรกนั้นคือที่ที่บั๊กหลุดผ่านไป
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>diff ที่คงที่หมายความว่า diff แสดงการเปลี่ยนแปลง และ<strong>ไม่มีอะไรนอกจากการเปลี่ยนแปลง</strong></p></div>
+      <p class="ak-lede">กฎสองข้อทำงานส่วนใหญ่ นี่คือแต่ละข้อ แสดงเป็น diff ที่คุณจะรีวิว</p>
 
+      <h2 class="ak-h" id="trailing-commas">trailing comma และหนึ่งรายการต่อบรรทัด<a class="ak-anchor" href="#trailing-commas" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        trailing comma เป็น<strong>สิ่งบังคับ</strong> และ list ที่ไม่พอดีในบรรทัดเดียวจะเป็นหนึ่ง element ต่อบรรทัดแทนที่จะถูกจัดกลุ่มใหม่ การแทรก ลบ หรือสลับลำดับรายการจึงไม่กระทบรายการข้างเคียง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เช่นเดียวกับ field ของ record, parameter, arm ของ match และ import</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>เกณฑ์นี้มีต้นทุน: การเปลี่ยนชื่อที่ดันการเรียกให้เกิน 100 คอลัมน์จะขยาย argument list ทั้งหมดเป็นหนึ่งตัวต่อบรรทัด</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">layout มาตรฐานแบบเดียว<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        มีการจัดรูปแบบที่ถูกต้องเพียงแบบเดียว ซึ่ง <code>glyph fmt</code> สร้างขึ้น whitespace การตัดบรรทัด และการจัดแนว ไม่ใช่ตัวเลือกที่เอเจนต์จะ &ldquo;จัดให้เรียบร้อย&rdquo; ได้ การแก้เชิงความหมายจึงลากการจัดวางใหม่ไปด้วยไม่ได้ เปลี่ยน type ของ field หนึ่งตัว นั่นคือ diff ทั้งหมด:
+      </p>
       <div class="code">
         <span class="cap">user.glyph: เปลี่ยน field เดียว รีวิวบรรทัดเดียว</span>
 <pre> <span class="k">type</span> <span class="t">User</span> = {
@@ -533,18 +544,17 @@
    email: <span class="t">string</span>,
  }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เพราะ layout ตายตัว เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้การจัดรูปแบบที่<strong>เหมือนกันทุกไบต์</strong> ไม่มีการจัดวางใหม่ที่วุ่นวาย ไม่มีความรกแบบ &ldquo;formatter ของฉันกับของคุณ&rdquo; และ <code>git blame</code> ที่สะอาดชี้ไปที่ commit ที่เปลี่ยนบรรทัดนั้นจริง ไม่ใช่ commit ที่จัดรูปแบบใหม่</p></div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">layout มาตรฐานแบบเดียว แล้ว formatter จะย้าย comment ของฉันไหม?<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เคย และนั่นเป็นบั๊กที่ควรพูดถึง กฎตอนนี้: comment ถูก emit ซ้ำไว้เหนือรายการที่มันเขียนไว้เหนือ ทั้งภายใน body ของ record, list ของ variant ใน union, literal แบบ array หรือ object, list ของ argument หรือ parameter และ <code>match</code>
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">comment ไหลไปได้อย่างไร และแอปที่ทำให้มันโผล่ขึ้นมา</span></summary><div class="body">
         <p>
-          เพราะ layout ตายตัว เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้การจัดรูปแบบที่<strong>เหมือนกันทุกไบต์</strong> ไม่มีการจัดวางใหม่ที่วุ่นวาย ไม่มีความรกแบบ &ldquo;formatter ของฉันกับของคุณ&rdquo; และ <code>git blame</code> ที่สะอาดชี้ไปที่ commit ที่เปลี่ยนบรรทัดนั้นจริง ไม่ใช่ commit ที่จัดรูปแบบใหม่
+          Glyph ไม่มี block comment และไม่มี syntax สำหรับ doc comment บรรทัด <code>//</code> จึงเป็นวิธีเดียวที่จะอธิบาย field ของ record, variant ของ union หรือ arm ของ <code>match</code> formatter ปล่อย comment ที่ค้างอยู่เฉพาะที่ขอบของ declaration และ statement ซึ่งหมายความว่า comment ที่เขียน<em>ภายใน</em> construct จะไหลลงไปที่ declaration ถัดไป และอ่านแล้วเหมือนเป็นเอกสารของสิ่งที่มันไปตกอยู่ การเขียน Minesweeper ด้วย Glyph คือสิ่งที่ทำให้มันโผล่ขึ้นมา declaration สองตัวนี้มาจาก<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">แอปจริง</a> (ตัด comment ให้พอดี) รันผ่าน formatter ตัวเก่าและตัวใหม่
         </p>
-
-        <h2 class="block-label" id="one-canonical-layout-so-does-the-formatter-move-my-comments">layout มาตรฐานแบบเดียว แล้ว formatter จะย้าย comment ของฉันไหม?<a class="h-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เคย และนั่นเป็นบั๊กที่ควรพูดถึง Glyph ไม่มี block comment และไม่มี syntax สำหรับ doc comment บรรทัด <code>//</code> จึงเป็นวิธีเดียวที่จะอธิบาย field ของ record, variant ของ union หรือ arm ของ <code>match</code> formatter ปล่อย comment ที่ค้างอยู่เฉพาะที่ขอบของ declaration และ statement ซึ่งหมายความว่า comment ที่เขียน<em>ภายใน</em> construct จะไหลลงไปที่ declaration ถัดไป และอ่านแล้วเหมือนเป็นเอกสารของสิ่งที่มันไปตกอยู่ การเขียน Minesweeper ด้วย Glyph คือสิ่งที่ทำให้มันโผล่ขึ้นมา declaration สองตัวนี้มาจาก<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">แอปจริง</a> (ตัด comment ให้พอดี) รันผ่าน formatter ตัวเก่าและตัวใหม่
-        </p>
-      </div>
-
+      </div></details>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">0.1.37: fmt หนึ่งรอบ</span>
@@ -581,45 +591,71 @@
           <div style="padding:0 16px 14px"><span class="verdict good">ทุก comment อยู่บนสิ่งที่มันอธิบาย</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          กฎตอนนี้: comment ถูก emit ซ้ำไว้เหนือรายการที่มันเขียนไว้เหนือ ทั้งภายใน body ของ record, list ของ variant ใน union, literal แบบ array หรือ object, list ของ argument หรือ parameter และ <code>match</code> และ construct ที่มี comment อยู่ข้างในจะใช้รูปแบบหนึ่ง element ต่อบรรทัดเสมอ ไม่ว่าขนาดเท่าไร comment จึงมีรายการให้วางอยู่เหนือ <code>type Shape = { w: int, h: int }</code> จึงยังยุบเหลือบรรทัดเดียว และทันทีที่คุณเขียนเอกสารให้ <code>h</code> record ก็จะคงสภาพขยายไว้
-        </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>และ construct ที่มี comment อยู่ข้างในจะใช้รูปแบบหนึ่ง element ต่อบรรทัดเสมอ ไม่ว่าขนาดเท่าไร comment จึงมีรายการให้วางอยู่เหนือ <code>type Shape = { w: int, h: int }</code> จึงยังยุบเหลือบรรทัดเดียว และทันทีที่คุณเขียนเอกสารให้ <code>h</code> record ก็จะคงสภาพขยายไว้</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมนี่จึงนับเป็นบั๊กด้านความถูกต้อง</span></summary><div class="body">
         <p>
           ทำไมเรื่องนี้นับเป็นบั๊กเรื่องความถูกต้องไม่ใช่เรื่องหน้าตา: ไม่มีอะไร fail build exit 0 <code>tsc</code> ผ่าน และ output ที่เพี้ยนก็เป็น fixed point ในตัวเอง <code>glyph fmt --check</code> ใน CI จึงเขียวบนไฟล์ที่ comment บอกสิ่งที่ไม่จริงไปแล้ว นั่นคือความล้มเหลวประเภทเดียวกับที่ Glyph มีไว้กำจัด แค่อยู่ใน formatter แทนที่จะอยู่ใน type system
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="can-glyph-fmt-break-a-program-that-builds"><code>glyph fmt</code> ทำให้โปรแกรมที่ build ผ่านพังได้ไหม?<a class="h-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds"><code>glyph fmt</code> ทำให้โปรแกรมที่ build ผ่านพังได้ไหม?<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เคยได้ และยังมีกรณีหนึ่งที่เปิดอยู่ formatter ที่โปรแกรมของคุณต้องเอาตัวรอดจากมันแย่กว่าฟีเจอร์ที่ขาดไป เพราะมันทำลายโค้ดที่เคยใช้ได้แล้ว
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>body ของ arm</b>ตอนนี้ printer ใส่วงเล็บให้ body ของ arm ที่ token ซ้ายสุดเป็น <code>{</code> ซึ่งจะถูก parse ใหม่เป็น block ได้ ซึ่งก็คือ object ว่างและอะไรก็ตามที่สร้างบนมัน (<code>({}).size</code> กลับมาเป็น <code>({}.size)</code>)</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>fuzzer</b>ตอนนี้ fuzzer parse ไฟล์ที่จัดรูปแบบแล้วและเทียบ tree กับของต้นฉบับ layout ที่เปลี่ยนความหมายของไฟล์จึง fail ตั้งแต่รอบแรก แทนที่จะรอให้ใครมาสังเกต</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">record ว่างที่ทำให้ build ไม่ผ่าน</span></summary><div class="body">
         <p>
-          เคยได้ และยังมีกรณีหนึ่งที่เปิดอยู่ เริ่มจากที่แก้แล้ว arm ที่หมายถึง &ldquo;record ว่าง&rdquo; เขียนว่า <code>true =&gt; ({})</code> ตำแหน่ง body ของ arm คือที่เดียวใน grammar ที่ <code>{</code> นำหน้ากำกวม และ parser ตัดสินโดยกำหนดให้ต้องมี <code>key:</code> หรือ <code>...</code> ต่อจากวงเล็บปีกกาทันที object ว่างไม่มีทั้งสองอย่าง เมื่อ formatter ตัดวงเล็บออกแล้วพิมพ์ใหม่เป็น <code>true =&gt; {}</code> arm จึงกลับมาเป็น<em>block</em> ว่าง และไฟล์ก็ build ไม่ผ่าน: <code>E0223</code> arm ไม่ได้ให้ค่า คุณรัน formatter บนโค้ดที่ใช้งานได้แล้วได้โค้ดที่คอมไพล์ไม่ผ่านอีกต่อไป
+          เริ่มจากที่แก้แล้ว arm ที่หมายถึง &ldquo;record ว่าง&rdquo; เขียนว่า <code>true =&gt; ({})</code> ตำแหน่ง body ของ arm คือที่เดียวใน grammar ที่ <code>{</code> นำหน้ากำกวม และ parser ตัดสินโดยกำหนดให้ต้องมี <code>key:</code> หรือ <code>...</code> ต่อจากวงเล็บปีกกาทันที object ว่างไม่มีทั้งสองอย่าง เมื่อ formatter ตัดวงเล็บออกแล้วพิมพ์ใหม่เป็น <code>true =&gt; {}</code> arm จึงกลับมาเป็น<em>block</em> ว่าง และไฟล์ก็ build ไม่ผ่าน: <code>E0223</code> arm ไม่ได้ให้ค่า คุณรัน formatter บนโค้ดที่ใช้งานได้แล้วได้โค้ดที่คอมไพล์ไม่ผ่านอีกต่อไป
         </p>
         <p>
-          ตอนนี้ printer ใส่วงเล็บให้ body ของ arm ที่ token ซ้ายสุดเป็น <code>{</code> ซึ่งจะถูก parse ใหม่เป็น block ได้ ซึ่งก็คือ object ว่างและอะไรก็ตามที่สร้างบนมัน (<code>({}).size</code> กลับมาเป็น <code>({}.size)</code>) body ของ arm ที่อ่านได้ไม่กำกวมอยู่แล้ว อย่าง <code>false =&gt; { a: "x" }</code> ยังไม่มีวงเล็บ จึงไม่มีเครื่องหมายใหม่ให้อ่านที่อื่น <code>fmt</code> เป็น fixed point บนผลลัพธ์ และ TypeScript ที่ emit ออกมาไม่เปลี่ยน formatter ที่โปรแกรมของคุณต้องเอาตัวรอดจากมันแย่กว่าฟีเจอร์ที่ขาดไป เพราะมันทำลายโค้ดที่เคยใช้ได้แล้ว
+          body ของ arm ที่อ่านได้ไม่กำกวมอยู่แล้ว อย่าง <code>false =&gt; { a: "x" }</code> ยังไม่มีวงเล็บ จึงไม่มีเครื่องหมายใหม่ให้อ่านที่อื่น <code>fmt</code> เป็น fixed point บนผลลัพธ์ และ TypeScript ที่ emit ออกมาไม่เปลี่ยน
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">อีกสองกรณีที่แก้ใน 0.1.138</span></summary><div class="body">
         <p>
-          อีกสองกรณีถูกแก้ใน 0.1.138 ภายใน block บรรทัดที่ขึ้นต้นด้วย <code>(</code> จะต่อจากบรรทัดข้างบน และจนถึง 0.1.137 formatter พิมพ์ <code>load()?</code> ตามด้วย <code>.run()</code> เป็น <code>(load()?).run()</code> หลัง <code>let a = 1</code> ไฟล์ที่จัดรูปแบบแล้วจึงหมายถึง <code>let a = 1(…).run()</code> ตอนนี้มันเก็บ <code>load()?</code> ไว้โดยมี <code>.run()</code> ย่อหน้าอยู่บรรทัดถัดไป และเขียน <code>e?(x)</code>, <code>e?[0]</code> และ <code>e? ?</code> โดยไม่มีวงเล็บ อีกกรณีคือ refinement <code>where</code> ของ union ซึ่ง formatter ทิ้งไป ทำให้โปรแกรมที่ <code>check</code> ปฏิเสธกลายเป็นโปรแกรมที่มันยอมรับ ตอนนี้ fuzzer parse ไฟล์ที่จัดรูปแบบแล้วและเทียบ tree กับของต้นฉบับ layout ที่เปลี่ยนความหมายของไฟล์จึง fail ตั้งแต่รอบแรก แทนที่จะรอให้ใครมาสังเกต
+          อีกสองกรณีถูกแก้ใน 0.1.138 ภายใน block บรรทัดที่ขึ้นต้นด้วย <code>(</code> จะต่อจากบรรทัดข้างบน และจนถึง 0.1.137 formatter พิมพ์ <code>load()?</code> ตามด้วย <code>.run()</code> เป็น <code>(load()?).run()</code> หลัง <code>let a = 1</code> ไฟล์ที่จัดรูปแบบแล้วจึงหมายถึง <code>let a = 1(…).run()</code> ตอนนี้มันเก็บ <code>load()?</code> ไว้โดยมี <code>.run()</code> ย่อหน้าอยู่บรรทัดถัดไป และเขียน <code>e?(x)</code>, <code>e?[0]</code> และ <code>e? ?</code> โดยไม่มีวงเล็บ อีกกรณีคือ refinement <code>where</code> ของ union ซึ่ง formatter ทิ้งไป ทำให้โปรแกรมที่ <code>check</code> ปฏิเสธกลายเป็นโปรแกรมที่มันยอมรับ
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>กฎการจัดรูปแบบเบื้องหลังเรื่องนี้ และสิ่งที่มันแลก อยู่ใน<a href="/th/pillars/diff-stability/">หน้าเสาหลักเรื่อง diff ที่คงที่</a></p></div>
 
-      <div class="detail">
-        <p>
-          กฎการจัดรูปแบบเบื้องหลังเรื่องนี้ และสิ่งที่มันแลก อยู่ใน<a href="/th/pillars/diff-stability/">หน้าเสาหลักเรื่อง diff ที่คงที่</a>
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">trailing comma ที่บังคับ, list แบบหนึ่งรายการต่อบรรทัด และ layout มาตรฐานแบบเดียวของ <code>glyph fmt</code> ซึ่ง round-trip ได้และรันซ้ำได้ผลเท่าเดิม พร้อม format-on-save ใน editor</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> ไม่เคยย้าย comment ไปที่ที่มันไม่ควรอยู่</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">comment อยู่เหนือรายการที่มันเขียนไว้เหนือ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>comment อยู่เหนือรายการที่มันเขียนไว้เหนือ รวมถึงภายใน record, literal, argument list, <code>match</code>, ระหว่าง operand ของ operator และระหว่างขั้นของ method chain ซึ่งจะเป็นหนึ่งขั้นต่อบรรทัดโดยมีจุดนำหน้า</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>trailing comma ที่บังคับ, list แบบหนึ่งรายการต่อบรรทัด และ layout มาตรฐานแบบเดียวของ <code>glyph fmt</code> ซึ่ง round-trip ได้และรันซ้ำได้ผลเท่าเดิม พร้อม format-on-save ใน editor <code>glyph fmt</code> ไม่เคยย้าย comment ไปที่ที่มันไม่ควรอยู่ comment อยู่เหนือรายการที่มันเขียนไว้เหนือ รวมถึงภายใน record, literal, argument list, <code>match</code>, ระหว่าง operand ของ operator และระหว่างขั้นของ method chain ซึ่งจะเป็นหนึ่งขั้นต่อบรรทัดโดยมีจุดนำหน้า</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">ขอบเขต และสิ่งที่จะตามมา</h3>
-          <p>comment จะถูก emit ในบรรทัดของตัวเองเสมอ comment ที่เขียนไว้ท้ายบรรทัดโค้ด (<code>w: int, // width in cells</code>) จึงย้ายไปอยู่บรรทัดเหนือรายการถัดไป มันไม่ข้ามขอบ declaration แล้ว แต่ก็ยังย้าย การเก็บไว้ท้ายบรรทัดต้องให้ printer ติดตามว่า comment อยู่บรรทัดเดียวกับอะไร comment ในตำแหน่งที่ layout ไม่มีที่วาง เช่นภายใน index หลัง argument ของการเรียกกลาง chain หรือก่อน operand ของ <code>!</code> หรือ <code>await</code> จะไม่ถูกย้ายอีกต่อไป: <code>glyph fmt</code> ปฏิเสธไฟล์ ปล่อยไว้ตามเดิม และระบุบรรทัดพร้อมบอกว่าควรย้าย comment ไปไว้ไหน และ <code>glyph check</code> รายงานสิ่งเดียวกันเป็นคำเตือน E0500 comment ระหว่าง attribute ของ JSX หรือระหว่าง field ของ object pattern ก็ถูกปฏิเสธด้วย ทั้งที่ layout แบบหนึ่งต่อบรรทัดวางได้ layout เหล่านั้นอยู่ในรายการแล้ว printer ยังไม่มีกฎสำหรับตัด method chain หรือ chain ของ <code>+</code> ที่ยาว chain ที่ยาวเกินจึงไปตัดที่ argument list ด้านในสุดแทน ซึ่งเป็นที่ที่ผิด เรากำลังสร้าง benchmark ขนาดของ diff เทียบกับการแก้แบบเดียวกันใน TypeScript ด้วย เพื่อให้เสาหลักข้อนี้เป็นตัวเลขที่คุณตรวจได้</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> ขอบเขต และสิ่งที่จะตามมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">comment ท้ายบรรทัดโค้ดย้ายไปอยู่บรรทัดเหนือรายการถัดไป</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>comment จะถูก emit ในบรรทัดของตัวเองเสมอ comment ที่เขียนไว้ท้ายบรรทัดโค้ด (<code>w: int, // width in cells</code>) จึงย้ายไปอยู่บรรทัดเหนือรายการถัดไป มันไม่ข้ามขอบ declaration แล้ว แต่ก็ยังย้าย การเก็บไว้ท้ายบรรทัดต้องให้ printer ติดตามว่า comment อยู่บรรทัดเดียวกับอะไร</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">comment ที่ layout ไม่มีที่วางถูกปฏิเสธ ไม่ถูกย้าย</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>comment ในตำแหน่งที่ layout ไม่มีที่วาง เช่นภายใน index หลัง argument ของการเรียกกลาง chain หรือก่อน operand ของ <code>!</code> หรือ <code>await</code> จะไม่ถูกย้ายอีกต่อไป: <code>glyph fmt</code> ปฏิเสธไฟล์ ปล่อยไว้ตามเดิม และระบุบรรทัดพร้อมบอกว่าควรย้าย comment ไปไว้ไหน และ <code>glyph check</code> รายงานสิ่งเดียวกันเป็นคำเตือน E0500</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">comment ระหว่าง attribute ของ JSX หรือระหว่าง field ของ object pattern ก็ถูกปฏิเสธด้วย ทั้งที่ layout แบบหนึ่งต่อบรรทัดวางได้ layout เหล่านั้นอยู่ในรายการแล้ว</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">printer ยังไม่มีกฎสำหรับตัด method chain หรือ chain ของ <code>+</code> ที่ยาว chain ที่ยาวเกินจึงไปตัดที่ argument list ด้านในสุดแทน ซึ่งเป็นที่ที่ผิด</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">เรากำลังสร้าง benchmark ขนาดของ diff เทียบกับการแก้แบบเดียวกันใน TypeScript ด้วย เพื่อให้เสาหลักข้อนี้เป็นตัวเลขที่คุณตรวจได้</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/verifiability/">
           <span class="dir">&larr; ก่อนหน้า</span>

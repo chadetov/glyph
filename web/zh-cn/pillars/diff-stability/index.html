@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/pillars/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"稳定的 diff","item":"https://glyphlang.io/zh-cn/pillars/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/pillars/diff-stability/#article","headline":"稳定的 diff · 改一行就是一行 diff","description":"Glyph 的第三个支柱：唯一的标准格式，尾随逗号，列表从不重新打包，没有 barrel 文件，代码生成是幂等的。diff 显示的是改动，而不是无关的变动。","url":"https://glyphlang.io/zh-cn/pillars/diff-stability/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/pillars/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/diff-stability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">支柱 04 &middot; <span class="polish">打磨</span></p>
       <h1 class="q-title">稳定的 diff</h1>
 
@@ -435,65 +435,85 @@
         改一行就是<strong>一行 diff</strong>。唯一的标准格式、尾随逗号，列表要么全部写在一行，要么每个元素一行，从不重新打包，所以审查时看到的是真正做出的改动，而不是周围的无关变动。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="review-is-reading-diffs">审查就是读 diff<a class="h-anchor" href="#review-is-reading-diffs" aria-label="链接到本节">#</a></h2>
-        <p class="lede">
-          我们对一个改动所信任的几乎一切（审查、blame、回退、bisect）都建立在 diff 之上。所以 diff 的信噪比才是真正的硬通货。在大多数代码库中它都很糟糕：格式化工具把一行折行重新排版，import 排序工具把一块代码打乱，一次重命名改动了每个调用处的空白，而那一行<em>真正重要</em>的改动被埋在五十行无关的改动里。
-        </p>
-        <p class="lede">
-          智能体让情况严重恶化。给它一个小任务，模型会很乐意为了改一处而重写整个函数，甚至整个文件，因为对它来说重新生成比精确编辑容易。审查者只能拿重写后的版本和原版做 diff，然后<em>祈祷</em>唯一真正的改动就是预期的那一处。Glyph 的设计让排版没有任何可供模型折腾的余地。
-        </p>
-
-        <h2 class="block-label" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> 唯一的标准排版，没有选择<a class="h-anchor" href="#one-canonical-layout-no-choices" aria-label="链接到本节">#</a></h2>
-        <p>
-          <code>glyph fmt</code> 用一种固定排版重新打印每个文件：两个空格缩进，每个多行列表都有尾随逗号，列表放得进 100 列时保持一行，放不下时每个元素一行。这个选择是全有或全无的。格式化工具从不为了填满一行而重新打包元素，所以列表永远不会一部分在这一行、一部分在下一行，新增一个字段就是新增一行。因为合法的形式只有一种，所以没有什么可争论的，也没有什么能让工具顺手“修正”的。
-        </p>
-        <p>
-          宽度阈值就是这样做的代价。给一个绑定改名，导致一个调用超过 100 列，这个调用就会展开成每个参数一行：改了一个 token，diff 却是四行。换来的是排版只取决于代码本身和它起始的列，别无其他，所以两个智能体编辑同一个文件，最终会得到相同的字节。
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">重新折行的风格：一处改动，三行受影响</span>
-          <span class="cap">git diff（紧凑格式）</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">重新折行的风格：一处改动，三行受影响</span>
+            <span class="cap">git diff（紧凑格式）</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph：一处改动，新增一行</span>
-          <span class="cap">git diff（标准格式）</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph：一处改动，新增一行</span>
+            <span class="cap">git diff（标准格式）</span>
 <pre>  <span class="k">type</span> <span class="t">User</span> = {
     id: <span class="t">number</span>,
     name: <span class="t">string</span>,
 <span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          尾随逗号在默默发挥作用：因为最后一个元素已经以逗号结尾，新增一个同级元素<strong>永远不会修改它上面那一行。</strong>插入一处，就是一行。
-        </p>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">审查就是读 diff</a></li>
+          <li><a href="#one-canonical-layout-no-choices">唯一的标准排版</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">稳定的顺序</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">没有 barrel 文件</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">幂等的生成</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">基准测试</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> 顺序稳定，所以历史清晰可读<a class="h-anchor" href="#order-is-stable-so-history-is-legible" aria-label="链接到本节">#</a></h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">审查就是读 diff<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        我们对一个改动所信任的几乎一切（审查、blame、回退、bisect）都建立在 diff 之上。所以 diff 的信噪比才是真正的硬通货。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">噪音从哪里来</span></summary><div class="body">
         <p>
-          每个元素一行，意味着重新排序、插入或删除一项只影响这一项所在的行，不会碰到相邻的行。<code>git blame</code> 保持有意义：每一行最后一次被修改的提交，就是真正修改了<em>那个</em>元素的提交，而不是碰巧把它所在的行重新打包的那次格式化。
+          在大多数代码库中它都很糟糕：格式化工具把一行折行重新排版，import 排序工具把一块代码打乱，一次重命名改动了每个调用处的空白，而那一行<em>真正重要</em>的改动被埋在五十行无关的改动里。
         </p>
-
-        <h2 class="block-label" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> 没有 barrel 文件：没有 import 变动<a class="h-anchor" href="#no-barrel-files-no-import-churn" aria-label="链接到本节">#</a></h2>
         <p>
-          因为导入从不重新导出，也没有 <code>index.ts</code> 这样的汇总层（<code>E0102</code>），新增或移动一个符号不会波及每个使用者都导入的 barrel 文件。你编辑的依赖关系就是你想改的那些；导入图的其余部分不会动。
+          智能体让情况严重恶化。给它一个小任务，模型会很乐意为了改一处而重写整个函数，甚至整个文件，因为对它来说重新生成比精确编辑容易。审查者只能拿重写后的版本和原版做 diff，然后<em>祈祷</em>唯一真正的改动就是预期的那一处。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph 的设计让排版没有任何可供模型折腾的余地。</p></div>
 
-        <h2 class="block-label" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> 代码生成是幂等的，而不是一大坨<a class="h-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="链接到本节">#</a></h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> 唯一的标准排版，没有选择<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> 用一种固定排版重新打印每个文件：两个空格缩进，每个多行列表都有尾随逗号，列表放得进 100 列时保持一行，放不下时每个元素一行。这个选择是全有或全无的。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">不重新打包，只有一种合法形式</span></summary><div class="body">
         <p>
-          同样的规矩也适用于生成的代码。<code>glyph gen</code> 和 <code>glyph regen</code> 会通过标准格式化工具重新打印输出，所以规范变化后重新生成，得到的是一个<em>最小的</em>、真正能审查的 diff，只有几行改动，而不是把机器写的文件整个替换掉。每个生成的 <code>.ts</code> 都附带 source map，所以即使是编译后的输出，也能清楚地追溯到你修改的那一行。
+          格式化工具从不为了填满一行而重新打包元素，所以列表永远不会一部分在这一行、一部分在下一行，新增一个字段就是新增一行。因为合法的形式只有一种，所以没有什么可争论的，也没有什么能让工具顺手“修正”的。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>宽度阈值就是这样做的代价。给一个绑定改名，导致一个调用超过 100 列，这个调用就会展开成每个参数一行：改了一个 token，diff 却是四行。换来的是排版只取决于代码本身和它起始的列，别无其他，所以两个智能体编辑同一个文件，最终会得到相同的字节。</p></div>
+      <p class="pull-quote">
+        尾随逗号在默默发挥作用：因为最后一个元素已经以逗号结尾，新增一个同级元素<strong>永远不会修改它上面那一行。</strong>插入一处，就是一行。
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> 顺序稳定，所以历史清晰可读<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        每个元素一行，意味着重新排序、插入或删除一项只影响这一项所在的行，不会碰到相邻的行。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>git blame</code> 保持有意义：每一行最后一次被修改的提交，就是真正修改了<em>那个</em>元素的提交，而不是碰巧把它所在的行重新打包的那次格式化。</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> 没有 barrel 文件：没有 import 变动<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        因为导入从不重新导出，也没有 <code>index.ts</code> 这样的汇总层（<code>E0102</code>），新增或移动一个符号不会波及每个使用者都导入的 barrel 文件。你编辑的依赖关系就是你想改的那些；导入图的其余部分不会动。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> 代码生成是幂等的，而不是一大坨<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        同样的规矩也适用于生成的代码。<code>glyph gen</code> 和 <code>glyph regen</code> 会通过标准格式化工具重新打印输出，所以规范变化后重新生成，得到的是一个<em>最小的</em>、真正能审查的 diff，只有几行改动，而不是把机器写的文件整个替换掉。
+      </p>
       <div class="code">
         <span class="cap">规范中新增一个字段 &rarr; 重新生成后的 diff</span>
 <pre>  <span class="k">type</span> <span class="t">Task</span> = {
@@ -503,36 +523,27 @@
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>每个生成的 <code>.ts</code> 都附带 source map，所以即使是编译后的输出，也能清楚地追溯到你修改的那一行。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> “TypeScript 用 Prettier 也能做到”<a class="h-anchor" href="#typescript-can-do-this-with-prettier" aria-label="链接到本节">#</a></h2>
-        <p>
-          就大部分格式化而言，确实可以。设置了 <code>trailingComma: "all"</code> 的 Prettier 会给最后一个元素加逗号，并把长列表每个元素打印一行，这就实现了第 01 节的大部分内容。区别在三个地方。
-        </p>
-        <p>
-          <strong>排版只取决于代码。</strong>如果作者在 <code>{</code> 后面换了行，Prettier 会让对象字面量保持展开，否则就折叠，所以同一个对象可能因为最初的输入方式不同而被打印成两种样子。两个智能体写同样的东西，会得到两种排版，下一次编辑其中一个时就会表现为重新排版。<code>glyph fmt</code> 无论输入怎样折行，打印出来的 <code>{ a: 1, b: 2 }</code> 都一样。
-        </p>
-        <p>
-          <strong>没有任何东西可以配置。</strong>Prettier 的输出取决于仓库的配置文件，而有些仓库根本没有配置文件。在不同 TypeScript 项目之间切换的智能体，在每个项目里遇到的排版都不一样。一个 Glyph 文件在每个项目中的排版都相同，因为格式化工具没有选项。
-        </p>
-        <p>
-          <strong>格式化工具不能改变文件的含义。</strong><code>glyph fmt</code> 的测试方法是解析它自己的输出，并把语法树与输入的语法树比较，覆盖仓库中的每个示例，还在模糊测试下进行。如果一条注释所在的位置在排版中没有对应的行，它会拒绝这个文件（<code>E0500</code>），而不是把注释移到与之无关的代码旁边。
-        </p>
-        <p>
-          清单上还有一项没有完成：<code>glyph fmt</code> 不会对 import 排序，所以两个智能体在不同位置新增 import，仍然会产生不同的 import 块（G358）。
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> “TypeScript 用 Prettier 也能做到”<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        就大部分格式化而言，确实可以。设置了 <code>trailingComma: "all"</code> 的 Prettier 会给最后一个元素加逗号，并把长列表每个元素打印一行，这就实现了第 01 节的大部分内容。区别在三个地方。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>排版只取决于代码。</b>如果作者在 <code>{</code> 后面换了行，Prettier 会让对象字面量保持展开，否则就折叠，所以同一个对象可能因为最初的输入方式不同而被打印成两种样子。两个智能体写同样的东西，会得到两种排版，下一次编辑其中一个时就会表现为重新排版。<code>glyph fmt</code> 无论输入怎样折行，打印出来的 <code>{ a: 1, b: 2 }</code> 都一样。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>没有任何东西可以配置。</b>Prettier 的输出取决于仓库的配置文件，而有些仓库根本没有配置文件。在不同 TypeScript 项目之间切换的智能体，在每个项目里遇到的排版都不一样。一个 Glyph 文件在每个项目中的排版都相同，因为格式化工具没有选项。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>格式化工具不能改变文件的含义。</b><code>glyph fmt</code> 的测试方法是解析它自己的输出，并把语法树与输入的语法树比较，覆盖仓库中的每个示例，还在模糊测试下进行。如果一条注释所在的位置在排版中没有对应的行，它会拒绝这个文件（<code>E0500</code>），而不是把注释移到与之无关的代码旁边。</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>清单上还有一项没有完成：<code>glyph fmt</code> 不会对 import 排序，所以两个智能体在不同位置新增 import，仍然会产生不同的 import 块（G358）。</p></div>
+      <p class="pull-quote">
+        稳定的 diff 能把“智能体改了点东西”变成“智能体<strong>恰好改了这些</strong>”。当噪音降到零，审查就快，信任的成本也低。
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          稳定的 diff 能把“智能体改了点东西”变成“智能体<strong>恰好改了这些</strong>”。当噪音降到零，审查就快，信任的成本也低。
-        </p>
-
-        <h2 class="block-label" id="the-benchmark-coming">基准测试：即将进行<a class="h-anchor" href="#the-benchmark-coming" aria-label="链接到本节">#</a></h2>
-        <p>
-          能体现这一点的数字是每个逻辑改动的 diff 大小：做一处预期的编辑时，Glyph 中有多少行发生变动，对比经过常见格式化工具处理的等价 TypeScript 改动。Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有了真实的历史记录可供取材，就会填入真实的测量结果。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">基准测试：即将进行<a class="ak-anchor" href="#the-benchmark-coming" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        能体现这一点的数字是每个逻辑改动的 diff 大小：做一处预期的编辑时，Glyph 中有多少行发生变动，对比经过常见格式化工具处理的等价 TypeScript 改动。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有了真实的历史记录可供取材，就会填入真实的测量结果。</p></div>
 
       <div class="chart">
         <span class="label">每次改一个字段的 diff 行数 &middot; 越低越好</span>
@@ -550,17 +561,13 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          它让你失去一点自由（不能按自己喜欢的方式手动排一行），换来的是大量的可读性。这是每个打磨类支柱都在做的取舍：放弃一个无关紧要的选择，保住一个重要的信号。
-        </p>
-      </div>
+      <p class="ak-lede">
+        它让你失去一点自由（不能按自己喜欢的方式手动排一行），换来的是大量的可读性。这是每个打磨类支柱都在做的取舍：放弃一个无关紧要的选择，保住一个重要的信号。
+      </p>
 
-      <div class="detail">
-        <p>
-          这对审查中智能体的编辑意味着什么，附改动前后的 diff，见<a href="/zh-cn/answers/diff-stability/">智能体的编辑会保持干净，还是会把整个文件重新格式化？</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        这对审查中智能体的编辑意味着什么，附改动前后的 diff，见<a href="/zh-cn/answers/diff-stability/">智能体的编辑会保持干净，还是会把整个文件重新格式化？</a>
+      </p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/pillars/abstraction/">
           <span class="dir">&larr; 上一个支柱</span>

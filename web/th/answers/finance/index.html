@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ไว้ใจมันกับเรื่องเงินและ input ที่ไม่น่าไว้ใจได้ไหม?","item":"https://glyphlang.io/th/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/finance/#article","headline":"ไว้ใจมันกับเรื่องเงินและ input ที่ไม่น่าไว้ใจได้ไหม?","description":"เงินมีความแม่นยำ (ทศนิยม และจำนวนเต็มที่เกิน 2^53) invariant เป็น type ที่ขอบเขตบังคับใช้ และ input ที่ไม่น่าไว้ใจไปถึง sink ของ SQL หรือ shell โดยไม่ผ่านการ sanitize ไม่ได้","url":"https://glyphlang.io/th/answers/finance/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/finance/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ไว้ใจมันกับเรื่องเงินและ input ที่ไม่น่าไว้ใจได้ไหม?","item":"https://glyphlang.io/th/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/finance/#article","headline":"ไว้ใจมันกับเรื่องเงินและ input ที่ไม่น่าไว้ใจได้ไหม?","description":"เงินมีความแม่นยำ (ทศนิยม และจำนวนเต็มที่เกิน 2^53) invariant เป็น type ที่ขอบเขตบังคับใช้ และ input ที่ไม่น่าไว้ใจไปถึง sink ของ SQL หรือ shell โดยไม่ผ่านการ sanitize ไม่ได้","url":"https://glyphlang.io/th/answers/finance/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/finance/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/finance/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/finance/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">16 &middot; เงินและความปลอดภัย</p>
       <h1 class="q-title">ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,47 +480,62 @@
         ได้ เงิน<strong>แม่นยำ</strong> invariant อย่างไม่ติดลบเป็น<strong>type ที่ขอบเขตบังคับใช้</strong> และ input ที่ไม่น่าไว้ใจ<strong>ไปถึง sink ของ SQL หรือ shell ไม่ได้</strong>ถ้าไม่ผ่านการ sanitize แต่ละข้อเป็น error ตอนคอมไพล์หรือตอน parse ถ้าคุณทำผิด ไม่ใช่ธรรมเนียมที่ใครสักคนต้องจำไว้ห่างออกไปสามฟังก์ชัน
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-is-not-a-float">เงินไม่ใช่ float<a class="h-anchor" href="#money-is-not-a-float" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ระบบการเงินที่ใช้ <code>number</code> แบบ IEEE-754 คือบั๊กที่รอการรายงาน: <code>0.1 + 0.2</code> ไม่ใช่ <code>0.3</code> และค่าที่เกิน 2<sup>53</sup> เสียความแม่นยำไปเงียบๆ <code>std/decimal</code> เป็น fixed-point ฐานสิบที่แม่นยำบน BigInt การบวก ลบ และคูณแม่นยำ การหารต้องระบุ scale และปัดครึ่งออกจากศูนย์ จำนวนเงินที่ผิดรูป parse ได้เป็น <code>Err</code> ไม่มีวันเป็น <code>NaN</code> แบบเงียบๆ
-        </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
 <span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">บั๊กที่มันกำจัด</span>
+          </div>
+          <div class="code">
+            <span class="cap">บั๊กที่มันกำจัด</span>
 <pre><span class="c">// JS number, the default everywhere:</span>
 <span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
 <span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
 <span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
 <span class="c">// None of these are your money anymore.</span></pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ระบบการเงินที่ใช้ <code>number</code> แบบ IEEE-754 คือบั๊กที่รอการรายงาน: <code>0.1 + 0.2</code> ไม่ใช่ <code>0.3</code> และค่าที่เกิน 2<sup>53</sup> เสียความแม่นยำไปเงียบๆ</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="ids-and-counters-stay-exact-past-253">id และตัวนับยังแม่นยำเมื่อเกิน 2<sup>53</sup><a class="h-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          id บัญชีหรือตัวนับในบัญชีแยกประเภทที่ล้นช่วงของ float แล้วถูกปัด เป็นหายนะอีกแบบหนึ่ง <code>bigint</code> คือจำนวนเต็มความแม่นยำไม่จำกัดที่แม่นยำ มี literal แบบ <code>123n</code> และ field ของ record ที่มี type เป็น <code>bigint</code> จะ validate <code>typeof === "bigint"</code> ที่ขอบเขต id ที่มาเป็น <code>number</code> ใน JSON จึงถูกปฏิเสธแทนที่จะถูกตัดทอนไปเงียบๆ
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">เงินไม่ใช่ float</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">id และตัวนับ</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">invariant เป็น type</a></li>
+          <li><a href="#injection-is-a-compile-error">Injection</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-invariant-is-a-type-not-a-comment">invariant เป็น type ไม่ใช่ comment<a class="h-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          "จำนวนเงินไม่ติดลบ" และ "คะแนนอยู่ระหว่าง 1 ถึง 5" คือการตรวจที่เขียนครั้งเดียวแล้วถูกลืมทีหลัง refinement แบบ <code>where</code> ใส่ invariant ไว้ใน type และ descriptor บังคับใช้มันที่ขอบเขต ค่าที่ไม่ผ่าน predicate จะไม่มีวันกลายเป็น <code>Amount</code> ตั้งแต่แรก
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">เงินไม่ใช่ float<a class="ak-anchor" href="#money-is-not-a-float" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code> เป็น fixed-point ฐานสิบที่แม่นยำบน BigInt
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>เลขคณิตที่แม่นยำ</b>การบวก ลบ และคูณแม่นยำ</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>การหาร</b>การหารต้องระบุ scale และปัดครึ่งออกจากศูนย์</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>input ที่ผิด</b>จำนวนเงินที่ผิดรูป parse ได้เป็น <code>Err</code> ไม่มีวันเป็น <code>NaN</code> แบบเงียบๆ</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">id และตัวนับยังแม่นยำเมื่อเกิน 2<sup>53</sup><a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        id บัญชีหรือตัวนับในบัญชีแยกประเภทที่ล้นช่วงของ float แล้วถูกปัด เป็นหายนะอีกแบบหนึ่ง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code> คือจำนวนเต็มความแม่นยำไม่จำกัดที่แม่นยำ มี literal แบบ <code>123n</code> และ field ของ record ที่มี type เป็น <code>bigint</code> จะ validate <code>typeof === "bigint"</code> ที่ขอบเขต id ที่มาเป็น <code>number</code> ใน JSON จึงถูกปฏิเสธแทนที่จะถูกตัดทอนไปเงียบๆ
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">invariant เป็น type ไม่ใช่ comment<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "จำนวนเงินไม่ติดลบ" และ "คะแนนอยู่ระหว่าง 1 ถึง 5" คือการตรวจที่เขียนครั้งเดียวแล้วถูกลืมทีหลัง refinement แบบ <code>where</code> ใส่ invariant ไว้ใน type และ descriptor บังคับใช้มันที่ขอบเขต
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
@@ -530,14 +545,18 @@ decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span c
 <span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
 <span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ค่าที่ไม่ผ่าน predicate จะไม่มีวันกลายเป็น <code>Amount</code> ตั้งแต่แรก
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="injection-is-a-compile-error">injection เป็น compile error<a class="h-anchor" href="#injection-is-a-compile-error" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เส้นทางคลาสสิกสู่การรันโค้ดจากระยะไกลคือ input ที่ไม่น่าไว้ใจไปถึง SQL query, คำสั่ง shell หรือ template HTML <code>std/taint</code> ทำให้สิ่งนั้นเป็น type error ค่าจากภายนอกเป็น <code>Tainted</code> sink ที่คุณต้องการป้องกันรับ <code>Trusted</code> ทั้งสองต่างกันในเชิงโครงสร้าง ทางเดียวที่จะไปจากตัวหนึ่งสู่อีกตัวคือ <code>sanitize</code> ที่เขียนชัดแจ้ง ส่งค่าที่ tainted ให้ sink ตรงๆ แล้ว <code>tsc</code> จะไม่ยอมคอมไพล์
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">injection เป็น compile error<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เส้นทางคลาสสิกสู่การรันโค้ดจากระยะไกลคือ input ที่ไม่น่าไว้ใจไปถึง SQL query, คำสั่ง shell หรือ template HTML <code>std/taint</code> ทำให้สิ่งนั้นเป็น type error
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>สอง type</b>ค่าจากภายนอกเป็น <code>Tainted</code> sink ที่คุณต้องการป้องกันรับ <code>Trusted</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>ทางข้ามทางเดียว</b>ทั้งสองต่างกันในเชิงโครงสร้าง ทางเดียวที่จะไปจากตัวหนึ่งสู่อีกตัวคือ <code>sanitize</code> ที่เขียนชัดแจ้ง</li>
+      </ul>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">เส้นทางที่ปลอดภัยคอมไพล์ผ่าน</span>
@@ -566,19 +585,36 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
 <span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ส่งค่าที่ tainted ให้ sink ตรงๆ แล้ว <code>tsc</code> จะไม่ยอมคอมไพล์
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>std/decimal</code> สำหรับเงินที่แม่นยำ, <code>bigint</code> สำหรับจำนวนเต็มขนาดใหญ่ที่แม่นยำ, refinement แบบ <code>where</code> เพื่อให้ invariant ถูก validate ที่ขอบเขต และ <code>std/taint</code> เพื่อให้ input ที่ไม่น่าไว้ใจไปถึง sink ที่ป้องกันไว้ไม่ได้ถ้าไม่มี <code>sanitize</code> ที่ชัดแจ้ง แต่ละข้อถูกตรวจ: จำนวนเงินหรือ id ที่ผิด fail ที่ <code>parse</code>, invariant ที่ผิด fail ที่ <code>parse</code> และค่าที่ไม่ผ่านการ sanitize fail ที่ <code>tsc</code></p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">หยุดตรงไหน</h3>
-          <p>ตอนนี้ refinement แบบ <code>where</code> ครอบคลุม type พื้นฐานที่เป็น primitive ส่วน invariant ของ record และข้าม field (<code>where value.paid &lt;= value.total</code>) เป็นส่วนขยายที่วางแผนไว้ taint เป็นวินัยที่คุณเลือกใช้โดยให้ type ของ sink เป็น <code>Trusted</code> ไม่ใช่การวิเคราะห์ flow อัตโนมัติ: คอมไพเลอร์บังคับใช้ขอบเขตที่คุณประกาศ มันไม่ได้อนุมาน taint ทั่วทั้งโปรแกรมให้คุณ</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> สำหรับเงินที่แม่นยำ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> สำหรับจำนวนเต็มขนาดใหญ่ที่แม่นยำ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">refinement แบบ <code>where</code> เพื่อให้ invariant ถูก validate ที่ขอบเขต</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/taint</code> เพื่อให้ input ที่ไม่น่าไว้ใจไปถึง sink ที่ป้องกันไว้ไม่ได้ถ้าไม่มี <code>sanitize</code> ที่ชัดแจ้ง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">แต่ละข้อถูกตรวจ: จำนวนเงินหรือ id ที่ผิด fail ที่ <code>parse</code>, invariant ที่ผิด fail ที่ <code>parse</code> และค่าที่ไม่ผ่านการ sanitize fail ที่ <code>tsc</code></span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> หยุดตรงไหน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ตอนนี้ refinement แบบ <code>where</code> ครอบคลุม type พื้นฐานที่เป็น primitive ส่วน invariant ของ record และข้าม field (<code>where value.paid &lt;= value.total</code>) เป็นส่วนขยายที่วางแผนไว้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">taint เป็นวินัยที่คุณเลือกใช้โดยให้ type ของ sink เป็น <code>Trusted</code> ไม่ใช่การวิเคราะห์ flow อัตโนมัติ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>taint เป็นวินัยที่คุณเลือกใช้โดยให้ type ของ sink เป็น <code>Trusted</code> ไม่ใช่การวิเคราะห์ flow อัตโนมัติ: คอมไพเลอร์บังคับใช้ขอบเขตที่คุณประกาศ มันไม่ได้อนุมาน taint ทั่วทั้งโปรแกรมให้คุณ</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/language/">
           <span class="dir">&larr; ก่อนหน้า</span>

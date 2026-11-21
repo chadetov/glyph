@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">21 &middot; Düzenlemeden önce</p>
       <h1 class="q-title">Derleyici bir değişikliğin neyi bozacağını ben yapmadan önce söyleyebilir mi?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,26 +478,13 @@
         Altı düzenleme türü için evet. <code>glyph_impact</code>, değiştirmek üzere olduğunuz tanımı ve değişikliğin kendisini (yeniden adlandırma, bir variant'ı kaldırma, bir parametrenin tipini değiştirme, arity'sini değiştirme, silme) alır ve kapalı bir listeden <strong>her yer için tek bir hükümle</strong> yanıt verir; her birinin yanında neden başka bir hüküm değil de o hüküm olduğunun gerekçesi bulunur.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir fonksiyonu yeniden adlandırırken, bir union'ı genişletirken ya da bir parametrenin kabul ettiği şeyi değiştirirken ya eski ismi grep'leyip her çağrıyı bulduğunuzu umarsınız ya da düzenlemeyi yapıp derleyicinin sonrasında söylediklerini okursunuz. İki yaklaşım da hangi yerlerin derlenmeye devam edip sessizce yanlış hâle geleceğini söylemez: catch-all arm'ı olan bir <code>match</code>, bir variant eklediğinizde başarısız olmaz, sadece yeni durumu kimsenin seçmediği bir yere yönlendirmeye başlar. O yer hiçbir build'de görünmez. <code>glyph_impact</code>, derleyicinin çalıştırdığı analizin aynısı üzerinden, düzenlemeden önce yanıt verir.
-        </p>
-
-        <h2 class="block-label" id="what-comes-back">Ne döner<a class="h-anchor" href="#what-comes-back" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          İstek, bir varlığı <code>module::name</code> kimliğiyle ve kapalı bir listeden bir değişiklikle adlandırır: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu. Hükümler kapalıdır ve her biri tek bir şey anlamına gelir: <code>WILL_FAIL</code> (derleyici yerin derlenmeyi bırakacağını kanıtlayabilir), <code>ABSORBS</code> (değişikliğin burada sessizce kabul edileceğini kanıtlayabilir), <code>SAFE</code> (yerin doğru kalacağını kanıtlayabilir), <code>UNDETERMINED</code> (bu yere baktı ve sonucu belirleyemiyor) ve <code>NOT_INDEXED</code> (bu biçimdeki bir yer için soru hiç sorulamıyor).
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Bir modül <code>label(s: string) -&gt; number</code> tanımlar. Ona üç çağıran ulaşır: biri bir string literal geçirir, biri tipi başka bir modülden import edilmiş bir <code>string</code> alias'ı olan bir değer geçirir ve biri <code>label</code>'ı bir değer olarak okur ve hiç çağırmaz. <code>change_signature_type</code>'ın her birine ne yaptığını sormak üç farklı hüküm getirir, çünkü bunlar üç farklı iddiadır:
         </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">istek</span>
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">istek</span>
 <pre>{
   <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
   <span class="pk">"params"</span>: {
@@ -508,9 +495,9 @@
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">sonuç, üç yere kısaltılmış</span>
+          </div>
+          <div class="code term">
+            <span class="cap">sonuç, üç yere kısaltılmış</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
   <span class="pk">"impact"</span>: [
@@ -549,32 +536,106 @@
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Aynı düzenleme, üç yer, üç hüküm ve her birindeki <code>because</code>, bir kategori etiketi değil, derleyicinin ürettiği cümlenin ta kendisidir.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bunun yansıttığı derleyici testi</span></summary><div class="body">
+          <p>
+            Bu, derleyicinin bu değişiklik için kendi testini yansıtır (<code>glyph-cli/tests/agent_loop.rs</code> içindeki <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>): test düzenlemeyi sonradan yapar ve E0211'in tam olarak <code>WILL_FAIL</code>'in söylediği yerde ortaya çıktığını ve derleyicinin diğer ikisinde sessiz kaldığını kontrol eder.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#what-comes-back">Ne döner</a></li>
+          <li><a href="#on-a-real-application">Gerçek bir uygulamada</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir fonksiyonu yeniden adlandırırken, bir union'ı genişletirken ya da bir parametrenin kabul ettiği şeyi değiştirirken ya eski ismi grep'leyip her çağrıyı bulduğunuzu umarsınız ya da düzenlemeyi yapıp derleyicinin sonrasında söylediklerini okursunuz.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        İki yaklaşım da hangi yerlerin derlenmeye devam edip sessizce yanlış hâle geleceğini söylemez: catch-all arm'ı olan bir <code>match</code>, bir variant eklediğinizde başarısız olmaz, sadece yeni durumu kimsenin seçmediği bir yere yönlendirmeye başlar. O yer hiçbir build'de görünmez. <code>glyph_impact</code>, derleyicinin çalıştırdığı analizin aynısı üzerinden, düzenlemeden önce yanıt verir.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">Ne döner<a class="ak-anchor" href="#what-comes-back" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        İstek, bir varlığı <code>module::name</code> kimliğiyle ve kapalı bir listeden bir değişiklikle adlandırır: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Hükümler kapalıdır ve her biri tek bir şey anlamına gelir:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>Hüküm</th><th>Anlamı</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">derleyici yerin derlenmeyi bırakacağını kanıtlayabilir</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">değişikliğin burada sessizce kabul edileceğini kanıtlayabilir</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">yerin doğru kalacağını kanıtlayabilir</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">bu yere baktı ve sonucu belirleyemiyor</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">bu biçimdeki bir yer için soru hiç sorulamıyor</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">değişikliğin neden zorunlu olduğu ve her kaydın ne tuttuğu</span></summary><div class="body">
         <p>
-          Aynı düzenleme, üç yer, üç hüküm ve her birindeki <code>because</code>, bir kategori etiketi değil, derleyicinin ürettiği cümlenin ta kendisidir. Bu, derleyicinin bu değişiklik için kendi testini yansıtır (<code>glyph-cli/tests/agent_loop.rs</code> içindeki <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>): test düzenlemeyi sonradan yapar ve E0211'in tam olarak <code>WILL_FAIL</code>'in söylediği yerde ortaya çıktığını ve derleyicinin diğer ikisinde sessiz kaldığını kontrol eder.
+          Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="on-a-real-application">Gerçek bir uygulamada<a class="h-anchor" href="#on-a-real-application" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor. Variant gerçekten eklendiğinde derleyici tam olarak 8 <code>E0200</code> hatası bildirir, tam olarak tahmin edilen 8 yerde, ve 2 <code>ABSORBS</code> yerinde önce de sonra da hiçbir şey söylemez. Aynı uygulamada catch-all arm'lar için bir metin araması, yani araç olmadan yapacağınız şey, aynı 2 gerçek yeri 20 sonuç arasına gömülü olarak bulur (precision 0.10) ve başarısız olan 8 yer hakkında hiçbir şey söylemez, çünkü bir <code>match</code>'in hangi tipi incelediğine dair hiçbir fikri yoktur.
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">Gerçek bir uygulamada<a class="ak-anchor" href="#on-a-real-application" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Build ile doğrulandı</b>Variant gerçekten eklendiğinde derleyici tam olarak 8 <code>E0200</code> hatası bildirir, tam olarak tahmin edilen 8 yerde, ve 2 <code>ABSORBS</code> yerinde önce de sonra da hiçbir şey söylemez.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>Bunun yerine bir metin araması</b>Aynı uygulamada catch-all arm'lar için bir metin araması, yani araç olmadan yapacağınız şey, aynı 2 gerçek yeri 20 sonuç arasına gömülü olarak bulur (precision 0.10) ve başarısız olan 8 yer hakkında hiçbir şey söylemez, çünkü bir <code>match</code>'in hangi tipi incelediğine dair hiçbir fikri yoktur.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Altı kapalı değişiklik türü (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) ve beş kapalı hüküm; etkilenen her yer için gerekçesi ve diagnostic koduyla bir kayıt. <code>change_signature_type</code>, checker'ın kendi karşılaştırma kurallarına göre çağrı argümanı başına belirlenir ve bir yer, argümanlarının en zayıfı kadardır. Bir JSX elemanı indirgendiği çağrı olarak belirlenir: <code>&lt;Card title="x" /&gt;</code>, <code>Card</code>'a geçirilen tek bir props record'udur ve her attribute, kontrol edildiği alana karşı, aynı tipteki bir çağrı argümanının alacağı hükümle listelenir. Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p>Derinlik bir adımda kesin, ötesinde boştur: Glyph bir tanımın tipini asla gövdesinden çıkarmaz, bu yüzden çağrılan bir fonksiyonun tipi çağıranın imzasına ulaşamaz ve X'teki bir değişiklik yalnızca X'i adlandıran ifadeleri geçersiz kılabilir. Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner, çünkü ikinci bir adımın ihtiyaç duyduğu şey birinin ilk yere yapacağı onarımdır ve o onarım henüz yoktur. <code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı). Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Altı kapalı değişiklik türü (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) ve beş kapalı hüküm; etkilenen her yer için gerekçesi ve diagnostic koduyla bir kayıt.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code>, checker'ın kendi karşılaştırma kurallarına göre çağrı argümanı başına belirlenir ve bir yer, argümanlarının en zayıfı kadardır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir JSX elemanı indirgendiği çağrı olarak belirlenir</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Bir JSX elemanı indirgendiği çağrı olarak belirlenir: <code>&lt;Card title="x" /&gt;</code>, <code>Card</code>'a geçirilen tek bir props record'udur ve her attribute, kontrol edildiği alana karşı, aynı tipteki bir çağrı argümanının alacağı hükümle listelenir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kapsam arama başına belirtilir ve her düğüm nereden geldiğini taşır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Derinlik bir adımda kesin, ötesinde boştur</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Derinlik bir adımda kesin, ötesinde boştur: Glyph bir tanımın tipini asla gövdesinden çıkarmaz, bu yüzden çağrılan bir fonksiyonun tipi çağıranın imzasına ulaşamaz ve X'teki bir değişiklik yalnızca X'i adlandıran ifadeleri geçersiz kılabilir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner, çünkü ikinci bir adımın ihtiyaç duyduğu şey birinin ilk yere yapacağı onarımdır ve o onarım henüz yoktur.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/binary/">
           <span class="dir">&larr; Önceki</span>

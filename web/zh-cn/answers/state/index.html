@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"怎样在函数之间共享可变状态？","item":"https://glyphlang.io/zh-cn/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/state/#article","headline":"怎样在函数之间共享可变状态？","description":"Glyph 没有可变的全局变量。共享状态放在 std/store 中：一个模块级的 const，它的 get、set 和 update 是唯一的写入方式，一次搜索就能全部找到。","url":"https://glyphlang.io/zh-cn/answers/state/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/state/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"怎样在函数之间共享可变状态？","item":"https://glyphlang.io/zh-cn/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/state/#article","headline":"怎样在函数之间共享可变状态？","description":"Glyph 没有可变的全局变量。共享状态放在 std/store 中：一个模块级的 const，它的 get、set 和 update 是唯一的写入方式，一次搜索就能全部找到。","url":"https://glyphlang.io/zh-cn/answers/state/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/state/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/state/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/state/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">14 &middot; 共享状态</p>
       <h1 class="q-title">怎样在函数之间共享可变状态？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -480,12 +480,10 @@
         用 <strong>store</strong>。Glyph 没有可变的全局变量，模块绑定都是 <code>const</code>。共享状态放在 <code>std/store</code> 中：一个模块级的 <code>const</code>，持有一个值，用 <code>get()</code> 读取，用 <code>set()</code>/<code>update()</code> 修改。绑定本身永远不变，变的只有它里面的值，而且只能通过方法调用，所以每一次写入都是一个可以 grep 到的 <code>.set(</code> 或 <code>.update(</code>。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
-        <p>
-          在模块作用域声明一次 store，模块中的每个函数都共享它。不需要在 <code>main</code> 里层层传递 <code>let</code>，也不需要捕获变量的闭包：
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">看看实际效果<a class="ak-anchor" href="#see-it" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在模块作用域声明一次 store，模块中的每个函数都共享它。不需要在 <code>main</code> 里层层传递 <code>let</code>，也不需要捕获变量的闭包：
+      </p>
 
       <div class="two-up stack">
         <div class="code">
@@ -528,28 +526,35 @@
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-a-store-and-not-a-mutable-global">为什么用 store，而不用可变的全局变量<a class="h-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="链接到本节">#</a></h2>
-        <p>
-          这是有意的设计选择。Glyph 把 <code>mut</code> 限制在局部赋值上，并让模块绑定保持 <code>const</code>，因为散落各处的可写全局变量正是让状态难以推理、难以<em>找到</em>的原因。store 不需要放宽其中任何一条规则：<code>const s</code> 绑定是不可变的，里面的值只能通过 <code>set</code>/<code>update</code> 改变。所以共享状态是以<strong>库而不是新语法</strong>的形式提供的（没有线性类型，也没有放宽修改规则），修改集中在一个经过审查的地方，而不是分散在整个程序中。
-        </p>
-        <p>
-          有一个和 TypeScript 相同的坑：空集合无法推断元素类型，所以要用显式的类型参数来初始化：<code>create&lt;Array&lt;Task&gt;&gt;([])</code>。标量 store（<code>create(0)</code>）可以正常推断。
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">为什么用 store，而不用可变的全局变量<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        这是有意的设计选择。Glyph 把 <code>mut</code> 限制在局部赋值上，并让模块绑定保持 <code>const</code>，因为散落各处的可写全局变量正是让状态难以推理、难以<em>找到</em>的原因。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>绑定本身不动</b>store 不需要放宽其中任何一条规则：<code>const s</code> 绑定是不可变的，里面的值只能通过 <code>set</code>/<code>update</code> 改变。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>是库，不是语法</b>所以共享状态是以<strong>库而不是新语法</strong>的形式提供的（没有线性类型，也没有放宽修改规则），修改集中在一个经过审查的地方，而不是分散在整个程序中。</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        有一个和 TypeScript 相同的坑：空集合无法推断元素类型，所以要用显式的类型参数来初始化：<code>create&lt;Array&lt;Task&gt;&gt;([])</code>。标量 store（<code>create(0)</code>）可以正常推断。
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p><code>std/store</code>，提供 <code>create</code>、<code>get</code>、<code>set</code> 和 <code>update</code>：共享可变状态唯一的、可以 grep 的归属地。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>基于同一个基础构件的便利功能（派生/计算 store、订阅），叠加在上层，不改变语言本身。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code>，提供 <code>create</code>、<code>get</code>、<code>set</code> 和 <code>update</code>：共享可变状态唯一的、可以 grep 的归属地。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">基于同一个基础构件的便利功能（派生/计算 store、订阅），叠加在上层，不改变语言本身。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/react/">
           <span class="dir">&larr; 上一篇</span>

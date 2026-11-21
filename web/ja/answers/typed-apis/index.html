@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"API ごとにバリデータを手書きする必要がありますか？","item":"https://glyphlang.io/ja/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/typed-apis/#article","headline":"API ごとにバリデータを手書きする必要がありますか？","description":"いいえ。Glyph では型がそのまま実行時のバリデータになるので、リクエストとレスポンスのボディはバリデータを書かずに検査されます。型は OpenAPI の仕様や .d.ts から作ることもできます。","url":"https://glyphlang.io/ja/answers/typed-apis/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"API ごとにバリデータを手書きする必要がありますか？","item":"https://glyphlang.io/ja/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/typed-apis/#article","headline":"API ごとにバリデータを手書きする必要がありますか？","description":"いいえ。Glyph では型がそのまま実行時のバリデータになるので、リクエストとレスポンスのボディはバリデータを書かずに検査されます。型は OpenAPI の仕様や .d.ts から作ることもできます。","url":"https://glyphlang.io/ja/answers/typed-apis/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/typed-apis/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
-      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/typed-apis/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -695,7 +694,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           リクエストボディはデコード済みの <code>unknown</code> として届くので、そこでは代わりに <code>T.parse(value)</code> を使います。保証は同じで、キャストは不要です。
         </p>
         <p>
-          信頼できない境界の残りも同じように型付けされています。<code>header(req, name)</code> と <code>query_param(req, name)</code> は <code>Option&lt;string&gt;</code> を返すので、ヘッダーやクエリパラメータがなければ <code>None</code> になり、<code>match</code> がその処理を<em>強制</em>します。<code>None</code> のアームを省くとコンパイルできません。存在しない入力を、あるかのように読むことはできません。
+          信頼できない境界の残りも同じように型付けされています。<code>header(req, name)</code> と <code>query_param(req, name)</code> は <code>Option&lt;string&gt;</code> を返すので、ヘッダーやクエリパラメータがなければ <code>None</code> になり、<code>match</code> がその処理を<em>強制</em>します。<code>None</code> のアームを省くとコンパイルできません。存在しない入力を、あるかのように読むことはできません。ボディのフィールドも同じ規則に従います。<code>timeout_ms?: number</code> は「キーがない」か「数値」のどちらかなので、<code>{"timeout_ms": null}</code> は <code>T.parse</code>、<code>is T</code>、<code>json.parse&lt;T&gt;</code> のどれでも <code>["timeout_ms"]</code> での <code>Err</code> になります。送り手が <code>null</code> を書く場合は <code>timeout_ms?: Nullable&lt;number&gt;</code> と宣言してください。0.1.152 までは、その <code>null</code> が <code>Ok</code> の中に入って返っていました。
         </p>
       </div></details>
 
@@ -708,15 +707,15 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           <thead><tr><th>キーの型</th><th><code>parse</code> が各キーで検査すること</th></tr></thead>
           <tbody>
             <tr><td>文字列リテラルユニオン</td><td>列挙されたキーとちょうど一致すること。欠けも余分もなし</td></tr>
-            <tr><td><code>where</code> で絞り込んだ型</td><td>述語</td></tr>
+            <tr><td><code>where</code> で絞り込んだ <code>string</code> または数値</td><td>述語</td></tr>
             <tr><td><code>int</code></td><td>整数の素直な表記であること。<code>"01"</code> や <code>"1.5"</code> は失敗</td></tr>
             <tr><td><code>string</code></td><td>新しい検査はなし</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">絞り込んだ型と int のキー、そしてまだ tsc に任せていること</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">絞り込んだ型と int のキー、そしてチェッカーが保証すること</span></summary><div class="body">
         <p>
-          <code>where</code> で絞り込んだキーの型は、すべてのキーで述語を実行します。<code>int</code> のキーは整数の素直な表記でなければならないので、<code>"01"</code> や <code>"1.5"</code> は拒否されます。<code>Record&lt;string, V&gt;</code> は以前とまったく同じように検査されます。コード中に書いた値のキーは、Glyph 自身のチェッカーは今も <code>tsc</code> に任せています。また、自身の型パラメータをキーにしたジェネリックなレコードは、そのパラメータが <code>string</code> でない限り拒否されます。
+          <code>where</code> で絞り込んだキーの型は、すべてのキーで述語を実行します。<code>int</code> のキーは整数の素直な表記でなければならないので、<code>"01"</code> や <code>"1.5"</code> は拒否されます。<code>Record&lt;string, V&gt;</code> は以前とまったく同じように検査されます。<code>where</code> で文字列リテラルユニオンを絞り込むことはできません（<code>type T2 = Tier where value != "pro"</code> は 0.1.152 から <code>E0300</code> です）。意図するメンバーをそれ自体のユニオンとして <code>type T2 = "free"</code> のように書けば、同じ厳密なキーの検査付きで <code>Record</code> のキーにできます。0.1.153 からは、コード中に書いた値のキーも Glyph 自身のチェッカーが保証します。<code>Record&lt;Tier, int&gt;</code> と宣言された場所に <code>Record&lt;string, int&gt;</code> は置けず、その逆も同じです。そのため境界を越えるには <code>json.parse</code> か <code>is Record&lt;Tier, int&gt;</code> のアームを通ることになり、<code>record.set</code> は渡されたキーをそのまま保ちます。また、自身の型パラメータをキーにしたジェネリックなレコードは、そのパラメータが <code>string</code> でない限り拒否されます。
         </p>
       </div></details>
 
@@ -1012,7 +1011,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </ul>
         </section>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/embedding/">
           <span class="dir">&larr; 前へ</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Yapay zekâ kullanmıyorsam Glyph'e değer mi?","item":"https://glyphlang.io/tr/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/human-value/#article","headline":"Yapay zekâ kullanmıyorsam Glyph'e değer mi?","description":"Evet. Öne çıkan konu yapay zekâ ajanları, ama her garanti (kapsamı tam match, any yok, çalışma zamanında kontrol edilen tipler, grep'lenebilen kod, kararlı diff'ler) insanlara da yardımcı olur.","url":"https://glyphlang.io/tr/answers/human-value/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/human-value/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Yapay zekâ kullanmıyorsam Glyph'e değer mi?","item":"https://glyphlang.io/tr/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/human-value/#article","headline":"Yapay zekâ kullanmıyorsam Glyph'e değer mi?","description":"Evet. Öne çıkan konu yapay zekâ ajanları, ama her garanti (kapsamı tam match, any yok, çalışma zamanında kontrol edilen tipler, grep'lenebilen kod, kararlı diff'ler) insanlara da yardımcı olur.","url":"https://glyphlang.io/tr/answers/human-value/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/human-value/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/human-value/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/human-value/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">06 &middot; İnsanlar için de</p>
       <h1 class="q-title">Yapay zekâ kullanmıyorsam Glyph'e değer mi?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,42 +478,59 @@
         Evet. Yapay zekâ ajanları ön planda, çünkü ajanlar bu şeyleri sürekli bozuyor; ama altındaki her garanti, <strong>bir insanın doğrudan faydalandığı düz bir mühendislik kazanımıdır</strong>. Çalışma zamanında daha az sürpriz, daha küçük diff'ler, gerçekten grep'leyebileceğiniz kod. Hiçbiri bir LLM gerektirmez.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="these-are-language-features-not-ai-features">Bunlar yapay zekâ özellikleri değil, dil özellikleri<a class="h-anchor" href="#these-are-language-features-not-ai-features" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#these-are-language-features-not-ai-features">Dil özellikleri</a></li>
+          <li><a href="#what-you-get-solo">Tek başınıza ne kazanırsınız</a></li>
+          <li><a href="#so-why-lead-with-agents">Neden ajanlarla başlıyoruz</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="these-are-language-features-not-ai-features">Bunlar yapay zekâ özellikleri değil, dil özellikleri<a class="ak-anchor" href="#these-are-language-features-not-ai-features" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "Ajan" kelimesini çıkarın ve listeyi okuyun: <code>any</code> yok, kapsamı tam <code>match</code>, değer olarak hatalar, çalışma zamanında kontrol edilen tipler, isim başına tek tanım biçimi, diff açısından kararlı kanonik bir format.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Rust, Elm ya da OCaml yazmış herkes bunları bir kod tabanının bakımını keyifli kılan şeyler olarak tanır. Yapay zekâ kod yazmaya başlamadan çok önce de iyi fikirlerdi. Glyph onları yalnızca dosya dosya benimseyebileceğiniz, TypeScript'e benzeyen bir dile getiriyor.</p></div>
+
+      <h2 class="ak-h" id="what-you-get-solo">Tek başınıza ne kazanırsınız<a class="ak-anchor" href="#what-you-get-solo" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Gece 3'te daha az alarm.</b>Sınırdan gelen veri yapısı gereği doğrulanır (<code>User.parse</code>) ve eksik bir durum, production'da ortaya çıkan bir <code>undefined</code> değil, bir derleme hatasıdır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>Daha hızlı inceleme.</b>Tek satırlık bir değişiklik tek satırlık bir diff'tir; inceleyen kişi etrafındaki biçimlendirme gürültüsünü değil, değişikliği okur.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4l3.6 3.6"/></svg></span><b>Her şeyi bulabilirsiniz.</b><code>grep "fn parseUser"</code> tanıma ulaşır: onu dağıtacak overload, barrel ya da decorator yoktur.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5c0-2.3 1.8-4 4-4s4 1.7 4 4"/><path d="M10.5 3.4a2.3 2.3 0 010 4.4M12 9.8c1.2.6 2 1.9 2 3.7"/></svg></span><b>Daha kolay alışma süreci.</b>Her şeyi yapmanın tek bir yolu olan küçük bir çekirdek, ekibe katılan bir sonraki kişinin öğrenmesi gereken yazısız bilginin daha az olması demektir.</li>
+      </ul>
+
+      <h2 class="ak-h" id="so-why-lead-with-agents">Peki neden ajanlarla başlıyoruz?<a class="ak-anchor" href="#so-why-lead-with-agents" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Çünkü getirisi orada <em>daha büyük</em>. Bir insan sonunda linter'ı çalıştırmayı ve durumu ele almayı öğrenir; bir ajan ise <code>any</code>'ye uzanır, arm'ı unutur ve yeşil bir build ile merge eder; isteğe bağlı araçları açık tutacağına da güvenilemez.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">taban her durumda orada</span></summary><div class="body">
         <p>
-          "Ajan" kelimesini çıkarın ve listeyi okuyun: <code>any</code> yok, kapsamı tam <code>match</code>, değer olarak hatalar, çalışma zamanında kontrol edilen tipler, isim başına tek tanım biçimi, diff açısından kararlı kanonik bir format. Rust, Elm ya da OCaml yazmış herkes bunları bir kod tabanının bakımını keyifli kılan şeyler olarak tanır. Yapay zekâ kod yazmaya başlamadan çok önce de iyi fikirlerdi. Glyph onları yalnızca dosya dosya benimseyebileceğiniz, TypeScript'e benzeyen bir dile getiriyor.
+          Katılığı <em>isteğe bağlı olmaktan</em> çıkarmanın değeri, kodu bir makine yazdığında katlanarak artar. Ama taban (yukarıdaki kazanımlar) bir ajan kullansanız da kullanmasanız da oradadır.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Onu, yalnızca bir ajan kullanıyorsanız savunulabilecek bir ajan aracı olarak değil, ajanlar için de çok iyi olan daha katı bir TypeScript olarak düşünün.</p></div>
 
-        <h2 class="block-label" id="what-you-get-solo">Tek başınıza ne kazanırsınız<a class="h-anchor" href="#what-you-get-solo" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Gece 3'te daha az alarm.</strong> Sınırdan gelen veri yapısı gereği doğrulanır (<code>User.parse</code>) ve eksik bir durum, production'da ortaya çıkan bir <code>undefined</code> değil, bir derleme hatasıdır.</li>
-          <li><strong>Daha hızlı inceleme.</strong> Tek satırlık bir değişiklik tek satırlık bir diff'tir; inceleyen kişi etrafındaki biçimlendirme gürültüsünü değil, değişikliği okur.</li>
-          <li><strong>Her şeyi bulabilirsiniz.</strong> <code>grep "fn parseUser"</code> tanıma ulaşır: onu dağıtacak overload, barrel ya da decorator yoktur.</li>
-          <li><strong>Daha kolay alışma süreci.</strong> Her şeyi yapmanın tek bir yolu olan küçük bir çekirdek, ekibe katılan bir sonraki kişinin öğrenmesi gereken yazısız bilginin daha az olması demektir.</li>
-        </ul>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Takas</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yeni bir şeye başlıyorsanız ya da ekibiniz zaten ML ailesinin disiplinine değer veriyorsa, kazanımlar hemen gelir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Olgun ve araçlarla iyi donatılmış bir TS stack'inde tek başınıza çalışıyorsanız karar daha zor: Glyph erken bir önizleme ve bu, tartılması gereken gerçek bir maliyet.</span></span></li>
+          </ul>
+        </section>
 
-        <h2 class="block-label" id="so-why-lead-with-agents">Peki neden ajanlarla başlıyoruz?<a class="h-anchor" href="#so-why-lead-with-agents" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Çünkü getirisi orada <em>daha büyük</em>. Bir insan sonunda linter'ı çalıştırmayı ve durumu ele almayı öğrenir; bir ajan ise <code>any</code>'ye uzanır, arm'ı unutur ve yeşil bir build ile merge eder; isteğe bağlı araçları açık tutacağına da güvenilemez. Katılığı <em>isteğe bağlı olmaktan</em> çıkarmanın değeri, kodu bir makine yazdığında katlanarak artar. Ama taban (yukarıdaki kazanımlar) bir ajan kullansanız da kullanmasanız da oradadır.
-        </p>
-
-        <p class="callout">
-          Onu, yalnızca bir ajan kullanıyorsanız savunulabilecek bir ajan aracı olarak değil, ajanlar için de çok iyi olan daha katı bir TypeScript olarak düşünün.
-        </p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Her iki durumda da</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Kaçış yolu kalıcı: sahibi olduğunuz okunabilir TypeScript'e derlenir, yani onu tek bir modülde denemek ucuz ve geri alınabilir.</span></span></li>
+          </ul>
+        </section>
       </div>
-
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Takas</h3>
-          <p>Yeni bir şeye başlıyorsanız ya da ekibiniz zaten ML ailesinin disiplinine değer veriyorsa, kazanımlar hemen gelir. Olgun ve araçlarla iyi donatılmış bir TS stack'inde tek başınıza çalışıyorsanız karar daha zor: Glyph erken bir önizleme ve bu, tartılması gereken gerçek bir maliyet.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Her iki durumda da</h3>
-          <p>Kaçış yolu kalıcı: sahibi olduğunuz okunabilir TypeScript'e derlenir, yani onu tek bir modülde denemek ucuz ve geri alınabilir.</p>
-        </div>
-        <p class="page-stamp">Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
-      </div>
+      <p class="page-stamp">Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/vs-tooled-ts/">
           <span class="dir">&larr; Önceki</span>

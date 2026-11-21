@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?","item":"https://glyphlang.io/th/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/state/#article","headline":"จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?","description":"Glyph ไม่มีตัวแปร global ที่เปลี่ยนค่าได้ state ที่ใช้ร่วมกันอยู่ใน std/store: const ระดับ module ที่ get, set และ update เป็นช่องทางเขียนเพียงทางเดียว หาเจอได้ด้วยการค้นครั้งเดียว","url":"https://glyphlang.io/th/answers/state/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/state/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?","item":"https://glyphlang.io/th/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/state/#article","headline":"จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?","description":"Glyph ไม่มีตัวแปร global ที่เปลี่ยนค่าได้ state ที่ใช้ร่วมกันอยู่ใน std/store: const ระดับ module ที่ get, set และ update เป็นช่องทางเขียนเพียงทางเดียว หาเจอได้ด้วยการค้นครั้งเดียว","url":"https://glyphlang.io/th/answers/state/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/state/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/state/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/state/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">14 &middot; state ที่ใช้ร่วมกัน</p>
       <h1 class="q-title">จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,12 +480,10 @@
         ด้วย <strong>store</strong> Glyph ไม่มีตัวแปร global ที่เปลี่ยนค่าได้ binding ระดับ module เป็น <code>const</code> state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code>: <code>const</code> ระดับ module ที่ถือค่าซึ่งคุณอ่านด้วย <code>get()</code> และเปลี่ยนด้วย <code>set()</code>/<code>update()</code> binding ไม่เคยย้าย มีแค่ค่าภายในที่เปลี่ยน ผ่านการเรียก method ทุกการเขียนจึงเป็นข้อความ <code>.set(</code> หรือ <code>.update(</code> ที่ grep หาได้
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ประกาศ store ครั้งเดียวที่ระดับ module ทุกฟังก์ชันใน module ใช้ร่วมกัน ไม่ต้องส่ง <code>let</code> ผ่าน <code>main</code> ไม่ต้องใช้ closure ที่จับตัวแปร:
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">ดูของจริง<a class="ak-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ประกาศ store ครั้งเดียวที่ระดับ module ทุกฟังก์ชันใน module ใช้ร่วมกัน ไม่ต้องส่ง <code>let</code> ผ่าน <code>main</code> ไม่ต้องใช้ closure ที่จับตัวแปร:
+      </p>
 
       <div class="two-up stack">
         <div class="code">
@@ -528,28 +526,35 @@
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-a-store-and-not-a-mutable-global">ทำไมต้องเป็น store ไม่ใช่ global ที่เปลี่ยนค่าได้<a class="h-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          นี่เป็นการตัดสินใจออกแบบโดยเจตนา Glyph จำกัด <code>mut</code> ไว้ที่การ assign ระดับ local และให้ binding ระดับ module เป็น <code>const</code> เพราะ global ที่เขียนได้กระจายอยู่ทั่วคือสิ่งที่ทำให้ state ยากจะเข้าใจและยากจะ<em>หาเจอ</em> store ไม่ต้องผ่อนกฎข้อไหนเลย: binding <code>const s</code> เปลี่ยนไม่ได้ และค่าภายในเปลี่ยนได้แค่ผ่าน <code>set</code>/<code>update</code> state ที่ใช้ร่วมกันจึงมาในรูป<strong>ไลบรารี ไม่ใช่ syntax ใหม่</strong> (ไม่มี linear type ไม่มีกฎการแก้ค่าที่อ่อนลง) และการแก้ค่าอยู่ในที่เดียวที่ตรวจสอบแล้ว แทนที่จะกระจายไปทั่วโปรแกรม
-        </p>
-        <p>
-          มีมุมคมอยู่หนึ่งจุด ซึ่งเหมือนใน TypeScript: collection ว่างอนุมาน type ของ element ไม่ได้ จึงต้องใส่ type argument ให้ชัด: <code>create&lt;Array&lt;Task&gt;&gt;([])</code> store ที่เป็นค่าเดี่ยว (<code>create(0)</code>) อนุมานได้ปกติ
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">ทำไมต้องเป็น store ไม่ใช่ global ที่เปลี่ยนค่าได้<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        นี่เป็นการตัดสินใจออกแบบโดยเจตนา Glyph จำกัด <code>mut</code> ไว้ที่การ assign ระดับ local และให้ binding ระดับ module เป็น <code>const</code> เพราะ global ที่เขียนได้กระจายอยู่ทั่วคือสิ่งที่ทำให้ state ยากจะเข้าใจและยากจะ<em>หาเจอ</em>
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>binding ไม่เคยย้าย</b>store ไม่ต้องผ่อนกฎข้อไหนเลย: binding <code>const s</code> เปลี่ยนไม่ได้ และค่าภายในเปลี่ยนได้แค่ผ่าน <code>set</code>/<code>update</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>เป็นไลบรารี ไม่ใช่ syntax</b>state ที่ใช้ร่วมกันจึงมาในรูป<strong>ไลบรารี ไม่ใช่ syntax ใหม่</strong> (ไม่มี linear type ไม่มีกฎการแก้ค่าที่อ่อนลง) และการแก้ค่าอยู่ในที่เดียวที่ตรวจสอบแล้ว แทนที่จะกระจายไปทั่วโปรแกรม</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        มีมุมคมอยู่หนึ่งจุด ซึ่งเหมือนใน TypeScript: collection ว่างอนุมาน type ของ element ไม่ได้ จึงต้องใส่ type argument ให้ชัด: <code>create&lt;Array&lt;Task&gt;&gt;([])</code> store ที่เป็นค่าเดี่ยว (<code>create(0)</code>) อนุมานได้ปกติ
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>std/store</code> ที่มี <code>create</code>, <code>get</code>, <code>set</code> และ <code>update</code>: ที่อยู่เดียวที่ grep หาได้สำหรับ state ที่ใช้ร่วมกันและเปลี่ยนค่าได้</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>ความสะดวกที่สร้างบน primitive เดียวกัน (store ที่ derive หรือคำนวณจากตัวอื่น, subscription) วางซ้อนอยู่ด้านบนโดยไม่ต้องเปลี่ยนภาษา</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code> ที่มี <code>create</code>, <code>get</code>, <code>set</code> และ <code>update</code>: ที่อยู่เดียวที่ grep หาได้สำหรับ state ที่ใช้ร่วมกันและเปลี่ยนค่าได้</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ความสะดวกที่สร้างบน primitive เดียวกัน (store ที่ derive หรือคำนวณจากตัวอื่น, subscription) วางซ้อนอยู่ด้านบนโดยไม่ต้องเปลี่ยนภาษา</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/react/">
           <span class="dir">&larr; ก่อนหน้า</span>

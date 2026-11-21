@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/state/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/answers/state/, generated from the same source as the page. Last changed 2026-11-21. -->
 
 14 · Shared state
 
@@ -54,7 +54,10 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
 
 ## Why a store, and not a mutable global
 
-This is a deliberate design choice. Glyph keeps `mut` restricted to local assignments and module bindings `const`, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to *find*. A store needs neither rule loosened: the `const s` binding is immutable, and the value inside changes only through `set`/`update`. So shared state arrives as a **library, not new syntax** (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.
+This is a deliberate design choice. Glyph keeps `mut` restricted to local assignments and module bindings `const`, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to *find*.
+
+- **The binding never moves** A store needs neither rule loosened: the `const s` binding is immutable, and the value inside changes only through `set`/`update`.
+- **A library, not syntax** So shared state arrives as a **library, not new syntax** (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.
 
 One sharp edge, shared with TypeScript: an empty collection can't infer its element type, so seed it with an explicit type argument: `create<Array<Task>>([])`. A scalar store (`create(0)`) infers fine.
 
@@ -62,10 +65,10 @@ One sharp edge, shared with TypeScript: an empty collection can't infer its elem
 
 ### Shipping today
 
-`std/store` with `create`, `get`, `set`, and `update`: the single, greppable home for shared mutable state.
+- `std/store` with `create`, `get`, `set`, and `update`: the single, greppable home for shared mutable state.
 
 ### On the way
 
-Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.
+- Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.
 
-Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed 21 Nov 2026.

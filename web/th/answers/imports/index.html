@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม?","item":"https://glyphlang.io/th/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/imports/#article","headline":"ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม?","description":"Glyph คอมไพล์เป็น TypeScript ธรรมดาและใช้ npm ได้: module .glyph import แพ็กเกจไหนก็ได้ และ .ts ที่มีอยู่ import มันได้ นำมาใช้ทีละไฟล์","url":"https://glyphlang.io/th/answers/imports/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/imports/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม?","item":"https://glyphlang.io/th/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/imports/#article","headline":"ใช้โค้ด TypeScript, JavaScript และ npm ที่มีอยู่ได้ไหม?","description":"Glyph คอมไพล์เป็น TypeScript ธรรมดาและใช้ npm ได้: module .glyph import แพ็กเกจไหนก็ได้ และ .ts ที่มีอยู่ import มันได้ นำมาใช้ทีละไฟล์","url":"https://glyphlang.io/th/answers/imports/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/imports/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/imports/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/imports/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">09 &middot; การนำมาใช้</p>
       <h1 class="q-title">ใช้ TypeScript, JavaScript และไลบรารี npm ที่มีอยู่ได้ไหม?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,17 +480,8 @@
         ได้ Glyph คอมไพล์เป็น <strong>TypeScript ธรรมดา</strong>และใช้ npm ได้: module <code>.glyph</code> import จากแพ็กเกจไหนก็ได้ และตัวมันเองก็ถูก import จาก <code>.ts</code> ที่คุณมีอยู่ได้ คุณนำมาใช้<strong>ทีละไฟล์</strong>
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ไม่มีใครเขียน codebase ใหม่ทั้งหมดเพื่อลองภาษา เพราะ output ของ Glyph <em>คือ</em> TypeScript ไฟล์ <code>.glyph</code> จึงวางลงในมุมหนึ่งของโปรเจกต์ TS/React/Node ที่มีอยู่ได้ import แพ็กเกจเดียวกัน และ export กลับไปให้ <code>.ts</code> รอบๆ เส้นทางแบบค่อยเป็นค่อยไปนี้คือเหตุผลทั้งหมดที่เลือก TypeScript เป็นเป้าหมายแทนที่จะสร้าง runtime ใหม่
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>คุณ import แพ็กเกจด้วยชื่อ (รวมถึงชื่อที่มีขีดและมี scope ของ npm) และ Glyph emit import ตามที่คุณคาดไว้:</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre><span class="k">import</span> react { useState }
@@ -506,14 +497,36 @@
 <span class="k">import</span> { zodResolver }
   <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>คุณ import แพ็กเกจด้วยชื่อ (รวมถึงชื่อที่มีขีดและมี scope ของ npm) และ Glyph emit import ตามที่คุณคาดไว้</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          ถ้าแพ็กเกจติดตั้งแล้วและมี type มาด้วย (หรือมี <code>@types/...</code>) ก็แค่นั้น ไม่มี stub ไม่มีไฟล์ adapter <code>glyph build</code> หา <code>node_modules</code> ของโปรเจกต์และชี้ type-checker ไปที่นั่น type จริงของแพ็กเกจจึงตรวจโค้ดของคุณ และการเรียกที่ผิดเป็น error จริง import แบบ subpath (<code>pkg/sub</code>) resolve ผ่าน map <code>exports</code> ของแพ็กเกจด้วย type ของ subpath จึงถูกตรวจ นี่คือการใช้ zod แบบ inline โดยไม่มีอะไรเขียนเอง:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#installed-packages">แพ็กเกจที่ติดตั้งไว้</a></li>
+          <li><a href="#value-derived-types">type ที่ derive จากค่า</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">TypeScript ที่เขียนเอง</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">Subprocess</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">แก้ shim</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">client แบบ class</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ไม่มีใครเขียน codebase ใหม่ทั้งหมดเพื่อลองภาษา เพราะ output ของ Glyph <em>คือ</em> TypeScript ไฟล์ <code>.glyph</code> จึงวางลงในมุมหนึ่งของโปรเจกต์ TS/React/Node ที่มีอยู่ได้ import แพ็กเกจเดียวกัน และ export กลับไปให้ <code>.ts</code> รอบๆ
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เส้นทางแบบค่อยเป็นค่อยไปนี้คือเหตุผลทั้งหมดที่เลือก TypeScript เป็นเป้าหมายแทนที่จะสร้าง runtime ใหม่</p></div>
+
+      <h2 class="ak-h" id="installed-packages">แพ็กเกจที่ติดตั้งไว้มี type มาเอง<a class="ak-anchor" href="#installed-packages" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ถ้าแพ็กเกจติดตั้งแล้วและมี type มาด้วย (หรือมี <code>@types/...</code>) ก็แค่นั้น ไม่มี stub ไม่มีไฟล์ adapter
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> หา <code>node_modules</code> ของโปรเจกต์และชี้ type-checker ไปที่นั่น type จริงของแพ็กเกจจึงตรวจโค้ดของคุณ และการเรียกที่ผิดเป็น error จริง</p></div>
+      <p>นี่คือการใช้ zod แบบ inline โดยไม่มีอะไรเขียนเอง:</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -543,34 +556,55 @@ print(user.name)</pre>
 <span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> รันโปรแกรมเดียวกันกับ zod ที่ติดตั้งไว้ จึงไม่ใช่แค่การตรวจ type: รายการ config เดียวที่ resolve แพ็กเกจให้ type-checker ก็ resolve ให้ runtime ด้วย</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>แพ็กเกจที่<em>ไม่มี</em> type มาและไม่มี <code>@types/...</code> ยังต้องมี declaration ที่คุณเขียนเอง ซึ่งเป็นหน้าที่ของโฟลเดอร์ <code>.types/</code> (กลไก <code>.d.ts</code> เดียวกับที่ TypeScript ใช้อยู่แล้ว)</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">import แบบ subpath และ type ที่ validate ได้จาก <code>.d.ts</code></span></summary><div class="body">
         <p>
-          <code>glyph run</code> รันโปรแกรมเดียวกันกับ zod ที่ติดตั้งไว้ จึงไม่ใช่แค่การตรวจ type: รายการ config เดียวที่ resolve แพ็กเกจให้ type-checker ก็ resolve ให้ runtime ด้วย แพ็กเกจที่<em>ไม่มี</em> type มาและไม่มี <code>@types/...</code> ยังต้องมี declaration ที่คุณเขียนเอง ซึ่งเป็นหน้าที่ของโฟลเดอร์ <code>.types/</code> (กลไก <code>.d.ts</code> เดียวกับที่ TypeScript ใช้อยู่แล้ว) และเมื่อคุณต้องการรูปร่างของไลบรารีเป็น type ของ Glyph เต็มตัวที่<em>ถูก validate</em> แทนที่จะเป็น import แค่ type <code>glyph gen dts</code> จะเปลี่ยน <code>.d.ts</code> เป็น type จริงที่มี descriptor ดู<a href="/th/answers/typed-apis/">ต้องเขียน validator ด้วยมือให้ทุก API ไหม?</a>
+          import แบบ subpath (<code>pkg/sub</code>) resolve ผ่าน map <code>exports</code> ของแพ็กเกจด้วย type ของ subpath จึงถูกตรวจ
         </p>
         <p>
-          type ที่ derive จากค่าใช้ได้เต็มที่ <code>type User = z.infer&lt;typeof user_schema&gt;</code> ใช้ได้โดยตรง: <code>typeof user_schema</code> เป็น type query บน reference ของค่าจริง (พิมพ์ผิดจะเป็น error ชื่อที่ resolve ไม่ได้) และ <code>z.infer&lt;...&gt;</code> เป็น member-generic type ธรรมดา มันถูก emit ตรงตัวและ <code>tsc</code> ลดรูปมัน <code>u.name</code> จึงเป็น <code>string</code> validation มาจาก <code>parse</code> ของ schema เอง ซึ่งเป็นวิธีที่ zod ทำงานอยู่แล้ว JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) ก็ใช้ได้เต็มที่ สำหรับ idiom ของ TypeScript ที่หายากซึ่ง Glyph ยังเขียนไม่ได้ <code>extern_ts("...")</code> คือทางออกฉุกเฉินที่มีขอบเขตและ grep หาได้: <code>tsc</code> ตรวจมัน แต่ต้องเข้าใจให้ถูก มันคือขอบเขตของความไว้ใจ ไม่ใช่ขอบเขตที่ validate ตอนรัน (Glyph มองไม่เห็นข้างใน ค่าที่ได้กลับมาเป็น <code>unknown</code> ให้ narrow ต่อ) ไลบรารีจึงไม่มีวันบังคับให้คุณเขียนไฟล์ adapter เอง
+          และเมื่อคุณต้องการรูปร่างของไลบรารีเป็น type ของ Glyph เต็มตัวที่<em>ถูก validate</em> แทนที่จะเป็น import แค่ type <code>glyph gen dts</code> จะเปลี่ยน <code>.d.ts</code> เป็น type จริงที่มี descriptor ดู<a href="/th/answers/typed-apis/">ต้องเขียน validator ด้วยมือให้ทุก API ไหม?</a>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h2 class="ak-h" id="value-derived-types">type ที่ derive จากค่า, JSX spread และทางออกฉุกเฉิน<a class="ak-anchor" href="#value-derived-types" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        type ที่ derive จากค่าใช้ได้เต็มที่ JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) ก็ใช้ได้เต็มที่
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ไลบรารีจึงไม่มีวันบังคับให้คุณเขียนไฟล์ adapter เอง</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>สำหรับ idiom ของ TypeScript ที่หายากซึ่ง Glyph ยังเขียนไม่ได้ <code>extern_ts("...")</code> คือทางออกฉุกเฉินที่มีขอบเขตและ grep หาได้: <code>tsc</code> ตรวจมัน แต่ต้องเข้าใจให้ถูก มันคือขอบเขตของความไว้ใจ ไม่ใช่ขอบเขตที่ validate ตอนรัน (Glyph มองไม่เห็นข้างใน ค่าที่ได้กลับมาเป็น <code>unknown</code> ให้ narrow ต่อ)</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint"><code>z.infer&lt;typeof s&gt;</code> resolve อย่างไร</span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> ใช้ได้โดยตรง: <code>typeof user_schema</code> เป็น type query บน reference ของค่าจริง (พิมพ์ผิดจะเป็น error ชื่อที่ resolve ไม่ได้) และ <code>z.infer&lt;...&gt;</code> เป็น member-generic type ธรรมดา มันถูก emit ตรงตัวและ <code>tsc</code> ลดรูปมัน <code>u.name</code> จึงเป็น <code>string</code> validation มาจาก <code>parse</code> ของ schema เอง ซึ่งเป็นวิธีที่ zod ทำงานอยู่แล้ว
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           บางครั้งทางออกฉุกเฉินไม่ใช่ type หรือ expression แต่เป็นโค้ด runtime จริง: loop ของ node stream, <code>new Promise</code>, worker thread วาง <code>.ts</code> ไว้ใต้ <code>&lt;src&gt;/extern/</code> แล้วเรียกถึงด้วย <code>import extern/&lt;name&gt;</code>
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
 <span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
 <span class="c">// src/main.glyph</span>
 <span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>import แบบ relative ยังใช้ไม่ได้ในซอร์ส Glyph (เป็นกฎเรื่อง grep) <code>extern/*</code> จึงเป็น path เดียวที่สงวนไว้ และ <code>grep -rn 'import extern/'</code> เจอทุกจุดที่คุณออกจากภาษา</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">การนำเข้า output ทิศทางกลับ และ node shim</span></summary><div class="body">
         <p>
-          build นำ <code>&lt;src&gt;/extern/**</code> เข้าไปใน output และ emit specifier แบบ relative <code>tsc</code> จึงตรวจ type ของ extern ไปพร้อมกับโค้ด Glyph และการ build ใหม่ไม่มีวันตัดมันทิ้ง import แบบ relative ยังใช้ไม่ได้ในซอร์ส Glyph (เป็นกฎเรื่อง grep) <code>extern/*</code> จึงเป็น path เดียวที่สงวนไว้ และ <code>grep -rn 'import extern/'</code> เจอทุกจุดที่คุณออกจากภาษา มันเป็นทิศตรงข้ามกับทางที่ง่าย คือไฟล์ <code>.ts</code> ที่ import Glyph ที่คอมไพล์แล้ว ซึ่งไม่ต้องทำอะไรเลย extern ทั่วไป (http server, <code>fs</code>) ตรวจ type กับ node shim ที่มาด้วยได้โดยไม่ต้องติดตั้งอะไร
+          build นำ <code>&lt;src&gt;/extern/**</code> เข้าไปใน output และ emit specifier แบบ relative <code>tsc</code> จึงตรวจ type ของ extern ไปพร้อมกับโค้ด Glyph และการ build ใหม่ไม่มีวันตัดมันทิ้ง
         </p>
+        <p>
+          มันเป็นทิศตรงข้ามกับทางที่ง่าย คือไฟล์ <code>.ts</code> ที่ import Glyph ที่คอมไพล์แล้ว ซึ่งไม่ต้องทำอะไรเลย extern ทั่วไป (http server, <code>fs</code>) ตรวจ type กับ node shim ที่มาด้วยได้โดยไม่ต้องติดตั้งอะไร
+        </p>
+      </div></details>
 
-        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">เฝ้าดู subprocess โดยไม่ต้องติดตั้งอะไร<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">เฝ้าดู subprocess โดยไม่ต้องติดตั้งอะไร<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           declaration ของ node ที่มาด้วยมีครึ่งที่เป็น async ของ <code>child_process</code> ไม่ใช่แค่แบบ blocking เครื่องมือที่รายงาน output ของคำสั่งที่ใช้เวลานานระหว่างที่มันรันจึงเป็น Glyph แทนที่จะเป็น extern:
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -590,9 +624,12 @@ print(user.name)</pre>
   })
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
-        <p>
-          <code>io.print</code> ไม่ใช่ <code>io.println</code>: chunk คือชิ้นหนึ่งของ stream ไม่ใช่บรรทัด และบรรทัดหนึ่งอาจมาข้ามสอง chunk overload ทำตาม <code>@types/node</code> pipe จึงกลับมาเป็นค่าที่ไม่ใช่ null จาก <code>spawn(command, args)</code> ธรรมดา และเป็น nullable เมื่อคุณส่ง <code>stdio</code> การอ่าน <code>child.stdout</code> หลัง <code>stdio: "inherit"</code> เป็น <code>TS18047</code> ที่นี่ และเป็น <code>TS18047</code> กับ typing จริง แทนที่จะเป็นสองเรื่องที่ต่างกันเกี่ยวกับค่าเดียวกัน:
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>io.print</code> ไม่ใช่ <code>io.println</code>: chunk คือชิ้นหนึ่งของ stream ไม่ใช่บรรทัด และบรรทัดหนึ่งอาจมาข้ามสอง chunk</p></div>
+      <p>
+          overload ทำตาม <code>@types/node</code> pipe จึงกลับมาเป็นค่าที่ไม่ใช่ null จาก <code>spawn(command, args)</code> ธรรมดา และเป็น nullable เมื่อคุณส่ง <code>stdio</code> การอ่าน <code>child.stdout</code> หลัง <code>stdio: "inherit"</code> เป็น <code>TS18047</code> ที่นี่ และเป็น <code>TS18047</code> กับ typing จริง แทนที่จะเป็นสองเรื่องที่ต่างกันเกี่ยวกับค่าเดียวกัน:
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047"><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -602,16 +639,21 @@ print(user.name)</pre>
   <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
   child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
-
-        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">แก้ shim แล้วการรันครั้งถัดไปก็ใช้ shim ที่คุณแก้<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          shim เป็นไฟล์ที่คุณแก้ไปเรื่อยๆ จึงต้องนับเป็นซอร์ส <code>glyph run</code> cache build ไว้ภายใต้ fingerprint ของซอร์ส และ fingerprint นั้นครอบคลุมทุก <code>.ts</code> และ <code>.tsx</code> ใต้ <code>extern/</code> ทั้งตาม path และตามเนื้อหา แก้ เปลี่ยนชื่อ เพิ่ม หรือลบสักไฟล์ การรันครั้งถัดไปจะ build ใหม่และรัน <code>tsc</code> ใหม่ shim ที่เป็น symlink จะถูกตามไป <code>.ts</code> ที่เก็บไว้นอก source tree จึงถูก hash ตามเนื้อหาจริง
-        </p>
-        <p>
-          นั่นคือสิ่งที่ทำให้ shim เป็นเจ้าของ type ได้ แทนที่ทั้งสองไฟล์จะประกาศสำเนาของตัวเอง export รูปร่างจาก shim แล้ว import มันใน module ของ Glyph คอมไพเลอร์จะยึดทั้งสองให้ตรงกันทุกครั้งที่รัน:
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">แก้ shim แล้วการรันครั้งถัดไปก็ใช้ shim ที่คุณแก้<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          shim เป็นไฟล์ที่คุณแก้ไปเรื่อยๆ จึงต้องนับเป็นซอร์ส
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> cache build ไว้ภายใต้ fingerprint ของซอร์ส และ fingerprint นั้นครอบคลุมทุก <code>.ts</code> และ <code>.tsx</code> ใต้ <code>extern/</code> ทั้งตาม path และตามเนื้อหา</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">อะไรทำให้ build ใหม่</span></summary><div class="body">
+        <p>
+          แก้ เปลี่ยนชื่อ เพิ่ม หรือลบสักไฟล์ การรันครั้งถัดไปจะ build ใหม่และรัน <code>tsc</code> ใหม่ shim ที่เป็น symlink จะถูกตามไป <code>.ts</code> ที่เก็บไว้นอก source tree จึงถูก hash ตามเนื้อหาจริง
+        </p>
+      </div></details>
+      <p>
+          นั่นคือสิ่งที่ทำให้ shim เป็นเจ้าของ type ได้ แทนที่ทั้งสองไฟล์จะประกาศสำเนาของตัวเอง export รูปร่างจาก shim แล้ว import มันใน module ของ Glyph คอมไพเลอร์จะยึดทั้งสองให้ตรงกันทุกครั้งที่รัน:
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -634,20 +676,16 @@ exist in type 'WebResponse'.
    <span class="bx">╰─</span> server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">ก่อน 0.1.44 และไฟล์ที่ไม่นับ</span></summary><div class="body">
         <p>
           จนถึง 0.1.44 fingerprint ข้าม <code>extern/</code> ไปทั้งหมด การเปลี่ยนชื่อนั้นจึงได้ build ที่สะอาดและตรวจ type ผ่าน ซึ่งรัน shim สำเนาเก่า ไฟล์ใต้ <code>extern/</code> ที่ไม่ใช่ <code>.ts</code> หรือ <code>.tsx</code> ยังไม่กระทบ cache ซึ่งเป็นความตั้งใจ: <code>README.md</code> ข้าง shim ถูกคัดลอกไปใน output ด้วย แต่ไม่มีอะไรตรวจ type หรือรันมัน จึงไม่มีอะไรต้อง build ใหม่
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">client แบบ class: ตัวที่ใช้กับฐานข้อมูลและ messaging<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          client ของฐานข้อมูลและ messaging ส่วนใหญ่เป็นแบบ class: คุณเขียน <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> Glyph มี <code>new</code> สำหรับเรื่องนี้โดยเฉพาะ มัน emit <code>new</code> ของ TypeScript ตรงตัว และ <code>tsc</code> ตรวจมันกับ constructor จริงของแพ็กเกจ argument ที่ผิดจึงเป็น error จริง และ callee ที่ไม่ได้นิยามถูกจับด้วยชื่อ มันใช้ได้เฉพาะ interop: Glyph ไม่มี <code>class</code> ของตัวเอง และ <code>new</code> สร้างได้เฉพาะ type ที่มาจากแพ็กเกจ declaration ใน <code>.types</code> หรือ <code>extern_ts</code>
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">client แบบ class: ตัวที่ใช้กับฐานข้อมูลและ messaging<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          client ของฐานข้อมูลและ messaging ส่วนใหญ่เป็นแบบ class: คุณเขียน <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> Glyph มี <code>new</code> สำหรับเรื่องนี้โดยเฉพาะ
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">client แบบ class (kafkajs)</span>
@@ -671,19 +709,52 @@ exist in type 'WebResponse'.
 <span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>มัน emit <code>new</code> ของ TypeScript ตรงตัว และ <code>tsc</code> ตรวจมันกับ constructor จริงของแพ็กเกจ argument ที่ผิดจึงเป็น error จริง และ callee ที่ไม่ได้นิยามถูกจับด้วยชื่อ</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>มันใช้ได้เฉพาะ interop: Glyph ไม่มี <code>class</code> ของตัวเอง และ <code>new</code> สร้างได้เฉพาะ type ที่มาจากแพ็กเกจ declaration ใน <code>.types</code> หรือ <code>extern_ts</code></p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>import แพ็กเกจ npm ไหนก็ได้ (รวมชื่อที่มีขีดและมี scope) แพ็กเกจที่ติดตั้งแล้วซึ่งมี type มาเอง (หรือมี <code>@types/...</code>) ตรวจ type และรันได้โดยไม่มี stub client แบบ class สร้างด้วย <code>new</code> ซึ่ง <code>tsc</code> ตรวจกับ constructor จริง client แบบ factory import และเรียกได้ตรงๆ builtin ของ Node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> รวมถึง <code>spawn</code> แบบ streaming และตัวอื่นๆ) ตรวจ type ได้ทันที โดยโหลด <code>@types/node</code> อัตโนมัติเมื่อคุณติดตั้ง และ CI build runtime ของคอมไพเลอร์เองกับแพ็กเกจนั้นที่ <code>latest</code> declaration ที่ stdlib พึ่งพาจึงเพี้ยนจากของจริงของ node ไม่ได้ declaration ที่มีแค่โค้ดของคุณเรียกถึงยังไม่อยู่ในการตรวจนั้น และบางตัวยังกว้างกว่าของ node declaration แบบ ambient ใน <code>.types/</code> สำหรับอย่างอื่น <code>glyph gen dts</code> สำหรับเปลี่ยน <code>.d.ts</code> เป็น type ของ Glyph ที่ validate ได้ และ output <code>.ts</code> ที่สะอาดซึ่ง TypeScript ที่มีอยู่ import กลับได้ เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์ <code>import extern/&lt;name&gt;</code> เรียกถึง <code>.ts</code> ใต้ <code>&lt;src&gt;/extern/</code> ซึ่งถูกนำเข้าและตรวจ type ไปพร้อมโค้ดของคุณ และถูกติดตามโดย cache ของ <code>glyph run</code> การแก้มันจึงทำให้ build ใหม่</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>ตอนนี้การ materialize จัดการรูปร่างที่ SDK จริงมีได้ (namespace, re-export ข้ามไฟล์และแบบ alias/namespace, <code>exports</code> แบบ subpath และ generic เต็มรูปแบบ) และ type ที่ derive จากค่า (<code>z.infer&lt;typeof s&gt;</code>) ก็ใช้ได้เต็มที่ ช่องว่างหลักที่เหลือคือ output ของแพ็กเกจที่ไม่ได้ materialize ถูกตรวจ type กับ <code>.d.ts</code> ของมัน แต่ไม่ถูก validate ตอนรันถ้าคุณไม่ materialize ฝั่ง <code>extern/</code> root ของซอร์สต่างกันระหว่างสองคำสั่ง: <code>glyph run app.glyph</code> ใช้ไดเรกทอรีของไฟล์เป็น root ส่วน <code>glyph build src/</code> ใช้ไดเรกทอรีที่คุณระบุ โปรแกรมในไดเรกทอรีย่อยจึงหา shim ในสองที่ต่างกัน และจนกว่าเราจะเลือก root เดียว โปรเจกต์ที่จัดแบบนั้นต้องให้ shim เข้าถึงได้จากทั้งสองที่ มันจะ fail อย่างชัดเจนเมื่อเข้าถึงไม่ได้</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">import แพ็กเกจ npm ไหนก็ได้ (รวมชื่อที่มีขีดและมี scope)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">แพ็กเกจที่ติดตั้งแล้วซึ่งมี type มาเอง (หรือมี <code>@types/...</code>) ตรวจ type และรันได้โดยไม่มี stub</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">client แบบ class สร้างด้วย <code>new</code> ซึ่ง <code>tsc</code> ตรวจกับ constructor จริง client แบบ factory import และเรียกได้ตรงๆ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">builtin ของ Node ตรวจ type ได้ทันที</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>builtin ของ Node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> รวมถึง <code>spawn</code> แบบ streaming และตัวอื่นๆ) ตรวจ type ได้ทันที โดยโหลด <code>@types/node</code> อัตโนมัติเมื่อคุณติดตั้ง และ CI build runtime ของคอมไพเลอร์เองกับแพ็กเกจนั้นที่ <code>latest</code> declaration ที่ stdlib พึ่งพาจึงเพี้ยนจากของจริงของ node ไม่ได้</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">declaration ที่มีแค่โค้ดของคุณเรียกถึงยังไม่อยู่ในการตรวจนั้น และบางตัวยังกว้างกว่าของ node</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">declaration แบบ ambient ใน <code>.types/</code> สำหรับอย่างอื่น</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen dts</code> สำหรับเปลี่ยน <code>.d.ts</code> เป็น type ของ Glyph ที่ validate ได้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">output <code>.ts</code> ที่สะอาดซึ่ง TypeScript ที่มีอยู่ import กลับได้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code> เรียกถึง TypeScript ที่เขียนเองใต้ <code>&lt;src&gt;/extern/</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>เมื่อต้องการ TypeScript ที่เขียนเองทั้งไฟล์ <code>import extern/&lt;name&gt;</code> เรียกถึง <code>.ts</code> ใต้ <code>&lt;src&gt;/extern/</code> ซึ่งถูกนำเข้าและตรวจ type ไปพร้อมโค้ดของคุณ และถูกติดตามโดย cache ของ <code>glyph run</code> การแก้มันจึงทำให้ build ใหม่</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การ materialize จัดการรูปร่างที่ SDK จริงมีได้ และ type ที่ derive จากค่าใช้ได้เต็มที่</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ตอนนี้การ materialize จัดการรูปร่างที่ SDK จริงมีได้ (namespace, re-export ข้ามไฟล์และแบบ alias/namespace, <code>exports</code> แบบ subpath และ generic เต็มรูปแบบ) และ type ที่ derive จากค่า (<code>z.infer&lt;typeof s&gt;</code>) ก็ใช้ได้เต็มที่</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ช่องว่างหลักที่เหลือคือ output ของแพ็กเกจที่ไม่ได้ materialize ถูกตรวจ type กับ <code>.d.ts</code> ของมัน แต่ไม่ถูก validate ตอนรันถ้าคุณไม่ materialize</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ฝั่ง <code>extern/</code> root ของซอร์สต่างกันระหว่าง <code>glyph run</code> และ <code>glyph build</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ฝั่ง <code>extern/</code> root ของซอร์สต่างกันระหว่างสองคำสั่ง: <code>glyph run app.glyph</code> ใช้ไดเรกทอรีของไฟล์เป็น root ส่วน <code>glyph build src/</code> ใช้ไดเรกทอรีที่คุณระบุ โปรแกรมในไดเรกทอรีย่อยจึงหา shim ในสองที่ต่างกัน และจนกว่าเราจะเลือก root เดียว โปรเจกต์ที่จัดแบบนั้นต้องให้ shim เข้าถึงได้จากทั้งสองที่ มันจะ fail อย่างชัดเจนเมื่อเข้าถึงไม่ได้</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/upgrades/">
           <span class="dir">&larr; ก่อนหน้า</span>

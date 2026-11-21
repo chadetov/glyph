@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"编辑器、调试和报错的体验如何？","item":"https://glyphlang.io/zh-cn/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/tooling/#article","headline":"编辑器、调试和报错的体验如何？","description":"适用于任何编辑器的语言服务器、一个 VS Code 扩展、带稳定错误码的报错以及 glyph --explain。调试时你面对的是它生成的可读 TypeScript。","url":"https://glyphlang.io/zh-cn/answers/tooling/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/tooling/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"编辑器、调试和报错的体验如何？","item":"https://glyphlang.io/zh-cn/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/tooling/#article","headline":"编辑器、调试和报错的体验如何？","description":"适用于任何编辑器的语言服务器、一个 VS Code 扩展、带稳定错误码的报错以及 glyph --explain。调试时你面对的是它生成的可读 TypeScript。","url":"https://glyphlang.io/zh-cn/answers/tooling/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/tooling/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/tooling/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/tooling/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">25 &middot; 日常使用</p>
       <h1 class="q-title">编辑器、调试和报错的体验如何？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -480,71 +480,157 @@
         <code>glyph lsp</code> 通过 stdio 使用 Language Server Protocol，所以任何带 LSP 客户端的编辑器都能获得诊断、悬停类型、跳转到定义、补全和保存时格式化。仓库里有一个 VS Code 扩展；它还没有上架 Marketplace，所以需要你从源码构建。每个错误都带有稳定的错误码、修复方法和原因。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">为什么这很重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
-        <p>
-          在编辑器不理解的语言里写代码，感觉像是在倒退，早期这确实是合理的抱怨。现在不是了：编辑器提供现代的便利功能，报错的写法是为了教会你，而不只是拒绝你。
-        </p>
-
-        <h2 class="block-label" id="is-it-a-real-lsp-or-just-a-vs-code-plugin">它是真正的 LSP，还是只是一个 VS Code 插件？<a class="h-anchor" href="#is-it-a-real-lsp-or-just-a-vs-code-plugin" aria-label="链接到本节">#</a></h2>
-        <p>
-          是真正的 LSP。编译器自带一个语言服务器，用 <code>glyph lsp</code> 启动，它通过 stdio 使用 Language Server Protocol（每个 LSP 客户端都支持的标准 JSON-RPC 传输方式）。随附的 VS Code 扩展只是它外面的一层薄客户端，没有任何东西是 VS Code 专属的：把<strong>任何</strong>支持 LSP 的编辑器，比如 Neovim、Helix、Zed、Emacs（eglot），指向 <code>glyph lsp</code>，行为都一样。它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。
-        </p>
-        <p>
-          服务器实现了编辑器需要的功能：带有下面这些稳定错误码的实时诊断、悬停类型、跳转到定义（通过具名导入可跨模块跳转；通过命名空间时，<code>ui.Button</code> 仍然没有结果）、补全、用于大纲和符号搜索的文档符号与工作区符号、覆盖整个工作区的查找引用、重命名，以及用于保存时格式化的标准 <code>glyph fmt</code> 排版。重命名是完整的：重命名一个模块级声明，会修改它的定义、每一处引用，以及工作区中每个导入它的模块的 <code>import</code> 绑定，并且在改动任何东西之前先检查新名字（必须是真正的标识符，而不是关键字）。有两个限制值得了解：跨文件索引在每次请求时重建，而不是缓存（对普通项目没问题，以后值得加速）；当前无法解析的文件会被跳过，所以重命名不会触及本身已经损坏的文件里的引用。
-        </p>
-
-        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
-        <p>每条诊断都带有稳定的错误码、一行修复说明，通常还有设计上的原因。<code>glyph --explain</code> 可以打印其中任何一条的详细说明：</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre class="wraps"><span class="del">[E0203]</span> the <span class="q">`?`</span> operator propagates <span class="e">error</span> type <span class="q">`HttpError`</span>,
         but this function returns <span class="q">`Result&lt;_, string&gt;`</span>
    <span class="bx">╰─</span> <span class="cm">Help: map the error first, e.g. `.map_err(...)`,</span>
       <span class="cm">so its `E` matches the function's.</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          我们正是在智能体和新手最容易绊倒的地方改进了报错信息：写 <code>if</code> 时现在会指引你使用 <code>match</code>，而不是笼统的&ldquo;意外的 token&rdquo;；参数数量错误、不穷尽的 <code>match</code>、拼错的变体，各自都有带错误码、可修复的报错。
-        </p>
-        <p>
-          只有 TypeScript 后端才能发现的类型错误，过去指向的是生成的 <code>.ts</code>。现在它们会<strong>映射回你的 <code>.glyph</code></strong>（同样的 ariadne 插入符，同样的稳定错误码），所以 <code>tsc</code> 错误读起来就像原生的 Glyph 错误。
-        </p>
-        <p>
-          <strong>调试：</strong>你用已经在用的工具调试生成的 TypeScript，比如 Node 的 inspector、浏览器 devtools 或 IDE 的 JS/TS 调试器。每次构建都会在每个 <code>.ts</code> 旁边附上一个标准的 <strong>v3 source map</strong>（嵌入了 Glyph 源码），所以能串联 source map 的调试器或打包工具会定位回你的 <code>.glyph</code> 行号。还有一点没覆盖到：<code>glyph run</code> 自身的崩溃堆栈仍然打印 <code>.ts</code> 的行，因为 <code>tsx</code> 不会把 source map 串过它的转换。下一步就是重新映射这个堆栈。
-        </p>
-        <p>
-          <strong>不运行就问&ldquo;这能编译吗？&rdquo;：</strong><code>glyph check path.glyph</code> 对单个文件或整个目录做类型检查，然后退出。它不会往你的目录树里写任何东西，这是 <code>glyph run</code> 无法保证的，而 <code>glyph build</code> 根本不会这样做（它拒绝任何不是目录的参数）。它运行的流水线和构建相同，包括对生成的 TypeScript 运行 <code>tsc --strict</code>，输出到一个退出时会删除的临时目录。想要快速得到答案时，<code>--no-tsc</code> 会在 Glyph 阶段之后停止；<code>--json</code> 给智能体提供和 <code>glyph build --json</code> 相同格式的诊断。文件会在它所在目录的上下文中检查，所以有问题的同级文件仍然会让检查失败。你的 <code>@example</code> 和 <code>@doc @run</code> 测试也在这里运行，与 <code>glyph build</code> 使用的是同一道关卡，所以检查不可能对一棵构建会失败的目录树报告通过；如果你想要一个不执行任何代码的答案，<code>--no-test</code> 会跳过它们。
-        </p>
-        <p>
-          <strong>终端输出也不会骗你。</strong>失败的构建过去会以&ldquo;没有诊断&rdquo;开头，然后在下面打印 <code>tsc</code> 错误，因为 Glyph 阶段的摘要是在 TypeScript 阶段运行之前写出的。现在摘要会在所有可能让构建失败的阶段之后才打印，所以失败的构建永远不会显示一行成功信息。同一轮改进中，<code>glyph run app.glyph --min -12.50</code> 也能用了：以前开头的连字符会让 clap 在你的 <code>main</code> 看到参数之前就拒绝它。属于 glyph 自己的 flag 仍然由 glyph 解析，所以如果程序的 flag 和其中某个冲突，在它前面加上 <code>--</code>。
-        </p>
-        <p>
-          <strong>对于循环中的智能体：</strong><code>glyph build --json</code> 把每条诊断输出为结构化 JSON：稳定的错误码、严重程度、信息、文件、从 1 开始的行/列范围，以及帮助和注释，其中包括映射到你的 Glyph 源码上的 <code>tsc</code> 错误。智能体直接读取并据此行动，而不用从终端文本里抓取。
-        </p>
-        <p>
-          对于交互式智能体，除了批量诊断还有更多：<a href="/zh-cn/mcp/"><code>glyph mcp</code></a> 通过 stdio 运行一个 <strong>Model Context Protocol 服务器</strong>（同一个二进制文件，与编辑器使用相同的分析），把语言服务器的查询作为 MCP 工具提供。智能体可以询问一个文件的<strong>诊断</strong>、某个位置的<strong>类型</strong>、一个名字在哪里<strong>定义</strong>（会跟随导入）、某个符号在整个项目中的每一处<strong>引用</strong>，或者进行<strong>符号搜索</strong>，不需要运行完整构建，也不需要读遍每个文件。它是同一个纯分析层之上的薄适配层，而不是第二套实现，所以不会和编译器、编辑器看到的内容产生偏差。
-        </p>
-        <p>
-          <strong>并非一切都是硬错误。</strong>Glyph 有一个警告级别，用来标出无用的代码而不让构建失败：<em>未使用的导入</em>（<code>E0106</code>）、<em>未使用的</em> <code>let</code>（<code>E0107</code>，以 <code>_</code> 开头的名字除外），以及 <code>return</code>/<code>break</code>/<code>continue</code> 之后的<em>不可达代码</em>（<code>E0108</code>）。它们让模块保持如实：一个无用的导入正是那种损害可检索性的噪音，会让读者去寻找代码实际上并不存在的依赖。警告会出现在同样的渲染输出和 <code>--json</code> 输出中，以严重程度标记，并且仍然会生成 TypeScript。
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>一个语言服务器（通过 stdio 运行 <code>glyph lsp</code>，适用于任何编辑器；随附 VS Code 扩展），提供高亮、诊断、悬停、跳转到定义、补全、符号、覆盖整个工作区的查找引用和重命名，以及保存时格式化；从 0.1.124 开始可以跨模块边界回答：服务器为每个项目维护一个数据库，你打开的缓冲区叠加在磁盘上的文件之上，所以悬停在导入的函数或导入记录的字段上，得到的答案与 <code>glyph query hover</code> 相同，一个文件中未保存的编辑能被另一个文件看到，每次按键的开销比单文件时多 1% 到 9%；一个 <code>glyph mcp</code> Model Context Protocol 服务器，提供十一个工具，即编辑器的查询加上 <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>，每个工具都有一个打印相同 JSON 的 <code>glyph query</code> 子命令，供没有 MCP 客户端的智能体使用；稳定的错误码、<code>glyph --explain</code>、映射到 <code>.glyph</code> 源码的 <code>tsc</code> 后端错误、警告级别（未使用的导入/绑定、不可达代码），以及 <code>--json</code> 结构化诊断。<code>glyph check [path]</code> 对单个文件或目录树做类型检查，不运行，也不写输出。<code>glyph fmt --check</code> 在 CI 中把关格式：它不写任何东西，当某个文件不符合唯一的标准排版时以非零退出。</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>缓存跨文件索引，而不是每次请求都重建（在大型目录树上能提速），以及重新映射 <code>glyph run</code> 自身的崩溃堆栈：由于 <code>tsx</code> 不会把生成的 source map 串过它的转换，这个堆栈仍然指向生成的 <code>.ts</code>，而不是你的 <code>.glyph</code>。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>看看实际效果：每条诊断都带有稳定的错误码、一行修复说明，通常还有设计上的原因。<code>glyph --explain</code> 可以打印其中任何一条的详细说明。</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么重要</a></li>
+          <li><a href="#is-it-a-real-lsp-or-just-a-vs-code-plugin">语言服务器</a></li>
+          <li><a href="#error-messages">错误信息</a></li>
+          <li><a href="#debugging">调试</a></li>
+          <li><a href="#checking-without-running">不运行就检查</a></li>
+          <li><a href="#an-honest-transcript">构建输出</a></li>
+          <li><a href="#for-the-agent-in-the-loop">面向智能体</a></li>
+          <li><a href="#warnings">警告</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">为什么这很重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        在编辑器不理解的语言里写代码，感觉像是在倒退，早期这确实是合理的抱怨。现在不是了：编辑器提供现代的便利功能，报错的写法是为了教会你，而不只是拒绝你。
+      </p>
+
+      <h2 class="ak-h" id="is-it-a-real-lsp-or-just-a-vs-code-plugin">它是真正的 LSP，还是只是一个 VS Code 插件？<a class="ak-anchor" href="#is-it-a-real-lsp-or-just-a-vs-code-plugin" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        是真正的 LSP。编译器自带一个语言服务器，用 <code>glyph lsp</code> 启动，它通过 stdio 使用 Language Server Protocol（每个 LSP 客户端都支持的标准 JSON-RPC 传输方式）。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        随附的 VS Code 扩展只是它外面的一层薄客户端，没有任何东西是 VS Code 专属的：把<strong>任何</strong>支持 LSP 的编辑器，比如 Neovim、Helix、Zed、Emacs（eglot），指向 <code>glyph lsp</code>，行为都一样。
+      </p></div>
+      <p>
+        它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。
+      </p>
+
+      <h3 class="ak-h3" id="what-the-server-implements">服务器实现了什么<a class="ak-anchor" href="#what-the-server-implements" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        服务器实现了编辑器需要的功能：带有下面这些稳定错误码的实时诊断、悬停类型、跳转到定义（通过具名导入可跨模块跳转；通过命名空间时，<code>ui.Button</code> 仍然没有结果）、补全、用于大纲和符号搜索的文档符号与工作区符号、覆盖整个工作区的查找引用、重命名，以及用于保存时格式化的标准 <code>glyph fmt</code> 排版。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        重命名是完整的：重命名一个模块级声明，会修改它的定义、每一处引用，以及工作区中每个导入它的模块的 <code>import</code> 绑定，并且在改动任何东西之前先检查新名字（必须是真正的标识符，而不是关键字）。
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        有两个限制值得了解：跨文件索引在每次请求时重建，而不是缓存（对普通项目没问题，以后值得加速）；当前无法解析的文件会被跳过，所以重命名不会触及本身已经损坏的文件里的引用。
+      </p></div>
+
+      <h2 class="ak-h" id="error-messages">错误信息<a class="ak-anchor" href="#error-messages" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        我们正是在智能体和新手最容易绊倒的地方改进了报错信息：写 <code>if</code> 时现在会指引你使用 <code>match</code>，而不是笼统的&ldquo;意外的 token&rdquo;；参数数量错误、不穷尽的 <code>match</code>、拼错的变体，各自都有带错误码、可修复的报错。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        只有 TypeScript 后端才能发现的类型错误，过去指向的是生成的 <code>.ts</code>。现在它们会映射回你的 <code>.glyph</code>（同样的 ariadne 插入符，同样的稳定错误码），所以 <code>tsc</code> 错误读起来就像原生的 Glyph 错误。
+      </p></div>
+
+      <h2 class="ak-h" id="debugging">调试<a class="ak-anchor" href="#debugging" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        你用已经在用的工具调试生成的 TypeScript，比如 Node 的 inspector、浏览器 devtools 或 IDE 的 JS/TS 调试器。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        每次构建都会在每个 <code>.ts</code> 旁边附上一个标准的 v3 source map（嵌入了 Glyph 源码），所以能串联 source map 的调试器或打包工具会定位回你的 <code>.glyph</code> 行号。
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        还有一点没覆盖到：<code>glyph run</code> 自身的崩溃堆栈仍然打印 <code>.ts</code> 的行，因为 <code>tsx</code> 不会把 source map 串过它的转换。下一步就是重新映射这个堆栈。
+      </p></div>
+
+      <h2 class="ak-h" id="checking-without-running">不运行就问&ldquo;这能编译吗？&rdquo;<a class="ak-anchor" href="#checking-without-running" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph check path.glyph</code> 对单个文件或整个目录做类型检查，然后退出。它不会往你的目录树里写任何东西，这是 <code>glyph run</code> 无法保证的，而 <code>glyph build</code> 根本不会这样做（它拒绝任何不是目录的参数）。
+      </p>
+      <div class="ak-chips"><span class="chip code">--no-tsc</span><span class="chip code">--json</span><span class="chip code">--no-test</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">它运行什么，以及各个 flag</span></summary><div class="body">
+        <p>
+          它运行的流水线和构建相同，包括对生成的 TypeScript 运行 <code>tsc --strict</code>，输出到一个退出时会删除的临时目录。想要快速得到答案时，<code>--no-tsc</code> 会在 Glyph 阶段之后停止；<code>--json</code> 给智能体提供和 <code>glyph build --json</code> 相同格式的诊断。文件会在它所在目录的上下文中检查，所以有问题的同级文件仍然会让检查失败。你的 <code>@example</code> 和 <code>@doc @run</code> 测试也在这里运行，与 <code>glyph build</code> 使用的是同一道关卡，所以检查不可能对一棵构建会失败的目录树报告通过；如果你想要一个不执行任何代码的答案，<code>--no-test</code> 会跳过它们。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="an-honest-transcript">终端输出也不会骗你<a class="ak-anchor" href="#an-honest-transcript" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        现在摘要会在所有可能让构建失败的阶段之后才打印，所以失败的构建永远不会显示一行成功信息。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">打印得太早的摘要</span></summary><div class="body">
+        <p>
+          失败的构建过去会以&ldquo;没有诊断&rdquo;开头，然后在下面打印 <code>tsc</code> 错误，因为 Glyph 阶段的摘要是在 TypeScript 阶段运行之前写出的。
+        </p>
+      </div></details>
+      <p>
+        同一轮改进中，<code>glyph run app.glyph --min -12.50</code> 也能用了：以前开头的连字符会让 clap 在你的 <code>main</code> 看到参数之前就拒绝它。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        属于 glyph 自己的 flag 仍然由 glyph 解析，所以如果程序的 flag 和其中某个冲突，在它前面加上 <code>--</code>。
+      </p></div>
+
+      <h2 class="ak-h" id="for-the-agent-in-the-loop">对于循环中的智能体<a class="ak-anchor" href="#for-the-agent-in-the-loop" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph build --json</code> 把每条诊断输出为结构化 JSON：稳定的错误码、严重程度、信息、文件、从 1 开始的行/列范围，以及帮助和注释，其中包括映射到你的 Glyph 源码上的 <code>tsc</code> 错误。智能体直接读取并据此行动，而不用从终端文本里抓取。
+      </p>
+
+      <h3 class="ak-h3" id="glyph-mcp">面向交互式智能体的 <code>glyph mcp</code><a class="ak-anchor" href="#glyph-mcp" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        对于交互式智能体，除了批量诊断还有更多：<a href="/zh-cn/mcp/"><code>glyph mcp</code></a> 通过 stdio 运行一个 Model Context Protocol 服务器（同一个二进制文件，与编辑器使用相同的分析），把语言服务器的查询作为 MCP 工具提供。智能体可以询问一个文件的诊断、某个位置的类型、一个名字在哪里定义（会跟随导入）、某个符号在整个项目中的每一处引用，或者进行符号搜索，不需要运行完整构建，也不需要读遍每个文件。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        它是同一个纯分析层之上的薄适配层，而不是第二套实现，所以不会和编译器、编辑器看到的内容产生偏差。
+      </p></div>
+
+      <h2 class="ak-h" id="warnings">并非一切都是硬错误<a class="ak-anchor" href="#warnings" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph 有一个警告级别，用来标出无用的代码而不让构建失败：<em>未使用的导入</em>（<code>E0106</code>）、<em>未使用的</em> <code>let</code>（<code>E0107</code>，以 <code>_</code> 开头的名字除外），以及 <code>return</code>/<code>break</code>/<code>continue</code> 之后的<em>不可达代码</em>（<code>E0108</code>）。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0106</span><span class="chip code">E0107</span><span class="chip code">E0108</span></div>
+      <p>
+        它们让模块保持如实：一个无用的导入正是那种损害可检索性的噪音，会让读者去寻找代码实际上并不存在的依赖。警告会出现在同样的渲染输出和 <code>--json</code> 输出中，以严重程度标记，并且仍然会生成 TypeScript。
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">适用于任何编辑器、可跨模块边界回答的语言服务器<span class="chip since">自 0.1.124 起</span></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>一个语言服务器（通过 stdio 运行 <code>glyph lsp</code>，适用于任何编辑器；随附 VS Code 扩展），提供高亮、诊断、悬停、跳转到定义、补全、符号、覆盖整个工作区的查找引用和重命名，以及保存时格式化；从 0.1.124 开始可以跨模块边界回答：服务器为每个项目维护一个数据库，你打开的缓冲区叠加在磁盘上的文件之上，所以悬停在导入的函数或导入记录的字段上，得到的答案与 <code>glyph query hover</code> 相同，一个文件中未保存的编辑能被另一个文件看到，每次按键的开销比单文件时多 1% 到 9%；</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">提供十一个工具的 <code>glyph mcp</code> Model Context Protocol 服务器</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>一个 <code>glyph mcp</code> Model Context Protocol 服务器，提供十一个工具，即编辑器的查询加上 <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>，每个工具都有一个打印相同 JSON 的 <code>glyph query</code> 子命令，供没有 MCP 客户端的智能体使用；</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">稳定的错误码、<code>glyph --explain</code>、映射到 <code>.glyph</code> 源码的 <code>tsc</code> 后端错误、警告级别（未使用的导入/绑定、不可达代码），以及 <code>--json</code> 结构化诊断。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check [path]</code> 对单个文件或目录树做类型检查，不运行，也不写输出。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt --check</code> 在 CI 中把关格式：它不写任何东西，当某个文件不符合唯一的标准排版时以非零退出。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">缓存跨文件索引，而不是每次请求都重建（在大型目录树上能提速）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">重新映射 <code>glyph run</code> 自身的崩溃堆栈：由于 <code>tsx</code> 不会把生成的 source map 串过它的转换，这个堆栈仍然指向生成的 <code>.ts</code>，而不是你的 <code>.glyph</code>。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/generated-docs/">
           <span class="dir">&larr; 上一篇</span>

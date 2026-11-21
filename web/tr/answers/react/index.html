@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"React, hook'lar ve Context ile çalışıyor mu?","item":"https://glyphlang.io/tr/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/react/#article","headline":"React, hook'lar ve Context ile çalışıyor mu?","description":"React yerleşik olarak destekleniyor: bir component bir function component'e derlenir, JSX createElement'e indirgenir ve bir reducer'ın action'ları kapsamı tam olarak eşleştirilir.","url":"https://glyphlang.io/tr/answers/react/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/react/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"React, hook'lar ve Context ile çalışıyor mu?","item":"https://glyphlang.io/tr/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/react/#article","headline":"React, hook'lar ve Context ile çalışıyor mu?","description":"React yerleşik olarak destekleniyor: bir component bir function component'e derlenir, JSX createElement'e indirgenir ve bir reducer'ın action'ları kapsamı tam olarak eşleştirilir.","url":"https://glyphlang.io/tr/answers/react/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/react/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/react/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/react/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">React ile çalışıyor mu: component'ler, hook'lar ve Context?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,18 +478,9 @@
         Evet. Bir <code>component</code> bir React function component'ine derlenir, JSX <code>createElement</code>'e indirgenir, React'in kendi hook'ları adlarıyla import edilir ve döndürdükleri çiftler destructure edilir; reducer durumu da düz TypeScript'te olmayan bir kapsam kontrolü kazanır. Sayfanın kendisine (başlığı, mount noktası, kaydedilmiş durum) <code>std/dom</code> ve <code>std/storage</code> üzerinden erişilir. İlk bilinmesi gereken eksik: Glyph'in kendi checker'ı bir hook'un döndürdüğü değerin tipini belirlemez, bu yüzden o değerleri <code>tsc</code> kontrol eder.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Ajanların yazdığı kodun büyük kısmı React. Glyph onu sonradan eklenmiş bir şey olarak değil, birinci sınıf bir hedef olarak ele alır: <code>component</code> kendi anahtar kelimesidir (bu yüzden <code>grep "^component "</code> tüm arayüzünüzü denetler). React'in hook'ları <code>react</code>'ten import edilir ve gerçek isimleri ve tipleriyle çağrılır; <code>tsc</code> bunları React'in kendi tanımlarına göre kontrol eder.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>React'in gerçek <code>useReducer</code>'ı, bir tagged union üzerinde çalışan bir reducer ile. Her action ele alınmak zorunda ve derleyici bunu kontrol ediyor:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph, react@18 ve tiplerine karşı</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph, react@18 ve tiplerine karşı</span>
 <pre><span class="k">import</span> react { useReducer }
 
 <span class="k">type</span> <span class="t">Action</span> = <span class="t">Inc</span> | <span class="t">Dec</span> | <span class="t">Reset</span>
@@ -507,24 +498,55 @@
   <span class="k">let</span> [count, dispatch] = useReducer(reducer, <span class="n">0</span>)
   <span class="k">return</span> &lt;<span class="t">button</span> on_click={<span class="k">fn</span>() { dispatch(<span class="t">Inc</span>) }}&gt;<span class="ip">{</span>count<span class="ip">}</span>&lt;/<span class="t">button</span>&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>React'in gerçek <code>useReducer</code>'ı, bir tagged union üzerinde çalışan bir reducer ile. Her action ele alınmak zorunda ve derleyici bunu kontrol ediyor.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Bir <code>Double</code> action'ı ekleyin; reducer, onu adıyla söyleyen <code>E0200</code> ile derlenmeyi bırakır. Düz bir TypeScript <code>switch</code>'i bunun yayına çıkmasına izin verirdi. Çift <code>let [count, dispatch]</code> ile destructure edilir ve üretilen TypeScript <code>satisfies readonly [unknown, unknown]</code> ekler; böylece <code>tsc</code> hook'un bir çift döndürdüğünü kanıtlar ve her elemanın tipini yine de çıkarır. Glyph'in kendi checker'ı React'ten gelen değerlerin tipini belirlemez, bu yüzden <code>dispatch</code>'e ya da bir state setter'ına verilen yanlış bir argüman editör ya da <code>--no-tsc</code> tarafından değil, build sırasında <code>tsc</code> tarafından bildirilir. React <strong>Context</strong> bugün <code>createContext</code> / <code>useContext</code> üzerinden çalışıyor ve member-expression eleman isimleri (<code>&lt;ThemeContext.Provider&gt;</code>) doğrudan çalışıyor: geçici bir çözüme gerek yok.
-        </p>
-        <p>
-          JSX prop spread de çalışıyor: <code>&lt;input {...register("email")} /&gt;</code>, props içinde bir object spread'e indirgenir, yani react-hook-form deyimi bir adaptöre ihtiyaç duymaz. Zod'un değerden türetilen tipleri birinci sınıftır: <code>type FormData = z.infer&lt;typeof schema&gt;</code> doğrudan çalışır, kaçış yoluna gerek yok. Farklı olan tek şey: bir component birden fazla konumsal parametre değil, tek bir props record'u alır. Bu sınırın tam olarak nerede olduğu için <a href="/tr/answers/imports/">kütüphanelerinizi kullanmak</a> ve <a href="/tr/hardening/">sağlamlaştırma sayfasına</a> bakın.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#reducers-and-hooks">Reducer'lar ve hook'lar</a></li>
+          <li><a href="#context-and-libraries">Context ve kütüphaneler</a></li>
+          <li><a href="#are-props-checked-before-tsc">tsc'den önce props</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">JSX içinde &lt;match&gt;</a></li>
+          <li><a href="#how-does-a-page-start-it">Bir sayfayı başlatmak</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="are-props-checked-before-tsc">Props tsc'den önce kontrol ediliyor mu?<a class="h-anchor" href="#are-props-checked-before-tsc" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Evet. Glyph her elemanı component'inin props record'uyla kendisi karşılaştırır; böylece yanlış bir değer, yanlış yazılmış bir prop ve eksik bir zorunlu prop, prop'u adıyla söyleyen Glyph hatalarıdır. Bunları yalnızca tam bir build'de değil, editörde ve MCP üzerinden de görürsünüz. Component ister adıyla ister modülü üzerinden import edilmiş olsun, aynı şekilde çalışır:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ajanların yazdığı kodun büyük kısmı React. Glyph onu sonradan eklenmiş bir şey olarak değil, birinci sınıf bir hedef olarak ele alır: <code>component</code> kendi anahtar kelimesidir (bu yüzden <code>grep "^component "</code> tüm arayüzünüzü denetler).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>React'in hook'ları <code>react</code>'ten import edilir ve gerçek isimleri ve tipleriyle çağrılır; <code>tsc</code> bunları React'in kendi tanımlarına göre kontrol eder.</p></div>
 
+      <h2 class="ak-h" id="reducers-and-hooks">Reducer'lar ve hook'lar<a class="ak-anchor" href="#reducers-and-hooks" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir <code>Double</code> action'ı ekleyin; reducer, onu adıyla söyleyen <code>E0200</code> ile derlenmeyi bırakır. Düz bir TypeScript <code>switch</code>'i bunun yayına çıkmasına izin verirdi.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph'in kendi checker'ı React'ten gelen değerlerin tipini belirlemez, bu yüzden <code>dispatch</code>'e ya da bir state setter'ına verilen yanlış bir argüman editör ya da <code>--no-tsc</code> tarafından değil, build sırasında <code>tsc</code> tarafından bildirilir.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">hook'un döndürdüğü çiftin nasıl destructure edildiği</span></summary><div class="body">
+        <p>
+          Çift <code>let [count, dispatch]</code> ile destructure edilir ve üretilen TypeScript <code>satisfies readonly [unknown, unknown]</code> ekler; böylece <code>tsc</code> hook'un bir çift döndürdüğünü kanıtlar ve her elemanın tipini yine de çıkarır.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context ve kütüphaneler<a class="ak-anchor" href="#context-and-libraries" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        React <strong>Context</strong> bugün <code>createContext</code> / <code>useContext</code> üzerinden çalışıyor ve member-expression eleman isimleri (<code>&lt;ThemeContext.Provider&gt;</code>) doğrudan çalışıyor: geçici bir çözüme gerek yok.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>Prop spread</b>JSX prop spread de çalışıyor: <code>&lt;input {...register("email")} /&gt;</code>, props içinde bir object spread'e indirgenir, yani react-hook-form deyimi bir adaptöre ihtiyaç duymaz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Zod tipleri</b>Zod'un değerden türetilen tipleri birinci sınıftır: <code>type FormData = z.infer&lt;typeof schema&gt;</code> doğrudan çalışır, kaçış yoluna gerek yok.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Farklı olan tek şey: bir component birden fazla konumsal parametre değil, tek bir props record'u alır. Bu sınırın tam olarak nerede olduğu için <a href="/tr/answers/imports/">kütüphanelerinizi kullanmak</a> ve <a href="/tr/hardening/">sağlamlaştırma sayfasına</a> bakın.</p></div>
+
+      <h2 class="ak-h" id="are-props-checked-before-tsc">Props tsc'den önce kontrol ediliyor mu?<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Evet. Glyph her elemanı component'inin props record'uyla kendisi karşılaştırır; böylece yanlış bir değer, yanlış yazılmış bir prop ve eksik bir zorunlu prop, prop'u adıyla söyleyen Glyph hatalarıdır. Component ister adıyla ister modülü üzerinden import edilmiş olsun, aynı şekilde çalışır:
+      </p>
       <div class="code">
         <span class="cap">main.glyph, <code>Card</code> <code>ui.glyph</code> içinde tanımlı</span>
 <pre><span class="k">import</span> ui
@@ -540,20 +562,21 @@
 <span class="c">// E0210 type `CardProps` has no field `cout`; did you mean `count`?</span>
 <span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bunları yalnızca tam bir build'de değil, editörde ve MCP üzerinden de görürsünüz.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">--json içinde missing_fields ve tek bir props record'u (E0229)</span></summary><div class="body">
         <p>
           <code>--json</code> eksik isimleri bir <code>missing_fields</code> listesi olarak taşır; böylece bir ajan mesajı parse etmeden prop'ları ekleyebilir. Bir component ayrıca props'larını tek bir record olarak almak zorundadır: <code>component Greeting(name: string)</code> parametrede E0229'dur, çünkü React yalnızca props object'ini geçirir ve o eleman hiçbir zaman tip kontrolünden geçemezdi. Onu render etmek yerine bir fonksiyon olarak çağırıyorsanız <code>fn</code> ile tanımlayın.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="is-a-match-in-jsx-checked-like-a-match">JSX'teki bir &lt;match&gt; bir match gibi mi kontrol ediliyor?<a class="h-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          İkisi aynı şey. Her <code>&lt;case&gt;</code>, bir <code>match</code> arm'ının aldığı pattern'i alır ve derleyici onu arm için kullandığı kodun içinden geçirir. Bir case'in bağladığı isimler payload'un tiplerine sahiptir, payload record'unda olmayan bir alan E0210'dur ve eksik bir variant E0200'dür. Bir değeri test eden bir case, variant'ının yalnızca bir kısmını kapsar; bu yüzden geri kalanını alacak kardeş bir case'e ya da bir <code>&lt;case else&gt;</code>'e ihtiyaç duyar:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">JSX'teki bir &lt;match&gt; bir match gibi mi kontrol ediliyor?<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        İkisi aynı şey. Her <code>&lt;case&gt;</code>, bir <code>match</code> arm'ının aldığı pattern'i alır ve derleyici onu arm için kullandığı kodun içinden geçirir.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Payload tipleri</b>Bir case'in bağladığı isimler payload'un tiplerine sahiptir, payload record'unda olmayan bir alan E0210'dur ve eksik bir variant E0200'dür.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>Kısmi case'ler</b>Bir değeri test eden bir case, variant'ının yalnızca bir kısmını kapsar; bu yüzden geri kalanını alacak kardeş bir case'e ya da bir <code>&lt;case else&gt;</code>'e ihtiyaç duyar.</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre><span class="k">type</span> <span class="t">Page</span> =
@@ -572,13 +595,11 @@
 <span class="add"><span class="c">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-does-a-page-start-it">Bir sayfa onu nasıl başlatır?<a class="h-anchor" href="#how-does-a-page-start-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Glyph'te üst seviye ifadeler yoktur, bu yüzden sayfa export edilmiş bir <code>main</code>'i kendisi çağırır. Uygulama iki modüldür: biri component'leri tutar, diğeri onları <code>std/dom</code> ve react-dom'un <code>createRoot</code>'u üzerinden <code>#root</code>'a mount eder. Event attribute'ları snake case'tir (<code>on_change</code>, React'in <code>onChange</code>'ini üretir), bir handler bir lambda'dır ve bir input'un metni <code>e.currentTarget.value</code>'dur.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">Bir sayfa onu nasıl başlatır?<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph'te üst seviye ifadeler yoktur, bu yüzden sayfa export edilmiş bir <code>main</code>'i kendisi çağırır. Uygulama iki modüldür: biri component'leri tutar, diğeri onları <code>std/dom</code> ve react-dom'un <code>createRoot</code>'u üzerinden <code>#root</code>'a mount eder.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Event attribute'ları snake case'tir (<code>on_change</code>, React'in <code>onChange</code>'ini üretir), bir handler bir lambda'dır ve bir input'un metni <code>e.currentTarget.value</code>'dur.</p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react"><span class="k">module</span> app
@@ -620,25 +641,45 @@
   main();
 &lt;/<span class="t">script</span>&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="Modüllerden bir bundle'a"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">build, bu main'in neden hiçbir şey almadığı ve adım adım anlatım</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> modülleri kontrol eder, React'in tanımlarına karşı <code>tsc --strict</code> çalıştırır ve TypeScript'i <code>dist/gen</code>'e yazar. Ardından <code>npx vite build --outDir dist/web</code>, <code>index.html</code>'i okur, import'u takip eder ve onu React ile paketler. Bu <code>main</code> hiçbir şey almaz ve hiçbir şey döndürmez, çünkü script onu argümansız çağırır; <code>glyph init</code>'in yazdığı <code>main(argv) -&gt; number</code>, <code>glyph run</code>'ın node altında çağırdığıdır. <code>package.json</code> ve kurulum satırıyla birlikte tam adım adım anlatım, <code>glyph llms</code>'in yazdırdığı referanstaki <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">Glyph'i bir tarayıcı sayfasında çalıştırmak</a> bölümünde. CI, <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>'yu aynı şekilde build eder ve headless Chromium'da render eder.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Component'ler, JSX, fragment'lar (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression eleman isimleri (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), her import yazılışında <code>tsc</code>'den önce component'e karşı kontrol edilen props, adıyla import edilen React'in kendi hook'ları (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>; tiplerini tsc kontrol eder ve çiftleri destructure edilir: <code>let [count, set_count] = useState(0)</code>), kapsamı tam tagged union action'larıyla <code>useReducer</code>, arm pattern'leriyle bir <code>match</code> olarak kontrol edilip indirgenen <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, <code>createContext</code>/<code>useContext</code> ile Context ve <code>std/dom</code> (başlık, mount noktası, adres), <code>std/storage</code> ve <code>std/console</code> üzerinden sayfa. JSX metni TSX'in okuduğu gibi okunur, yani <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> düz metindir; <code>}</code>, <code>&gt;</code>, <code>//</code> ve <code>&amp;amp;</code> gibi bir HTML entity'si metinde reddedilir (E0012) ve yerine kullanılacak yazılış söylenir. Bir array üzerindeki üye okuması kontrol edilir, yani bir <code>Array&lt;string&gt;</code> üzerinde <code>{items.foo}</code> E0210'dur. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>, React 18 üzerinde Vite ile paketlenen ve bir tarayıcıda render edilen eksiksiz bir uygulamadır.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p>Glyph'in checker'ı bir hook'un sonucunun tipini belirlemez, bu yüzden sayı tipindeki bir state üzerinde <code>set_count("x")</code>, editörde bir Glyph hatası değil build sırasında bir <code>tsc</code> hatasıdır. <code>std/dom</code> sayfayı okumak ve başlığını ayarlamakla sınırlı: render ettiği DOM'un sahibi React'tir, bu yüzden eleman setter'ları ya da event listener'ları yoktur. Bir effect <code>fn() -&gt; void { ... }</code> olarak yazılmak zorundadır, çünkü bir lambda son ifadesini döndürür ve React onu bir cleanup olarak çağırırdı. Satır içi yazılmış bir props tipi bu mesajlarda hâlâ <code>record</code> olarak görünür; adlandırılmış bir tip ise adıyla görünür. Arayüzü TypeScript'te olan mevcut bir Vite uygulamasına Glyph çıktısını gömmek <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment kılavuzunda</a> anlatılıyor.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Component'ler, JSX, fragment'lar (<code>&lt;&gt;...&lt;/&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Member-expression eleman isimleri (<code>&lt;Ctx.Provider&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX prop spread (<code>{...register()}</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her import yazılışında <code>tsc</code>'den önce component'e karşı kontrol edilen props</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Adıyla import edilen React'in kendi hook'ları (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>); tiplerini tsc kontrol eder ve çiftleri destructure edilir (<code>let [count, set_count] = useState(0)</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kapsamı tam tagged union action'larıyla <code>useReducer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Arm pattern'leriyle bir <code>match</code> olarak kontrol edilip indirgenen <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>createContext</code>/<code>useContext</code> ile Context</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/dom</code> (başlık, mount noktası, adres), <code>std/storage</code> ve <code>std/console</code> üzerinden sayfa</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX metni TSX'in okuduğu gibi okunur, yani <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> düz metindir; <code>}</code>, <code>&gt;</code>, <code>//</code> ve <code>&amp;amp;</code> gibi bir HTML entity'si metinde reddedilir (E0012) ve yerine kullanılacak yazılış söylenir.</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir array üzerindeki üye okuması kontrol edilir, yani bir <code>Array&lt;string&gt;</code> üzerinde <code>{items.foo}</code> E0210'dur.</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a>, React 18 üzerinde Vite ile paketlenen ve bir tarayıcıda render edilen eksiksiz bir uygulamadır.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph'in checker'ı bir hook'un sonucunun tipini belirlemez, bu yüzden sayı tipindeki bir state üzerinde <code>set_count("x")</code>, editörde bir Glyph hatası değil build sırasında bir <code>tsc</code> hatasıdır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> sayfayı okumak ve başlığını ayarlamakla sınırlı: render ettiği DOM'un sahibi React'tir, bu yüzden eleman setter'ları ya da event listener'ları yoktur.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir effect <code>fn() -&gt; void { ... }</code> olarak yazılmak zorundadır, çünkü bir lambda son ifadesini döndürür ve React onu bir cleanup olarak çağırırdı.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Satır içi yazılmış bir props tipi bu mesajlarda hâlâ <code>record</code> olarak görünür; adlandırılmış bir tip ise adıyla görünür.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Arayüzü TypeScript'te olan mevcut bir Vite uygulamasına Glyph çıktısını gömmek <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment kılavuzunda</a> anlatılıyor.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/codegen/">
           <span class="dir">&larr; Önceki</span>

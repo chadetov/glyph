@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why TypeScript, and not Go or a new language?","item":"https://glyphlang.io/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/why-typescript/#article","headline":"Why TypeScript, and not Go or a new language?","description":"TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.","url":"https://glyphlang.io/answers/why-typescript/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/why-typescript/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why TypeScript, and not Go or a new language?","item":"https://glyphlang.io/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/why-typescript/#article","headline":"Why TypeScript, and not Go or a new language?","description":"TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS.","url":"https://glyphlang.io/answers/why-typescript/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/why-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/why-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/why-typescript/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">04 &middot; Positioning</p>
       <h1 class="q-title">Why TypeScript, and not Go or a new language?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -487,52 +487,57 @@
         its target is TS</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          A new language stands or falls on how you get from zero to shipping. Compiling to
-          TypeScript means you never leave your codebase, your bundler, your test runner, or your
-          deploy. Glyph slots in beside the <code>.ts</code> files you already have, and
-          both directions import cleanly:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">the same project: .glyph and .ts, side by side</span>
+      <figure class="ak-hero">
+        <div class="code">
+          <span class="cap">the same project: .glyph and .ts, side by side</span>
 <pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 <span class="k">import</span> { formatPrice } <span class="k">from</span> <span class="s">"./format.ts"</span>
 
 <span class="cm">// checkout.ts: existing, untouched</span>
 <span class="k">import</span> { total } <span class="k">from</span> <span class="s">"./cart.glyph"</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          You cannot drop Go into a TypeScript codebase file by file: it's a different
-          runtime, a different module system, a different ecosystem. That single fact is why the
-          target is TS.
-        </p>
-        <p>
-          <strong>The fair point about Go:</strong> its small, stable keyword surface gives an
-          agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately
-          small core with one way to do each thing. Go is included in our density
-          <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a>
-          for a straight comparison.
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Being measured</h3>
-          <p>The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A new language stands or falls on how you get from zero to shipping. Compiling to
+        TypeScript means you never leave your codebase, your bundler, your test runner, or your
+        deploy.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>You cannot drop Go into a TypeScript codebase file by file: it's a different
+        runtime, a different module system, a different ecosystem. That single fact is why the
+        target is TS.</p></div>
+
+      <h2 class="ak-h" id="go">The fair point about Go<a class="ak-anchor" href="#go" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Its small, stable keyword surface gives an
+        agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately
+        small core with one way to do each thing.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go is included in our density
+        <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a>
+        for a straight comparison.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Clean TypeScript output.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bidirectional imports with your existing <code>.ts</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A small core that runs anywhere Node or a browser bundle does.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Being measured <span class="count">1</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/greppability/">
           <span class="dir">&larr; Previous</span>

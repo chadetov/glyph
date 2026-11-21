@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"검증 가능성","item":"https://glyphlang.io/ko/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/pillars/verifiability/#article","headline":"검증 가능성 · any 없음, 망라적인 match","description":"Glyph의 첫 번째 기둥: any도 as도 없고, match는 망라적이며, 선언한 타입에는 런타임 검증기가 붙습니다. 한계를 밝혀 둔, tsc 위의 엄격한 계층입니다.","url":"https://glyphlang.io/ko/pillars/verifiability/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/pillars/verifiability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"검증 가능성","item":"https://glyphlang.io/ko/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/pillars/verifiability/#article","headline":"검증 가능성 · any 없음, 망라적인 match","description":"Glyph의 첫 번째 기둥: any도 as도 없고, match는 망라적이며, 선언한 타입에는 런타임 검증기가 붙습니다. 한계를 밝혀 둔, tsc 위의 엄격한 계층입니다.","url":"https://glyphlang.io/ko/pillars/verifiability/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/pillars/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">기둥 01 &middot; <span class="wedge">핵심</span></p>
       <h1 class="q-title">검증 가능성</h1>
 
@@ -435,54 +435,71 @@
         Glyph는 에이전트가 빠지는 구멍을 막습니다. <strong>작성할 수 있는 <code>any</code>도 <code>as</code>도 없고</strong>, <code>match</code>는 <strong>망라적임이 증명되며</strong>, 선언한 타입에는 <strong>엄격한 런타임 검증기</strong>가 붙고, 이 모두가 <code>tsc</code> 위의 엄격한 계층으로 강제됩니다. 모든 것을 직접 검증하지는 않으며, 보장이 정확히 어디서 멈추는지 아래에 솔직하게 적어 두었습니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-lie-a-type-can-tell">타입이 할 수 있는 거짓말<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p class="lede">
-          TypeScript에서 타입은 코드가 실행되기 전에 사라지는 컴파일 시점의 약속입니다. <code>User</code> 표기는 지워져 아무것도 남지 않고, 네트워크 호출, JSON 파싱, 폼 필드에서 실제로 받는 객체는 어떤 모양이든 될 수 있습니다. 더 나쁜 것은 언어가 이에 대해 검사기에게 거짓말할 합법적인 방법 세 가지를 준다는 점입니다. <code>any</code>, <code>as</code> 캐스트, non-null <code>!</code>입니다. 빠르게 일하는 에이전트는 셋 다 꺼내 쓰고, 버그가 배포되는 동안 <code>tsc --strict</code>는 통과 상태를 유지합니다.
-        </p>
-        <p class="lede">
-          Glyph의 첫 번째 일은 이 구멍들을 막는 것입니다. 표기를 더하는 것이 아니라, 탈출구를 없애고 모든 타입이 증명을 런타임까지 가지고 가게 해서입니다. 보장을 하나씩 보면 다음과 같습니다.
-        </p>
-
-        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code>가 없습니다<a class="h-anchor" href="#there-is-no-any" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          <code>any</code>는 TypeScript에서 가장 비싼 키워드입니다. 값 하나<em>와 그 값이 닿는 모든 것</em>에 대해 타입 시스템을 꺼 버립니다. 경계에 있는 <code>any</code> 하나가 그 아래의 호출 그래프를 조용히 오염시킵니다. Glyph에는 이것이 없습니다. 최상위 타입은 <code>unknown</code>이고, <code>unknown</code>은 무력합니다. 그것이 무엇인지 <em>증명하기</em> 전까지는 호출하거나, 인덱싱하거나, 타입이 있는 곳에 넘길 수 없습니다.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript: 컴파일된 뒤 충돌</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript: 컴파일된 뒤 충돌</span>
+            <span class="cap">handler.ts</span>
 <pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: 좁히기가 곧 증명</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: 좁히기가 곧 증명</span>
+            <span class="cap">handler.glyph</span>
 <pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
     <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
     <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          컴파일러가 볼 수 있는 검사 없이는 <code>unknown</code>에서 타입이 있는 값을 꺼낼 수 없습니다. Glyph에서는 좁히기가 <strong>곧</strong> 런타임 증명입니다. 이를 건너뛰는 문법은 없습니다.
-        </p>
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">타입이 할 수 있는 거짓말</a></li>
+          <li><a href="#there-is-no-any">any 없음</a></li>
+          <li><a href="#types-are-real-at-runtime">런타임의 타입</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">모든 case</a></li>
+          <li><a href="#errors-are-values-not-surprises">값으로서의 오류</a></li>
+          <li><a href="#even-pii-is-type-level">개인정보</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">보장이 멈추는 곳</a></li>
+          <li><a href="#the-benchmark-coming">벤치마크</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">strict TS와 lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> 타입은 런타임에도 실재합니다<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">타입이 할 수 있는 거짓말<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript에서 타입은 코드가 실행되기 전에 사라지는 컴파일 시점의 약속입니다. <code>User</code> 표기는 지워져 아무것도 남지 않고, 네트워크 호출, JSON 파싱, 폼 필드에서 실제로 받는 객체는 어떤 모양이든 될 수 있습니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>더 나쁜 것은 언어가 이에 대해 검사기에게 거짓말할 합법적인 방법 세 가지를 준다는 점입니다. <code>any</code>, <code>as</code> 캐스트, non-null <code>!</code>입니다. 빠르게 일하는 에이전트는 셋 다 꺼내 쓰고, 버그가 배포되는 동안 <code>tsc --strict</code>는 통과 상태를 유지합니다.</p></div>
+      <p class="ak-lede">
+        Glyph의 첫 번째 일은 이 구멍들을 막는 것입니다. 표기를 더하는 것이 아니라, 탈출구를 없애고 모든 타입이 증명을 런타임까지 가지고 가게 해서입니다. 보장을 하나씩 보면 다음과 같습니다.
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code>가 없습니다<a class="ak-anchor" href="#there-is-no-any" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph에는 이것이 없습니다. 최상위 타입은 <code>unknown</code>이고, <code>unknown</code>은 무력합니다. 그것이 무엇인지 <em>증명하기</em> 전까지는 호출하거나, 인덱싱하거나, 타입이 있는 곳에 넘길 수 없습니다.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">any 하나가 그렇게 비싼 이유</span></summary><div class="body">
         <p>
-          <code>User.parse</code>는 어떻게 존재할까요? 모든 레코드 타입과 제네릭이 아닌 모든 태그 유니언이 <strong>런타임 디스크립터</strong>를 함께 생성하기 때문입니다. <code>is</code> 가드, <code>unknown</code>을 <code>Result</code>로 검증하는 <code>parse</code>, 조합할 수 있는 <code>schema</code>입니다. 레코드의 모양은 가정되는 것이 아니라 런타임에 실제로 검사되므로, <code>is User</code> 검사는 지워지는 무동작이 아니라 실제 검사입니다.
+          <code>any</code>는 TypeScript에서 가장 비싼 키워드입니다. 값 하나<em>와 그 값이 닿는 모든 것</em>에 대해 타입 시스템을 꺼 버립니다. 경계에 있는 <code>any</code> 하나가 그 아래의 호출 그래프를 조용히 오염시킵니다.
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        컴파일러가 볼 수 있는 검사 없이는 <code>unknown</code>에서 타입이 있는 값을 꺼낼 수 없습니다. Glyph에서는 좁히기가 <strong>곧</strong> 런타임 증명입니다. 이를 건너뛰는 문법은 없습니다.
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> 타입은 런타임에도 실재합니다<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>User.parse</code>는 어떻게 존재할까요? 모든 레코드 타입과 제네릭이 아닌 모든 태그 유니언이 <strong>런타임 디스크립터</strong>를 함께 생성하기 때문입니다. <code>is</code> 가드, <code>unknown</code>을 <code>Result</code>로 검증하는 <code>parse</code>, 조합할 수 있는 <code>schema</code>입니다.
+      </p>
       <div class="code">
         <span class="cap">작성하는 타입과, 그로부터 생성되는 디스크립터</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
@@ -500,21 +517,24 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>"API마다 직접 작성한 검증기가 필요하다"에 대한 답이 이것입니다. 타입이 곧 검증기입니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">디스크립터가 검사하는 것</span></summary><div class="body">
         <p>
-          "API마다 직접 작성한 검증기가 필요하다"에 대한 답이 이것입니다. 타입이 곧 검증기입니다. 경계(요청 본문, 설정 파일, 서드파티 응답)는 잘못된 데이터를 실제로 거부할 수 있는 검사를 통과해야만 타입을 얻습니다.
+          레코드의 모양은 가정되는 것이 아니라 런타임에 실제로 검사되므로, <code>is User</code> 검사는 지워지는 무동작이 아니라 실제 검사입니다.
         </p>
         <p>
-          한계: 레코드의 디스크립터는 기본적으로 엄격합니다. 선언된 필드를 확인하고, 선언되지 않은 키를 가진 값은 거부합니다(추가 키를 허용하려면 타입에 <code>@open</code>을 붙입니다). 레코드 타입은 제네릭을 포함해 디스크립터를 가지므로, <code>Paginated&lt;User&gt;</code>는 각 요소를 <code>User</code>로 검사하고, 태그 유니언의 디스크립터는 태그를 검사한 다음 그 variant의 payload 필드를 검사합니다. 아직 디스크립터가 없는 것은 제네릭 태그 유니언(<code>Box&lt;T&gt; = Empty | Full({ value: T })</code>에는 <code>Box.parse</code>가 없습니다)과, 참조만 하는 <code>.d.ts</code>에서 import한 타입입니다. 검사가 모양의 일부만 증명할 수 있는 곳에서는, 컴파일러가 할 수 없는 보장을 암시하는 대신 그렇다고 말합니다.
+          경계(요청 본문, 설정 파일, 서드파티 응답)는 잘못된 데이터를 실제로 거부할 수 있는 검사를 통과해야만 타입을 얻습니다.
         </p>
-
-        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> 모든 case를 다루거나, 컴파일되지 않거나<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          봉인된 유니언에 대한 <code>match</code>는 모든 variant를 처리해야 합니다. 나중에 variant를 추가하면 그것을 고려하지 않은 <em>모든</em> match가 컴파일되지 않습니다(<code>E0200</code>). 잊힌 <code>switch</code> 분기처럼 새 case가 조용히 <code>undefined</code>로 빠질 수 없습니다. 유니언만이 아닙니다. <code>number</code>나 <code>string</code>을 리터럴 값으로 매칭하면 <code>else</code>가 필요합니다(<code>E0218</code>). 그 정의역은 끝이 없어서 리터럴 집합으로는 결코 완전해질 수 없기 때문입니다.
+          한계: 레코드의 디스크립터는 기본적으로 엄격합니다. 선언된 필드를 확인하고, 선언되지 않은 키를 가진 값은 거부합니다(추가 키를 허용하려면 타입에 <code>@open</code>을 붙입니다). 레코드 타입은 제네릭을 포함해 디스크립터를 가지므로, <code>Paginated&lt;User&gt;</code>는 각 요소를 <code>User</code>로 검사하고, 태그 유니언의 디스크립터는 태그를 검사한 다음 그 variant의 payload 필드를 검사합니다.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>아직 디스크립터가 없는 것은 제네릭 태그 유니언(<code>Box&lt;T&gt; = Empty | Full({ value: T })</code>에는 <code>Box.parse</code>가 없습니다)과, 참조만 하는 <code>.d.ts</code>에서 import한 타입입니다. 검사가 모양의 일부만 증명할 수 있는 곳에서는, 컴파일러가 할 수 없는 보장을 암시하는 대신 그렇다고 말합니다.</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> 모든 case를 다루거나, 컴파일되지 않거나<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        봉인된 유니언에 대한 <code>match</code>는 모든 variant를 처리해야 합니다. 나중에 variant를 추가하면 그것을 고려하지 않은 <em>모든</em> match가 컴파일되지 않습니다(<code>E0200</code>).
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -528,7 +548,7 @@
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">런타임 undefined가 아니라 컴파일 오류</span>
           <span class="cap">$ glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
@@ -539,14 +559,17 @@
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> 오류는 놀랄 일이 아니라 값입니다<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">숫자와 문자열 match</span></summary><div class="body">
         <p>
-          실패할 수 있는 함수는 <code>Result&lt;T, E&gt;</code>를 반환합니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 전달하며, 오류 타입이 맞아야 합니다(불일치를 숨기는 암묵적 변환은 없습니다). <code>Result</code>를 완전히 무시하면(효과를 위해 호출하고 반환값을 버리면) Glyph가 경고합니다(<code>E0217</code>). 버려진 오류는 삼켜진 실패이기 때문입니다. 경고는 <code>let _ = ...</code>로 의도적으로만 끌 수 있고, 실수로 꺼지는 일은 없습니다.
+          잊힌 <code>switch</code> 분기처럼 새 case가 조용히 <code>undefined</code>로 빠질 수 없습니다. 유니언만이 아닙니다. <code>number</code>나 <code>string</code>을 리터럴 값으로 매칭하면 <code>else</code>가 필요합니다(<code>E0218</code>). 그 정의역은 끝이 없어서 리터럴 집합으로는 결코 완전해질 수 없기 때문입니다.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> 오류는 놀랄 일이 아니라 값입니다<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        실패할 수 있는 함수는 <code>Result&lt;T, E&gt;</code>를 반환합니다. <code>match</code>로 처리하거나 <code>?</code> 연산자로 전달하며, 오류 타입이 맞아야 합니다(불일치를 숨기는 암묵적 변환은 없습니다).
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
@@ -560,14 +583,12 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>Result</code>를 완전히 무시하면(효과를 위해 호출하고 반환값을 버리면) Glyph가 경고합니다(<code>E0217</code>). 버려진 오류는 삼켜진 실패이기 때문입니다. 경고는 <code>let _ = ...</code>로 의도적으로만 끌 수 있고, 실수로 꺼지는 일은 없습니다.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> 개인정보도 타입 수준입니다<a class="h-anchor" href="#even-pii-is-type-level" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          "관례가 아니라 컴파일러의 일로 만든다"는 같은 원칙이 민감한 데이터까지 이어집니다. 타입에 <code>@redact</code>를 붙이면 디스크립터에 그 필드를 가리는 <code>redact()</code>가 생기므로, 무심코 쓴 <code>json.stringify(User.redact(u))</code>가 그 필드를 유출할 수 없습니다. 타입에 없는 필드를 지정하면 아무것도 보호하지 않는 마스킹이 아니라 컴파일 오류(<code>E0219</code>)입니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> 개인정보도 타입 수준입니다<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "관례가 아니라 컴파일러의 일로 만든다"는 같은 원칙이 민감한 데이터까지 이어집니다. 타입에 <code>@redact</code>를 붙이면 디스크립터에 그 필드를 가리는 <code>redact()</code>가 생기므로, 무심코 쓴 <code>json.stringify(User.redact(u))</code>가 그 필드를 유출할 수 없습니다.
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre><span class="k">@redact</span> fields: [diagnosis, notes]
@@ -580,28 +601,35 @@
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>타입에 없는 필드를 지정하면 아무것도 보호하지 않는 마스킹이 아니라 컴파일 오류(<code>E0219</code>)입니다.</p></div>
+      <p class="pull-quote">
+        다섯 가지 실패 방식(검사하지 않은 입력, 놓친 case, 버려진 오류, 유출된 비밀 값, 검증하지 않은 키)이 있고, 모두 고치는 방식의 모양이 같습니다. <strong>컴파일러는 그런 척하기를 거부합니다.</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          다섯 가지 실패 방식(검사하지 않은 입력, 놓친 case, 버려진 오류, 유출된 비밀 값, 검증하지 않은 키)이 있고, 모두 고치는 방식의 모양이 같습니다. <strong>컴파일러는 그런 척하기를 거부합니다.</strong>
-        </p>
-
-        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">강제하는 방식, 그리고 보장이 멈추는 곳<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          차이가 중요하므로 정확히 말하겠습니다. Glyph는 독립적인 검증기가 아니라 <strong><code>tsc</code> 위의 엄격하고 강제되는 방언</strong>입니다. 일부는 직접 증명합니다. 망라성, <code>?</code> 오류 타입, 소스에 <code>any</code>/<code>as</code>가 없다는 것, 엄격한 키 검증입니다. 나머지 타입 호환성은 TypeScript를 생성하고 빌드를 실패시키는 <code>tsc --strict</code>를 실행해서 강제합니다. 핵심은 Glyph가 타입 검사기를 다시 구현한다는 것이 아니라, 이 검사들이 에이전트가 끌 수 있는 선택적 lint가 아니라 <em>언어</em>라는 것입니다.
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">강제하는 방식, 그리고 보장이 멈추는 곳<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        차이가 중요하므로 정확히 말하겠습니다. Glyph는 독립적인 검증기가 아니라 <strong><code>tsc</code> 위의 엄격하고 강제되는 방언</strong>입니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Glyph가 증명</b>일부는 직접 증명합니다. 망라성, <code>?</code> 오류 타입, 소스에 <code>any</code>/<code>as</code>가 없다는 것, 엄격한 키 검증입니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>tsc를 통해 강제</b>나머지 타입 호환성은 TypeScript를 생성하고 빌드를 실패시키는 <code>tsc --strict</code>를 실행해서 강제합니다.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>핵심은 Glyph가 타입 검사기를 다시 구현한다는 것이 아니라, 이 검사들이 에이전트가 끌 수 있는 선택적 lint가 아니라 <em>언어</em>라는 것입니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.10에서 막힌 한계, 깊은 제네릭 검증</span></summary><div class="body">
         <p>
           여기 있던 이전의 한계 두 가지는 0.1.10에서 막혔습니다. emitter는 예전에 <em>모든</em> 제네릭 함수에 <code>tsc</code>가 아니라 Glyph가 검사하는 반환 캐스트를 넣었습니다. 이제는 검증기 조합자가 모양에서 파생된 타입(<code>infer_output&lt;Shape&gt;</code>)의 값을 만드는 곳에서만 넣으며, 정직한 제네릭은 모두 캐스트 없이 생성됩니다. 그리고 검증기의 출력 타입을 더 이상 그냥 믿지 않습니다. <code>infer_output</code>이 넘긴 모양에서 그 타입을 끌어내고 <code>tsc</code>가 여러분의 타입 표기를 그에 대해 검사하므로, 주장하는 타입의 필드가 빠진 모양은 이제 컴파일에 실패합니다.
         </p>
         <p>
-          제네릭 타입도 이제 깊게 검증됩니다. <code>Paginated&lt;User&gt;</code> 디스크립터는 모든 요소가 있는지만이 아니라 <em><code>User</code>로서</em> 검사합니다. 한계가 하나 남아 있으며, 분명히 밝혀 둡니다. 참조만 하는 외부 <code>.d.ts</code>에서 <em>import한</em> 타입은 <code>glyph gen dts</code>로 실체화하기 전까지 디스크립터가 없으므로, 그 타입의 필드는 모양이 아니라 존재 여부만 검사됩니다. 이 경계는 의도한 것이며(Glyph가 생성하지 않은 타입은 런타임 검증을 약속할 수 없습니다), 실체화하면 막힙니다.
+          제네릭 타입도 이제 깊게 검증됩니다. <code>Paginated&lt;User&gt;</code> 디스크립터는 모든 요소가 있는지만이 아니라 <em><code>User</code>로서</em> 검사합니다.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>한계가 하나 남아 있으며, 분명히 밝혀 둡니다. 참조만 하는 외부 <code>.d.ts</code>에서 <em>import한</em> 타입은 <code>glyph gen dts</code>로 실체화하기 전까지 디스크립터가 없으므로, 그 타입의 필드는 모양이 아니라 존재 여부만 검사됩니다. 이 경계는 의도한 것이며(Glyph가 생성하지 않은 타입은 런타임 검증을 약속할 수 없습니다), 실체화하면 막힙니다.</p></div>
 
-        <h2 class="block-label" id="the-benchmark-coming">벤치마크: 준비 중<a class="h-anchor" href="#the-benchmark-coming" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          이 주장은 경험적인 것이므로 측정할 계획입니다. 에이전트가 작성한 실제 변경 모음을 각각 <code>tsc --strict</code>와 Glyph로 실행하고, 각각이 실제로 무엇을 잡는지 세는 것입니다. Glyph는 아직 실제 환경에서 쓰이지 않으므로 보고할 숫자가 없습니다. 아래 차트는 자리 표시이며, 실제 사용이 생기는 순간 실제 데이터로 채워집니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">벤치마크: 준비 중<a class="ak-anchor" href="#the-benchmark-coming" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        이 주장은 경험적인 것이므로 측정할 계획입니다. 에이전트가 작성한 실제 변경 모음을 각각 <code>tsc --strict</code>와 Glyph로 실행하고, 각각이 실제로 무엇을 잡는지 세는 것입니다.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph는 아직 실제 환경에서 쓰이지 않으므로 보고할 숫자가 없습니다. 아래 차트는 자리 표시이며, 실제 사용이 생기는 순간 실제 데이터로 채워집니다.</p></div>
 
       <div class="chart">
         <span class="label">에이전트가 배포한 버그 중 잡아낸 것 &middot; 높을수록 좋음</span>
@@ -619,27 +647,22 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          이 중 어느 것도 번거로운 의식을 대가로 얻는 것이 아닙니다. 증명 표기도, 계약도, 만족시켜야 할 검증기도 없습니다. 위의 코드는 평범한 Glyph일 뿐입니다. 검증 가능성은 켜는 기능이 아니라, 거짓말할 방법이 사라지고 나면 남는 것입니다.
-        </p>
-      </div>
+      <p class="ak-lede">
+        이 중 어느 것도 번거로운 의식을 대가로 얻는 것이 아닙니다. 증명 표기도, 계약도, 만족시켜야 할 검증기도 없습니다. 위의 코드는 평범한 Glyph일 뿐입니다. 검증 가능성은 켜는 기능이 아니라, 거짓말할 방법이 사라지고 나면 남는 것입니다.
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">"strict TypeScript와 lint 설정이면 된다"<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          프로그램 안에서는 거의 그렇습니다. <code>strict</code>, <code>noUncheckedIndexedAccess</code>, 그리고 명시적 <code>any</code>를 금지하는 규칙이 에이전트가 빠져나갈 것의 대부분을 잡습니다. 하지만 가장자리에서 멈춥니다. <code>JSON.parse(body) as User</code>는 어떤 설정에서든 컴파일되며, 흔한 해결책인 zod 스키마는 첫 번째와 직접 맞춰 둬야 하는 <code>User</code>의 두 번째 기술입니다. Glyph에서는 타입이 곧 검증기입니다. <code>json.parse&lt;User&gt;(body)</code>는 <code>User</code> 자체에 대해 검사되고, Glyph가 런타임에 검사할 수 없는 타입은 믿는 대신 거부됩니다.
-        </p>
-        <p>
-          다른 차이는 누가 이에 기댈 수 있느냐입니다. lint 설정은 저장소 하나가 내린 선택입니다. 낯선 TypeScript 코드베이스를 연 에이전트는 거기서 <code>any</code>가 금지되어 있다고 가정할 수 없습니다. Glyph에서는 어디서도 쓸 수 없습니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">"strict TypeScript와 lint 설정이면 된다"<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        프로그램 안에서는 거의 그렇습니다. <code>strict</code>, <code>noUncheckedIndexedAccess</code>, 그리고 명시적 <code>any</code>를 금지하는 규칙이 에이전트가 빠져나갈 것의 대부분을 잡습니다. 하지만 가장자리에서 멈춥니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>경계에서</b><code>JSON.parse(body) as User</code>는 어떤 설정에서든 컴파일되며, 흔한 해결책인 zod 스키마는 첫 번째와 직접 맞춰 둬야 하는 <code>User</code>의 두 번째 기술입니다. Glyph에서는 타입이 곧 검증기입니다. <code>json.parse&lt;User&gt;(body)</code>는 <code>User</code> 자체에 대해 검사되고, Glyph가 런타임에 검사할 수 없는 타입은 믿는 대신 거부됩니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>저장소를 넘어서</b>다른 차이는 누가 이에 기댈 수 있느냐입니다. lint 설정은 저장소 하나가 내린 선택입니다. 낯선 TypeScript 코드베이스를 연 에이전트는 거기서 <code>any</code>가 금지되어 있다고 가정할 수 없습니다. Glyph에서는 어디서도 쓸 수 없습니다.</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          같은 보장을 에이전트가 저지르는 실수와 그것을 막는 오류의 관점에서 본 답은 <a href="/ko/answers/verifiability/">에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?</a>에 있습니다.
-        </p>
-      </div>
+      <p class="ak-lede">
+        같은 보장을 에이전트가 저지르는 실수와 그것을 막는 오류의 관점에서 본 답은 <a href="/ko/answers/verifiability/">에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요?</a>에 있습니다.
+      </p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/">
           <span class="dir">&larr; 홈</span>

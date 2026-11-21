@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?","item":"https://glyphlang.io/th/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/binary/#article","headline":"จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?","description":"std/bytes ให้ Glyph มีลำดับไบต์ที่เปลี่ยนค่าไม่ได้ พร้อม codec แบบ hex, base64 และ base32 ที่ปฏิเสธ input ที่ผิดรูป รวมถึง I/O ไฟล์และ HMAC บนไบต์","url":"https://glyphlang.io/th/answers/binary/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/binary/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?","item":"https://glyphlang.io/th/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/binary/#article","headline":"จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?","description":"std/bytes ให้ Glyph มีลำดับไบต์ที่เปลี่ยนค่าไม่ได้ พร้อม codec แบบ hex, base64 และ base32 ที่ปฏิเสธ input ที่ผิดรูป รวมถึง I/O ไฟล์และ HMAC บนไบต์","url":"https://glyphlang.io/th/answers/binary/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/binary/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/binary/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/binary/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">20 &middot; ข้อมูลไบนารี</p>
       <h1 class="q-title">จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,23 +480,9 @@
         <code>std/bytes</code> ให้ลำดับของ octet ที่เปลี่ยนค่าไม่ได้ และทั้ง <code>std/fs</code> และ <code>std/crypto</code> ก็ใช้มัน จนถึง 0.1.78 ยังไม่ใช่แบบนี้: ทุกขอบเขตใน standard library รับ string และคืน string ไฟล์ PNG จึงอ่านไม่ได้ และ HMAC ก็ใส่ key จริงไม่ได้
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ไบต์แรกของ PNG คือ <code>0x89</code> ซึ่งไม่ใช่ UTF-8 ที่ถูกต้องเมื่ออยู่เดี่ยวๆ อ่านไฟล์นั้นเป็นข้อความแล้วทุกไบต์ที่ decoder ตีความไม่ได้จะกลายเป็น U+FFFD ไฟล์จึงเสียหายก่อนโปรแกรมของคุณจะเห็น และไม่มีอะไรรายงาน error เรื่องเดียวกันเกิดกับ key: secret ของ HMAC เป็น octet อะไรก็ได้ และการส่งมันผ่าน string จะเปลี่ยนมัน คุณจึงคำนวณ MAC ได้ไม่ตรงกับที่สเปกบอก และทุกเทสต์ที่คุณเขียนกับโค้ดของตัวเองก็ผ่าน
-        </p>
-        <p>
-          สองแอปที่เขียนแยกกัน ตัวหนึ่งอ่าน PNG อีกตัวเป็น authenticator หยุดที่ประโยคเดียวกันนี้ในสัปดาห์เดียวกัน ทั้งคู่หาทางเลี่ยงภายในภาษาไม่ได้
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          authenticator ตาม RFC 6238 ซึ่งต้องใช้ไบต์ทั้งสองฝั่งของ HMAC secret มาในรูป base32 ข้อความเป็นตัวนับแปดไบต์ที่ส่วนใหญ่เป็นศูนย์ และ digest ถูกชี้ index ด้วยไบต์สุดท้ายของมันเอง:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">รหัสผ่านใช้ครั้งเดียว ตั้งแต่ต้นจนจบ</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">รหัสผ่านใช้ครั้งเดียว ตั้งแต่ต้นจนจบ</span>
 <pre><span class="k">module</span> totp
 
 <span class="k">import</span> std/bytes
@@ -526,28 +512,55 @@
     + (at(mac, offset + <span class="n">2</span>) * <span class="n">256</span>)
     + at(mac, offset + <span class="n">3</span>)) % <span class="n">100000000</span>)
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ดูของจริง: authenticator ตาม RFC 6238 ซึ่งต้องใช้ไบต์ทั้งสองฝั่งของ HMAC secret มาในรูป base32 ข้อความเป็นตัวนับแปดไบต์ที่ส่วนใหญ่เป็นศูนย์ และ digest ถูกชี้ index ด้วยไบต์สุดท้ายของมันเอง</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Bytes</code> เป็น <code>Uint8Array</code> ตอนรัน จึงส่งให้ API ของ host ที่รับมันได้โดยไม่ต้องแกะ operation ของลำดับตั้งชื่อตามตัวที่คล้ายกันใน <code>std/array</code> และ <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code> ไม่มีตัวไหนแก้ argument ของมัน
-        </p>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไม string ทำไบต์พัง</a></li>
+          <li><a href="#what-a-bytes-value-is">ค่า Bytes คืออะไร</a></li>
+          <li><a href="#every-decode-can-refuse-and-says-where">การ decode ที่ปฏิเสธได้</a></li>
+          <li><a href="#which-hmac-you-pick-changes-the-answer">การเลือก HMAC</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="every-decode-can-refuse-and-says-where">ทุกการ decode ปฏิเสธได้ และบอกว่าตรงไหน<a class="h-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          นี่คือส่วนที่สร้างยากที่สุด และเป็นเหตุผลที่ควรใช้มัน <code>Buffer</code> ของ Node รับ input ที่ผิดรูปและรายงานว่าสำเร็จ:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        สองแอปที่เขียนแยกกัน ตัวหนึ่งอ่าน PNG อีกตัวเป็น authenticator หยุดที่ประโยคเดียวกันนี้ในสัปดาห์เดียวกัน ทั้งคู่หาทางเลี่ยงภายในภาษาไม่ได้
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>ไฟล์ที่ถูกอ่านเป็นข้อความ</b>ไบต์แรกของ PNG คือ <code>0x89</code> ซึ่งไม่ใช่ UTF-8 ที่ถูกต้องเมื่ออยู่เดี่ยวๆ อ่านไฟล์นั้นเป็นข้อความแล้วทุกไบต์ที่ decoder ตีความไม่ได้จะกลายเป็น U+FFFD ไฟล์จึงเสียหายก่อนโปรแกรมของคุณจะเห็น และไม่มีอะไรรายงาน error</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>key ที่ถูกส่งผ่าน string</b>เรื่องเดียวกันเกิดกับ key: secret ของ HMAC เป็น octet อะไรก็ได้ และการส่งมันผ่าน string จะเปลี่ยนมัน คุณจึงคำนวณ MAC ได้ไม่ตรงกับที่สเปกบอก และทุกเทสต์ที่คุณเขียนกับโค้ดของตัวเองก็ผ่าน</li>
+      </ul>
 
-      <div class="code">
-        <span class="cap">สิ่งที่แพลตฟอร์มทำแบบเงียบๆ</span>
+      <h2 class="ak-h" id="what-a-bytes-value-is">ค่า <code>Bytes</code> คืออะไร<a class="ak-anchor" href="#what-a-bytes-value-is" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Bytes</code> เป็น <code>Uint8Array</code> ตอนรัน จึงส่งให้ API ของ host ที่รับมันได้โดยไม่ต้องแกะ
+      </p>
+      <p>
+        operation ของลำดับตั้งชื่อตามตัวที่คล้ายกันใน <code>std/array</code> และ <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code> ไม่มีตัวไหนแก้ argument ของมัน
+      </p>
+
+      <h2 class="ak-h" id="every-decode-can-refuse-and-says-where">ทุกการ decode ปฏิเสธได้ และบอกว่าตรงไหน<a class="ak-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        นี่คือส่วนที่สร้างยากที่สุด และเป็นเหตุผลที่ควรใช้มัน <code>Buffer</code> ของ Node รับ input ที่ผิดรูปและรายงานว่าสำเร็จ:
+      </p>
+
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code">
+            <span class="cap">สิ่งที่แพลตฟอร์มทำแบบเงียบๆ</span>
 <pre><span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"zz"</span>, <span class="s">"hex"</span>)        <span class="c">// an empty buffer, no error</span>
 <span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"a-b_"</span>, <span class="s">"base64"</span>)   <span class="c">// skips - and _, decodes the rest, no error</span>
 buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD for anything malformed, no error</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">สิ่งที่ Glyph ทำ</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code">
+            <span class="cap">สิ่งที่ Glyph ทำ</span>
 <pre><span class="k">match</span> bytes.from_hex(input) {
   <span class="t">Ok</span>(b) <span class="op">=&gt;</span> use(b),
   <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.eprintln(<span class="s">"</span><span class="ip">${</span>e.message<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span><span class="t">number</span>.to_string(e.index)<span class="ip">}</span><span class="s">"</span>),
@@ -556,37 +569,59 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
 <span class="c">// "z" is not a hex digit at 0</span>
 <span class="c">// a trailing base64 group cannot be 1 character(s) long at 3</span>
 <span class="c">// not valid UTF-8 at 2</span></pre>
+          </div>
+        </div>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">แต่ละ codec ปฏิเสธอะไร</span></summary><div class="body">
         <p>
           ทุก codec เขียนขึ้นเองแทนที่จะส่งต่อให้ <code>Buffer</code> hex, base64, base64url และ base32 จึงปฏิเสธอักขระที่อยู่นอก alphabet ของมัน กลุ่มท้ายที่สั้นเกินจะเข้ารหัสไบต์เต็ม และอักขระสุดท้ายที่มีบิตเกินท้ายข้อมูล <code>to_text</code> สแกนหาไบต์แรกที่เป็นส่วนของลำดับ UTF-8 ที่ถูกต้องไม่ได้ คุณจึงได้ตำแหน่ง ไม่ใช่แค่คำตัดสิน <code>from_array</code> ปฏิเสธทุกอย่างที่อยู่นอก 0..255 ด้วยเหตุผลเดียวกัน: <code>&amp; 0xff</code> แบบเงียบๆ เปลี่ยน 256 เป็น 0 และเปลี่ยนคำผิดเป็นข้อมูล
         </p>
-        <p>
-          การเขียน codec เองให้ผลพลอยได้ที่ไม่ได้ตั้งใจ module นี้ไม่ใช้ API ของ host เลย มีแค่ <code>Uint8Array</code>, <code>TextEncoder</code> และ <code>TextDecoder</code> bundle ที่แตะแค่ <code>std/bytes</code> จึงยังรันใน Web Worker ได้
-        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        การเขียน codec เองให้ผลพลอยได้ที่ไม่ได้ตั้งใจ module นี้ไม่ใช้ API ของ host เลย มีแค่ <code>Uint8Array</code>, <code>TextEncoder</code> และ <code>TextDecoder</code> bundle ที่แตะแค่ <code>std/bytes</code> จึงยังรันใน Web Worker ได้
+      </p></div>
 
-        <h2 class="block-label" id="which-hmac-you-pick-changes-the-answer">HMAC แบบไหนที่คุณเลือกเปลี่ยนคำตอบ<a class="h-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ตอนนี้ <code>std/crypto</code> มีทั้งสองรูปแบบของทุก algorithm ชื่อธรรมดารับ string และคืน hex ซึ่งเหมาะกับการ hash รหัสผ่าน รูปแบบ <code>_bytes</code> รับและคืน <code>Bytes</code> ซึ่งเหมาะกับ wire protocol ถ้า key มาจาก <code>bytes.from_base64</code> หรือ <code>crypto.random_bytes</code> มันมีไบต์ที่ string เก็บไม่ได้ และรูปแบบข้อความจะคำนวณอย่างอื่นออกมาแบบเงียบๆ
-        </p>
-        <p>
-          การตรวจค่าที่ผู้โจมตีส่งมาเทียบกับ secret ใช้ <code>crypto.timing_safe_equal</code> ไม่ใช่ <code>bytes.equals</code> <code>equals</code> คืนค่าทันทีที่เจอจุดที่ไม่ตรงกัน เวลาที่ใช้จึงบอกได้ว่าไบต์นำหน้ากี่ตัวที่ถูก
-        </p>
-      </div>
+      <h2 class="ak-h" id="which-hmac-you-pick-changes-the-answer">HMAC แบบไหนที่คุณเลือกเปลี่ยนคำตอบ<a class="ak-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตอนนี้ <code>std/crypto</code> มีทั้งสองรูปแบบของทุก algorithm
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>ชื่อธรรมดา</b>ชื่อธรรมดารับ string และคืน hex ซึ่งเหมาะกับการ hash รหัสผ่าน</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>รูปแบบ <code>_bytes</code></b>รูปแบบ <code>_bytes</code> รับและคืน <code>Bytes</code> ซึ่งเหมาะกับ wire protocol</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        ถ้า key มาจาก <code>bytes.from_base64</code> หรือ <code>crypto.random_bytes</code> มันมีไบต์ที่ string เก็บไม่ได้ และรูปแบบข้อความจะคำนวณอย่างอื่นออกมาแบบเงียบๆ
+      </p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        การตรวจค่าที่ผู้โจมตีส่งมาเทียบกับ secret ใช้ <code>crypto.timing_safe_equal</code> ไม่ใช่ <code>bytes.equals</code> <code>equals</code> คืนค่าทันทีที่เจอจุดที่ไม่ตรงกัน เวลาที่ใช้จึงบอกได้ว่าไบต์นำหน้ากี่ตัวที่ถูก
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>std/bytes</code> ที่มี 21 ฟังก์ชัน: operation ของลำดับ สะพาน UTF-8 และ codec แบบ hex, base64, base64url และ base32 ที่คืน <code>Result</code> ซึ่งระบุตำแหน่งที่ผิด <code>fs.read_bytes</code>, <code>write_bytes</code> และ <code>append_bytes</code> อ่านและเขียนไฟล์โดยไม่ decode <code>std/crypto</code> มีรูปแบบ <code>_bytes</code> ของทุก digest และ HMAC รวมถึง SHA-1 สำหรับ protocol ที่กำหนดให้ใช้ <code>random_bytes</code> และ <code>timing_safe_equal</code> codec ถูกตรึงกับ vector ของ RFC 4648 และ HMAC กับ RFC 6238 ในชุดเทสต์ของคอมไพเลอร์เอง</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังคมขึ้น</h3>
-          <p>ยังไม่มี codec สำหรับจำนวนเต็ม การอ่าน <code>u32</code> แบบ big-endian จาก header จึงเป็นการคำนวณที่คุณเขียนเอง: เกิน 32 บิต shift ก็เป็นเครื่องมือที่ผิดอยู่แล้ว จึงใช้การหาร hex literal ยัง parse ไม่ได้ ตาราง CRC32 256 ช่องที่เขียนเป็นเลขฐานสิบจึงอ่านยาก <code>std/websocket</code> ยัง decode frame ไบนารีเป็นข้อความ UTF-8 type ที่มันต้องการมีแล้ว และ frame คือสิ่งถัดไป และฟังก์ชัน string-to-string รุ่นเก่าหกตัวของ <code>std/encoding</code> ยังเงียบเมื่อเจอ input ที่ผิดรูป จึงควรใช้ codec ของ <code>std/bytes</code> กับทุกอย่างที่ต้องถูกต้อง codec เขียนด้วย TypeScript แทนที่จะส่งต่อให้ <code>Buffer</code> ของ node ซึ่งเป็นสิ่งที่ทำให้มันรันใน Web Worker ได้ และช้ากว่าของแพลตฟอร์ม 1 ถึง 35 เท่าบนข้อมูลหนึ่งเมกะไบต์ การเข้ารหัส key หรือ token ไม่มีต้นทุนที่วัดได้ไม่ว่าทางไหน คู่มือเรื่องประสิทธิภาพมีตารางถ้าคุณย้ายข้อมูลหลายสิบเมกะไบต์</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/bytes</code> ที่มี 21 ฟังก์ชัน: operation ของลำดับ สะพาน UTF-8 และ codec แบบ hex, base64, base64url และ base32 ที่คืน <code>Result</code> ซึ่งระบุตำแหน่งที่ผิด</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_bytes</code>, <code>write_bytes</code> และ <code>append_bytes</code> อ่านและเขียนไฟล์โดยไม่ decode</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/crypto</code> มีรูปแบบ <code>_bytes</code> ของทุก digest และ HMAC รวมถึง SHA-1 สำหรับ protocol ที่กำหนดให้ใช้ <code>random_bytes</code> และ <code>timing_safe_equal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">codec ถูกตรึงกับ vector ของ RFC 4648 และ HMAC กับ RFC 6238 ในชุดเทสต์ของคอมไพเลอร์เอง</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ยังไม่มี codec สำหรับจำนวนเต็ม การอ่าน <code>u32</code> แบบ big-endian จาก header จึงเป็นการคำนวณที่คุณเขียนเอง: เกิน 32 บิต shift ก็เป็นเครื่องมือที่ผิดอยู่แล้ว จึงใช้การหาร</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">hex literal ยัง parse ไม่ได้ ตาราง CRC32 256 ช่องที่เขียนเป็นเลขฐานสิบจึงอ่านยาก</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/websocket</code> ยัง decode frame ไบนารีเป็นข้อความ UTF-8 type ที่มันต้องการมีแล้ว และ frame คือสิ่งถัดไป</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">และฟังก์ชัน string-to-string รุ่นเก่าหกตัวของ <code>std/encoding</code> ยังเงียบเมื่อเจอ input ที่ผิดรูป จึงควรใช้ codec ของ <code>std/bytes</code> กับทุกอย่างที่ต้องถูกต้อง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">codec เขียนด้วย TypeScript แทนที่จะส่งต่อให้ <code>Buffer</code> ของ node ซึ่งเป็นสิ่งที่ทำให้มันรันใน Web Worker ได้ และช้ากว่าของแพลตฟอร์ม 1 ถึง 35 เท่าบนข้อมูลหนึ่งเมกะไบต์</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การเข้ารหัส key หรือ token ไม่มีต้นทุนที่วัดได้ไม่ว่าทางไหน คู่มือเรื่องประสิทธิภาพมีตารางถ้าคุณย้ายข้อมูลหลายสิบเมกะไบต์</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/long-running/">
           <span class="dir">&larr; ก่อนหน้า</span>

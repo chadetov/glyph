@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","item":"https://glyphlang.io/th/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/impact/#article","headline":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","description":"glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์","url":"https://glyphlang.io/th/answers/impact/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/impact/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","item":"https://glyphlang.io/th/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/impact/#article","headline":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","description":"glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์","url":"https://glyphlang.io/th/answers/impact/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">21 &middot; ก่อนแก้</p>
       <h1 class="q-title">คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,26 +480,13 @@
         สำหรับการแก้หกแบบ ได้ <code>glyph_impact</code> รับ declaration ที่คุณกำลังจะเปลี่ยนและตัวการเปลี่ยนแปลง (เปลี่ยนชื่อ ลบ variant เปลี่ยน type ของ parameter เปลี่ยนจำนวน argument ลบทิ้ง) แล้วตอบด้วย<strong>คำตัดสินหนึ่งข้อต่อจุด</strong>จากรายการที่ปิดไว้ แต่ละข้อพร้อมเหตุผลว่าทำไมเป็นคำตัดสินนั้นและไม่ใช่ข้ออื่น
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เมื่อเปลี่ยนชื่อฟังก์ชัน ขยาย union หรือเปลี่ยนสิ่งที่ parameter รับ คุณจะ grep หาชื่อเก่าแล้วหวังว่าเจอทุกจุดที่เรียก หรือไม่ก็แก้ไปแล้วอ่านว่าคอมไพเลอร์บอกอะไรหลังจากนั้น ไม่มีวิธีไหนบอกคุณได้ว่าจุดไหนจะยังคอมไพล์ผ่านแต่ผิดแบบเงียบๆ: <code>match</code> ที่มี arm แบบ catch-all ไม่ fail เมื่อคุณเพิ่ม variant มันแค่เริ่มส่ง case ใหม่ไปที่ที่ไม่มีใครเลือก จุดนั้นไม่เคยโผล่ใน build <code>glyph_impact</code> ตอบก่อนแก้ บนการวิเคราะห์เดียวกับที่คอมไพเลอร์รัน
-        </p>
-
-        <h2 class="block-label" id="what-comes-back">สิ่งที่ได้กลับมา<a class="h-anchor" href="#what-comes-back" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          request ระบุ entity ด้วยตัวตน <code>module::name</code> และการเปลี่ยนแปลงจากรายการที่ปิดไว้: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code> การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว คำตัดสินเป็นชุดปิดและแต่ละตัวมีความหมายเดียว: <code>WILL_FAIL</code> (คอมไพเลอร์พิสูจน์ได้ว่าจุดนั้นจะคอมไพล์ไม่ผ่าน), <code>ABSORBS</code> (พิสูจน์ได้ว่าการเปลี่ยนแปลงถูกรับไว้ตรงนี้แบบเงียบๆ), <code>SAFE</code> (พิสูจน์ได้ว่าจุดนั้นยังถูกต้อง), <code>UNDETERMINED</code> (ดูจุดนี้แล้วแต่ยืนยันผลไม่ได้) และ <code>NOT_INDEXED</code> (คำถามนี้ถามไม่ได้เลยสำหรับจุดที่มีรูปแบบนี้)
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           module หนึ่งประกาศ <code>label(s: string) -&gt; number</code> มีผู้เรียกสามจุด: จุดหนึ่งส่ง string literal อีกจุดส่งค่าที่ type เป็น alias ของ <code>string</code> ที่ import มาจาก module อื่น และอีกจุดอ่าน <code>label</code> เป็นค่าและไม่เคยเรียกมัน การถามว่า <code>change_signature_type</code> ทำอะไรกับแต่ละจุดได้คำตัดสินสามแบบ เพราะเป็นข้อกล่าวอ้างสามแบบ:
         </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">request</span>
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">request</span>
 <pre>{
   <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
   <span class="pk">"params"</span>: {
@@ -510,9 +497,9 @@
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">ผลลัพธ์ ตัดเหลือสามจุด</span>
+          </div>
+          <div class="code term">
+            <span class="cap">ผลลัพธ์ ตัดเหลือสามจุด</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
   <span class="pk">"impact"</span>: [
@@ -551,32 +538,106 @@
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>การแก้เดียวกัน สามจุด สามคำตัดสิน และ <code>because</code> ในแต่ละข้อคือประโยคจริงที่คอมไพเลอร์สร้าง ไม่ใช่ป้ายหมวดหมู่</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">เทสต์ของคอมไพเลอร์ที่สิ่งนี้สะท้อน</span></summary><div class="body">
+          <p>
+            นี่สะท้อนเทสต์ของคอมไพเลอร์เองสำหรับการเปลี่ยนแปลงนี้ (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> ใน <code>glyph-cli/tests/agent_loop.rs</code>): เทสต์ทำการแก้หลังจากนั้น และตรวจว่า E0211 เกิดตรงจุดที่ <code>WILL_FAIL</code> บอกไว้พอดี และคอมไพเลอร์เงียบในอีกสองจุด
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#what-comes-back">สิ่งที่ได้กลับมา</a></li>
+          <li><a href="#on-a-real-application">บนแอปจริง</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เมื่อเปลี่ยนชื่อฟังก์ชัน ขยาย union หรือเปลี่ยนสิ่งที่ parameter รับ คุณจะ grep หาชื่อเก่าแล้วหวังว่าเจอทุกจุดที่เรียก หรือไม่ก็แก้ไปแล้วอ่านว่าคอมไพเลอร์บอกอะไรหลังจากนั้น
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ไม่มีวิธีไหนบอกคุณได้ว่าจุดไหนจะยังคอมไพล์ผ่านแต่ผิดแบบเงียบๆ: <code>match</code> ที่มี arm แบบ catch-all ไม่ fail เมื่อคุณเพิ่ม variant มันแค่เริ่มส่ง case ใหม่ไปที่ที่ไม่มีใครเลือก จุดนั้นไม่เคยโผล่ใน build <code>glyph_impact</code> ตอบก่อนแก้ บนการวิเคราะห์เดียวกับที่คอมไพเลอร์รัน
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">สิ่งที่ได้กลับมา<a class="ak-anchor" href="#what-comes-back" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        request ระบุ entity ด้วยตัวตน <code>module::name</code> และการเปลี่ยนแปลงจากรายการที่ปิดไว้: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code> คำตัดสินเป็นชุดปิดและแต่ละตัวมีความหมายเดียว:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>คำตัดสิน</th><th>ความหมาย</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">คอมไพเลอร์พิสูจน์ได้ว่าจุดนั้นจะคอมไพล์ไม่ผ่าน</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">พิสูจน์ได้ว่าการเปลี่ยนแปลงถูกรับไว้ตรงนี้แบบเงียบๆ</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">พิสูจน์ได้ว่าจุดนั้นยังถูกต้อง</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">ดูจุดนี้แล้วแต่ยืนยันผลไม่ได้</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">คำถามนี้ถามไม่ได้เลยสำหรับจุดที่มีรูปแบบนี้</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมต้องระบุการเปลี่ยนแปลง และแต่ละรายการมีอะไร</span></summary><div class="body">
         <p>
-          การแก้เดียวกัน สามจุด สามคำตัดสิน และ <code>because</code> ในแต่ละข้อคือประโยคจริงที่คอมไพเลอร์สร้าง ไม่ใช่ป้ายหมวดหมู่ นี่สะท้อนเทสต์ของคอมไพเลอร์เองสำหรับการเปลี่ยนแปลงนี้ (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> ใน <code>glyph-cli/tests/agent_loop.rs</code>): เทสต์ทำการแก้หลังจากนั้น และตรวจว่า E0211 เกิดตรงจุดที่ <code>WILL_FAIL</code> บอกไว้พอดี และคอมไพเลอร์เงียบในอีกสองจุด
+          การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="on-a-real-application">บนแอปพลิเคชันจริง<a class="h-anchor" href="#on-a-real-application" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          <code>examples/apps/csvql</code> query engine สำหรับ CSV สิบเอ็ดไฟล์ใน repository นี้ มี tagged union หนึ่งตัวคือ <code>Value</code> ซึ่งวันนี้มีสี่ variant การถาม <code>glyph_impact</code> ว่าการเพิ่มตัวที่ห้า (<code>Blob</code>) ทำอะไร เจอจุดที่ match 10 จุดใน 4 ไฟล์: 8 จุดจะคอมไพล์ไม่ผ่าน และ 2 จุดมี arm แบบ catch-all ที่จะกลืน variant ใหม่ไปเงียบๆ เมื่อเพิ่ม variant จริงๆ คอมไพเลอร์รายงาน <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดที่คาดไว้พอดี และไม่บอกอะไรเลยที่ 2 จุด <code>ABSORBS</code> ทั้งก่อนและหลัง การค้นหาข้อความหา arm แบบ catch-all ทั่วแอปเดียวกัน ซึ่งเป็นสิ่งที่คุณจะทำถ้าไม่มีเครื่องมือ เจอ 2 จุดจริงนั้นฝังอยู่ใน 20 ผลลัพธ์ (precision 0.10) และไม่บอกอะไรเลยเกี่ยวกับ 8 จุดที่ fail เพราะมันไม่รู้ว่า <code>match</code> ตรวจค่าที่เป็น type อะไร
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">บนแอปพลิเคชันจริง<a class="ak-anchor" href="#on-a-real-application" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/csvql</code> query engine สำหรับ CSV สิบเอ็ดไฟล์ใน repository นี้ มี tagged union หนึ่งตัวคือ <code>Value</code> ซึ่งวันนี้มีสี่ variant การถาม <code>glyph_impact</code> ว่าการเพิ่มตัวที่ห้า (<code>Blob</code>) ทำอะไร เจอจุดที่ match 10 จุดใน 4 ไฟล์: 8 จุดจะคอมไพล์ไม่ผ่าน และ 2 จุดมี arm แบบ catch-all ที่จะกลืน variant ใหม่ไปเงียบๆ
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>ตรวจด้วย build</b>เมื่อเพิ่ม variant จริงๆ คอมไพเลอร์รายงาน <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดที่คาดไว้พอดี และไม่บอกอะไรเลยที่ 2 จุด <code>ABSORBS</code> ทั้งก่อนและหลัง</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>ถ้าใช้การค้นหาข้อความแทน</b>การค้นหาข้อความหา arm แบบ catch-all ทั่วแอปเดียวกัน ซึ่งเป็นสิ่งที่คุณจะทำถ้าไม่มีเครื่องมือ เจอ 2 จุดจริงนั้นฝังอยู่ใน 20 ผลลัพธ์ (precision 0.10) และไม่บอกอะไรเลยเกี่ยวกับ 8 จุดที่ fail เพราะมันไม่รู้ว่า <code>match</code> ตรวจค่าที่เป็น type อะไร</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>การเปลี่ยนแปลงหกแบบที่เป็นชุดปิด (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) และคำตัดสินห้าแบบที่เป็นชุดปิด หนึ่งรายการต่อจุดที่ได้รับผลกระทบพร้อมเหตุผลและรหัส diagnostic <code>change_signature_type</code> ตัดสินทีละ argument ของการเรียกตามกฎการเปรียบเทียบของตัวตรวจเอง และแต่ละจุดได้คำตัดสินที่อ่อนที่สุดของ argument ทั้งหมด element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป: <code>&lt;Card title="x" /&gt;</code> คือ props record หนึ่งตัวที่ส่งให้ <code>Card</code> และแต่ละ attribute แสดงคู่กับ field ที่มันถูกตรวจ พร้อมคำตัดสินที่ argument ของการเรียกที่มี type เดียวกันจะได้ ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">หยุดตรงไหน</h3>
-          <p>ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น: Glyph ไม่เคยอนุมาน type ของ declaration จาก body ของมัน type ของฟังก์ชันที่ถูกเรียกจึงไปไม่ถึง signature ของผู้เรียก และการเปลี่ยน X ทำให้เป็นโมฆะได้เฉพาะ expression ที่ระบุชื่อ X ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน เพราะสิ่งที่ขั้นที่สองต้องใช้คือการแก้ที่ใครสักคนทำให้จุดแรก และการแก้นั้นยังไม่มี <code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก) <code>ABSORBS</code> คือตัวที่ต้องจับตา: จุดนั้นยังคอมไพล์ผ่านและถูกพิสูจน์แล้วว่าผิด ซึ่ง build ที่เขียวจะไม่มีวันแสดงให้คุณเห็น</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การเปลี่ยนแปลงหกแบบที่เป็นชุดปิด (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) และคำตัดสินห้าแบบที่เป็นชุดปิด หนึ่งรายการต่อจุดที่ได้รับผลกระทบพร้อมเหตุผลและรหัส diagnostic</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code> ตัดสินทีละ argument ของการเรียกตามกฎการเปรียบเทียบของตัวตรวจเอง และแต่ละจุดได้คำตัดสินที่อ่อนที่สุดของ argument ทั้งหมด</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป: <code>&lt;Card title="x" /&gt;</code> คือ props record หนึ่งตัวที่ส่งให้ <code>Card</code> และแต่ละ attribute แสดงคู่กับ field ที่มันถูกตรวจ พร้อมคำตัดสินที่ argument ของการเรียกที่มี type เดียวกันจะได้</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ความครอบคลุมระบุทีละการค้นหา และทุก node บอกว่ามาจากไหน</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> หยุดตรงไหน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น: Glyph ไม่เคยอนุมาน type ของ declaration จาก body ของมัน type ของฟังก์ชันที่ถูกเรียกจึงไปไม่ถึง signature ของผู้เรียก และการเปลี่ยน X ทำให้เป็นโมฆะได้เฉพาะ expression ที่ระบุชื่อ X</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน เพราะสิ่งที่ขั้นที่สองต้องใช้คือการแก้ที่ใครสักคนทำให้จุดแรก และการแก้นั้นยังไม่มี</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก)</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>ABSORBS</code> คือตัวที่ต้องจับตา: จุดนั้นยังคอมไพล์ผ่านและถูกพิสูจน์แล้วว่าผิด ซึ่ง build ที่เขียวจะไม่มีวันแสดงให้คุณเห็น</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/binary/">
           <span class="dir">&larr; ก่อนหน้า</span>

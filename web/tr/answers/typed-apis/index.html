@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Her API için elle validator yazmam gerekiyor mu?","item":"https://glyphlang.io/tr/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/typed-apis/#article","headline":"Her API için elle validator yazmam gerekiyor mu?","description":"Hayır. Glyph'te bir tip kendi çalışma zamanı validator'ıdır; böylece istek ve yanıt gövdeleri hiç validator yazmadan kontrol edilir ve tipler bir OpenAPI spesifikasyonundan ya da bir .d.ts dosyasından gelebilir.","url":"https://glyphlang.io/tr/answers/typed-apis/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Her API için elle validator yazmam gerekiyor mu?","item":"https://glyphlang.io/tr/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/typed-apis/#article","headline":"Her API için elle validator yazmam gerekiyor mu?","description":"Hayır. Glyph'te bir tip kendi çalışma zamanı validator'ıdır; böylece istek ve yanıt gövdeleri hiç validator yazmadan kontrol edilir ve tipler bir OpenAPI spesifikasyonundan ya da bir .d.ts dosyasından gelebilir.","url":"https://glyphlang.io/tr/answers/typed-apis/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/typed-apis/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Bu sayfa bir çeviridir. Referans alınan sürüm İngilizce sürümdür. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28tr%29%3A+%2Ftr%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Ftr%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">Çeviriyle ilgili bir sorun bildir</a></p>
-      <p class="i18n-stale">Bu sayfanın İngilizce sürümü, bu çeviri yapıldıktan sonra değişti. <a href="/answers/typed-apis/" hreflang="en" data-lang="en">Güncel İngilizce sürümü oku</a></p>
     </div>
     <script>
       (function () {
@@ -693,7 +692,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           Bir istek gövdesi zaten çözülmüş bir <code>unknown</code> olarak gelir; orada bunun yerine <code>T.parse(value)</code> kullanırsınız: aynı garanti, cast yok.
         </p>
         <p>
-          Güvenilmeyen sınırın geri kalanı da aynı şekilde tiplenir: <code>header(req, name)</code> ve <code>query_param(req, name)</code> <code>Option&lt;string&gt;</code> döndürür; böylece eksik bir header ya da query parametresi <code>None</code> olur ve <code>match</code> sizi onu ele almaya <em>zorlar</em>. <code>None</code> arm'ını atlarsanız derlenmez. Olmayan bir girdi varmış gibi okunamaz.
+          Güvenilmeyen sınırın geri kalanı da aynı şekilde tiplenir: <code>header(req, name)</code> ve <code>query_param(req, name)</code> <code>Option&lt;string&gt;</code> döndürür; böylece eksik bir header ya da query parametresi <code>None</code> olur ve <code>match</code> sizi onu ele almaya <em>zorlar</em>. <code>None</code> arm'ını atlarsanız derlenmez. Olmayan bir girdi varmış gibi okunamaz. Bir gövde alanı da aynı kurala uyar: <code>timeout_ms?: number</code> ya olmayan bir anahtardır ya da bir sayıdır; bu yüzden <code>{"timeout_ms": null}</code>, <code>T.parse</code>, <code>is T</code> ve <code>json.parse&lt;T&gt;</code> için aynı şekilde <code>["timeout_ms"]</code> konumunda bir <code>Err</code> olur. Gönderen taraf <code>null</code> yazıyorsa <code>timeout_ms?: Nullable&lt;number&gt;</code> bildirin. 0.1.152'ye kadar o <code>null</code>, <code>Ok</code>'un içinde geri dönüyordu.
         </p>
       </div></details>
 
@@ -706,15 +705,15 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           <thead><tr><th>Anahtar tipi</th><th><code>parse</code>'ın her anahtarda kontrol ettiği şey</th></tr></thead>
           <tbody>
             <tr><td>Bir string-literal union</td><td>tam olarak listelenen anahtarlar, eksiği yok, fazlası yok</td></tr>
-            <tr><td><code>where</code> ile daraltılmış bir tip</td><td>koşul</td></tr>
+            <tr><td><code>where</code> ile daraltılmış bir <code>string</code> ya da sayı</td><td>koşul</td></tr>
             <tr><td><code>int</code></td><td>bir tam sayının düz yazımı; <code>"01"</code> ve <code>"1.5"</code> başarısız olur</td></tr>
             <tr><td><code>string</code></td><td>yeni bir şey yok</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">daraltılmış ve int anahtarlar, hâlâ tsc'ye kalanlar</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">daraltılmış ve int anahtarlar, checker'ın neyi tuttuğu</span></summary><div class="body">
         <p>
-          <code>where</code> ile daraltılmış bir anahtar tipi koşulunu her anahtarda çalıştırır ve bir <code>int</code> anahtarın bir tam sayının düz yazımı olması gerekir; bu yüzden <code>"01"</code> ve <code>"1.5"</code> reddedilir. Bir <code>Record&lt;string, V&gt;</code> tam olarak eskisi gibi kontrol edilir. Glyph'in kendi checker'ı, kodda yazdığınız bir değerin anahtarlarını hâlâ <code>tsc</code>'ye bırakır ve kendi tip parametresiyle anahtarlanmış generic bir record, o parametre <code>string</code> olmadığı sürece reddedilir.
+          <code>where</code> ile daraltılmış bir anahtar tipi koşulunu her anahtarda çalıştırır ve bir <code>int</code> anahtarın bir tam sayının düz yazımı olması gerekir; bu yüzden <code>"01"</code> ve <code>"1.5"</code> reddedilir. Bir <code>Record&lt;string, V&gt;</code> tam olarak eskisi gibi kontrol edilir. Bir <code>where</code>, bir string-literal union'ı daraltamaz (<code>type T2 = Tier where value != "pro"</code> 0.1.152'den beri <code>E0300</code>); kastettiğiniz üyeleri kendi union'ları olarak yazın, <code>type T2 = "free"</code>, ve bu tip bir <code>Record</code>'u aynı birebir anahtar kontrolüyle anahtarlar. 0.1.153'ten beri Glyph'in kendi checker'ı kodda yazdığınız bir değerin anahtarını da tutar: bir <code>Record&lt;string, int&gt;</code>, bir <code>Record&lt;Tier, int&gt;</code> bildirilen yerde duramaz, tersi de geçerli; bu yüzden geçiş noktası bir <code>json.parse</code> ya da bir <code>is Record&lt;Tier, int&gt;</code> arm'ıdır ve <code>record.set</code> kendisine verilen anahtarı korur. Kendi tip parametresiyle anahtarlanmış generic bir record, o parametre <code>string</code> olmadığı sürece reddedilir.
         </p>
       </div></details>
 
@@ -1010,7 +1009,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/embedding/">
           <span class="dir">&larr; Önceki</span>

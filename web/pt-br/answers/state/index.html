@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Como compartilho estado mutável entre funções?","item":"https://glyphlang.io/pt-br/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/state/#article","headline":"Como compartilho estado mutável entre funções?","description":"O Glyph não tem variáveis globais mutáveis. Estado compartilhado mora num std/store: um const no nível do módulo cujos get, set e update são as únicas escritas, encontradas numa só busca.","url":"https://glyphlang.io/pt-br/answers/state/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/state/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/state/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Como compartilho estado mutável entre funções?","item":"https://glyphlang.io/pt-br/answers/state/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/state/#article","headline":"Como compartilho estado mutável entre funções?","description":"O Glyph não tem variáveis globais mutáveis. Estado compartilhado mora num std/store: um const no nível do módulo cujos get, set e update são as únicas escritas, encontradas numa só busca.","url":"https://glyphlang.io/pt-br/answers/state/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/state/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/state/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/state/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">14 &middot; Estado compartilhado</p>
       <h1 class="q-title">Como compartilho estado mutável entre funções?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respostas">
@@ -478,12 +478,10 @@
         Com um <strong>store</strong>. O Glyph não tem variáveis globais mutáveis. Bindings de módulo são <code>const</code>. Estado compartilhado mora num <code>std/store</code>: um <code>const</code> no nível do módulo que guarda um valor que você lê com <code>get()</code> e muda com <code>set()</code>/<code>update()</code>. O binding nunca muda; só o valor dentro dele muda, por meio de uma chamada de método, então toda escrita é literalmente um <code>.set(</code> ou um <code>.update(</code> que dá para achar com grep.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="see-it">Veja na prática<a class="h-anchor" href="#see-it" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Declare o store uma vez no escopo do módulo. Todas as funções do módulo o compartilham. Nada de <code>let</code> passado adiante a partir do <code>main</code>, nada de closures capturando variáveis:
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">Veja na prática<a class="ak-anchor" href="#see-it" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Declare o store uma vez no escopo do módulo. Todas as funções do módulo o compartilham. Nada de <code>let</code> passado adiante a partir do <code>main</code>, nada de closures capturando variáveis:
+      </p>
 
       <div class="two-up stack">
         <div class="code">
@@ -526,28 +524,35 @@
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-a-store-and-not-a-mutable-global">Por que um store, e não uma global mutável<a class="h-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          É uma escolha de design deliberada. O Glyph mantém <code>mut</code> restrito a atribuições locais e os bindings de módulo como <code>const</code>, porque um monte de globais graváveis espalhadas é exatamente o que torna o estado difícil de entender e difícil de <em>encontrar</em>. Um store não exige afrouxar nenhuma das duas regras: o binding <code>const s</code> é imutável, e o valor dentro dele só muda via <code>set</code>/<code>update</code>. Assim o estado compartilhado chega como <strong>biblioteca, e não como sintaxe nova</strong> (sem tipos lineares, sem regras de mutação enfraquecidas), e a mutação fica num único lugar auditado em vez de espalhada pelo programa.
-        </p>
-        <p>
-          Um ponto de atenção, que o TypeScript também tem: uma coleção vazia não consegue inferir o tipo dos elementos, então inicialize com um argumento de tipo explícito: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Um store escalar (<code>create(0)</code>) infere sem problema.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">Por que um store, e não uma global mutável<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        É uma escolha de design deliberada. O Glyph mantém <code>mut</code> restrito a atribuições locais e os bindings de módulo como <code>const</code>, porque um monte de globais graváveis espalhadas é exatamente o que torna o estado difícil de entender e difícil de <em>encontrar</em>.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>O binding nunca se move</b>Um store não exige afrouxar nenhuma das duas regras: o binding <code>const s</code> é imutável, e o valor dentro dele só muda via <code>set</code>/<code>update</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Uma biblioteca, não sintaxe</b>Assim o estado compartilhado chega como <strong>biblioteca, e não como sintaxe nova</strong> (sem tipos lineares, sem regras de mutação enfraquecidas), e a mutação fica num único lugar auditado em vez de espalhada pelo programa.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Um ponto de atenção, que o TypeScript também tem: uma coleção vazia não consegue inferir o tipo dos elementos, então inicialize com um argumento de tipo explícito: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Um store escalar (<code>create(0)</code>) infere sem problema.
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">Situação atual<a class="h-anchor" href="#where-it-stands" aria-label="Link para esta seção">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p><code>std/store</code> com <code>create</code>, <code>get</code>, <code>set</code> e <code>update</code>: o lugar único, e que dá para achar com grep, do estado mutável compartilhado.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">A caminho</h3>
-          <p>Conveniências sobre a mesma primitiva (stores derivados/computados, assinaturas), construídas por cima sem mudar a linguagem.</p>
-        </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code> com <code>create</code>, <code>get</code>, <code>set</code> e <code>update</code>: o lugar único, e que dá para achar com grep, do estado mutável compartilhado.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> A caminho</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Conveniências sobre a mesma primitiva (stores derivados/computados, assinaturas), construídas por cima sem mudar a linguagem.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/react/">
           <span class="dir">&larr; Anterior</span>

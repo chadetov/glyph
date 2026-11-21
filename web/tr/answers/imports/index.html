@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"TypeScript, JavaScript ve npm kodumu kullanabilir miyim?","item":"https://glyphlang.io/tr/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/imports/#article","headline":"TypeScript, JavaScript ve npm kodumu kullanabilir miyim?","description":"Glyph sıradan TypeScript'e derlenir ve npm üzerinde çalışır: bir .glyph modülü herhangi bir paketi import eder ve mevcut .ts dosyalarınızdan import edilebilir. Onu dosya dosya benimseyin.","url":"https://glyphlang.io/tr/answers/imports/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/imports/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"TypeScript, JavaScript ve npm kodumu kullanabilir miyim?","item":"https://glyphlang.io/tr/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/imports/#article","headline":"TypeScript, JavaScript ve npm kodumu kullanabilir miyim?","description":"Glyph sıradan TypeScript'e derlenir ve npm üzerinde çalışır: bir .glyph modülü herhangi bir paketi import eder ve mevcut .ts dosyalarınızdan import edilebilir. Onu dosya dosya benimseyin.","url":"https://glyphlang.io/tr/answers/imports/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/imports/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/imports/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/imports/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">09 &middot; Benimseme</p>
       <h1 class="q-title">Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,17 +478,8 @@
         Evet. Glyph <strong>sıradan TypeScript'e</strong> derlenir ve npm üzerinde çalışır: bir <code>.glyph</code> modülü herhangi bir paketten import eder ve kendisi de mevcut <code>.ts</code> dosyalarınızdan import edilebilir. Onu <strong>dosya dosya</strong> benimsersiniz.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Kimse bir dili denemek için kod tabanını yeniden yazmaz. Glyph'in çıktısı TypeScript'in <em>ta kendisi</em> olduğu için bir <code>.glyph</code> dosyası mevcut bir TS/React/Node projesinin bir köşesine yerleşir, aynı paketleri import eder ve etrafındaki <code>.ts</code> dosyalarına geri export eder. Yeni bir runtime çıkarmak yerine TypeScript'i hedeflemenin tek nedeni bu kademeli yol.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>Paketleri adlarıyla import edersiniz (tireli ve npm scope'lu olanlar dahil) ve Glyph beklediğiniz import'u üretir:</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre><span class="k">import</span> react { useState }
@@ -504,14 +495,36 @@
 <span class="k">import</span> { zodResolver }
   <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Paketleri adlarıyla import edersiniz (tireli ve npm scope'lu olanlar dahil) ve Glyph beklediğiniz import'u üretir.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Paket kuruluysa ve kendi tiplerini getiriyorsa (ya da bir <code>@types/...</code> paketi varsa) yapmanız gereken bu kadar. Stub yok, adaptör dosyası yok. <code>glyph build</code> projenizin <code>node_modules</code> dizinini bulur ve tip denetleyicisini ona yöneltir; böylece paketin gerçek tipleri kodunuzu kontrol eder ve yanlış bir çağrı gerçek bir hatadır. Alt yol import'ları (<code>pkg/sub</code>) da paketin <code>exports</code> map'i üzerinden çözülür, böylece bir alt yolun kendi tipleri kontrol edilir. İşte hiçbir şey elle yazılmadan, satır içinde kullanılan zod:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#installed-packages">Kurulu paketler</a></li>
+          <li><a href="#value-derived-types">Değerden türetilen tipler</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">Elle yazılmış TypeScript</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">Alt süreçler</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">Shim düzenlemek</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">Sınıf tabanlı istemciler</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Kimse bir dili denemek için kod tabanını yeniden yazmaz. Glyph'in çıktısı TypeScript'in <em>ta kendisi</em> olduğu için bir <code>.glyph</code> dosyası mevcut bir TS/React/Node projesinin bir köşesine yerleşir, aynı paketleri import eder ve etrafındaki <code>.ts</code> dosyalarına geri export eder.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yeni bir runtime çıkarmak yerine TypeScript'i hedeflemenin tek nedeni bu kademeli yol.</p></div>
+
+      <h2 class="ak-h" id="installed-packages">Kurulu paketler kendi tiplerini getirir<a class="ak-anchor" href="#installed-packages" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Paket kuruluysa ve kendi tiplerini getiriyorsa (ya da bir <code>@types/...</code> paketi varsa) yapmanız gereken bu kadar. Stub yok, adaptör dosyası yok.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> projenizin <code>node_modules</code> dizinini bulur ve tip denetleyicisini ona yöneltir; böylece paketin gerçek tipleri kodunuzu kontrol eder ve yanlış bir çağrı gerçek bir hatadır.</p></div>
+      <p>İşte hiçbir şey elle yazılmadan, satır içinde kullanılan zod:</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -541,34 +554,55 @@ print(user.name)</pre>
 <span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> aynı programı kurulu zod'a karşı çalıştırır, yani bu yalnızca bir tip kontrolü değil: paketi tip denetleyicisi için çözen tek yapılandırma girdisi onu runtime için de çözer.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p><em>Hiç</em> tip getirmeyen ve <code>@types/...</code> paketi de olmayan bir paket hâlâ sizin yazacağınız bir tanıma ihtiyaç duyar; <code>.types/</code> klasörü bunun içindir (TypeScript'in zaten kullandığı <code>.d.ts</code> mekanizmasının aynısı).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">alt yol import'ları ve bir <code>.d.ts</code>'ten doğrulanan tipler</span></summary><div class="body">
         <p>
-          <code>glyph run</code> aynı programı kurulu zod'a karşı çalıştırır, yani bu yalnızca bir tip kontrolü değil: paketi tip denetleyicisi için çözen tek yapılandırma girdisi onu runtime için de çözer. <em>Hiç</em> tip getirmeyen ve <code>@types/...</code> paketi de olmayan bir paket hâlâ sizin yazacağınız bir tanıma ihtiyaç duyar; <code>.types/</code> klasörü bunun içindir (TypeScript'in zaten kullandığı <code>.d.ts</code> mekanizmasının aynısı). Bir kütüphanenin şeklini yalnızca tip import'u olarak değil, birinci sınıf, <em>doğrulanan</em> bir Glyph tipi olarak istediğinizde <code>glyph gen dts</code> bir <code>.d.ts</code> dosyasını descriptor taşıyan gerçek tiplere dönüştürür: bkz. <a href="/tr/answers/typed-apis/">her API için elle validator yazmam gerekiyor mu?</a>
+          Alt yol import'ları (<code>pkg/sub</code>) da paketin <code>exports</code> map'i üzerinden çözülür, böylece bir alt yolun kendi tipleri kontrol edilir.
         </p>
         <p>
-          Değerden türetilen tipler birinci sınıftır. <code>type User = z.infer&lt;typeof user_schema&gt;</code> doğrudan çalışır: <code>typeof user_schema</code> gerçek bir değer referansı üzerinde bir tip sorgusudur (bir yazım hatası çözülemeyen isim hatası olur) ve <code>z.infer&lt;...&gt;</code> sıradan bir üye-generic tiptir. Olduğu gibi üretilir ve <code>tsc</code> onu indirger, böylece <code>u.name</code> bir <code>string</code> olur; doğrulama, zod'un zaten çalıştığı şekilde şemanın kendi <code>parse</code>'ından gelir. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) de birinci sınıftır. Glyph'in hâlâ yazamadığı nadir TypeScript kalıpları için <code>extern_ts("...")</code> kapsamı sınırlı, grep'lenebilir kaçış kapısıdır: <code>tsc</code> onu kontrol eder, ama net olalım, bu çalışma zamanında doğrulanan değil, güvene dayalı bir sınırdır (Glyph için opaktır, değer daraltılmak üzere <code>unknown</code> olarak geri gelir). Dolayısıyla bir kütüphane sizi asla elle yazılmış bir adaptör dosyasına zorlamaz.
+          Bir kütüphanenin şeklini yalnızca tip import'u olarak değil, birinci sınıf, <em>doğrulanan</em> bir Glyph tipi olarak istediğinizde <code>glyph gen dts</code> bir <code>.d.ts</code> dosyasını descriptor taşıyan gerçek tiplere dönüştürür: bkz. <a href="/tr/answers/typed-apis/">her API için elle validator yazmam gerekiyor mu?</a>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">Tamamen elle yazılmış TypeScript gerektiğinde<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="value-derived-types">Değerden türetilen tipler, JSX spread ve kaçış kapısı<a class="ak-anchor" href="#value-derived-types" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Değerden türetilen tipler birinci sınıftır. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) de birinci sınıftır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Dolayısıyla bir kütüphane sizi asla elle yazılmış bir adaptör dosyasına zorlamaz.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph'in hâlâ yazamadığı nadir TypeScript kalıpları için <code>extern_ts("...")</code> kapsamı sınırlı, grep'lenebilir kaçış kapısıdır: <code>tsc</code> onu kontrol eder, ama net olalım, bu çalışma zamanında doğrulanan değil, güvene dayalı bir sınırdır (Glyph için opaktır, değer daraltılmak üzere <code>unknown</code> olarak geri gelir).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>z.infer&lt;typeof s&gt;</code> nasıl çözülür</span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> doğrudan çalışır: <code>typeof user_schema</code> gerçek bir değer referansı üzerinde bir tip sorgusudur (bir yazım hatası çözülemeyen isim hatası olur) ve <code>z.infer&lt;...&gt;</code> sıradan bir üye-generic tiptir. Olduğu gibi üretilir ve <code>tsc</code> onu indirger, böylece <code>u.name</code> bir <code>string</code> olur; doğrulama, zod'un zaten çalıştığı şekilde şemanın kendi <code>parse</code>'ından gelir.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">Tamamen elle yazılmış TypeScript gerektiğinde<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Bazen kaçış kapısı bir tip ya da ifade değil, gerçek runtime kodudur: bir node-stream döngüsü, bir <code>new Promise</code>, bir worker thread. <code>.ts</code> dosyasını <code>&lt;src&gt;/extern/</code> altına koyun ve ona <code>import extern/&lt;name&gt;</code> ile ulaşın.
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
 <span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
 <span class="c">// src/main.glyph</span>
 <span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Göreli import'lar Glyph kaynağında yasak kalmaya devam eder (bir grep'lenebilirlik kuralı), bu yüzden <code>extern/*</code> ayrılmış tek yoldur ve <code>grep -rn 'import extern/'</code> dilden çıktığınız her yeri bulur.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kopyalama, diğer yön ve node shim'i</span></summary><div class="body">
         <p>
-          Build, <code>&lt;src&gt;/extern/**</code>'ı çıktıya kopyalar ve göreli bir specifier üretir; böylece <code>tsc</code> extern'i Glyph kodunuzla birlikte tip kontrolünden geçirir ve bir yeniden build onu asla silmez. Göreli import'lar Glyph kaynağında yasak kalmaya devam eder (bir grep'lenebilirlik kuralı), bu yüzden <code>extern/*</code> ayrılmış tek yoldur ve <code>grep -rn 'import extern/'</code> dilden çıktığınız her yeri bulur. Bu, kolay yönün tersidir: derlenmiş Glyph'inizi import eden bir <code>.ts</code> dosyası hiçbir şeye ihtiyaç duymaz. Yaygın bir extern (bir http sunucusu, <code>fs</code>), hiçbir şey kurulmadan paketle gelen node shim'ine karşı tip kontrolünden geçer.
+          Build, <code>&lt;src&gt;/extern/**</code>'ı çıktıya kopyalar ve göreli bir specifier üretir; böylece <code>tsc</code> extern'i Glyph kodunuzla birlikte tip kontrolünden geçirir ve bir yeniden build onu asla silmez.
         </p>
+        <p>
+          Bu, kolay yönün tersidir: derlenmiş Glyph'inizi import eden bir <code>.ts</code> dosyası hiçbir şeye ihtiyaç duymaz. Yaygın bir extern (bir http sunucusu, <code>fs</code>), hiçbir şey kurulmadan paketle gelen node shim'ine karşı tip kontrolünden geçer.
+        </p>
+      </div></details>
 
-        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">Hiçbir şey kurmadan bir alt süreci izlemek<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">Hiçbir şey kurmadan bir alt süreci izlemek<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Paketle gelen node tanımları <code>child_process</code>'in yalnızca bloklayan yarısını değil async yarısını da taşır; böylece uzun bir komutun çıktısını o çalışırken raporlayan bir araç extern değil Glyph olur:
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -588,9 +622,12 @@ print(user.name)</pre>
   })
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
-        <p>
-          <code>io.println</code> değil <code>io.print</code>: bir chunk satır değil, akışın bir dilimidir ve bir satır ikisine bölünmüş olarak gelebilir. Overload'lar <code>@types/node</code>'u izler; böylece pipe'lar düz bir <code>spawn(command, args)</code>'tan non-null, <code>stdio</code> verdiğiniz anda nullable olarak gelir. <code>stdio: "inherit"</code>'ten sonra <code>child.stdout</code>'u okumak burada <code>TS18047</code>, gerçek tiplerle de <code>TS18047</code>'dir; aynı değer hakkında iki farklı hikâye yoktur:
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>io.println</code> değil <code>io.print</code>: bir chunk satır değil, akışın bir dilimidir ve bir satır ikisine bölünmüş olarak gelebilir.</p></div>
+      <p>
+          Overload'lar <code>@types/node</code>'u izler; böylece pipe'lar düz bir <code>spawn(command, args)</code>'tan non-null, <code>stdio</code> verdiğiniz anda nullable olarak gelir. <code>stdio: "inherit"</code>'ten sonra <code>child.stdout</code>'u okumak burada <code>TS18047</code>, gerçek tiplerle de <code>TS18047</code>'dir; aynı değer hakkında iki farklı hikâye yoktur:
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047"><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -600,16 +637,21 @@ print(user.name)</pre>
   <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
   child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
-
-        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Shim'i düzenleyin, bir sonraki çalıştırma düzenlediğiniz shim olur<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir shim üzerinde yineleyerek çalıştığınız bir dosyadır, bu yüzden kaynak sayılması gerekir. <code>glyph run</code> bir build'i kaynaklarınızın parmak izi altında önbelleğe alır ve bu parmak izi <code>extern/</code> altındaki her <code>.ts</code> ve <code>.tsx</code> dosyasını hem yoluyla hem içeriğiyle kapsar. Birini düzenleyin, yeniden adlandırın, ekleyin ya da silin; bir sonraki çalıştırma yeniden build alır ve <code>tsc</code>'yi yeniden çalıştırır. Sembolik bağlantılı bir shim takip edilir, böylece kaynak ağacının dışında tutulan bir <code>.ts</code> gerçekte içerdiğine göre hash'lenir.
-        </p>
-        <p>
-          Bu, iki dosyanın da kendi kopyasını tanımlaması yerine bir tipin sahibinin shim olmasını mümkün kılar. Şekli shim'den export edin, Glyph modülünde import edin; derleyici her çalıştırmada ikisini birbirine bağlı tutar:
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Shim'i düzenleyin, bir sonraki çalıştırma düzenlediğiniz shim olur<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bir shim üzerinde yineleyerek çalıştığınız bir dosyadır, bu yüzden kaynak sayılması gerekir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> bir build'i kaynaklarınızın parmak izi altında önbelleğe alır ve bu parmak izi <code>extern/</code> altındaki her <code>.ts</code> ve <code>.tsx</code> dosyasını hem yoluyla hem içeriğiyle kapsar.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">yeniden build'i neyin tetiklediği</span></summary><div class="body">
+        <p>
+          Birini düzenleyin, yeniden adlandırın, ekleyin ya da silin; bir sonraki çalıştırma yeniden build alır ve <code>tsc</code>'yi yeniden çalıştırır. Sembolik bağlantılı bir shim takip edilir, böylece kaynak ağacının dışında tutulan bir <code>.ts</code> gerçekte içerdiğine göre hash'lenir.
+        </p>
+      </div></details>
+      <p>
+          Bu, iki dosyanın da kendi kopyasını tanımlaması yerine bir tipin sahibinin shim olmasını mümkün kılar. Şekli shim'den export edin, Glyph modülünde import edin; derleyici her çalıştırmada ikisini birbirine bağlı tutar:
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -632,20 +674,16 @@ exist in type 'WebResponse'.
    <span class="bx">╰─</span> server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.44 öncesi ve sayılmayan dosyalar</span></summary><div class="body">
         <p>
           0.1.44'e kadar parmak izi <code>extern/</code>'i tamamen atlıyordu; dolayısıyla o yeniden adlandırma, shim'in önceki kopyasını çalıştıran temiz, tip kontrolünden geçmiş bir build üretiyordu. <code>extern/</code> altındaki <code>.ts</code> ya da <code>.tsx</code> olmayan dosyalar hâlâ önbelleği etkilemez ve bu bilinçli: shim'inizin yanındaki bir <code>README.md</code> onunla birlikte çıktıya kopyalanır, ama hiçbir şey onu tip kontrolünden geçirmez ya da çalıştırmaz, yani yeniden build alınacak bir şey yoktur.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">Sınıf tabanlı istemciler: veritabanı ve mesajlaşma istemcileri<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Çoğu veritabanı ve mesajlaşma istemcisi sınıf tabanlıdır: <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> yazarsınız. Glyph'te tam olarak bunun için <code>new</code> var. Olduğu gibi bir TypeScript <code>new</code>'i üretir ve <code>tsc</code> onu paketin gerçek constructor'ına karşı kontrol eder; böylece yanlış bir argüman gerçek bir hatadır ve tanımsız bir çağrılan adıyla yakalanır. Yalnızca interop için kalır: Glyph'in kendine ait bir <code>class</code>'ı yoktur ve <code>new</code> yalnızca bir paketten, bir <code>.types</code> tanımından ya da <code>extern_ts</code>'ten gelen bir tipi oluşturur.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">Sınıf tabanlı istemciler: veritabanı ve mesajlaşma istemcileri<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Çoğu veritabanı ve mesajlaşma istemcisi sınıf tabanlıdır: <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code> yazarsınız. Glyph'te tam olarak bunun için <code>new</code> var.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">sınıf tabanlı bir istemci (kafkajs)</span>
@@ -669,19 +707,52 @@ exist in type 'WebResponse'.
 <span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Olduğu gibi bir TypeScript <code>new</code>'i üretir ve <code>tsc</code> onu paketin gerçek constructor'ına karşı kontrol eder; böylece yanlış bir argüman gerçek bir hatadır ve tanımsız bir çağrılan adıyla yakalanır.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Yalnızca interop için kalır: Glyph'in kendine ait bir <code>class</code>'ı yoktur ve <code>new</code> yalnızca bir paketten, bir <code>.types</code> tanımından ya da <code>extern_ts</code>'ten gelen bir tipi oluşturur.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Herhangi bir npm paketini import edin (tireli ve scope'lu isimler dahil). Kendi tiplerini getiren (ya da <code>@types/...</code> paketi olan) kurulu bir paket stub olmadan tip kontrolünden geçer ve çalışır. Sınıf tabanlı istemciler <code>new</code> ile oluşturulur ve <code>tsc</code> tarafından gerçek constructor'a karşı kontrol edilir; factory istemciler doğrudan import edilip çağrılır. Node yerleşikleri (<code>fs</code>, <code>path</code>, <code>http</code>, akış yapan <code>spawn</code> dahil <code>child_process</code> ve diğerleri) kutudan çıktığı gibi tip kontrolünden geçer; <code>@types/node</code>'u kurduğunuzda otomatik olarak yüklenir ve CI, derleyicinin kendi runtime'ını o paketin <code>latest</code> sürümüne karşı build eder; böylece stdlib'in bağlı olduğu bir tanım node'un gerçek tanımından ayrışamaz. Yalnızca sizin kodunuzun ulaştığı bir tanım henüz bu kontrolün kapsamında değil ve birkaçı hâlâ node'dakinden geniş. Diğer her şey için <code>.types/</code> ambient tanımları, bir <code>.d.ts</code> dosyasını doğrulanan Glyph tiplerine dönüştürmek için <code>glyph gen dts</code> ve mevcut TypeScript'inizin geri import ettiği temiz <code>.ts</code> çıktısı. Tamamen elle yazılmış TypeScript gerektiğinde <code>import extern/&lt;name&gt;</code>, <code>&lt;src&gt;/extern/</code> altındaki bir <code>.ts</code> dosyasına ulaşır; bu dosya kodunuzla birlikte kopyalanır ve tip kontrolünden geçer, <code>glyph run</code> önbelleği tarafından da izlenir, böylece onu düzenlemek yeniden build tetikler.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p>Üretim artık gerçek SDK'ların getirdiği şekilleri ele alıyor (namespace'ler, dosyalar arası ve takma adlı/namespace yeniden export'ları, alt yol <code>exports</code>'u ve birinci sınıf generic'ler) ve değerden türetilen tipler (<code>z.infer&lt;typeof s&gt;</code>) birinci sınıf. Kalan ana eksik şu: üretilmemiş bir paketin çıktıları <code>.d.ts</code>'ine karşı tip kontrolünden geçer, ama siz onları üretmedikçe çalışma zamanında doğrulanmaz. <code>extern/</code> tarafında kaynak kökü iki komut arasında farklıdır: <code>glyph run app.glyph</code> kökü dosyanın kendi dizinine koyar, <code>glyph build src/</code> ise adını verdiğiniz dizine. Dolayısıyla bir alt dizindeki program shim'ini iki farklı yerde arar ve biz tek bir kök seçene kadar, bu şekilde düzenlenmiş bir projede shim'in iki yerden de erişilebilir olması gerekir. Erişilemediğinde açıkça hata verir.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Herhangi bir npm paketini import edin (tireli ve scope'lu isimler dahil).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kendi tiplerini getiren (ya da <code>@types/...</code> paketi olan) kurulu bir paket stub olmadan tip kontrolünden geçer ve çalışır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Sınıf tabanlı istemciler <code>new</code> ile oluşturulur ve <code>tsc</code> tarafından gerçek constructor'a karşı kontrol edilir; factory istemciler doğrudan import edilip çağrılır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node yerleşikleri kutudan çıktığı gibi tip kontrolünden geçer</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Node yerleşikleri (<code>fs</code>, <code>path</code>, <code>http</code>, akış yapan <code>spawn</code> dahil <code>child_process</code> ve diğerleri) kutudan çıktığı gibi tip kontrolünden geçer; <code>@types/node</code>'u kurduğunuzda otomatik olarak yüklenir ve CI, derleyicinin kendi runtime'ını o paketin <code>latest</code> sürümüne karşı build eder; böylece stdlib'in bağlı olduğu bir tanım node'un gerçek tanımından ayrışamaz.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yalnızca sizin kodunuzun ulaştığı bir tanım henüz bu kontrolün kapsamında değil ve birkaçı hâlâ node'dakinden geniş.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Diğer her şey için <code>.types/</code> ambient tanımları.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir <code>.d.ts</code> dosyasını doğrulanan Glyph tiplerine dönüştürmek için <code>glyph gen dts</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mevcut TypeScript'inizin geri import ettiği temiz <code>.ts</code> çıktısı.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code>, <code>&lt;src&gt;/extern/</code> altındaki elle yazılmış TypeScript'e ulaşır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Tamamen elle yazılmış TypeScript gerektiğinde <code>import extern/&lt;name&gt;</code>, <code>&lt;src&gt;/extern/</code> altındaki bir <code>.ts</code> dosyasına ulaşır; bu dosya kodunuzla birlikte kopyalanır ve tip kontrolünden geçer, <code>glyph run</code> önbelleği tarafından da izlenir, böylece onu düzenlemek yeniden build tetikler.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Üretim gerçek SDK'ların getirdiği şekilleri ele alıyor ve değerden türetilen tipler birinci sınıf</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Üretim artık gerçek SDK'ların getirdiği şekilleri ele alıyor (namespace'ler, dosyalar arası ve takma adlı/namespace yeniden export'ları, alt yol <code>exports</code>'u ve birinci sınıf generic'ler) ve değerden türetilen tipler (<code>z.infer&lt;typeof s&gt;</code>) birinci sınıf.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Kalan ana eksik şu: üretilmemiş bir paketin çıktıları <code>.d.ts</code>'ine karşı tip kontrolünden geçer, ama siz onları üretmedikçe çalışma zamanında doğrulanmaz.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>extern/</code> tarafında kaynak kökü <code>glyph run</code> ile <code>glyph build</code> arasında farklıdır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>extern/</code> tarafında kaynak kökü iki komut arasında farklıdır: <code>glyph run app.glyph</code> kökü dosyanın kendi dizinine koyar, <code>glyph build src/</code> ise adını verdiğiniz dizine. Dolayısıyla bir alt dizindeki program shim'ini iki farklı yerde arar ve biz tek bir kök seçene kadar, bu şekilde düzenlenmiş bir projede shim'in iki yerden de erişilebilir olması gerekir. Erişilemediğinde açıkça hata verir.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/upgrades/">
           <span class="dir">&larr; Önceki</span>

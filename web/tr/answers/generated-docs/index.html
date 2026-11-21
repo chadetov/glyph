@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ajanımın okuduğu dokümantasyon üretiliyor mu?","item":"https://glyphlang.io/tr/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/generated-docs/#article","headline":"Ajanımın okuduğu dokümantasyon üretiliyor mu?","description":"glyph llms --json, diagnostic'leri, prelude'u, stdlib imzalarını ve dil kararlarını derleyicinin kendi tablolarından üretir; bu yüzden gerçeklikten sapamazlar.","url":"https://glyphlang.io/tr/answers/generated-docs/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/generated-docs/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/generated-docs/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ajanımın okuduğu dokümantasyon üretiliyor mu?","item":"https://glyphlang.io/tr/answers/generated-docs/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/generated-docs/#article","headline":"Ajanımın okuduğu dokümantasyon üretiliyor mu?","description":"glyph llms --json, diagnostic'leri, prelude'u, stdlib imzalarını ve dil kararlarını derleyicinin kendi tablolarından üretir; bu yüzden gerçeklikten sapamazlar.","url":"https://glyphlang.io/tr/answers/generated-docs/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/generated-docs/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/generated-docs/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/generated-docs/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">24 &middot; Sapamayan dokümanlar</p>
       <h1 class="q-title">Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,22 +478,8 @@
         Üretiliyor. <code>glyph llms --json</code>, diagnostic kataloğunu, prelude'u, stdlib imzalarını, dil kararlarını ve araç kılavuzunu derleyicinin kendi tablolarından üretir; elle yazılmış bir kopya uyuşmadığında bir kontrol build'i başarısız kılar. Bir ajanın başlangıç bilgisini aldığı dokümandaki her Glyph örneği derlenir, yanlış olanlar dahil.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bu soru retorik değil, çünkü dürüst yanıt eskiden "elle yazılmış ve evet" idi. Ajanın başlangıç dokümanı MCP sunucusunun "beş araç sunduğunu" söylüyor ve beş tane listeliyordu. Sunucu yedi araç sunuyordu. Sunucunun kendi talimatlarının bir ajana ilk önce kullanmasını söylediği iki araç dokümanda sıfır kez geçiyordu. 58 hata kodu elle bakımı yapılan üç kopyada duruyordu ve yalnızca kod dizesinin var olup olmadığı kontrol ediliyordu. O dokümandaki 19 Glyph örneğinden 2'si derleniyor, 17'si parça olarak atlanıyordu.
-        </p>
-        <p>
-          Bunların her biri aynı kusur. Bir derleyici hakkında, derleyicinin yanında, iyi niyetli insanlar tarafından tutulan bir doküman. Onu okuyan bir ajan hangi cümlelerin hâlâ doğru olduğunu ayırt edemez, biz de edemiyorduk.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Her biri derleyicinin zaten sahip olduğu bir tablodan okunan yedi bölüm. Bir diagnostic kaydı katalog cümlesini, tek satırlık düzeltmeyi, uzun açıklamayı ve derleyicinin ürettiği bir diagnostic'ten alınan help ve note'u taşır. 77 kodun 51'i ayrıca o kodu tetikleyen yanlış bir program taşır ve bu program siz sorduğunuz anda derlenir; diğer 26'sı derlemde onun için bir durum olmadığını söyler.
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
         <span class="cap">glyph llms --json, E0200 kaydı (kısaltılmış)</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
@@ -518,19 +504,49 @@
       invented here would compile nowhere and be checked by nothing."</span>
   }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Her biri derleyicinin zaten sahip olduğu bir tablodan okunan yedi bölüm.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#diagnostics">Diagnostic'ler</a></li>
+          <li><a href="#the-prelude-the-stdlib-and-the-decisions">Prelude, stdlib, kararlar</a></li>
+          <li><a href="#the-wrong-programs-are-readable-too">Yanlış programlar</a></li>
+          <li><a href="#every-example-compiles-including-the-wrong-ones">Derlenen örnekler</a></li>
+          <li><a href="#what-it-costs-to-hand-over-and-what-it-stopped-costing">Maliyeti</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bu soru retorik değil, çünkü dürüst yanıt eskiden "elle yazılmış ve evet" idi.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Araç listesi</b>Ajanın başlangıç dokümanı MCP sunucusunun "beş araç sunduğunu" söylüyor ve beş tane listeliyordu. Sunucu yedi araç sunuyordu. Sunucunun kendi talimatlarının bir ajana ilk önce kullanmasını söylediği iki araç dokümanda sıfır kez geçiyordu.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Hata kodları</b>58 hata kodu elle bakımı yapılan üç kopyada duruyordu ve yalnızca kod dizesinin var olup olmadığı kontrol ediliyordu.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Örnekler</b>O dokümandaki 19 Glyph örneğinden 2'si derleniyor, 17'si parça olarak atlanıyordu.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bunların her biri aynı kusur. Bir derleyici hakkında, derleyicinin yanında, iyi niyetli insanlar tarafından tutulan bir doküman. Onu okuyan bir ajan hangi cümlelerin hâlâ doğru olduğunu ayırt edemez, biz de edemiyorduk.</p></div>
+
+      <h2 class="ak-h" id="diagnostics">Diagnostic'ler için tek bir tablo<a class="ak-anchor" href="#diagnostics" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir diagnostic kaydı katalog cümlesini, tek satırlık düzeltmeyi, uzun açıklamayı ve derleyicinin ürettiği bir diagnostic'ten alınan help ve note'u taşır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>77 kodun 51'i ayrıca o kodu tetikleyen yanlış bir program taşır ve bu program siz sorduğunuz anda derlenir; diğer 26'sı derlemde onun için bir durum olmadığını söyler.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">üç kopya tek bir kopyada birleşti</span></summary><div class="body">
         <p>
           77 kod derleyicideki tek bir tablodan çıkar; <code>docs/error-codes.md</code> ve ajan başlangıç dokümanındaki katalog tablosu, sapma olduğunda başarısız olan bir script tarafından ondan yazılır. Eskiden var olan üç kopyayı birleştirmek, açıklaması olup listede yeri olmayan bir kodu ve escape edilmiş dikey çizgisi içinde bulunduğu tabloyu sessizce bozmuş bir satırı ortaya çıkardı.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-prelude-the-stdlib-and-the-decisions">Prelude, stdlib ve kararlar<a class="h-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Prelude, resolver'ın çözümleme yaptığı 24 isimden ve her birinin ne olduğundan oluşur. Stdlib 40 modül ve 340 export'tur; her imza checker'ın kendi tablolarından okunur ve bir diagnostic'in kullandığı tip yazıcısıyla yazdırılır, yani dokümandaki imza checker'ın sizi bağlı tutacağı imzanın ta kendisidir. Export'lar üçe ayrılır, asla ikiye değil: 129 imza her konumda modellenmiştir, 46'sı bir parametre tipinin olması gereken yerde <code>?</code> taşır ve kaç konum kaldığını söyleyen bir satırla <code>partially_modeled</code> olarak sayılır, 165'inin ise hiç imzası yoktur. Bir <code>?</code>, yazdırılmış bir <code>unknown</code>'dır, bu yüzden hiçbir zaman tam bir imza olarak yayımlanmaz.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-prelude-the-stdlib-and-the-decisions">Prelude, stdlib ve kararlar<a class="ak-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Prelude, resolver'ın çözümleme yaptığı 24 isimden ve her birinin ne olduğundan oluşur. Stdlib 40 modül ve 340 export'tur; her imza checker'ın kendi tablolarından okunur ve bir diagnostic'in kullandığı tip yazıcısıyla yazdırılır, yani dokümandaki imza checker'ın sizi bağlı tutacağı imzanın ta kendisidir.
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">"stdlib"</span>
@@ -565,18 +581,22 @@
         head is a variant reference ..."</span> }, <span class="c">...</span> ] }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">export'ların nasıl ayrıldığı</span></summary><div class="body">
+        <p>
+          Export'lar üçe ayrılır, asla ikiye değil: 129 imza her konumda modellenmiştir, 46'sı bir parametre tipinin olması gereken yerde <code>?</code> taşır ve kaç konum kaldığını söyleyen bir satırla <code>partially_modeled</code> olarak sayılır, 165'inin ise hiç imzası yoktur. Bir <code>?</code>, yazdırılmış bir <code>unknown</code>'dır, bu yüzden hiçbir zaman tam bir imza olarak yayımlanmaz.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint"><code>duplicate_numbers</code> neden var</span></summary><div class="body">
         <p>
           <code>duplicate_numbers</code> orada, çünkü üretici spesifikasyonun kendi listesini okur ve ilk çalıştığında ikisi de D43 numaralı iki farklı karar buldu ve <code>"duplicate_numbers": [43]</code> yazdırdı. Çakışmayı tekilleştirmek yerine bildirir; bunu fark etmemizin yolu da buydu. Derleyicide hiçbir şey bir D numarasına bağlı değildir, yani hiçbir program etkilenmedi; bir atfı takip eden okuyucu etkilendi. Bu düzeltildi: D43 <code>await</code> boyunca <code>mut</code> kuralı, <code>never</code> ise D47; böylece liste boş döner. Bugün D1'den D49'a kadar 49 karar var.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-wrong-programs-are-readable-too">Yanlış programlar da okunabilir<a class="h-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Derleyicinin negatif derlemi, her birinin tetiklemesi gereken kodla birlikte, başarısız olması gereken programlardan oluşan bir kümedir. Eskiden yalnızca <code>cargo test</code> onu görebiliyordu. Bir kuralın neyi reddettiğini öğrenen bir ajan, tam da onun yazıldığı okuyucudur; bu yüzden artık yanıt veriyor ve her durum siz sorduğunuzda derleniyor, böylece yanındaki diagnostic bu derleyicinin diagnostic'i oluyor.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-wrong-programs-are-readable-too">Yanlış programlar da okunabilir<a class="ak-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Derleyicinin negatif derlemi, her birinin tetiklemesi gereken kodla birlikte, başarısız olması gereken programlardan oluşan bir kümedir. Eskiden yalnızca <code>cargo test</code> onu görebiliyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir kuralın neyi reddettiğini öğrenen bir ajan, tam da onun yazıldığı okuyucudur; bu yüzden artık yanıt veriyor ve her durum siz sorduğunuzda derleniyor, böylece yanındaki diagnostic bu derleyicinin diagnostic'i oluyor.</p></div>
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
@@ -599,44 +619,92 @@
   <span class="pk">"catches_absent"</span>: <span class="s">"`catches/` pairs no TypeScript-accepted program with E0008"</span>
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kapsam ve <code>catches/</code> derlemi</span></summary><div class="body">
         <p>
           Kod verilmezse 0.1.149'da 77 kodun 53'ü üzerinde 117 durum listeler ve kapsamı dönenlere bakıp çıkarmanızı beklemek yerine hiç durumu olmayan 24 kodu adıyla söyler. İkinci bir derlem olan <code>catches/</code>, <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirir; var oldukları yerde bunlar da aynı yanıtta gelir. İkisi de doğrudan dizinlerin kendisinden gömülür, yani herhangi birine eklenen bir durum, hatırlanması gereken ikinci bir düzenleme olmadan yanıtta yer alır.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="every-example-compiles-including-the-wrong-ones">Her örnek derlenir, yanlış olanlar dahil<a class="h-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Referansı üretmek işin yarısı. Diğer yarısı, bir ajanın başlangıç bilgisini aldığı düz yazı; buradaki örnekler ajanın kopyaladığı kısımdır. O dokümandaki her Glyph kod bloğu ya derlenen tam bir programdır ya da satırlarının içinde yer alması gereken adlandırılmış tam bir örneğin parçası olarak işaretlenmiştir. Eskiden 19 bloktan 2'si derleniyordu; şimdi 24 bloktan 20'si derleniyor, 4'ü işaretli ve hiçbiri atlanmıyor. Stdlib referansı 8'de 4'ten 8'de 8'e çıktı.
-        </p>
-        <p>
-          Bir kod bloğu, tetiklediği kodu belirterek başarısız olması gereken bir program olarak da işaretlenebilir; doküman sizi uyardığı beş yanlış biçimi böyle taşır: <code>E0228</code>'i tetikleyen, <code>E0008</code>'i tetikleyen ve üç tane daha. Diagnostic'le eşleştirilmiş bir uyarı kontrol edilebilir. Düz yazıyla yazılmış bir uyarı ise bir sözdür.
-        </p>
+      <h2 class="ak-h" id="every-example-compiles-including-the-wrong-ones">Her örnek derlenir, yanlış olanlar dahil<a class="ak-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Referansı üretmek işin yarısı. Diğer yarısı, bir ajanın başlangıç bilgisini aldığı düz yazı; buradaki örnekler ajanın kopyaladığı kısımdır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O dokümandaki her Glyph kod bloğu ya derlenen tam bir programdır ya da satırlarının içinde yer alması gereken adlandırılmış tam bir örneğin parçası olarak işaretlenmiştir.</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Başlangıç dokümanı</b>Eskiden 19 bloktan 2'si derleniyordu; şimdi 24 bloktan 20'si derleniyor, 4'ü işaretli ve hiçbiri atlanmıyor.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Stdlib referansı</b>Stdlib referansı 8'de 4'ten 8'de 8'e çıktı.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Yanlış biçimler</b>Bir kod bloğu, tetiklediği kodu belirterek başarısız olması gereken bir program olarak da işaretlenebilir; doküman sizi uyardığı beş yanlış biçimi böyle taşır: <code>E0228</code>'i tetikleyen, <code>E0008</code>'i tetikleyen ve üç tane daha. Diagnostic'le eşleştirilmiş bir uyarı kontrol edilebilir. Düz yazıyla yazılmış bir uyarı ise bir sözdür.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">dokümanları derlemenin ortaya çıkardığı iki şey</span></summary><div class="body">
         <p>
           Dokümanları derlemek, onları okumanın asla bulamayacağı iki şey buldu. Satır içi üçlü bir backtick bir kod bloğu açılışı olarak okunmuştu, bu yüzden 250 satır tek bir parça sayılmış ve içlerindeki hiçbir şey kontrol edilmemişti. Ayrıca stdlib referansındaki çalışan bir sunucu örneği, <code>std/http</code>'nin export etmediği <code>http.serve</code>'ü çağırıyordu. Fonksiyonun adı <code>listen</code>.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Teslim etmenin maliyeti ve artık neye mal olmadığı<a class="h-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Teslim etmenin maliyeti ve artık neye mal olmadığı<a class="ak-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        On bir MCP aracı eskiden tüm kılavuzlarını <code>tools/list</code> yanıtında taşıyordu ve her oturum bağlanırken bunun bedelini öder: 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Aynı on bir araç artık 20.386 baytlık bir yanıtta 8.627 bayt taşıyor.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Hiçbir şey silinmedi. Önceki metin araç adına göre anahtarlanmış olarak birebir saklanır ve <code>glyph llms --json</code> içinde yayımlanır; böylece çağrı anında ihtiyaç duyduğunuz sözleşme açıklamada, geri kalanı ise her oturumun ilk yanıtında değil bir komut uzaklıkta.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">sayıyı tutan test</span></summary><div class="body">
         <p>
-          On bir MCP aracı eskiden tüm kılavuzlarını <code>tools/list</code> yanıtında taşıyordu ve her oturum bağlanırken bunun bedelini öder: 45.509 baytlık bir yanıtta 31.446 bayt açıklama. Aynı on bir araç artık 20.386 baytlık bir yanıtta 8.627 bayt taşıyor. Hiçbir şey silinmedi. Önceki metin araç adına göre anahtarlanmış olarak birebir saklanır ve <code>glyph llms --json</code> içinde yayımlanır; böylece çağrı anında ihtiyaç duyduğunuz sözleşme açıklamada, geri kalanı ise her oturumun ilk yanıtında değil bir komut uzaklıkta. Bir test araç listesini ve dokümanı birlikte okur; böylece sunucunun sunmadığı bir aracı adlandıran bir doküman ya da listeyle uyuşmayan bir sayı build'i başarısız kılar. "Beş araç sunar" cümlesinin ihtiyaç duyduğu kontrol buydu.
+          Bir test araç listesini ve dokümanı birlikte okur; böylece sunucunun sunmadığı bir aracı adlandıran bir doküman ya da listeyle uyuşmayan bir sayı build'i başarısız kılar. "Beş araç sunar" cümlesinin ihtiyaç duyduğu kontrol buydu.
         </p>
-        <p>
-          Bunların hepsi çevrimdışı ve yereldir. <code>glyph llms</code> düz yazıyı, <code>glyph llms --json</code> veriyi, <code>glyph llms --negative</code> yanlış programları yazdırır. Aynı düz yazı, ağ erişimi olup binary'si olmayan bir ajan için <a href="/llms.txt">llms.txt</a> adresinde sunulur. Bir ajanın dil hakkında değil de <em>sizin</em> kodunuz hakkında sorduğu şeyler için <a href="/tr/answers/ask-the-compiler/">sorgu araçları</a> var.
-        </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p><code>glyph llms --json</code>, derleyiciden yedi bölüm üretir: 51'i derlenmiş bir karşı örnekle gelen 77 diagnostic kodu, 32 ayrılmış kelime, 24 prelude ismi, 340 export'lu 40 stdlib modülü, spesifikasyondan parse edilen 49 dil kararı ve <code>glyph query</code> fiilleri ile tam kılavuzlarıyla on bir araç. <code>docs/error-codes.md</code> ve başlangıç dokümanının diagnostic tablosu, derleyicinin kendi kod tablosundan, sapma olduğunda başarısız olan ve <code>llms.txt</code>'yi de onunla birlikte yeniden yansıtan bir script tarafından yazılır. Bir test araç kataloğunu sunucunun sunduklarına bağlı tutar. Başlangıç dokümanındaki ve stdlib referansındaki her Glyph kod bloğu ya derlenir ya da derlenen bir bloğun işaretli bir parçasıdır; beş yanlış biçim, her birinin tetiklediği kodla eşleştirilmiş programlardır. <code>glyph llms --negative</code>, <code>cargo test</code>'in çalıştırdığı derlemlerin aynısından yanıt verir.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p>Bu dokümanda yanlış programların iki ayrı sayısı geçiyor ve farklı şeyleri sayıyorlar: 77 kodun 51'i <code>tests/negative/</code>'den bir karşı örnek taşır; <code>glyph llms --negative</code> ise <code>catches/</code>'taki retleri de okuduğu için 0.1.149'da 53 kod üzerinde 117 durum listeler. Sonraki sürüm, o zamandan beri <code>catches/</code>'a eklenen 22 reddi de ekleyerek 55 kod üzerinde 139 duruma çıkarır. 0.1.149'da 24 kodun iki derlemde de yanlış bir programı yoktur ve yanıt bir tane uydurmak yerine onları adıyla söyler. 340 stdlib export'unun 165'i imzasız gelir: gerçekleştirim <code>tsc</code>'nin kontrol ettiği TypeScript'tir ve derleyicinin kendi tabloları onun için hiçbir şey modellemez; bu yüzden <code>std/result::all</code> ya da <code>std/io::println</code> üzerinde <code>glyph_symbol</code>, bu gerekçeyle <code>kind: null</code> bildirir. İmzası olan 175 export'tan 46'sı bir parametre tipinin olması gereken yerde hâlâ <code>?</code> taşır. Ayrıca doküman bir servis değil, indirdiğiniz bir anlık görüntüdür: üzerinde bir retrieval katmanı, embedding'ler ya da bir sohbet arayüzü yoktur.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h3 class="ak-h3" id="offline-and-local">Çevrimdışı ve yerel<a class="ak-anchor" href="#offline-and-local" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bunların hepsi çevrimdışı ve yereldir. <code>glyph llms</code> düz yazıyı, <code>glyph llms --json</code> veriyi, <code>glyph llms --negative</code> yanlış programları yazdırır.
+      </p>
+      <p>
+        Aynı düz yazı, ağ erişimi olup binary'si olmayan bir ajan için <a href="/llms.txt">llms.txt</a> adresinde sunulur. Bir ajanın dil hakkında değil de <em>sizin</em> kodunuz hakkında sorduğu şeyler için <a href="/tr/answers/ask-the-compiler/">sorgu araçları</a> var.
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --json</code>, derleyiciden yedi bölüm üretir</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>glyph llms --json</code>, derleyiciden yedi bölüm üretir: 51'i derlenmiş bir karşı örnekle gelen 77 diagnostic kodu, 32 ayrılmış kelime, 24 prelude ismi, 340 export'lu 40 stdlib modülü, spesifikasyondan parse edilen 49 dil kararı ve <code>glyph query</code> fiilleri ile tam kılavuzlarıyla on bir araç.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>docs/error-codes.md</code> ve başlangıç dokümanının diagnostic tablosu derleyicinin kendi kod tablosundan yazılır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>docs/error-codes.md</code> ve başlangıç dokümanının diagnostic tablosu, derleyicinin kendi kod tablosundan, sapma olduğunda başarısız olan ve <code>llms.txt</code>'yi de onunla birlikte yeniden yansıtan bir script tarafından yazılır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir test araç kataloğunu sunucunun sunduklarına bağlı tutar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Başlangıç dokümanındaki ve stdlib referansındaki her Glyph kod bloğu ya derlenir ya da derlenen bir bloğun işaretli bir parçasıdır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Başlangıç dokümanındaki ve stdlib referansındaki her Glyph kod bloğu ya derlenir ya da derlenen bir bloğun işaretli bir parçasıdır; beş yanlış biçim, her birinin tetiklediği kodla eşleştirilmiş programlardır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --negative</code>, <code>cargo test</code>'in çalıştırdığı derlemlerin aynısından yanıt verir.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bu dokümanda yanlış programların iki ayrı sayısı geçiyor ve farklı şeyleri sayıyorlar</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Bu dokümanda yanlış programların iki ayrı sayısı geçiyor ve farklı şeyleri sayıyorlar: 77 kodun 51'i <code>tests/negative/</code>'den bir karşı örnek taşır; <code>glyph llms --negative</code> ise <code>catches/</code>'taki retleri de okuduğu için 0.1.149'da 53 kod üzerinde 117 durum listeler. Sonraki sürüm, o zamandan beri <code>catches/</code>'a eklenen 22 reddi de ekleyerek 55 kod üzerinde 139 duruma çıkarır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">0.1.149'da 24 kodun iki derlemde de yanlış bir programı yoktur ve yanıt bir tane uydurmak yerine onları adıyla söyler.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">340 stdlib export'unun 165'i imzasız gelir</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>340 stdlib export'unun 165'i imzasız gelir: gerçekleştirim <code>tsc</code>'nin kontrol ettiği TypeScript'tir ve derleyicinin kendi tabloları onun için hiçbir şey modellemez; bu yüzden <code>std/result::all</code> ya da <code>std/io::println</code> üzerinde <code>glyph_symbol</code>, bu gerekçeyle <code>kind: null</code> bildirir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">İmzası olan 175 export'tan 46'sı bir parametre tipinin olması gereken yerde hâlâ <code>?</code> taşır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ayrıca doküman bir servis değil, indirdiğiniz bir anlık görüntüdür: üzerinde bir retrieval katmanı, embedding'ler ya da bir sohbet arayüzü yoktur.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/repair-protocol/">
           <span class="dir">&larr; Önceki</span>

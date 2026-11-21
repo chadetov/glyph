@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/parse-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Wenn das Parsen fehlschlägt, erfahre ich warum?","item":"https://glyphlang.io/de/answers/parse-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/parse-errors/#article","headline":"Wenn das Parsen fehlschlägt, erfahre ich warum?","description":"Ein fehlgeschlagenes Parsen nennt das Feld, sagt, welche Regel der Wert verletzt hat, zitiert das verletzte where-Prädikat und versieht das Problem mit einem Code, auf den du verzweigen kannst.","url":"https://glyphlang.io/de/answers/parse-errors/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/parse-errors/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/parse-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Wenn das Parsen fehlschlägt, erfahre ich warum?","item":"https://glyphlang.io/de/answers/parse-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/parse-errors/#article","headline":"Wenn das Parsen fehlschlägt, erfahre ich warum?","description":"Ein fehlgeschlagenes Parsen nennt das Feld, sagt, welche Regel der Wert verletzt hat, zitiert das verletzte where-Prädikat und versieht das Problem mit einem Code, auf den du verzweigen kannst.","url":"https://glyphlang.io/de/answers/parse-errors/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/parse-errors/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/parse-errors/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/parse-errors/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Fparse-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Fparse-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fparse-errors%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
-      <p class="i18n-stale">Die englische Version dieser Seite hat sich seit dieser Übersetzung geändert. <a href="/answers/parse-errors/" hreflang="en" data-lang="en">Aktuelle englische Version lesen</a></p>
     </div>
     <script>
       (function () {
@@ -426,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">27 &middot; Parse-Fehler</p>
       <h1 class="q-title">Wenn das Parsen fehlschlägt, erfahre ich warum?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -479,37 +478,22 @@
         Ja. Jedes Problem nennt das Feld, sagt, <strong>welche Regel der Wert verletzt hat</strong>, und enthält einen <code>code</code>, auf den du verzweigen kannst. Ein Feld, das durch ein <code>where</code>-Prädikat eingeschränkt ist, meldet das Prädikat selbst, also führt die Ablehnung per grep zurück zu der Zeile, die es festgelegt hat.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein Validator, der sagt "dieser Payload ist ungültig", hat die halbe Arbeit gemacht. Der Handler muss trotzdem entscheiden: Ist das ein Client, der ein Feld vergessen hat, oder ein Client, der ein Passwort mit vier Zeichen geschickt hat? Das eine ist ein 400, das andere ein 422, und wenn der Validator es nicht sagt, parst du am Ende denselben Body zweimal mit zwei verschiedenen Typen, um eine Information zurückzugewinnen, die der Validator schon hatte.
-        </p>
-        <p>
-          Genau das ist beim Bau einer Auth-API in Glyph passiert. Eine Registrierung ganz ohne <code>password</code>-Schlüssel kam als <code>weak_password</code> zurück, weil fehlend und zu kurz denselben String erzeugten.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>Ein Typ, eine Einschränkung:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">signup.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Ein Typ, eine Einschränkung:</p>
+        <div class="code">
+          <span class="cap">signup.glyph</span>
 <pre><span class="k">pub</span> <span class="k">type</span> <span class="t">Password</span> = <span class="t">string</span> <span class="k">where</span> value.length &gt;= <span class="n">8</span>
 
 <span class="k">pub</span> <span class="k">type</span> <span class="t">Signup</span> = {
   email: <span class="t">string</span>,
   password: <span class="t">Password</span>,
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Vier ungültige Payloads, vier verschiedene Antworten. Jede ist ein <code>Issue</code>, dargestellt als <code>code | path | message</code>:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Signup.parse(...)</span>
+        <div class="code term">
+          <span class="cap">Signup.parse(...)</span>
 <pre><span class="cm">// { "email": "user@example.com" }</span>
 missing     ["password"]  field `password` is required
 
@@ -521,27 +505,60 @@ type        ["email"]     field `email` must be string
 
 <span class="cm">// [1, 2, 3]</span>
 type        []            expected Signup (an object), got an array</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Auf die zweite kommt es an. <code>value.length &gt;= 8</code> wird einmal geschrieben, am Typ, und die Ablehnung zitiert es wörtlich.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">von einem 422-Body zurück zur Deklaration</span></summary><div class="body">
+          <p>
+            Kopier diesen String aus einem HTTP-422-Body in <code>grep</code>, und du landest bei der Deklaration, die ihn erzeugt hat. Niemand muss eine Kopie der Regel in der Schicht für Fehlermeldungen pflegen, und genau so laufen die beiden auseinander.
+          </p>
+        </div></details>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">was ein Array früher bewirkt hat</span></summary><div class="body">
+          <p>
+            Die vierte war früher schlimmer als nur eine schlechte Meldung. Für <code>typeof</code> ist ein Array ein Objekt, also akzeptierte ein Record ohne Pflichtfelder eins ohne Weiteres, und ein gepostetes <code>[1, 2, 3]</code> kam als ein verwirrendes Problem pro deklariertem Feld zurück, von denen keins erwähnte, dass du eine Liste geschickt hattest.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Auf die zweite kommt es an. <code>value.length &gt;= 8</code> wird einmal geschrieben, am Typ, und die Ablehnung zitiert es wörtlich. Kopier diesen String aus einem HTTP-422-Body in <code>grep</code>, und du landest bei der Deklaration, die ihn erzeugt hat. Niemand muss eine Kopie der Regel in der Schicht für Fehlermeldungen pflegen, und genau so laufen die beiden auseinander.
-        </p>
-        <p>
-          Die vierte war früher schlimmer als nur eine schlechte Meldung. Für <code>typeof</code> ist ein Array ein Objekt, also akzeptierte ein Record ohne Pflichtfelder eins ohne Weiteres, und ein gepostetes <code>[1, 2, 3]</code> kam als ein verwirrendes Problem pro deklariertem Feld zurück, von denen keins erwähnte, dass du eine Liste geschickt hattest.
-        </p>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#nested-types-answer-for-themselves">Verschachtelte Typen</a></li>
+          <li><a href="#the-code-not-the-string">Der Code, nicht der String</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="nested-types-answer-for-themselves">Verschachtelte Typen sprechen für sich selbst<a class="h-anchor" href="#nested-types-answer-for-themselves" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Validator, der sagt "dieser Payload ist ungültig", hat die halbe Arbeit gemacht.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Der Handler muss trotzdem entscheiden: Ist das ein Client, der ein Feld vergessen hat, oder ein Client, der ein Passwort mit vier Zeichen geschickt hat? Das eine ist ein 400, das andere ein 422, und wenn der Validator es nicht sagt, parst du am Ende denselben Body zweimal mit zwei verschiedenen Typen, um eine Information zurückzugewinnen, die der Validator schon hatte.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">wo das aufkam</span></summary><div class="body">
         <p>
-          Ein Feld, dessen Typ einen eigenen Deskriptor hat, wird vom <code>parse</code> dieses Typs validiert, und seine Probleme kommen mit dem Feldnamen vorn im Pfad zurück. Ein <code>Password</code> zwei Ebenen tief meldet also <code>["body", "password"]</code> und bringt trotzdem seine eigene Meldung mit. Ort und Grund bekommst du aus demselben Problem, ohne etwas erneut auszuführen.
+          Genau das ist beim Bau einer Auth-API in Glyph passiert. Eine Registrierung ganz ohne <code>password</code>-Schlüssel kam als <code>weak_password</code> zurück, weil fehlend und zu kurz denselben String erzeugten.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-code-not-the-string">Der Code, nicht der String<a class="h-anchor" href="#the-code-not-the-string" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          <code>Issue</code> enthält ein optionales <code>code</code>: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> oder <code>"unexpected"</code>. Verzweige darauf. Auf den Meldungstext zu matchen ist genau die Fragilität, die Glyph beseitigen soll, und die Meldung ist für den Menschen, der den Response-Body liest.
-        </p>
-      </div>
+      <h2 class="ak-h" id="nested-types-answer-for-themselves">Verschachtelte Typen sprechen für sich selbst<a class="ak-anchor" href="#nested-types-answer-for-themselves" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Feld, dessen Typ einen eigenen Deskriptor hat, wird vom <code>parse</code> dieses Typs validiert, und seine Probleme kommen mit dem Feldnamen vorn im Pfad zurück. Ein <code>Password</code> zwei Ebenen tief meldet also <code>["body", "password"]</code> und bringt trotzdem seine eigene Meldung mit.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="Der Pfad, den ein verschachteltes Problem meldet">
+          <li><span>body</span></li>
+          <li><span>password</span></li>
+          <li><span>Password</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Ort und Grund bekommst du aus demselben Problem, ohne etwas erneut auszuführen.</span></figcaption>
+      </figure>
 
+      <h2 class="ak-h" id="the-code-not-the-string">Der Code, nicht der String<a class="ak-anchor" href="#the-code-not-the-string" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Issue</code> enthält ein optionales <code>code</code>: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, <code>"unexpected"</code> oder <code>"depth"</code>. Verzweige darauf. Auf den Meldungstext zu matchen ist genau die Fragilität, die Glyph beseitigen soll, und die Meldung ist für den Menschen, der den Response-Body liest.
+      </p>
       <div class="code">
         <span class="cap">Eine Aufteilung in 400/422, die die Meldung nicht liest</span>
 <pre><span class="k">fn</span> status_for(issues: <span class="t">Array</span>&lt;<span class="t">Issue</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
@@ -552,25 +569,48 @@ type        []            expected Signup (an object), got an array</pre>
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>code</code> ist optional, also kompilieren ein <code>Issue</code>, das du von Hand baust, und jeder Konsument, der vor seiner Einführung geschrieben wurde, weiterhin unverändert.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Code <code>"depth"</code></span></summary><div class="body">
         <p>
-          <code>code</code> ist optional, also kompilieren ein <code>Issue</code>, das du von Hand baust, und jeder Konsument, der vor seiner Einführung geschrieben wurde, weiterhin unverändert.
+          <code>"depth"</code> ist die Antwort auf einen Body, der mehr als 1000 Objekte und Arrays tief verschachtelt ist (<code>MAX_DEPTH</code> in <code>std/schema</code>): ein Problem an dem Feld, an dem es passiert ist, wo die Prüfung vor 0.1.150 <code>RangeError: Maximum call stack size exceeded</code> warf und den Handler mitriss.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Records und <code>where</code>-Typen melden die verletzte Regel, nicht nur das fehlerhafte Feld: <code>"missing"</code> für ein fehlendes Pflichtfeld, <code>"type"</code> für die falsche Form (einschließlich eines Nicht-Objekts oder eines Arrays), <code>"refinement"</code> für einen Wert, der seinen Basistyp bestanden und das Prädikat verfehlt hat, und <code>"unexpected"</code> für einen Schlüssel, den der Typ nicht deklariert. Eine Verfeinerung zitiert ihr Prädikat. Ein Feld, dessen Typ einen Deskriptor hat, delegiert an ihn, also kommen verschachtelte Probleme mit dem vollständigen Pfad an. Optionale Felder (<code>f?: T</code>) werden nie als fehlend gemeldet.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Wird schärfer</h3>
-          <p>Zwei Grenzen. Ein Feld, dessen Typ keinen eigenen Deskriptor hat, ein uneingeschränkter Typparameter oder ein Typ aus einer handgeschriebenen <code>.d.ts</code>, bekommt weiterhin die flache Prüfung und ein <code>"type"</code>-Problem; der Compiler erzeugt für diese keinen Deskriptor, und <code>glyph gen dts</code> auf der Deklaration auszuführen gibt ihnen einen. Ein Modul, das einen eigenen Typ namens <code>Issue</code> deklariert, überdeckte früher den aus dem Prelude in der erzeugten Datei und machte jeden Deskriptor in diesem Modul kaputt; seit 0.1.60 ist diese Deklaration <code>E0110</code> an der Zeile, die den Typ nennt, also erfährst du, wo das Problem liegt, statt einen <code>tsc</code>-Fehler über generierten Code zu lesen.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Records und <code>where</code>-Typen melden die verletzte Regel, nicht nur das fehlerhafte Feld</span><span class="chip code">missing</span><span class="chip code">type</span><span class="chip code">refinement</span><span class="chip code">unexpected</span><span class="chip code">depth</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Records und <code>where</code>-Typen melden die verletzte Regel, nicht nur das fehlerhafte Feld: <code>"missing"</code> für ein fehlendes Pflichtfeld, <code>"type"</code> für die falsche Form (einschließlich eines Nicht-Objekts oder eines Arrays), <code>"refinement"</code> für einen Wert, der seinen Basistyp bestanden und das Prädikat verfehlt hat, <code>"unexpected"</code> für einen Schlüssel, den der Typ nicht deklariert, und <code>"depth"</code> für einen Wert, der mehr als 1000 Ebenen tief verschachtelt ist.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Verfeinerung zitiert ihr Prädikat.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Feld, dessen Typ einen Deskriptor hat, delegiert an ihn, also kommen verschachtelte Probleme mit dem vollständigen Pfad an.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Optionale Felder (<code>f?: T</code>) werden nie als fehlend gemeldet.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer <span class="count">2</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Feld, dessen Typ keinen eigenen Deskriptor hat, bekommt weiterhin die flache Prüfung und ein <code>"type"</code>-Problem</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Zwei Grenzen. Ein Feld, dessen Typ keinen eigenen Deskriptor hat, ein uneingeschränkter Typparameter oder ein Typ aus einer handgeschriebenen <code>.d.ts</code>, bekommt weiterhin die flache Prüfung und ein <code>"type"</code>-Problem; der Compiler erzeugt für diese keinen Deskriptor, und <code>glyph gen dts</code> auf der Deklaration auszuführen gibt ihnen einen.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein eigener Typ namens <code>Issue</code> in einem Modul wird an der Zeile abgelehnt, die ihn nennt</span><span class="chip code">E0110</span><span class="chip since">seit 0.1.60</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Modul, das einen eigenen Typ namens <code>Issue</code> deklariert, überdeckte früher den aus dem Prelude in der erzeugten Datei und machte jeden Deskriptor in diesem Modul kaputt; seit 0.1.60 ist diese Deklaration <code>E0110</code> an der Zeile, die den Typ nennt, also erfährst du, wo das Problem liegt, statt einen <code>tsc</code>-Fehler über generierten Code zu lesen.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/early-errors/">
           <span class="dir">&larr; Zurück</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich Binärdaten verarbeiten, oder ist alles ein String?","item":"https://glyphlang.io/de/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/binary/#article","headline":"Kann ich Binärdaten verarbeiten, oder ist alles ein String?","description":"std/bytes gibt Glyph eine unveränderliche Bytefolge mit Hex-, Base64- und Base32-Codecs, die fehlerhafte Eingaben ablehnen, dazu Datei-I/O und HMACs über Bytes.","url":"https://glyphlang.io/de/answers/binary/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/binary/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich Binärdaten verarbeiten, oder ist alles ein String?","item":"https://glyphlang.io/de/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/binary/#article","headline":"Kann ich Binärdaten verarbeiten, oder ist alles ein String?","description":"std/bytes gibt Glyph eine unveränderliche Bytefolge mit Hex-, Base64- und Base32-Codecs, die fehlerhafte Eingaben ablehnen, dazu Datei-I/O und HMACs über Bytes.","url":"https://glyphlang.io/de/answers/binary/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/binary/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/binary/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/binary/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">20 &middot; Binärdaten</p>
       <h1 class="q-title">Kann ich Binärdaten verarbeiten, oder ist alles ein String?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,23 +478,9 @@
         <code>std/bytes</code> gibt dir eine unveränderliche Folge von Oktetten, und <code>std/fs</code> und <code>std/crypto</code> sprechen sie beide. Bis 0.1.78 taten sie das nicht: Jede Grenze in der Standardbibliothek war String rein, String raus, also ließ sich ein PNG nicht lesen und einem HMAC kein echter Schlüssel geben.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Das erste Byte eines PNG ist <code>0x89</code>, was allein kein gültiges UTF-8 ist. Liest du diese Datei als Text, wird jedes Byte, mit dem der Decoder nichts anfangen kann, zu U+FFFD, also ist die Datei beschädigt, bevor dein Programm sie sieht, und nichts meldet einen Fehler. Dasselbe passiert mit einem Schlüssel: Ein HMAC-Geheimnis besteht aus beliebigen Oktetten, und wenn man es durch einen String schleust, verändert es sich, also berechnest du einen anderen MAC, als die Spezifikation sagt, und jeder Test, den du gegen deinen eigenen Code geschrieben hast, besteht.
-        </p>
-        <p>
-          Zwei unabhängig voneinander geschriebene Anwendungen, ein PNG-Leser und ein Authenticator, blieben in derselben Woche an genau diesem Satz hängen. Keine von beiden ließ sich innerhalb der Sprache umgehen.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein Authenticator nach RFC 6238, der auf beiden Seiten des HMAC Bytes braucht. Das Geheimnis kommt Base32-kodiert an, die Nachricht ist ein Acht-Byte-Zähler, der größtenteils null ist, und der Digest wird über sein eigenes letztes Byte indiziert:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Einmalpasswort, von Anfang bis Ende</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">Einmalpasswort, von Anfang bis Ende</span>
 <pre><span class="k">module</span> totp
 
 <span class="k">import</span> std/bytes
@@ -524,28 +510,55 @@
     + (at(mac, offset + <span class="n">2</span>) * <span class="n">256</span>)
     + at(mac, offset + <span class="n">3</span>)) % <span class="n">100000000</span>)
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>So sieht es aus: ein Authenticator nach RFC 6238, der auf beiden Seiten des HMAC Bytes braucht. Das Geheimnis kommt Base32-kodiert an, die Nachricht ist ein Acht-Byte-Zähler, der größtenteils null ist, und der Digest wird über sein eigenes letztes Byte indiziert.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Bytes</code> ist zur Laufzeit ein <code>Uint8Array</code>, also lässt es sich ohne Auspacken an jede Host-API übergeben, die eins nimmt. Die Sequenzoperationen sind nach ihren Gegenstücken in <code>std/array</code> und <code>std/string</code> benannt: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nichts verändert sein Argument.
-        </p>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum Strings Bytes kaputt machen</a></li>
+          <li><a href="#what-a-bytes-value-is">Was ein Bytes-Wert ist</a></li>
+          <li><a href="#every-decode-can-refuse-and-says-where">Dekodieren, das ablehnt</a></li>
+          <li><a href="#which-hmac-you-pick-changes-the-answer">Ein HMAC wählen</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="every-decode-can-refuse-and-says-where">Jedes Dekodieren kann ablehnen und sagt, wo<a class="h-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Das ist der Teil, der am meisten Aufwand gekostet hat, und der Grund, es zu verwenden. Nodes <code>Buffer</code> akzeptiert fehlerhafte Eingaben und meldet Erfolg:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Zwei unabhängig voneinander geschriebene Anwendungen, ein PNG-Leser und ein Authenticator, blieben in derselben Woche an genau diesem Satz hängen. Keine von beiden ließ sich innerhalb der Sprache umgehen.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Eine als Text gelesene Datei</b>Das erste Byte eines PNG ist <code>0x89</code>, was allein kein gültiges UTF-8 ist. Liest du diese Datei als Text, wird jedes Byte, mit dem der Decoder nichts anfangen kann, zu U+FFFD, also ist die Datei beschädigt, bevor dein Programm sie sieht, und nichts meldet einen Fehler.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Ein Schlüssel, durch einen String geschleust</b>Dasselbe passiert mit einem Schlüssel: Ein HMAC-Geheimnis besteht aus beliebigen Oktetten, und wenn man es durch einen String schleust, verändert es sich, also berechnest du einen anderen MAC, als die Spezifikation sagt, und jeder Test, den du gegen deinen eigenen Code geschrieben hast, besteht.</li>
+      </ul>
 
-      <div class="code">
-        <span class="cap">Was die Plattform stillschweigend tut</span>
+      <h2 class="ak-h" id="what-a-bytes-value-is">Was ein <code>Bytes</code>-Wert ist<a class="ak-anchor" href="#what-a-bytes-value-is" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Bytes</code> ist zur Laufzeit ein <code>Uint8Array</code>, also lässt es sich ohne Auspacken an jede Host-API übergeben, die eins nimmt.
+      </p>
+      <p>
+        Die Sequenzoperationen sind nach ihren Gegenstücken in <code>std/array</code> und <code>std/string</code> benannt: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nichts verändert sein Argument.
+      </p>
+
+      <h2 class="ak-h" id="every-decode-can-refuse-and-says-where">Jedes Dekodieren kann ablehnen und sagt, wo<a class="ak-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Das ist der Teil, der am meisten Aufwand gekostet hat, und der Grund, es zu verwenden. Nodes <code>Buffer</code> akzeptiert fehlerhafte Eingaben und meldet Erfolg:
+      </p>
+
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code">
+            <span class="cap">Was die Plattform stillschweigend tut</span>
 <pre><span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"zz"</span>, <span class="s">"hex"</span>)        <span class="c">// an empty buffer, no error</span>
 <span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"a-b_"</span>, <span class="s">"base64"</span>)   <span class="c">// skips - and _, decodes the rest, no error</span>
 buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD for anything malformed, no error</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">Was Glyph tut</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code">
+            <span class="cap">Was Glyph tut</span>
 <pre><span class="k">match</span> bytes.from_hex(input) {
   <span class="t">Ok</span>(b) <span class="op">=&gt;</span> use(b),
   <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.eprintln(<span class="s">"</span><span class="ip">${</span>e.message<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span><span class="t">number</span>.to_string(e.index)<span class="ip">}</span><span class="s">"</span>),
@@ -554,37 +567,59 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
 <span class="c">// "z" is not a hex digit at 0</span>
 <span class="c">// a trailing base64 group cannot be 1 character(s) long at 3</span>
 <span class="c">// not valid UTF-8 at 2</span></pre>
+          </div>
+        </div>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was jeder Codec ablehnt</span></summary><div class="body">
         <p>
           Jeder Codec ist ausgeschrieben statt an <code>Buffer</code> delegiert, also lehnen Hex, Base64, Base64url und Base32 alle ein Zeichen außerhalb ihres Alphabets ab, eine abschließende Gruppe, die zu kurz ist, um ein ganzes Byte zu kodieren, und ein letztes Zeichen, das Bits über das Ende der Daten hinaus trägt. <code>to_text</code> sucht das erste Byte, das nicht Teil einer gültigen UTF-8-Sequenz sein kann, also bekommst du eine Position statt eines Urteils. <code>from_array</code> lehnt aus demselben Grund alles außerhalb von 0..255 ab: Ein stilles <code>&amp; 0xff</code> macht aus 256 eine 0 und aus einem Tippfehler Daten.
         </p>
-        <p>
-          Die Codecs auszuschreiben hat etwas gebracht, das nicht das Motiv war. Das Modul greift auf überhaupt keine Host-API zurück, nur auf <code>Uint8Array</code>, <code>TextEncoder</code> und <code>TextDecoder</code>, also läuft ein Bundle, das nur <code>std/bytes</code> anfasst, auch in einem Web Worker.
-        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Die Codecs auszuschreiben hat etwas gebracht, das nicht das Motiv war. Das Modul greift auf überhaupt keine Host-API zurück, nur auf <code>Uint8Array</code>, <code>TextEncoder</code> und <code>TextDecoder</code>, also läuft ein Bundle, das nur <code>std/bytes</code> anfasst, auch in einem Web Worker.
+      </p></div>
 
-        <h2 class="block-label" id="which-hmac-you-pick-changes-the-answer">Welchen HMAC du wählst, ändert das Ergebnis<a class="h-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          <code>std/crypto</code> hat jetzt beide Formen jedes Algorithmus. Der einfache Name nimmt einen String und gibt Hex zurück, was man zum Hashen eines Passworts will. Die Form mit <code>_bytes</code> nimmt und liefert <code>Bytes</code>, was ein Wire-Protokoll will. Wenn der Schlüssel aus <code>bytes.from_base64</code> oder <code>crypto.random_bytes</code> kam, hat er Bytes, die ein String nicht halten kann, und die Textform berechnet stillschweigend etwas anderes.
-        </p>
-        <p>
-          Einen von einem Angreifer gelieferten Wert gegen ein Geheimnis zu prüfen, geht mit <code>crypto.timing_safe_equal</code>, nicht mit <code>bytes.equals</code>. <code>equals</code> kehrt zurück, sobald es einen Unterschied findet, also verrät die Dauer, wie viele führende Bytes richtig waren.
-        </p>
-      </div>
+      <h2 class="ak-h" id="which-hmac-you-pick-changes-the-answer">Welchen HMAC du wählst, ändert das Ergebnis<a class="ak-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/crypto</code> hat jetzt beide Formen jedes Algorithmus.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Der einfache Name</b>Der einfache Name nimmt einen String und gibt Hex zurück, was man zum Hashen eines Passworts will.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>Die Form mit <code>_bytes</code></b>Die Form mit <code>_bytes</code> nimmt und liefert <code>Bytes</code>, was ein Wire-Protokoll will.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Wenn der Schlüssel aus <code>bytes.from_base64</code> oder <code>crypto.random_bytes</code> kam, hat er Bytes, die ein String nicht halten kann, und die Textform berechnet stillschweigend etwas anderes.
+      </p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Einen von einem Angreifer gelieferten Wert gegen ein Geheimnis zu prüfen, geht mit <code>crypto.timing_safe_equal</code>, nicht mit <code>bytes.equals</code>. <code>equals</code> kehrt zurück, sobald es einen Unterschied findet, also verrät die Dauer, wie viele führende Bytes richtig waren.
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p><code>std/bytes</code> mit 21 Funktionen: die Sequenzoperationen, die Brücke zu UTF-8 und Codecs für Hex, Base64, Base64url und Base32, die ein <code>Result</code> mit der fehlerhaften Position zurückgeben. <code>fs.read_bytes</code>, <code>write_bytes</code> und <code>append_bytes</code> lesen und schreiben eine Datei ohne Dekodierung. <code>std/crypto</code> hat eine <code>_bytes</code>-Form jedes Digests und HMAC, dazu SHA-1 für die Protokolle, die es vorschreiben, <code>random_bytes</code> und <code>timing_safe_equal</code>. Die Codecs sind gegen die Testvektoren aus RFC 4648 festgenagelt und der HMAC gegen RFC 6238, in der eigenen Testsuite des Compilers.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Wird schärfer</h3>
-          <p>Es gibt noch keinen Integer-Codec, also ist das Lesen eines Big-Endian-<code>u32</code> aus einem Header Arithmetik, die du selbst schreibst: Jenseits von 32 Bit ist ein Shift ohnehin das falsche Werkzeug, also wird dividiert. Hex-Literale lassen sich weiterhin nicht parsen, was eine CRC32-Tabelle mit 256 Einträgen in Dezimalschreibweise schwer lesbar macht. <code>std/websocket</code> dekodiert einen Binär-Frame weiterhin als UTF-8-Text; der Typ, den es brauchte, existiert jetzt, und die Frames sind als Nächstes dran. Und die sechs älteren String-zu-String-Funktionen von <code>std/encoding</code> schweigen weiterhin bei fehlerhaften Eingaben, also nimm die Codecs aus <code>std/bytes</code> für alles, was stimmen muss. Die Codecs sind in TypeScript geschrieben, statt an Nodes <code>Buffer</code> zu delegieren, und deshalb laufen sie in einem Web Worker, und sie sind bei einem Megabyte zwischen 1x und 35x langsamer als die der Plattform. Einen Schlüssel oder ein Token zu kodieren kostet so oder so nichts Messbares; der Performance-Guide hat die Tabelle, falls du Dutzende Megabyte bewegst.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/bytes</code> mit 21 Funktionen: die Sequenzoperationen, die Brücke zu UTF-8 und Codecs für Hex, Base64, Base64url und Base32, die ein <code>Result</code> mit der fehlerhaften Position zurückgeben.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_bytes</code>, <code>write_bytes</code> und <code>append_bytes</code> lesen und schreiben eine Datei ohne Dekodierung.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/crypto</code> hat eine <code>_bytes</code>-Form jedes Digests und HMAC, dazu SHA-1 für die Protokolle, die es vorschreiben, <code>random_bytes</code> und <code>timing_safe_equal</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die Codecs sind gegen die Testvektoren aus RFC 4648 festgenagelt und der HMAC gegen RFC 6238, in der eigenen Testsuite des Compilers.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Es gibt noch keinen Integer-Codec, also ist das Lesen eines Big-Endian-<code>u32</code> aus einem Header Arithmetik, die du selbst schreibst: Jenseits von 32 Bit ist ein Shift ohnehin das falsche Werkzeug, also wird dividiert.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Hex-Literale lassen sich weiterhin nicht parsen, was eine CRC32-Tabelle mit 256 Einträgen in Dezimalschreibweise schwer lesbar macht.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/websocket</code> dekodiert einen Binär-Frame weiterhin als UTF-8-Text; der Typ, den es brauchte, existiert jetzt, und die Frames sind als Nächstes dran.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Und die sechs älteren String-zu-String-Funktionen von <code>std/encoding</code> schweigen weiterhin bei fehlerhaften Eingaben, also nimm die Codecs aus <code>std/bytes</code> für alles, was stimmen muss.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Codecs sind in TypeScript geschrieben, statt an Nodes <code>Buffer</code> zu delegieren, und deshalb laufen sie in einem Web Worker, und sie sind bei einem Megabyte zwischen 1x und 35x langsamer als die der Plattform.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Einen Schlüssel oder ein Token zu kodieren kostet so oder so nichts Messbares; der Performance-Guide hat die Tabelle, falls du Dutzende Megabyte bewegst.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/long-running/">
           <span class="dir">&larr; Zurück</span>

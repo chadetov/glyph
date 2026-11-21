@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Verificabilidad","item":"https://glyphlang.io/es/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/pillars/verifiability/#article","headline":"Verificabilidad · sin any, match exhaustivo","description":"El primer pilar de Glyph: sin any ni as, match exhaustivo y validadores en tiempo de ejecución para los tipos que declaras: una capa estricta sobre tsc, con sus límites explicados.","url":"https://glyphlang.io/es/pillars/verifiability/","inLanguage":"es","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/pillars/verifiability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Verificabilidad","item":"https://glyphlang.io/es/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/pillars/verifiability/#article","headline":"Verificabilidad · sin any, match exhaustivo","description":"El primer pilar de Glyph: sin any ni as, match exhaustivo y validadores en tiempo de ejecución para los tipos que declaras: una capa estricta sobre tsc, con sus límites explicados.","url":"https://glyphlang.io/es/pillars/verifiability/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/pillars/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">Pilar 01 &middot; <span class="wedge">La cuña</span></p>
       <h1 class="q-title">Verificabilidad</h1>
 
@@ -433,54 +433,71 @@
         Glyph cierra los huecos por los que se cuela un agente: <strong>no hay ningún <code>any</code> ni ningún <code>as</code> que puedas escribir</strong>, <code>match</code> es <strong>demostrablemente exhaustivo</strong> y los tipos que declaras tienen <strong>validadores estrictos en tiempo de ejecución</strong>, todo aplicado como una capa estricta encima de <code>tsc</code>. No lo verifica todo por sí mismo, y más abajo explica con exactitud dónde se detiene la garantía.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-lie-a-type-can-tell">La mentira que puede contar un tipo<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="Enlace a esta sección">#</a></h2>
-        <p class="lede">
-          En TypeScript un tipo es una promesa en tiempo de compilación que se evapora antes de que se ejecute tu código. Una anotación <code>User</code> se borra por completo; el objeto que realmente recibes de una llamada de red, un parseo de JSON o un campo de formulario puede tener cualquier forma. Peor aún, el lenguaje te da tres formas legales de mentirle al checker sobre ello: <code>any</code>, un cast con <code>as</code> y un <code>!</code> de no nulo. Un agente que trabaja deprisa echa mano de los tres, y <code>tsc --strict</code> sigue en verde mientras el bug llega a producción.
-        </p>
-        <p class="lede">
-          La primera tarea de Glyph es cerrar esos huecos. No con más anotaciones, sino eliminando las vías de escape y haciendo que cada tipo lleve su prueba hasta el tiempo de ejecución. Esto es lo que significa, garantía a garantía.
-        </p>
-
-        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> No existe <code>any</code><a class="h-anchor" href="#there-is-no-any" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          <code>any</code> es la palabra clave más cara de TypeScript: desactiva el sistema de tipos para un valor <em>y para todo lo que ese valor toca</em>. Un solo <code>any</code> en una frontera envenena sin hacer ruido todo el grafo de llamadas que hay detrás. Glyph no lo tiene. El tipo superior es <code>unknown</code>, y <code>unknown</code> es inerte: no puedes llamarlo, indexarlo ni pasarlo a nada tipado hasta que hayas <em>demostrado</em> lo que es.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript: compila y luego falla</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript: compila y luego falla</span>
+            <span class="cap">handler.ts</span>
 <pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: el estrechamiento es la prueba</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: el estrechamiento es la prueba</span>
+            <span class="cap">handler.glyph</span>
 <pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
     <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
     <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          No puedes sacar un valor tipado de <code>unknown</code> sin una comprobación que el compilador pueda ver. En Glyph, el estrechamiento <strong>es</strong> la prueba en tiempo de ejecución. No hay sintaxis para saltárselo.
-        </p>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">La mentira que puede contar un tipo</a></li>
+          <li><a href="#there-is-no-any">Sin any</a></li>
+          <li><a href="#types-are-real-at-runtime">Tipos en tiempo de ejecución</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">Todos los casos</a></li>
+          <li><a href="#errors-are-values-not-surprises">Errores como valores</a></li>
+          <li><a href="#even-pii-is-type-level">Datos personales</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">Dónde se detiene la garantía</a></li>
+          <li><a href="#the-benchmark-coming">El benchmark</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">TS estricto y lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> Los tipos existen en tiempo de ejecución<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="Enlace a esta sección">#</a></h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">La mentira que puede contar un tipo<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        En TypeScript un tipo es una promesa en tiempo de compilación que se evapora antes de que se ejecute tu código. Una anotación <code>User</code> se borra por completo; el objeto que realmente recibes de una llamada de red, un parseo de JSON o un campo de formulario puede tener cualquier forma.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Peor aún, el lenguaje te da tres formas legales de mentirle al checker sobre ello: <code>any</code>, un cast con <code>as</code> y un <code>!</code> de no nulo. Un agente que trabaja deprisa echa mano de los tres, y <code>tsc --strict</code> sigue en verde mientras el bug llega a producción.</p></div>
+      <p class="ak-lede">
+        La primera tarea de Glyph es cerrar esos huecos. No con más anotaciones, sino eliminando las vías de escape y haciendo que cada tipo lleve su prueba hasta el tiempo de ejecución. Esto es lo que significa, garantía a garantía.
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> No existe <code>any</code><a class="ak-anchor" href="#there-is-no-any" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph no lo tiene. El tipo superior es <code>unknown</code>, y <code>unknown</code> es inerte: no puedes llamarlo, indexarlo ni pasarlo a nada tipado hasta que hayas <em>demostrado</em> lo que es.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">por qué un solo any cuesta tanto</span></summary><div class="body">
         <p>
-          ¿Cómo existe <code>User.parse</code>? Porque cada tipo record, y cada unión etiquetada no genérica, genera a su lado un <strong>descriptor de runtime</strong>: un guard <code>is</code>, un <code>parse</code> que valida un <code>unknown</code> y lo convierte en un <code>Result</code>, y un <code>schema</code> que se puede componer. La forma del record se inspecciona de verdad en tiempo de ejecución, no se supone, así que una comprobación <code>is User</code> es una comprobación real, no una operación vacía que se borra.
+          <code>any</code> es la palabra clave más cara de TypeScript: desactiva el sistema de tipos para un valor <em>y para todo lo que ese valor toca</em>. Un solo <code>any</code> en una frontera envenena sin hacer ruido todo el grafo de llamadas que hay detrás.
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        No puedes sacar un valor tipado de <code>unknown</code> sin una comprobación que el compilador pueda ver. En Glyph, el estrechamiento <strong>es</strong> la prueba en tiempo de ejecución. No hay sintaxis para saltárselo.
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> Los tipos existen en tiempo de ejecución<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ¿Cómo existe <code>User.parse</code>? Porque cada tipo record, y cada unión etiquetada no genérica, genera a su lado un <strong>descriptor de runtime</strong>: un guard <code>is</code>, un <code>parse</code> que valida un <code>unknown</code> y lo convierte en un <code>Result</code>, y un <code>schema</code> que se puede componer.
+      </p>
       <div class="code">
         <span class="cap">el tipo que escribes y el descriptor que se genera a partir de él</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
@@ -498,21 +515,24 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Esta es la respuesta a "cada API necesita un validador escrito a mano". El tipo es el validador.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué comprueba el descriptor</span></summary><div class="body">
         <p>
-          Esta es la respuesta a "cada API necesita un validador escrito a mano". El tipo es el validador. Una frontera (el cuerpo de una petición, un archivo de configuración, la respuesta de un tercero) solo pasa a estar tipada al atravesar una comprobación que de verdad puede rechazar datos incorrectos.
+          La forma del record se inspecciona de verdad en tiempo de ejecución, no se supone, así que una comprobación <code>is User</code> es una comprobación real, no una operación vacía que se borra.
         </p>
         <p>
-          Dónde se detiene: el descriptor de un record es estricto por defecto. Confirma los campos declarados y rechaza un valor que lleve claves no declaradas (pon <code>@open</code> en el tipo para permitir extras). Los tipos record tienen descriptor, también los genéricos, así que <code>Paginated&lt;User&gt;</code> comprueba cada elemento como un <code>User</code>, y el descriptor de una unión etiquetada comprueba la etiqueta y luego los campos del payload de esa variante. Lo que todavía no tiene uno es una unión etiquetada genérica (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> no tiene <code>Box.parse</code>), ni un tipo importado de un <code>.d.ts</code> al que solo haces referencia. Cuando una comprobación solo puede demostrar parte de una forma, el compilador lo dice en lugar de dar a entender una garantía que no puede ofrecer.
+          Una frontera (el cuerpo de una petición, un archivo de configuración, la respuesta de un tercero) solo pasa a estar tipada al atravesar una comprobación que de verdad puede rechazar datos incorrectos.
         </p>
-
-        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> Todos los casos, o no compila<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="Enlace a esta sección">#</a></h2>
         <p>
-          Un <code>match</code> sobre una unión cerrada tiene que manejar cada variante. Añade una variante más tarde y <em>todos</em> los match que no la tenían en cuenta dejan de compilar (<code>E0200</code>). El caso nuevo no puede caer sin avisar en <code>undefined</code> como hace una rama de <code>switch</code> olvidada. Y no son solo las uniones: hacer match de un <code>number</code> o un <code>string</code> sobre valores literales exige un <code>else</code> (<code>E0218</code>), porque esos dominios no tienen límite y un conjunto de literales nunca puede estar completo.
+          Dónde se detiene: el descriptor de un record es estricto por defecto. Confirma los campos declarados y rechaza un valor que lleve claves no declaradas (pon <code>@open</code> en el tipo para permitir extras). Los tipos record tienen descriptor, también los genéricos, así que <code>Paginated&lt;User&gt;</code> comprueba cada elemento como un <code>User</code>, y el descriptor de una unión etiquetada comprueba la etiqueta y luego los campos del payload de esa variante.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Lo que todavía no tiene uno es una unión etiquetada genérica (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> no tiene <code>Box.parse</code>), ni un tipo importado de un <code>.d.ts</code> al que solo haces referencia. Cuando una comprobación solo puede demostrar parte de una forma, el compilador lo dice en lugar de dar a entender una garantía que no puede ofrecer.</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> Todos los casos, o no compila<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Un <code>match</code> sobre una unión cerrada tiene que manejar cada variante. Añade una variante más tarde y <em>todos</em> los match que no la tenían en cuenta dejan de compilar (<code>E0200</code>).
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -526,7 +546,7 @@
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">error de compilación, no un undefined en tiempo de ejecución</span>
           <span class="cap">$ glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
@@ -537,14 +557,17 @@
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> Los errores son valores, no sorpresas<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="Enlace a esta sección">#</a></h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">match sobre números y strings</span></summary><div class="body">
         <p>
-          Una función que puede fallar devuelve <code>Result&lt;T, E&gt;</code>. Lo manejas con <code>match</code>, o lo propagas con el operador <code>?</code>, y el tipo de error tiene que encajar (no hay conversiones implícitas que oculten una discrepancia). Ignora un <code>Result</code> por completo (llama a la función por su efecto y descarta lo que devolvió) y Glyph te avisa (<code>E0217</code>), porque un error descartado es un fallo que se traga. Lo silencias a propósito con <code>let _ = ...</code>, nunca por accidente.
+          El caso nuevo no puede caer sin avisar en <code>undefined</code> como hace una rama de <code>switch</code> olvidada. Y no son solo las uniones: hacer match de un <code>number</code> o un <code>string</code> sobre valores literales exige un <code>else</code> (<code>E0218</code>), porque esos dominios no tienen límite y un conjunto de literales nunca puede estar completo.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> Los errores son valores, no sorpresas<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Una función que puede fallar devuelve <code>Result&lt;T, E&gt;</code>. Lo manejas con <code>match</code>, o lo propagas con el operador <code>?</code>, y el tipo de error tiene que encajar (no hay conversiones implícitas que oculten una discrepancia).
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
@@ -558,14 +581,12 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ignora un <code>Result</code> por completo (llama a la función por su efecto y descarta lo que devolvió) y Glyph te avisa (<code>E0217</code>), porque un error descartado es un fallo que se traga. Lo silencias a propósito con <code>let _ = ...</code>, nunca por accidente.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> Hasta los datos personales van en el tipo<a class="h-anchor" href="#even-pii-is-type-level" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          El mismo instinto de "que sea trabajo del compilador, no una convención" llega hasta los datos sensibles. Pon <code>@redact</code> en un tipo y su descriptor gana un <code>redact()</code> que enmascara esos campos, así que un <code>json.stringify(User.redact(u))</code> despistado no puede filtrarlos. Nombra un campo que el tipo no tiene y es un error de compilación (<code>E0219</code>), no un enmascarado que sin avisar no protege nada.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> Hasta los datos personales van en el tipo<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El mismo instinto de "que sea trabajo del compilador, no una convención" llega hasta los datos sensibles. Pon <code>@redact</code> en un tipo y su descriptor gana un <code>redact()</code> que enmascara esos campos, así que un <code>json.stringify(User.redact(u))</code> despistado no puede filtrarlos.
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre><span class="k">@redact</span> fields: [diagnosis, notes]
@@ -578,28 +599,35 @@
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Nombra un campo que el tipo no tiene y es un error de compilación (<code>E0219</code>), no un enmascarado que sin avisar no protege nada.</p></div>
+      <p class="pull-quote">
+        Cinco modos de fallo distintos (entrada sin comprobar, un caso olvidado, un error descartado, un secreto filtrado, una clave sin validar) y en todos el arreglo tiene la misma forma: <strong>el compilador se niega a fingir.</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Cinco modos de fallo distintos (entrada sin comprobar, un caso olvidado, un error descartado, un secreto filtrado, una clave sin validar) y en todos el arreglo tiene la misma forma: <strong>el compilador se niega a fingir.</strong>
-        </p>
-
-        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">Cómo se aplica, y dónde se detiene la garantía<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Siendo precisos, porque la diferencia importa: Glyph es un <strong>dialecto estricto y obligatorio sobre <code>tsc</code></strong>, no un verificador independiente. Algunas cosas las demuestra él mismo: la exhaustividad, el tipo de error de <code>?</code>, la ausencia de <code>any</code>/<code>as</code> en tu código, la validación estricta de claves. El resto de la compatibilidad de tipos la aplica generando TypeScript y ejecutando <code>tsc --strict</code>, que hace fallar el build. La cuña es que estas comprobaciones son el <em>lenguaje</em>, no un lint opcional que el agente puede desactivar, no que Glyph reimplemente un type checker.
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">Cómo se aplica, y dónde se detiene la garantía<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Siendo precisos, porque la diferencia importa: Glyph es un <strong>dialecto estricto y obligatorio sobre <code>tsc</code></strong>, no un verificador independiente.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Lo demuestra Glyph</b>Algunas cosas las demuestra él mismo: la exhaustividad, el tipo de error de <code>?</code>, la ausencia de <code>any</code>/<code>as</code> en tu código, la validación estricta de claves.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>Se aplica a través de tsc</b>El resto de la compatibilidad de tipos la aplica generando TypeScript y ejecutando <code>tsc --strict</code>, que hace fallar el build.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>La cuña es que estas comprobaciones son el <em>lenguaje</em>, no un lint opcional que el agente puede desactivar, no que Glyph reimplemente un type checker.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">límites cerrados en la 0.1.10, validación profunda de genéricos</span></summary><div class="body">
         <p>
           Dos límites anteriores de esta sección se cerraron en la 0.1.10. El emisor antes insertaba un cast de retorno comprobado-por-Glyph-y-no-por-<code>tsc</code> en <em>todas</em> las funciones genéricas; ahora solo aparece donde un combinador de validadores construye un valor de un tipo derivado de una forma (<code>infer_output&lt;Shape&gt;</code>), y cualquier genérico honesto se genera sin ningún cast. Y ya no se confía en el tipo de salida de un validador: <code>infer_output</code> lo deriva de la forma que pasas, y <code>tsc</code> comprueba tu anotación contra él: una forma a la que le falta un campo del tipo que afirmas ahora no compila.
         </p>
         <p>
-          Los tipos genéricos ahora también validan en profundidad: un descriptor de <code>Paginated&lt;User&gt;</code> comprueba cada elemento <em>como un <code>User</code></em>, no solo que exista. Queda un límite, dicho claramente: un tipo <em>importado</em> de un <code>.d.ts</code> externo al que solo haces referencia no lleva descriptor hasta que lo materializas con <code>glyph gen dts</code>, así que de un campo de ese tipo se comprueba que exista, no su forma. Esa frontera es deliberada (un tipo que Glyph no generó no puede prometer validación en tiempo de ejecución) y materializarlo la cierra.
+          Los tipos genéricos ahora también validan en profundidad: un descriptor de <code>Paginated&lt;User&gt;</code> comprueba cada elemento <em>como un <code>User</code></em>, no solo que exista.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Queda un límite, dicho claramente: un tipo <em>importado</em> de un <code>.d.ts</code> externo al que solo haces referencia no lleva descriptor hasta que lo materializas con <code>glyph gen dts</code>, así que de un campo de ese tipo se comprueba que exista, no su forma. Esa frontera es deliberada (un tipo que Glyph no generó no puede prometer validación en tiempo de ejecución) y materializarlo la cierra.</p></div>
 
-        <h2 class="block-label" id="the-benchmark-coming">El benchmark: en camino<a class="h-anchor" href="#the-benchmark-coming" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Esta afirmación es empírica, así que pensamos medirla: tomar un corpus de cambios reales escritos por agentes, pasar cada uno por <code>tsc --strict</code> y por Glyph, y contar lo que detecta realmente cada uno. Glyph todavía no se usa en el mundo real, así que no hay cifras que dar. El gráfico de abajo es un marcador de posición, y se rellenará con datos reales en cuanto haya uso real.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">El benchmark: en camino<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Esta afirmación es empírica, así que pensamos medirla: tomar un corpus de cambios reales escritos por agentes, pasar cada uno por <code>tsc --strict</code> y por Glyph, y contar lo que detecta realmente cada uno.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph todavía no se usa en el mundo real, así que no hay cifras que dar. El gráfico de abajo es un marcador de posición, y se rellenará con datos reales en cuanto haya uso real.</p></div>
 
       <div class="chart">
         <span class="label">Bugs publicados por agentes que se detectan &middot; más es mejor</span>
@@ -617,27 +645,22 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Nada de esto se paga con ceremonia. No hay anotaciones de prueba, ni contratos, ni un verificador al que satisfacer. El código de arriba es Glyph normal. La verificabilidad no es una característica que se activa; es lo que queda cuando desaparecen las formas de mentir.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Nada de esto se paga con ceremonia. No hay anotaciones de prueba, ni contratos, ni un verificador al que satisfacer. El código de arriba es Glyph normal. La verificabilidad no es una característica que se activa; es lo que queda cuando desaparecen las formas de mentir.
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">"TypeScript estricto y una configuración de lint ya hacen esto"<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Dentro de un programa se acercan. <code>strict</code>, <code>noUncheckedIndexedAccess</code> y una regla contra el <code>any</code> explícito detectan casi todo lo que un agente colaría de otro modo. Se detienen en los bordes. <code>JSON.parse(body) as User</code> compila con cualquier configuración que exista, y el arreglo habitual, un schema de zod, es una segunda descripción de <code>User</code> que hay que mantener sincronizada con la primera a mano. En Glyph el tipo es el validador: <code>json.parse&lt;User&gt;(body)</code> se comprueba contra el propio <code>User</code>, y un tipo que Glyph no puede comprobar en tiempo de ejecución se rechaza en lugar de darse por bueno.
-        </p>
-        <p>
-          La otra diferencia es quién puede contar con ello. Una configuración de lint es una decisión que tomó un repositorio. Un agente que abre un código TypeScript que no conoce no puede dar por hecho que <code>any</code> está prohibido allí; en Glyph no se puede escribir en ningún sitio.
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">"TypeScript estricto y una configuración de lint ya hacen esto"<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Dentro de un programa se acercan. <code>strict</code>, <code>noUncheckedIndexedAccess</code> y una regla contra el <code>any</code> explícito detectan casi todo lo que un agente colaría de otro modo. Se detienen en los bordes.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>En la frontera</b><code>JSON.parse(body) as User</code> compila con cualquier configuración que exista, y el arreglo habitual, un schema de zod, es una segunda descripción de <code>User</code> que hay que mantener sincronizada con la primera a mano. En Glyph el tipo es el validador: <code>json.parse&lt;User&gt;(body)</code> se comprueba contra el propio <code>User</code>, y un tipo que Glyph no puede comprobar en tiempo de ejecución se rechaza en lugar de darse por bueno.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Entre repositorios</b>La otra diferencia es quién puede contar con ello. Una configuración de lint es una decisión que tomó un repositorio. Un agente que abre un código TypeScript que no conoce no puede dar por hecho que <code>any</code> está prohibido allí; en Glyph no se puede escribir en ningún sitio.</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          La misma garantía, vista como los errores que comete un agente y los mensajes que los detienen, se responde en <a href="/es/answers/verifiability/">¿Qué impide que un agente rompa mi código sin que nadie lo note?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        La misma garantía, vista como los errores que comete un agente y los mensajes que los detienen, se responde en <a href="/es/answers/verifiability/">¿Qué impide que un agente rompa mi código sin que nadie lo note?</a>
+      </p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/">
           <span class="dir">&larr; Inicio</span>

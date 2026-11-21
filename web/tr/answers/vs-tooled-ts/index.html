@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Neden araçlarla donatılmış TypeScript değil: tsc, zod, eslint?","item":"https://glyphlang.io/tr/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#article","headline":"Neden araçlarla donatılmış TypeScript değil: tsc, zod, eslint?","description":"Araçlarla donatılmış TypeScript sizi epey ileri götürür, ama her garanti isteğe bağlıdır ve bir ajan onları dolanabilir. Glyph'te katılık bir yapılandırma dosyası değil, dilin kendisidir.","url":"https://glyphlang.io/tr/answers/vs-tooled-ts/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Neden araçlarla donatılmış TypeScript değil: tsc, zod, eslint?","item":"https://glyphlang.io/tr/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#article","headline":"Neden araçlarla donatılmış TypeScript değil: tsc, zod, eslint?","description":"Araçlarla donatılmış TypeScript sizi epey ileri götürür, ama her garanti isteğe bağlıdır ve bir ajan onları dolanabilir. Glyph'te katılık bir yapılandırma dosyası değil, dilin kendisidir.","url":"https://glyphlang.io/tr/answers/vs-tooled-ts/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/vs-tooled-ts/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/vs-tooled-ts/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">05 &middot; Karşılaştırma</p>
       <h1 class="q-title">Neden sadece strict TypeScript + zod + eslint + ts-pattern değil?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,13 +478,10 @@
         Çünkü bu garantilerin her biri <strong>isteğe bağlıdır</strong> ve bir ajan her birini tek satırla dolanabilir. Glyph'in katılığı ajanın düzenleyebileceği bir yapılandırma dosyası değildir. Dilin kendisidir. Zorlama noktası "bu dosyayı lint'lemeyi hatırladık mı"dan "derleniyor mu"ya taşınır.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="what-tooled-typescript-already-covers">Araçlarla donatılmış TypeScript'in zaten karşıladıkları<a class="h-anchor" href="#what-tooled-typescript-already-covers" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          İyi yapılandırılmış bir TypeScript kurulumu sizi epey ileri götürür ve ekibiniz bunların hepsini CI'da çalıştırıyorsa Glyph'in hedeflediği açıkların çoğunu zaten kapatmışsınız demektir. Ciddiye alınmaya değer alternatif budur, işte karşılıkları:
-        </p>
-      </div>
-
+      <p class="ak-lede">
+        İyi yapılandırılmış bir TypeScript kurulumu sizi epey ileri götürür ve ekibiniz bunların hepsini CI'da çalıştırıyorsa Glyph'in hedeflediği açıkların çoğunu zaten kapatmışsınız demektir. Ciddiye alınmaya değer alternatif budur, işte karşılıkları:
+      </p>
+      <figure class="ak-hero" id="what-tooled-typescript-already-covers">
       <div class="code">
         <span class="cap">araçlarla donatılmış TypeScript'in size zaten verdikleri</span>
 <pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
@@ -494,18 +491,25 @@ runtime validation  <span class="cm">→ zod at every boundary</span>
 must-handle errors  <span class="cm">→ an eslint rule</span>
 deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Araçlarla donatılmış TypeScript'in zaten karşıladıkları. Bunların hepsini kurup zorunlu tuttuysanız yolun büyük kısmını katetmişsiniz. TypeScript'te bu fikirler var. Bir dilin onları isteğe bağlı olmaktan çıkararak kattığı şey üç noktaya iner.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Bunların hepsini kurup zorunlu tuttuysanız yolun büyük kısmını katetmişsiniz. TypeScript'te bu fikirler var. Bir dilin onları isteğe bağlı olmaktan çıkararak kattığı şey üç noktaya iner.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#non-optional-beats-opt-in">Zorunlu olan, isteğe bağlı olanı geçer</a></li>
+          <li><a href="#the-type-is-the-validator-no-second-artifact">Tip validator'dır</a></li>
+          <li><a href="#greppable-mutation">Grep'lenebilir değişiklik</a></li>
+          <li><a href="#the-failure-mode-diff">Başarısızlık biçimlerinin farkı</a></li>
+          <li><a href="#where-tooled-typescript-is-still-ahead">TypeScript'in önde olduğu yerler</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Zorunlu olan, isteğe bağlı olanı geçer<a class="h-anchor" href="#non-optional-beats-opt-in" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          eslint yapılandırmanız yalnızca ajanın onun <em>içinden</em> geçirdiği kodu korur; ajan <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> yazabilir ya da sadece <code>.exhaustive()</code>'i unutabilir ve kod yine derlenir ve merge edilir. Bu kaçış yollarının her biri ajanın düzenleyebileceği bir yapılandırmadır. Glyph'te uzanılacak böyle bir kaçış yolu yok: <code>as</code> yok, ignore pragma'sı yok, derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkarmanın yolu yok.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Zorunlu olan, isteğe bağlı olanı geçer<a class="ak-anchor" href="#non-optional-beats-opt-in" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bu kaçış yollarının her biri ajanın düzenleyebileceği bir yapılandırmadır. Glyph'te uzanılacak böyle bir kaçış yolu yok: <code>as</code> yok, ignore pragma'sı yok, derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkarmanın yolu yok.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: kaçış yolları var</span>
@@ -527,30 +531,36 @@ doThing(user.mispelled);
 <span class="cm">// no lint to switch off.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <p class="callout">
-          Ajanın <strong>yapılandırmayla kapatamayacağı</strong> katılık, kapatabileceği katılıktan farklı bir zorlama noktasında durur. Glyph bu fark üzerine kurulu.
-        </p>
-
-        <h2 class="block-label" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> Tip validator'dır: ikinci bir yapıt yok<a class="h-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ajanın yapılandırmayla kapatamayacağı katılık, kapatabileceği katılıktan farklı bir zorlama noktasında durur. Glyph bu fark üzerine kurulu.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bir ajanın eslint'in yanından geçirebileceği şeyler</span></summary><div class="body">
         <p>
-          zod, doğruluk kaynağınızı tersine çevirir: <em>şemayı</em> yazarsınız, tipi ondan türetirsiniz ve sonra tipi, şemayı ve varsa serializer'ı elle senkron tutarsınız. Bunları hizalı tutmak, bir ajanın tam da sapma yarattığı yerdir: tipte bir alanı yeniden adlandırır ama şemada adlandırmaz ve ikisi de derlenmeye devam eder. Glyph'te tip validator'ın <em>ta kendisidir</em>: <code>type User = {...}</code> tanımlamak yanında <code>User.parse</code>'ı üretir. Tek yapıt, senkron tutulacak hiçbir şey yok, unutulacak hiçbir şey yok.
+          eslint yapılandırmanız yalnızca ajanın onun <em>içinden</em> geçirdiği kodu korur; ajan <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> yazabilir ya da sadece <code>.exhaustive()</code>'i unutabilir ve kod yine derlenir ve merge edilir.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="greppable-mutation"><span class="ex-label">03</span> Grep'lenebilir değişiklik<a class="h-anchor" href="#greppable-mutation" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> Tip validator'dır: ikinci bir yapıt yok<a class="ak-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph'te tip validator'ın <em>ta kendisidir</em>: <code>type User = {...}</code> tanımlamak yanında <code>User.parse</code>'ı üretir. Tek yapıt, senkron tutulacak hiçbir şey yok, unutulacak hiçbir şey yok.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>zod: önce şema</b>zod, doğruluk kaynağınızı tersine çevirir: <em>şemayı</em> yazarsınız, tipi ondan türetirsiniz ve sonra tipi, şemayı ve varsa serializer'ı elle senkron tutarsınız.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Sapmanın girdiği yer</b>Bunları hizalı tutmak, bir ajanın tam da sapma yarattığı yerdir: tipte bir alanı yeniden adlandırır ama şemada adlandırmaz ve ikisi de derlenmeye devam eder.</li>
+      </ul>
+
+      <h2 class="ak-h" id="greppable-mutation"><span class="ex-label">03</span> Grep'lenebilir değişiklik<a class="ak-anchor" href="#greppable-mutation" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph'te paylaşılan durum bir store'da yaşar ve her değişiklik birebir bir <code>.set(</code>/<code>.update(</code>'tir; <code>grep 'mut '</code> her yerel değişikliği bulur. Standart TypeScript'te bunun bir karşılığı yok.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">TypeScript'te bir yazmanın saklanabileceği yerler</span></summary><div class="body">
         <p>
-          TypeScript'te bir durum değişikliği <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread'in arkasına saklanabilir. Aranacak tek bir token yok ve hiçbir lint kuralı bunu tam olarak çözmez. Glyph'te paylaşılan durum bir store'da yaşar ve her değişiklik birebir bir <code>.set(</code>/<code>.update(</code>'tir; <code>grep 'mut '</code> her yerel değişikliği bulur. Standart TypeScript'te bunun bir karşılığı yok.
+          TypeScript'te bir durum değişikliği <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread'in arkasına saklanabilir. Aranacak tek bir token yok ve hiçbir lint kuralı bunu tam olarak çözmez.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-failure-mode-diff">Başarısızlık biçimlerinin farkı<a class="h-anchor" href="#the-failure-mode-diff" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Aynı görev: bir ajan bir union'a bir variant ekliyor ve üç yerden birinde onu ele almayı unutuyor:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-failure-mode-diff">Başarısızlık biçimlerinin farkı<a class="ak-anchor" href="#the-failure-mode-diff" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Aynı görev: bir ajan bir union'a bir variant ekliyor ve üç yerden birinde onu ele almayı unutuyor:
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">araçlarla donatılmış TS</span>
@@ -570,37 +580,49 @@ doThing(user.mispelled);
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="where-tooled-typescript-is-still-ahead">Araçlarla donatılmış TypeScript'in hâlâ önde olduğu yerler<a class="h-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bugün Glyph'in önünde olduğu dört yer:
-        </p>
-        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Daha zengin doğrulama.</strong> Glyph descriptor'ları varsayılan olarak katıdır (tanımlanmamış anahtarları reddederler) ve bir <code>where</code> kısıtlaması bir primitive'e bir koşul koyar (<code>type Email = string where value.includes("@")</code>); descriptor bunu tipin ulaştığı her sınırda çalıştırır. zod iki açıdan hâlâ önde: Glyph'te kendiniz yazdığınız <code>.email()</code> ve <code>.url()</code> gibi hazır kontrollerle gelir ve bütün object'leri kısıtlayabilir; bir record üzerindeki <code>where</code> (iki alan arasında <code>lo &lt;= hi</code>) ise bugün <code>E0300</code>'dür.</li>
-          <li><strong>Daha derin eşleştirme.</strong> ts-pattern'in guard'ları ve derin yapısal pattern'leri, Glyph'in <code>match</code>'inin ifade edebildiklerinin ötesine geçer.</li>
-          <li><strong>"Kanıtlanabilir yokluk" <code>.ts</code> sınırında biter.</strong> Glyph'in garantileri Glyph'in yazdığı kod için geçerlidir; bir npm bağımlılığından fırlatılan bir exception hâlâ <code>Result</code>'ı atlar ve import edilmiş bir <code>.d.ts</code> tipi çalışma zamanı descriptor'ı taşımaz.</li>
-          <li><strong>Ekosistem ve işe alım.</strong> TypeScript araçları, topluluğu ve işe alım havuzu çok daha büyük ve arkalarında yıllarca production kullanımı var. Glyph bir erken önizleme.</li>
-        </ul>
-        <p>
-          Araçlarla donatılmış TypeScript'i tamamen kurduysanız ve ajanlarınız onun içinde kalıyorsa, bunların çoğuna sahipsiniz. Glyph'in argümanı, yükü taşıyan ifadenin "onun içinde kalmak" olduğu ve bir ajanın bozduğu ifadenin de bu olduğu. Zorunluluk, tek yapıtlı doğrulama ve grep'lenebilir değişiklik, daha fazla isteğe bağlı araç ekleyerek elde edemeyeceğiniz kısımlardır.
-        </p>
+      <h2 class="ak-h" id="where-tooled-typescript-is-still-ahead">Araçlarla donatılmış TypeScript'in hâlâ önde olduğu yerler<a class="ak-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bugün Glyph'in önünde olduğu dört yer:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Daha zengin doğrulama.</b>Glyph descriptor'ları varsayılan olarak katıdır (tanımlanmamış anahtarları reddederler) ve bir <code>where</code> kısıtlaması bir primitive'e bir koşul koyar (<code>type Email = string where value.includes("@")</code>); descriptor bunu tipin ulaştığı her sınırda çalıştırır. zod iki açıdan hâlâ önde: Glyph'te kendiniz yazdığınız <code>.email()</code> ve <code>.url()</code> gibi hazır kontrollerle gelir ve bütün object'leri kısıtlayabilir; bir record üzerindeki <code>where</code> (iki alan arasında <code>lo &lt;= hi</code>) ise bugün <code>E0300</code>'dür.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Daha derin eşleştirme.</b>ts-pattern'in guard'ları ve derin yapısal pattern'leri, Glyph'in <code>match</code>'inin ifade edebildiklerinin ötesine geçer.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>"Kanıtlanabilir yokluk" <code>.ts</code> sınırında biter.</b>Glyph'in garantileri Glyph'in yazdığı kod için geçerlidir; bir npm bağımlılığından fırlatılan bir exception hâlâ <code>Result</code>'ı atlar ve import edilmiş bir <code>.d.ts</code> tipi çalışma zamanı descriptor'ı taşımaz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.5" cy="6" r="2.2"/><circle cx="11" cy="6" r="2.2"/><path d="M1.8 13c.4-2.2 1.9-3.4 3.7-3.4s3.3 1.2 3.7 3.4M7.4 13c.4-2.2 1.9-3.4 3.6-3.4s3.3 1.2 3.7 3.4"/></svg></span><b>Ekosistem ve işe alım.</b>TypeScript araçları, topluluğu ve işe alım havuzu çok daha büyük ve arkalarında yıllarca production kullanımı var. Glyph bir erken önizleme.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Araçlarla donatılmış TypeScript'i tamamen kurduysanız ve ajanlarınız onun içinde kalıyorsa, bunların çoğuna sahipsiniz. Glyph'in argümanı, yükü taşıyan ifadenin "onun içinde kalmak" olduğu ve bir ajanın bozduğu ifadenin de bu olduğu. Zorunluluk, tek yapıtlı doğrulama ve grep'lenebilir değişiklik, daha fazla isteğe bağlı araç ekleyerek elde edemeyeceğiniz kısımlardır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">ReScript, Gleam ya da Elm</span></summary><div class="body">
         <p>
           TypeScript'i bırakıp JavaScript'e derlenen daha eski bir tipli dile geçmeye açıksanız, <a href="/tr/design/vs-rescript-gleam-elm/">Neden ReScript, Gleam ya da Elm değil?</a> Glyph'i bunlarla karşılaştırıyor.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p><code>any</code>/<code>as</code> yok, kapsamı tam <code>match</code> (<code>E0200</code>/<code>E0218</code>), göz ardı edilen <code>Result</code> uyarısı (<code>E0217</code>), tipten üretilen validator'lar ve grep'lenebilir değişiklik: hepsi zorunlu, hiçbiri kapatabileceğiniz bir eslint kuralı değil.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Ölçülüyor</h3>
-          <p>Ajanların Glyph'te, <em>iyi yapılandırılmış</em> strict TS'e göre daha az kaçan hata ürettiği iddiası, naif TS'e değil araçlarla donatılmış TS'e karşı hazırladığımız benchmark'tır. <a href="/tr/benchmarks/">Benchmark'lara</a> bakın.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>any</code>/<code>as</code> yok.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kapsamı tam <code>match</code>.</span><span class="chip code">E0200</span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Göz ardı edilen <code>Result</code> uyarısı.</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tipten üretilen validator'lar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Grep'lenebilir değişiklik.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Hepsi zorunlu, hiçbiri kapatabileceğiniz bir eslint kuralı değil.</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>any</code>/<code>as</code> yok, kapsamı tam <code>match</code> (<code>E0200</code>/<code>E0218</code>), göz ardı edilen <code>Result</code> uyarısı (<code>E0217</code>), tipten üretilen validator'lar ve grep'lenebilir değişiklik: hepsi zorunlu, hiçbiri kapatabileceğiniz bir eslint kuralı değil.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ölçülüyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ajanların Glyph'te, <em>iyi yapılandırılmış</em> strict TS'e göre daha az kaçan hata ürettiği iddiası, naif TS'e değil araçlarla donatılmış TS'e karşı hazırladığımız benchmark'tır. <a href="/tr/benchmarks/">Benchmark'lara</a> bakın.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/why-typescript/">
           <span class="dir">&larr; Önceki</span>

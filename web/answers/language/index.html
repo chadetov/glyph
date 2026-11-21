@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">15 &middot; Language completeness</p>
       <h1 class="q-title">Is this a real language, or a toy with gaps?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -489,41 +489,59 @@
         otherwise.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          A language you can write one file in but not structure a project in
-          isn't one you'll bet a codebase on. The gaps that matter aren't exotic:
-          can I hide a helper, can a generic require a capability, can I release a
-          file handle on every exit path, can I run two things at once and wait
-          for both. Glyph answers those four, and it does it without reopening
-          the annotation-heavy direction it deliberately dropped.
-        </p>
-
-        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
-        <p>
-          Declarations are private to their module until you mark them
-          <code>pub</code>, so the public surface is one search
-          (<code>grep '^pub'</code>) and a helper never leaks by accident:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">visibility: private by default</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">visibility: private by default</span>
 <pre><span class="add">pub fn</span> charge(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Receipt</span>, <span class="t">string</span>&gt; { validate(cents)<span class="op">?</span> ... }
 
 <span class="dim">fn</span> validate(cents: <span class="t">int</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">int</span>, <span class="t">string</span>&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Declarations are private to their module until you mark them
+          <code>pub</code>, so the public surface is one search
+          (<code>grep '^pub'</code>) and a helper never leaks by accident.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          An <code>interface</code> is structural, like a TypeScript one: it's a
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#interfaces">Interfaces</a></li>
+          <li><a href="#defer">defer and tasks</a></li>
+          <li><a href="#javascript">What it inherits</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">match as a value</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">Nested patterns</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">Typed match results</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">String and array helpers</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">Directories and fs errors</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">How the functions were checked</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">Money</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">Async function types</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">Recursive types</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A language you can write one file in but not structure a project in
+        isn't one you'll bet a codebase on. The gaps that matter aren't exotic:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Visibility</b>Can I hide a helper?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Generic bounds</b>Can a generic require a capability?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Cleanup</b>Can I release a file handle on every exit path?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Concurrency</b>Can I run two things at once and wait for both?</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph answers those four, and it does it without reopening
+          the annotation-heavy direction it deliberately dropped.</p></div>
+
+      <h2 class="ak-h" id="interfaces">Interfaces constrain generics<a class="ak-anchor" href="#interfaces" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        An <code>interface</code> is structural, like a TypeScript one: it's a
           set of member signatures a generic can require. No <code>implements</code>,
           no nominal ceremony. Any value with the members qualifies, and
           <code>tsc</code> enforces it.
-        </p>
-      </div>
-
+      </p>
       <div class="code">
         <span class="cap">interfaces constrain generics</span>
 <pre><span class="add">interface</span> <span class="t">Named</span> {
@@ -535,51 +553,53 @@
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          <code>defer</code> runs cleanup when the block exits, on every path,
-          including an early return or a thrown error. Multiple defers run
-          last-in-first-out, and it composes with <code>owned</code> handles. And
+      <h2 class="ak-h" id="defer"><code>defer</code> and structured concurrency<a class="ak-anchor" href="#defer" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>defer</code> runs cleanup when the block exits, on every path,
+          including an early return or a thrown error. And
           <code>std/task</code> joins concurrent work with one lifetime instead
           of leaving detached promises.
-        </p>
-      </div>
-
+      </p>
       <div class="code">
         <span class="cap">defer + structured concurrency</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 <span class="k">let</span> both = <span class="k">await</span> task.<span class="add">all</span>([<span class="k">fn</span>() { fetch_a() }, <span class="k">fn</span>() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">ordering, and owned handles</span></summary><div class="body">
         <p>
-          Glyph compiles to TypeScript and runs on a JavaScript engine, so it
-          inherits evaluation order, reference semantics for mutation, and the
-          single-threaded garbage-collected model. Equality is where it differs:
-          <code>==</code> compares values, records field by field, where
-          JavaScript's <code>===</code> compares references. The spec states
-          these as guarantees rather than leaving you to find out. Manual memory
-          and a non-GC model aren't on a roadmap; they're outside what a
-          transpile-to-TypeScript language is.
+          Multiple defers run
+          last-in-first-out, and it composes with <code>owned</code> handles.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="there-s-no-if-so-match-has-to-carry-everything">There's no <code>if</code>, so <code>match</code> has to carry everything<a class="h-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Link to this section">#</a></h2>
-        <p>
-          The first thing a TypeScript developer asks after the exhaustiveness
+      <h2 class="ak-h" id="javascript">What it inherits from JavaScript<a class="ak-anchor" href="#javascript" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph compiles to TypeScript and runs on a JavaScript engine, so it
+          inherits evaluation order, reference semantics for mutation, and the
+          single-threaded garbage-collected model. The spec states
+          these as guarantees rather than leaving you to find out.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Equality is where it differs:
+          <code>==</code> compares values, records field by field, where
+          JavaScript's <code>===</code> compares references.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Manual memory
+          and a non-GC model aren't on a roadmap; they're outside what a
+          transpile-to-TypeScript language is.</p></div>
+
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything">There's no <code>if</code>, so <code>match</code> has to carry everything<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The first thing a TypeScript developer asks after the exhaustiveness
           pitch is whether <code>match</code> is really a general-purpose
           conditional or just a nice way to destructure a union. It's the former,
-          and the place that proves it is assignment. A <code>match</code> that is
+          and the place that proves it is assignment.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A <code>match</code> that is
           the whole value of a <code>let</code> or a <code>mut</code> takes
           anything a statement takes: an arm can be a block, an arm can
           <code>await</code>, an arm can <code>break</code> out of the surrounding
           loop, and an arm can read the binding it is assigning, which is how you
-          fold state through a loop without an <code>if</code>.
-        </p>
-      </div>
-
+          fold state through a loop without an <code>if</code>.</p></div>
       <div class="code">
         <span class="cap">from the link checker: fence tracking, and an awaited arm</span>
 <pre><span class="k">for</span> raw <span class="k">in</span> lines {
@@ -595,35 +615,27 @@
   <span class="k">false</span> <span class="op">=&gt;</span> <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what it compiles to, and where the snippets come from</span></summary><div class="body">
         <p>
           Both compile to a plain <code>switch</code> that assigns the binding per
           arm, so the <code>await</code> sits in the enclosing async function and
-          the accumulator is a normal variable TypeScript can infer. A
-          <code>match</code> used <em>inside</em> a larger expression, as an
-          argument or an operand, still becomes a closure, which means its arms
-          have to be single expressions. Hoisting it to its own <code>let</code>
-          lifts that. Both snippets are from
+          the accumulator is a normal variable TypeScript can infer. Both snippets are from
           <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>,
           a Markdown link checker written to find exactly this kind of thing.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>A
+          <code>match</code> used <em>inside</em> a larger expression, as an
+          argument or an operand, still becomes a closure, which means its arms
+          have to be single expressions. Hoisting it to its own <code>let</code>
+          lifts that.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-pattern-can-name-a-shape-more-than-one-level-down">A pattern can name a shape more than one level down<a class="h-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Link to this section">#</a></h2>
-        <p>
-          A variant with several fields carries a record, so an arm that wants to
-          recognise a shape has to reach through the record's fields. Until 0.1.90
-          the field position took a name and nothing else: you could rename it, and
-          that was all. Matching a tag there was a compile error, and a nested
-          constructor fell off the parser. The workaround was to bind every field
-          and write a nested <code>match</code> per level, which for anything like a
-          red-black tree rebalance is a different program: the arms stop lining up
-          with the cases and each level re-threads the bindings above it.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">A pattern can name a shape more than one level down<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A variant with several fields carries a record, so an arm that wants to
+          recognise a shape has to reach through the record's fields. A field takes any pattern now: a variant tag, a nested constructor, a
+          nested destructure, a literal, an array pattern.
+      </p>
       <div class="code">
         <span class="cap">one rotation case of a red-black rebalance, as one arm</span>
 <pre><span class="k">type</span> <span class="t">Tree</span> =
@@ -636,16 +648,26 @@
   other <span class="op">=&gt;</span> other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the workaround before 0.1.90</span></summary><div class="body">
         <p>
-          A field takes any pattern now: a variant tag, a nested constructor, a
-          nested destructure, a literal, an array pattern. There is a consequence
+          Until 0.1.90
+          the field position took a name and nothing else: you could rename it, and
+          that was all. Matching a tag there was a compile error, and a nested
+          constructor fell off the parser. The workaround was to bind every field
+          and write a nested <code>match</code> per level, which for anything like a
+          red-black tree rebalance is a different program: the arms stop lining up
+          with the cases and each level re-threads the bindings above it.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>There is a consequence
           worth knowing before you write one. A field that tests a value can fail,
           so the arm no longer counts as covering its variant, and a match whose
           only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is
           reported non-exhaustive until a sibling arm or an <code>else</code> takes
-          the rest. The checker proves coverage over a set of tags, not over a
+          the rest.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why it asks for the catch-all, and the array position</span></summary><div class="body">
+        <p>
+          The checker proves coverage over a set of tags, not over a
           product of fields, so it will not work out that a <code>Red</code> arm and
           a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the
           catch-all is the reading that cannot let a match fall off its end at run
@@ -663,23 +685,18 @@
           on its own. The lowering underneath is still the old one, which is why
           the check is the half that shipped first.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="and-the-compiler-knows-what-the-match-produced">And the compiler knows what the <code>match</code> produced<a class="h-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Link to this section">#</a></h2>
-        <p>
-          The follow-up question is the one that decides whether any of this is
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">And the compiler knows what the <code>match</code> produced<a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The follow-up question is the one that decides whether any of this is
           load-bearing: once you bind a value out of a branch, does Glyph know its
-          type, or does it shrug and let <code>tsc</code> sort it out later? Until
-          0.1.45 it shrugged. Every <code>match</code> expression typed as unknown,
-          so a value that came out of the only branching construct in the language
-          was untyped from that point on. A <code>match</code> now takes its arms'
+          type, or does it shrug and let <code>tsc</code> sort it out later? A <code>match</code> now takes its arms'
           type when they agree, and <code>T.parse</code> is known to return
           <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most
           real code branches on.
-        </p>
-      </div>
-
+      </p>
       <div class="code">
         <span class="cap">from the expense splitter: no annotation, and <code>i</code> is a number</span>
 <pre><span class="k">let</span> wire = <span class="add">match</span> <span class="t">WireLedger</span>.parse(decoded) {
@@ -693,8 +710,15 @@
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">before 0.1.45</span></summary><div class="body">
+        <p>
+          Until
+          0.1.45 it shrugged. Every <code>match</code> expression typed as unknown,
+          so a value that came out of the only branching construct in the language
+          was untyped from that point on.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what went wrong quietly, and how the join works</span></summary><div class="body">
         <p>
           Both halves of that are things that used to go wrong quietly. The loop
           emits <code>wire.expenses.entries()</code>; when the iterand's type is
@@ -704,7 +728,10 @@
           <code>01:a</code> where it meant <code>1:a</code>. And
           <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no
           field expensez</code> from Glyph, on the <code>.glyph</code> line, rather
-          than a <code>TS2339</code> on generated TypeScript. The join is equality
+          than a <code>TS2339</code> on generated TypeScript.
+        </p>
+        <p>
+          The join is equality
           at the head: an arm that ends in <code>return</code> doesn't vote, and
           arms whose types disagree leave the result unknown the way it was
           before. It looks one level deeper only at a type argument, so
@@ -716,8 +743,16 @@
           <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>,
           which carried the annotation this deleted.
         </p>
-      </div>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">A lookup with an empty fallback<a class="ak-anchor" href="#empty-fallback" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        That is the shape this cost the most. <code>record.get</code> on a
+          <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an
+          <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an
+          array of nothing in particular, so the two arms agree on
+          <code>Array</code> and the element type comes from the arm that has one.
+      </p>
       <div class="code">
         <span class="cap">from the dependency resolver: a lookup, an empty fallback, an indexed walk</span>
 <pre><span class="k">let</span> path = <span class="add">match</span> <span class="k">record</span>.get(res.reached, name) {
@@ -730,14 +765,8 @@
   <span class="k">mut</span> out = array.push(out, <span class="s">"</span><span class="ip">${</span>indent<span class="ip">}</span><span class="ip">${</span>hop<span class="ip">}</span><span class="s">"</span>)
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">before 0.1.55</span></summary><div class="body">
         <p>
-          That is the shape this cost the most. <code>record.get</code> on a
-          <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an
-          <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an
-          array of nothing in particular, so the two arms agree on
-          <code>Array</code> and the element type comes from the arm that has one.
           Until 0.1.55 they were compared for equality, <code>[]</code> counted as
           a disagreement, and the loop below printed <code>01:x</code> on a build
           with no diagnostics that <code>tsc --strict</code> passed. The code is
@@ -745,21 +774,13 @@
           where it used to open with <code>let path: Array&lt;string&gt;</code> under
           a three-line comment explaining that the annotation was load-bearing.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="do-i-have-to-write-pad-start-myself">Do I have to write <code>pad_start</code> myself?<a class="h-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Link to this section">#</a></h2>
-        <p>
-          The gap you hit first in a real program isn't a type-system feature.
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself">Do I have to write <code>pad_start</code> myself?<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The gap you hit first in a real program isn't a type-system feature.
           It's reaching for <code>string.slice</code> and finding nothing there.
-          Five dogfooding trips in a row filed the same list, and until 0.1.47
-          six apps in this repo carried their own <code>repeat</code>, five their
-          own <code>pad_start</code>, and all of them had a loop where a fold
-          belonged. Those eleven names ship now, and the copies are deleted from
-          all seven apps that had them.
-        </p>
-      </div>
-
+      </p>
       <div class="code">
         <span class="cap">what landed</span>
 <pre><span class="t">string</span>.<span class="add">repeat</span>(s, n)           <span class="t">string</span>.<span class="add">slice</span>(s, start, end<span class="op">?</span>)       array.<span class="add">fold</span>(xs, init, f)
@@ -771,69 +792,85 @@
 <span class="k">let</span> total = array.<span class="add">fold</span>(expenses, <span class="n">0</span>, <span class="k">fn</span>(sum, e) { sum + e.cents })
 io.println(<span class="s">"</span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_end</span>(name, width)<span class="ip">}</span><span class="s">  </span><span class="ip">${</span><span class="t">string</span>.<span class="add">pad_start</span>(amount, <span class="n">9</span>)<span class="ip">}</span><span class="s">"</span>)</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Those eleven names ship now, and the copies are deleted from
+          all seven apps that had them.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the copies the apps carried before 0.1.47</span></summary><div class="body">
         <p>
-          Three of them part ways with their TypeScript namesakes on purpose.
-          <code>repeat</code> returns <code>""</code> on a negative count where TS
+          Five dogfooding trips in a row filed the same list, and until 0.1.47
+          six apps in this repo carried their own <code>repeat</code>, five their
+          own <code>pad_start</code>, and all of them had a loop where a fold
+          belonged.
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">Where they differ from TypeScript<a class="ak-anchor" href="#namesakes" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Three of them part ways with their TypeScript namesakes on purpose.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code> returns <code>""</code> on a negative count where TS
           throws, which is what makes <code>repeat(pad, width - len(s))</code>
-          safe on a string that's already too long. Both <code>index_of</code>
+          safe on a string that's already too long.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>Both <code>index_of</code>
           functions return <code>Option&lt;number&gt;</code> instead of
           <code>-1</code>, because <code>-1</code> is a number that type-checks
-          everywhere a real index does and fails a long way from the call.
-          Replacement ships only as <code>replace_all</code>, so there's no
+          everywhere a real index does and fails a long way from the call.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>Replacement ships only as <code>replace_all</code>, so there's no
           first-only form to confuse with <code>String.prototype.replace</code>,
-          which quietly does one occurrence.
-        </p>
-        <p>
-          <code>fold</code> is the one that buys a pillar rather than saving
+          which quietly does one occurrence.</li>
+      </ul>
+      <h3 class="ak-h3" id="fold">Why <code>fold</code> matters<a class="ak-anchor" href="#fold" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>fold</code> is the one that buys a pillar rather than saving
           typing. <code>mut</code> is the greppable record of every place state
           changes, and with no fold, <code>grep mut</code> comes back full of
-          counting loops that mutate nothing a reviewer cares about. Deleting the
+          counting loops that mutate nothing a reviewer cares about.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Deleting the
           hand-rolled versions took <code>examples/apps/</code> from 192 mutation
-          sites to 161. The rewrite was checked by output, not by review: all
+          sites to 161.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how the rewrite was checked</span></summary><div class="body">
+        <p>
+          The rewrite was checked by output, not by review: all
           seven apps ran against fixed inputs before and after, 26 files of stdout,
           exit codes, and HTTP responses, all byte-identical.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="can-i-walk-a-directory-and-tell-what-broke">Can I walk a directory and tell what broke?<a class="h-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Link to this section">#</a></h2>
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">Can I walk a directory and tell what broke?<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/fs</code> shipped six functions and none of them listed a
+          directory.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code> returns the entry names one level down.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code> answers with a <code>bool</code> the way
+          <code>fs.exists</code> does.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code> returns a
+          <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>,
+          <code>size</code> in bytes, and <code>modified</code> in epoch
+          milliseconds, which <code>time.format_iso</code> renders directly.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>There is no recursive <code>walk</code> and no glob; a walk is those
+          three plus <code>path.join</code> in about ten lines.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the workaround these replaced</span></summary><div class="body">
         <p>
-          <code>std/fs</code> shipped six functions and none of them listed a
-          directory. The link checker in this repo reached past the stdlib into
+          The link checker in this repo reached past the stdlib into
           node's <code>readdirSync</code>, and worked out which paths were
           directories by trying to read them and inspecting the
           <code>errno</code> that came back. Both halves of that are fixed.
-          <code>fs.read_dir</code> returns the entry names one level down,
-          <code>fs.is_dir</code> answers with a <code>bool</code> the way
-          <code>fs.exists</code> does, and <code>fs.stat</code> returns a
-          <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>,
-          <code>size</code> in bytes, and <code>modified</code> in epoch
-          milliseconds, which <code>time.format_iso</code> renders directly.
-          There is no recursive <code>walk</code> and no glob; a walk is those
-          three plus <code>path.join</code> in about ten lines.
         </p>
-        <p>
-          The failure side changed more. <code>FsError.kind</code> was
-          <code>{ tag: string }</code> with <code>NotFound</code> as the whole
-          taxonomy, so telling &ldquo;that path is a directory&rdquo; from
-          &ldquo;that path is missing&rdquo; meant comparing an errno string.
-          Now the five kinds a program actually recovers from have names, and an
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">Failures have names<a class="ak-anchor" href="#fs-errors" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        The failure side changed more. Now the five kinds a program actually recovers from have names, and an
           errno with no name arrives intact on the <code>Other</code> tail.
-        </p>
-        <p>
-          The checker knows that taxonomy is closed, so a <code>match</code> on
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The checker knows that taxonomy is closed, so a <code>match</code> on
           <code>err.kind</code> is held to the same bar as a union you declared
           yourself: cover the six and you need no <code>else</code>, leave one out
           and the build fails with <code>E0200</code> naming
-          <code>fs.ErrorKind</code>. <code>fs.FsError</code> and
-          <code>fs.FileInfo</code> have checked fields too, so
-          <code>err.mesage</code> is <code>E0210</code> against your Glyph source
-          rather than a <code>tsc</code> error against generated TypeScript.
-        </p>
-      </div>
-
+          <code>fs.ErrorKind</code>.</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">walk a tree, and name what went wrong</span>
 <pre><span class="k">let</span> names = fs.<span class="add">read_dir</span>(dir)<span class="op">?</span>
@@ -857,17 +894,18 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
   fs.<span class="t">ErrorKind</span>.<span class="add">Other</span>({ code })   <span class="op">=&gt;</span> io.eprintln(<span class="s">"errno </span><span class="ip">${</span>code<span class="ip">}</span><span class="s">"</span>),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the old taxonomy, checked fields, and trying the check yourself</span></summary><div class="body">
         <p>
-          Two smaller ones landed with it, both from the same app.
-          <code>regex.captures_all</code> gives you the capture groups of every
-          match instead of just the matched text, so a flat
-          <code>key=value</code> scan stops being a hand-rolled loop. And
-          <code>task.pool_settled</code> is <code>task.pool</code> with
-          <code>all_settled</code>&rsquo;s failure behaviour: bounded
-          concurrency, one outcome per task, and one dead host costs you that
-          host's result rather than every result the pool had collected.
+          <code>FsError.kind</code> was
+          <code>{ tag: string }</code> with <code>NotFound</code> as the whole
+          taxonomy, so telling &ldquo;that path is a directory&rdquo; from
+          &ldquo;that path is missing&rdquo; meant comparing an errno string.
+        </p>
+        <p>
+          <code>fs.FsError</code> and
+          <code>fs.FileInfo</code> have checked fields too, so
+          <code>err.mesage</code> is <code>E0210</code> against your Glyph source
+          rather than a <code>tsc</code> error against generated TypeScript.
         </p>
         <p>
           That check is live. Delete the <code>PermissionDenied</code> arm from the
@@ -879,30 +917,49 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
           <code>fs.FsError</code>, <code>fs.FileInfo</code> and
           <code>fs.ErrorKind</code> are modeled now.
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">Two smaller additions<a class="ak-anchor" href="#captures-all" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Two smaller ones landed with it, both from the same app.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code> gives you the capture groups of every
+          match instead of just the matched text, so a flat
+          <code>key=value</code> scan stops being a hand-rolled loop.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code> is <code>task.pool</code> with
+          <code>all_settled</code>&rsquo;s failure behaviour: bounded
+          concurrency, one outcome per task, and one dead host costs you that
+          host's result rather than every result the pool had collected.</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-do-you-know-the-functions-are-the-right-ones">How do you know the functions are the right ones?<a class="h-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Link to this section">#</a></h2>
-        <p>
-          Because the app that asked for them had to stop working around them
-          before the release counted as done. A library function that ships and a
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">How do you know the functions are the right ones?<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Because the app that asked for them had to stop working around them
+          before the release counted as done.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A library function that ships and a
           workaround that outlives it are different claims, so the same change
           that added these four deleted the link checker's copies: the
           <code>readdirSync</code> import, both <code>errno</code> string
           comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool.
-          122 lines came out.
-        </p>
-        <p>
-          Two of those deletions changed what the program does, and the
-          difference was measured rather than argued. Point the old and new
+          122 lines came out.</p></div>
+      <h3 class="ak-h3" id="measured">Two behaviour changes, measured<a class="ak-anchor" href="#measured" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Two of those deletions changed what the program does, and the
+          difference was measured rather than argued.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>An unreadable directory</b>Point the old and new
           versions at a tree containing a directory you cannot read: the new one
           prints <code>permission denied</code> and counts the path as
           unreadable, and the old one, which could only ask whether the errno was
-          <code>EISDIR</code>, left it out of the report entirely. Make one of
+          <code>EISDIR</code>, left it out of the report entirely.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>A failing URL</b>Make one of
           three URLs throw: <code>pool_settled</code> printed all three rows and
           named the failure, and <code>pool</code> printed nothing and died on an
-          unhandled rejection, taking the two good results with it.
-        </p>
+          unhandled rejection, taking the two good results with it.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the scanner rewrite and the alternation worry</span></summary><div class="body">
         <p>
           The scanner rewrite settled a design worry too. Since a capture group
           that did not participate reads as <code>""</code>, the same as one that
@@ -916,22 +973,19 @@ io.println(<span class="s">"</span><span class="ip">${</span><span class="t">str
           patterns and a 12-line dispatch, with byte-identical output on the
           repo's own docs and on a fixture built to break it.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-doesn-t-run-on-floats">Money doesn't run on floats<a class="h-anchor" href="#money-doesn-t-run-on-floats" aria-label="Link to this section">#</a></h2>
-        <p>
-          The gap that would end a fintech evaluation on the spot is doing money
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">Money doesn't run on floats<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The gap that would end a fintech evaluation on the spot is doing money
           on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not
           <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision.
-          <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>std/decimal</code> is exact base-10 fixed-point over BigInt: an
           arbitrary-precision integer with a fixed number of fractional digits, so
           addition, subtraction, and multiplication are exact and division takes an
           explicit scale and rounding. A malformed amount parses to an
-          <code>Err</code>, never a silent <code>NaN</code>.
-        </p>
-      </div>
-
+          <code>Err</code>, never a silent <code>NaN</code>.</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
@@ -941,38 +995,27 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(decimal(<span class="s">"2"</span>)<span class="op">?</span>)   <span class="cm"># exact past 2^53</span></pre>
       </div>
-
-      <div class="detail">
-        <p>
-          For exact large <em>whole</em> numbers, account ids and counters, there
+      <h3 class="ak-h3" id="bigint">Large whole numbers<a class="ak-anchor" href="#bigint" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        For exact large <em>whole</em> numbers, account ids and counters, there
           is the <code>bigint</code> type: literals are <code>123n</code>, it emits
           to a real TypeScript <code>bigint</code>, and a record field typed
           <code>bigint</code> validates <code>typeof === "bigint"</code> at the
           boundary, so an id sent as a JSON <code>number</code> is rejected rather
           than silently rounded past 2<sup>53</sup>.
-        </p>
-      </div>
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-async-callback-finally-has-a-type">An async callback finally has a type<a class="h-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Link to this section">#</a></h2>
-        <p>
-          A function type was <code>fn(A) -&gt; T</code> and nothing else, which
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">An async callback finally has a type<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A function type was <code>fn(A) -&gt; T</code> and nothing else, which
           emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a
           function returning a deferred task, or a record of async handlers, had
-          to go unannotated and the checker stopped looking. <code>async fn(A) -&gt;
+          to go unannotated and the checker stopped looking.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt;
           T</code> is that missing type. It emits <code>(a0: A) =&gt;
           Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits
-          <code>() =&gt; Promise&lt;void&gt;</code>.
-        </p>
-        <p>
-          Glyph holds the two apart itself rather than leaving it to
-          <code>tsc</code>: a plain function where an async one is expected is
-          <code>E0204</code> at a return and <code>E0211</code> at a call argument,
-          and the message names both sides. The one case it doesn't judge is a
-          <code>void</code> return, where TypeScript lets any function stand.
-        </p>
-      </div>
-
+          <code>() =&gt; Promise&lt;void&gt;</code>.</p></div>
       <div class="code">
         <span class="cap">a deferred task, and a map of handlers</span>
 <pre><span class="k">fn</span> task_for(url: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="add">async fn() -&gt; Fetched</span> {
@@ -988,22 +1031,26 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="a-recursive-type-matched-all-the-way-down">A recursive type, matched all the way down<a class="h-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Link to this section">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how Glyph tells plain and async functions apart</span></summary><div class="body">
         <p>
-          A union can name itself inside its own payload, with its type
+          Glyph holds the two apart itself rather than leaving it to
+          <code>tsc</code>: a plain function where an async one is expected is
+          <code>E0204</code> at a return and <code>E0211</code> at a call argument,
+          and the message names both sides.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>The one case it doesn't judge is a
+          <code>void</code> return, where TypeScript lets any function stand.</p></div>
+
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">A recursive type, matched all the way down<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A union can name itself inside its own payload, with its type
           parameters, and a match arm can nest a constructor pattern inside
           another constructor pattern&rsquo;s field. Put those together and the
           balancing rules of a red-black tree are four arms: each one names the
           exact shape it rewrites, and the compiler is the thing checking the
           shape rather than a comment above it claiming it.
-          <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a
-          leaderboard that keeps every score in the tree and answers rank,
-          top-N and range queries by walking it instead of re-sorting a log.
-        </p>
-      </div>
-
+      </p>
       <div class="code">
         <span class="cap">one of the four rotation cases</span>
 <pre><span class="k">type</span> <span class="t">Tree</span>&lt;<span class="t">K</span>, <span class="t">V</span>&gt; =
@@ -1024,19 +1071,142 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code> is the whole program, a
+          leaderboard that keeps every score in the tree and answers rank,
+          top-N and range queries by walking it instead of re-sorting a log.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Where it stops</h3>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-20">20 Nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">19</span></h3>
+
+          <p class="ak-st-group">Modules and types</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Structural <code>interface</code> bounds</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn(A) -&gt; T</code> as a written type</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Control flow and <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A <code>match</code> whose arms agree carrying their type into the rest of the program</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A typed <code>T.parse</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Numbers and semantics</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> for exact money math</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> for exact large integers</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Digit separators</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A spec section owning the JS-inherited semantics</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Standard library</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">An <code>FsError.kind</code> taxonomy the checker holds you to</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Most of <code>std/string</code> and <code>std/array</code> carry their return type into your program</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/record</code> is modeled, with the value type read off the record you pass</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Where it stops <span class="count">11</span></h3>
+
+          <p class="ak-st-group">Visibility</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A private import reports the same message as a missing name</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A private value read through a namespace is a <code>tsc</code> error, not a Glyph one</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Async</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A top-level <code>await</code> in a module-level <code>const</code> initializer is allowed</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Inferred types</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Arms that disagree on the type's head leave the result unknown to Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nine stdlib functions are in the same position</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into.</p>
+                <p>A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Members and call arity against a value the checker couldn't type are unchecked</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Library</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code> indexes UTF-16 code units, and no <code>chars</code> or <code>char_at</code> is planned</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code> gives no offsets; <code>fs.read_dir</code> keeps the OS's order</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Patterns</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A payload constructor in a field fails on a union reached through a namespace import</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A union generic over its own parameter takes the nested arm and is checked for missing variants</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>.</p>
+                <p>Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Coverage of an imported union never checks its variant payloads</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics.</p>
+                <p>Binding a field, or matching a tag with no payload in one, works in every case.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/state/">
           <span class="dir">&larr; Previous</span>

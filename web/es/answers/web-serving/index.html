@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/web-serving/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Puedo servir una página web, o solo una API JSON?","item":"https://glyphlang.io/es/answers/web-serving/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/web-serving/#article","headline":"¿Puedo servir una página web, o solo una API JSON?","description":"std/http sirve páginas HTML, redirecciones, cabeceras de respuesta personalizadas y envíos de formularios, no solo JSON, con las cabeceras de respuesta modeladas por el type checker.","url":"https://glyphlang.io/es/answers/web-serving/","inLanguage":"es","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/web-serving/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/web-serving/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Puedo servir una página web, o solo una API JSON?","item":"https://glyphlang.io/es/answers/web-serving/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/web-serving/#article","headline":"¿Puedo servir una página web, o solo una API JSON?","description":"std/http sirve páginas HTML, redirecciones, cabeceras de respuesta personalizadas y envíos de formularios, no solo JSON, con las cabeceras de respuesta modeladas por el type checker.","url":"https://glyphlang.io/es/answers/web-serving/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/web-serving/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/web-serving/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/web-serving/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">17 &middot; Servir la web</p>
       <h1 class="q-title">¿Puedo servir una página web, o solo una API JSON?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respuestas">
@@ -478,20 +478,12 @@
         Una página web. <code>std/http</code> establece cabeceras de respuesta, así que una página <code>text/html</code>, una redirección 302, una cabecera de caché y el envío de un formulario HTML son Glyph normal. Sin Express, sin un shim de TypeScript escrito a mano.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por qué importa<a class="h-anchor" href="#why-it-matters" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Hasta la 0.1.46 una respuesta era <code>{ status, body }</code> y el servidor elegía el content type según la forma del cuerpo: un string era <code>text/plain</code> y cualquier otra cosa era JSON. Eso sirve para una API y no sirve para nada que renderice un navegador. La salida era escribir tu propio servidor sobre <code>node:http</code> en un archivo <code>.ts</code> escrito a mano, lo que deja todo el camino de la petición fuera del type checker. Dos constructores que faltaban costaban toda una frontera de la aplicación.
-        </p>
-
-        <h2 class="block-label" id="see-it">Míralo<a class="h-anchor" href="#see-it" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Este es el router de <code>examples/apps/shortlink/main.glyph</code>, un acortador de URLs que viene en el repositorio. Un formulario HTML crea un código, un POST responde con una redirección para que recargar el navegador nunca vuelva a enviarlo, y seguir un código es un 302 al destino:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">shortlink.glyph: una página HTML, el envío de un formulario y el 302</span>
+        <div class="code">
+          <span class="cap">shortlink.glyph: una página HTML, el envío de un formulario y el 302</span>
 <pre><span class="k">fn</span> handle_home(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Response</span> {
   <span class="k">return</span> <span class="k">match</span> req.method {
     <span class="s">"GET"</span> <span class="op">=&gt;</span> html(<span class="n">200</span>, home_page(links.get(), query_param(req, <span class="s">"error"</span>))),
@@ -521,35 +513,78 @@
   <span class="k">let</span> outcome = <span class="k">await</span> serve(<span class="n">8138</span>, route)
   <span class="k">return</span> <span class="k">match</span> outcome { <span class="t">Ok</span>(_) <span class="op">=&gt;</span> <span class="n">0</span>, <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="n">1</span>, }
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          La misma app estaba en el repositorio una versión antes con 615 líneas, 121 de ellas un servidor <code>node:http</code> escrito a mano en un archivo <code>.ts</code> a su lado, porque un <code>Location</code> y un cuerpo <code>text/html</code> no se podían escribir. Ahora tiene 494 líneas y no importa nada fuera de <code>std</code>. Un handler devuelve <code>Result&lt;Response, string&gt;</code>, así que un 404 es un <code>Ok</code> normal y un <code>Err</code> queda para lo que la app no puede responder, que el servidor convierte en un 500. <code>serve</code> sigue pendiente mientras escucha, así que nada tiene que mantener vivo el proceso a mano, y un bind fallido vuelve como un valor.
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
-          <code>Response</code> lleva un <code>headers: Record&lt;string, string&gt;</code> obligatorio. Obligatorio, no opcional: cada constructor lo rellena, así que leer <code>resp.headers</code> nunca necesita comprobar si falta, y el canal no se puede olvidar. <code>with_header(resp, "cache-control", "no-store")</code> devuelve una respuesta nueva en lugar de modificar una existente, porque Glyph no permite modificar campos de records. El type checker sabe que los tres constructores devuelven un <code>Response</code>, así que un handler cuyo tipo de retorno declarado dice <code>Result&lt;Response, string&gt;</code> se comprueba en Glyph, no con <code>tsc</code> sobre la salida generada.
-        </p>
-        <p>
-          Dos detalles que de otro modo harías mal a mano. Cualquier carácter que Node se niega a escribir en una cabecera se elimina del valor al salir, así que un <code>location</code> construido a partir de un parámetro de la query no puede inyectar una segunda cabecera ni una segunda respuesta, y un emoji en una URL acortada no puede tumbar el servidor. Y <code>form(req)</code> decodifica <code>+</code> como espacio junto con los escapes de porcentaje, la pareja que suele olvidar el parseo de formularios hecho a mano; lee el cuerpo en bruto, así que <code>req.body</code> queda intacto para los handlers que lo parsean por su cuenta.
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">Dónde está<a class="h-anchor" href="#where-it-stands" aria-label="Enlace a esta sección">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> y <code>form</code>; cabeceras de respuesta en la red, con el content type inferido solo cuando no has puesto uno; cabeceras de la petición, parámetros de la query, segmentos de la ruta y el cuerpo en bruto a la entrada; el cliente informa de las cabeceras de respuesta que recibió.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">En camino</h3>
-          <p>La codificación con porcentajes es el hueco que muestra el fragmento de arriba: <code>form</code> decodifica el cuerpo de un formulario, pero no hay <code>encode_component</code> para construir una URL, así que el acortador escribe el suyo. También faltan en el lado del cliente: un timeout, una política de redirecciones, <code>head</code> y la URL final a la que llevó una redirección. No hay servidor de archivos estáticos ni motor de plantillas, y no hay planes para ninguno de los dos.</p>
-        </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>La misma app estaba en el repositorio una versión antes con 615 líneas, 121 de ellas un servidor <code>node:http</code> escrito a mano en un archivo <code>.ts</code> a su lado, porque un <code>Location</code> y un cuerpo <code>text/html</code> no se podían escribir. Ahora tiene 494 líneas y no importa nada fuera de <code>std</code>.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por qué importa</a></li>
+          <li><a href="#a-handler-returns-a-result">Un handler devuelve un Result</a></li>
+          <li><a href="#every-response-carries-headers">Cada respuesta lleva cabeceras</a></li>
+          <li><a href="#two-details-you-would-otherwise-get-wrong-by-hand">Dos detalles</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Hasta la 0.1.46 una respuesta era <code>{ status, body }</code> y el servidor elegía el content type según la forma del cuerpo: un string era <code>text/plain</code> y cualquier otra cosa era JSON. Eso sirve para una API y no sirve para nada que renderice un navegador.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        La salida era escribir tu propio servidor sobre <code>node:http</code> en un archivo <code>.ts</code> escrito a mano, lo que deja todo el camino de la petición fuera del type checker. Dos constructores que faltaban costaban toda una frontera de la aplicación.
+      </p></div>
+
+      <h2 class="ak-h" id="a-handler-returns-a-result">Un handler devuelve un <code>Result</code><a class="ak-anchor" href="#a-handler-returns-a-result" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Un handler devuelve <code>Result&lt;Response, string&gt;</code>, así que un 404 es un <code>Ok</code> normal y un <code>Err</code> queda para lo que la app no puede responder, que el servidor convierte en un 500.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>serve</code> sigue pendiente mientras escucha, así que nada tiene que mantener vivo el proceso a mano, y un bind fallido vuelve como un valor.
+      </p></div>
+
+      <h2 class="ak-h" id="every-response-carries-headers">Cada respuesta lleva cabeceras<a class="ak-anchor" href="#every-response-carries-headers" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Response</code> lleva un <code>headers: Record&lt;string, string&gt;</code> obligatorio. Obligatorio, no opcional: cada constructor lo rellena, así que leer <code>resp.headers</code> nunca necesita comprobar si falta, y el canal no se puede olvidar.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Una respuesta nueva, no una modificación</b><code>with_header(resp, "cache-control", "no-store")</code> devuelve una respuesta nueva en lugar de modificar una existente, porque Glyph no permite modificar campos de records.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Comprobado en Glyph</b>El type checker sabe que los tres constructores devuelven un <code>Response</code>, así que un handler cuyo tipo de retorno declarado dice <code>Result&lt;Response, string&gt;</code> se comprueba en Glyph, no con <code>tsc</code> sobre la salida generada.</li>
+      </ul>
+
+      <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Dos detalles que de otro modo harías mal a mano<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Valores de cabecera</b>Cualquier carácter que Node se niega a escribir en una cabecera se elimina del valor al salir, así que un <code>location</code> construido a partir de un parámetro de la query no puede inyectar una segunda cabecera ni una segunda respuesta, y un emoji en una URL acortada no puede tumbar el servidor.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Cuerpos de formulario</b><code>form(req)</code> decodifica <code>+</code> como espacio junto con los escapes de porcentaje, la pareja que suele olvidar el parseo de formularios hecho a mano; lee el cuerpo en bruto, así que <code>req.body</code> queda intacto para los handlers que lo parsean por su cuenta.</li>
+      </ul>
+
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> y <code>form</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cabeceras de respuesta en la red, con el content type inferido solo cuando no has puesto uno</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cabeceras de la petición, parámetros de la query, segmentos de la ruta y el cuerpo en bruto a la entrada</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">El cliente informa de las cabeceras de respuesta que recibió.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> En camino</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">La codificación con porcentajes es el hueco que muestra el fragmento de arriba</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>La codificación con porcentajes es el hueco que muestra el fragmento de arriba: <code>form</code> decodifica el cuerpo de un formulario, pero no hay <code>encode_component</code> para construir una URL, así que el acortador escribe el suyo.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">También faltan en el lado del cliente: un timeout, una política de redirecciones, <code>head</code> y la URL final a la que llevó una redirección.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">No hay servidor de archivos estáticos ni motor de plantillas, y no hay planes para ninguno de los dos.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/finance/">
           <span class="dir">&larr; Anterior</span>

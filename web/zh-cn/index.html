@@ -440,7 +440,7 @@
           </div>
         </div>
           <figure class="c-hero">
-            <figcaption><a href="/zh-cn/catches/#error-the-signature-hides">函数签名隐藏的错误</a>：一个可能失败的函数，调用它的代码却不知道它会失败。</figcaption>
+            <figcaption><a href="/zh-cn/catches/error-the-signature-hides/">函数签名隐藏的错误</a>：一个可能失败的函数，调用它的代码却不知道它会失败。</figcaption>
             <div class="c-hero-side ts">
               <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">能编译，运行时崩溃</span></div>
               <div class="code c-code"><span class="cap">ts.ts</span><pre><span class="k">function</span> loadConfig(): <span class="t">Config</span> {
@@ -484,19 +484,19 @@
           排名最靠前的三个案例。它们能通过打开了所有额外 flag 的 <code>tsc --strict</code> 和 strict 模式的 typescript-eslint，排名依据是智能体写出它们的频率，以及上线后的危害程度。案例说明为中文，代码和编译器输出保留英文。
         </p>
         <div class="c-cards">
-          <a class="c-card" href="/zh-cn/catches/#data-from-outside-the-program">
+          <a class="c-card" href="/zh-cn/catches/data-from-outside-the-program/">
             <span class="c-card-n">1</span>
             <h3>来自程序外部的数据</h3>
             <p>请求体、文件、API 响应。</p>
             <p class="c-card-v"><span class="ts">TypeScript：能编译，运行时用的是错误数据</span><span class="gl">Glyph：数据到达时检查</span></p>
           </a>
-          <a class="c-card" href="/zh-cn/catches/#error-the-signature-hides">
+          <a class="c-card" href="/zh-cn/catches/error-the-signature-hides/">
             <span class="c-card-n">2</span>
             <h3>函数签名隐藏的错误</h3>
             <p>一个可能失败的函数，调用它的代码却不知道它会失败。</p>
             <p class="c-card-v"><span class="ts">TypeScript：能编译，运行时崩溃</span><span class="gl">Glyph：构建时拒绝</span></p>
           </a>
-          <a class="c-card" href="/zh-cn/catches/#error-nobody-looked-at">
+          <a class="c-card" href="/zh-cn/catches/error-nobody-looked-at/">
             <span class="c-card-n">3</span>
             <h3>没人看的错误</h3>
             <p>调用一个可能失败的函数，然后就不管了。</p>

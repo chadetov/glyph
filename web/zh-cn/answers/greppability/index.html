@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"智能体（或者我）能找到任何东西的定义位置吗？","item":"https://glyphlang.io/zh-cn/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/greppability/#article","headline":"智能体（或者我）能找到任何东西的定义位置吗？","description":"Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。","url":"https://glyphlang.io/zh-cn/answers/greppability/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"智能体（或者我）能找到任何东西的定义位置吗？","item":"https://glyphlang.io/zh-cn/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/greppability/#article","headline":"智能体（或者我）能找到任何东西的定义位置吗？","description":"Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。","url":"https://glyphlang.io/zh-cn/answers/greppability/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">03 &middot; 靠搜索导航</p>
       <h1 class="q-title">智能体（或者我）能找到任何东西的定义位置吗？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -480,30 +480,32 @@
         每种结构都<strong>只有一种形式</strong>可供搜索。普通的 <code>grep</code>（智能体实际导航代码的方式）会落在唯一的定义上，<strong>而不是五十个似是而非的结果</strong>。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">为什么重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
-        <p>
-          智能体不会把整个仓库记在脑子里，它靠<strong>搜索</strong>。如果一个概念有五种写法，搜索就会漏掉一些情况，而一个找不到现有定义却很自信的智能体会再造一个。一个概念只有一种形式，意味着搜索是完整的，所以智能体会修改已有的东西，而不是复制一份。
-        </p>
-
-        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
-        <p>Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到：</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/（代码库中的每一处修改）</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到。三处修改，全部在一次搜索中找到。</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          智能体不会把整个仓库记在脑子里，它靠<strong>搜索</strong>。一个概念只有一种形式，意味着搜索是完整的，所以智能体会修改已有的东西，而不是复制一份。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>如果一个概念有五种写法，搜索就会漏掉一些情况，而一个找不到现有定义却很自信的智能体会再造一个。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么同样的问题在 TypeScript 中没有答案</span></summary><div class="body">
         <p>
-          三处修改，全部在一次搜索中找到。在 TypeScript 中，修改可能藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开运算之后。没有一个能 grep 的标记，所以&ldquo;有没有东西会改动它？&rdquo;这个问题没有可靠的答案。同样的单一形式规则让许多类别都可以审计：
+          在 TypeScript 中，修改可能藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开运算之后。没有一个能 grep 的标记，所以&ldquo;有没有东西会改动它？&rdquo;这个问题没有可靠的答案。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">一次搜索覆盖整个类别<a class="ak-anchor" href="#audits" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          同样的单一形式规则让许多类别都可以审计：
+      </p>
+      <div class="code term">
         <span class="cap">一次搜索 = 一个完整的答案</span>
 <pre><span class="cm"># every UI component</span>
 <span class="f">grep</span> <span class="fl">-rn</span> <span class="add">"^component "</span> src/
@@ -514,31 +516,32 @@
 <span class="cm"># the entire resource-ownership surface</span>
 <span class="f">grep</span> <span class="fl">-rn</span> <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           没有对象字面量简写，没有声明组件的第二种方式，也没有需要消歧的重载语法。写法更少确实是一种约束，而这正是目的：它让智能体的搜索和你的搜索都值得信赖。
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           Glyph 为了让搜索可信而舍弃了哪些结构，以及为什么 lint 规则不能提供同样的保证，见<a href="/zh-cn/pillars/greppability/">可检索性支柱页面</a>。
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>每种结构只有一种标准形式，修改限制为两种可以 grep 的形式（<code>mut</code>），并且用一个关键字就能完成审计（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">在此之上</h3>
-          <p>语言服务器增加了覆盖整个工作区的跳转到定义和查找引用：同样的保证，现在可以在编辑器中交互使用。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">每种结构只有一种标准形式。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">修改限制为两种可以 grep 的形式（<code>mut</code>）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">用一个关键字就能完成审计（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 在此之上</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">语言服务器增加了覆盖整个工作区的跳转到定义和查找引用：同样的保证，现在可以在编辑器中交互使用。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/diff-stability/">
           <span class="dir">&larr; 上一篇</span>

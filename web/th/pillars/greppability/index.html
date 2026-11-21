@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"ค้นหาได้ด้วย grep","item":"https://glyphlang.io/th/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/pillars/greppability/#article","headline":"ค้นหาได้ด้วย grep · หนึ่งชื่อ หนึ่งที่","description":"เสาหลักข้อที่สองของ Glyph: ทุกสัญลักษณ์มีรูปแบบเดียวที่ declaration ของมัน ไม่มี overload, decorator, การ merge namespace หรือ barrel re-export grep จึงเจอมัน","url":"https://glyphlang.io/th/pillars/greppability/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/pillars/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"ค้นหาได้ด้วย grep","item":"https://glyphlang.io/th/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/pillars/greppability/#article","headline":"ค้นหาได้ด้วย grep · หนึ่งชื่อ หนึ่งที่","description":"เสาหลักข้อที่สองของ Glyph: ทุกสัญลักษณ์มีรูปแบบเดียวที่ declaration ของมัน ไม่มี overload, decorator, การ merge namespace หรือ barrel re-export grep จึงเจอมัน","url":"https://glyphlang.io/th/pillars/greppability/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/pillars/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/greppability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">เสาหลัก 02 &middot; <span class="wedge">จุดหลัก</span></p>
       <h1 class="q-title">ค้นหาได้ด้วย grep</h1>
 
@@ -435,21 +435,7 @@
         <strong>หนึ่งชื่อ หนึ่งที่</strong> ทุกสัญลักษณ์มีรูปแบบทาง syntax เพียงแบบเดียวตรงจุดที่ประกาศ <code>grep</code> ธรรมดาจึงเจอนิยามเสมอ ไม่ต้องมี index ไม่ต้องมี language server และไม่ต้องอาศัยโชค
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-where-is-this-defined-is-hard">ทำไม "สิ่งนี้นิยามไว้ที่ไหน?" ถึงตอบยาก<a class="h-anchor" href="#why-where-is-this-defined-is-hard" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p class="lede">
-          ใน codebase TypeScript ที่โตแล้ว คำถามที่ง่ายที่สุด <em>ชื่อนี้มาจากไหน?</em> มักตอบยากที่สุด ภาษามีหลายวิธีให้กระจายสัญลักษณ์เดียวไปหลายที่: overload แยกฟังก์ชันเป็นหลาย signature, decorator ครอบมันด้วยอย่างอื่น, การ merge <code>namespace</code> และ <code>interface</code> กระจาย type ไปหลายไฟล์, <code>declare module</code> เสริมโค้ดที่คุณไม่ได้เป็นเจ้าของ และไฟล์ barrel <code>index.ts</code> re-export ทุกอย่าง path ที่คุณ import จึงไม่ใช่ที่ที่อะไรอยู่จริง
-        </p>
-        <p class="lede">
-          คนรับมือได้ด้วย LSP และความเคยชิน <strong>เอเจนต์</strong> ใช้ grep: มันอ่าน repo เป็นข้อความ และทุก construct เหล่านั้นคือจุดที่ข้อความโกหกว่าโค้ดอยู่ที่ไหน Glyph เอาพวกมันออก ผลคือภาษาที่การค้นหาเป็น primitive ที่เชื่อถือได้ ไม่ใช่การเดาแบบ heuristic
-        </p>
-
-        <h2 class="block-label" id="one-declaration-one-form"><span class="ex-label">01</span> หนึ่ง declaration หนึ่งรูปแบบ<a class="h-anchor" href="#one-declaration-one-form" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ฟังก์ชัน type หรือ component ถูกประกาศครั้งเดียวด้วย syntax เดียว ไม่มี overload ที่แยก signature และไม่มีทางประกาศชื่อซ้ำ: สองสิ่งระดับบนสุดที่ชื่อเดียวกันเป็น error ที่หยุด build (<code>E0100</code>) การค้นหานิยามจึงมีคำตอบเดียวพอดี
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: เจอสี่จุด มีจุดเดียวที่เป็น body</span>
@@ -467,56 +453,88 @@
 ) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">string</span>&gt; {</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-where-is-this-defined-is-hard">ทำไมถึงยาก</a></li>
+          <li><a href="#one-declaration-one-form">declaration เดียว รูปแบบเดียว</a></li>
+          <li><a href="#no-barrel-files-the-import-path-is-the-location">ไม่มีไฟล์ barrel</a></li>
+          <li><a href="#no-hidden-ways-to-attach-behavior">ไม่มีพฤติกรรมที่ซ่อนอยู่</a></li>
+          <li><a href="#even-mutation-is-greppable">การแก้ค่าที่ grep เจอ</a></li>
+          <li><a href="#the-benchmark-coming">benchmark</a></li>
+          <li><a href="#a-lint-rule-can-ban-overloads-and-decorators">"กฎ lint ก็ทำได้"</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-where-is-this-defined-is-hard">ทำไม "สิ่งนี้นิยามไว้ที่ไหน?" ถึงตอบยาก<a class="ak-anchor" href="#why-where-is-this-defined-is-hard" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ใน codebase TypeScript ที่โตแล้ว คำถามที่ง่ายที่สุด <em>ชื่อนี้มาจากไหน?</em> มักตอบยากที่สุด
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">overload, decorator, การ merge, การเสริม module, barrel</span></summary><div class="body">
+        <p>
+          ภาษามีหลายวิธีให้กระจายสัญลักษณ์เดียวไปหลายที่: overload แยกฟังก์ชันเป็นหลาย signature, decorator ครอบมันด้วยอย่างอื่น, การ merge <code>namespace</code> และ <code>interface</code> กระจาย type ไปหลายไฟล์, <code>declare module</code> เสริมโค้ดที่คุณไม่ได้เป็นเจ้าของ และไฟล์ barrel <code>index.ts</code> re-export ทุกอย่าง path ที่คุณ import จึงไม่ใช่ที่ที่อะไรอยู่จริง
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          คนรับมือได้ด้วย LSP และความเคยชิน <strong>เอเจนต์</strong> ใช้ grep: มันอ่าน repo เป็นข้อความ และทุก construct เหล่านั้นคือจุดที่ข้อความโกหกว่าโค้ดอยู่ที่ไหน
+      </p></div>
+      <p class="ak-lede">
+          Glyph เอาพวกมันออก ผลคือภาษาที่การค้นหาเป็น primitive ที่เชื่อถือได้ ไม่ใช่การเดาแบบ heuristic
+      </p>
+
+      <h2 class="ak-h" id="one-declaration-one-form"><span class="ex-label">01</span> หนึ่ง declaration หนึ่งรูปแบบ<a class="ak-anchor" href="#one-declaration-one-form" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ฟังก์ชัน type หรือ component ถูกประกาศครั้งเดียวด้วย syntax เดียว ไม่มี overload ที่แยก signature และไม่มีทางประกาศชื่อซ้ำ: สองสิ่งระดับบนสุดที่ชื่อเดียวกันเป็น error ที่หยุด build (<code>E0100</code>)
+      </p>
+      <div class="ak-chips"><span class="chip code">E0100</span></div>
         <p class="pull-quote">
           keyword ของ declaration เป็นส่วนหนึ่งของชื่อที่คุณค้นหา <code>grep "fn parseUser"</code> ไม่มีทาง match การเรียก การ import หรือการ re-export มี match แค่ที่เดียวที่มัน<strong>ถูกนิยาม</strong>
         </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>การค้นหานิยามจึงมีคำตอบเดียวพอดี</p></div>
 
-        <h2 class="block-label" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> ไม่มีไฟล์ barrel: path ของ import คือตำแหน่ง<a class="h-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          import ของ Glyph ไม่เคย re-export และ module ที่มีแต่ import จะถูกปฏิเสธ (<code>E0102</code>) ไม่มีชั้น <code>index.ts</code> ที่ฟอกที่มา import จึงระบุ module ที่สัญลักษณ์อยู่จริง: path <em>คือ</em>ที่อยู่
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> ไม่มีไฟล์ barrel: path ของ import คือตำแหน่ง<a class="ak-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          import ของ Glyph ไม่เคย re-export และ module ที่มีแต่ import จะถูกปฏิเสธ (<code>E0102</code>) ไม่มีชั้น <code>index.ts</code> ที่ฟอกที่มา
+      </p>
       <div class="code">
         <span class="cap">import บอกคุณว่าต้องไปดูที่ไหนพอดี</span>
 <pre><span class="k">import</span> myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>import จึงระบุ module ที่สัญลักษณ์อยู่จริง: path <em>คือ</em>ที่อยู่</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> ไม่มีทางแอบผูกพฤติกรรม<a class="h-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ไม่มี decorator ที่ครอบฟังก์ชันด้วยชั้นที่มองไม่เห็น ไม่มีการ merge <code>namespace</code> ที่รวม member จากทั่ว tree ไม่มี <code>declare module</code> ที่เสริม type ของ third-party จากไฟล์ที่คุณไม่มีวันคิดจะเปิด และไม่มี <code>this</code> แบบแฝงที่เปลี่ยนสิ่งที่ method อ้างถึง ชื่อหนึ่ง resolve ไปที่ declaration เดียว และทุกอย่างที่กำหนดรูปของมันมองเห็นได้ที่ declaration นั้น
-        </p>
+      <h2 class="ak-h" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> ไม่มีทางแอบผูกพฤติกรรม<a class="ak-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ไม่มี decorator ที่ครอบฟังก์ชันด้วยชั้นที่มองไม่เห็น ไม่มีการ merge <code>namespace</code> ที่รวม member จากทั่ว tree ไม่มี <code>declare module</code> ที่เสริม type ของ third-party จากไฟล์ที่คุณไม่มีวันคิดจะเปิด และไม่มี <code>this</code> แบบแฝงที่เปลี่ยนสิ่งที่ method อ้างถึง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ชื่อหนึ่ง resolve ไปที่ declaration เดียว และทุกอย่างที่กำหนดรูปของมันมองเห็นได้ที่ declaration นั้น</p></div>
 
-        <h2 class="block-label" id="even-mutation-is-greppable"><span class="ex-label">04</span> แม้แต่การแก้ค่าก็ grep หาได้<a class="h-anchor" href="#even-mutation-is-greppable" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          การค้นหาด้วย grep ไม่ได้เกี่ยวแค่การหานิยาม แต่เกี่ยวกับการหา<em>ผลกระทบ</em>ด้วย state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code> และทุกการเปลี่ยนแปลงคือการเรียก <code>.set(</code> หรือ <code>.update(</code> ตรงตัว การค้นหาครั้งเดียวจึงแจกแจงช่องทางเขียนทั้งหมดของ state ได้ แทนที่จะไล่หาการ assign ที่กระจายอยู่ทั่วไฟล์
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="even-mutation-is-greppable"><span class="ex-label">04</span> แม้แต่การแก้ค่าก็ grep หาได้<a class="ak-anchor" href="#even-mutation-is-greppable" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          การค้นหาด้วย grep ไม่ได้เกี่ยวแค่การหานิยาม แต่เกี่ยวกับการหา<em>ผลกระทบ</em>ด้วย state ที่ใช้ร่วมกันอยู่ใน <code>std/store</code> และทุกการเปลี่ยนแปลงคือการเรียก <code>.set(</code> หรือ <code>.update(</code> ตรงตัว
+      </p>
+      <div class="code term">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
 <pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(<span class="k">fn</span>(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>การค้นหาครั้งเดียวจึงแจกแจงช่องทางเขียนทั้งหมดของ state ได้ แทนที่จะไล่หาการ assign ที่กระจายอยู่ทั่วไฟล์</p></div>
 
-      <div class="detail">
         <p class="pull-quote">
           codebase ค้นหาได้ด้วย grep เมื่อ<strong>ข้อความของมันบอกความจริงเกี่ยวกับโครงสร้าง</strong> ทุกข้อจำกัดที่นี่ (รูปแบบเดียวต่อชื่อ ไม่มี re-export ไม่มีการ merge) มีไว้เพื่อให้การค้นหาได้คำตอบ ไม่ใช่แค่เบาะแส
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">benchmark: กำลังมา<a class="h-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          รูปแบบที่วัดได้ของข้อกล่าวอ้างนี้คือ precision: สำหรับสัญลักษณ์หนึ่ง ผลลัพธ์จาก grep ธรรมดากี่เปอร์เซ็นต์ที่เป็นสิ่งที่คุณตามหาจริง และเอเจนต์ต้องใช้กี่ขั้นถึงจะไปถึงนิยาม Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยตัวเลขจริงเมื่อมี codebase จริงให้วัด
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">benchmark: กำลังมา<a class="ak-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          รูปแบบที่วัดได้ของข้อกล่าวอ้างนี้คือ precision: สำหรับสัญลักษณ์หนึ่ง ผลลัพธ์จาก grep ธรรมดากี่เปอร์เซ็นต์ที่เป็นสิ่งที่คุณตามหาจริง และเอเจนต์ต้องใช้กี่ขั้นถึงจะไปถึงนิยาม
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยตัวเลขจริงเมื่อมี codebase จริงให้วัด</p></div>
       <div class="chart">
         <span class="label">precision ของ grep ในการหานิยาม &middot; ยิ่งสูงยิ่งดี</span>
         <h3>TypeScript เทียบกับ Glyph</h3>
@@ -532,25 +550,20 @@
           <span class="h">ยังไม่ได้วัด</span> เราจะรายงาน precision ของ grep และจำนวนขั้นที่ใช้ไปถึงนิยามจาก codebase Glyph จริงทันทีที่มี และเผยแพร่ตัวเลขที่นี่ไม่ว่าจะออกมาเป็นอย่างไร
         </div>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           ผลตอบแทนทวีขึ้นตามขนาดและความเป็นอิสระ คนจะเรียนรู้ที่ซ่อนของ codebase เอเจนต์ที่เริ่มจากศูนย์ไม่ได้เรียน การค้นหาได้ด้วย grep คือสิ่งที่ทำให้เครื่องมือ (หรือเพื่อนร่วมทีมคนใหม่) นำทางได้ด้วยการอ่าน ตามที่ repo เป็นจริง
-        </p>
-      </div>
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-lint-rule-can-ban-overloads-and-decorators">"กฎ lint ห้าม overload และ decorator ได้"<a class="h-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ใน repository ของคุณเอง ได้ ESLint ห้าม namespace ได้ และทีมตกลงกันไม่ใช้ overload ได้ ภาษายังอนุญาตทั้งหมด การรับประกันจึงอยู่ได้นานเท่าที่ config อยู่ และครอบคลุมแค่โค้ดที่มันรัน <code>grep</code> บน dependency ไฟล์ที่ generate หรือ repository ของคนอื่นพึ่งพามันไม่ได้ ใน Glyph construct เหล่านั้นไม่มีอยู่ <code>grep</code> จึงทำงานเหมือนกันกับทุกไฟล์ Glyph รวมถึงไฟล์ที่ไม่มีใครในทีมคุณเป็นคนตั้งค่า
-        </p>
-      </div>
+      <h2 class="ak-h" id="a-lint-rule-can-ban-overloads-and-decorators">"กฎ lint ห้าม overload และ decorator ได้"<a class="ak-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ใน repository ของคุณเอง ได้ ESLint ห้าม namespace ได้ และทีมตกลงกันไม่ใช้ overload ได้
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ภาษายังอนุญาตทั้งหมด การรับประกันจึงอยู่ได้นานเท่าที่ config อยู่ และครอบคลุมแค่โค้ดที่มันรัน <code>grep</code> บน dependency ไฟล์ที่ generate หรือ repository ของคนอื่นพึ่งพามันไม่ได้</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ใน Glyph construct เหล่านั้นไม่มีอยู่ <code>grep</code> จึงทำงานเหมือนกันกับทุกไฟล์ Glyph รวมถึงไฟล์ที่ไม่มีใครในทีมคุณเป็นคนตั้งค่า</p></div>
 
-      <div class="detail">
-        <p>
+      <p class="ak-lede">
           สิ่งนี้เป็นอย่างไรจากมุมของเอเจนต์ คือการหานิยามหรือทุกการเขียนค่าด้วยการค้นหาครั้งเดียว ตอบไว้ใน <a href="/th/answers/greppability/">เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?</a>
-        </p>
-      </div>
+      </p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/pillars/verifiability/">
           <span class="dir">&larr; เสาหลักก่อนหน้า</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"能写一个让人输入命令的程序吗？","item":"https://glyphlang.io/zh-cn/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#article","headline":"能写一个让人输入命令的程序吗？","description":"io.read_line 在一行到达时就返回，而不是等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会在你输入的同时作出回应。","url":"https://glyphlang.io/zh-cn/answers/interactive-cli/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"能写一个让人输入命令的程序吗？","item":"https://glyphlang.io/zh-cn/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#article","headline":"能写一个让人输入命令的程序吗？","description":"io.read_line 在一行到达时就返回，而不是等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会在你输入的同时作出回应。","url":"https://glyphlang.io/zh-cn/answers/interactive-cli/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/interactive-cli/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/interactive-cli/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/interactive-cli/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">18 &middot; 交互式程序</p>
       <h1 class="q-title">能写一个让人输入命令的程序吗？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -480,21 +480,10 @@
         能。<code>io.read_line</code> <strong>在完整的一行到达时就返回</strong>，不会等 stdin 关闭，所以 REPL、游戏循环或聊天客户端会先回应每一行，再读取下一行。在 0.1.62 之前它确实会等，这一点值得明说，因为它让所有交互式程序都无法实现。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">为什么这很重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
-        <p>
-          只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。
-        </p>
-        <p>
-          那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。
-        </p>
-
-        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
-        <p>聊天应用的整个实时会话循环。读取、应用、打印、重复：</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">聊天应用的整个实时会话循环。读取、应用、打印、重复：</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre><span class="k">fn</span> converse(limit: <span class="t">Option</span>&lt;<span class="t">int</span>&gt;) <span class="op">-&gt;</span> <span class="t">Server</span> {
   <span class="k">let</span> state = server.empty()
   io.println(<span class="t">LIVE_BANNER</span>)
@@ -514,16 +503,12 @@
   }
   <span class="k">return</span> state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           在真实终端上驱动，每行输入间隔约 0.6 秒，stdin 保持打开。左列是进程启动以来的毫秒数：
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -532,40 +517,81 @@
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>从输入一行到得到回应只需一到两毫秒。</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">修复之前的情况，以及最初的 1.6 秒花在哪里</span></summary><div class="body">
+          <p>
+            修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">为什么这很重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        只在输入结束时才返回的行读取器，其实是顶着行读取器名字的文件读取器。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        用管道传入一个文件时它工作得很好，所以一直没人发现：仓库里每个读取 stdin 的应用读的都是管道。后来有人写了一个聊天客户端，它在用户输入时毫无反应，直到按下 Ctrl-D 才一次性打印所有回复。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">围绕它塑造的应用</span></summary><div class="body">
         <p>
-          从输入一行到得到回应只需一到两毫秒。修复之前，直到 6460ms 才有输出，也就是 stdin 关闭的时刻。完整运行时第一个回应大约出现在 1.6 秒处，那是 <code>tsx</code> 启动的时间，而不是读取延迟。
+          那个应用最终是以回放录制好的 JSON 文件的会话回放器形式发布的，源码里有一条注释说明原因。另外三个应用也围绕同一个问题调整了形态，只是没人点明：扫雷无法在两步之间重绘，文字冒险游戏无法回应 <code>look</code>，REPL 在你挂断之前什么都不求值。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-parts-that-bite-in-practice">实际使用中容易踩坑的地方<a class="h-anchor" href="#the-parts-that-bite-in-practice" aria-label="链接到本节">#</a></h2>
-        <p>
-          末尾的 <code>\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。
-        </p>
-        <p>
-          <code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">实际使用中容易踩坑的地方<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b>末尾的 <code>\r</code> 会被去掉，所以 CRLF 文件和 LF 文件得到相同的行，你不用在 Windows 输入上调试一个看不见的字符。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>没有结尾换行</b>没有以换行结尾的输入，仍会在返回 <code>None</code> 之前把最后一行交还一次，所以没有结尾换行的文件的最后一行不会被悄悄丢掉。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>被拆开的 UTF-8</b>跨读取边界被拆开的多字节 UTF-8 会被暂存并补全，而不是变成替换字符。</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer">先 <code>read_line</code>，再 <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> 读取的是同一个缓冲区，所以两者可以组合：先用 <code>read_line</code> 读标题行，再用 <code>read_to_string</code> 读正文，得到的是剩下的内容，而不是第二份副本，也不是空字符串。如果先调用它，它仍然返回整个 stdin。
+      </p>
       <div class="code">
         <span class="cap">先读一行标题，再读正文</span>
 <pre><span class="k">let</span> header = io.read_line()
 <span class="k">let</span> body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        通过管道传入 200,000 行，计数大约需要 20ms，所以逐行读取不需要牺牲吞吐量。
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p><code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。<code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">仍不完善</h3>
-          <p>想要重绘屏幕的程序没有光标控制：<code>std/io</code> 没有光标或屏幕函数，也没有其他标准库模块提供，所以全屏终端界面仍然需要自己写转义序列。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code> 在一行到达时返回，而不是在流关闭时返回，所以“提示/读取/回应”循环在终端上和通过管道时都能工作。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF 会被规范化，没有终止符的最后一行会交付一次，多字节字符能跨越分块边界保持完整，<code>read_to_string</code> 读取同一缓冲区中剩下的内容。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">有一个回归测试会保持 stdin 打开并要求得到回显</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>有一个回归测试会保持 stdin 打开并要求得到回显，因为用管道传入文件的测试在有问题的实现上也能通过。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p><code>io.print</code> 和 <code>io.eprint</code> 输出时不带换行，所以 REPL 的 <code>&gt; </code> 提示符和用户输入的答案在同一行；<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> 告诉程序它面对的是人还是管道，所以像聊天应用的 <code>--stdin</code> 这样的 flag 不再是唯一的判断方式。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 仍不完善</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">想要重绘屏幕的程序还没有光标控制</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>想要重绘屏幕的程序没有光标控制：<code>std/io</code> 没有光标或屏幕函数，也没有其他标准库模块提供，所以全屏终端界面仍然需要自己写转义序列。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/web-serving/">
           <span class="dir">&larr; 上一篇</span>

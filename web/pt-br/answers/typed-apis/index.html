@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Preciso escrever um validador à mão para cada API?","item":"https://glyphlang.io/pt-br/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/typed-apis/#article","headline":"Preciso escrever um validador à mão para cada API?","description":"Não. Em Glyph um tipo é o seu próprio validador em runtime, então os bodies de requisição e de resposta são verificados sem nenhum validador para escrever, e os tipos podem vir de uma spec OpenAPI ou de um .d.ts.","url":"https://glyphlang.io/pt-br/answers/typed-apis/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/typed-apis/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/typed-apis/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Preciso escrever um validador à mão para cada API?","item":"https://glyphlang.io/pt-br/answers/typed-apis/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/typed-apis/#article","headline":"Preciso escrever um validador à mão para cada API?","description":"Não. Em Glyph um tipo é o seu próprio validador em runtime, então os bodies de requisição e de resposta são verificados sem nenhum validador para escrever, e os tipos podem vir de uma spec OpenAPI ou de um .d.ts.","url":"https://glyphlang.io/pt-br/answers/typed-apis/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/typed-apis/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/typed-apis/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Esta página é uma tradução. A versão em inglês é a referência. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28pt-br%29%3A+%2Fpt-br%2Fanswers%2Ftyped-apis%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fpt-br%2Fanswers%2Ftyped-apis%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftyped-apis%2F%0A%0AWhat+is+wrong%3A%0A">Relatar um problema na tradução</a></p>
-      <p class="i18n-stale">A versão em inglês desta página mudou desde que esta tradução foi feita. <a href="/answers/typed-apis/" hreflang="en" data-lang="en">Ler a versão atual em inglês</a></p>
     </div>
     <script>
       (function () {
@@ -693,7 +692,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           Um body de requisição chega já decodificado como <code>unknown</code>, então ali você usa <code>T.parse(value)</code>: mesma garantia, sem cast.
         </p>
         <p>
-          O resto da fronteira não confiável é tipado do mesmo jeito: <code>header(req, name)</code> e <code>query_param(req, name)</code> retornam <code>Option&lt;string&gt;</code>, então um header ou parâmetro de query ausente é <code>None</code> e o <code>match</code> <em>obriga</em> você a tratar o caso. Omita o braço <code>None</code> e não compila. Uma entrada ausente não pode ser lida como se estivesse presente.
+          O resto da fronteira não confiável é tipado do mesmo jeito: <code>header(req, name)</code> e <code>query_param(req, name)</code> retornam <code>Option&lt;string&gt;</code>, então um header ou parâmetro de query ausente é <code>None</code> e o <code>match</code> <em>obriga</em> você a tratar o caso. Omita o braço <code>None</code> e não compila. Uma entrada ausente não pode ser lida como se estivesse presente. Um campo do body segue a mesma regra: <code>timeout_ms?: number</code> é uma chave ausente ou um número, então <code>{"timeout_ms": null}</code> é um <code>Err</code> em <code>["timeout_ms"]</code>, vindo de <code>T.parse</code>, de <code>is T</code> e de <code>json.parse&lt;T&gt;</code> igualmente. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> quando quem envia escreve <code>null</code>. Até a 0.1.152 esse <code>null</code> voltava dentro do <code>Ok</code>.
         </p>
       </div></details>
 
@@ -706,15 +705,15 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           <thead><tr><th>Tipo da chave</th><th>O que o <code>parse</code> verifica em cada chave</th></tr></thead>
           <tbody>
             <tr><td>Uma union de string literals</td><td>exatamente as chaves listadas, nenhuma faltando, nenhuma sobrando</td></tr>
-            <tr><td>Um tipo refinado com <code>where</code></td><td>o predicado</td></tr>
+            <tr><td>Uma <code>string</code> ou um número refinados com <code>where</code></td><td>o predicado</td></tr>
             <tr><td><code>int</code></td><td>a escrita simples de um número inteiro; <code>"01"</code> e <code>"1.5"</code> falham</td></tr>
             <tr><td><code>string</code></td><td>nada de novo</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">chaves refinadas e int, e o que ainda fica para o tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">chaves refinadas e int, e o que o verificador garante</span></summary><div class="body">
         <p>
-          Um tipo de chave refinado com <code>where</code> roda o predicado em cada chave, e uma chave <code>int</code> precisa ser a escrita simples de um número inteiro, então <code>"01"</code> e <code>"1.5"</code> são recusados. Um <code>Record&lt;string, V&gt;</code> é verificado exatamente como antes. O verificador do próprio Glyph ainda deixa para o <code>tsc</code> as chaves de um valor que você escreve no código, e um record genérico com chaves do seu próprio parâmetro de tipo é recusado, a menos que esse parâmetro seja <code>string</code>.
+          Um tipo de chave refinado com <code>where</code> roda o predicado em cada chave, e uma chave <code>int</code> precisa ser a escrita simples de um número inteiro, então <code>"01"</code> e <code>"1.5"</code> são recusados. Um <code>Record&lt;string, V&gt;</code> é verificado exatamente como antes. Um <code>where</code> não pode refinar uma union de string literals (<code>type T2 = Tier where value != "pro"</code> é <code>E0300</code> desde a 0.1.152); escreva os membros que você quer como uma union própria, <code>type T2 = "free"</code>, e ela serve de chave para um <code>Record</code> com a mesma verificação de chaves exatas. Desde a 0.1.153 o verificador do próprio Glyph também cobra a chave de um valor que você escreve no código: um <code>Record&lt;string, int&gt;</code> não serve onde um <code>Record&lt;Tier, int&gt;</code> está declarado, nem o contrário, então a passagem é um <code>json.parse</code> ou um braço <code>is Record&lt;Tier, int&gt;</code>, e <code>record.set</code> mantém a chave que recebeu. Um record genérico com chaves do seu próprio parâmetro de tipo é recusado, a menos que esse parâmetro seja <code>string</code>.
         </p>
       </div></details>
 
@@ -1010,7 +1009,7 @@ task.titel   <span class="del">// E0210: type `NewTask` has no field `titel`; di
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/embedding/">
           <span class="dir">&larr; Anterior</span>

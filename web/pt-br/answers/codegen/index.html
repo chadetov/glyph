@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Consigo gerar um client tipado a partir da spec da minha API?","item":"https://glyphlang.io/pt-br/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/codegen/#article","headline":"Consigo gerar um client tipado a partir da spec da minha API?","description":"Sim. glyph gen openapi transforma uma spec num client HTTP tipado ou em stubs de servidor com um router, e gen zod trabalha a partir de schemas zod. A saída é Glyph comum.","url":"https://glyphlang.io/pt-br/answers/codegen/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/codegen/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Consigo gerar um client tipado a partir da spec da minha API?","item":"https://glyphlang.io/pt-br/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/codegen/#article","headline":"Consigo gerar um client tipado a partir da spec da minha API?","description":"Sim. glyph gen openapi transforma uma spec num client HTTP tipado ou em stubs de servidor com um router, e gen zod trabalha a partir de schemas zod. A saída é Glyph comum.","url":"https://glyphlang.io/pt-br/answers/codegen/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/codegen/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Esta página é uma tradução. A versão em inglês é a referência. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28pt-br%29%3A+%2Fpt-br%2Fanswers%2Fcodegen%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fpt-br%2Fanswers%2Fcodegen%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fcodegen%2F%0A%0AWhat+is+wrong%3A%0A">Relatar um problema na tradução</a></p>
-      <p class="i18n-stale">A versão em inglês desta página mudou desde que esta tradução foi feita. <a href="/answers/codegen/" hreflang="en" data-lang="en">Ler a versão atual em inglês</a></p>
     </div>
     <script>
       (function () {
@@ -426,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">12 &middot; A partir da sua spec</p>
       <h1 class="q-title">Consigo gerar um cliente e um servidor tipados a partir da spec da minha API?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respostas">
@@ -479,21 +478,10 @@
         Sim. Aponte o <code>glyph gen openapi</code> para uma spec OpenAPI: <code>--client</code> emite um client HTTP tipado, uma função por operação; <code>--handlers</code> emite stubs de servidor e um dispatcher <code>route</code> funcional. Se a sua fonte da verdade é um schema <code>zod</code>, o <code>glyph gen zod</code> faz o mesmo. Tudo sai como <strong>Glyph comitado e buscável por grep</strong>, que é seu e que você edita, nunca uma etapa de codegen escondida.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por que isso importa<a class="h-anchor" href="#why-it-matters" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Clients de API escritos à mão e seus DTOs se afastam da spec, e esse desvio é uma classe de bug de que ninguém gosta. Como o Glyph gera código <em>de verdade</em> (funções tipadas, declarações <code>type</code> reais com descritores em tempo de execução), a spec continua sendo a fonte da verdade, e regenerar produz um diff idempotente e revisável, não uma caixa-preta.
-        </p>
-
-        <h2 class="block-label" id="see-it-the-client">Na prática: o client<a class="h-anchor" href="#see-it-the-client" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Cada operação vira uma <code>async fn</code> com parâmetros de path tipados e um body de requisição tipado, retornando o <code>Response</code> HTTP:
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+      <figure class="ak-hero" id="see-it-the-client">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
 <pre class="wraps"><span class="k">async</span> <span class="k">fn</span> createTask(
   base: <span class="t">string</span>,
   body: <span class="t">NewTask</span>,
@@ -508,9 +496,9 @@
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
   <span class="k">return</span> <span class="k">await</span> get(<span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks/</span><span class="ip">${</span>id<span class="ip">}</span><span class="s">"</span>)
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+          </div>
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
 <pre class="wraps"><span class="k">fn</span> route(req: <span class="t">Request</span>)
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="k">match</span> req.method {
@@ -527,18 +515,48 @@
     })),
   }
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Na prática: o client. Cada operação vira uma <code>async fn</code> com parâmetros de path tipados e um body de requisição tipado, retornando o <code>Response</code> HTTP.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          O router do <code>--handlers</code> casa o path com padrões de array, então <code>/tasks/{id}</code> vira <code>["tasks", id]</code> e faz o bind do parâmetro para você. Cada stub começa como um <code>501</code> com um comentário mostrando o parse do body; você os preenche e liga tudo com <code>await serve(PORT, route)</code>.
-        </p>
-        <h2 class="block-label" id="from-a-zod-schema-instead">A partir de um schema zod<a class="h-anchor" href="#from-a-zod-schema-instead" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Se o seu time já define formatos com <code>zod</code>, gere direto a partir deles. O schema vira um tipo Glyph de primeira classe com seu próprio descritor:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que gerar</a></li>
+          <li><a href="#the-handlers-router">O router do servidor</a></li>
+          <li><a href="#from-a-zod-schema-instead">A partir de um schema zod</a></li>
+          <li><a href="#what-it-maps">O que ele mapeia</a></li>
+          <li><a href="#keeping-it-in-sync">Mantendo em sincronia</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Clients de API escritos à mão e seus DTOs se afastam da spec, e esse desvio é uma classe de bug de que ninguém gosta.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Como o Glyph gera código <em>de verdade</em> (funções tipadas, declarações <code>type</code> reais com descritores em tempo de execução), a spec continua sendo a fonte da verdade, e regenerar produz um diff idempotente e revisável, não uma caixa-preta.
+      </p></div>
+
+      <h2 class="ak-h" id="the-handlers-router">O router do <code>--handlers</code><a class="ak-anchor" href="#the-handlers-router" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O router do <code>--handlers</code> casa o path com padrões de array, então <code>/tasks/{id}</code> vira <code>["tasks", id]</code> e faz o bind do parâmetro para você.
+      </p>
+      <ol class="ak-path" aria-label="Como um path chega a um handler">
+        <li><span>/tasks/{id}</span></li>
+        <li><span>["tasks", id]</span></li>
+        <li><span>getTask(req, id)</span></li>
+      </ol>
+      <p>
+        Cada stub começa como um <code>501</code> com um comentário mostrando o parse do body; você os preenche e liga tudo com <code>await serve(PORT, route)</code>.
+      </p>
+
+      <h2 class="ak-h" id="from-a-zod-schema-instead">A partir de um schema zod<a class="ak-anchor" href="#from-a-zod-schema-instead" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Se o seu time já define formatos com <code>zod</code>, gere direto a partir deles. O schema vira um tipo Glyph de primeira classe com seu próprio descritor:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -561,34 +579,55 @@
         </div>
       </div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="what-it-maps">O que ele mapeia<a class="ak-anchor" href="#what-it-maps" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Uma <strong>discriminated union</strong> polimórfica (um <code>discriminator</code> do OpenAPI) sai como uma union etiquetada real do Glyph mais um <code>parse_&lt;Name&gt;</code> gerado, que lê a propriedade discriminadora e valida para a variante certa.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">por que um dispatcher é gerado</span></summary><div class="body">
         <p>
-          Uma <strong>discriminated union</strong> polimórfica (um <code>discriminator</code> do OpenAPI) sai como uma union etiquetada real do Glyph mais um <code>parse_&lt;Name&gt;</code> gerado, que lê a propriedade discriminadora e valida para a variante certa. Como o Glyph etiqueta pelo nome do construtor e não por uma propriedade arbitrária, o dispatcher gerado faz a ponte entre o objeto que vem da rede e a union para você.
+          Como o Glyph etiqueta pelo nome do construtor e não por uma propriedade arbitrária, o dispatcher gerado faz a ponte entre o objeto que vem da rede e a union para você.
         </p>
-        <p>
-          Onde fica aquém: a geração é fiel ao formato da rede, então mapeia os 80% comuns: objetos, primitivos, arrays, referências, campos opcionais e nullable, e discriminated unions. O que não consegue representar com exatidão (um enum de strings, uma union <em>não</em> discriminada) ela estreita com uma nota impressa, em vez de um validador que rejeitaria dados reais. Enums mais ricos vêm a seguir. E as ferramentas têm dependências reais: <code>gen dts</code>/<code>gen zod</code> precisam de Node mais <code>typescript</code>/<code>zod</code>. O <code>gen dts</code> funciona com qualquer TypeScript (5, 6 ou o port nativo 7.x), resolvido primeiro a partir do seu projeto, e os comandos dizem exatamente o que instalar se faltar algo.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="keeping-it-in-sync">Mantendo tudo em sincronia<a class="h-anchor" href="#keeping-it-in-sync" aria-label="Link para esta seção">#</a></h2>
+      <h3 class="ak-h3" id="where-it-falls-short">Onde fica aquém<a class="ak-anchor" href="#where-it-falls-short" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        A geração é fiel ao formato da rede, então mapeia os 80% comuns: objetos, primitivos, arrays, referências, campos opcionais e nullable (mantidos separados: um campo nullable vira <code>Nullable&lt;T&gt;</code>, e um campo que o schema não exige ganha <code>?</code>, que não aceita <code>null</code>), e discriminated unions. O que não consegue representar com exatidão (um enum de strings, uma union <em>não</em> discriminada) ela estreita com uma nota impressa, em vez de um validador que rejeitaria dados reais. Enums mais ricos vêm a seguir.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o que os geradores precisam ter instalado</span></summary><div class="body">
         <p>
-          Todo arquivo gerado registra no cabeçalho o comando exato que o criou. Quando uma spec muda, você não precisa caçar quais comandos rodar de novo: <code>glyph regen</code> procura esses cabeçalhos e roda cada um de novo, reescrevendo a saída. É idempotente, então um regen sem mudança na spec não toca em nada; encaixa direto num hook de pre-commit ou numa verificação de CI que falha se o código comitado tiver se afastado da spec.
+          E as ferramentas têm dependências reais: <code>gen dts</code>/<code>gen zod</code> precisam de Node mais <code>typescript</code>/<code>zod</code>. O <code>gen dts</code> funciona com qualquer TypeScript (5, 6 ou o port nativo 7.x), resolvido primeiro a partir do seu projeto, e os comandos dizem exatamente o que instalar se faltar algo.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Situação atual<a class="h-anchor" href="#where-it-stands" aria-label="Link para esta seção">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p><code>glyph gen openapi</code> (tipos, <code>--client</code>, <code>--handlers</code> com um router real), <code>glyph gen dts</code>, <code>glyph gen zod</code> e <code>glyph regen</code> para atualizar tudo a partir da fonte: todos os comandos emitem Glyph comitado, com descritores e regenerado de forma idempotente.</p>
-         Dois tipos que seriam escritos sob um mesmo nome Glyph param o gerador, em vez de produzir um arquivo que não compila: ele nomeia cada fonte em colisão, não grava nada, e <code>--rename Source=GlyphName</code> resolve. Essa escolha fica registrada no cabeçalho gerado, então o <code>glyph regen</code> a repete.</div>
-        <div class="status-card next">
-          <h3 class="h">A caminho</h3>
-          <p>Mapeamento de enums mais rico e cobertura maior do OpenAPI, cada um chegando sob a mesma regra: fiel ao formato da rede, com nota quando estreitar. Gerar a partir do próprio <code>.d.ts</code> de um pacote lê as declarações <code>interface</code> e <code>type</code> dele, então uma biblioteca cuja API é feita de classes, ou cujos campos usam tipos computados como <code>Omit</code>, deixa referências que o gerador cita numa nota e que o <code>glyph build</code> informa como não resolvidas. Importar uma classe dessas e construí-la com <code>new</code> não precisa de geração e é verificado pelo <code>tsc</code>, então esse caminho não é afetado.</p>
-        </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <h2 class="ak-h" id="keeping-it-in-sync">Mantendo tudo em sincronia<a class="ak-anchor" href="#keeping-it-in-sync" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Todo arquivo gerado registra no cabeçalho o comando exato que o criou. Quando uma spec muda, você não precisa caçar quais comandos rodar de novo: <code>glyph regen</code> procura esses cabeçalhos e roda cada um de novo, reescrevendo a saída.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        É idempotente, então um regen sem mudança na spec não toca em nada; encaixa direto num hook de pre-commit ou numa verificação de CI que falha se o código comitado tiver se afastado da spec.
+      </p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> (tipos, <code>--client</code>, <code>--handlers</code> com um router real), <code>glyph gen dts</code>, <code>glyph gen zod</code> e <code>glyph regen</code> para atualizar tudo a partir da fonte: todos os comandos emitem Glyph comitado, com descritores e regenerado de forma idempotente.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Dois tipos que seriam escritos sob um mesmo nome Glyph param o gerador, em vez de produzir um arquivo que não compila: ele nomeia cada fonte em colisão, não grava nada, e <code>--rename Source=GlyphName</code> resolve.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Essa escolha fica registrada no cabeçalho gerado, então o <code>glyph regen</code> a repete.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> A caminho</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Mapeamento de enums mais rico e cobertura maior do OpenAPI, cada um chegando sob a mesma regra: fiel ao formato da rede, com nota quando estreitar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Gerar a partir do próprio <code>.d.ts</code> de um pacote lê as declarações <code>interface</code> e <code>type</code> dele, então uma biblioteca cuja API é feita de classes, ou cujos campos usam tipos computados como <code>Omit</code>, deixa referências que o gerador cita numa nota e que o <code>glyph build</code> informa como não resolvidas.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Importar uma classe dessas e construí-la com <code>new</code> não precisa de geração e é verificado pelo <code>tsc</code>, então esse caminho não é afetado.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/typed-apis/">
           <span class="dir">&larr; Anterior</span>

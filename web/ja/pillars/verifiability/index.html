@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"検証可能性","item":"https://glyphlang.io/ja/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/pillars/verifiability/#article","headline":"検証可能性 · any なし、網羅的な match","description":"Glyph の第 1 の柱：any も as もなく、match は網羅的で、宣言した型には実行時のバリデータが付きます。tsc の上に重ねた厳格なレイヤーで、その限界も明記しています。","url":"https://glyphlang.io/ja/pillars/verifiability/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/pillars/verifiability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"検証可能性","item":"https://glyphlang.io/ja/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/pillars/verifiability/#article","headline":"検証可能性 · any なし、網羅的な match","description":"Glyph の第 1 の柱：any も as もなく、match は網羅的で、宣言した型には実行時のバリデータが付きます。tsc の上に重ねた厳格なレイヤーで、その限界も明記しています。","url":"https://glyphlang.io/ja/pillars/verifiability/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/pillars/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">柱 01 &middot; <span class="wedge">突破口</span></p>
       <h1 class="q-title">検証可能性</h1>
 
@@ -435,54 +435,71 @@
         Glyph はエージェントが落ちる穴を塞ぎます。<strong>書ける <code>any</code> も <code>as</code> もなく</strong>、<code>match</code> は<strong>網羅的であることが証明され</strong>、宣言した型には<strong>厳格な実行時バリデータ</strong>が付きます。これらはすべて <code>tsc</code> の上に重ねた厳格なレイヤーとして強制されます。Glyph 自身がすべてを検証するわけではなく、保証がどこで止まるかは下で具体的に説明します。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-lie-a-type-can-tell">型がつく嘘<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="このセクションへのリンク">#</a></h2>
-        <p class="lede">
-          TypeScript では、型はコンパイル時の約束にすぎず、コードが動く前に消えてしまいます。<code>User</code> という注釈は消去されて何も残りません。ネットワーク呼び出し、JSON のパース、フォームの入力から実際に得られるオブジェクトは、どんな形でもありえます。さらに悪いことに、言語は型検査器に嘘をつく合法的な方法を 3 つも用意しています。<code>any</code>、<code>as</code> によるキャスト、非 null の <code>!</code> です。急いで作業するエージェントは 3 つとも使い、<code>tsc --strict</code> がグリーンのままバグが出荷されます。
-        </p>
-        <p class="lede">
-          Glyph の最初の仕事は、これらの穴を塞ぐことです。注釈を増やすのではなく、抜け道を取り除き、すべての型がその証明を実行時まで持ち運ぶようにします。それが何を意味するのか、保証を 1 つずつ見ていきます。
-        </p>
-
-        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code> は存在しない<a class="h-anchor" href="#there-is-no-any" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>any</code> は TypeScript で最も高くつくキーワードです。ある値<em>と、その値が触れるすべてのもの</em>について型システムを無効にします。境界にある 1 つの <code>any</code> が、下流の呼び出しグラフを気づかないうちに汚染します。Glyph にはそれがありません。トップ型は <code>unknown</code> で、<code>unknown</code> は何もできません。それが何であるかを<em>証明</em>するまで、呼び出すことも、インデックスでアクセスすることも、型付きの場所に渡すこともできません。
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript：コンパイルは通り、クラッシュする</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript：コンパイルは通り、クラッシュする</span>
+            <span class="cap">handler.ts</span>
 <pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph：絞り込みが証明になる</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph：絞り込みが証明になる</span>
+            <span class="cap">handler.glyph</span>
 <pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
     <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
     <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          コンパイラから見える検査なしに、<code>unknown</code> から型付きの値を取り出すことはできません。Glyph では、絞り込みそのもの<strong>が</strong>実行時の証明です。それを飛ばす構文はありません。
-        </p>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">型がつく嘘</a></li>
+          <li><a href="#there-is-no-any">any なし</a></li>
+          <li><a href="#types-are-real-at-runtime">実行時の型</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">すべてのケース</a></li>
+          <li><a href="#errors-are-values-not-surprises">値としてのエラー</a></li>
+          <li><a href="#even-pii-is-type-level">個人情報</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">保証が止まる場所</a></li>
+          <li><a href="#the-benchmark-coming">ベンチマーク</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">strict な TS と lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> 型は実行時にも実在する<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="このセクションへのリンク">#</a></h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">型がつく嘘<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript では、型はコンパイル時の約束にすぎず、コードが動く前に消えてしまいます。<code>User</code> という注釈は消去されて何も残りません。ネットワーク呼び出し、JSON のパース、フォームの入力から実際に得られるオブジェクトは、どんな形でもありえます。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>さらに悪いことに、言語は型検査器に嘘をつく合法的な方法を 3 つも用意しています。<code>any</code>、<code>as</code> によるキャスト、非 null の <code>!</code> です。急いで作業するエージェントは 3 つとも使い、<code>tsc --strict</code> がグリーンのままバグが出荷されます。</p></div>
+      <p class="ak-lede">
+        Glyph の最初の仕事は、これらの穴を塞ぐことです。注釈を増やすのではなく、抜け道を取り除き、すべての型がその証明を実行時まで持ち運ぶようにします。それが何を意味するのか、保証を 1 つずつ見ていきます。
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code> は存在しない<a class="ak-anchor" href="#there-is-no-any" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph にはそれがありません。トップ型は <code>unknown</code> で、<code>unknown</code> は何もできません。それが何であるかを<em>証明</em>するまで、呼び出すことも、インデックスでアクセスすることも、型付きの場所に渡すこともできません。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">1 つの any がこれほど高くつく理由</span></summary><div class="body">
         <p>
-          <code>User.parse</code> はなぜ存在するのでしょうか。すべてのレコード型と、ジェネリックでないすべてのタグ付きユニオンは、<strong>実行時ディスクリプタ</strong>を一緒に生成するからです。<code>is</code> ガード、<code>unknown</code> を検証して <code>Result</code> にする <code>parse</code>、組み合わせ可能な <code>schema</code> です。レコードの形は想定されるのではなく実行時に実際に調べられるので、<code>is User</code> の検査は消去される空の処理ではなく、本物の検査です。
+          <code>any</code> は TypeScript で最も高くつくキーワードです。ある値<em>と、その値が触れるすべてのもの</em>について型システムを無効にします。境界にある 1 つの <code>any</code> が、下流の呼び出しグラフを気づかないうちに汚染します。
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        コンパイラから見える検査なしに、<code>unknown</code> から型付きの値を取り出すことはできません。Glyph では、絞り込みそのもの<strong>が</strong>実行時の証明です。それを飛ばす構文はありません。
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> 型は実行時にも実在する<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>User.parse</code> はなぜ存在するのでしょうか。すべてのレコード型と、ジェネリックでないすべてのタグ付きユニオンは、<strong>実行時ディスクリプタ</strong>を一緒に生成するからです。<code>is</code> ガード、<code>unknown</code> を検証して <code>Result</code> にする <code>parse</code>、組み合わせ可能な <code>schema</code> です。
+      </p>
       <div class="code">
         <span class="cap">書いた型と、そこから生成されるディスクリプタ</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
@@ -500,21 +517,24 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>これが「API ごとに手書きのバリデータが必要」という問題への答えです。型がバリデータです。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ディスクリプタが検査するもの</span></summary><div class="body">
         <p>
-          これが「API ごとに手書きのバリデータが必要」という問題への答えです。型がバリデータです。境界（リクエストボディ、設定ファイル、サードパーティのレスポンス）は、不正なデータを実際に拒否できる検査を通ったときにだけ型付きになります。
+          レコードの形は想定されるのではなく実行時に実際に調べられるので、<code>is User</code> の検査は消去される空の処理ではなく、本物の検査です。
         </p>
         <p>
-          これが止まる場所：レコードのディスクリプタはデフォルトで厳格です。宣言されたフィールドを確認し、宣言されていないキーを持つ値は拒否します（余分なキーを許すには型に <code>@open</code> を付けます）。ジェネリックなものも含めてレコード型にはディスクリプタが付くので、<code>Paginated&lt;User&gt;</code> は各要素を <code>User</code> として検査し、タグ付きユニオンのディスクリプタはタグを検査したうえで、そのバリアントのペイロードのフィールドを検査します。まだディスクリプタが付かないのは、ジェネリックなタグ付きユニオン（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> には <code>Box.parse</code> がありません）と、参照するだけの <code>.d.ts</code> からインポートした型です。検査で形の一部しか証明できない場合、コンパイラはそう伝え、できない保証をほのめかすことはしません。
+          境界（リクエストボディ、設定ファイル、サードパーティのレスポンス）は、不正なデータを実際に拒否できる検査を通ったときにだけ型付きになります。
         </p>
-
-        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> すべてのケースを扱わなければコンパイルできない<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          封じられたユニオンに対する <code>match</code> は、すべてのバリアントを扱わなければなりません。後でバリアントを追加すると、それを考慮していない<em>すべての</em> match がコンパイルできなくなります（<code>E0200</code>）。忘れられた <code>switch</code> の分岐のように、新しいケースが黙って <code>undefined</code> に落ちることはありません。ユニオンだけではありません。<code>number</code> や <code>string</code> をリテラル値で match するときは <code>else</code> が必要です（<code>E0218</code>）。これらの値域は無限で、リテラルの集合が完全になることはないからです。
+          これが止まる場所：レコードのディスクリプタはデフォルトで厳格です。宣言されたフィールドを確認し、宣言されていないキーを持つ値は拒否します（余分なキーを許すには型に <code>@open</code> を付けます）。ジェネリックなものも含めてレコード型にはディスクリプタが付くので、<code>Paginated&lt;User&gt;</code> は各要素を <code>User</code> として検査し、タグ付きユニオンのディスクリプタはタグを検査したうえで、そのバリアントのペイロードのフィールドを検査します。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>まだディスクリプタが付かないのは、ジェネリックなタグ付きユニオン（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> には <code>Box.parse</code> がありません）と、参照するだけの <code>.d.ts</code> からインポートした型です。検査で形の一部しか証明できない場合、コンパイラはそう伝え、できない保証をほのめかすことはしません。</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> すべてのケースを扱わなければコンパイルできない<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        封じられたユニオンに対する <code>match</code> は、すべてのバリアントを扱わなければなりません。後でバリアントを追加すると、それを考慮していない<em>すべての</em> match がコンパイルできなくなります（<code>E0200</code>）。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -528,7 +548,7 @@
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">実行時の undefined ではなく、コンパイルエラー</span>
           <span class="cap">$ glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
@@ -539,14 +559,17 @@
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> エラーは不意打ちではなく値<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="このセクションへのリンク">#</a></h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">数値と文字列の match</span></summary><div class="body">
         <p>
-          失敗しうる関数は <code>Result&lt;T, E&gt;</code> を返します。<code>match</code> で処理するか、<code>?</code> 演算子で伝播させます。エラーの型は一致していなければなりません（不一致を隠す暗黙の変換はありません）。<code>Result</code> をまったく無視すると（副作用のために呼び出して戻り値を捨てると）、Glyph は警告します（<code>E0217</code>）。捨てられたエラーは握りつぶされた失敗だからです。黙らせるには <code>let _ = ...</code> と意図して書く必要があり、うっかり黙ることはありません。
+          忘れられた <code>switch</code> の分岐のように、新しいケースが黙って <code>undefined</code> に落ちることはありません。ユニオンだけではありません。<code>number</code> や <code>string</code> をリテラル値で match するときは <code>else</code> が必要です（<code>E0218</code>）。これらの値域は無限で、リテラルの集合が完全になることはないからです。
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> エラーは不意打ちではなく値<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        失敗しうる関数は <code>Result&lt;T, E&gt;</code> を返します。<code>match</code> で処理するか、<code>?</code> 演算子で伝播させます。エラーの型は一致していなければなりません（不一致を隠す暗黙の変換はありません）。
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
@@ -560,14 +583,12 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>Result</code> をまったく無視すると（副作用のために呼び出して戻り値を捨てると）、Glyph は警告します（<code>E0217</code>）。捨てられたエラーは握りつぶされた失敗だからです。黙らせるには <code>let _ = ...</code> と意図して書く必要があり、うっかり黙ることはありません。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> 個人情報も型のレベルで扱う<a class="h-anchor" href="#even-pii-is-type-level" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          「慣習ではなくコンパイラの仕事にする」という同じ考え方は、機密データにまで及びます。型に <code>@redact</code> を付けると、そのディスクリプタにはそれらのフィールドをマスクする <code>redact()</code> が加わり、うっかり書いた <code>json.stringify(User.redact(u))</code> からも漏れません。型にないフィールドを指定するとコンパイルエラー（<code>E0219</code>）になり、何も守らない伏せ字処理が黙って残ることはありません。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> 個人情報も型のレベルで扱う<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        「慣習ではなくコンパイラの仕事にする」という同じ考え方は、機密データにまで及びます。型に <code>@redact</code> を付けると、そのディスクリプタにはそれらのフィールドをマスクする <code>redact()</code> が加わり、うっかり書いた <code>json.stringify(User.redact(u))</code> からも漏れません。
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre><span class="k">@redact</span> fields: [diagnosis, notes]
@@ -580,28 +601,35 @@
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>型にないフィールドを指定するとコンパイルエラー（<code>E0219</code>）になり、何も守らない伏せ字処理が黙って残ることはありません。</p></div>
+      <p class="pull-quote">
+        5 つの異なる失敗のしかた（検査されない入力、見落としたケース、捨てられたエラー、漏れた秘密情報、検証されないキー）のどれでも、対処の形は同じです。<strong>コンパイラは取り繕うことを拒否します。</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          5 つの異なる失敗のしかた（検査されない入力、見落としたケース、捨てられたエラー、漏れた秘密情報、検証されないキー）のどれでも、対処の形は同じです。<strong>コンパイラは取り繕うことを拒否します。</strong>
-        </p>
-
-        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">どう強制されるか、保証がどこで止まるか<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          違いが重要なので正確に書きます。Glyph は <strong><code>tsc</code> の上に重ねた、強制される厳格な方言</strong>であり、独立した検証器ではありません。自分で証明するものもあります。網羅性、<code>?</code> のエラー型、ソースに <code>any</code>/<code>as</code> がないこと、厳格なキーの検証です。それ以外の型の互換性は、TypeScript を出力して <code>tsc --strict</code> を実行することで強制し、失敗すればビルドが失敗します。肝心なのは、これらの検査が<em>言語</em>そのものであり、エージェントが無効にできる任意の lint ではないという点です。Glyph が型検査器を作り直しているという点ではありません。
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">どう強制されるか、保証がどこで止まるか<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        違いが重要なので正確に書きます。Glyph は <strong><code>tsc</code> の上に重ねた、強制される厳格な方言</strong>であり、独立した検証器ではありません。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Glyph が証明するもの</b>自分で証明するものもあります。網羅性、<code>?</code> のエラー型、ソースに <code>any</code>/<code>as</code> がないこと、厳格なキーの検証です。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>tsc を通して強制するもの</b>それ以外の型の互換性は、TypeScript を出力して <code>tsc --strict</code> を実行することで強制し、失敗すればビルドが失敗します。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>肝心なのは、これらの検査が<em>言語</em>そのものであり、エージェントが無効にできる任意の lint ではないという点です。Glyph が型検査器を作り直しているという点ではありません。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.10 で塞いだ限界と、ジェネリックの深い検証</span></summary><div class="body">
         <p>
           ここにあった 2 つの限界は 0.1.10 で解消しました。以前のエミッタは、<em>すべての</em>ジェネリック関数に、<code>tsc</code> ではなく Glyph が検査した前提の戻り値キャストを挿入していました。現在それが入るのは、バリデータのコンビネータが形から導いた型（<code>infer_output&lt;Shape&gt;</code>）の値を組み立てる場所だけで、正直なジェネリックはすべてキャストなしで出力されます。また、バリデータの出力型を信用することもなくなりました。<code>infer_output</code> が渡された形から出力型を導き、<code>tsc</code> が注釈をそれと照合します。主張する型のフィールドが欠けた形は、今ではコンパイルに失敗します。
         </p>
         <p>
-          ジェネリック型も深く検証されるようになりました。<code>Paginated&lt;User&gt;</code> のディスクリプタは、各要素を存在するかどうかだけでなく <em><code>User</code> として</em>検査します。限界が 1 つ残っているので、はっきり書きます。参照するだけの外部の <code>.d.ts</code> から<em>インポートした</em>型は、<code>glyph gen dts</code> で具体化するまでディスクリプタを持たないので、その型のフィールドは形ではなく存在だけが検査されます。この境界は意図したものです（Glyph が出力していない型に実行時の検証を約束することはできません）。具体化すればこの限界はなくなります。
+          ジェネリック型も深く検証されるようになりました。<code>Paginated&lt;User&gt;</code> のディスクリプタは、各要素を存在するかどうかだけでなく <em><code>User</code> として</em>検査します。
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>限界が 1 つ残っているので、はっきり書きます。参照するだけの外部の <code>.d.ts</code> から<em>インポートした</em>型は、<code>glyph gen dts</code> で具体化するまでディスクリプタを持たないので、その型のフィールドは形ではなく存在だけが検査されます。この境界は意図したものです（Glyph が出力していない型に実行時の検証を約束することはできません）。具体化すればこの限界はなくなります。</p></div>
 
-        <h2 class="block-label" id="the-benchmark-coming">ベンチマーク：準備中<a class="h-anchor" href="#the-benchmark-coming" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          この主張は経験的なものなので、測定するつもりです。エージェントが実際に書いた変更を集め、それぞれを <code>tsc --strict</code> と Glyph にかけて、それぞれが実際に何を検出するかを数えます。Glyph はまだ実運用で使われていないので、報告できる数値はありません。下のグラフはプレースホルダで、実際の利用が始まり次第、実データで埋まります。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">ベンチマーク：準備中<a class="ak-anchor" href="#the-benchmark-coming" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        この主張は経験的なものなので、測定するつもりです。エージェントが実際に書いた変更を集め、それぞれを <code>tsc --strict</code> と Glyph にかけて、それぞれが実際に何を検出するかを数えます。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph はまだ実運用で使われていないので、報告できる数値はありません。下のグラフはプレースホルダで、実際の利用が始まり次第、実データで埋まります。</p></div>
 
       <div class="chart">
         <span class="label">エージェントが出荷したバグの検出数 &middot; 多いほど良い</span>
@@ -619,27 +647,22 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          これは手間と引き換えに得たものではありません。証明のための注釈も、契約も、満足させるべき検証器もありません。上のコードはごく普通の Glyph です。検証可能性は有効にする機能ではなく、嘘をつく手段がなくなった後に残るものです。
-        </p>
-      </div>
+      <p class="ak-lede">
+        これは手間と引き換えに得たものではありません。証明のための注釈も、契約も、満足させるべき検証器もありません。上のコードはごく普通の Glyph です。検証可能性は有効にする機能ではなく、嘘をつく手段がなくなった後に残るものです。
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">「strict な TypeScript と lint の設定で同じことができる」<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          プログラムの内部ならかなり近づけます。<code>strict</code>、<code>noUncheckedIndexedAccess</code>、明示的な <code>any</code> を禁じるルールで、エージェントがすり抜けさせるものの大半は検出できます。ただし端で止まります。<code>JSON.parse(body) as User</code> はどの設定でもコンパイルが通り、よくある対策の zod スキーマは <code>User</code> の 2 つ目の記述で、1 つ目と手作業で同期させ続けなければなりません。Glyph では型がバリデータです。<code>json.parse&lt;User&gt;(body)</code> は <code>User</code> そのものと照合され、Glyph が実行時に検査できない型は信用されずに拒否されます。
-        </p>
-        <p>
-          もう 1 つの違いは、誰がそれを当てにできるかです。lint の設定は 1 つのリポジトリが選んだものです。見知らぬ TypeScript のコードベースを開いたエージェントは、そこで <code>any</code> が禁止されているとは想定できません。Glyph ではどこにも書けません。
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">「strict な TypeScript と lint の設定で同じことができる」<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        プログラムの内部ならかなり近づけます。<code>strict</code>、<code>noUncheckedIndexedAccess</code>、明示的な <code>any</code> を禁じるルールで、エージェントがすり抜けさせるものの大半は検出できます。ただし端で止まります。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>境界では</b><code>JSON.parse(body) as User</code> はどの設定でもコンパイルが通り、よくある対策の zod スキーマは <code>User</code> の 2 つ目の記述で、1 つ目と手作業で同期させ続けなければなりません。Glyph では型がバリデータです。<code>json.parse&lt;User&gt;(body)</code> は <code>User</code> そのものと照合され、Glyph が実行時に検査できない型は信用されずに拒否されます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>リポジトリをまたいで</b>もう 1 つの違いは、誰がそれを当てにできるかです。lint の設定は 1 つのリポジトリが選んだものです。見知らぬ TypeScript のコードベースを開いたエージェントは、そこで <code>any</code> が禁止されているとは想定できません。Glyph ではどこにも書けません。</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          同じ保証を、エージェントが犯すミスとそれを止めるエラーの観点から説明したのが <a href="/ja/answers/verifiability/">エージェントが気づかないうちにコードを壊すのを、何が防ぐのか</a> です。
-        </p>
-      </div>
+      <p class="ak-lede">
+        同じ保証を、エージェントが犯すミスとそれを止めるエラーの観点から説明したのが <a href="/ja/answers/verifiability/">エージェントが気づかないうちにコードを壊すのを、何が防ぐのか</a> です。
+      </p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/">
           <span class="dir">&larr; ホーム</span>

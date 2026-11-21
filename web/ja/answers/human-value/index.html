@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"AI を使っていなくても Glyph に価値はあるか","item":"https://glyphlang.io/ja/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/human-value/#article","headline":"AI を使っていなくても Glyph に価値はあるか","description":"あります。AI エージェントが表看板ですが、どの保証（網羅的な match、any がないこと、実行時に検査される型、grep しやすいコード、安定した差分）も人間の役に立ちます。","url":"https://glyphlang.io/ja/answers/human-value/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/human-value/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"AI を使っていなくても Glyph に価値はあるか","item":"https://glyphlang.io/ja/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/human-value/#article","headline":"AI を使っていなくても Glyph に価値はあるか","description":"あります。AI エージェントが表看板ですが、どの保証（網羅的な match、any がないこと、実行時に検査される型、grep しやすいコード、安定した差分）も人間の役に立ちます。","url":"https://glyphlang.io/ja/answers/human-value/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/human-value/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/human-value/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/human-value/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">06 &middot; 人間にとっても</p>
       <h1 class="q-title">AI を使っていなくても Glyph に価値はあるか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,42 +480,59 @@
         あります。AI エージェントを前面に出しているのは、エージェントがこうしたものを頻繁に壊すからです。しかしその下にある保証はどれも、<strong>人間が直接受け取れる、ふつうのエンジニアリング上の利点</strong>です。実行時の予期しない挙動が減り、差分が小さくなり、コードを grep で探せるようになります。どれも LLM を必要としません。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="these-are-language-features-not-ai-features">これは AI の機能ではなく、言語の機能です<a class="h-anchor" href="#these-are-language-features-not-ai-features" aria-label="このセクションへのリンク">#</a></h2>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#these-are-language-features-not-ai-features">言語の機能</a></li>
+          <li><a href="#what-you-get-solo">1 人でも得られるもの</a></li>
+          <li><a href="#so-why-lead-with-agents">なぜエージェントを前面に出すのか</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="these-are-language-features-not-ai-features">これは AI の機能ではなく、言語の機能です<a class="ak-anchor" href="#these-are-language-features-not-ai-features" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        「エージェント」という言葉を抜いてリストを読んでみてください。<code>any</code> がない、網羅的な <code>match</code>、値としてのエラー、実行時に検査される型、名前ごとに宣言の形が 1 つ、差分が安定する正規のフォーマット。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Rust、Elm、OCaml を書いたことがある人なら、どれもコードベースを保守しやすくするものだとわかるはずです。AI がコードを書くずっと前から良いとされてきた考え方です。Glyph はそれを、1 ファイルずつ導入できる TypeScript 風の言語に持ち込んでいるだけです。</p></div>
+
+      <h2 class="ak-h" id="what-you-get-solo">1 人で使っても得られるもの<a class="ak-anchor" href="#what-you-get-solo" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>深夜の呼び出しが減ります。</b>境界のデータは構造上必ず検証され（<code>User.parse</code>）、ケースの漏れは本番で表面化する <code>undefined</code> ではなく、コンパイルエラーになります。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>レビューが速くなります。</b>1 行の変更は 1 行の差分になるので、レビュアーは周りの整形の揺れではなく、変更そのものを読めます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4l3.6 3.6"/></svg></span><b>何でも見つけられます。</b><code>grep "fn parseUser"</code> で定義にたどり着きます。オーバーロードやバレルファイル、デコレータで散らばることはありません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5c0-2.3 1.8-4 4-4s4 1.7 4 4"/><path d="M10.5 3.4a2.3 2.3 0 010 4.4M12 9.8c1.2.6 2 1.9 2 3.7"/></svg></span><b>新しいメンバーが早く慣れます。</b>コアが小さく、1 つのことに 1 つのやり方しかないので、次の人が覚えるべき暗黙知が少なくなります。</li>
+      </ul>
+
+      <h2 class="ak-h" id="so-why-lead-with-agents">では、なぜエージェントを前面に出すのか<a class="ak-anchor" href="#so-why-lead-with-agents" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        そちらのほうが効果が<em>大きい</em>からです。人間はいずれ linter を走らせ、ケースを処理することを覚えます。エージェントは <code>any</code> に手を伸ばし、アームを書き忘れ、グリーンのままマージします。オプトインのツールを有効にしたままでいてくれるとも限りません。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">最低限の利点はどちらでも得られる</span></summary><div class="body">
         <p>
-          「エージェント」という言葉を抜いてリストを読んでみてください。<code>any</code> がない、網羅的な <code>match</code>、値としてのエラー、実行時に検査される型、名前ごとに宣言の形が 1 つ、差分が安定する正規のフォーマット。Rust、Elm、OCaml を書いたことがある人なら、どれもコードベースを保守しやすくするものだとわかるはずです。AI がコードを書くずっと前から良いとされてきた考え方です。Glyph はそれを、1 ファイルずつ導入できる TypeScript 風の言語に持ち込んでいるだけです。
+          厳しさを<em>オプションにしない</em>ことの価値は、機械がコードを書くときに何倍にもなります。とはいえ、最低限の利点（上に挙げたもの）は、エージェントを使っても使わなくても得られます。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>使うならエージェントが必要なツールではなく、結果としてエージェントにも向いている、より厳しい TypeScript だと考えてください。</p></div>
 
-        <h2 class="block-label" id="what-you-get-solo">1 人で使っても得られるもの<a class="h-anchor" href="#what-you-get-solo" aria-label="このセクションへのリンク">#</a></h2>
-        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>深夜の呼び出しが減ります。</strong>境界のデータは構造上必ず検証され（<code>User.parse</code>）、ケースの漏れは本番で表面化する <code>undefined</code> ではなく、コンパイルエラーになります。</li>
-          <li><strong>レビューが速くなります。</strong>1 行の変更は 1 行の差分になるので、レビュアーは周りの整形の揺れではなく、変更そのものを読めます。</li>
-          <li><strong>何でも見つけられます。</strong><code>grep "fn parseUser"</code> で定義にたどり着きます。オーバーロードやバレルファイル、デコレータで散らばることはありません。</li>
-          <li><strong>新しいメンバーが早く慣れます。</strong>コアが小さく、1 つのことに 1 つのやり方しかないので、次の人が覚えるべき暗黙知が少なくなります。</li>
-        </ul>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> トレードオフ</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">新しく何かを始める場合や、チームがすでに ML 系言語の規律を重視している場合は、利点がすぐに効いてきます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">成熟し、ツールも整った TS スタックで 1 人で開発している場合は、判断が微妙になります。Glyph はアーリープレビューであり、それは考慮すべき実際のコストです。</span></span></li>
+          </ul>
+        </section>
 
-        <h2 class="block-label" id="so-why-lead-with-agents">では、なぜエージェントを前面に出すのか<a class="h-anchor" href="#so-why-lead-with-agents" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          そちらのほうが効果が<em>大きい</em>からです。人間はいずれ linter を走らせ、ケースを処理することを覚えます。エージェントは <code>any</code> に手を伸ばし、アームを書き忘れ、グリーンのままマージします。オプトインのツールを有効にしたままでいてくれるとも限りません。厳しさを<em>オプションにしない</em>ことの価値は、機械がコードを書くときに何倍にもなります。とはいえ、最低限の利点（上に挙げたもの）は、エージェントを使っても使わなくても得られます。
-        </p>
-
-        <p class="callout">
-          使うならエージェントが必要なツールではなく、結果としてエージェントにも向いている、より厳しい TypeScript だと考えてください。
-        </p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> どちらにしても</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">抜け道は常に残っています。Glyph は自分のものとして持てる読みやすい TypeScript にコンパイルされるので、1 つのモジュールで試すのは安上がりで、元に戻すこともできます。</span></span></li>
+          </ul>
+        </section>
       </div>
-
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">トレードオフ</h3>
-          <p>新しく何かを始める場合や、チームがすでに ML 系言語の規律を重視している場合は、利点がすぐに効いてきます。成熟し、ツールも整った TS スタックで 1 人で開発している場合は、判断が微妙になります。Glyph はアーリープレビューであり、それは考慮すべき実際のコストです。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">どちらにしても</h3>
-          <p>抜け道は常に残っています。Glyph は自分のものとして持てる読みやすい TypeScript にコンパイルされるので、1 つのモジュールで試すのは安上がりで、元に戻すこともできます。</p>
-        </div>
-        <p class="page-stamp">最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
-      </div>
+      <p class="page-stamp">最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/vs-tooled-ts/">
           <span class="dir">&larr; 前へ</span>

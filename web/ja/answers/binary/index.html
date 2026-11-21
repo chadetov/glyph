@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"バイナリデータは扱えるのか、それとも何でも文字列なのか","item":"https://glyphlang.io/ja/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/binary/#article","headline":"バイナリデータは扱えるのか、それとも何でも文字列なのか","description":"std/bytes は Glyph に不変のバイト列を提供します。不正な入力を拒否する hex、base64、base32 のコーデックに加え、バイト列でのファイル I/O と HMAC もあります。","url":"https://glyphlang.io/ja/answers/binary/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/binary/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/binary/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"バイナリデータは扱えるのか、それとも何でも文字列なのか","item":"https://glyphlang.io/ja/answers/binary/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/binary/#article","headline":"バイナリデータは扱えるのか、それとも何でも文字列なのか","description":"std/bytes は Glyph に不変のバイト列を提供します。不正な入力を拒否する hex、base64、base32 のコーデックに加え、バイト列でのファイル I/O と HMAC もあります。","url":"https://glyphlang.io/ja/answers/binary/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/binary/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/binary/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/binary/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">20 &middot; バイナリデータ</p>
       <h1 class="q-title">バイナリデータは扱えるのか、それとも何でも文字列なのか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,23 +480,9 @@
         <code>std/bytes</code> は不変のオクテット列を提供し、<code>std/fs</code> と <code>std/crypto</code> はどちらもそれを扱えます。0.1.78 より前はそうではありませんでした。標準ライブラリの境界はすべて文字列を受け取って文字列を返す形だったので、PNG を読むことも、HMAC に本物の鍵を渡すこともできませんでした。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          PNG の先頭バイトは <code>0x89</code> で、これ単体では有効な UTF-8 ではありません。このファイルをテキストとして読むと、デコーダが解釈できないバイトはすべて U+FFFD になります。プログラムが目にする前にファイルは壊れていて、エラーを報告するものは何もありません。鍵でも同じことが起きます。HMAC の秘密鍵は任意のオクテット列で、文字列を経由させると変わってしまいます。その結果、仕様とは違う MAC を計算することになり、しかも自分のコードに対して書いたテストはすべて通ります。
-        </p>
-        <p>
-          別々に書かれた 2 つのアプリケーション、PNG リーダーと認証アプリが、同じ週にこの同じ問題で止まりました。どちらも言語の中で回避することはできませんでした。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          RFC 6238 の認証アプリです。HMAC の両側でバイト列が必要になります。秘密鍵は base32 でエンコードされて届き、メッセージはほとんどがゼロの 8 バイトのカウンタで、ダイジェストは自身の最後のバイトでインデックスされます：
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">ワンタイムパスワードの最初から最後まで</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">ワンタイムパスワードの最初から最後まで</span>
 <pre><span class="k">module</span> totp
 
 <span class="k">import</span> std/bytes
@@ -526,28 +512,55 @@
     + (at(mac, offset + <span class="n">2</span>) * <span class="n">256</span>)
     + at(mac, offset + <span class="n">3</span>)) % <span class="n">100000000</span>)
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>実例：RFC 6238 の認証アプリです。HMAC の両側でバイト列が必要になります。秘密鍵は base32 でエンコードされて届き、メッセージはほとんどがゼロの 8 バイトのカウンタで、ダイジェストは自身の最後のバイトでインデックスされます。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Bytes</code> は実行時には <code>Uint8Array</code> なので、それを受け取るホスト API にそのまま渡せます。列の操作は <code>std/array</code> や <code>std/string</code> の対応する関数にならって名付けられています：<code>len</code>、<code>get</code>、<code>slice</code>、<code>concat</code>、<code>index_of</code>、<code>starts_with</code>。引数を変更するものはありません。
-        </p>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">文字列がバイト列を壊す理由</a></li>
+          <li><a href="#what-a-bytes-value-is">Bytes の値とは</a></li>
+          <li><a href="#every-decode-can-refuse-and-says-where">拒否できるデコード</a></li>
+          <li><a href="#which-hmac-you-pick-changes-the-answer">HMAC の選び方</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="every-decode-can-refuse-and-says-where">どのデコードも拒否でき、その位置を示す<a class="h-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          ここが作るのに最もコストがかかった部分で、使う理由でもあります。Node の <code>Buffer</code> は不正な入力を受け入れ、成功を報告します：
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        別々に書かれた 2 つのアプリケーション、PNG リーダーと認証アプリが、同じ週にこの同じ問題で止まりました。どちらも言語の中で回避することはできませんでした。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>テキストとして読んだファイル</b>PNG の先頭バイトは <code>0x89</code> で、これ単体では有効な UTF-8 ではありません。このファイルをテキストとして読むと、デコーダが解釈できないバイトはすべて U+FFFD になります。プログラムが目にする前にファイルは壊れていて、エラーを報告するものは何もありません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>文字列を経由した鍵</b>鍵でも同じことが起きます。HMAC の秘密鍵は任意のオクテット列で、文字列を経由させると変わってしまいます。その結果、仕様とは違う MAC を計算することになり、しかも自分のコードに対して書いたテストはすべて通ります。</li>
+      </ul>
 
-      <div class="code">
-        <span class="cap">プラットフォームが黙ってすること</span>
+      <h2 class="ak-h" id="what-a-bytes-value-is"><code>Bytes</code> の値とは<a class="ak-anchor" href="#what-a-bytes-value-is" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Bytes</code> は実行時には <code>Uint8Array</code> なので、それを受け取るホスト API にそのまま渡せます。
+      </p>
+      <p>
+        列の操作は <code>std/array</code> や <code>std/string</code> の対応する関数にならって名付けられています：<code>len</code>、<code>get</code>、<code>slice</code>、<code>concat</code>、<code>index_of</code>、<code>starts_with</code>。引数を変更するものはありません。
+      </p>
+
+      <h2 class="ak-h" id="every-decode-can-refuse-and-says-where">どのデコードも拒否でき、その位置を示す<a class="ak-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ここが作るのに最もコストがかかった部分で、使う理由でもあります。Node の <code>Buffer</code> は不正な入力を受け入れ、成功を報告します：
+      </p>
+
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code">
+            <span class="cap">プラットフォームが黙ってすること</span>
 <pre><span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"zz"</span>, <span class="s">"hex"</span>)        <span class="c">// an empty buffer, no error</span>
 <span class="t">Buffer</span>.<span class="k">from</span>(<span class="s">"a-b_"</span>, <span class="s">"base64"</span>)   <span class="c">// skips - and _, decodes the rest, no error</span>
 buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD for anything malformed, no error</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">Glyph がすること</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code">
+            <span class="cap">Glyph がすること</span>
 <pre><span class="k">match</span> bytes.from_hex(input) {
   <span class="t">Ok</span>(b) <span class="op">=&gt;</span> use(b),
   <span class="t">Err</span>(e) <span class="op">=&gt;</span> io.eprintln(<span class="s">"</span><span class="ip">${</span>e.message<span class="ip">}</span><span class="s"> at </span><span class="ip">${</span><span class="t">number</span>.to_string(e.index)<span class="ip">}</span><span class="s">"</span>),
@@ -556,37 +569,59 @@ buf.toString(<span class="s">"utf8"</span>)            <span class="c">// U+FFFD
 <span class="c">// "z" is not a hex digit at 0</span>
 <span class="c">// a trailing base64 group cannot be 1 character(s) long at 3</span>
 <span class="c">// not valid UTF-8 at 2</span></pre>
+          </div>
+        </div>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">各コーデックが拒否するもの</span></summary><div class="body">
         <p>
           どのコーデックも <code>Buffer</code> に任せずに自前で書いてあります。そのため hex、base64、base64url、base32 はどれも、アルファベット外の文字、1 バイトをエンコードするには短すぎる末尾のグループ、データの終わりを越えるビットを持つ最後の文字を拒否します。<code>to_text</code> は走査して、有効な UTF-8 シーケンスの一部になりえない最初のバイトを見つけるので、判定だけでなく位置がわかります。<code>from_array</code> も同じ理由で 0..255 の範囲外を拒否します。黙って <code>&amp; 0xff</code> をかけると、256 が 0 になり、タイポがデータになってしまうからです。
         </p>
-        <p>
-          コーデックを自前で書いたことで、狙っていなかった利点も得られました。このモジュールはホスト API を一切使わず、使うのは <code>Uint8Array</code>、<code>TextEncoder</code>、<code>TextDecoder</code> だけです。そのため <code>std/bytes</code> だけを使うバンドルは Web Worker でも動きます。
-        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        コーデックを自前で書いたことで、狙っていなかった利点も得られました。このモジュールはホスト API を一切使わず、使うのは <code>Uint8Array</code>、<code>TextEncoder</code>、<code>TextDecoder</code> だけです。そのため <code>std/bytes</code> だけを使うバンドルは Web Worker でも動きます。
+      </p></div>
 
-        <h2 class="block-label" id="which-hmac-you-pick-changes-the-answer">どの HMAC を選ぶかで答えが変わる<a class="h-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>std/crypto</code> には、どのアルゴリズムにも 2 つの形があります。素の名前のものは文字列を受け取って hex を返し、パスワードのハッシュ化に向いています。<code>_bytes</code> の形は <code>Bytes</code> を受け取って返し、通信プロトコルに向いています。鍵が <code>bytes.from_base64</code> や <code>crypto.random_bytes</code> から来たものなら、文字列では表せないバイトを含んでいるので、テキスト版は黙って別のものを計算してしまいます。
-        </p>
-        <p>
-          攻撃者が渡した値を秘密と照合するには、<code>bytes.equals</code> ではなく <code>crypto.timing_safe_equal</code> を使います。<code>equals</code> は不一致を見つけた時点で return するので、かかった時間から先頭の何バイトが合っていたかがわかってしまいます。
-        </p>
-      </div>
+      <h2 class="ak-h" id="which-hmac-you-pick-changes-the-answer">どの HMAC を選ぶかで答えが変わる<a class="ak-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/crypto</code> には、どのアルゴリズムにも 2 つの形があります。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>素の名前</b>素の名前のものは文字列を受け取って hex を返し、パスワードのハッシュ化に向いています。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b><code>_bytes</code> の形</b><code>_bytes</code> の形は <code>Bytes</code> を受け取って返し、通信プロトコルに向いています。</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        鍵が <code>bytes.from_base64</code> や <code>crypto.random_bytes</code> から来たものなら、文字列では表せないバイトを含んでいるので、テキスト版は黙って別のものを計算してしまいます。
+      </p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        攻撃者が渡した値を秘密と照合するには、<code>bytes.equals</code> ではなく <code>crypto.timing_safe_equal</code> を使います。<code>equals</code> は不一致を見つけた時点で return するので、かかった時間から先頭の何バイトが合っていたかがわかってしまいます。
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>21 個の関数を持つ <code>std/bytes</code>：列の操作、UTF-8 との橋渡し、そして問題の位置を示す <code>Result</code> を返す hex、base64、base64url、base32 のコーデックです。<code>fs.read_bytes</code>、<code>write_bytes</code>、<code>append_bytes</code> はファイルをデコードせずに読み書きします。<code>std/crypto</code> には、すべてのダイジェストと HMAC の <code>_bytes</code> 版に加え、SHA-1 を指定するプロトコル向けの SHA-1、<code>random_bytes</code>、<code>timing_safe_equal</code> があります。コーデックは RFC 4648 のテストベクタで、HMAC は RFC 6238 で、コンパイラ自身のテストスイートの中で固定されています。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">改善中</h3>
-          <p>整数のコーデックはまだないので、ヘッダからビッグエンディアンの <code>u32</code> を読むには自分で計算を書きます。32 ビットを超えるとシフトはそもそも適さないので、割り算を使います。16 進リテラルはまだパースできないので、10 進で書いた 256 要素の CRC32 テーブルは読みにくくなります。<code>std/websocket</code> はまだバイナリフレームを UTF-8 テキストとしてデコードします。必要だった型はもう存在するので、フレームが次の対応対象です。また <code>std/encoding</code> にある古い文字列から文字列への関数 6 つは、不正な入力に対して今も黙ったままなので、正しくなければならない処理には <code>std/bytes</code> のコーデックを使ってください。コーデックは node の <code>Buffer</code> に任せずに TypeScript で書かれています。それが Web Worker で動く理由ですが、1 メガバイトのデータではプラットフォームのものより 1 倍から 35 倍遅くなります。鍵やトークンのエンコードなら、どちらを使っても測れるほどのコストはかかりません。数十メガバイトを扱うなら、パフォーマンスガイドに表があります。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">21 個の関数を持つ <code>std/bytes</code>：列の操作、UTF-8 との橋渡し、そして問題の位置を示す <code>Result</code> を返す hex、base64、base64url、base32 のコーデック。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_bytes</code>、<code>write_bytes</code>、<code>append_bytes</code> はファイルをデコードせずに読み書きします。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/crypto</code> には、すべてのダイジェストと HMAC の <code>_bytes</code> 版に加え、SHA-1 を指定するプロトコル向けの SHA-1、<code>random_bytes</code>、<code>timing_safe_equal</code> があります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">コーデックは RFC 4648 のテストベクタで、HMAC は RFC 6238 で、コンパイラ自身のテストスイートの中で固定されています。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">整数のコーデックはまだないので、ヘッダからビッグエンディアンの <code>u32</code> を読むには自分で計算を書きます。32 ビットを超えるとシフトはそもそも適さないので、割り算を使います。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">16 進リテラルはまだパースできないので、10 進で書いた 256 要素の CRC32 テーブルは読みにくくなります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/websocket</code> はまだバイナリフレームを UTF-8 テキストとしてデコードします。必要だった型はもう存在するので、フレームが次の対応対象です。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">また <code>std/encoding</code> にある古い文字列から文字列への関数 6 つは、不正な入力に対して今も黙ったままなので、正しくなければならない処理には <code>std/bytes</code> のコーデックを使ってください。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">コーデックは node の <code>Buffer</code> に任せずに TypeScript で書かれています。それが Web Worker で動く理由ですが、1 メガバイトのデータではプラットフォームのものより 1 倍から 35 倍遅くなります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">鍵やトークンのエンコードなら、どちらを使っても測れるほどのコストはかかりません。数十メガバイトを扱うなら、パフォーマンスガイドに表があります。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/long-running/">
           <span class="dir">&larr; 前へ</span>

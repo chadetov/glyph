@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"검색 용이성","item":"https://glyphlang.io/ko/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/pillars/greppability/#article","headline":"검색 용이성 · 이름 하나에 위치 하나","description":"Glyph의 두 번째 기둥: 모든 심볼은 선언 위치에서 형태가 하나입니다. 오버로드, 데코레이터, 네임스페이스 병합, barrel 재export가 없으므로 grep으로 찾을 수 있습니다.","url":"https://glyphlang.io/ko/pillars/greppability/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/pillars/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"검색 용이성","item":"https://glyphlang.io/ko/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/pillars/greppability/#article","headline":"검색 용이성 · 이름 하나에 위치 하나","description":"Glyph의 두 번째 기둥: 모든 심볼은 선언 위치에서 형태가 하나입니다. 오버로드, 데코레이터, 네임스페이스 병합, barrel 재export가 없으므로 grep으로 찾을 수 있습니다.","url":"https://glyphlang.io/ko/pillars/greppability/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/pillars/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/greppability/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">기둥 02 &middot; <span class="wedge">핵심</span></p>
       <h1 class="q-title">검색 용이성</h1>
 
@@ -435,21 +435,7 @@
         <strong>이름 하나에 위치 하나.</strong> 모든 심볼은 선언된 자리에서 문법 형태가 정확히 하나이므로, 평범한 <code>grep</code>이 언제나 정의를 찾습니다. 인덱스도, 언어 서버도, 운도 필요 없습니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-where-is-this-defined-is-hard">"이건 어디에 정의되어 있지?"가 어려운 이유<a class="h-anchor" href="#why-where-is-this-defined-is-hard" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p class="lede">
-          성숙한 TypeScript 코드베이스에서는 가장 단순한 질문인 <em>이 이름은 어디서 왔는가?</em>가 가장 어려운 경우가 많습니다. 언어가 심볼 하나를 여러 곳에 흩어 놓는 방법을 여섯 가지쯤 제공합니다. 오버로드는 함수를 여러 시그니처로 나누고, 데코레이터는 함수를 다른 것으로 감싸고, <code>namespace</code>와 <code>interface</code> 병합은 타입을 여러 파일에 흩어 놓고, <code>declare module</code>은 소유하지 않은 코드를 확장하고, barrel <code>index.ts</code> 파일은 모든 것을 재export해서 import하는 경로가 실제로 무언가가 있는 곳이 아니게 만듭니다.
-        </p>
-        <p class="lede">
-          사람은 LSP와 손에 익은 습관으로 버팁니다. <strong>에이전트</strong>는 grep합니다. 저장소를 텍스트로 읽는데, 이런 구문 하나하나가 코드가 어디 있는지에 대해 텍스트가 거짓말하는 곳입니다. Glyph는 이것들을 없앱니다. 그 결과 검색이 휴리스틱이 아니라 믿을 수 있는 기본 도구인 언어가 됩니다.
-        </p>
-
-        <h2 class="block-label" id="one-declaration-one-form"><span class="ex-label">01</span> 선언 하나, 형태 하나<a class="h-anchor" href="#one-declaration-one-form" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          함수, 타입, 컴포넌트는 한 가지 문법으로 정확히 한 번 선언합니다. 시그니처를 나누는 오버로드도, 이름을 다시 선언하는 방법도 없습니다. 이름이 같은 최상위 항목 두 개는 강한 오류(<code>E0100</code>)입니다. 그래서 정의를 찾는 검색에는 답이 정확히 하나입니다.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: 결과 네 개, 그중 하나가 본문</span>
@@ -467,56 +453,88 @@
 ) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">string</span>&gt; {</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-where-is-this-defined-is-hard">어려운 이유</a></li>
+          <li><a href="#one-declaration-one-form">선언 하나, 형태 하나</a></li>
+          <li><a href="#no-barrel-files-the-import-path-is-the-location">barrel 파일 없음</a></li>
+          <li><a href="#no-hidden-ways-to-attach-behavior">숨은 동작 없음</a></li>
+          <li><a href="#even-mutation-is-greppable">grep할 수 있는 변경</a></li>
+          <li><a href="#the-benchmark-coming">벤치마크</a></li>
+          <li><a href="#a-lint-rule-can-ban-overloads-and-decorators">"lint 규칙으로 할 수 있다"</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-where-is-this-defined-is-hard">"이건 어디에 정의되어 있지?"가 어려운 이유<a class="ak-anchor" href="#why-where-is-this-defined-is-hard" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          성숙한 TypeScript 코드베이스에서는 가장 단순한 질문인 <em>이 이름은 어디서 왔는가?</em>가 가장 어려운 경우가 많습니다.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">오버로드, 데코레이터, 병합, 확장, barrel</span></summary><div class="body">
+        <p>
+          언어가 심볼 하나를 여러 곳에 흩어 놓는 방법을 여섯 가지쯤 제공합니다. 오버로드는 함수를 여러 시그니처로 나누고, 데코레이터는 함수를 다른 것으로 감싸고, <code>namespace</code>와 <code>interface</code> 병합은 타입을 여러 파일에 흩어 놓고, <code>declare module</code>은 소유하지 않은 코드를 확장하고, barrel <code>index.ts</code> 파일은 모든 것을 재export해서 import하는 경로가 실제로 무언가가 있는 곳이 아니게 만듭니다.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          사람은 LSP와 손에 익은 습관으로 버팁니다. <strong>에이전트</strong>는 grep합니다. 저장소를 텍스트로 읽는데, 이런 구문 하나하나가 코드가 어디 있는지에 대해 텍스트가 거짓말하는 곳입니다.
+      </p></div>
+      <p class="ak-lede">
+          Glyph는 이것들을 없앱니다. 그 결과 검색이 휴리스틱이 아니라 믿을 수 있는 기본 도구인 언어가 됩니다.
+      </p>
+
+      <h2 class="ak-h" id="one-declaration-one-form"><span class="ex-label">01</span> 선언 하나, 형태 하나<a class="ak-anchor" href="#one-declaration-one-form" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          함수, 타입, 컴포넌트는 한 가지 문법으로 정확히 한 번 선언합니다. 시그니처를 나누는 오버로드도, 이름을 다시 선언하는 방법도 없습니다. 이름이 같은 최상위 항목 두 개는 강한 오류(<code>E0100</code>)입니다.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0100</span></div>
         <p class="pull-quote">
           선언 키워드가 검색하는 이름의 일부입니다. <code>grep "fn parseUser"</code>는 호출, import, 재export에는 매칭될 수 없고, 오직 <strong>정의된</strong> 한 곳에만 매칭됩니다.
         </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>그래서 정의를 찾는 검색에는 답이 정확히 하나입니다.</p></div>
 
-        <h2 class="block-label" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> barrel 파일 없음: import 경로가 곧 위치<a class="h-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          Glyph의 import는 절대 재export하지 않으며, import만 담은 모듈은 거부됩니다(<code>E0102</code>). <code>index.ts</code>로 출처를 세탁하는 계층이 없습니다. 그래서 import는 심볼이 실제로 있는 모듈을 가리킵니다. 경로가 <em>곧</em> 주소입니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> barrel 파일 없음: import 경로가 곧 위치<a class="ak-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Glyph의 import는 절대 재export하지 않으며, import만 담은 모듈은 거부됩니다(<code>E0102</code>). <code>index.ts</code>로 출처를 세탁하는 계층이 없습니다.
+      </p>
       <div class="code">
         <span class="cap">import가 어디를 봐야 하는지 정확히 알려 줍니다</span>
 <pre><span class="k">import</span> myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>그래서 import는 심볼이 실제로 있는 모듈을 가리킵니다. 경로가 <em>곧</em> 주소입니다.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> 동작을 숨겨서 붙이는 방법 없음<a class="h-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          함수를 보이지 않는 계층으로 감싸는 데코레이터도, 트리 곳곳의 멤버를 모으는 <code>namespace</code> 병합도, 열어 볼 생각도 못 할 파일에서 서드파티 타입을 확장하는 <code>declare module</code>도, 메서드가 가리키는 대상을 바꾸는 암묵적인 <code>this</code>도 없습니다. 이름은 선언 하나로 해석되고, 그것을 형성하는 모든 것은 그 선언에서 보입니다.
-        </p>
+      <h2 class="ak-h" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> 동작을 숨겨서 붙이는 방법 없음<a class="ak-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          함수를 보이지 않는 계층으로 감싸는 데코레이터도, 트리 곳곳의 멤버를 모으는 <code>namespace</code> 병합도, 열어 볼 생각도 못 할 파일에서 서드파티 타입을 확장하는 <code>declare module</code>도, 메서드가 가리키는 대상을 바꾸는 암묵적인 <code>this</code>도 없습니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>이름은 선언 하나로 해석되고, 그것을 형성하는 모든 것은 그 선언에서 보입니다.</p></div>
 
-        <h2 class="block-label" id="even-mutation-is-greppable"><span class="ex-label">04</span> 변경도 grep할 수 있습니다<a class="h-anchor" href="#even-mutation-is-greppable" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          검색 용이성은 정의를 찾는 것만이 아니라 <em>효과</em>를 찾는 것이기도 합니다. 공유 상태는 <code>std/store</code>에 있고, 그에 대한 모든 변경은 <code>.set(</code>이나 <code>.update(</code> 호출 그대로입니다. 그래서 파일 곳곳에 흩어진 대입을 찾아다니는 대신 검색 한 번으로 상태 하나의 쓰기 창구 전체를 나열할 수 있습니다.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="even-mutation-is-greppable"><span class="ex-label">04</span> 변경도 grep할 수 있습니다<a class="ak-anchor" href="#even-mutation-is-greppable" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          검색 용이성은 정의를 찾는 것만이 아니라 <em>효과</em>를 찾는 것이기도 합니다. 공유 상태는 <code>std/store</code>에 있고, 그에 대한 모든 변경은 <code>.set(</code>이나 <code>.update(</code> 호출 그대로입니다.
+      </p>
+      <div class="code term">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
 <pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(<span class="k">fn</span>(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>그래서 파일 곳곳에 흩어진 대입을 찾아다니는 대신 검색 한 번으로 상태 하나의 쓰기 창구 전체를 나열할 수 있습니다.</p></div>
 
-      <div class="detail">
         <p class="pull-quote">
           코드베이스의 <strong>텍스트가 구조에 대해 사실을 말할 때</strong> grep할 수 있습니다. 여기 있는 모든 제약(이름마다 형태 하나, 재export 없음, 병합 없음)은 검색이 단서가 아니라 답을 돌려주게 하려고 있습니다.
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">벤치마크: 준비 중<a class="h-anchor" href="#the-benchmark-coming" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          이 주장을 측정할 수 있는 형태는 정밀도입니다. 어떤 심볼에 대해 평범한 grep 결과 중 실제로 찾던 것의 비율은 얼마이고, 에이전트가 정의에 닿기까지 몇 단계가 걸리는가. Glyph는 아직 실제 환경에서 쓰이지 않으므로 아래 차트는 자리 표시이며, 측정할 실제 코드베이스가 생기면 실제 숫자로 채워집니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">벤치마크: 준비 중<a class="ak-anchor" href="#the-benchmark-coming" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          이 주장을 측정할 수 있는 형태는 정밀도입니다. 어떤 심볼에 대해 평범한 grep 결과 중 실제로 찾던 것의 비율은 얼마이고, 에이전트가 정의에 닿기까지 몇 단계가 걸리는가.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph는 아직 실제 환경에서 쓰이지 않으므로 아래 차트는 자리 표시이며, 측정할 실제 코드베이스가 생기면 실제 숫자로 채워집니다.</p></div>
       <div class="chart">
         <span class="label">정의에 대한 grep 정밀도 &middot; 높을수록 좋음</span>
         <h3>TypeScript와 Glyph 비교</h3>
@@ -532,25 +550,20 @@
           <span class="h">아직 측정하지 않음</span> 실제 Glyph 코드베이스가 생기는 대로 grep 정밀도와 정의까지의 단계 수를 보고하고, 결과가 어떻든 여기에 숫자를 공개하겠습니다.
         </div>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           효과는 규모와 자율성에 따라 커집니다. 사람은 코드베이스의 숨은 곳을 배우지만, 처음 보는 에이전트는 그렇지 않습니다. 검색 용이성 덕분에 도구(또는 새 팀원)가 저장소를 실제 모습 그대로 읽으며 탐색할 수 있습니다.
-        </p>
-      </div>
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-lint-rule-can-ban-overloads-and-decorators">"lint 규칙으로 오버로드와 데코레이터를 금지할 수 있다"<a class="h-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
-        <p>
-          자기 저장소에서는 그렇습니다. ESLint로 네임스페이스를 금지할 수 있고, 팀이 오버로드를 쓰지 않기로 합의할 수 있습니다. 그래도 언어는 여전히 이 모든 것을 허용하므로, 보장은 설정이 유지되는 동안만 유효하고 설정이 실행되는 코드에만 적용됩니다. 의존성, 생성된 파일, 다른 사람의 저장소에 대한 <code>grep</code>은 이에 기댈 수 없습니다. Glyph에는 이런 구문이 존재하지 않으므로, 팀의 누구도 설정하지 않은 파일을 포함해 모든 Glyph 파일에서 <code>grep</code>이 똑같이 동작합니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="a-lint-rule-can-ban-overloads-and-decorators">"lint 규칙으로 오버로드와 데코레이터를 금지할 수 있다"<a class="ak-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          자기 저장소에서는 그렇습니다. ESLint로 네임스페이스를 금지할 수 있고, 팀이 오버로드를 쓰지 않기로 합의할 수 있습니다.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>그래도 언어는 여전히 이 모든 것을 허용하므로, 보장은 설정이 유지되는 동안만 유효하고 설정이 실행되는 코드에만 적용됩니다. 의존성, 생성된 파일, 다른 사람의 저장소에 대한 <code>grep</code>은 이에 기댈 수 없습니다.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph에는 이런 구문이 존재하지 않으므로, 팀의 누구도 설정하지 않은 파일을 포함해 모든 Glyph 파일에서 <code>grep</code>이 똑같이 동작합니다.</p></div>
 
-      <div class="detail">
-        <p>
+      <p class="ak-lede">
           에이전트 입장에서 이것이 어떻게 보이는지, 즉 검색 한 번으로 정의나 값에 대한 모든 쓰기를 찾는 것은 <a href="/ko/answers/greppability/">에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요?</a>에서 답합니다.
-        </p>
-      </div>
+      </p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/pillars/verifiability/">
           <span class="dir">&larr; 이전 기둥</span>

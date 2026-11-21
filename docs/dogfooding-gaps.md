@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-407 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-81 are open. G144, the D28 boundary cast that never reached the returns a
+408 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+82 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13819,4 +13819,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build by record 135's `p384/g.glyph`: `a` passes both checkers, and only
   `b`, the annotated form, is E0211.*
+
+- **G408. A sync function given to an async `void` parameter passes Glyph's
+  checker.** `task.detach(tick)` with `fn tick() { io.println("x") }` is no
+  diagnostic under `check --no-tsc`, and full `check` reports ``[TS2345]
+  Error: tsc: Argument of type '() => void' is not assignable to parameter
+  of type '() => Promise<void>'``. D40 says a plain `fn() -> T` where an
+  `async fn() -> T` is expected is E0211, but the function-type relation
+  skips the async comparison whenever either side returns `void`, which is
+  right for TypeScript's sync `void` callback and wrong for an async `void`
+  parameter, where the value must be a promise. The same holds for
+  `task.detach(fn() { io.println("y") })` and for a function returning
+  `extern_ts`. Scheduled with the 0.1.159 function-type work. Breaking when
+  closed. Found by record 138.
+
+  *Reproduced against 0.1.153 (the 0.1.154 branch build, before the version
+  bump): `check --no-tsc` gives no
+  diagnostics, exit 0; full `check` gives the TS2345 above, exit 1.*
 

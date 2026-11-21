@@ -8,6 +8,11 @@
 // some reject, so a partial failure never loses the successes. `pool` and
 // `pool_settled` are the same pair with concurrency bounded to `limit`.
 //
+// `detach` is the one way to start work and not wait for it. It exists because
+// a sync callback (a timer, a socket event) has no other correct spelling: a
+// call to an async function that nothing awaits is E0238. A detached task's
+// rejection is reported on stderr, never swallowed.
+//
 // Cancellation: JavaScript cannot force-cancel a task that is already running,
 // so a failure in `all` abandons (ignores) its siblings' results rather than
 // halting their work. For cooperative cancellation, thread an AbortSignal into
@@ -95,4 +100,23 @@ export async function pool_settled<T>(
   }
   await Promise.all(Array.from({ length: workers }, () => run()));
   return results;
+}
+
+// Start `work` now and return without waiting for it (D51). The work runs on
+// its own: nothing joins it, so a failure cannot reach the caller, and it is
+// reported through `console.error` as a failed detached task rather than left
+// as an unhandled rejection or dropped. A `work` that throws before its first
+// `await` is reported the same way, so starting it never throws either.
+export function detach(work: () => Promise<void>): void {
+  let started: Promise<void>;
+  try {
+    started = work();
+  } catch (error: unknown) {
+    started = Promise.reject(error);
+  }
+  Promise.resolve(started).catch((error: unknown) => {
+    const reason =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
+    console.error(`std/task: a detached task failed: ${reason}`);
+  });
 }

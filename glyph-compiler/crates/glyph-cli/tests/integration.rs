@@ -6103,6 +6103,65 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn task_detach_reports_a_rejection_instead_of_losing_it() {
+    // D51: `task.detach` is the one sanctioned way to start work without
+    // waiting, because a call to an async function nothing awaits is E0238.
+    // Its promise is that a failure is reported, never swallowed: the work
+    // here throws after its first `await`, the caller has already moved on and
+    // returned, and the rejection has to arrive on stderr as a failed detached
+    // task. The order of the two stdout lines is the other half: `detach` does
+    // not wait.
+    if !js_toolchain_available() {
+        eprintln!("skipping task.detach run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("taskdetach");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+import std/io
+import std/task
+import std/time
+
+async fn boom() -> number {
+  let _ = extern_ts("(() => { throw new Error('detached boom') })()")
+  return 0
+}
+
+async fn work() -> void {
+  await time.sleep(time.Duration.ms(5))
+  io.println("work started")
+  let _n = await boom()
+}
+
+fn kick() -> void {
+  task.detach(async fn() -> void { await work() })
+  io.println("kicked")
+}
+
+fn main(argv: Array<string>) -> number {
+  kick()
+  return 0
+}
+"#,
+    );
+    let entry = root.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "a reported detached failure does not crash the program: {stdout}\n{stderr}");
+    assert_eq!(
+        stdout.lines().filter(|l| !l.starts_with("glyph ")).collect::<Vec<_>>(),
+        vec!["kicked", "work started"],
+        "detach returns before the work runs: {stdout}"
+    );
+    assert!(
+        stderr.contains("std/task: a detached task failed: Error: detached boom"),
+        "the rejection is reported on stderr: {stderr}"
+    );
+}
+
+#[test]
 fn string_breadth_helpers_round_trip() {
     // G26/G34/G50: the string basics every app hand-rolled. The stdlib is
     // TypeScript, so it cannot carry `@example`; this run is where the behavior

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-405 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-79 are open. G144, the D28 boundary cast that never reached the returns a
+406 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+80 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13481,13 +13481,17 @@ and is the owner's to confirm.
   `daemon.serve(port)` in a sync `main`, and `examples/apps/jobq/main.glyph`
   discarded `worker.drain(...)` with `let _ =` in a timer callback.
 
+  A sync lambda whose tail or `return` value is pending is E0238 whether or
+  not it writes its return type (record 133), so `timers.every(200, fn() {
+  save(3) })`, `task.all([fn() { save(1) }])` and `array.map(xs, fn(x:
+  number) { save(x) })` are refused; the help rewrites the lambda as
+  `async fn(...) { await ... }` or offers `task.detach`.
+
   What remains is the second probe, an async function passed where a sync
   callback is taken (`ids.forEach(async fn ...)`, `timers.after(1, async fn
-  ...)`, and a sync lambda with no written return type whose tail is a
-  pending call, which hands the value on to the same slot). That needs the
-  callback parameters modeled and an amendment to D40, and is scheduled on
-  its own as 0.1.159, where the catch moves to caught. A promise from a callee the checker types `Unknown`
-  is G404.
+  ...)`). That needs the callback parameters modeled and an amendment to
+  D40, and is scheduled on its own as 0.1.159, where the catch moves to
+  caught. A promise from a callee the checker types `Unknown` is G404.
 
   *Re-run against the 0.1.154 branch build (`glyph 0.1.153`, before the
   version bump): record 129's `p384/a.glyph` exits 1 with seven E0238 (it
@@ -13783,3 +13787,20 @@ and is the owner's to confirm.
   build: `fn f(i: Issue) -> number { let p: number = i.path  let m: number =
   i.message ... }` (one statement per line) checks with no diagnostics, exit
   0.*
+
+- **G406. An unannotated sync lambda is typed as returning `void` whatever
+  its tail is.** `let f = fn() { 5 }` then `let n: number = f()` is
+  ``E0204: type mismatch: expected `number`, found `void` ``, while the
+  emitter returns the tail (`() => { return 5; }`) and the program would
+  run. The checker lowers an omitted lambda return type to `void`, which is
+  right for a `fn` declaration and wrong for a lambda, whose tail is its
+  value. The fix infers the lambda's return from its tail (or leaves it
+  `Unknown`); it touches what `array.map` binds for an unannotated callback,
+  which `string.join`'s row comments on, so it is its own change. G384 left
+  the pending case out of this: a lambda whose pending tail is E0238
+  returns `Unknown`. Breaking in the other direction only (it removes a
+  false refusal). Found by record 133.
+
+  *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
+  build: exit 1 with that E0204.*
+

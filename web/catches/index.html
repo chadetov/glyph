@@ -427,7 +427,7 @@
       <header class="page-hero">
         <p class="eyebrow">Cases TypeScript lets through</p>
         <h1>Caught before it ships</h1>
-        <p class="lede">There are 51 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 9 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps).</p>
+        <p class="lede">There are 50 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 8 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps).</p>
         <p class="lede">Every TypeScript example on the list passes <code>tsc --strict</code> with no errors. Each one is also checked against a fully configured project: every compiler flag stricter than <code>--strict</code>, plus typescript-eslint <code>strictTypeChecked</code>. For 21 of the 37 cases, nothing in that setup catches it. A compiler flag that is off by default catches 5, and a lint rule catches 11. A project has to turn each of those on, and an agent can turn it off again. In Glyph none of them is a setting.</p>
         <p class="lede">
           Each entry is two programs in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>,
@@ -1494,7 +1494,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">What Glyph does not catch yet</h2>
         <p class="group-sub">
-          9 holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as
+          8 holes Glyph does not close yet. Each of these compiles in Glyph today and does the same wrong thing as
           in TypeScript. Every one has a reproduction in <code>catches/</code>
           and an open gap number, and the gate fails when a fix lands so the
           entry cannot outlive the hole.

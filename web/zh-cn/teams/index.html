@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">它保证什么<a class="h-anchor" href="#what-it-guarantees" aria-label="链接到本节">#</a></h2>
         <p>
-          关于 Glyph 能发现什么的每一条说法，都对应仓库 <code>catches/</code> 目录中的一个案例：同一个程序的 TypeScript 版和 Glyph 版，都由 CI 检查运行。共有 51 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 9 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。 在它不拒绝的错误中，3 个会给出警告，9 个是在运行时边界检查处被拦下的错误数据，2 个在运行时停下。审查智能体所写代码的人最依赖的是这些：
+          关于 Glyph 能发现什么的每一条说法，都对应仓库 <code>catches/</code> 目录中的一个案例：同一个程序的 TypeScript 版和 Glyph 版，都由 CI 检查运行。共有 50 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 8 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。 在它不拒绝的错误中，3 个会给出警告，9 个是在运行时边界检查处被拦下的错误数据，2 个在运行时停下。审查智能体所写代码的人最依赖的是这些：
         </p>
       </div>
 
@@ -456,7 +456,7 @@
 
         <h2 class="block-label" id="where-it-stops">它在哪里止步<a class="h-anchor" href="#where-it-stops" aria-label="链接到本节">#</a></h2>
         <p>
-          这些保证只覆盖用 Glyph 写的代码。npm 依赖内部抛出的异常仍然会绕过 <code>Result</code>，从包的 <code>.d.ts</code> 导入的类型也没有运行时检查。在 Glyph 内部，9 个尚未堵上的漏洞连同 gap 编号都列在<a href="/zh-cn/catches/#not-yet">还发现不了的问题</a>中，完整清单见 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>。与严格模式 TypeScript 加 zod、eslint 和 ts-pattern 的比较（包括那套方案仍然领先的地方），见<a href="/zh-cn/answers/vs-tooled-ts/">为什么不用配齐工具的 TypeScript</a>。
+          这些保证只覆盖用 Glyph 写的代码。npm 依赖内部抛出的异常仍然会绕过 <code>Result</code>，从包的 <code>.d.ts</code> 导入的类型也没有运行时检查。在 Glyph 内部，8 个尚未堵上的漏洞连同 gap 编号都列在<a href="/zh-cn/catches/#not-yet">还发现不了的问题</a>中，完整清单见 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>。与严格模式 TypeScript 加 zod、eslint 和 ts-pattern 的比较（包括那套方案仍然领先的地方），见<a href="/zh-cn/answers/vs-tooled-ts/">为什么不用配齐工具的 TypeScript</a>。
         </p>
 
         <h2 class="block-label" id="adopting-it-inside-an-existing-app">在现有应用中引入<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="链接到本节">#</a></h2>

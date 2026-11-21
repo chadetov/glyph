@@ -1,7 +1,7 @@
 ---
 title: Abstração · um núcleo pequeno e ortogonal · Glyph
 description: O quarto pilar do Glyph: um jeito por conceito. Pattern matching em vez de escadas de switch, Result em vez de exceções, records em vez de tuplas, e match como a condicional.
-source_hash: 01e075d4f0eca884
+source_hash: 20ee19449bc530dd
 prev: /pillars/greppability/ | &larr; Pilar anterior | Estabilidade dos diffs: uma mudança de uma linha é um diff de uma linha
 next: /pillars/diff-stability/ | Voltar ao começo &rarr; | Verificabilidade: vale em runtime
 ---
@@ -12,21 +12,7 @@ next: /pillars/diff-stability/ | Voltar ao começo &rarr; | Verificabilidade: va
         Diga o que você quer dizer com um <strong>núcleo pequeno e ortogonal</strong>: pattern matching em vez de escadas de switch, <code>Result</code> em vez de exceções lançadas, records com nomes em vez de tuplas. Um jeito bom por conceito, não as camadas que o TypeScript foi acumulando.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Jeitos demais de dizer a mesma coisa</h2>
-        <p class="lede">
-          O TypeScript cresceu por acúmulo e manteve todas as camadas. Você pode modelar um conjunto fixo de casos como um <code>enum</code>, uma union de literais de string ou um objeto <code>const</code>. Pode descrever um formato com uma <code>interface</code>, um <code>type</code> ou uma <code>class</code>. Há <code>namespace</code>s e módulos, decorators e funções de ordem superior, cinco idiomas para quase tudo, cada um com seus casos de borda.
-        </p>
-        <p class="lede">
-          Para uma pessoa, isso é flexibilidade. Para um <strong>agente</strong>, é um campo minado: mais jeitos de expressar uma coisa significam mais chances de escolher o que tem a armadilha, e mais idiomas para manter em mente enquanto faz isso. O pilar de abstração do Glyph é uma subtração deliberada: uma ferramenta afiada por tarefa, escolhida para que o jeito óbvio também seja o seguro.
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> é a única condicional</h2>
-        <p>
-          Não existe instrução <code>if</code>/<code>else</code>. Ramificar é <code>match</code>, em todo lugar, e <code>match</code> é uma expressão: produz um valor. Uma construção cobre um teste booleano, um despacho sobre uma union e uma tabela de valores, então não há decisão a tomar sobre <em>qual</em> forma de ramificação usar.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: instrução, não valor</span>
@@ -48,14 +34,47 @@ else label = "C";</pre>
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">02</span> Unions etiquetadas e pattern matching</h2>
-        <p>
-          O jeito de modelar "um destes formatos" é uma union etiquetada, e o jeito de desmontá-la é <code>match</code>, que desestrutura o conteúdo no mesmo passo em que escolhe o caso. Nenhum campo discriminante para manter à mão, nenhuma escada de <code>switch</code> sobre uma tag em string, nenhum cast dentro de cada ramo para recuperar o formato.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">Jeitos demais</a></li>
+          <li><a href="#match-is-the-only-conditional"><code>match</code> como condicional</a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">Unions etiquetadas</a></li>
+          <li><a href="#result-over-exceptions"><code>Result</code> em vez de exceções</a></li>
+          <li><a href="#named-records-over-positional-tuples">Records nomeados</a></li>
+          <li><a href="#one-primitive-per-job">Uma primitiva por tarefa</a></li>
+          <li><a href="#the-benchmark-coming">O benchmark</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">Jeitos demais de dizer a mesma coisa<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O TypeScript cresceu por acúmulo e manteve todas as camadas.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Casos fixos</b>Você pode modelar um conjunto fixo de casos como um <code>enum</code>, uma union de literais de string ou um objeto <code>const</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Formatos</b>Pode descrever um formato com uma <code>interface</code>, um <code>type</code> ou uma <code>class</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>Todo o resto</b>Há <code>namespace</code>s e módulos, decorators e funções de ordem superior, cinco idiomas para quase tudo, cada um com seus casos de borda.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          Para uma pessoa, isso é flexibilidade. Para um <strong>agente</strong>, é um campo minado: mais jeitos de expressar uma coisa significam mais chances de escolher o que tem a armadilha, e mais idiomas para manter em mente enquanto faz isso.
+      </p></div>
+      <p class="ak-lede">
+          O pilar de abstração do Glyph é uma subtração deliberada: uma ferramenta afiada por tarefa, escolhida para que o jeito óbvio também seja o seguro.
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> é a única condicional<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Não existe instrução <code>if</code>/<code>else</code>. Ramificar é <code>match</code>, em todo lugar, e <code>match</code> é uma expressão: produz um valor.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Uma construção cobre um teste booleano, um despacho sobre uma union e uma tabela de valores, então não há decisão a tomar sobre <em>qual</em> forma de ramificação usar.</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Unions etiquetadas e pattern matching<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          O jeito de modelar "um destes formatos" é uma union etiquetada, e o jeito de desmontá-la é <code>match</code>, que desestrutura o conteúdo no mesmo passo em que escolhe o caso.
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre>type Feed =
@@ -71,19 +90,22 @@ fn view(feed: Feed) -&gt; string {
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> em vez de exceções</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o que você não escreve mais à mão</span></summary><div class="body">
         <p>
-          Falha é um valor, não um salto escondido no fluxo de controle. Uma função que pode falhar diz isso no tipo de retorno (<code>Result&lt;T, E&gt;</code>), e você compõe falhas com o operador <code>?</code> em vez de envolver as chamadas em <code>try</code>/<code>catch</code> e torcer para que a coisa certa lance a classe certa. O caminho de erro fica tão visível quanto o caminho feliz.
+          Nenhum campo discriminante para manter à mão, nenhuma escada de <code>switch</code> sobre uma tag em string, nenhum cast dentro de cada ramo para recuperar o formato.
         </p>
+      </div></details>
 
-        <h2 class="block-label"><span class="ex-label">04</span> Records com nomes em vez de tuplas posicionais</h2>
-        <p>
-          Dados são descritos com campos nomeados, sempre. Não há atalho de object literal nem tupla anônima cujos <code>[0]</code> e <code>[1]</code> você precisa lembrar. O formato se lê igual na definição, na construção e no uso.
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> em vez de exceções<a class="ak-anchor" href="#result-over-exceptions" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Falha é um valor, não um salto escondido no fluxo de controle. Uma função que pode falhar diz isso no tipo de retorno (<code>Result&lt;T, E&gt;</code>), e você compõe falhas com o operador <code>?</code> em vez de envolver as chamadas em <code>try</code>/<code>catch</code> e torcer para que a coisa certa lance a classe certa.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O caminho de erro fica tão visível quanto o caminho feliz.</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Records com nomes em vez de tuplas posicionais<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Dados são descritos com campos nomeados, sempre. O formato se lê igual na definição, na construção e no uso.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: o que são [0] e [1]?</span>
@@ -104,23 +126,34 @@ fn origin() -&gt; Point {
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> Uma primitiva por tarefa</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">sem atalhos, sem tuplas anônimas</span></summary><div class="body">
         <p>
-          Quando um conceito precisa de uma ferramenta própria, o Glyph dá exatamente uma. Estado mutável compartilhado fica num <code>std/store</code>. Um handle de arquivo ou socket que precisa ser fechado uma vez é um recurso <code>owned</code>. Iteração é <code>for x in xs</code>. Cada um é uma primitiva única, com nome e feita para aquilo, não um padrão que você reconstrói a partir de um saco de peças genéricas e erra em algum detalhe.
+          Não há atalho de object literal nem tupla anônima cujos <code>[0]</code> e <code>[1]</code> você precisa lembrar.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> Uma primitiva por tarefa<a class="ak-anchor" href="#one-primitive-per-job" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Quando um conceito precisa de uma ferramenta própria, o Glyph dá exatamente uma.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>Estado compartilhado</b>Estado mutável compartilhado fica num <code>std/store</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Handles</b>Um handle de arquivo ou socket que precisa ser fechado uma vez é um recurso <code>owned</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>Iteração</b>Iteração é <code>for x in xs</code>.</li>
+      </ul>
+      <p class="ak-lede">
+          Cada um é uma primitiva única, com nome e feita para aquilo, não um padrão que você reconstrói a partir de um saco de peças genéricas e erra em algum detalhe.
+      </p>
 
         <p class="pull-quote">
           Abstração aqui significa <strong>menos ferramentas, e mais afiadas</strong>, não mais ferramentas. Todo conceito tem uma forma óbvia, e a forma óbvia é a que você deve usar.
         </p>
 
-        <h2 class="block-label">O benchmark: em breve</h2>
-        <p>
-          O jeito de medir isso é a área de superfície: quantos conceitos distintos um leitor precisa ter em mente para entender um programa, e quanto código é preciso para expressar uma tarefa comum de forma limpa. O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um marcador de lugar que será preenchido com medições reais quando houver um conjunto de programas reais para comparar.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">O benchmark: em breve<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          O jeito de medir isso é a área de superfície: quantos conceitos distintos um leitor precisa ter em mente para entender um programa, e quanto código é preciso para expressar uma tarefa comum de forma limpa.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um marcador de lugar que será preenchido com medições reais quando houver um conjunto de programas reais para comparar.</p></div>
       <div class="chart">
         <span class="label">Conceitos distintos para ler um módulo típico &middot; quanto menor, melhor</span>
         <h3>TypeScript vs Glyph</h3>
@@ -137,8 +170,6 @@ fn origin() -&gt; Point {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           Um núcleo menor é mais fácil para uma pessoa aprender uma vez e mais fácil para um modelo acertar toda vez. Essa é a camada de acabamento numa frase: tire as escolhas que só acrescentavam risco, e o que sobra é uma linguagem que diz o que quer dizer.
-        </p>
-      </div>
+      </p></div>

@@ -1,7 +1,7 @@
 ---
 title: O que o plantão vê quando quebra às 3 da manhã? · Glyph
 description: O Glyph compila para TypeScript legível com um source map v3 de volta para cada arquivo .glyph, então stack traces e erros do tsc apontam para o Glyph que você escreveu.
-source_hash: 23c0350a6befa9fd
+source_hash: 4049ecaf7d564dbf
 prev: /answers/parse-errors/ | &larr; Anterior | Quando um parse falha, eu descubro o motivo?
 next: /playground/ | Você já viu &rarr; | Agora escreva um pouco de Glyph no playground
 ---
@@ -12,35 +12,51 @@ next: /playground/ | Você já viu &rarr; | Agora escreva um pouco de Glyph no p
         TypeScript legível que é seu, com um <strong>source map de volta para o seu <code>.glyph</code></strong> ao lado de cada arquivo emitido. Um debugger, um bundler ou um rastreador de erros liga o código em execução ao seu fonte, e até quem nunca viu Glyph consegue ler o TS gerado. Antes de tudo isso, <code>glyph build</code> e <code>glyph run</code> informam os mesmos diagnósticos sobre a mesma árvore, então o ciclo rápido não esconde algo que o build teria pegado. Duas limitações, ambas no caminho do <code>glyph run</code>, estão descritas abaixo.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">1 &middot; O TypeScript gerado é seu para ler</h2>
-        <p>
-          O Glyph não traz um runtime opaco. Ele emite TypeScript comum e formatado, que você comita e faz deploy como qualquer outro TS. Então o pior caso (alguém de plantão que não conhece Glyph, às 3 da manhã) ainda está lendo TypeScript puro, não um dialeto. Não há caixa-preta entre o seu fonte e a produção.
-        </p>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#1-the-generated-typescript-is-yours-to-read">TypeScript legível</a></li>
+          <li><a href="#2-source-maps-back-to-glyph">Source maps</a></li>
+          <li><a href="#3-build-and-type-errors-already-point-at-glyph">Erros de build e de tipo</a></li>
+          <li><a href="#4-glyph-run-tells-you-the-same-things">Diagnósticos do glyph run</a></li>
+          <li><a href="#two-current-limitations">Duas limitações</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">2 &middot; Source maps de volta para <code>.glyph</code></h2>
-        <p>
-          Todo <code>.ts</code> emitido vem com um source map v3 padrão (<code>.ts.map</code>) ao lado, com um comentário <code>sourceMappingURL</code> e o seu fonte Glyph embutido (<code>sourcesContent</code>). Qualquer coisa que consome source maps (Chrome DevTools, um debugger do Node, um rastreador de erros como o Sentry, o seu bundler) consegue encadear por ele e mostrar a linha do <code>.glyph</code>, não a gerada.
-        </p>
-      </div>
+      <h2 class="ak-h" id="1-the-generated-typescript-is-yours-to-read">1 &middot; O TypeScript gerado é seu para ler<a class="ak-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O Glyph não traz um runtime opaco. Ele emite TypeScript comum e formatado, que você comita e faz deploy como qualquer outro TS.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Então o pior caso (alguém de plantão que não conhece Glyph, às 3 da manhã) ainda está lendo TypeScript puro, não um dialeto. Não há caixa-preta entre o seu fonte e a produção.</p></div>
+
+      <h2 class="ak-h" id="2-source-maps-back-to-glyph">2 &middot; Source maps de volta para <code>.glyph</code><a class="ak-anchor" href="#2-source-maps-back-to-glyph" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Todo <code>.ts</code> emitido vem com um source map v3 padrão (<code>.ts.map</code>) ao lado, com um comentário <code>sourceMappingURL</code> e o seu fonte Glyph embutido (<code>sourcesContent</code>).
+      </p>
       <div class="code">
         <span class="cap">dist/main.ts (final)</span>
 <pre>// ...emitted TypeScript...
 //# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Qualquer coisa que consome source maps (Chrome DevTools, um debugger do Node, um rastreador de erros como o Sentry, o seu bundler) consegue encadear por ele e mostrar a linha do <code>.glyph</code>, não a gerada.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">3 &middot; Erros de build e de tipo já apontam para o Glyph</h2>
+      <h2 class="ak-h" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; Erros de build e de tipo já apontam para o Glyph<a class="ak-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Raramente você chega à produção com um erro de tipo, porque <code>glyph build</code> roda <code>tsc --strict</code> e mapeia cada erro do <code>tsc</code> de volta para o seu fonte <code>.glyph</code> (mesmo cursor, com o código de erro do TypeScript preservado).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>E <code>glyph build --json</code> emite cada diagnóstico como JSON estruturado (código, severidade, arquivo, linha/coluna a partir de 1, ajuda) para o seu CI ou suas ferramentas agirem.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">onde o cursor cai</span></summary><div class="body">
         <p>
-          Raramente você chega à produção com um erro de tipo, porque <code>glyph build</code> roda <code>tsc --strict</code> e <strong>mapeia cada erro do <code>tsc</code> de volta para o seu fonte <code>.glyph</code></strong> (mesmo cursor, com o código de erro do TypeScript preservado). O cursor fica na menor expressão Glyph cujo código o <code>tsc</code> rejeitou: um argumento errado sublinha esse argumento, um campo com erro de digitação dentro de um handler de evento JSX sublinha esse acesso a membro, não o <code>return</code> inteiro em volta. E <code>glyph build --json</code> emite cada diagnóstico como JSON estruturado (código, severidade, arquivo, linha/coluna a partir de 1, ajuda) para o seu CI ou suas ferramentas agirem.
+          O cursor fica na menor expressão Glyph cujo código o <code>tsc</code> rejeitou: um argumento errado sublinha esse argumento, um campo com erro de digitação dentro de um handler de evento JSX sublinha esse acesso a membro, não o <code>return</code> inteiro em volta.
         </p>
+      </div></details>
 
-        <h2 class="block-label">4 &middot; <code>glyph run</code> diz as mesmas coisas</h2>
-        <p>
-          O comando que você digita o dia todo é <code>glyph run</code>, e até a 0.1.40 ele era mais calado que o build. Compilava o diretório inteiro, pegava a lista de arquivos emitidos do relatório e jogava os diagnósticos fora. Uma árvore que o <code>glyph build</code> apontava rodava limpa e saía com 0. Agora ele informa o mesmo conjunto: avisos incluídos, no arquivo que você indicou e nos vizinhos, depois da saída do programa, com uma linha de contagem. O cache de execução guarda os diagnósticos, então uma segunda execução de fontes inalterados diz o que a primeira disse em vez de ficar em silêncio, e uma entrada de cache sem diagnósticos conta como miss e é reconstruída.
-        </p>
-      </div>
-      <div class="code">
+      <h2 class="ak-h" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> diz as mesmas coisas<a class="ak-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O comando que você digita o dia todo é <code>glyph run</code>, e até a 0.1.40 ele era mais calado que o build. Agora ele informa o mesmo conjunto: avisos incluídos, no arquivo que você indicou e nos vizinhos, depois da saída do programa, com uma linha de contagem.
+      </p>
+      <div class="code term">
         <span class="cap">um import não usado, adicionado um passo antes do código que o usaria</span>
 <pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
@@ -54,25 +70,51 @@ next: /playground/ | Você já viu &rarr; | Agora escreva um pouco de Glyph no p
 
 glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">Duas limitações atuais</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o cache de execução</span></summary><div class="body">
         <p>
-          <strong>O stack de crash do próprio <code>glyph run</code> ainda mostra números de linha do <code>.ts</code>.</strong> O <code>glyph run</code> executa via <code>tsx</code>, e o <code>tsx</code> não encadeia o source map pela sua própria transformação <code>.ts</code>&rarr;<code>.js</code>, então um throw não capturado durante o <code>glyph run</code> informa a linha gerada. Remapear esse stack é um trabalho futuro. Isso afeta o ciclo local do <code>run</code>; num deploy de verdade você faz <code>glyph build</code> para <code>.ts</code>, empacota com o seu toolchain normal e o <code>.ts.map</code> encadeia como sempre, então o stack de produção que dispara o alerta é mapeado de volta para <code>.glyph</code>.
+          O cache de execução guarda os diagnósticos, então uma segunda execução de fontes inalterados diz o que a primeira disse em vez de ficar em silêncio, e uma entrada de cache sem diagnósticos conta como miss e é reconstruída.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">antes da 0.1.40</span></summary><div class="body">
+        <p>
+          Ele compilava o diretório inteiro, pegava a lista de arquivos emitidos do relatório e jogava os diagnósticos fora. Uma árvore que o <code>glyph build</code> apontava rodava limpa e saía com 0.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="two-current-limitations">Duas limitações atuais<a class="ak-anchor" href="#two-current-limitations" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>O stack de crash do próprio <code>glyph run</code> ainda mostra números de linha do <code>.ts</code>.</b>O <code>glyph run</code> executa via <code>tsx</code>, e o <code>tsx</code> não encadeia o source map pela sua própria transformação <code>.ts</code>&rarr;<code>.js</code>, então um throw não capturado durante o <code>glyph run</code> informa a linha gerada. Remapear esse stack é um trabalho futuro.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Um erro num módulo vizinho não muda o exit code do <code>glyph run</code>.</b>Um módulo que falhou ao compilar fica indisponível para import, e um programa que nunca o importou roda mesmo assim. Agora você vê o erro, mas o processo ainda sai com o que o <code>main</code> retornou.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">stacks de produção, e por que o exit code continua igual</span></summary><div class="body">
+        <p>
+          Isso afeta o ciclo local do <code>run</code>; num deploy de verdade você faz <code>glyph build</code> para <code>.ts</code>, empacota com o seu toolchain normal e o <code>.ts.map</code> encadeia como sempre, então o stack de produção que dispara o alerta é mapeado de volta para <code>.glyph</code>.
         </p>
         <p>
-          <strong>Um erro num módulo vizinho não muda o exit code do <code>glyph run</code>.</strong> Um módulo que falhou ao compilar fica indisponível para import, e um programa que nunca o importou roda mesmo assim. Agora você vê o erro, mas o processo ainda sai com o que o <code>main</code> retornou. Fazer ele sair com código diferente de zero quebraria árvores que hoje rodam bem, então isso é uma decisão em aberto, não um descuido. Se você quer que a saúde da árvore decida o exit code, use <code>glyph build</code>.
+          Fazer ele sair com código diferente de zero quebraria árvores que hoje rodam bem, então isso é uma decisão em aberto, não um descuido. Se você quer que a saúde da árvore decida o exit code, use <code>glyph build</code>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Situação atual</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>TS legível e comitado, um <code>.ts.map</code> v3 por arquivo, erros do <code>tsc</code> remapeados para <code>.glyph</code> e diagnósticos em <code>--json</code>. <code>glyph run</code> informa o que <code>glyph build</code> informa, com cache quente inclusive. A cadeia de source maps do seu toolchain de deploy chega ao <code>.glyph</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">A caminho</h3>
-          <p>Remapear o próprio stack de crash do <code>glyph run</code> (para que o ciclo local também mostre frames do <code>.glyph</code>), uma decisão sobre se o erro de um módulo vizinho deve fazer o <code>glyph run</code> sair com código diferente de zero, e um debugging mais rico no editor via LSP.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">TS legível e comitado.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um <code>.ts.map</code> v3 por arquivo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Erros do <code>tsc</code> remapeados para <code>.glyph</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Diagnósticos em <code>--json</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph run</code> informa o que <code>glyph build</code> informa, com cache quente inclusive.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A cadeia de source maps do seu toolchain de deploy chega ao <code>.glyph</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> A caminho</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Remapear o próprio stack de crash do <code>glyph run</code> (para que o ciclo local também mostre frames do <code>.glyph</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Uma decisão sobre se o erro de um módulo vizinho deve fazer o <code>glyph run</code> sair com código diferente de zero.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um debugging mais rico no editor via LSP.</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -1,7 +1,7 @@
 ---
 title: Por que não TypeScript com ferramentas: tsc, zod, eslint? · Glyph
 description: TypeScript com ferramentas vai longe, mas cada garantia é opcional e um agente pode contorná-la. No Glyph o rigor é a linguagem, não um arquivo de configuração.
-source_hash: d0694478c32b0491
+source_hash: 47270533d1ace9c6
 prev: /answers/why-typescript/ | &larr; Anterior | Por que TypeScript, e não Go ou uma linguagem nova?
 next: /answers/human-value/ | Próxima &rarr; | O Glyph vale a pena se eu não uso IA?
 ---
@@ -12,13 +12,10 @@ next: /answers/human-value/ | Próxima &rarr; | O Glyph vale a pena se eu não u
         Porque cada uma dessas garantias é <strong>opcional</strong>, e um agente pode contornar cada uma delas com uma linha. O rigor do Glyph não é um arquivo de configuração que o agente pode editar. É a linguagem. O ponto de controle deixa de ser "lembramos de rodar o lint neste arquivo?" e passa a ser "compila?".
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">O que o TypeScript com ferramentas já cobre</h2>
-        <p>
-          Uma configuração de TypeScript bem feita leva você longe, e se o seu time roda tudo isso na CI, você já fechou a maioria das brechas que o Glyph mira. É a alternativa que vale levar a sério, então aqui está o mapeamento:
-        </p>
-      </div>
-
+      <p class="ak-lede">
+        Uma configuração de TypeScript bem feita leva você longe, e se o seu time roda tudo isso na CI, você já fechou a maioria das brechas que o Glyph mira. É a alternativa que vale levar a sério, então aqui está o mapeamento:
+      </p>
+      <figure class="ak-hero" id="what-tooled-typescript-already-covers">
       <div class="code">
         <span class="cap">o que o TypeScript com ferramentas já te dá</span>
 <pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
@@ -28,18 +25,25 @@ runtime validation  <span class="cm">→ zod at every boundary</span>
 must-handle errors  <span class="cm">→ an eslint rule</span>
 deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>O que o TypeScript com ferramentas já cobre. Se você tem tudo isso ligado e obrigatório, já percorreu a maior parte do caminho. O TypeScript tem essas ideias. O que uma linguagem acrescenta ao torná-las obrigatórias se resume a três coisas.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Se você tem tudo isso ligado e obrigatório, já percorreu a maior parte do caminho. O TypeScript tem essas ideias. O que uma linguagem acrescenta ao torná-las obrigatórias se resume a três coisas.
-        </p>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#non-optional-beats-opt-in">Obrigatório ganha de opcional</a></li>
+          <li><a href="#the-type-is-the-validator-no-second-artifact">O tipo é o validador</a></li>
+          <li><a href="#greppable-mutation">Mutação buscável</a></li>
+          <li><a href="#the-failure-mode-diff">O diff do modo de falha</a></li>
+          <li><a href="#where-tooled-typescript-is-still-ahead">Onde o TypeScript está na frente</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label"><span class="ex-label">01</span> Obrigatório ganha de opcional</h2>
-        <p>
-          Sua config do eslint só protege o código que o agente faz passar <em>por</em> ela, e o agente pode escrever <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, ou simplesmente esquecer o <code>.exhaustive()</code>, e ainda assim compila e é mergeado. Cada uma dessas válvulas de escape é uma config que o agente pode editar. O Glyph não tem nenhuma válvula dessas: não existe <code>as</code>, nem pragma de ignore, nem como tirar um valor tipado de um <code>unknown</code> sem uma checagem que o compilador consiga ver.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Obrigatório ganha de opcional<a class="ak-anchor" href="#non-optional-beats-opt-in" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Cada uma dessas válvulas de escape é uma config que o agente pode editar. O Glyph não tem nenhuma válvula dessas: não existe <code>as</code>, nem pragma de ignore, nem como tirar um valor tipado de um <code>unknown</code> sem uma checagem que o compilador consiga ver.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: as válvulas existem</span>
@@ -61,30 +65,36 @@ return anything as any;</pre>
 <span class="cm">// no lint to switch off.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <p class="callout">
-          Um rigor que o agente <strong>não consegue desligar na config</strong> fica num ponto de controle diferente de um rigor que ele consegue. O Glyph é construído sobre essa diferença.
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">02</span> O tipo é o validador: sem segundo artefato</h2>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Um rigor que o agente não consegue desligar na config fica num ponto de controle diferente de um rigor que ele consegue. O Glyph é construído sobre essa diferença.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o que um agente consegue escrever passando por cima do eslint</span></summary><div class="body">
         <p>
-          O zod inverte a sua fonte da verdade: você escreve o <em>schema</em>, deriva o tipo dele e depois mantém o tipo, o schema e qualquer serializador sincronizados à mão. Manter isso alinhado é justamente onde um agente introduz divergência: ele renomeia um campo no tipo e não no schema, e os dois continuam compilando. No Glyph o tipo <em>é</em> o validador: declarar <code>type User = {...}</code> gera <code>User.parse</code> junto. Um artefato, nada para sincronizar, nada para esquecer.
+          Sua config do eslint só protege o código que o agente faz passar <em>por</em> ela, e o agente pode escrever <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, ou simplesmente esquecer o <code>.exhaustive()</code>, e ainda assim compila e é mergeado.
         </p>
+      </div></details>
 
-        <h2 class="block-label"><span class="ex-label">03</span> Mutação buscável</h2>
+      <h2 class="ak-h" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> O tipo é o validador: sem segundo artefato<a class="ak-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        No Glyph o tipo <em>é</em> o validador: declarar <code>type User = {...}</code> gera <code>User.parse</code> junto. Um artefato, nada para sincronizar, nada para esquecer.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>zod: schema primeiro</b>O zod inverte a sua fonte da verdade: você escreve o <em>schema</em>, deriva o tipo dele e depois mantém o tipo, o schema e qualquer serializador sincronizados à mão.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Onde entra a divergência</b>Manter isso alinhado é justamente onde um agente introduz divergência: ele renomeia um campo no tipo e não no schema, e os dois continuam compilando.</li>
+      </ul>
+
+      <h2 class="ak-h" id="greppable-mutation"><span class="ex-label">03</span> Mutação buscável<a class="ak-anchor" href="#greppable-mutation" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        No Glyph, estado compartilhado vive num store e toda mudança é um <code>.set(</code>/<code>.update(</code> literal; <code>grep 'mut '</code> encontra toda mutação local. O TypeScript padrão não tem equivalente.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">onde uma escrita em TypeScript pode se esconder</span></summary><div class="body">
         <p>
-          No TypeScript, uma mudança de estado pode se esconder atrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, um setter ou um spread. Não existe um token único para buscar, e nenhuma regra de lint resolve isso por completo. No Glyph, estado compartilhado vive num store e toda mudança é um <code>.set(</code>/<code>.update(</code> literal; <code>grep 'mut '</code> encontra toda mutação local. O TypeScript padrão não tem equivalente.
+          No TypeScript, uma mudança de estado pode se esconder atrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, um setter ou um spread. Não existe um token único para buscar, e nenhuma regra de lint resolve isso por completo.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">O diff do modo de falha</h2>
-        <p>
-          Mesma tarefa: um agente adiciona uma variante a uma union e esquece de tratá-la em um de três lugares:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-failure-mode-diff">O diff do modo de falha<a class="ak-anchor" href="#the-failure-mode-diff" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Mesma tarefa: um agente adiciona uma variante a uma union e esquece de tratá-la em um de três lugares:
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TS com ferramentas</span>
@@ -104,33 +114,45 @@ return anything as any;</pre>
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Onde o TypeScript com ferramentas ainda está na frente</h2>
-        <p>
-          Quatro pontos em que ele está à frente do Glyph hoje:
-        </p>
-        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Validação mais rica.</strong> Os descritores do Glyph são strict por padrão (recusam chaves não declaradas), e um refinamento <code>where</code> coloca um predicado sobre um primitivo (<code>type Email = string where value.includes("@")</code>), que o descritor roda em toda fronteira que o tipo alcança. O zod ainda está na frente de dois jeitos: traz checagens prontas como <code>.email()</code> e <code>.url()</code>, que no Glyph você escreve por conta própria, e refina objetos inteiros, enquanto um <code>where</code> num record (<code>lo &lt;= hi</code> entre dois campos) é <code>E0300</code> hoje.</li>
-          <li><strong>Matching mais profundo.</strong> Os guards e os padrões estruturais profundos do ts-pattern vão além do que o <code>match</code> do Glyph expressa.</li>
-          <li><strong>A "ausência comprovável" para na fronteira do <code>.ts</code>.</strong> As garantias do Glyph valem para código escrito em Glyph; uma exceção lançada por uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado de um <code>.d.ts</code> não tem descritor em runtime.</li>
-          <li><strong>Ecossistema e contratação.</strong> O ferramental, a comunidade e o mercado de profissionais de TypeScript são muito maiores, com anos de uso em produção. O Glyph é uma versão preliminar.</li>
-        </ul>
-        <p>
-          Se você ligou por completo o TypeScript com ferramentas e seus agentes ficam dentro dele, você já tem a maior parte disso. O argumento do Glyph é que "ficam dentro dele" é a parte que sustenta tudo, e é justamente a parte que um agente quebra. Obrigatoriedade, validação com um artefato só e mutação buscável são o que você não consegue acrescentando mais ferramentas opcionais.
-        </p>
+      <h2 class="ak-h" id="where-tooled-typescript-is-still-ahead">Onde o TypeScript com ferramentas ainda está na frente<a class="ak-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Quatro pontos em que ele está à frente do Glyph hoje:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Validação mais rica.</b>Os descritores do Glyph são strict por padrão (recusam chaves não declaradas), e um refinamento <code>where</code> coloca um predicado sobre um primitivo (<code>type Email = string where value.includes("@")</code>), que o descritor roda em toda fronteira que o tipo alcança. O zod ainda está na frente de dois jeitos: traz checagens prontas como <code>.email()</code> e <code>.url()</code>, que no Glyph você escreve por conta própria, e refina objetos inteiros, enquanto um <code>where</code> num record (<code>lo &lt;= hi</code> entre dois campos) é <code>E0300</code> hoje.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Matching mais profundo.</b>Os guards e os padrões estruturais profundos do ts-pattern vão além do que o <code>match</code> do Glyph expressa.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>A "ausência comprovável" para na fronteira do <code>.ts</code>.</b>As garantias do Glyph valem para código escrito em Glyph; uma exceção lançada por uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado de um <code>.d.ts</code> não tem descritor em runtime.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.5" cy="6" r="2.2"/><circle cx="11" cy="6" r="2.2"/><path d="M1.8 13c.4-2.2 1.9-3.4 3.7-3.4s3.3 1.2 3.7 3.4M7.4 13c.4-2.2 1.9-3.4 3.6-3.4s3.3 1.2 3.7 3.4"/></svg></span><b>Ecossistema e contratação.</b>O ferramental, a comunidade e o mercado de profissionais de TypeScript são muito maiores, com anos de uso em produção. O Glyph é uma versão preliminar.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Se você ligou por completo o TypeScript com ferramentas e seus agentes ficam dentro dele, você já tem a maior parte disso. O argumento do Glyph é que "ficam dentro dele" é a parte que sustenta tudo, e é justamente a parte que um agente quebra. Obrigatoriedade, validação com um artefato só e mutação buscável são o que você não consegue acrescentando mais ferramentas opcionais.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">ReScript, Gleam ou Elm</span></summary><div class="body">
         <p>
           Se você topa sair do TypeScript para uma linguagem tipada mais antiga que compila para JavaScript, <a href="/design/vs-rescript-gleam-elm/">Por que não ReScript, Gleam ou Elm?</a> compara o Glyph com elas.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Situação atual</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Sem <code>any</code>/<code>as</code>, <code>match</code> exaustivo (<code>E0200</code>/<code>E0218</code>), aviso de <code>Result</code> descartado (<code>E0217</code>), validadores gerados a partir do tipo e mutação buscável: tudo obrigatório, nada que seja uma regra de eslint que dá para desligar.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Em medição</h3>
-          <p>A afirmação de que agentes deixam escapar menos defeitos em Glyph do que em TS strict <em>bem configurado</em> é o benchmark que estamos construindo, contra TS com ferramentas, não TS ingênuo. Veja os <a href="/benchmarks/">benchmarks</a>.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Sem <code>any</code>/<code>as</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code> exaustivo.</span><span class="chip code">E0200</span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Aviso de <code>Result</code> descartado.</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Validadores gerados a partir do tipo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutação buscável.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tudo obrigatório, nada que seja uma regra de eslint que dá para desligar.</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Sem <code>any</code>/<code>as</code>, <code>match</code> exaustivo (<code>E0200</code>/<code>E0218</code>), aviso de <code>Result</code> descartado (<code>E0217</code>), validadores gerados a partir do tipo e mutação buscável: tudo obrigatório, nada que seja uma regra de eslint que dá para desligar.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Em medição</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A afirmação de que agentes deixam escapar menos defeitos em Glyph do que em TS strict <em>bem configurado</em> é o benchmark que estamos construindo, contra TS com ferramentas, não TS ingênuo. Veja os <a href="/benchmarks/">benchmarks</a>.</span></span></li>
+          </ul>
+        </section>
       </div>

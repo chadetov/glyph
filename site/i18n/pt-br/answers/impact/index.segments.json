@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "pt-br",
-  "source_hash": "42e24af1156f67f1",
+  "source_hash": "430fde319321c2e5",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Para seis tipos de edição, sim. <code>glyph_impact</code> recebe a declaração que você está prestes a mudar e a própria mudança (renomear, remover uma variante, mudar o tipo de um parâmetro, mudar a aridade, remover a declaração) e responde com <strong>um veredito por ponto de uso</strong>, tirado de uma lista fechada, cada um com o motivo daquele veredito e de nenhum outro."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Por que isso importa"
-    },
-    {
-      "id": "h-113a4126",
-      "kind": "html",
-      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward. Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
-      "tr": "Ao renomear uma função, ampliar uma union ou mudar o que um parâmetro aceita, ou você faz grep pelo nome antigo e torce para ter achado todas as chamadas, ou faz a edição e lê o que o compilador diz depois. Nenhum dos dois diz quais pontos vão continuar compilando enquanto ficam errados em silêncio: um <code>match</code> com um braço catch-all não falha quando você adiciona uma variante, ele só começa a mandar o caso novo para um lugar que ninguém escolheu. Esse ponto nunca aparece num build. <code>glyph_impact</code> responde antes da edição, sobre a mesma análise que o compilador roda."
-    },
-    {
-      "id": "h-5a7866e7",
-      "kind": "html",
-      "en": "What comes back",
-      "tr": "O que volta"
-    },
-    {
-      "id": "h-da22973a",
-      "kind": "html",
-      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the change is taken here silently), <code>SAFE</code> (it can prove the site stays correct), <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence), and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at all).",
-      "tr": "O pedido nomeia uma entidade pela sua identidade <code>module::name</code> e uma mudança de uma lista fechada: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. A mudança é obrigatória, porque um veredito é um fato sobre uma edição; sem nenhuma edição nomeada, cada ponto voltaria como uma simples referência em vez de uma consequência. A resposta nomeia a entidade, a mudança e uma lista <code>impact</code>: uma entrada por ponto, cada uma com a declaração em que ele está, uma <code>relation</code>, um <code>verdict</code>, um <code>because</code> e o código de diagnóstico que o compilador emite quando há exatamente um. Os vereditos são fechados e cada um significa uma coisa: <code>WILL_FAIL</code> (o compilador consegue provar que o ponto deixa de compilar), <code>ABSORBS</code> (consegue provar que a mudança é absorvida ali em silêncio), <code>SAFE</code> (consegue provar que o ponto continua correto), <code>UNDETERMINED</code> (olhou esse ponto e não consegue determinar a consequência) e <code>NOT_INDEXED</code> (a pergunta nem pode ser feita para um ponto desse formato)."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Veja na prática"
-    },
-    {
       "id": "h-86ba488a",
       "kind": "html",
       "en": "A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and one reads <code>label</code> as a value and never calls it. Asking what <code>change_signature_type</code> does to each gets three different verdicts, because they're three different claims:",
@@ -107,10 +77,148 @@
       "tr": "resultado, reduzido aos três pontos"
     },
     {
-      "id": "h-cdf2b702",
+      "id": "h-a1dce1aa",
       "kind": "html",
-      "en": "Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label. This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
-      "tr": "A mesma edição, três pontos, três vereditos, e o <code>because</code> de cada um é a frase que o compilador de fato produz, não um rótulo de categoria. Isso espelha o teste do próprio compilador para essa mudança (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> em <code>glyph-cli/tests/agent_loop.rs</code>): o teste faz a edição depois e confere que o E0211 aparece exatamente onde <code>WILL_FAIL</code> disse que apareceria, e que o compilador fica em silêncio nos outros dois."
+      "en": "<span>Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label.</span>",
+      "tr": "<span>A mesma edição, três pontos, três vereditos, e o <code>because</code> de cada um é a frase que o compilador de fato produz, não um rótulo de categoria.</span>"
+    },
+    {
+      "id": "h-7ff698cb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the compiler test this mirrors</span>",
+      "tr": "Detalhes <span class=\"hint\">o teste do compilador que isso espelha</span>"
+    },
+    {
+      "id": "h-b0f93c00",
+      "kind": "html",
+      "en": "This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
+      "tr": "Isso espelha o teste do próprio compilador para essa mudança (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> em <code>glyph-cli/tests/agent_loop.rs</code>): o teste faz a edição depois e confere que o E0211 aparece exatamente onde <code>WILL_FAIL</code> disse que apareceria, e que o compilador fica em silêncio nos outros dois."
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Por que isso importa</a>"
+    },
+    {
+      "id": "h-227b0659",
+      "kind": "html",
+      "en": "<a href=\"#what-comes-back\">What comes back</a>",
+      "tr": "<a href=\"#what-comes-back\">O que volta</a>"
+    },
+    {
+      "id": "h-682c9014",
+      "kind": "html",
+      "en": "<a href=\"#on-a-real-application\">On a real application</a>",
+      "tr": "<a href=\"#on-a-real-application\">Numa aplicação real</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Situação atual</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link para esta seção"
+    },
+    {
+      "id": "h-9e5268ec",
+      "kind": "html",
+      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward.",
+      "tr": "Ao renomear uma função, ampliar uma union ou mudar o que um parâmetro aceita, ou você faz grep pelo nome antigo e torce para ter achado todas as chamadas, ou faz a edição e lê o que o compilador diz depois."
+    },
+    {
+      "id": "h-db276c0c",
+      "kind": "html",
+      "en": "Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
+      "tr": "Nenhum dos dois diz quais pontos vão continuar compilando enquanto ficam errados em silêncio: um <code>match</code> com um braço catch-all não falha quando você adiciona uma variante, ele só começa a mandar o caso novo para um lugar que ninguém escolheu. Esse ponto nunca aparece num build. <code>glyph_impact</code> responde antes da edição, sobre a mesma análise que o compilador roda."
+    },
+    {
+      "id": "h-5a7866e7",
+      "kind": "html",
+      "en": "What comes back",
+      "tr": "O que volta"
+    },
+    {
+      "id": "h-af924ab7",
+      "kind": "html",
+      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The verdicts are closed and each means one thing:",
+      "tr": "O pedido nomeia uma entidade pela sua identidade <code>module::name</code> e uma mudança de uma lista fechada: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Os vereditos são fechados e cada um significa uma coisa:"
+    },
+    {
+      "id": "h-4a36f89d",
+      "kind": "html",
+      "en": "Verdict",
+      "tr": "Veredito"
+    },
+    {
+      "id": "h-1f5d64b9",
+      "kind": "html",
+      "en": "Meaning",
+      "tr": "Significado"
+    },
+    {
+      "id": "h-7654985b",
+      "kind": "html",
+      "en": "the compiler can prove the site stops compiling",
+      "tr": "o compilador consegue provar que o ponto deixa de compilar"
+    },
+    {
+      "id": "h-2e902292",
+      "kind": "html",
+      "en": "it can prove the change is taken here silently",
+      "tr": "consegue provar que a mudança é absorvida ali em silêncio"
+    },
+    {
+      "id": "h-1cbbbfa0",
+      "kind": "html",
+      "en": "it can prove the site stays correct",
+      "tr": "consegue provar que o ponto continua correto"
+    },
+    {
+      "id": "h-199ea864",
+      "kind": "html",
+      "en": "it looked at this site and can't establish the consequence",
+      "tr": "olhou esse ponto e não consegue determinar a consequência"
+    },
+    {
+      "id": "h-4e74c295",
+      "kind": "html",
+      "en": "the question isn't askable for a site of this shape at all",
+      "tr": "a pergunta nem pode ser feita para um ponto desse formato"
+    },
+    {
+      "id": "h-aec68efa",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the change is required, and what each entry holds</span>",
+      "tr": "Detalhes <span class=\"hint\">por que a mudança é obrigatória, e o que cada entrada contém</span>"
+    },
+    {
+      "id": "h-3b307258",
+      "kind": "html",
+      "en": "The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one.",
+      "tr": "A mudança é obrigatória, porque um veredito é um fato sobre uma edição; sem nenhuma edição nomeada, cada ponto voltaria como uma simples referência em vez de uma consequência. A resposta nomeia a entidade, a mudança e uma lista <code>impact</code>: uma entrada por ponto, cada uma com a declaração em que ele está, uma <code>relation</code>, um <code>verdict</code>, um <code>because</code> e o código de diagnóstico que o compilador emite quando há exatamente um."
     },
     {
       "id": "h-ed0c982f",
@@ -119,10 +227,22 @@
       "tr": "Numa aplicação real"
     },
     {
-      "id": "h-0a557626",
+      "id": "h-34192c8e",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant. Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
-      "tr": "<code>examples/apps/csvql</code>, um motor de consultas sobre CSV com onze arquivos neste repositório, tem uma union etiquetada, <code>Value</code>, hoje com quatro variantes. Perguntar ao <code>glyph_impact</code> o que acontece ao adicionar uma quinta (<code>Blob</code>) encontra 10 pontos de match em 4 arquivos: 8 vão falhar na compilação e 2 têm um braço catch-all que vai absorver a variante nova em silêncio. Adicionando a variante de verdade, o compilador reporta exatamente 8 falhas <code>E0200</code>, exatamente nos 8 pontos previstos, e não diz nada nos 2 pontos <code>ABSORBS</code>, nem antes nem depois. Uma busca textual por braços catch-all no mesmo app, o que você faria sem a ferramenta, encontra esses mesmos 2 pontos reais enterrados em 20 resultados (precisão 0.10), e não diz nada sobre os 8 que falham, porque não tem noção de qual tipo um <code>match</code> examina."
+      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant.",
+      "tr": "<code>examples/apps/csvql</code>, um motor de consultas sobre CSV com onze arquivos neste repositório, tem uma union etiquetada, <code>Value</code>, hoje com quatro variantes. Perguntar ao <code>glyph_impact</code> o que acontece ao adicionar uma quinta (<code>Blob</code>) encontra 10 pontos de match em 4 arquivos: 8 vão falhar na compilação e 2 têm um braço catch-all que vai absorver a variante nova em silêncio."
+    },
+    {
+      "id": "h-57529b83",
+      "kind": "html",
+      "en": "<b>Checked by the build</b>Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after.",
+      "tr": "<b>Conferido pelo build</b>Adicionando a variante de verdade, o compilador reporta exatamente 8 falhas <code>E0200</code>, exatamente nos 8 pontos previstos, e não diz nada nos 2 pontos <code>ABSORBS</code>, nem antes nem depois."
+    },
+    {
+      "id": "h-44f82082",
+      "kind": "html",
+      "en": "<b>A text search instead</b>A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
+      "tr": "<b>Uma busca textual no lugar</b>Uma busca textual por braços catch-all no mesmo app, o que você faria sem a ferramenta, encontra esses mesmos 2 pontos reais enterrados em 20 resultados (precisão 0.10), e não diz nada sobre os 8 que falham, porque não tem noção de qual tipo um <code>match</code> examina."
     },
     {
       "id": "h-b55f380c",
@@ -137,10 +257,46 @@
       "tr": "Disponível hoje"
     },
     {
-      "id": "h-b902e12f",
+      "id": "h-0d0ff806",
       "kind": "html",
-      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
-      "tr": "Seis tipos fechados de mudança (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) e cinco vereditos fechados, uma entrada por ponto afetado com seu motivo e código de diagnóstico. <code>change_signature_type</code> é decidido por argumento de chamada, segundo as próprias regras de comparação do checker, e um ponto vale o mais fraco dos seus argumentos. Um elemento JSX é decidido como a chamada para a qual ele é traduzido: <code>&lt;Card title=\"x\" /&gt;</code> é um record de props passado para <code>Card</code>, e cada atributo é listado contra o campo com que é comparado, com o veredito que um argumento de chamada do mesmo tipo receberia. A cobertura (o que uma busca conseguiu ou não ler) é informada por busca, e não uma vez para a resposta inteira, e cada nó diz se veio de código Glyph, de um escape <code>extern_ts</code> ou de um <code>.d.ts</code> opaco."
+      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code.",
+      "tr": "Seis tipos fechados de mudança (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) e cinco vereditos fechados, uma entrada por ponto afetado com seu motivo e código de diagnóstico."
+    },
+    {
+      "id": "h-d3ea45aa",
+      "kind": "html",
+      "en": "<code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments.",
+      "tr": "<code>change_signature_type</code> é decidido por argumento de chamada, segundo as próprias regras de comparação do checker, e um ponto vale o mais fraco dos seus argumentos."
+    },
+    {
+      "id": "h-e6408624",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to",
+      "tr": "Um elemento JSX é decidido como a chamada para a qual ele é traduzido"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Detalhes"
+    },
+    {
+      "id": "h-28ce4e1d",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get.",
+      "tr": "Um elemento JSX é decidido como a chamada para a qual ele é traduzido: <code>&lt;Card title=\"x\" /&gt;</code> é um record de props passado para <code>Card</code>, e cada atributo é listado contra o campo com que é comparado, com o veredito que um argumento de chamada do mesmo tipo receberia."
+    },
+    {
+      "id": "h-25db2624",
+      "kind": "html",
+      "en": "Coverage is stated per search, and every node carries where it came from",
+      "tr": "A cobertura é informada por busca, e cada nó diz de onde veio"
+    },
+    {
+      "id": "h-bed94cd7",
+      "kind": "html",
+      "en": "Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
+      "tr": "A cobertura (o que uma busca conseguiu ou não ler) é informada por busca, e não uma vez para a resposta inteira, e cada nó diz se veio de código Glyph, de um escape <code>extern_ts</code> ou de um <code>.d.ts</code> opaco."
     },
     {
       "id": "h-c647197d",
@@ -149,10 +305,46 @@
       "tr": "Onde para"
     },
     {
-      "id": "h-42652a98",
+      "id": "h-6c7cfe36",
       "kind": "html",
-      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
-      "tr": "A profundidade é exata em um salto e vazia depois disso: o Glyph nunca infere o tipo de uma declaração a partir do corpo, então o tipo de uma função chamada não chega à assinatura de quem chama, e uma mudança em X só pode invalidar expressões que nomeiam X. Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar, porque o que um segundo salto precisa é o conserto que alguém der ao primeiro ponto, e esse conserto ainda não existe. <code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes: um argumento para o qual o checker não tem tipo, ou um pareamento de record com um campo que nenhuma regra lê, é <code>UNDETERMINED</code> (olhou e não conseguiu decidir); uma função lida como valor em vez de chamada é <code>NOT_INDEXED</code> (a pergunta nunca pôde ser feita ali). <code>ABSORBS</code> é o que merece atenção: o ponto continua compilando e mesmo assim está provadamente errado, algo que um build verde nunca vai mostrar."
+      "en": "Depth is exact at one hop and empty past it",
+      "tr": "A profundidade é exata em um salto e vazia depois disso"
+    },
+    {
+      "id": "h-c8aff8e3",
+      "kind": "html",
+      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X.",
+      "tr": "A profundidade é exata em um salto e vazia depois disso: o Glyph nunca infere o tipo de uma declaração a partir do corpo, então o tipo de uma função chamada não chega à assinatura de quem chama, e uma mudança em X só pode invalidar expressões que nomeiam X."
+    },
+    {
+      "id": "h-6fa44778",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead",
+      "tr": "Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar"
+    },
+    {
+      "id": "h-a7b177c5",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet.",
+      "tr": "Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar, porque o que um segundo salto precisa é o conserto que alguém der ao primeiro ponto, e esse conserto ainda não existe."
+    },
+    {
+      "id": "h-636febd9",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims",
+      "tr": "<code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes"
+    },
+    {
+      "id": "h-a63dd5a1",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
+      "tr": "<code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes: um argumento para o qual o checker não tem tipo, ou um pareamento de record com um campo que nenhuma regra lê, é <code>UNDETERMINED</code> (olhou e não conseguiu decidir); uma função lida como valor em vez de chamada é <code>NOT_INDEXED</code> (a pergunta nunca pôde ser feita ali)."
+    },
+    {
+      "id": "h-32f66691",
+      "kind": "html",
+      "en": "<code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
+      "tr": "<code>ABSORBS</code> é o que merece atenção: o ponto continua compilando e mesmo assim está provadamente errado, algo que um build verde nunca vai mostrar."
     }
   ]
 }

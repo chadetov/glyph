@@ -5611,6 +5611,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Rolling lane · G425, a method read by index** (record 151, S2): `xs["push"](1)` passes both checkers and throws at run time. Refuse a string-literal index naming a built-in method, with E0234's help. Not an audit hole, so not scheduled ahead of G423.
 
+**Rolling lane · G426, the help for an optional mutating call used as a value keeps its `?.`** (record 152, R1): `let n = s.opt?.pop()` gets a help naming `mut s.opt.pop()` and `array.get(s.opt, ...)`, which `tsc` refuses. Write `mut s.opt?.pop()` and drop the read-first clause; print the whole assignment in E0241's optional help. Pinned by a help-compiles test.
+
 **Planned, after G423 · G394, a widened container alias admits writes the original's type refuses** (record 119; record 150, section 5). G380 makes every array write a `mut` statement, so the write through a wider alias (`let wide: Array<string> = tiers` then `mut wide.push("zzz")`) can be judged at exactly those sites. A different mechanism from G380, so its own release.
 
 **0.1.161 · G392, `xs.find(...)` is an `Option` to Glyph's own checker** (agent research; breaking under `--no-tsc`), as `array.find` already is, so the editor, MCP and the applyEdit gate see it without `tsc`.

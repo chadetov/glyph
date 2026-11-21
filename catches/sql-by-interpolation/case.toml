@@ -1,11 +1,6 @@
+code = "E0239"
 pillar = "verifiability"
 title = "A SQL query built by interpolation"
-kind = "gap"
-gap_id = "G387"
+kind = "refused"
 ts_output = "rows 2"
-glyph_output = "rows 2"
 fullconfig = "none"
-section = "gap"
-slug = "gap-g387-sql-by-interpolation"
-order = 7
-summary = "A SQL query built with <code>${name}</code> is accepted by <code>std/sqlite</code>."

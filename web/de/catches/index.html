@@ -421,7 +421,7 @@
       <header class="page-hero">
         <p class="eyebrow">Fälle, die TypeScript durchlässt</p>
         <h1>Gefunden, bevor es ausgeliefert wird</h1>
-        <p class="lede">Insgesamt gibt es 52 geprüfte Fälle: 37 TypeScript-Fälle, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 10 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 TypeScript-Fälle und 5 Fallen).</p>
+        <p class="lede">Insgesamt gibt es 51 geprüfte Fälle: 37 TypeScript-Fälle, 5 JavaScript-Fallen, die es in Glyph nicht gibt, und 9 Lücken, die Glyph noch nicht schließt. Glyph lehnt 28 davon beim Build ab (23 TypeScript-Fälle und 5 Fallen).</p>
         <p class="lede">Jedes TypeScript-Beispiel in der Liste besteht <code>tsc --strict</code> ohne Fehler. Jedes wird außerdem gegen ein maximal konfiguriertes Projekt geprüft: alle Compiler-Flags, die strenger als <code>--strict</code> sind, dazu typescript-eslint <code>strictTypeChecked</code>. Von den 37 Fällen erkennt dieses Setup 21 überhaupt nicht. Ein standardmäßig deaktiviertes Compiler-Flag findet 5, eine Lint-Regel 11. Ein Projekt muss jedes davon einschalten, und ein Agent kann es wieder ausschalten. In Glyph ist keins davon eine Konfigurationsoption.</p>
         <p class="lede">
           Jeder Eintrag besteht aus zwei Programmen in <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, und die Ausgabe unter jedem ist das, was die Tools ausgegeben haben. Ein Build-Gate, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, führt jeden Fall erneut aus und schlägt fehl, wenn eine der beiden Hälften nicht mehr tut, was die Seite sagt. Die vollständige TypeScript-Konfiguration, gegen die es prüft, steht in diesem Skript.
@@ -1482,7 +1482,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">Was Glyph noch nicht findet</h2>
         <p class="group-sub">
-          10 Lücken, die Glyph noch nicht schließt. Jede davon kompiliert heute in Glyph und macht dasselbe Falsche wie in TypeScript. Jede hat eine Reproduktion in <code>catches/</code> und eine offene Gap-Nummer, und das Gate schlägt fehl, sobald ein Fix landet, damit der Eintrag die Lücke nicht überlebt.
+          9 Lücken, die Glyph noch nicht schließt. Jede davon kompiliert heute in Glyph und macht dasselbe Falsche wie in TypeScript. Jede hat eine Reproduktion in <code>catches/</code> und eine offene Gap-Nummer, und das Gate schlägt fehl, sobald ein Fix landet, damit der Eintrag die Lücke nicht überlebt.
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> macht aus einer echten <code>0</code> eine <code>3</code>. <span>G386</span></li>
@@ -1490,7 +1490,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <li><code>forEach(async ...)</code> verwirft jedes Promise, also wird die Arbeit erst nach dem Code fertig, der davon abhängt, und nichts warnt. <span>G384</span></li>
         <li><code>xs.sort(...)</code> in einem Helper sortiert das Array des Aufrufers um, und kein <code>mut</code> markiert das. <span>G380</span></li>
         <li><code>.sort()</code> auf Zahlen sortiert sie als Text: <code>100,25,9</code>. <span>G388</span></li>
-        <li>Eine SQL-Abfrage, die mit <code>${name}</code> gebaut wird, wird von <code>std/sqlite</code> akzeptiert. <span>G387</span></li>
         <li>Ein verlorenes Update über ein <code>await</code> hinweg auf <code>c[0]</code>, wo derselbe Schreibzugriff auf ein Feld abgelehnt wird. <span>G390</span></li>
         <li><code>input + 1</code> auf einem String, <code>users.find(...).name</code> und ein Feldzugriff auf <code>unknown</code> werden nur vom <code>tsc</code>-Schritt gefunden, nicht von Glyphs eigenem Checker, also übersehen sie der Editor und die Agenten-Tools. <span>G381, G382, G392</span></li>
       </ul>

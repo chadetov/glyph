@@ -13,8 +13,8 @@ compiler stopped doing.
 
 There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 28 are refused, 3
-warned, 10 checked at the boundary, 2 stopped at run time, and 10 are gaps Glyph
+check prints that zero rather than leaving it off. By kind, 29 are refused, 3
+warned, 10 checked at the boundary, 2 stopped at run time, and 9 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
@@ -240,7 +240,6 @@ the day its gap closes:
 | G384 | `gap-g384-dropped-async-call` | `forEach(async ...)`, so `done` prints before anything is saved | lint `no-misused-promises` |
 | G385 | `gap-g385-record-in-template` | a record in `${}`, printing `[object Object]` | lint `restrict-template-expressions` |
 | G386 | `gap-g386-or-on-a-number` | `requested \|\| 3`, turning a real `0` into `3` | nothing |
-| G387 | `gap-g387-sql-by-interpolation` | a SQL query built with `${name}`, returning every row | nothing |
 | G388 | `gap-g388-sort-as-text` | `.sort()` on numbers, giving `100,25,9` | lint `require-array-sort-compare` |
 | G390 | `gap-g390-index-update-across-await` | a lost update on `c[0]` across `await` | lint `require-atomic-updates` |
 | G392 | `gap-g392-find-method-option` | `users.find(...).name`, refused only by the `tsc` pass (`TS2532`) | lint `no-non-null-assertion` |
@@ -250,6 +249,11 @@ a `boundary` case now and off the page: `json.parse<Opts>` of
 `{"timeout_ms": null}` is an `Err` naming `timeout_ms?: Nullable<number>`, where
 the TypeScript spreads the `null` over its default and prints
 `timeout x2 = 0`.
+
+`sql-by-interpolation` was the G387 gap case until 0.1.155 closed it. It is a
+`refused` case now, E0239, and off the page: `db.query` with
+`"... name = '${name}'"` is refused with a help that writes the `?` placeholder
+and `[name]`, where the TypeScript returns both rows for `x' OR '1'='1`.
 
 ## Adding one
 

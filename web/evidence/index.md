@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/evidence/, generated from the same source as the page. Last changed 2026-11-20. -->
+<!-- Markdown copy of https://glyphlang.io/evidence/, generated from the same source as the page. Last changed 2026-11-21. -->
 
 Evidence
 
@@ -8,7 +8,7 @@ A claim that Glyph catches something is a pair of programs in the repository, on
 
 ## The fixtures
 
-Each directory under [catches/](https://github.com/chadetov/glyph/tree/main/catches) holds `ts.ts`, `glyph.glyph` and a `case.toml` saying what each one does. `scripts/check_catches.py` runs in CI. It requires every `ts.ts` to pass `tsc --strict`, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. There are 52 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 10 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). By the kind the gate checks:
+Each directory under [catches/](https://github.com/chadetov/glyph/tree/main/catches) holds `ts.ts`, `glyph.glyph` and a `case.toml` saying what each one does. `scripts/check_catches.py` runs in CI. It requires every `ts.ts` to pass `tsc --strict`, since a TypeScript program that doesn't compile proves nothing, and checks the Glyph half according to the case's kind. There are 51 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 9 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). By the kind the gate checks:
 
 | Kind | Cases | What the gate requires of the Glyph |
 
@@ -18,7 +18,7 @@ Each directory under [catches/](https://github.com/chadetov/glyph/tree/main/catc
 | `warned` | 3 | The build passes and reports that code as a warning |
 | `boundary` | 9 | The program runs, and the check at the boundary turns the bad data into an `Err` |
 | `runtime` | 2 | The program builds, then stops when it runs, with the stated output |
-| `gap` | 10 | Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case |
+| `gap` | 9 | Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case |
 
 A case that stops being demonstrable is deleted rather than softened, and the [catches README](https://github.com/chadetov/glyph/blob/main/catches/README.md) lists the six that were deleted and why. One of them turned out to be caught by `tsc` too; another only worked because its TypeScript took a value as `any`.
 
@@ -100,7 +100,7 @@ glyph check: 1 error(s) across 1 module(s)
 
 ## What it does not catch yet
 
-The 10 `gap` cases are on [the catches page](https://glyphlang.io/catches/#not-yet), each with its gap number. Every gap found by building apps in Glyph is in the ledger, [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md), where a bracketed marker is the only live status (`[FIXED]`, `[HALF FIXED]`, or none for open) and `scripts/check_gaps.py` fails CI when an open entry was last reproduced more than five releases ago.
+The 9 `gap` cases are on [the catches page](https://glyphlang.io/catches/#not-yet), each with its gap number. Every gap found by building apps in Glyph is in the ledger, [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md), where a bracketed marker is the only live status (`[FIXED]`, `[HALF FIXED]`, or none for open) and `scripts/check_gaps.py` fails CI when an open entry was last reproduced more than five releases ago.
 
 ## How a release is marked Breaking
 

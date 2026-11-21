@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">O que garante<a class="h-anchor" href="#what-it-guarantees" aria-label="Link para esta seção">#</a></h2>
         <p>
-          Toda afirmação sobre o que o Glyph detecta é um caso no diretório <code>catches/</code> do repositório: o mesmo programa em TypeScript e em Glyph, os dois rodados por um gate de CI. No total são 52 casos verificados: 37 casos de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 10 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 casos de TypeScript e 5 armadilhas). Dos erros que ele não recusa, 3 geram um aviso, 9 são dados ruins barrados numa checagem de fronteira em runtime e 2 param em tempo de execução. Os que mais pesam para quem revisa código escrito por agentes:
+          Toda afirmação sobre o que o Glyph detecta é um caso no diretório <code>catches/</code> do repositório: o mesmo programa em TypeScript e em Glyph, os dois rodados por um gate de CI. No total são 51 casos verificados: 37 casos de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 9 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 casos de TypeScript e 5 armadilhas). Dos erros que ele não recusa, 3 geram um aviso, 9 são dados ruins barrados numa checagem de fronteira em runtime e 2 param em tempo de execução. Os que mais pesam para quem revisa código escrito por agentes:
         </p>
       </div>
 
@@ -454,7 +454,7 @@
 
         <h2 class="block-label" id="where-it-stops">Onde para<a class="h-anchor" href="#where-it-stops" aria-label="Link para esta seção">#</a></h2>
         <p>
-          As garantias cobrem código escrito em Glyph. Uma exceção lançada dentro de uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado do <code>.d.ts</code> de um pacote não tem checagem em runtime. Dentro do Glyph, as 10 falhas conhecidas em aberto estão listadas com seus números de gap em <a href="/pt-br/catches/#not-yet">o que ele ainda não detecta</a>, e o registro completo está em <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>. Para uma comparação com TypeScript strict mais zod, eslint e ts-pattern, incluindo onde essa configuração ainda está na frente, veja <a href="/pt-br/answers/vs-tooled-ts/">por que não TypeScript com ferramentas</a>.
+          As garantias cobrem código escrito em Glyph. Uma exceção lançada dentro de uma dependência do npm ainda passa por fora do <code>Result</code>, e um tipo importado do <code>.d.ts</code> de um pacote não tem checagem em runtime. Dentro do Glyph, as 9 falhas conhecidas em aberto estão listadas com seus números de gap em <a href="/pt-br/catches/#not-yet">o que ele ainda não detecta</a>, e o registro completo está em <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>. Para uma comparação com TypeScript strict mais zod, eslint e ts-pattern, incluindo onde essa configuração ainda está na frente, veja <a href="/pt-br/answers/vs-tooled-ts/">por que não TypeScript com ferramentas</a>.
         </p>
 
         <h2 class="block-label" id="adopting-it-inside-an-existing-app">Adotando dentro de um app existente<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="Link para esta seção">#</a></h2>

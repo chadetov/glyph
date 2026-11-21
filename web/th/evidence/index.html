@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          แต่ละไดเรกทอรีใต้ <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> มี <code>ts.ts</code>, <code>glyph.glyph</code> และ <code>case.toml</code> ที่บอกว่าแต่ละตัวทำอะไร <code>scripts/check_catches.py</code> รันใน CI มันกำหนดให้ <code>ts.ts</code> ทุกตัวต้องผ่าน <code>tsc --strict</code> เพราะโปรแกรม TypeScript ที่คอมไพล์ไม่ผ่านไม่ได้พิสูจน์อะไร และตรวจฝั่ง Glyph ตามชนิดของกรณี รวมทั้งหมดมี 52 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 10 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี) แยกตามชนิดที่ gate ตรวจ:
+          แต่ละไดเรกทอรีใต้ <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> มี <code>ts.ts</code>, <code>glyph.glyph</code> และ <code>case.toml</code> ที่บอกว่าแต่ละตัวทำอะไร <code>scripts/check_catches.py</code> รันใน CI มันกำหนดให้ <code>ts.ts</code> ทุกตัวต้องผ่าน <code>tsc --strict</code> เพราะโปรแกรม TypeScript ที่คอมไพล์ไม่ผ่านไม่ได้พิสูจน์อะไร และตรวจฝั่ง Glyph ตามชนิดของกรณี รวมทั้งหมดมี 51 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 9 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี) แยกตามชนิดที่ gate ตรวจ:
         </p>
       </div>
 
@@ -444,7 +444,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">build ผ่าน และรายงานรหัสนั้นเป็นคำเตือน</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">โปรแกรมรัน และการตรวจที่ขอบเขตเปลี่ยนข้อมูลที่ผิดให้เป็น <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">โปรแกรม build ผ่าน แล้วหยุดตอนรัน พร้อม output ที่ระบุไว้</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">10</td><td data-label="What the gate requires of the Glyph">Glyph ยอมรับโปรแกรมและมันทำสิ่งที่ผิด เมื่อช่องโหว่ถูกปิด gate จะ fail และบอกให้ย้ายกรณีนั้น</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">Glyph ยอมรับโปรแกรมและมันทำสิ่งที่ผิด เมื่อช่องโหว่ถูกปิด gate จะ fail และบอกให้ย้ายกรณีนั้น</td></tr>
           </tbody>
         </table>
       </div>
@@ -538,7 +538,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">สิ่งที่ยังจับไม่ได้<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          กรณี <code>gap</code> 10 กรณีอยู่ใน<a href="/th/catches/#not-yet">หน้าสิ่งที่จับได้</a> แต่ละกรณีมีหมายเลข gap ทุก gap ที่เจอจากการสร้างแอปด้วย Glyph อยู่ในบัญชี <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> ซึ่งเครื่องหมายในวงเล็บเหลี่ยมเป็นสถานะปัจจุบันเพียงอย่างเดียว (<code>[FIXED]</code>, <code>[HALF FIXED]</code> หรือไม่มีเลยสำหรับที่ยังเปิด) และ <code>scripts/check_gaps.py</code> ทำให้ CI fail เมื่อรายการที่ยังเปิดอยู่ถูกทำซ้ำครั้งล่าสุดเกินห้ารุ่นมาแล้ว
+          กรณี <code>gap</code> 9 กรณีอยู่ใน<a href="/th/catches/#not-yet">หน้าสิ่งที่จับได้</a> แต่ละกรณีมีหมายเลข gap ทุก gap ที่เจอจากการสร้างแอปด้วย Glyph อยู่ในบัญชี <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> ซึ่งเครื่องหมายในวงเล็บเหลี่ยมเป็นสถานะปัจจุบันเพียงอย่างเดียว (<code>[FIXED]</code>, <code>[HALF FIXED]</code> หรือไม่มีเลยสำหรับที่ยังเปิด) และ <code>scripts/check_gaps.py</code> ทำให้ CI fail เมื่อรายการที่ยังเปิดอยู่ถูกทำซ้ำครั้งล่าสุดเกินห้ารุ่นมาแล้ว
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">รุ่นถูกทำเครื่องหมาย Breaking อย่างไร<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>

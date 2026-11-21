@@ -1,7 +1,7 @@
 ---
 title: 서버를 작성할 수 있나요, 아니면 프로세스가 그냥 종료되나요? · Glyph
 description: Glyph 프로그램은 오래 실행되는 서버가 될 수 있습니다. main은 준비를 마치고 반환하며, 소켓과 타이머가 대기 중인 동안 프로세스는 살아 있습니다. Node와 똑같습니다.
-source_hash: babc2c3ac5bb52bc
+source_hash: 14f7ffe4f2542222
 prev: /answers/interactive-cli/ | &larr; 이전 | 사용자가 입력하는 프로그램을 작성할 수 있나요?
 next: /answers/binary/ | 다음 &rarr; | 바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?
 ---
@@ -12,21 +12,7 @@ next: /answers/binary/ | 다음 &rarr; | 바이너리 데이터를 다룰 수 �
         서버를 작성할 수 있습니다. <code>main</code>은 준비를 마치고 반환하며, <strong>소켓과 타이머가 아직 대기 중인 동안 프로세스는 살아 있습니다</strong>. Node와 같은 규칙입니다. 0.1.63까지는 그렇지 않았습니다. 러너가 <code>main</code>이 반환하는 순간 프로세스를 종료했으므로, 서버는 포트를 바인딩하고 같은 틱에 죽었습니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">왜 중요한가</h2>
-        <p>
-          스크립트를 실행할 수 있는 언어와 서비스를 실행할 수 있는 언어의 차이가 여기 있습니다. 서버, 파일 감시기, 게이트웨이 연결을 유지하는 봇, 작업 실행기는 모두 <code>main</code> 안에서 끝나지 않습니다. 핸들러를 설정하고 프로세스를 이벤트에 넘깁니다.
-        </p>
-        <p>
-          예전 동작은 가능한 최악의 방식, 즉 조용히 실패했습니다. <code>glyph run app.glyph --serve 4100</code>은 <code>listen</code> 콜백 안의 줄조차 출력하지 않고 0으로 종료했습니다. 소스에는 잘못된 것이 보이지 않았고 타입 검사도 통과했습니다. 이 상황을 만난 에이전트는 보고할 오류도, 무언가 실패했다고 생각할 이유도 없습니다.
-        </p>
-
-        <h2 class="block-label">직접 보기</h2>
-        <p>
-          TCP 서버 전체입니다. <code>main</code>은 즉시 반환하고, 콜백은 프로세스가 살아 있는 동안 실행됩니다.
-        </p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">서버, 처음부터 끝까지</span>
 <pre>module main
@@ -52,22 +38,46 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
   return 0
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>직접 보기: TCP 서버 전체입니다. <code>main</code>은 즉시 반환하고, 콜백은 프로세스가 살아 있는 동안 실행됩니다.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-it-matters">왜 중요한가</a></li>
+          <li><a href="#after-main-returns">main이 반환한 뒤</a></li>
+          <li><a href="#a-real-one">채팅 서버</a></li>
+          <li><a href="#the-other-direction-a-long-running-client">오래 실행되는 클라이언트</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        스크립트를 실행할 수 있는 언어와 서비스를 실행할 수 있는 언어의 차이가 여기 있습니다. 서버, 파일 감시기, 게이트웨이 연결을 유지하는 봇, 작업 실행기는 모두 <code>main</code> 안에서 끝나지 않습니다. 핸들러를 설정하고 프로세스를 이벤트에 넘깁니다.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">0.1.63 이전에 실패하던 방식</span></summary><div class="body">
+        <p>
+          예전 동작은 가능한 최악의 방식, 즉 조용히 실패했습니다. <code>glyph run app.glyph --serve 4100</code>은 <code>listen</code> 콜백 안의 줄조차 출력하지 않고 0으로 종료했습니다. 소스에는 잘못된 것이 보이지 않았고 타입 검사도 통과했습니다. 이 상황을 만난 에이전트는 보고할 오류도, 무언가 실패했다고 생각할 이유도 없습니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="after-main-returns"><code>main</code>이 반환한 뒤<a class="ak-anchor" href="#after-main-returns" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        알아 둘 것이 두 가지 있습니다. <code>return 0</code>은 첫 클라이언트가 연결되기도 전에 실행됩니다. 이는 프로세스가 결국 종료할 때의 코드이지, 언제 종료하는지에 대한 문장이 아닙니다.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>그리고 <code>main</code>이 반환한 <em>뒤에</em> 실패하는 것은 직접 종료 코드를 설정해야 합니다. <code>main</code>의 반환값은 이미 쓰였기 때문입니다. <code>error</code> 핸들러가 그 용도입니다. 핸들러가 없으면 포트를 바인딩하지 못한 서버는 이벤트 루프를 비우고 0으로 종료하며 성공을 보고합니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">net import의 타입</span></summary><div class="body">
         <p>
           <code>net</code>은 Node 내장 모듈이므로 평범한 import이지만, 컴파일러가 기본 타입을 제공하는 여섯 개(<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>)에는 속하지 않습니다. <code>@types/node</code>를 설치하면 빌드가 이를 우선 사용하고, 아니면 소스 옆의 <code>.types/net.d.ts</code>에 선언을 두면 됩니다. 채팅 앱은 후자를 써서 의존성이 전혀 없습니다.
         </p>
-        <p>
-          알아 둘 것이 두 가지 있습니다. <code>return 0</code>은 첫 클라이언트가 연결되기도 전에 실행됩니다. 이는 프로세스가 결국 종료할 때의 코드이지, 언제 종료하는지에 대한 문장이 아닙니다. 그리고 <code>main</code>이 반환한 <em>뒤에</em> 실패하는 것은 직접 종료 코드를 설정해야 합니다. <code>main</code>의 반환값은 이미 쓰였기 때문입니다. <code>error</code> 핸들러가 그 용도입니다. 핸들러가 없으면 포트를 바인딩하지 못한 서버는 이벤트 루프를 비우고 0으로 종료하며 성공을 보고합니다.
-        </p>
+      </div></details>
 
-        <h2 class="block-label">실제 사례</h2>
-        <p>
-          <code>examples/apps/chat</code>은 여러 TCP 클라이언트를 동시에 유지하는 채팅 서버입니다. 네트워크를 건드리지 않는 부분은 분리되어 있고 테스트할 수 있습니다. 줄 재조립, 라우팅, 방 엔진은 <code>@example</code>로 검사되는 순수 함수이고, 소켓과 통신하는 파일은 하나입니다.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-real-one">실제 사례<a class="ak-anchor" href="#a-real-one" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/chat</code>은 여러 TCP 클라이언트를 동시에 유지하는 채팅 서버입니다. 네트워크를 건드리지 않는 부분은 분리되어 있고 테스트할 수 있습니다. 줄 재조립, 라우팅, 방 엔진은 <code>@example</code>로 검사되는 순수 함수이고, 소켓과 통신하는 파일은 하나입니다.
+      </p>
+      <div class="code term">
         <span class="cap">동시에 연결된 클라이언트 세 개</span>
 <pre><span class="cm">alice&gt;</span> /join #general
 <span class="cm">bob&gt;</span>   /join #general
@@ -79,12 +89,10 @@ bob sees:    1  #general &lt;alice&gt; hello everyone
 carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
       </div>
 
-      <div class="detail">
-        <p>
-          TCP는 메시지가 아니라 바이트를 전달하므로, 청크의 끝은 보통 반쪽짜리 줄입니다. 이 재조립은 순수 함수이며, 까다로운 경우는 소켓으로 일으키는 대신 예제로 적어 두었습니다.
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="framing">줄 재조립<a class="ak-anchor" href="#framing" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        TCP는 메시지가 아니라 바이트를 전달하므로, 청크의 끝은 보통 반쪽짜리 줄입니다. 이 재조립은 순수 함수이며, 까다로운 경우는 소켓으로 일으키는 대신 예제로 적어 두었습니다.
+      </p>
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
 <pre>@example feed("", "hel").lines == []
@@ -95,16 +103,14 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">반대 방향: 오래 실행되는 클라이언트</h2>
-        <p>
-          봇은 같은 모양을 바깥으로 향하게 한 것입니다. <code>examples/apps/discord</code>는 Discord 게이트웨이 클라이언트입니다. WebSocket으로 연결하고, 식별하고, 서버가 지정한 간격으로 heartbeat를 보내고, 연결이 끊겼을 때 처음부터 다시 시작하지 않고 재개할 수 있도록 시퀀스 번호를 추적하고, 연결이 열려 있지만 죽은 상태를 알아채며, 재연결 사이에 대기 시간을 늘립니다.
-        </p>
-        <p>
-          따라 할 만한 부분은 로직이 있는 위치입니다. <code>RECONNECT</code>, 놓친 heartbeat, 거부된 토큰에 대해 무엇을 할지 결정하는 것은 세션과 이벤트 하나를 새 세션과 액션 목록으로 바꾸는 순수 함수입니다. 모듈 하나가 그 액션을 실제 소켓에서 수행합니다. 그래서 올바르게 만들기 가장 어려운 재연결 로직을 네트워크 케이블을 뽑는 대신 <code>@example</code>로 검사합니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-other-direction-a-long-running-client">반대 방향: 오래 실행되는 클라이언트<a class="ak-anchor" href="#the-other-direction-a-long-running-client" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        봇은 같은 모양을 바깥으로 향하게 한 것입니다. <code>examples/apps/discord</code>는 Discord 게이트웨이 클라이언트입니다. WebSocket으로 연결하고, 식별하고, 서버가 지정한 간격으로 heartbeat를 보내고, 연결이 끊겼을 때 처음부터 다시 시작하지 않고 재개할 수 있도록 시퀀스 번호를 추적하고, 연결이 열려 있지만 죽은 상태를 알아채며, 재연결 사이에 대기 시간을 늘립니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>따라 할 만한 부분은 로직이 있는 위치입니다. <code>RECONNECT</code>, 놓친 heartbeat, 거부된 토큰에 대해 무엇을 할지 결정하는 것은 세션과 이벤트 하나를 새 세션과 액션 목록으로 바꾸는 순수 함수입니다. 모듈 하나가 그 액션을 실제 소켓에서 수행합니다.</p></div>
+      <p class="ak-lede">
+        그래서 올바르게 만들기 가장 어려운 재연결 로직을 네트워크 케이블을 뽑는 대신 <code>@example</code>로 검사합니다.
+      </p>
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
 <pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
@@ -112,21 +118,38 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
 @example a_rejected_token_stops_rather_than_retrying()
 pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">버그 세 개, mock 두 개</span></summary><div class="body">
         <p>
           이 세 예제는 모두 먼저 코드에 있었던 버그입니다. 모의 게이트웨이를 만들어 봇을 연결해 보니 그중 하나가 잡혔습니다. 나머지 둘은 클라이언트가 아니라 Discord 문서를 보고 작성한 두 번째 모의 게이트웨이가 잡았습니다. 이 모의 게이트웨이는 협조적인 모의 객체가 절대 보내지 않는 것들을 보냅니다. 요청하지 않은 heartbeat 요청, 그리고 "토큰이 틀렸으니 그만 요청하라"는 뜻의 종료 코드입니다. 클라이언트 작성자가 만든 모의 객체는 작성자가 읽은 프로토콜 부분만 테스트합니다.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">현재 상태</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p><code>main</code>에서 반환하면 프로세스를 멈추지 않고 종료 코드를 설정하므로, 서버, 감시기, 이벤트 루프가 실행됩니다. 계산만 하는 프로그램은 여전히 <code>main</code>이 반환하는 순간 같은 코드로 종료하므로, 짧은 프로그램에 대해서는 바뀐 것이 없습니다. <code>net</code> 같은 Node 내장 모듈은 평범한 import이고, 준비 중에 예외를 던지는 프로그램은 여전히 종료되는데, 이제는 진단이 종료 때문에 잘릴 수도 있는 대신 파이프로 연결된 stderr에 도달한 뒤에 종료합니다. <code>std/timers</code>는 작업을 예약하고(<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) <code>std/websocket</code>은 연결을 열므로, 둘 다 직접 작성한 선언이 필요 없습니다.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">개선 중</h3>
-          <p><code>main</code>이 반환한 뒤 바인딩에 실패한 리스너는 프로그램이 따로 말하지 않으면 0으로 종료합니다. <code>process.set_exit_code(1)</code>은 진행 중인 작업을 중단하지 않고 실패를 기록하고, <code>process.exit(1)</code>은 즉시 멈춥니다. 이를 잊었다고 컴파일러가 경고해 주지는 아직 못합니다. 그리고 함수가 반환하지 않는다는 것을 적을 방법이 아직 없으므로, 서버의 <code>main</code>에는 도달하지 않는 <code>return 0</code>이 남아 있습니다.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>main</code>에서 반환하면 프로세스를 멈추지 않고 종료 코드를 설정하므로, 서버, 감시기, 이벤트 루프가 실행됩니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">계산만 하는 프로그램은 여전히 <code>main</code>이 반환하는 순간 같은 코드로 종료하므로, 짧은 프로그램에 대해서는 바뀐 것이 없습니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>net</code> 같은 Node 내장 모듈은 평범한 import이고, 준비 중에 던진 예외는 여전히 프로세스를 종료합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>net</code> 같은 Node 내장 모듈은 평범한 import이고, 준비 중에 예외를 던지는 프로그램은 여전히 종료되는데, 이제는 진단이 종료 때문에 잘릴 수도 있는 대신 파이프로 연결된 stderr에 도달한 뒤에 종료합니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/timers</code>는 작업을 예약하고(<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) <code>std/websocket</code>은 연결을 열므로, 둘 다 직접 작성한 선언이 필요 없습니다.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 개선 중</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>main</code>이 반환한 뒤 바인딩에 실패한 리스너는 프로그램이 따로 말하지 않으면 0으로 종료합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>main</code>이 반환한 뒤 바인딩에 실패한 리스너는 프로그램이 따로 말하지 않으면 0으로 종료합니다. <code>process.set_exit_code(1)</code>은 진행 중인 작업을 중단하지 않고 실패를 기록하고, <code>process.exit(1)</code>은 즉시 멈춥니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">이를 잊었다고 컴파일러가 경고해 주지는 아직 못합니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">그리고 함수가 반환하지 않는다는 것을 적을 방법이 아직 없으므로, 서버의 <code>main</code>에는 도달하지 않는 <code>return 0</code>이 남아 있습니다.</span></span></li>
+          </ul>
+        </section>
       </div>

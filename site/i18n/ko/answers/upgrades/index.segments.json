@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/upgrades/index.html",
   "locale": "ko",
-  "source_hash": "b4d1d08012358fef",
+  "source_hash": "d07b464c988f9441",
   "segments": [
     {
       "id": "title",
@@ -59,28 +59,88 @@
       "tr": "요청하지 않는 한 그렇지 않습니다. Glyph 프로젝트는 컴파일러를 <strong>정확한 버전</strong>으로 고정하므로, 오늘 아침 배포된 릴리스가 오늘 오후 여러분의 빌드에 들어오지 않습니다. 1.0 전에는 릴리스가 어제 컴파일되던 코드를 거부하는 진단을 추가할 수 있고, 보통 그것이 릴리스의 목적이므로, 받을지는 여러분이 결정하며 명령 하나면 됩니다."
     },
     {
+      "id": "h-5339eb44",
+      "kind": "html",
+      "en": "package.json, as scaffolded",
+      "tr": "package.json, 생성된 그대로"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-5dbf31d8",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why the pin is exact</a>",
+      "tr": "<a href=\"#why-it-matters\">정확히 고정하는 이유</a>"
+    },
+    {
+      "id": "h-999ea30a",
+      "kind": "html",
+      "en": "<a href=\"#the-other-half\">Finding out a release exists</a>",
+      "tr": "<a href=\"#the-other-half\">릴리스가 나온 것을 알기</a>"
+    },
+    {
+      "id": "h-5d8d2f96",
+      "kind": "html",
+      "en": "<a href=\"#taking-the-upgrade\">Taking the upgrade</a>",
+      "tr": "<a href=\"#taking-the-upgrade\">업그레이드 받기</a>"
+    },
+    {
+      "id": "h-719bfc45",
+      "kind": "html",
+      "en": "<a href=\"#moving-the-tool-not-the-project\">Moving the compiler itself</a>",
+      "tr": "<a href=\"#moving-the-tool-not-the-project\">컴파일러 자체 옮기기</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-47c7a582",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-755f2752",
       "kind": "html",
-      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
-      "tr": "대부분의 도구는 캐럿으로 고정합니다. 패치 릴리스는 버그 수정이기 때문입니다. 1.0 이전의 컴파일러는 그렇지 않습니다. Glyph의 일은 프로그램을 거부하는 것이고, 그 일을 더 잘하게 된다는 것은 새 오류를 뜻합니다. import에 대한 더 엄격한 검사, 예전에 빠져나가던 망라성의 구멍, 검사기가 모델링하지 않았던 인자 개수 같은 것들입니다. 이런 릴리스가 좋은 릴리스입니다. 동시에 날짜 라이브러리를 추가하려고 실행한 <code>npm install</code>로 들어오기를 원하지 않는 바로 그 릴리스이기도 합니다."
+      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that.",
+      "tr": "대부분의 도구는 캐럿으로 고정합니다. 패치 릴리스는 버그 수정이기 때문입니다. 1.0 이전의 컴파일러는 그렇지 않습니다."
+    },
+    {
+      "id": "h-55a1b2ff",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why new errors are the good releases</span>",
+      "tr": "자세히 <span class=\"hint\">새 오류가 좋은 릴리스인 이유</span>"
+    },
+    {
+      "id": "h-557b7c97",
+      "kind": "html",
+      "en": "Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
+      "tr": "Glyph의 일은 프로그램을 거부하는 것이고, 그 일을 더 잘하게 된다는 것은 새 오류를 뜻합니다. import에 대한 더 엄격한 검사, 예전에 빠져나가던 망라성의 구멍, 검사기가 모델링하지 않았던 인자 개수 같은 것들입니다. 이런 릴리스가 좋은 릴리스입니다. 동시에 날짜 라이브러리를 추가하려고 실행한 <code>npm install</code>로 들어오기를 원하지 않는 바로 그 릴리스이기도 합니다."
     },
     {
       "id": "h-d1c65588",
       "kind": "html",
       "en": "So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, which is the trap: <code>^0.1.9</code> quietly accepts every later 0.1.x.",
       "tr": "그래서 <code>glyph init</code>은 <code>^</code>를 쓰지 않습니다. <code>0.x</code> 버전에서 캐럿은 여전히 패치를 유동적으로 두는데, 그것이 함정입니다. <code>^0.1.9</code>는 이후의 모든 0.1.x를 조용히 받아들입니다."
-    },
-    {
-      "id": "h-5339eb44",
-      "kind": "html",
-      "en": "package.json, as scaffolded",
-      "tr": "package.json, 생성된 그대로"
     },
     {
       "id": "h-9b0cc8ae",
@@ -95,10 +155,22 @@
       "tr": "나머지 절반"
     },
     {
-      "id": "h-9f122561",
+      "id": "h-c960b1a4",
       "kind": "html",
-      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. Nothing on your machine would tell you, and a website you have to remember to visit is not a channel. So the compiler tells you, when you ask it anything about your setup:",
-      "tr": "고정에는 분명한 실패 방식이 하나 있습니다. 1년 동안 오래된 컴파일러에 머무르면서 그 사실을 모르는 것입니다. 여러분의 컴퓨터에서는 아무것도 알려 주지 않을 것이고, 기억해서 방문해야 하는 웹사이트는 알림 채널이 아닙니다. 그래서 설정에 대해 무엇이든 물으면 컴파일러가 알려 줍니다."
+      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. So the compiler tells you, when you ask it anything about your setup:",
+      "tr": "고정에는 분명한 실패 방식이 하나 있습니다. 1년 동안 오래된 컴파일러에 머무르면서 그 사실을 모르는 것입니다. 그래서 설정에 대해 무엇이든 물으면 컴파일러가 알려 줍니다."
+    },
+    {
+      "id": "h-5d3e3c8b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the compiler is the channel</span>",
+      "tr": "자세히 <span class=\"hint\">컴파일러가 알림 채널인 이유</span>"
+    },
+    {
+      "id": "h-d24ed7e6",
+      "kind": "html",
+      "en": "Nothing on your machine would tell you, and a website you have to remember to visit is not a channel.",
+      "tr": "여러분의 컴퓨터에서는 아무것도 알려 주지 않을 것이고, 기억해서 방문해야 하는 웹사이트는 알림 채널이 아닙니다."
     },
     {
       "id": "h-42b52e59",
@@ -107,10 +179,22 @@
       "tr": "glyph doctor"
     },
     {
-      "id": "h-2a126797",
+      "id": "h-2068db28",
       "kind": "html",
-      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI. A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
-      "tr": "더 새 릴리스를 발견해도 종료 코드는 <em>절대</em> 바뀌지 않으므로 CI에서 실행해도 안전합니다. 배포된 릴리스가 있다고 툴체인이 망가진 것은 아니며, 누군가 10분 전에 배포했다고 통과하던 파이프라인이 실패해서는 안 됩니다. 오프라인이면 검사가 그렇다고 말하고 넘어갑니다. <code>--offline</code>은 검사를 완전히 건너뛰고 네트워크 호출을 전혀 하지 않습니다."
+      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI.",
+      "tr": "더 새 릴리스를 발견해도 종료 코드는 <em>절대</em> 바뀌지 않으므로 CI에서 실행해도 안전합니다."
+    },
+    {
+      "id": "h-47f612a5",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">CI, offline, and what never touches the network</span>",
+      "tr": "자세히 <span class=\"hint\">CI, 오프라인, 그리고 네트워크에 절대 닿지 않는 것</span>"
+    },
+    {
+      "id": "h-d2ec5403",
+      "kind": "html",
+      "en": "A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
+      "tr": "배포된 릴리스가 있다고 툴체인이 망가진 것은 아니며, 누군가 10분 전에 배포했다고 통과하던 파이프라인이 실패해서는 안 됩니다. 오프라인이면 검사가 그렇다고 말하고 넘어갑니다. <code>--offline</code>은 검사를 완전히 건너뛰고 네트워크 호출을 전혀 하지 않습니다."
     },
     {
       "id": "h-193447d0",
@@ -125,16 +209,28 @@
       "tr": "업그레이드 받기"
     },
     {
+      "id": "h-af615b1b",
+      "kind": "html",
+      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet.",
+      "tr": "한 줄을 다시 쓰고 <code>npm install</code>을 실행합니다. 소스는 건드리지 않으며, 업그레이드가 끝났다고 가정하지도 않습니다. 방금 받은 릴리스는 코드가 아직 겪어 보지 못한 판단을 내릴 수 있으므로, 그 뒤에 빌드하는 것이 핵심입니다."
+    },
+    {
       "id": "h-3b711bf0",
       "kind": "html",
       "en": "One line changes, and you decide when",
       "tr": "한 줄이 바뀌고, 언제 할지는 여러분이 정합니다"
     },
     {
-      "id": "h-03df523e",
+      "id": "h-ef8eb5b9",
       "kind": "html",
-      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet. <code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
-      "tr": "한 줄을 다시 쓰고 <code>npm install</code>을 실행합니다. 소스는 건드리지 않으며, 업그레이드가 끝났다고 가정하지도 않습니다. 방금 받은 릴리스는 코드가 아직 겪어 보지 못한 판단을 내릴 수 있으므로, 그 뒤에 빌드하는 것이 핵심입니다. <code>--to &lt;version&gt;</code>은 특정 버전을 지정하며, 되돌아가고 싶을 때는 이전 버전도 됩니다. <code>--no-install</code>은 설치를 여러분에게 맡깁니다."
+      "en": "Details <span class=\"hint\">picking a version, skipping the install</span>",
+      "tr": "자세히 <span class=\"hint\">버전 고르기, 설치 건너뛰기</span>"
+    },
+    {
+      "id": "h-724f3b65",
+      "kind": "html",
+      "en": "<code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
+      "tr": "<code>--to &lt;version&gt;</code>은 특정 버전을 지정하며, 되돌아가고 싶을 때는 이전 버전도 됩니다. <code>--no-install</code>은 설치를 여러분에게 맡깁니다."
     },
     {
       "id": "h-acd610d7",
@@ -143,10 +239,28 @@
       "tr": "프로젝트가 아니라 도구 옮기기"
     },
     {
-      "id": "h-6a0faca9",
+      "id": "h-b75cc745",
       "kind": "html",
-      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have. <code>glyph --update</code> is the other half. The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code. <code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
-      "tr": "<code>upgrade</code>는 <code>package.json</code>의 고정 버전을 옮깁니다. 뒤처진 것이 <code>PATH</code>에 있는 컴파일러라면 맞지 않는 명령인데, 한동안 <code>doctor</code>는 그래도 이 명령을 출력해서, 전역 설치를 있을지도 모르는 매니페스트로 안내했습니다. 나머지 절반은 <code>glyph --update</code>입니다. 이 구분은 이제 우연이 아니라 규칙입니다. 플래그는 <code>--version</code>, <code>--help</code>, <code>--explain</code>처럼 도구에 작용하고, 하위 명령은 여러분의 코드에 작용합니다. <code>--update-dry-run</code>은 실행했을 <code>npm</code> 명령을 출력하고 멈춥니다."
+      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. <code>glyph --update</code> is the other half.",
+      "tr": "<code>upgrade</code>는 <code>package.json</code>의 고정 버전을 옮깁니다. 나머지 절반은 <code>glyph --update</code>입니다."
+    },
+    {
+      "id": "h-e7c180e3",
+      "kind": "html",
+      "en": "The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code.",
+      "tr": "이 구분은 이제 우연이 아니라 규칙입니다. 플래그는 <code>--version</code>, <code>--help</code>, <code>--explain</code>처럼 도구에 작용하고, 하위 명령은 여러분의 코드에 작용합니다."
+    },
+    {
+      "id": "h-a371bfac",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what doctor used to print</span>",
+      "tr": "이력 <span class=\"hint\">doctor가 예전에 출력하던 것</span>"
+    },
+    {
+      "id": "h-154952dd",
+      "kind": "html",
+      "en": "That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
+      "tr": "뒤처진 것이 <code>PATH</code>에 있는 컴파일러라면 맞지 않는 명령인데, 한동안 <code>doctor</code>는 그래도 이 명령을 출력해서, 전역 설치를 있을지도 모르는 매니페스트로 안내했습니다."
     },
     {
       "id": "h-c1acb4b2",
@@ -155,10 +269,22 @@
       "tr": "glyph --update"
     },
     {
-      "id": "h-e478c4dc",
+      "id": "h-bd7bf040",
       "kind": "html",
-      "en": "It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose. It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
-      "tr": "식별할 수 있는 설치만 옮깁니다. <code>npx</code>로 실행한 컴파일러, Glyph 소스 트리에서 빌드한 컴파일러, 알아볼 수 없는 경로에 있는 컴파일러에 대해서는 명령만 출력하고 아무것도 덮어쓰지 않습니다. 추측으로 Homebrew 바이너리나 누군가의 <code>cargo build</code>를 바꾸면 아무도 선택하지 않은 것을 <code>PATH</code>가 가리키게 되기 때문입니다. 업데이트가 적용되었다고 단언하지도 않습니다. npm은 가져오지 못한 <code>optionalDependency</code>를 건너뛰고도 0으로 종료할 수 있고, 실제로 Glyph 릴리스 하나가 플랫폼 바이너리 없이 배포된 적이 있습니다. 그래서 마지막 줄은 성공을 단언하는 대신 확인 방법으로 <code>glyph --version</code>을 안내합니다."
+      "en": "<code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
+      "tr": "<code>--update-dry-run</code>은 실행했을 <code>npm</code> 명령을 출력하고 멈춥니다."
+    },
+    {
+      "id": "h-f7e1ce18",
+      "kind": "html",
+      "en": "<b>Only an install it can identify</b>It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose.",
+      "tr": "<b>식별할 수 있는 설치만</b>식별할 수 있는 설치만 옮깁니다. <code>npx</code>로 실행한 컴파일러, Glyph 소스 트리에서 빌드한 컴파일러, 알아볼 수 없는 경로에 있는 컴파일러에 대해서는 명령만 출력하고 아무것도 덮어쓰지 않습니다. 추측으로 Homebrew 바이너리나 누군가의 <code>cargo build</code>를 바꾸면 아무도 선택하지 않은 것을 <code>PATH</code>가 가리키게 되기 때문입니다."
+    },
+    {
+      "id": "h-3004f6d0",
+      "kind": "html",
+      "en": "<b>No claim that it landed</b>It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
+      "tr": "<b>적용되었다고 단언하지 않음</b>업데이트가 적용되었다고 단언하지도 않습니다. npm은 가져오지 못한 <code>optionalDependency</code>를 건너뛰고도 0으로 종료할 수 있고, 실제로 Glyph 릴리스 하나가 플랫폼 바이너리 없이 배포된 적이 있습니다. 그래서 마지막 줄은 성공을 단언하는 대신 확인 방법으로 <code>glyph --version</code>을 안내합니다."
     },
     {
       "id": "h-b55f380c",
@@ -173,10 +299,28 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-b2838e1c",
+      "id": "h-d89e2e36",
       "kind": "html",
-      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
-      "tr": "생성된 프로젝트는 정확한 버전으로 고정하므로 어떤 릴리스도 실수로 빌드에 들어오지 않습니다. <code>glyph doctor</code>는 컴파일러를 레지스트리와 비교해 보고하고 릴리스 노트를 링크하며, 종료 코드에 영향을 주지 않고 <code>build</code>/<code>run</code>/<code>check</code>에서 접근하지도 않습니다. <code>glyph upgrade</code>는 고정 버전을 옮기고 설치하며, 오래된 프로젝트의 캐럿도 읽으므로 기존 프로젝트도 정확한 고정으로 옮길 수 있습니다. <code>glyph --update</code>는 전역 npm 설치의 경우 컴파일러 자체를 옮기고, 그 밖의 설치 방식에 대해서는 추측하지 않고 보고합니다."
+      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident.",
+      "tr": "생성된 프로젝트는 정확한 버전으로 고정하므로 어떤 릴리스도 실수로 빌드에 들어오지 않습니다."
+    },
+    {
+      "id": "h-fafd7e50",
+      "kind": "html",
+      "en": "<code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>.",
+      "tr": "<code>glyph doctor</code>는 컴파일러를 레지스트리와 비교해 보고하고 릴리스 노트를 링크하며, 종료 코드에 영향을 주지 않고 <code>build</code>/<code>run</code>/<code>check</code>에서 접근하지도 않습니다."
+    },
+    {
+      "id": "h-399500a6",
+      "kind": "html",
+      "en": "<code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too.",
+      "tr": "<code>glyph upgrade</code>는 고정 버전을 옮기고 설치하며, 오래된 프로젝트의 캐럿도 읽으므로 기존 프로젝트도 정확한 고정으로 옮길 수 있습니다."
+    },
+    {
+      "id": "h-c71d1b04",
+      "kind": "html",
+      "en": "<code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
+      "tr": "<code>glyph --update</code>는 전역 npm 설치의 경우 컴파일러 자체를 옮기고, 그 밖의 설치 방식에 대해서는 추측하지 않고 보고합니다."
     },
     {
       "id": "h-5db269e9",
@@ -185,10 +329,28 @@
       "tr": "개선 중"
     },
     {
-      "id": "h-72347421",
+      "id": "h-2a7485a4",
       "kind": "html",
-      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
-      "tr": "릴리스 노트는 전체 라인에 대해 페이지 하나이므로, <code>glyph upgrade</code>는 옮겨 가는 버전의 항목이 아니라 페이지를 링크합니다. 새 릴리스의 진단 중 어떤 것에 여러분의 코드가 걸릴지 알려 주는 것은 아직 없습니다. 알려면 빌드해야 하며, 그래서 명령이 빌드하라고 안내합니다. 여러 릴리스를 한 번에 건너뛰는 업그레이드도 하나를 건너뛸 때와 같은 한 단계이며, 그 사이에 쌓인 것을 요약해 주지 않습니다. <code>glyph --update</code>는 npm을 셸로 호출하고 종료 코드를 읽으므로, npm이 끝났다는 것은 알려 줄 수 있지만 <code>PATH</code>에 있는 바이너리가 요청한 버전이라는 것은 알려 줄 수 없습니다. 그래서 성공했다고 말하는 대신 <code>glyph --version</code>을 안내합니다."
+      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to.",
+      "tr": "릴리스 노트는 전체 라인에 대해 페이지 하나이므로, <code>glyph upgrade</code>는 옮겨 가는 버전의 항목이 아니라 페이지를 링크합니다."
+    },
+    {
+      "id": "h-1ac89c3e",
+      "kind": "html",
+      "en": "Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to.",
+      "tr": "새 릴리스의 진단 중 어떤 것에 여러분의 코드가 걸릴지 알려 주는 것은 아직 없습니다. 알려면 빌드해야 하며, 그래서 명령이 빌드하라고 안내합니다."
+    },
+    {
+      "id": "h-0837eb77",
+      "kind": "html",
+      "en": "And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.",
+      "tr": "여러 릴리스를 한 번에 건너뛰는 업그레이드도 하나를 건너뛸 때와 같은 한 단계이며, 그 사이에 쌓인 것을 요약해 주지 않습니다."
+    },
+    {
+      "id": "h-4b5f7417",
+      "kind": "html",
+      "en": "<code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
+      "tr": "<code>glyph --update</code>는 npm을 셸로 호출하고 종료 코드를 읽으므로, npm이 끝났다는 것은 알려 줄 수 있지만 <code>PATH</code>에 있는 바이너리가 요청한 버전이라는 것은 알려 줄 수 없습니다. 그래서 성공했다고 말하는 대신 <code>glyph --version</code>을 안내합니다."
     }
   ]
 }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/parse-errors/index.html",
   "locale": "ko",
-  "source_hash": "7f1a8b2bd45c7f9e",
+  "source_hash": "4e3c1f0c9f2ab861",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "네. 모든 문제는 필드를 짚고, <strong>값이 어떤 규칙을 어겼는지</strong> 말하며, 분기에 쓸 수 있는 <code>code</code>를 담고 있습니다. <code>where</code> 조건식으로 제약된 필드는 조건식 자체를 보고하므로, 거부 메시지를 grep하면 그 제약을 건 줄로 돌아갈 수 있습니다."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "왜 중요한가"
-    },
-    {
-      "id": "h-2b8c51b7",
-      "kind": "html",
-      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
-      "tr": "\"이 페이로드는 잘못되었다\"고만 말하는 검증기는 일을 절반만 한 것입니다. 핸들러는 여전히 판단해야 합니다. 필드를 빠뜨린 클라이언트인가, 네 글자짜리 비밀번호를 보낸 클라이언트인가? 하나는 400이고 다른 하나는 422인데, 검증기가 말해 주지 않으면 검증기가 이미 갖고 있던 정보 한 조각을 되찾으려고 같은 본문을 서로 다른 타입으로 두 번 파싱하게 됩니다."
-    },
-    {
-      "id": "h-333aed3e",
-      "kind": "html",
-      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
-      "tr": "Glyph로 인증 API를 만들 때 정확히 그런 일이 있었습니다. <code>password</code> 키가 아예 없는 가입 요청이 <code>weak_password</code>로 돌아왔습니다. 없는 경우와 너무 짧은 경우가 같은 문자열을 냈기 때문입니다."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
-    },
-    {
       "id": "h-bddd14ad",
       "kind": "html",
       "en": "One type, one constraint:",
@@ -95,10 +71,28 @@
       "tr": "잘못된 페이로드 네 개, 서로 다른 답 네 개. 각각 <code>Issue</code> 하나이며, <code>code | path | message</code> 형식으로 보여 줍니다."
     },
     {
-      "id": "h-cb372fc2",
+      "id": "h-e9f3d57d",
       "kind": "html",
-      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
-      "tr": "핵심은 두 번째입니다. <code>value.length &gt;= 8</code>은 타입에서 한 번만 작성되고, 거부 메시지가 이를 그대로 인용합니다. HTTP 422 본문에서 그 문자열을 복사해 <code>grep</code>하면 그것을 만든 선언에 닿습니다. 오류 메시지 계층에 규칙의 사본을 따로 둘 필요가 없으며, 둘이 어긋나는 원인이 바로 그런 사본입니다."
+      "en": "<span>The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim.</span>",
+      "tr": "<span>핵심은 두 번째입니다. <code>value.length &gt;= 8</code>은 타입에서 한 번만 작성되고, 거부 메시지가 이를 그대로 인용합니다.</span>"
+    },
+    {
+      "id": "h-e5637b50",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">from a 422 body back to the declaration</span>",
+      "tr": "자세히 <span class=\"hint\">422 본문에서 선언으로 되돌아가기</span>"
+    },
+    {
+      "id": "h-56143245",
+      "kind": "html",
+      "en": "Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "HTTP 422 본문에서 그 문자열을 복사해 <code>grep</code>하면 그것을 만든 선언에 닿습니다. 오류 메시지 계층에 규칙의 사본을 따로 둘 필요가 없으며, 둘이 어긋나는 원인이 바로 그런 사본입니다."
+    },
+    {
+      "id": "h-368d2a6e",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what an array used to do</span>",
+      "tr": "이력 <span class=\"hint\">배열이 예전에 하던 일</span>"
     },
     {
       "id": "h-c1b3d39f",
@@ -107,16 +101,118 @@
       "tr": "네 번째는 예전에는 나쁜 메시지보다 더 나빴습니다. <code>typeof</code>에게 배열은 객체이므로 필수 필드가 없는 레코드는 배열을 그대로 받아들였고, <code>[1, 2, 3]</code>을 보내면 선언된 필드마다 하나씩 이해하기 어려운 문제가 돌아왔는데, 그중 어느 것도 목록을 보냈다고 말하지 않았습니다."
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-c67fef3c",
+      "kind": "html",
+      "en": "<a href=\"#nested-types-answer-for-themselves\">Nested types</a>",
+      "tr": "<a href=\"#nested-types-answer-for-themselves\">중첩된 타입</a>"
+    },
+    {
+      "id": "h-4ae08760",
+      "kind": "html",
+      "en": "<a href=\"#the-code-not-the-string\">The code, not the string</a>",
+      "tr": "<a href=\"#the-code-not-the-string\">문자열이 아니라 코드</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-7c00eb67",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job.",
+      "tr": "\"이 페이로드는 잘못되었다\"고만 말하는 검증기는 일을 절반만 한 것입니다."
+    },
+    {
+      "id": "h-5710a37f",
+      "kind": "html",
+      "en": "The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "핸들러는 여전히 판단해야 합니다. 필드를 빠뜨린 클라이언트인가, 네 글자짜리 비밀번호를 보낸 클라이언트인가? 하나는 400이고 다른 하나는 422인데, 검증기가 말해 주지 않으면 검증기가 이미 갖고 있던 정보 한 조각을 되찾으려고 같은 본문을 서로 다른 타입으로 두 번 파싱하게 됩니다."
+    },
+    {
+      "id": "h-77e96ed1",
+      "kind": "html",
+      "en": "History <span class=\"hint\">where this came up</span>",
+      "tr": "이력 <span class=\"hint\">이 문제가 나온 곳</span>"
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Glyph로 인증 API를 만들 때 정확히 그런 일이 있었습니다. <code>password</code> 키가 아예 없는 가입 요청이 <code>weak_password</code>로 돌아왔습니다. 없는 경우와 너무 짧은 경우가 같은 문자열을 냈기 때문입니다."
+    },
+    {
       "id": "h-f15fe14d",
       "kind": "html",
       "en": "Nested types answer for themselves",
       "tr": "중첩된 타입은 스스로 답합니다"
     },
     {
-      "id": "h-1c1f349a",
+      "id": "h-f34a842c",
       "kind": "html",
-      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
-      "tr": "자체 디스크립터가 있는 타입의 필드는 그 타입의 <code>parse</code>로 검증되고, 그 문제는 경로 앞에 필드 이름을 붙여 돌아옵니다. 그래서 두 단계 아래 중첩된 <code>Password</code>는 <code>[\"body\", \"password\"]</code>를 보고하면서도 자신의 메시지를 그대로 담고 있습니다. 아무것도 다시 실행하지 않고 같은 문제에서 위치와 이유를 함께 얻습니다."
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message.",
+      "tr": "자체 디스크립터가 있는 타입의 필드는 그 타입의 <code>parse</code>로 검증되고, 그 문제는 경로 앞에 필드 이름을 붙여 돌아옵니다. 그래서 두 단계 아래 중첩된 <code>Password</code>는 <code>[\"body\", \"password\"]</code>를 보고하면서도 자신의 메시지를 그대로 담고 있습니다."
+    },
+    {
+      "id": "a-5132ab55",
+      "kind": "attr:aria-label",
+      "en": "The path a nested issue reports",
+      "tr": "중첩된 문제가 보고하는 경로"
+    },
+    {
+      "id": "h-59744442",
+      "kind": "html",
+      "en": "<span>body</span>",
+      "tr": "<span>body</span>"
+    },
+    {
+      "id": "h-8e14aceb",
+      "kind": "html",
+      "en": "<span>password</span>",
+      "tr": "<span>password</span>"
+    },
+    {
+      "id": "h-783c1919",
+      "kind": "html",
+      "en": "<span>Password</span>",
+      "tr": "<span>Password</span>"
+    },
+    {
+      "id": "h-3d8b546d",
+      "kind": "html",
+      "en": "<span>You get the location and the reason from the same issue, without re-running anything.</span>",
+      "tr": "<span>아무것도 다시 실행하지 않고 같은 문제에서 위치와 이유를 함께 얻습니다.</span>"
     },
     {
       "id": "h-f4063e91",
@@ -125,10 +221,10 @@
       "tr": "문자열이 아니라 코드로"
     },
     {
-      "id": "h-0696faed",
+      "id": "h-a4d51c89",
       "kind": "html",
-      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
-      "tr": "<code>Issue</code>에는 선택적인 <code>code</code>가 있습니다: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code>. 이것으로 분기하세요. 메시지 텍스트로 매칭하는 것은 Glyph가 없애려는 취약함이며, 메시지는 응답 본문을 읽는 사람을 위한 것입니다."
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code>, or <code>\"depth\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code>에는 선택적인 <code>code</code>가 있습니다: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code>, <code>\"depth\"</code>. 이것으로 분기하세요. 메시지 텍스트로 매칭하는 것은 Glyph가 없애려는 취약함이며, 메시지는 응답 본문을 읽는 사람을 위한 것입니다."
     },
     {
       "id": "h-d38a3f61",
@@ -143,6 +239,18 @@
       "tr": "<code>code</code>는 선택 필드이므로, 직접 만든 <code>Issue</code>와 이 필드가 생기기 전에 작성된 모든 사용 코드가 바뀌지 않고 그대로 컴파일됩니다."
     },
     {
+      "id": "h-66caedb4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the <code>\"depth\"</code> code</span>",
+      "tr": "자세히 <span class=\"hint\"><code>\"depth\"</code> 코드</span>"
+    },
+    {
+      "id": "h-e1454553",
+      "kind": "html",
+      "en": "<code>\"depth\"</code> is the answer for a body nested more than 1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>): one issue at the field where it happened, where before 0.1.150 the check threw <code>RangeError: Maximum call stack size exceeded</code> and took the handler with it.",
+      "tr": "<code>\"depth\"</code>는 객체와 배열이 1000단계보다 깊게 중첩된 본문에 대한 답입니다(<code>std/schema</code>의 <code>MAX_DEPTH</code>). 그런 일이 일어난 필드에서 문제 하나를 보고합니다. 0.1.150 이전에는 검사가 <code>RangeError: Maximum call stack size exceeded</code>를 던지며 핸들러까지 함께 쓰러뜨렸습니다."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -155,22 +263,106 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-7654d152",
+      "id": "h-597fe3e1",
       "kind": "html",
-      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
-      "tr": "레코드와 <code>where</code> 타입은 실패한 필드뿐 아니라 실패한 규칙을 보고합니다. 필수 필드가 없으면 <code>\"missing\"</code>, 모양이 틀리면(객체가 아니거나 배열인 경우 포함) <code>\"type\"</code>, 기본 타입은 통과했지만 조건식에서 실패하면 <code>\"refinement\"</code>, 타입이 선언하지 않은 키가 있으면 <code>\"unexpected\"</code>입니다. 정제 타입은 조건식을 인용합니다. 디스크립터가 있는 타입의 필드는 검증을 그 디스크립터에 맡기므로, 중첩된 문제는 전체 경로와 함께 도착합니다. 선택 필드(<code>f?: T</code>)는 없다고 보고되지 않습니다."
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field",
+      "tr": "레코드와 <code>where</code> 타입은 실패한 필드뿐 아니라 실패한 규칙을 보고합니다"
     },
     {
-      "id": "h-5db269e9",
+      "id": "h-ffa63583",
       "kind": "html",
-      "en": "Getting sharper",
-      "tr": "개선 중"
+      "en": "missing",
+      "tr": "missing"
     },
     {
-      "id": "h-7339349c",
+      "id": "h-1303c06b",
       "kind": "html",
-      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
-      "tr": "한계가 두 가지 있습니다. 자체 디스크립터가 없는 것, 즉 제약 없는 타입 매개변수나 직접 작성한 <code>.d.ts</code>에서 import한 타입으로 타입이 지정된 필드는 여전히 단순한 검사와 <code>\"type\"</code> 문제를 받습니다. 컴파일러가 이런 타입에는 디스크립터를 합성하지 않으며, 선언에 <code>glyph gen dts</code>를 실행해야 디스크립터가 생깁니다. <code>Issue</code>라는 타입을 직접 선언한 모듈은 예전에는 생성된 파일 안에서 prelude의 것을 가려서 그 모듈의 모든 디스크립터를 망가뜨렸습니다. 0.1.60부터는 그 선언이 타입 이름을 쓴 줄에서 <code>E0110</code>이므로, 생성된 코드에 대한 <code>tsc</code> 오류를 읽는 대신 문제가 어디 있는지 바로 알 수 있습니다."
+      "en": "type",
+      "tr": "type"
+    },
+    {
+      "id": "h-1a53d443",
+      "kind": "html",
+      "en": "refinement",
+      "tr": "refinement"
+    },
+    {
+      "id": "h-bcf76901",
+      "kind": "html",
+      "en": "unexpected",
+      "tr": "unexpected"
+    },
+    {
+      "id": "h-ded32129",
+      "kind": "html",
+      "en": "depth",
+      "tr": "depth"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-13de36e7",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, <code>\"unexpected\"</code> for a key the type does not declare, and <code>\"depth\"</code> for a value nested more than 1000 deep.",
+      "tr": "레코드와 <code>where</code> 타입은 실패한 필드뿐 아니라 실패한 규칙을 보고합니다. 필수 필드가 없으면 <code>\"missing\"</code>, 모양이 틀리면(객체가 아니거나 배열인 경우 포함) <code>\"type\"</code>, 기본 타입은 통과했지만 조건식에서 실패하면 <code>\"refinement\"</code>, 타입이 선언하지 않은 키가 있으면 <code>\"unexpected\"</code>, 값이 1000단계보다 깊게 중첩되어 있으면 <code>\"depth\"</code>입니다."
+    },
+    {
+      "id": "h-3ac6ed8a",
+      "kind": "html",
+      "en": "A refinement quotes its predicate.",
+      "tr": "정제 타입은 조건식을 인용합니다."
+    },
+    {
+      "id": "h-0925dc35",
+      "kind": "html",
+      "en": "A field whose type has a descriptor delegates to it, so nested issues arrive with the full path.",
+      "tr": "디스크립터가 있는 타입의 필드는 검증을 그 디스크립터에 맡기므로, 중첩된 문제는 전체 경로와 함께 도착합니다."
+    },
+    {
+      "id": "h-aa75521c",
+      "kind": "html",
+      "en": "Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "선택 필드(<code>f?: T</code>)는 없다고 보고되지 않습니다."
+    },
+    {
+      "id": "h-42a8d834",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">2</span>",
+      "tr": "개선 중 <span class=\"count\">2</span>"
+    },
+    {
+      "id": "h-5064bfc9",
+      "kind": "html",
+      "en": "A field typed by something with no descriptor of its own still gets the flat check and a <code>\"type\"</code> issue",
+      "tr": "자체 디스크립터가 없는 것으로 타입이 지정된 필드는 여전히 단순한 검사와 <code>\"type\"</code> 문제를 받습니다"
+    },
+    {
+      "id": "h-38b590d3",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one.",
+      "tr": "한계가 두 가지 있습니다. 자체 디스크립터가 없는 것, 즉 제약 없는 타입 매개변수나 직접 작성한 <code>.d.ts</code>에서 import한 타입으로 타입이 지정된 필드는 여전히 단순한 검사와 <code>\"type\"</code> 문제를 받습니다. 컴파일러가 이런 타입에는 디스크립터를 합성하지 않으며, 선언에 <code>glyph gen dts</code>를 실행해야 디스크립터가 생깁니다."
+    },
+    {
+      "id": "h-b0ffbce4",
+      "kind": "html",
+      "en": "A module's own type called <code>Issue</code> is refused at the line that names it",
+      "tr": "모듈이 직접 선언한 <code>Issue</code> 타입은 그 이름을 쓴 줄에서 거부됩니다"
+    },
+    {
+      "id": "h-42d20e8c",
+      "kind": "html",
+      "en": "since 0.1.60",
+      "tr": "0.1.60부터"
+    },
+    {
+      "id": "h-04cd298e",
+      "kind": "html",
+      "en": "A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "<code>Issue</code>라는 타입을 직접 선언한 모듈은 예전에는 생성된 파일 안에서 prelude의 것을 가려서 그 모듈의 모든 디스크립터를 망가뜨렸습니다. 0.1.60부터는 그 선언이 타입 이름을 쓴 줄에서 <code>E0110</code>이므로, 생성된 코드에 대한 <code>tsc</code> 오류를 읽는 대신 문제가 어디 있는지 바로 알 수 있습니다."
     }
   ]
 }

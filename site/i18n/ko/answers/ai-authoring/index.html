@@ -1,7 +1,7 @@
 ---
 title: AI가 거의 본 적 없는 언어를 쓸 수 있나요? · Glyph
 description: Glyph는 TypeScript처럼 읽히지만 TypeScript의 부분집합은 아닙니다. 모델이 TypeScript에 대해 아는 것은 대부분 그대로 통하고, 통하지 않는 곳은 컴파일러가 알려 줍니다.
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; 이전 | AI를 쓰지 않아도 Glyph가 쓸 만한가요?
 next: /answers/upgrades/ | 다음 &rarr; | 새 Glyph 릴리스가 내 빌드를 깨뜨리나요?
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | 다음 &rarr; | 새 Glyph 릴리스가 내 빌드를 
         대부분은 그렇습니다. Glyph는 TypeScript처럼 읽힙니다. 같은 원시 타입과 제네릭 타입(<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), 대부분 같은 표현식, 그리고 이름으로 import하는 npm 패키지가 있습니다. 하지만 TypeScript의 부분집합은 아닙니다. <code>match</code>, <code>Result</code>, <code>fn name(x: T) -&gt; R</code>은 TypeScript에 없는 문법이고, <code>if</code>, 삼항 연산자, 캐스트는 Glyph에 없습니다. 모델이 이미 아는 것은 대부분 그대로 통하고, 통하지 않는 곳은 컴파일러가 알려 줍니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">왜 중요한가</h2>
-        <p>
-          합리적인 회의론자의 질문입니다. LLM은 기존 언어로 된 방대한 코드에서 다음 토큰을 예측하므로, 학습 데이터가 거의 없는 언어는 쓰기 어려워야 합니다. 답은 구조적입니다. Glyph는 낯선 언어가 아닙니다. TypeScript처럼 보이므로 모델은 이미 대부분을 알고 있고, 차이는 적고, 나열할 수 있으며, 각각 조용히 통과하지 않고 컴파일 시점에 <em>빨리</em> 실패합니다.
-        </p>
-
-        <h2 class="block-label">직접 보기</h2>
-        <p>잘못 추측한 에이전트는 그 추측을 배포하지 않습니다. 정확하고 고칠 수 있는 오류를 받고 같은 루프 안에서 바로잡습니다.</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">한 단계로 끝나는 수정 루프</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">한 단계로 끝나는 수정 루프</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          오류는 Glyph 구문을 짚고 그 모양을 보여 주므로, 수정은 편집 한 번이면 됩니다. 소스를 뒤질 필요도, 추측할 필요도 없습니다. 이 짧은 루프가 부족한 학습 데이터를 메웁니다. 문서 하나인 <a href="/llms.txt">llms.txt</a>가 에이전트에게 프로그램 모양, 표준 라이브러리, 모든 진단과 그 수정 방법을 알려 주고, <code>glyph llms</code>는 같은 레퍼런스를 오프라인으로 출력합니다.
-        </p>
-      </div>
-
-      <h2 class="block-label">현재 상태</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p>TypeScript 모양의 문법, 수정 방법을 알려 주는 고정된 코드를 가진 오류, 그리고 어떤 에이전트에게나 하나의 레퍼런스 문서가 되는 <code>llms.txt</code> / <code>glyph llms</code>.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">검증 중</h3>
-          <p>&ldquo;잘 버텼다&rdquo;를 측정된 숫자로 바꾸기 위한 성공률 벤치마크(같은 작업에서 TypeScript 대비 수정에 걸린 시도 횟수).</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>잘못 추측한 에이전트는 그 추측을 배포하지 않습니다. 정확하고 고칠 수 있는 오류를 받고 같은 루프 안에서 바로잡습니다.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        합리적인 회의론자의 질문입니다. LLM은 기존 언어로 된 방대한 코드에서 다음 토큰을 예측하므로, 학습 데이터가 거의 없는 언어는 쓰기 어려워야 합니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>답은 구조적입니다. Glyph는 낯선 언어가 아닙니다. TypeScript처럼 보이므로 모델은 이미 대부분을 알고 있고, 차이는 적고, 나열할 수 있으며, 각각 조용히 통과하지 않고 컴파일 시점에 <em>빨리</em> 실패합니다.</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">수정은 편집 한 번이면 됩니다<a class="ak-anchor" href="#one-edit-away" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        오류는 Glyph 구문을 짚고 그 모양을 보여 주므로, 수정은 편집 한 번이면 됩니다. 소스를 뒤질 필요도, 추측할 필요도 없습니다. 이 짧은 루프가 부족한 학습 데이터를 메웁니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>문서 하나인 <a href="/llms.txt">llms.txt</a>가 에이전트에게 프로그램 모양, 표준 라이브러리, 모든 진단과 그 수정 방법을 알려 주고, <code>glyph llms</code>는 같은 레퍼런스를 오프라인으로 출력합니다.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">TypeScript 모양의 문법.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">수정 방법을 알려 주는 고정된 코드를 가진 오류.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">어떤 에이전트에게나 하나의 레퍼런스 문서가 되는 <code>llms.txt</code> / <code>glyph llms</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 검증 중</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">&ldquo;잘 버텼다&rdquo;를 측정된 숫자로 바꾸기 위한 성공률 벤치마크(같은 작업에서 TypeScript 대비 수정에 걸린 시도 횟수).</span></span></li>
+          </ul>
+        </section>
       </div>

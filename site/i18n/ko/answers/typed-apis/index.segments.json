@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "ko",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "요청 본문은 이미 <code>unknown</code>으로 디코딩되어 도착하므로, 거기서는 대신 <code>T.parse(value)</code>를 씁니다. 같은 보장이고 캐스트는 없습니다."
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "신뢰할 수 없는 경계의 나머지도 같은 방식으로 타입이 지정됩니다. <code>header(req, name)</code>와 <code>query_param(req, name)</code>은 <code>Option&lt;string&gt;</code>을 반환하므로, 헤더나 쿼리 매개변수가 없으면 <code>None</code>이고 <code>match</code>가 이를 처리하도록 <em>강제</em>합니다. <code>None</code> arm을 빠뜨리면 컴파일되지 않습니다. 없는 입력을 있는 것처럼 읽을 수 없습니다."
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "신뢰할 수 없는 경계의 나머지도 같은 방식으로 타입이 지정됩니다. <code>header(req, name)</code>와 <code>query_param(req, name)</code>은 <code>Option&lt;string&gt;</code>을 반환하므로, 헤더나 쿼리 매개변수가 없으면 <code>None</code>이고 <code>match</code>가 이를 처리하도록 <em>강제</em>합니다. <code>None</code> arm을 빠뜨리면 컴파일되지 않습니다. 없는 입력을 있는 것처럼 읽을 수 없습니다. 본문 필드도 같은 규칙을 따릅니다. <code>timeout_ms?: number</code>는 키가 없거나 숫자이므로, <code>{\"timeout_ms\": null}</code>은 <code>T.parse</code>, <code>is T</code>, <code>json.parse&lt;T&gt;</code> 모두에서 <code>[\"timeout_ms\"]</code> 위치의 <code>Err</code>입니다. 보내는 쪽이 <code>null</code>을 쓴다면 <code>timeout_ms?: Nullable&lt;number&gt;</code>로 선언하세요. 0.1.152 전까지는 그 <code>null</code>이 <code>Ok</code> 안에 담겨 돌아왔습니다."
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "나열된 키 정확히, 빠진 것도 남는 것도 없이"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "<code>where</code>로 정제한 타입"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "<code>where</code>로 정제한 <code>string</code>이나 숫자"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "새로운 것 없음"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "자세히 <span class=\"hint\">정제된 키와 int 키, 그리고 여전히 tsc에 맡겨진 것</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "자세히 <span class=\"hint\">정제된 키와 int 키, 그리고 검사기가 지키는 것</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "<code>where</code>로 정제한 키 타입은 모든 키에 조건식을 실행하고, <code>int</code> 키는 정수의 평범한 표기여야 하므로 <code>\"01\"</code>과 <code>\"1.5\"</code>는 거부됩니다. <code>Record&lt;string, V&gt;</code>는 이전과 똑같이 검사됩니다. Glyph 자체 검사기는 코드에 작성한 값의 키를 여전히 <code>tsc</code>에 맡기며, 자신의 타입 매개변수를 키로 하는 제네릭 레코드는 그 매개변수가 <code>string</code>이 아니면 거부됩니다."
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "<code>where</code>로 정제한 키 타입은 모든 키에 조건식을 실행하고, <code>int</code> 키는 정수의 평범한 표기여야 하므로 <code>\"01\"</code>과 <code>\"1.5\"</code>는 거부됩니다. <code>Record&lt;string, V&gt;</code>는 이전과 똑같이 검사됩니다. <code>where</code>로 문자열 리터럴 유니언을 정제할 수는 없습니다(0.1.152부터 <code>type T2 = Tier where value != \"pro\"</code>는 <code>E0300</code>입니다). 원하는 멤버를 별도의 유니언 <code>type T2 = \"free\"</code>로 작성하면, 같은 정확한 키 검사로 <code>Record</code>의 키가 됩니다. 0.1.153부터는 Glyph 자체 검사기가 코드에 작성한 값의 키도 지킵니다. <code>Record&lt;string, int&gt;</code>는 <code>Record&lt;Tier, int&gt;</code>로 선언된 자리에 올 수 없고 그 반대도 마찬가지이므로, 둘 사이를 건너는 길은 <code>json.parse</code>나 <code>is Record&lt;Tier, int&gt;</code> arm이며, <code>record.set</code>은 받은 키를 유지합니다. 자신의 타입 매개변수를 키로 하는 제네릭 레코드는 그 매개변수가 <code>string</code>이 아니면 거부됩니다."
     },
     {
       "id": "h-efd6b0f9",

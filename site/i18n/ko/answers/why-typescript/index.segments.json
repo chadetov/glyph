@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/why-typescript/index.html",
   "locale": "ko",
-  "source_hash": "9f7bf2e8baaad5d9",
+  "source_hash": "4df0de0ec8bd7ba2",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,34 @@
       "tr": "TypeScript는 에이전트가 이미 가장 많은 코드를 쓰는 곳이고, 여러분의 생태계(npm, React, Node)가 있는 곳이기 때문입니다. Glyph를 파일 하나씩 도입할 수 있는 것은 <strong>오직 대상이 TS이기 때문</strong>입니다."
     },
     {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "같은 프로젝트: .glyph와 .ts를 나란히"
+    },
+    {
+      "id": "h-d0269c9c",
+      "kind": "html",
+      "en": "<span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span>",
+      "tr": "<span>Glyph는 이미 있는 <code>.ts</code> 파일 옆에 들어가고, 양방향 import가 모두 깔끔하게 동작합니다.</span>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-0a5dbd26",
-      "kind": "html",
-      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
-      "tr": "새 언어의 성패는 처음부터 배포까지 어떻게 가느냐에 달려 있습니다. TypeScript로 컴파일한다는 것은 코드베이스, 번들러, 테스트 러너, 배포 방식을 떠나지 않는다는 뜻입니다. Glyph는 이미 있는 <code>.ts</code> 파일 옆에 들어가고, 양방향 import가 모두 깔끔하게 동작합니다."
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
     },
     {
-      "id": "h-2a66da79",
+      "id": "h-5ee1e84f",
       "kind": "html",
-      "en": "the same project: .glyph and .ts, side by side",
-      "tr": "같은 프로젝트: .glyph와 .ts를 나란히"
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy.",
+      "tr": "새 언어의 성패는 처음부터 배포까지 어떻게 가느냐에 달려 있습니다. TypeScript로 컴파일한다는 것은 코드베이스, 번들러, 테스트 러너, 배포 방식을 떠나지 않는다는 뜻입니다."
     },
     {
       "id": "h-4eb97fa1",
@@ -83,10 +95,22 @@
       "tr": "TypeScript 코드베이스에 Go를 파일 단위로 넣을 수는 없습니다. 런타임도, 모듈 시스템도, 생태계도 다릅니다. 대상이 TS인 이유는 이 한 가지 사실 때문입니다."
     },
     {
-      "id": "h-b0743097",
+      "id": "h-f9a17aa4",
       "kind": "html",
-      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
-      "tr": "<strong>Go에 대한 타당한 지적:</strong> 작고 안정적인 키워드 표면 덕분에 에이전트가 틀릴 수 있는 방법이 적습니다. 우리도 동의하며, Glyph가 각각을 하는 방법이 하나뿐인 작은 핵심을 의도적으로 유지하는 이유가 바로 그것입니다. 직접 비교할 수 있도록 Go를 밀도 <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">벤치마크</a>에 포함했습니다."
+      "en": "The fair point about Go",
+      "tr": "Go에 대한 타당한 지적"
+    },
+    {
+      "id": "h-dca0c488",
+      "kind": "html",
+      "en": "Its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing.",
+      "tr": "작고 안정적인 키워드 표면 덕분에 에이전트가 틀릴 수 있는 방법이 적습니다. 우리도 동의하며, Glyph가 각각을 하는 방법이 하나뿐인 작은 핵심을 의도적으로 유지하는 이유가 바로 그것입니다."
+    },
+    {
+      "id": "h-bbac4976",
+      "kind": "html",
+      "en": "Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "직접 비교할 수 있도록 Go를 밀도 <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">벤치마크</a>에 포함했습니다."
     },
     {
       "id": "h-b55f380c",
@@ -95,22 +119,34 @@
       "tr": "현재 상태"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-4f2da421",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "지금 제공되는 것"
+      "en": "Shipping today <span class=\"count\">3</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">3</span>"
     },
     {
-      "id": "h-93871ba6",
+      "id": "h-12991ef7",
       "kind": "html",
-      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
-      "tr": "깔끔한 TypeScript 출력, 기존 <code>.ts</code>와의 양방향 import, 그리고 Node나 브라우저 번들이 실행되는 곳이면 어디서나 실행되는 작은 핵심."
+      "en": "Clean TypeScript output.",
+      "tr": "깔끔한 TypeScript 출력."
     },
     {
-      "id": "h-0abde815",
+      "id": "h-a6b7a39e",
       "kind": "html",
-      "en": "Being measured",
-      "tr": "측정 중"
+      "en": "Bidirectional imports with your existing <code>.ts</code>.",
+      "tr": "기존 <code>.ts</code>와의 양방향 import."
+    },
+    {
+      "id": "h-4ec09cc2",
+      "kind": "html",
+      "en": "A small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Node나 브라우저 번들이 실행되는 곳이면 어디서나 실행되는 작은 핵심."
+    },
+    {
+      "id": "h-a86ec4ab",
+      "kind": "html",
+      "en": "Being measured <span class=\"count\">1</span>",
+      "tr": "측정 중 <span class=\"count\">1</span>"
     },
     {
       "id": "h-5cb4379c",

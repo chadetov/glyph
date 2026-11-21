@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "ko",
-  "source_hash": "9a4735d3e9bad608",
+  "source_hash": "747d0d2b7d4d7b01",
   "segments": [
     {
       "id": "title",
@@ -59,34 +59,166 @@
       "tr": "실제 코드베이스에서 찾게 되는 것들이 있습니다. <strong>모듈 가시성</strong>, 제네릭을 제약하는 <strong>인터페이스</strong>, 정리를 위한 <strong>defer</strong>, 그리고 <strong>동시성</strong> 헬퍼입니다. JavaScript에 기대는 부분은 아닌 척하지 않고 그렇다고 밝힙니다."
     },
     {
+      "id": "h-45b4debe",
+      "kind": "html",
+      "en": "visibility: private by default",
+      "tr": "가시성: 기본은 비공개"
+    },
+    {
+      "id": "h-d9ffde4b",
+      "kind": "html",
+      "en": "<span>Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident.</span>",
+      "tr": "<span>선언은 <code>pub</code>를 붙이기 전까지 모듈 안에서만 보이므로, 공개 표면은 검색 한 번(<code>grep '^pub'</code>)으로 나오고 헬퍼가 실수로 새어 나가는 일이 없습니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-20d291c1",
+      "kind": "html",
+      "en": "<a href=\"#interfaces\">Interfaces</a>",
+      "tr": "<a href=\"#interfaces\">인터페이스</a>"
+    },
+    {
+      "id": "h-4ef30214",
+      "kind": "html",
+      "en": "<a href=\"#defer\">defer and tasks</a>",
+      "tr": "<a href=\"#defer\">defer와 task</a>"
+    },
+    {
+      "id": "h-b4c29c90",
+      "kind": "html",
+      "en": "<a href=\"#javascript\">What it inherits</a>",
+      "tr": "<a href=\"#javascript\">물려받은 것</a>"
+    },
+    {
+      "id": "h-8e955574",
+      "kind": "html",
+      "en": "<a href=\"#there-s-no-if-so-match-has-to-carry-everything\">match as a value</a>",
+      "tr": "<a href=\"#there-s-no-if-so-match-has-to-carry-everything\">값으로서의 match</a>"
+    },
+    {
+      "id": "h-ecb37167",
+      "kind": "html",
+      "en": "<a href=\"#a-pattern-can-name-a-shape-more-than-one-level-down\">Nested patterns</a>",
+      "tr": "<a href=\"#a-pattern-can-name-a-shape-more-than-one-level-down\">중첩 패턴</a>"
+    },
+    {
+      "id": "h-b5ed724c",
+      "kind": "html",
+      "en": "<a href=\"#and-the-compiler-knows-what-the-match-produced\">Typed match results</a>",
+      "tr": "<a href=\"#and-the-compiler-knows-what-the-match-produced\">타입이 있는 match 결과</a>"
+    },
+    {
+      "id": "h-9923c20e",
+      "kind": "html",
+      "en": "<a href=\"#do-i-have-to-write-pad-start-myself\">String and array helpers</a>",
+      "tr": "<a href=\"#do-i-have-to-write-pad-start-myself\">문자열과 배열 헬퍼</a>"
+    },
+    {
+      "id": "h-8de8ba26",
+      "kind": "html",
+      "en": "<a href=\"#can-i-walk-a-directory-and-tell-what-broke\">Directories and fs errors</a>",
+      "tr": "<a href=\"#can-i-walk-a-directory-and-tell-what-broke\">디렉터리와 fs 오류</a>"
+    },
+    {
+      "id": "h-5628fc58",
+      "kind": "html",
+      "en": "<a href=\"#how-do-you-know-the-functions-are-the-right-ones\">How the functions were checked</a>",
+      "tr": "<a href=\"#how-do-you-know-the-functions-are-the-right-ones\">함수를 확인한 방법</a>"
+    },
+    {
+      "id": "h-b56b83ef",
+      "kind": "html",
+      "en": "<a href=\"#money-doesn-t-run-on-floats\">Money</a>",
+      "tr": "<a href=\"#money-doesn-t-run-on-floats\">돈</a>"
+    },
+    {
+      "id": "h-df75179f",
+      "kind": "html",
+      "en": "<a href=\"#an-async-callback-finally-has-a-type\">Async function types</a>",
+      "tr": "<a href=\"#an-async-callback-finally-has-a-type\">async 함수 타입</a>"
+    },
+    {
+      "id": "h-23bd4e35",
+      "kind": "html",
+      "en": "<a href=\"#a-recursive-type-matched-all-the-way-down\">Recursive types</a>",
+      "tr": "<a href=\"#a-recursive-type-matched-all-the-way-down\">재귀 타입</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-7139f60a",
-      "kind": "html",
-      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic: can I hide a helper, can a generic require a capability, can I release a file handle on every exit path, can I run two things at once and wait for both. Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
-      "tr": "파일 하나는 쓸 수 있지만 프로젝트를 구조화할 수 없는 언어에 코드베이스를 걸 사람은 없습니다. 중요한 빈틈은 특이한 것이 아닙니다. 헬퍼를 숨길 수 있는가, 제네릭이 어떤 능력을 요구할 수 있는가, 모든 종료 경로에서 파일 핸들을 해제할 수 있는가, 두 가지를 동시에 실행하고 둘 다 기다릴 수 있는가. Glyph는 이 네 가지에 답하며, 의도적으로 버린 표기가 많은 방향을 다시 열지 않고 그렇게 합니다."
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-b9d98b80",
       "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
+      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic:",
+      "tr": "파일 하나는 쓸 수 있지만 프로젝트를 구조화할 수 없는 언어에 코드베이스를 걸 사람은 없습니다. 중요한 빈틈은 특이한 것이 아닙니다."
     },
     {
-      "id": "h-eaa34178",
+      "id": "h-1f3e74ba",
       "kind": "html",
-      "en": "Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident:",
-      "tr": "선언은 <code>pub</code>를 붙이기 전까지 모듈 안에서만 보이므로, 공개 표면은 검색 한 번(<code>grep '^pub'</code>)으로 나오고 헬퍼가 실수로 새어 나가는 일이 없습니다."
+      "en": "<b>Visibility</b>Can I hide a helper?",
+      "tr": "<b>가시성</b>헬퍼를 숨길 수 있는가?"
     },
     {
-      "id": "h-45b4debe",
+      "id": "h-bda2622a",
       "kind": "html",
-      "en": "visibility: private by default",
-      "tr": "가시성: 기본은 비공개"
+      "en": "<b>Generic bounds</b>Can a generic require a capability?",
+      "tr": "<b>제네릭 제약</b>제네릭이 어떤 능력을 요구할 수 있는가?"
+    },
+    {
+      "id": "h-2e7779cb",
+      "kind": "html",
+      "en": "<b>Cleanup</b>Can I release a file handle on every exit path?",
+      "tr": "<b>정리</b>모든 종료 경로에서 파일 핸들을 해제할 수 있는가?"
+    },
+    {
+      "id": "h-3febb67a",
+      "kind": "html",
+      "en": "<b>Concurrency</b>Can I run two things at once and wait for both?",
+      "tr": "<b>동시성</b>두 가지를 동시에 실행하고 둘 다 기다릴 수 있는가?"
+    },
+    {
+      "id": "h-7cb808fd",
+      "kind": "html",
+      "en": "Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
+      "tr": "Glyph는 이 네 가지에 답하며, 의도적으로 버린 표기가 많은 방향을 다시 열지 않고 그렇게 합니다."
+    },
+    {
+      "id": "h-5e5d43b8",
+      "kind": "html",
+      "en": "Interfaces constrain generics",
+      "tr": "인터페이스로 제네릭 제약하기"
     },
     {
       "id": "h-a581c329",
@@ -101,10 +233,16 @@
       "tr": "인터페이스로 제네릭 제약하기"
     },
     {
-      "id": "h-1bf73ee3",
+      "id": "h-1697711e",
       "kind": "html",
-      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
-      "tr": "<code>defer</code>는 블록이 끝날 때 조기 반환이나 던진 오류를 포함한 모든 경로에서 정리 코드를 실행합니다. 여러 defer는 나중에 등록한 것부터 실행되고, <code>owned</code> 핸들과 함께 쓸 수 있습니다. 그리고 <code>std/task</code>는 떨어져 나간 promise를 남기는 대신 하나의 수명으로 동시 작업을 합칩니다."
+      "en": "<code>defer</code> and structured concurrency",
+      "tr": "<code>defer</code>와 구조적 동시성"
+    },
+    {
+      "id": "h-5a4c259b",
+      "kind": "html",
+      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
+      "tr": "<code>defer</code>는 블록이 끝날 때 조기 반환이나 던진 오류를 포함한 모든 경로에서 정리 코드를 실행합니다. 그리고 <code>std/task</code>는 떨어져 나간 promise를 남기는 대신 하나의 수명으로 동시 작업을 합칩니다."
     },
     {
       "id": "h-4e202025",
@@ -113,10 +251,40 @@
       "tr": "defer + 구조적 동시성"
     },
     {
-      "id": "h-d460c21d",
+      "id": "h-c1dc51d2",
       "kind": "html",
-      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다. 수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다."
+      "en": "Details <span class=\"hint\">ordering, and owned handles</span>",
+      "tr": "자세히 <span class=\"hint\">실행 순서, 그리고 owned 핸들</span>"
+    },
+    {
+      "id": "h-a990ad2d",
+      "kind": "html",
+      "en": "Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles.",
+      "tr": "여러 defer는 나중에 등록한 것부터 실행되고, <code>owned</code> 핸들과 함께 쓸 수 있습니다."
+    },
+    {
+      "id": "h-85cd3bf9",
+      "kind": "html",
+      "en": "What it inherits from JavaScript",
+      "tr": "JavaScript에서 물려받은 것"
+    },
+    {
+      "id": "h-f5618d09",
+      "kind": "html",
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. The spec states these as guarantees rather than leaving you to find out.",
+      "tr": "Glyph는 TypeScript로 컴파일되어 JavaScript 엔진에서 실행되므로, 평가 순서, 변경에 대한 참조 의미론, 가비지 컬렉션이 있는 단일 스레드 모델을 그대로 물려받습니다. 사양은 이것들을 나중에 알아내도록 두지 않고 보장으로 명시합니다."
+    },
+    {
+      "id": "h-d95a28f4",
+      "kind": "html",
+      "en": "Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references.",
+      "tr": "다른 점은 동등성입니다. <code>==</code>는 값을 비교하며 레코드는 필드 단위로 비교하지만, JavaScript의 <code>===</code>는 참조를 비교합니다."
+    },
+    {
+      "id": "h-1be90318",
+      "kind": "html",
+      "en": "Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "수동 메모리 관리와 GC가 없는 모델은 로드맵에 없습니다. TypeScript로 트랜스파일하는 언어의 범위를 벗어나기 때문입니다."
     },
     {
       "id": "h-173a357c",
@@ -125,10 +293,16 @@
       "tr": "<code>if</code>가 없으므로 <code>match</code>가 모든 것을 감당해야 합니다"
     },
     {
-      "id": "h-6de61157",
+      "id": "h-da25fdda",
       "kind": "html",
-      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment. A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
-      "tr": "망라성 이야기를 들은 TypeScript 개발자가 가장 먼저 묻는 것은 <code>match</code>가 정말 범용 조건문인지, 아니면 유니언을 구조 분해하는 멋진 방법일 뿐인지입니다. 전자이며, 이를 증명하는 곳은 대입입니다. <code>let</code>이나 <code>mut</code>의 값 전체인 <code>match</code>는 문장이 받는 것은 무엇이든 받습니다. arm은 블록일 수 있고, <code>await</code>할 수 있고, 둘러싼 반복문을 <code>break</code>로 빠져나갈 수 있으며, 대입 중인 바인딩을 읽을 수도 있습니다. <code>if</code> 없이 반복문에서 상태를 누적하는 방법이 바로 이것입니다."
+      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment.",
+      "tr": "망라성 이야기를 들은 TypeScript 개발자가 가장 먼저 묻는 것은 <code>match</code>가 정말 범용 조건문인지, 아니면 유니언을 구조 분해하는 멋진 방법일 뿐인지입니다. 전자이며, 이를 증명하는 곳은 대입입니다."
+    },
+    {
+      "id": "h-37b84d7b",
+      "kind": "html",
+      "en": "A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
+      "tr": "<code>let</code>이나 <code>mut</code>의 값 전체인 <code>match</code>는 문장이 받는 것은 무엇이든 받습니다. arm은 블록일 수 있고, <code>await</code>할 수 있고, 둘러싼 반복문을 <code>break</code>로 빠져나갈 수 있으며, 대입 중인 바인딩을 읽을 수도 있습니다. <code>if</code> 없이 반복문에서 상태를 누적하는 방법이 바로 이것입니다."
     },
     {
       "id": "h-9f6b1d3a",
@@ -137,10 +311,22 @@
       "tr": "링크 검사기에서: 코드 블록 추적, 그리고 await하는 arm"
     },
     {
-      "id": "h-037b924c",
+      "id": "h-efbe0ccb",
       "kind": "html",
-      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
-      "tr": "둘 다 arm마다 바인딩에 대입하는 평범한 <code>switch</code>로 컴파일되므로, <code>await</code>는 둘러싼 async 함수 안에 있고 누적 변수는 TypeScript가 추론할 수 있는 일반 변수입니다. 더 큰 표현식 <em>안에서</em> 인자나 피연산자로 쓴 <code>match</code>는 여전히 클로저가 되므로, arm은 단일 표현식이어야 합니다. 별도의 <code>let</code>으로 끌어올리면 이 제약이 사라집니다. 두 코드 조각 모두 바로 이런 것을 찾으려고 만든 Markdown 링크 검사기 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>에서 가져왔습니다."
+      "en": "Details <span class=\"hint\">what it compiles to, and where the snippets come from</span>",
+      "tr": "자세히 <span class=\"hint\">무엇으로 컴파일되는가, 그리고 코드 조각의 출처</span>"
+    },
+    {
+      "id": "h-ec2e00a3",
+      "kind": "html",
+      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
+      "tr": "둘 다 arm마다 바인딩에 대입하는 평범한 <code>switch</code>로 컴파일되므로, <code>await</code>는 둘러싼 async 함수 안에 있고 누적 변수는 TypeScript가 추론할 수 있는 일반 변수입니다. 두 코드 조각 모두 바로 이런 것을 찾으려고 만든 Markdown 링크 검사기 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>에서 가져왔습니다."
+    },
+    {
+      "id": "h-d4dfd6ca",
+      "kind": "html",
+      "en": "A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that.",
+      "tr": "더 큰 표현식 <em>안에서</em> 인자나 피연산자로 쓴 <code>match</code>는 여전히 클로저가 되므로, arm은 단일 표현식이어야 합니다. 별도의 <code>let</code>으로 끌어올리면 이 제약이 사라집니다."
     },
     {
       "id": "h-bc837f41",
@@ -149,10 +335,10 @@
       "tr": "패턴은 한 단계 이상 아래의 모양을 지정할 수 있습니다"
     },
     {
-      "id": "h-a4d66d53",
+      "id": "h-46a2e119",
       "kind": "html",
-      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
-      "tr": "필드가 여러 개인 variant는 레코드를 담으므로, 모양을 알아보려는 arm은 레코드의 필드 속으로 들어가야 합니다. 0.1.90까지 필드 위치에는 이름만 올 수 있었습니다. 이름을 바꿀 수는 있었지만 그게 전부였습니다. 거기서 태그를 매칭하면 컴파일 오류였고, 중첩된 생성자는 파서가 처리하지 못했습니다. 우회 방법은 모든 필드를 바인딩하고 단계마다 중첩된 <code>match</code>를 쓰는 것이었는데, 레드-블랙 트리 재균형 같은 것에서는 아예 다른 프로그램이 됩니다. arm이 case와 나란히 맞지 않게 되고, 각 단계가 위의 바인딩을 다시 이어 받아야 합니다."
+      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern.",
+      "tr": "필드가 여러 개인 variant는 레코드를 담으므로, 모양을 알아보려는 arm은 레코드의 필드 속으로 들어가야 합니다. 이제 필드에는 어떤 패턴이든 올 수 있습니다. variant 태그, 중첩된 생성자, 중첩된 구조 분해, 리터럴, 배열 패턴입니다."
     },
     {
       "id": "h-98315c48",
@@ -161,10 +347,34 @@
       "tr": "레드-블랙 재균형의 회전 case 하나를 arm 하나로"
     },
     {
-      "id": "h-c9876574",
+      "id": "h-e8f9c5ba",
       "kind": "html",
-      "en": "A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern. There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest. The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
-      "tr": "이제 필드에는 어떤 패턴이든 올 수 있습니다. variant 태그, 중첩된 생성자, 중첩된 구조 분해, 리터럴, 배열 패턴입니다. 작성하기 전에 알아 둘 결과가 하나 있습니다. 값을 검사하는 필드는 실패할 수 있으므로 그 arm은 더 이상 variant를 다룬 것으로 치지 않으며, <code>Node</code> arm이 <code>Node({ color: Red, ... })</code> 하나뿐인 match는 형제 arm이나 <code>else</code>가 나머지를 받을 때까지 비망라적이라고 보고됩니다. 검사기는 필드의 곱이 아니라 태그 집합에 대해 커버리지를 증명하므로, <code>Red</code> arm과 <code>Black</code> arm이 함께 <code>Node</code>를 다 다룬다는 것을 알아내지 못합니다. catch-all을 요구하는 것이 match가 런타임에 끝까지 빠져나가는 일을 막을 수 있는 해석입니다. 셀 variant가 아예 없는 곳에서도 마찬가지입니다. 모든 arm이 필드를 검사하는 평범한 레코드에 대한 match에는 뒤에 <code>else</code>가 필요합니다."
+      "en": "History <span class=\"hint\">the workaround before 0.1.90</span>",
+      "tr": "이력 <span class=\"hint\">0.1.90 이전의 우회 방법</span>"
+    },
+    {
+      "id": "h-8e445856",
+      "kind": "html",
+      "en": "Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
+      "tr": "0.1.90까지 필드 위치에는 이름만 올 수 있었습니다. 이름을 바꿀 수는 있었지만 그게 전부였습니다. 거기서 태그를 매칭하면 컴파일 오류였고, 중첩된 생성자는 파서가 처리하지 못했습니다. 우회 방법은 모든 필드를 바인딩하고 단계마다 중첩된 <code>match</code>를 쓰는 것이었는데, 레드-블랙 트리 재균형 같은 것에서는 아예 다른 프로그램이 됩니다. arm이 case와 나란히 맞지 않게 되고, 각 단계가 위의 바인딩을 다시 이어 받아야 합니다."
+    },
+    {
+      "id": "h-9a95a32a",
+      "kind": "html",
+      "en": "There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest.",
+      "tr": "작성하기 전에 알아 둘 결과가 하나 있습니다. 값을 검사하는 필드는 실패할 수 있으므로 그 arm은 더 이상 variant를 다룬 것으로 치지 않으며, <code>Node</code> arm이 <code>Node({ color: Red, ... })</code> 하나뿐인 match는 형제 arm이나 <code>else</code>가 나머지를 받을 때까지 비망라적이라고 보고됩니다."
+    },
+    {
+      "id": "h-e5577899",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it asks for the catch-all, and the array position</span>",
+      "tr": "자세히 <span class=\"hint\">catch-all을 요구하는 이유, 그리고 배열 위치</span>"
+    },
+    {
+      "id": "h-ce4839d0",
+      "kind": "html",
+      "en": "The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
+      "tr": "검사기는 필드의 곱이 아니라 태그 집합에 대해 커버리지를 증명하므로, <code>Red</code> arm과 <code>Black</code> arm이 함께 <code>Node</code>를 다 다룬다는 것을 알아내지 못합니다. catch-all을 요구하는 것이 match가 런타임에 끝까지 빠져나가는 일을 막을 수 있는 해석입니다. 셀 variant가 아예 없는 곳에서도 마찬가지입니다. 모든 arm이 필드를 검사하는 평범한 레코드에 대한 match에는 뒤에 <code>else</code>가 필요합니다."
     },
     {
       "id": "h-c4fa5941",
@@ -179,10 +389,10 @@
       "tr": "그리고 컴파일러는 <code>match</code>가 무엇을 만들었는지 압니다"
     },
     {
-      "id": "h-cffe8865",
+      "id": "h-ab070dca",
       "kind": "html",
-      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on. A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
-      "tr": "이 모든 것이 실제로 쓸모 있는지를 가르는 다음 질문은 이것입니다. 분기에서 값을 바인딩하면 Glyph가 그 타입을 아는가, 아니면 어깨를 으쓱하고 나중에 <code>tsc</code>가 정리하게 두는가? 0.1.45까지는 후자였습니다. 모든 <code>match</code> 표현식의 타입이 unknown이었으므로, 언어의 유일한 분기 구문에서 나온 값은 그때부터 타입이 없었습니다. 이제 <code>match</code>는 arm들이 일치하면 그 타입을 가지고, <code>T.parse</code>는 실제 코드 대부분이 분기하는 모양인 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>를 반환한다고 알려져 있습니다."
+      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
+      "tr": "이 모든 것이 실제로 쓸모 있는지를 가르는 다음 질문은 이것입니다. 분기에서 값을 바인딩하면 Glyph가 그 타입을 아는가, 아니면 어깨를 으쓱하고 나중에 <code>tsc</code>가 정리하게 두는가? 이제 <code>match</code>는 arm들이 일치하면 그 타입을 가지고, <code>T.parse</code>는 실제 코드 대부분이 분기하는 모양인 <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>를 반환한다고 알려져 있습니다."
     },
     {
       "id": "h-b03ef1aa",
@@ -191,10 +401,46 @@
       "tr": "비용 정산 앱에서: 타입 표기 없이도 <code>i</code>는 숫자"
     },
     {
-      "id": "h-9a162c5e",
+      "id": "h-937a3ed3",
       "kind": "html",
-      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript. The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
-      "tr": "두 쪽 모두 예전에는 조용히 잘못되던 것입니다. 반복문은 <code>wire.expenses.entries()</code>를 생성합니다. 반복 대상의 타입이 unknown이면 대신 <code>Object.entries(...)</code>를 생성하고 <code>i</code>는 <em>문자열</em> <code>\"0\"</code>이 되는데, 이는 올바른 TypeScript이므로 빌드는 깔끔했고 프로그램은 <code>1:a</code>를 의도한 곳에서 <code>01:a</code>를 출력했습니다. 그리고 <code>wire.expensez</code>는 이제 생성된 TypeScript의 <code>TS2339</code>가 아니라 <code>.glyph</code> 줄에서 Glyph가 내는 <code>[E0210] type WireLedger has no field expensez</code>입니다. 합치는 규칙은 머리에서의 동등성입니다. <code>return</code>으로 끝나는 arm은 투표하지 않고, 타입이 다른 arm들은 결과를 예전처럼 unknown으로 둡니다. 한 단계 더 깊이 보는 곳은 타입 인자뿐이므로, <code>None =&gt; []</code>는 <code>match</code> 전체를 망치지 않고 <code>Array&lt;string&gt;</code> arm과 일치하며, 그 뒤의 반복문도 여전히 숫자를 바인딩합니다. <code>record.get</code>에 대한 같은 연쇄도 같은 이유로 동작합니다. <code>std/record</code> 함수 여섯 개 모두 넘긴 레코드에서 값 타입을 가져옵니다. 코드 조각은 이 변경으로 지워진 타입 표기를 갖고 있던 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>에서 가져왔습니다."
+      "en": "History <span class=\"hint\">before 0.1.45</span>",
+      "tr": "이력 <span class=\"hint\">0.1.45 이전</span>"
+    },
+    {
+      "id": "h-47d92dce",
+      "kind": "html",
+      "en": "Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on.",
+      "tr": "0.1.45까지는 후자였습니다. 모든 <code>match</code> 표현식의 타입이 unknown이었으므로, 언어의 유일한 분기 구문에서 나온 값은 그때부터 타입이 없었습니다."
+    },
+    {
+      "id": "h-99bedb77",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what went wrong quietly, and how the join works</span>",
+      "tr": "자세히 <span class=\"hint\">조용히 잘못되던 것, 그리고 합치는 방식</span>"
+    },
+    {
+      "id": "h-7155a6f8",
+      "kind": "html",
+      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript.",
+      "tr": "두 쪽 모두 예전에는 조용히 잘못되던 것입니다. 반복문은 <code>wire.expenses.entries()</code>를 생성합니다. 반복 대상의 타입이 unknown이면 대신 <code>Object.entries(...)</code>를 생성하고 <code>i</code>는 <em>문자열</em> <code>\"0\"</code>이 되는데, 이는 올바른 TypeScript이므로 빌드는 깔끔했고 프로그램은 <code>1:a</code>를 의도한 곳에서 <code>01:a</code>를 출력했습니다. 그리고 <code>wire.expensez</code>는 이제 생성된 TypeScript의 <code>TS2339</code>가 아니라 <code>.glyph</code> 줄에서 Glyph가 내는 <code>[E0210] type WireLedger has no field expensez</code>입니다."
+    },
+    {
+      "id": "h-51614607",
+      "kind": "html",
+      "en": "The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
+      "tr": "합치는 규칙은 머리에서의 동등성입니다. <code>return</code>으로 끝나는 arm은 투표하지 않고, 타입이 다른 arm들은 결과를 예전처럼 unknown으로 둡니다. 한 단계 더 깊이 보는 곳은 타입 인자뿐이므로, <code>None =&gt; []</code>는 <code>match</code> 전체를 망치지 않고 <code>Array&lt;string&gt;</code> arm과 일치하며, 그 뒤의 반복문도 여전히 숫자를 바인딩합니다. <code>record.get</code>에 대한 같은 연쇄도 같은 이유로 동작합니다. <code>std/record</code> 함수 여섯 개 모두 넘긴 레코드에서 값 타입을 가져옵니다. 코드 조각은 이 변경으로 지워진 타입 표기를 갖고 있던 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>에서 가져왔습니다."
+    },
+    {
+      "id": "h-4ab859b1",
+      "kind": "html",
+      "en": "A lookup with an empty fallback",
+      "tr": "빈 기본값을 둔 조회"
+    },
+    {
+      "id": "h-4a68ca34",
+      "kind": "html",
+      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one.",
+      "tr": "가장 비용이 컸던 모양이 이것입니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get</code>은 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>[]</code>는 특정한 무엇도 아닌 것의 배열이므로, 두 arm은 <code>Array</code>에서 일치하고 요소 타입은 그것을 가진 arm에서 옵니다."
     },
     {
       "id": "h-3d9615c4",
@@ -203,10 +449,16 @@
       "tr": "의존성 해석기에서: 조회, 빈 기본값, 인덱스를 쓰는 순회"
     },
     {
-      "id": "h-360bca16",
+      "id": "h-3b89a537",
       "kind": "html",
-      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one. Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
-      "tr": "가장 비용이 컸던 모양이 이것입니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get</code>은 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>[]</code>는 특정한 무엇도 아닌 것의 배열이므로, 두 arm은 <code>Array</code>에서 일치하고 요소 타입은 그것을 가진 arm에서 옵니다. 0.1.55까지는 동등성으로 비교했으므로 <code>[]</code>는 불일치로 쳤고, 아래 반복문은 진단도 없고 <code>tsc --strict</code>도 통과한 빌드에서 <code>01:x</code>를 출력했습니다. 코드는 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>이며, 예전에는 이 타입 표기가 꼭 필요하다는 세 줄짜리 주석 아래에 <code>let path: Array&lt;string&gt;</code>으로 시작했습니다."
+      "en": "History <span class=\"hint\">before 0.1.55</span>",
+      "tr": "이력 <span class=\"hint\">0.1.55 이전</span>"
+    },
+    {
+      "id": "h-95917e30",
+      "kind": "html",
+      "en": "Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
+      "tr": "0.1.55까지는 동등성으로 비교했으므로 <code>[]</code>는 불일치로 쳤고, 아래 반복문은 진단도 없고 <code>tsc --strict</code>도 통과한 빌드에서 <code>01:x</code>를 출력했습니다. 코드는 <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>이며, 예전에는 이 타입 표기가 꼭 필요하다는 세 줄짜리 주석 아래에 <code>let path: Array&lt;string&gt;</code>으로 시작했습니다."
     },
     {
       "id": "h-2a137295",
@@ -215,10 +467,10 @@
       "tr": "<code>pad_start</code>를 직접 작성해야 하나요?"
     },
     {
-      "id": "h-7e935433",
+      "id": "h-f64a88c3",
       "kind": "html",
-      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there. Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged. Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
-      "tr": "실제 프로그램에서 처음 부딪히는 빈틈은 타입 시스템 기능이 아닙니다. <code>string.slice</code>를 찾았는데 아무것도 없는 것입니다. 연속된 도그푸딩 다섯 번이 같은 목록을 제출했고, 0.1.47까지 이 저장소의 앱 여섯 개가 자체 <code>repeat</code>를, 다섯 개가 자체 <code>pad_start</code>를 갖고 있었으며, 모두 fold가 있어야 할 곳에 반복문이 있었습니다. 이제 그 이름 열한 개가 제공되고, 그것을 갖고 있던 앱 일곱 개 모두에서 사본을 지웠습니다."
+      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there.",
+      "tr": "실제 프로그램에서 처음 부딪히는 빈틈은 타입 시스템 기능이 아닙니다. <code>string.slice</code>를 찾았는데 아무것도 없는 것입니다."
     },
     {
       "id": "h-c1723870",
@@ -227,16 +479,82 @@
       "tr": "추가된 것"
     },
     {
-      "id": "h-7b497297",
+      "id": "h-e7e931e1",
       "kind": "html",
-      "en": "Three of them part ways with their TypeScript namesakes on purpose. <code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long. Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call. Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
-      "tr": "그중 세 개는 의도적으로 TypeScript의 같은 이름 함수와 다르게 동작합니다. <code>repeat</code>는 TS가 예외를 던지는 음수 횟수에서 <code>\"\"</code>를 반환하며, 덕분에 이미 너무 긴 문자열에 대해서도 <code>repeat(pad, width - len(s))</code>가 안전합니다. 두 <code>index_of</code> 함수는 <code>-1</code> 대신 <code>Option&lt;number&gt;</code>를 반환합니다. <code>-1</code>은 실제 인덱스가 쓰이는 모든 곳에서 타입 검사를 통과하고, 호출 지점에서 한참 떨어진 곳에서 실패하는 숫자이기 때문입니다. 치환은 <code>replace_all</code>로만 제공되므로, 조용히 한 번만 바꾸는 <code>String.prototype.replace</code>와 헷갈릴 첫 번째만 바꾸는 형태가 없습니다."
+      "en": "Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
+      "tr": "이제 그 이름 열한 개가 제공되고, 그것을 갖고 있던 앱 일곱 개 모두에서 사본을 지웠습니다."
     },
     {
-      "id": "h-93945406",
+      "id": "h-a1c6bb96",
       "kind": "html",
-      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about. Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161. The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
-      "tr": "<code>fold</code>는 타이핑을 줄이는 것이 아니라 기둥 하나를 지켜 주는 함수입니다. <code>mut</code>는 상태가 바뀌는 모든 곳의 grep할 수 있는 기록인데, fold가 없으면 <code>grep mut</code> 결과가 리뷰어가 신경 쓸 것은 아무것도 바꾸지 않는 카운팅 반복문으로 가득 찹니다. 직접 만든 버전을 지우자 <code>examples/apps/</code>의 변경 위치가 192곳에서 161곳으로 줄었습니다. 다시 쓴 코드는 리뷰가 아니라 출력으로 확인했습니다. 앱 일곱 개를 모두 고정된 입력으로 전후에 실행했고, stdout, 종료 코드, HTTP 응답 파일 26개가 바이트 단위로 같았습니다."
+      "en": "History <span class=\"hint\">the copies the apps carried before 0.1.47</span>",
+      "tr": "이력 <span class=\"hint\">0.1.47 이전에 앱들이 갖고 있던 사본</span>"
+    },
+    {
+      "id": "h-f1ac1a9b",
+      "kind": "html",
+      "en": "Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged.",
+      "tr": "연속된 도그푸딩 다섯 번이 같은 목록을 제출했고, 0.1.47까지 이 저장소의 앱 여섯 개가 자체 <code>repeat</code>를, 다섯 개가 자체 <code>pad_start</code>를 갖고 있었으며, 모두 fold가 있어야 할 곳에 반복문이 있었습니다."
+    },
+    {
+      "id": "h-7a8a6c98",
+      "kind": "html",
+      "en": "Where they differ from TypeScript",
+      "tr": "TypeScript와 다른 점"
+    },
+    {
+      "id": "h-905088b2",
+      "kind": "html",
+      "en": "Three of them part ways with their TypeScript namesakes on purpose.",
+      "tr": "그중 세 개는 의도적으로 TypeScript의 같은 이름 함수와 다르게 동작합니다."
+    },
+    {
+      "id": "h-18efe920",
+      "kind": "html",
+      "en": "<b><code>repeat</code></b><code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long.",
+      "tr": "<b><code>repeat</code></b><code>repeat</code>는 TS가 예외를 던지는 음수 횟수에서 <code>\"\"</code>를 반환하며, 덕분에 이미 너무 긴 문자열에 대해서도 <code>repeat(pad, width - len(s))</code>가 안전합니다."
+    },
+    {
+      "id": "h-765b9fd0",
+      "kind": "html",
+      "en": "<b><code>index_of</code></b>Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call.",
+      "tr": "<b><code>index_of</code></b>두 <code>index_of</code> 함수는 <code>-1</code> 대신 <code>Option&lt;number&gt;</code>를 반환합니다. <code>-1</code>은 실제 인덱스가 쓰이는 모든 곳에서 타입 검사를 통과하고, 호출 지점에서 한참 떨어진 곳에서 실패하는 숫자이기 때문입니다."
+    },
+    {
+      "id": "h-8995b060",
+      "kind": "html",
+      "en": "<b><code>replace_all</code></b>Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
+      "tr": "<b><code>replace_all</code></b>치환은 <code>replace_all</code>로만 제공되므로, 조용히 한 번만 바꾸는 <code>String.prototype.replace</code>와 헷갈릴 첫 번째만 바꾸는 형태가 없습니다."
+    },
+    {
+      "id": "h-6380f582",
+      "kind": "html",
+      "en": "Why <code>fold</code> matters",
+      "tr": "<code>fold</code>가 중요한 이유"
+    },
+    {
+      "id": "h-bfd57f01",
+      "kind": "html",
+      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about.",
+      "tr": "<code>fold</code>는 타이핑을 줄이는 것이 아니라 기둥 하나를 지켜 주는 함수입니다. <code>mut</code>는 상태가 바뀌는 모든 곳의 grep할 수 있는 기록인데, fold가 없으면 <code>grep mut</code> 결과가 리뷰어가 신경 쓸 것은 아무것도 바꾸지 않는 카운팅 반복문으로 가득 찹니다."
+    },
+    {
+      "id": "h-f3bca6ea",
+      "kind": "html",
+      "en": "Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161.",
+      "tr": "직접 만든 버전을 지우자 <code>examples/apps/</code>의 변경 위치가 192곳에서 161곳으로 줄었습니다."
+    },
+    {
+      "id": "h-61ef869c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the rewrite was checked</span>",
+      "tr": "자세히 <span class=\"hint\">다시 쓴 코드를 확인한 방법</span>"
+    },
+    {
+      "id": "h-ced8b922",
+      "kind": "html",
+      "en": "The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
+      "tr": "다시 쓴 코드는 리뷰가 아니라 출력으로 확인했습니다. 앱 일곱 개를 모두 고정된 입력으로 전후에 실행했고, stdout, 종료 코드, HTTP 응답 파일 26개가 바이트 단위로 같았습니다."
     },
     {
       "id": "h-0e58d55a",
@@ -245,22 +563,64 @@
       "tr": "디렉터리를 순회하고 무엇이 잘못됐는지 알 수 있나요?"
     },
     {
-      "id": "h-37004ae4",
+      "id": "h-42184b87",
       "kind": "html",
-      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory. The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed. <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly. There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
-      "tr": "<code>std/fs</code>에는 함수 여섯 개가 있었는데 어느 것도 디렉터리를 나열하지 않았습니다. 이 저장소의 링크 검사기는 stdlib를 넘어 node의 <code>readdirSync</code>에 손을 뻗었고, 어떤 경로가 디렉터리인지는 읽어 보고 돌아온 <code>errno</code>를 살펴서 알아냈습니다. 두 쪽 모두 고쳐졌습니다. <code>fs.read_dir</code>는 한 단계 아래의 항목 이름을 반환하고, <code>fs.is_dir</code>는 <code>fs.exists</code>처럼 <code>bool</code>로 답하며, <code>fs.stat</code>은 <code>is_dir</code>, <code>is_file</code>, 바이트 단위의 <code>size</code>, epoch 밀리초 단위의 <code>modified</code>로 된 <code>FileInfo</code>를 반환하고, <code>time.format_iso</code>로 바로 출력할 수 있습니다. 재귀적인 <code>walk</code>와 glob은 없습니다. 순회는 이 세 가지와 <code>path.join</code>으로 열 줄 정도면 됩니다."
+      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory.",
+      "tr": "<code>std/fs</code>에는 함수 여섯 개가 있었는데 어느 것도 디렉터리를 나열하지 않았습니다."
     },
     {
-      "id": "h-a937d20c",
+      "id": "h-ceab8c99",
       "kind": "html",
-      "en": "The failure side changed more. <code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
-      "tr": "실패 쪽은 더 많이 바뀌었습니다. <code>FsError.kind</code>는 <code>{ tag: string }</code>이었고 분류는 <code>NotFound</code>가 전부였으므로, &ldquo;그 경로는 디렉터리다&rdquo;와 &ldquo;그 경로는 없다&rdquo;를 구분하려면 errno 문자열을 비교해야 했습니다. 이제 프로그램이 실제로 복구하는 다섯 가지 종류에는 이름이 있고, 이름이 없는 errno는 <code>Other</code> 꼬리에 그대로 담겨 도착합니다."
+      "en": "<b><code>fs.read_dir</code></b><code>fs.read_dir</code> returns the entry names one level down.",
+      "tr": "<b><code>fs.read_dir</code></b><code>fs.read_dir</code>는 한 단계 아래의 항목 이름을 반환합니다."
     },
     {
-      "id": "h-f6e4f77c",
+      "id": "h-634334d6",
       "kind": "html",
-      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>. <code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
-      "tr": "검사기는 이 분류가 닫혀 있다는 것을 알기 때문에, <code>err.kind</code>에 대한 <code>match</code>는 직접 선언한 유니언과 같은 기준을 적용받습니다. 여섯 가지를 다루면 <code>else</code>가 필요 없고, 하나를 빠뜨리면 <code>fs.ErrorKind</code>를 짚는 <code>E0200</code>으로 빌드가 실패합니다. <code>fs.FsError</code>와 <code>fs.FileInfo</code>의 필드도 검사되므로, <code>err.mesage</code>는 생성된 TypeScript에 대한 <code>tsc</code> 오류가 아니라 Glyph 소스에 대한 <code>E0210</code>입니다."
+      "en": "<b><code>fs.is_dir</code></b><code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does.",
+      "tr": "<b><code>fs.is_dir</code></b><code>fs.is_dir</code>는 <code>fs.exists</code>처럼 <code>bool</code>로 답합니다."
+    },
+    {
+      "id": "h-b5462a01",
+      "kind": "html",
+      "en": "<b><code>fs.stat</code></b><code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly.",
+      "tr": "<b><code>fs.stat</code></b><code>fs.stat</code>은 <code>is_dir</code>, <code>is_file</code>, 바이트 단위의 <code>size</code>, epoch 밀리초 단위의 <code>modified</code>로 된 <code>FileInfo</code>를 반환하고, <code>time.format_iso</code>로 바로 출력할 수 있습니다."
+    },
+    {
+      "id": "h-2ad4753e",
+      "kind": "html",
+      "en": "There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
+      "tr": "재귀적인 <code>walk</code>와 glob은 없습니다. 순회는 이 세 가지와 <code>path.join</code>으로 열 줄 정도면 됩니다."
+    },
+    {
+      "id": "h-b400ed9e",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the workaround these replaced</span>",
+      "tr": "이력 <span class=\"hint\">이것들이 대신한 우회 방법</span>"
+    },
+    {
+      "id": "h-3ec6b3b7",
+      "kind": "html",
+      "en": "The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed.",
+      "tr": "이 저장소의 링크 검사기는 stdlib를 넘어 node의 <code>readdirSync</code>에 손을 뻗었고, 어떤 경로가 디렉터리인지는 읽어 보고 돌아온 <code>errno</code>를 살펴서 알아냈습니다. 두 쪽 모두 고쳐졌습니다."
+    },
+    {
+      "id": "h-784cb57b",
+      "kind": "html",
+      "en": "Failures have names",
+      "tr": "실패에는 이름이 있습니다"
+    },
+    {
+      "id": "h-e62ea3d0",
+      "kind": "html",
+      "en": "The failure side changed more. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
+      "tr": "실패 쪽은 더 많이 바뀌었습니다. 이제 프로그램이 실제로 복구하는 다섯 가지 종류에는 이름이 있고, 이름이 없는 errno는 <code>Other</code> 꼬리에 그대로 담겨 도착합니다."
+    },
+    {
+      "id": "h-ed4359a8",
+      "kind": "html",
+      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>.",
+      "tr": "검사기는 이 분류가 닫혀 있다는 것을 알기 때문에, <code>err.kind</code>에 대한 <code>match</code>는 직접 선언한 유니언과 같은 기준을 적용받습니다. 여섯 가지를 다루면 <code>else</code>가 필요 없고, 하나를 빠뜨리면 <code>fs.ErrorKind</code>를 짚는 <code>E0200</code>으로 빌드가 실패합니다."
     },
     {
       "id": "h-3202b4ab",
@@ -269,10 +629,22 @@
       "tr": "트리를 순회하고, 무엇이 잘못됐는지 짚기"
     },
     {
-      "id": "h-43fd3e55",
+      "id": "h-0c55afc8",
       "kind": "html",
-      "en": "Two smaller ones landed with it, both from the same app. <code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop. And <code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
-      "tr": "같은 앱에서 나온 작은 것 두 개도 함께 들어왔습니다. <code>regex.captures_all</code>은 매칭된 텍스트만이 아니라 모든 매칭의 캡처 그룹을 주므로, 단순한 <code>key=value</code> 스캔이 더 이상 직접 만든 반복문이 아닙니다. 그리고 <code>task.pool_settled</code>는 <code>all_settled</code>의 실패 동작을 가진 <code>task.pool</code>입니다. 동시성에 한도가 있고, 작업마다 결과 하나가 나오며, 죽은 호스트 하나는 pool이 모은 모든 결과가 아니라 그 호스트의 결과만 잃게 합니다."
+      "en": "Details <span class=\"hint\">the old taxonomy, checked fields, and trying the check yourself</span>",
+      "tr": "자세히 <span class=\"hint\">예전 분류, 검사되는 필드, 그리고 검사를 직접 해 보기</span>"
+    },
+    {
+      "id": "h-30fc81e1",
+      "kind": "html",
+      "en": "<code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string.",
+      "tr": "<code>FsError.kind</code>는 <code>{ tag: string }</code>이었고 분류는 <code>NotFound</code>가 전부였으므로, &ldquo;그 경로는 디렉터리다&rdquo;와 &ldquo;그 경로는 없다&rdquo;를 구분하려면 errno 문자열을 비교해야 했습니다."
+    },
+    {
+      "id": "h-81174ee6",
+      "kind": "html",
+      "en": "<code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
+      "tr": "<code>fs.FsError</code>와 <code>fs.FileInfo</code>의 필드도 검사되므로, <code>err.mesage</code>는 생성된 TypeScript에 대한 <code>tsc</code> 오류가 아니라 Glyph 소스에 대한 <code>E0210</code>입니다."
     },
     {
       "id": "h-c44fd9b3",
@@ -281,22 +653,76 @@
       "tr": "그 검사는 실제로 동작합니다. 위의 <code>match</code>에서 <code>PermissionDenied</code> arm을 지우면 <code>glyph check --no-tsc</code>가 <code>E0200</code>으로 멈춥니다. <code>fs.ErrorKind</code>에 대한 비망라적 match, 빠진 variant <code>PermissionDenied</code>. stdlib 모델을 처음 작성했을 때는 반환 타입만 다뤘으므로, 이런 match가 깔끔하게 컴파일되고 런타임에 예외를 던졌습니다. 이제 <code>fs.FsError</code>, <code>fs.FileInfo</code>, <code>fs.ErrorKind</code>의 필드와 variant 모양이 모델링되어 있습니다."
     },
     {
+      "id": "h-20ae59d9",
+      "kind": "html",
+      "en": "Two smaller additions",
+      "tr": "작은 추가 두 가지"
+    },
+    {
+      "id": "h-2dbfa744",
+      "kind": "html",
+      "en": "Two smaller ones landed with it, both from the same app.",
+      "tr": "같은 앱에서 나온 작은 것 두 개도 함께 들어왔습니다."
+    },
+    {
+      "id": "h-f6f4b1a0",
+      "kind": "html",
+      "en": "<b><code>regex.captures_all</code></b><code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop.",
+      "tr": "<b><code>regex.captures_all</code></b><code>regex.captures_all</code>은 매칭된 텍스트만이 아니라 모든 매칭의 캡처 그룹을 주므로, 단순한 <code>key=value</code> 스캔이 더 이상 직접 만든 반복문이 아닙니다."
+    },
+    {
+      "id": "h-cae64880",
+      "kind": "html",
+      "en": "<b><code>task.pool_settled</code></b><code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
+      "tr": "<b><code>task.pool_settled</code></b><code>task.pool_settled</code>는 <code>all_settled</code>의 실패 동작을 가진 <code>task.pool</code>입니다. 동시성에 한도가 있고, 작업마다 결과 하나가 나오며, 죽은 호스트 하나는 pool이 모은 모든 결과가 아니라 그 호스트의 결과만 잃게 합니다."
+    },
+    {
       "id": "h-9250d380",
       "kind": "html",
       "en": "How do you know the functions are the right ones?",
       "tr": "그 함수들이 올바른 것이라는 걸 어떻게 아나요?"
     },
     {
-      "id": "h-86ed6abf",
+      "id": "h-90870c3e",
       "kind": "html",
-      "en": "Because the app that asked for them had to stop working around them before the release counted as done. A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
-      "tr": "그것을 요청한 앱이 우회 방법을 그만 써야만 릴리스가 완료된 것으로 쳤기 때문입니다. 배포된 라이브러리 함수와 그보다 오래 살아남은 우회 방법은 서로 다른 주장이므로, 이 네 가지를 추가한 같은 변경에서 링크 검사기의 사본을 지웠습니다. <code>readdirSync</code> import, <code>errno</code> 문자열 비교 두 개, 직접 만든 스캐너 97줄, 그리고 실패 즉시 멈추는 pool입니다. 122줄이 빠졌습니다."
+      "en": "Because the app that asked for them had to stop working around them before the release counted as done.",
+      "tr": "그것을 요청한 앱이 우회 방법을 그만 써야만 릴리스가 완료된 것으로 쳤기 때문입니다."
     },
     {
-      "id": "h-23121e09",
+      "id": "h-4f734753",
       "kind": "html",
-      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued. Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely. Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
-      "tr": "그중 두 가지 삭제는 프로그램의 동작을 바꿨고, 그 차이는 논쟁이 아니라 측정으로 확인했습니다. 읽을 수 없는 디렉터리가 있는 트리를 이전 버전과 새 버전에 주면, 새 버전은 <code>permission denied</code>를 출력하고 그 경로를 읽을 수 없는 것으로 세지만, errno가 <code>EISDIR</code>인지만 물을 수 있었던 이전 버전은 보고서에서 아예 빼 버렸습니다. URL 세 개 중 하나가 예외를 던지게 하면, <code>pool_settled</code>는 세 행을 모두 출력하고 실패를 짚었지만, <code>pool</code>은 아무것도 출력하지 않고 처리되지 않은 rejection으로 죽으며 좋은 결과 두 개까지 함께 잃었습니다."
+      "en": "A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
+      "tr": "배포된 라이브러리 함수와 그보다 오래 살아남은 우회 방법은 서로 다른 주장이므로, 이 네 가지를 추가한 같은 변경에서 링크 검사기의 사본을 지웠습니다. <code>readdirSync</code> import, <code>errno</code> 문자열 비교 두 개, 직접 만든 스캐너 97줄, 그리고 실패 즉시 멈추는 pool입니다. 122줄이 빠졌습니다."
+    },
+    {
+      "id": "h-1a4be1e1",
+      "kind": "html",
+      "en": "Two behaviour changes, measured",
+      "tr": "측정한 동작 변화 두 가지"
+    },
+    {
+      "id": "h-33ca5bf2",
+      "kind": "html",
+      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued.",
+      "tr": "그중 두 가지 삭제는 프로그램의 동작을 바꿨고, 그 차이는 논쟁이 아니라 측정으로 확인했습니다."
+    },
+    {
+      "id": "h-4e30cf34",
+      "kind": "html",
+      "en": "<b>An unreadable directory</b>Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely.",
+      "tr": "<b>읽을 수 없는 디렉터리</b>읽을 수 없는 디렉터리가 있는 트리를 이전 버전과 새 버전에 주면, 새 버전은 <code>permission denied</code>를 출력하고 그 경로를 읽을 수 없는 것으로 세지만, errno가 <code>EISDIR</code>인지만 물을 수 있었던 이전 버전은 보고서에서 아예 빼 버렸습니다."
+    },
+    {
+      "id": "h-d5712f1d",
+      "kind": "html",
+      "en": "<b>A failing URL</b>Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
+      "tr": "<b>실패하는 URL</b>URL 세 개 중 하나가 예외를 던지게 하면, <code>pool_settled</code>는 세 행을 모두 출력하고 실패를 짚었지만, <code>pool</code>은 아무것도 출력하지 않고 처리되지 않은 rejection으로 죽으며 좋은 결과 두 개까지 함께 잃었습니다."
+    },
+    {
+      "id": "h-ba8eb205",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the scanner rewrite and the alternation worry</span>",
+      "tr": "자세히 <span class=\"hint\">스캐너 재작성과 대안 분기에 대한 걱정</span>"
     },
     {
       "id": "h-28994342",
@@ -311,10 +737,22 @@
       "tr": "돈은 float로 계산하지 않습니다"
     },
     {
-      "id": "h-859647ed",
+      "id": "h-6ff60a37",
       "kind": "html",
-      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
-      "tr": "핀테크 평가를 그 자리에서 끝낼 빈틈은 <code>0.1 + 0.2</code>가 <code>0.3</code>이 아니고 2<sup>53</sup>을 넘는 값이 조용히 정밀도를 잃는 IEEE-754 <code>number</code>로 돈을 계산하는 것입니다. <code>std/decimal</code>은 BigInt 위의 정확한 10진 고정소수점입니다. 소수 자릿수가 고정된 임의 정밀도 정수이므로 덧셈, 뺄셈, 곱셈은 정확하고, 나눗셈은 명시적인 자릿수와 반올림 방식을 받습니다. 형식이 잘못된 금액은 조용한 <code>NaN</code>이 아니라 <code>Err</code>로 파싱됩니다."
+      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision.",
+      "tr": "핀테크 평가를 그 자리에서 끝낼 빈틈은 <code>0.1 + 0.2</code>가 <code>0.3</code>이 아니고 2<sup>53</sup>을 넘는 값이 조용히 정밀도를 잃는 IEEE-754 <code>number</code>로 돈을 계산하는 것입니다."
+    },
+    {
+      "id": "h-c12616d4",
+      "kind": "html",
+      "en": "<code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "<code>std/decimal</code>은 BigInt 위의 정확한 10진 고정소수점입니다. 소수 자릿수가 고정된 임의 정밀도 정수이므로 덧셈, 뺄셈, 곱셈은 정확하고, 나눗셈은 명시적인 자릿수와 반올림 방식을 받습니다. 형식이 잘못된 금액은 조용한 <code>NaN</code>이 아니라 <code>Err</code>로 파싱됩니다."
+    },
+    {
+      "id": "h-7351d8ec",
+      "kind": "html",
+      "en": "Large whole numbers",
+      "tr": "큰 정수"
     },
     {
       "id": "h-e374ef99",
@@ -329,16 +767,16 @@
       "tr": "비동기 콜백에 드디어 타입이 생겼습니다"
     },
     {
-      "id": "h-886579ed",
+      "id": "h-64488ad2",
       "kind": "html",
-      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking. <code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
-      "tr": "함수 타입은 <code>fn(A) -&gt; T</code>뿐이었고, 이는 <code>(a: A) =&gt; T</code>로 생성됩니다. 비동기 본문은 여기에 맞지 않으므로, 지연된 작업을 반환하는 함수나 비동기 핸들러를 담은 레코드는 타입 표기 없이 둬야 했고 검사기는 더 이상 보지 않았습니다. <code>async fn(A) -&gt; T</code>가 그 빠진 타입입니다. <code>(a0: A) =&gt; Promise&lt;T&gt;</code>로 생성되고, 반환이 없는 <code>async fn()</code>은 <code>() =&gt; Promise&lt;void&gt;</code>로 생성됩니다."
+      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking.",
+      "tr": "함수 타입은 <code>fn(A) -&gt; T</code>뿐이었고, 이는 <code>(a: A) =&gt; T</code>로 생성됩니다. 비동기 본문은 여기에 맞지 않으므로, 지연된 작업을 반환하는 함수나 비동기 핸들러를 담은 레코드는 타입 표기 없이 둬야 했고 검사기는 더 이상 보지 않았습니다."
     },
     {
-      "id": "h-f88409c6",
+      "id": "h-a5b827c6",
       "kind": "html",
-      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides. The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
-      "tr": "Glyph는 이 둘을 <code>tsc</code>에 맡기지 않고 직접 구분합니다. async 함수가 필요한 곳의 평범한 함수는 return에서 <code>E0204</code>, 호출 인자에서 <code>E0211</code>이며, 메시지는 양쪽을 모두 짚습니다. 판단하지 않는 경우는 하나, <code>void</code> 반환인데, TypeScript는 여기에 어떤 함수든 허용합니다."
+      "en": "<code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
+      "tr": "<code>async fn(A) -&gt; T</code>가 그 빠진 타입입니다. <code>(a0: A) =&gt; Promise&lt;T&gt;</code>로 생성되고, 반환이 없는 <code>async fn()</code>은 <code>() =&gt; Promise&lt;void&gt;</code>로 생성됩니다."
     },
     {
       "id": "h-c1b08369",
@@ -347,16 +785,34 @@
       "tr": "지연된 작업, 그리고 핸들러 맵"
     },
     {
+      "id": "h-0cdbdac5",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how Glyph tells plain and async functions apart</span>",
+      "tr": "자세히 <span class=\"hint\">Glyph가 평범한 함수와 async 함수를 구분하는 방식</span>"
+    },
+    {
+      "id": "h-a3b56b1d",
+      "kind": "html",
+      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides.",
+      "tr": "Glyph는 이 둘을 <code>tsc</code>에 맡기지 않고 직접 구분합니다. async 함수가 필요한 곳의 평범한 함수는 return에서 <code>E0204</code>, 호출 인자에서 <code>E0211</code>이며, 메시지는 양쪽을 모두 짚습니다."
+    },
+    {
+      "id": "h-158734ef",
+      "kind": "html",
+      "en": "The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
+      "tr": "판단하지 않는 경우는 하나, <code>void</code> 반환인데, TypeScript는 여기에 어떤 함수든 허용합니다."
+    },
+    {
       "id": "h-9348ac56",
       "kind": "html",
       "en": "A recursive type, matched all the way down",
       "tr": "끝까지 매칭되는 재귀 타입"
     },
     {
-      "id": "h-0f62e9c9",
+      "id": "h-bd980c81",
       "kind": "html",
-      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it. <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
-      "tr": "유니언은 자신의 payload 안에서 타입 매개변수와 함께 자기 자신을 가리킬 수 있고, match arm은 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩할 수 있습니다. 둘을 합치면 레드-블랙 트리의 균형 규칙이 arm 네 개가 됩니다. 각각은 다시 쓰는 정확한 모양을 지정하고, 그 모양을 위의 주석이 주장하는 것이 아니라 컴파일러가 검사합니다. <code>examples/apps/leaderboard/main.glyph</code>가 그 프로그램 전체로, 모든 점수를 트리에 두고 로그를 다시 정렬하는 대신 트리를 순회해서 순위, 상위 N개, 범위 쿼리에 답하는 리더보드입니다."
+      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it.",
+      "tr": "유니언은 자신의 payload 안에서 타입 매개변수와 함께 자기 자신을 가리킬 수 있고, match arm은 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩할 수 있습니다. 둘을 합치면 레드-블랙 트리의 균형 규칙이 arm 네 개가 됩니다. 각각은 다시 쓰는 정확한 모양을 지정하고, 그 모양을 위의 주석이 주장하는 것이 아니라 컴파일러가 검사합니다."
     },
     {
       "id": "h-f43b9a36",
@@ -365,34 +821,340 @@
       "tr": "회전 case 네 개 중 하나"
     },
     {
+      "id": "h-ccd82523",
+      "kind": "html",
+      "en": "<code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
+      "tr": "<code>examples/apps/leaderboard/main.glyph</code>가 그 프로그램 전체로, 모든 점수를 트리에 두고 로그를 다시 정렬하는 대신 트리를 순회해서 순위, 상위 N개, 범위 쿼리에 답하는 리더보드입니다."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
       "tr": "현재 상태"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "지금 제공되는 것"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">19</span>"
     },
     {
-      "id": "h-1a261fdc",
+      "id": "h-62f78e53",
       "kind": "html",
-      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
-      "tr": "형제 모듈의 타입을 가리키는 두 방식(이름 import와 <code>lib.Secret</code> 타입 표기) 모두에서 강제되는 <code>pub</code> 가시성, 구조적 <code>interface</code> 제약, <code>defer</code>, <code>std/task</code>(<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), 작성할 수 있는 타입으로서의 <code>async fn(A) -&gt; T</code>, 생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩한 arm으로 매칭되는 자기 자신을 payload에 담은 유니언, arm 안에 블록, <code>await</code>, 반복문 제어를 쓸 수 있는 <code>let</code>이나 <code>mut</code>의 값으로서의 <code>match</code>, arm이 일치하면 그 타입을 프로그램의 나머지로 가져가는 <code>match</code>, 타입이 있는 <code>T.parse</code>, 정확한 금액 계산을 위한 <code>std/decimal</code>, 정확한 큰 정수를 위한 <code>bigint</code>, 숫자 구분자, JS에서 물려받은 의미를 다루는 명세 절, 그리고 <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code>와 <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, 그리고 <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, 검사기가 지키게 하는 <code>FsError.kind</code> 분류, <code>regex.captures_all</code>을 갖춘 표준 라이브러리. <code>std/string</code>과 <code>std/array</code>의 대부분은 이제 반환 타입을 프로그램으로 가져가므로, <code>string.split</code>은 <code>Array&lt;string&gt;</code>이고 그에 대한 반복문은 숫자 인덱스를 바인딩합니다. <code>std/record</code>도 넘긴 레코드에서 값 타입을 읽어 모델링됩니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get(t, k)</code>는 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>record.keys(t)</code>는 <code>Array&lt;string&gt;</code>이므로 <code>array.sort(record.keys(t), cmp)</code>는 요소 타입을 유지합니다."
+      "en": "Modules and types",
+      "tr": "모듈과 타입"
     },
     {
-      "id": "h-c647197d",
+      "id": "h-34f59bc7",
       "kind": "html",
-      "en": "Where it stops",
-      "tr": "한계"
+      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation)",
+      "tr": "형제 모듈의 타입을 가리키는 두 방식(이름 import와 <code>lib.Secret</code> 타입 표기) 모두에서 강제되는 <code>pub</code> 가시성"
     },
     {
-      "id": "h-02415819",
+      "id": "h-782a2882",
       "kind": "html",
-      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.",
-      "tr": "비공개 import는 없는 이름과 같은 &ldquo;not exported by M&rdquo; 메시지를 보고합니다. &ldquo;비공개이니 <code>pub</code>를 붙이라&rdquo;와 &ldquo;그런 이름 없음&rdquo;을 구분하는 것은 대기 중인 개선입니다. 가시성은 타입 표기에서 검사하고, 네임스페이스를 통해 읽는 값에서는 검사하지 않습니다. <code>helper</code>가 비공개인 <code>lib.helper()</code>는 여전히 Glyph 오류가 아니라 <code>tsc</code> 오류입니다. 비동기 문맥은 이제 검사되지만(<code>E0222</code>) 한 곳은 예외입니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로, 거기서의 최상위 <code>await</code>는 허용되고 생성된 ESM이 이를 실행합니다. arm 합치기는 여전히 arm들이 타입의 머리에서 일치해야 합니다. 서로 다른 타입을 만들면 결과는 Glyph에게 unknown이고, 그것으로 무엇을 하든 <code>tsc</code>만 검사합니다. stdlib 함수 아홉 개도 같은 처지입니다. 여섯 개는 선택적인 마지막 인자를 받는데(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), 인자 개수 검사는 숫자 하나와 숫자 하나를 비교하므로 이를 모델링하면 마지막 인자를 생략하는 모든 호출에서 거짓 오류를 보고하게 됩니다. <code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 검사기가 들어가지 않는 콜백에서 요소 타입을 가져옵니다. 이 아홉 개에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요하고, <code>None</code> arm이 없는 <code>string.index_of</code>에 대한 <code>match</code>는 여전히 깔끔하게 빌드되고 런타임에 예외를 던집니다. <code>array.index_of</code>는 모델링되어 있어 <code>E0200</code>을 보고합니다. 검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 그 경계에서 오류가 아니라 여전히 검사되지 않습니다. 라이브러리 쪽에서 <code>string</code>은 <code>len</code>과 <code>split</code>이 늘 그랬듯 UTF-16 코드 단위로 인덱싱하며, 이는 확정되었습니다. <code>chars</code>나 <code>char_at</code>은 없고 계획도 없습니다. 반환된 서로게이트 반쪽은 출력되는 순간까지 문자처럼 보이기 때문입니다. <code>encoding.hex_encode</code>로 인코딩하고 16진수 두 자리씩 읽으세요. <code>captures_all</code>은 그룹만 돌려주고 오프셋은 주지 않으므로, 줄의 어디서 매칭이 시작되었는지 알아야 하는 스캐너는 여전히 직접 반복문을 씁니다. <code>fs.read_dir</code>는 OS 순서대로 항목을 주므로, 출력이 재현 가능해야 하면 정렬하세요. 중첩된 필드 패턴에는 한계가 하나 남았습니다. 네임스페이스 import로 닿는 유니언에서, 필드 안에 놓인 payload를 가진 생성자입니다. <code>import tree { Node }</code> 다음 <code>Node({ left: Node({ key: k }) })</code>는 컴파일되지만, <code>import tree</code> 다음 <code>tree.Node({ left: tree.Node({ key: k }) })</code>는 같은 유니언에서 <code>E0300</code>입니다. 다른 한계는 사라졌습니다. 자신의 매개변수에 대해 제네릭인 유니언(<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>)은 매개변수가 없는 같은 유니언이 받아들이는 중첩 arm을 예전에는 거부했는데, 이제는 열린 타입 매개변수에서든 구체적인 인스턴스화에서든 받아들입니다. 같은 조회가 match에서 빠진 variant를 검사할지 자체를 결정하고 있었으므로, 이 릴리스 전까지는 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>가 <code>Leaf</code>를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었고, 제네릭이 아닌 표기는 <code>E0200</code>이었습니다. 이제 두 표기 모두 보고하며, 유니언을 import 한 단계 떨어진 곳으로 옮겨도 답이 바뀌지 않습니다. <code>Leaf</code>를 빠뜨린 import한 <code>Tree&lt;string&gt;</code>에 대한 <code>match</code>는 import한 제네릭이 아닌 <code>Tree</code>와 똑같이 <code>Leaf</code>를 짚는 <code>E0200</code>입니다. 이는 별도로 검사되는 다른 코드 경로였고, 이 릴리스 전까지는 반대로 깔끔하게 빌드되고 런타임에 예외를 던졌습니다. import한 유니언의 커버리지에 기대기 전에 알아 둘 것이 하나 더 있습니다. variant payload도 검사되지 않으므로, <code>X</code>가 payload 자신의 유니언의 variant인 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 이는 제네릭과 아무 관계가 없습니다. 필드를 바인딩하거나, payload가 없는 태그를 필드에서 매칭하는 것은 모든 경우에 동작합니다."
+      "en": "Structural <code>interface</code> bounds",
+      "tr": "구조적 <code>interface</code> 제약"
+    },
+    {
+      "id": "h-6d391e18",
+      "kind": "html",
+      "en": "<code>async fn(A) -&gt; T</code> as a written type",
+      "tr": "작성할 수 있는 타입으로서의 <code>async fn(A) -&gt; T</code>"
+    },
+    {
+      "id": "h-66930960",
+      "kind": "html",
+      "en": "A union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field",
+      "tr": "생성자 패턴의 필드 안에 다른 생성자 패턴을 중첩한 arm으로 매칭되는 자기 자신을 payload에 담은 유니언"
+    },
+    {
+      "id": "h-5fa70fba",
+      "kind": "html",
+      "en": "Control flow and <code>match</code>",
+      "tr": "제어 흐름과 <code>match</code>"
+    },
+    {
+      "id": "h-1514da8c",
+      "kind": "html",
+      "en": "<code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms",
+      "tr": "arm 안에 블록, <code>await</code>, 반복문 제어를 쓸 수 있는 <code>let</code>이나 <code>mut</code>의 값으로서의 <code>match</code>"
+    },
+    {
+      "id": "h-7d54270d",
+      "kind": "html",
+      "en": "A <code>match</code> whose arms agree carrying their type into the rest of the program",
+      "tr": "arm이 일치하면 그 타입을 프로그램의 나머지로 가져가는 <code>match</code>"
+    },
+    {
+      "id": "h-75896c3f",
+      "kind": "html",
+      "en": "A typed <code>T.parse</code>",
+      "tr": "타입이 있는 <code>T.parse</code>"
+    },
+    {
+      "id": "h-630676b5",
+      "kind": "html",
+      "en": "Numbers and semantics",
+      "tr": "숫자와 의미론"
+    },
+    {
+      "id": "h-e3d23e3f",
+      "kind": "html",
+      "en": "<code>std/decimal</code> for exact money math",
+      "tr": "정확한 금액 계산을 위한 <code>std/decimal</code>"
+    },
+    {
+      "id": "h-668f24ca",
+      "kind": "html",
+      "en": "<code>bigint</code> for exact large integers",
+      "tr": "정확한 큰 정수를 위한 <code>bigint</code>"
+    },
+    {
+      "id": "h-b242c80c",
+      "kind": "html",
+      "en": "Digit separators",
+      "tr": "숫자 구분자"
+    },
+    {
+      "id": "h-ebf9b679",
+      "kind": "html",
+      "en": "A spec section owning the JS-inherited semantics",
+      "tr": "JS에서 물려받은 의미를 다루는 명세 절"
+    },
+    {
+      "id": "h-bf5bc533",
+      "kind": "html",
+      "en": "Standard library",
+      "tr": "표준 라이브러리"
+    },
+    {
+      "id": "h-931615ed",
+      "kind": "html",
+      "en": "A standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>",
+      "tr": "<code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code>와 <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>을 갖춘 표준 라이브러리"
+    },
+    {
+      "id": "h-ae74f82f",
+      "kind": "html",
+      "en": "An <code>FsError.kind</code> taxonomy the checker holds you to",
+      "tr": "검사기가 지키게 하는 <code>FsError.kind</code> 분류"
+    },
+    {
+      "id": "h-5e84da65",
+      "kind": "html",
+      "en": "Most of <code>std/string</code> and <code>std/array</code> carry their return type into your program",
+      "tr": "<code>std/string</code>과 <code>std/array</code>의 대부분이 반환 타입을 프로그램으로 가져갑니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-1a4c5f16",
+      "kind": "html",
+      "en": "Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index.",
+      "tr": "<code>std/string</code>과 <code>std/array</code>의 대부분은 이제 반환 타입을 프로그램으로 가져가므로, <code>string.split</code>은 <code>Array&lt;string&gt;</code>이고 그에 대한 반복문은 숫자 인덱스를 바인딩합니다."
+    },
+    {
+      "id": "h-cdc2638a",
+      "kind": "html",
+      "en": "<code>std/record</code> is modeled, with the value type read off the record you pass",
+      "tr": "넘긴 레코드에서 값 타입을 읽어 모델링되는 <code>std/record</code>"
+    },
+    {
+      "id": "h-ed833ad3",
+      "kind": "html",
+      "en": "<code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
+      "tr": "<code>std/record</code>도 넘긴 레코드에서 값 타입을 읽어 모델링됩니다. <code>Record&lt;string, Array&lt;string&gt;&gt;</code>에 대한 <code>record.get(t, k)</code>는 <code>Option&lt;Array&lt;string&gt;&gt;</code>이고, <code>record.keys(t)</code>는 <code>Array&lt;string&gt;</code>이므로 <code>array.sort(record.keys(t), cmp)</code>는 요소 타입을 유지합니다."
+    },
+    {
+      "id": "h-5bd1ae17",
+      "kind": "html",
+      "en": "Where it stops <span class=\"count\">11</span>",
+      "tr": "한계 <span class=\"count\">11</span>"
+    },
+    {
+      "id": "h-7448611d",
+      "kind": "html",
+      "en": "Visibility",
+      "tr": "가시성"
+    },
+    {
+      "id": "h-fec6c3ae",
+      "kind": "html",
+      "en": "A private import reports the same message as a missing name",
+      "tr": "비공개 import는 없는 이름과 같은 메시지를 보고합니다"
+    },
+    {
+      "id": "h-34826c3d",
+      "kind": "html",
+      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement.",
+      "tr": "비공개 import는 없는 이름과 같은 &ldquo;not exported by M&rdquo; 메시지를 보고합니다. &ldquo;비공개이니 <code>pub</code>를 붙이라&rdquo;와 &ldquo;그런 이름 없음&rdquo;을 구분하는 것은 대기 중인 개선입니다."
+    },
+    {
+      "id": "h-48517aba",
+      "kind": "html",
+      "en": "A private value read through a namespace is a <code>tsc</code> error, not a Glyph one",
+      "tr": "네임스페이스를 통해 읽은 비공개 값은 Glyph 오류가 아니라 <code>tsc</code> 오류입니다"
+    },
+    {
+      "id": "h-2c6dd0a4",
+      "kind": "html",
+      "en": "Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one.",
+      "tr": "가시성은 타입 표기에서 검사하고, 네임스페이스를 통해 읽는 값에서는 검사하지 않습니다. <code>helper</code>가 비공개인 <code>lib.helper()</code>는 여전히 Glyph 오류가 아니라 <code>tsc</code> 오류입니다."
+    },
+    {
+      "id": "h-88f22a6c",
+      "kind": "html",
+      "en": "Async",
+      "tr": "비동기"
+    },
+    {
+      "id": "h-fd228dc5",
+      "kind": "html",
+      "en": "A top-level <code>await</code> in a module-level <code>const</code> initializer is allowed",
+      "tr": "모듈 수준 <code>const</code> 초기값의 최상위 <code>await</code>는 허용됩니다"
+    },
+    {
+      "id": "h-a0cb339a",
+      "kind": "html",
+      "en": "Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it.",
+      "tr": "비동기 문맥은 이제 검사되지만(<code>E0222</code>) 한 곳은 예외입니다. 모듈 수준 <code>const</code> 초기값에는 둘러싼 호출 가능한 것이 없으므로, 거기서의 최상위 <code>await</code>는 허용되고 생성된 ESM이 이를 실행합니다."
+    },
+    {
+      "id": "h-c8ce89b2",
+      "kind": "html",
+      "en": "Inferred types",
+      "tr": "추론된 타입"
+    },
+    {
+      "id": "h-989045cb",
+      "kind": "html",
+      "en": "Arms that disagree on the type's head leave the result unknown to Glyph",
+      "tr": "타입의 머리가 다른 arm들은 결과를 Glyph에게 unknown으로 둡니다"
+    },
+    {
+      "id": "h-ebd9bc44",
+      "kind": "html",
+      "en": "The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it.",
+      "tr": "arm 합치기는 여전히 arm들이 타입의 머리에서 일치해야 합니다. 서로 다른 타입을 만들면 결과는 Glyph에게 unknown이고, 그것으로 무엇을 하든 <code>tsc</code>만 검사합니다."
+    },
+    {
+      "id": "h-efaecc5d",
+      "kind": "html",
+      "en": "Nine stdlib functions are in the same position",
+      "tr": "stdlib 함수 아홉 개도 같은 처지입니다"
+    },
+    {
+      "id": "h-4120e283",
+      "kind": "html",
+      "en": "Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into.",
+      "tr": "stdlib 함수 아홉 개도 같은 처지입니다. 여섯 개는 선택적인 마지막 인자를 받는데(<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), 인자 개수 검사는 숫자 하나와 숫자 하나를 비교하므로 이를 모델링하면 마지막 인자를 생략하는 모든 호출에서 거짓 오류를 보고하게 됩니다. <code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 검사기가 들어가지 않는 콜백에서 요소 타입을 가져옵니다."
+    },
+    {
+      "id": "h-c9d2a9c8",
+      "kind": "html",
+      "en": "A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>.",
+      "tr": "이 아홉 개에서 바로 나온 값을 인덱스와 함께 반복하려면 먼저 타입 표기가 필요하고, <code>None</code> arm이 없는 <code>string.index_of</code>에 대한 <code>match</code>는 여전히 깔끔하게 빌드되고 런타임에 예외를 던집니다. <code>array.index_of</code>는 모델링되어 있어 <code>E0200</code>을 보고합니다."
+    },
+    {
+      "id": "h-d6e3fa7e",
+      "kind": "html",
+      "en": "Members and call arity against a value the checker couldn't type are unchecked",
+      "tr": "검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 검사되지 않습니다"
+    },
+    {
+      "id": "h-e9c1f31d",
+      "kind": "html",
+      "en": "Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error.",
+      "tr": "검사기가 타입을 매길 수 없었던 값에 대한 멤버와 호출 인자 개수는 그 경계에서 오류가 아니라 여전히 검사되지 않습니다."
+    },
+    {
+      "id": "h-dc20b3d5",
+      "kind": "html",
+      "en": "Library",
+      "tr": "라이브러리"
+    },
+    {
+      "id": "h-0c73dd1c",
+      "kind": "html",
+      "en": "<code>string</code> indexes UTF-16 code units, and no <code>chars</code> or <code>char_at</code> is planned",
+      "tr": "<code>string</code>은 UTF-16 코드 단위로 인덱싱하며, <code>chars</code>나 <code>char_at</code>은 계획에 없습니다"
+    },
+    {
+      "id": "h-556b463a",
+      "kind": "html",
+      "en": "On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time.",
+      "tr": "라이브러리 쪽에서 <code>string</code>은 <code>len</code>과 <code>split</code>이 늘 그랬듯 UTF-16 코드 단위로 인덱싱하며, 이는 확정되었습니다. <code>chars</code>나 <code>char_at</code>은 없고 계획도 없습니다. 반환된 서로게이트 반쪽은 출력되는 순간까지 문자처럼 보이기 때문입니다. <code>encoding.hex_encode</code>로 인코딩하고 16진수 두 자리씩 읽으세요."
+    },
+    {
+      "id": "h-fc1dae74",
+      "kind": "html",
+      "en": "<code>captures_all</code> gives no offsets; <code>fs.read_dir</code> keeps the OS's order",
+      "tr": "<code>captures_all</code>은 오프셋을 주지 않고, <code>fs.read_dir</code>는 OS의 순서를 따릅니다"
+    },
+    {
+      "id": "h-fab0be26",
+      "kind": "html",
+      "en": "<code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.",
+      "tr": "<code>captures_all</code>은 그룹만 돌려주고 오프셋은 주지 않으므로, 줄의 어디서 매칭이 시작되었는지 알아야 하는 스캐너는 여전히 직접 반복문을 씁니다. <code>fs.read_dir</code>는 OS 순서대로 항목을 주므로, 출력이 재현 가능해야 하면 정렬하세요."
+    },
+    {
+      "id": "h-160a13d9",
+      "kind": "html",
+      "en": "Patterns",
+      "tr": "패턴"
+    },
+    {
+      "id": "h-debcfe79",
+      "kind": "html",
+      "en": "A payload constructor in a field fails on a union reached through a namespace import",
+      "tr": "네임스페이스 import로 닿는 유니언에서는 필드 안의 payload 생성자가 실패합니다"
+    },
+    {
+      "id": "h-09ad547b",
+      "kind": "html",
+      "en": "A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union.",
+      "tr": "중첩된 필드 패턴에는 한계가 하나 남았습니다. 네임스페이스 import로 닿는 유니언에서, 필드 안에 놓인 payload를 가진 생성자입니다. <code>import tree { Node }</code> 다음 <code>Node({ left: Node({ key: k }) })</code>는 컴파일되지만, <code>import tree</code> 다음 <code>tree.Node({ left: tree.Node({ key: k }) })</code>는 같은 유니언에서 <code>E0300</code>입니다."
+    },
+    {
+      "id": "h-fcc7235c",
+      "kind": "html",
+      "en": "A union generic over its own parameter takes the nested arm and is checked for missing variants",
+      "tr": "자신의 매개변수에 대해 제네릭인 유니언도 중첩 arm을 받아들이고 빠진 variant를 검사받습니다"
+    },
+    {
+      "id": "h-e43f615f",
+      "kind": "html",
+      "en": "The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>.",
+      "tr": "다른 한계는 사라졌습니다. 자신의 매개변수에 대해 제네릭인 유니언(<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>)은 매개변수가 없는 같은 유니언이 받아들이는 중첩 arm을 예전에는 거부했는데, 이제는 열린 타입 매개변수에서든 구체적인 인스턴스화에서든 받아들입니다. 같은 조회가 match에서 빠진 variant를 검사할지 자체를 결정하고 있었으므로, 이 릴리스 전까지는 <code>Tree&lt;K&gt;</code>에 대한 <code>match</code>가 <code>Leaf</code>를 빠뜨려도 깔끔하게 빌드되고 <code>tsc --strict</code>를 통과한 뒤 런타임에 예외를 던질 수 있었고, 제네릭이 아닌 표기는 <code>E0200</code>이었습니다."
+    },
+    {
+      "id": "h-3c5dd4bb",
+      "kind": "html",
+      "en": "Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time.",
+      "tr": "이제 두 표기 모두 보고하며, 유니언을 import 한 단계 떨어진 곳으로 옮겨도 답이 바뀌지 않습니다. <code>Leaf</code>를 빠뜨린 import한 <code>Tree&lt;string&gt;</code>에 대한 <code>match</code>는 import한 제네릭이 아닌 <code>Tree</code>와 똑같이 <code>Leaf</code>를 짚는 <code>E0200</code>입니다. 이는 별도로 검사되는 다른 코드 경로였고, 이 릴리스 전까지는 반대로 깔끔하게 빌드되고 런타임에 예외를 던졌습니다."
+    },
+    {
+      "id": "h-8b2847e4",
+      "kind": "html",
+      "en": "Coverage of an imported union never checks its variant payloads",
+      "tr": "import한 유니언의 커버리지는 variant payload를 검사하지 않습니다"
+    },
+    {
+      "id": "h-62c74bba",
+      "kind": "html",
+      "en": "One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics.",
+      "tr": "import한 유니언의 커버리지에 기대기 전에 알아 둘 것이 하나 더 있습니다. variant payload도 검사되지 않으므로, <code>X</code>가 payload 자신의 유니언의 variant인 <code>B(X)</code>는 빠진 <code>Y</code>를 보고하지 않고 모든 <code>B</code>에 매칭되며, 이는 제네릭과 아무 관계가 없습니다."
+    },
+    {
+      "id": "h-347d0c0b",
+      "kind": "html",
+      "en": "Binding a field, or matching a tag with no payload in one, works in every case.",
+      "tr": "필드를 바인딩하거나, payload가 없는 태그를 필드에서 매칭하는 것은 모든 경우에 동작합니다."
     }
   ]
 }

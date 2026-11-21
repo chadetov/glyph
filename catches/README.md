@@ -13,8 +13,8 @@ compiler stopped doing.
 
 There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 31 are refused, 3
-warned, 10 checked at the boundary, 2 stopped at run time, and 7 are gaps Glyph
+check prints that zero rather than leaving it off. By kind, 32 are refused, 3
+warned, 10 checked at the boundary, 2 stopped at run time, and 6 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
@@ -234,7 +234,6 @@ the day its gap closes:
 
 | Gap | Case | What Glyph accepts | Fully configured TypeScript |
 |---|---|---|---|
-| G380 | `gap-g380-mutation-without-mut` | `xs.sort(f)` with no `mut` reorders the caller's array | nothing |
 | G381 | `gap-g381-member-read-on-unknown` | a field read on `unknown`, refused only by the `tsc` pass (`TS18046`) | lint `no-unsafe-member-access` |
 | G382 | `gap-g382-string-plus-number` | `input + 1` on a string returned as a number, refused only by the `tsc` pass (`TS2322`) | lint `restrict-plus-operands` |
 | G386 | `gap-g386-or-on-a-number` | `requested \|\| 3`, turning a real `0` into `3` | nothing |
@@ -265,6 +264,12 @@ function is refused because `forEach` calls its callback without waiting, with
 the help to start each call through `task.detach` or make the function async
 and await each call in a loop, where the TypeScript prints `done` before
 anything is saved.
+
+`sort-without-mut` was the G380 gap case until 0.1.160 closed it. It is a
+`refused` case now, with `E0240`, and off the page: `return xs.sort(by_value)[0]`
+in a helper is refused because the sort changes the caller's array and its
+value is read in the same expression, with the help to sort a copy with
+`array.sort(xs, by_value)`, where the TypeScript prints `xs[0] is now 1`.
 
 ## Adding one
 

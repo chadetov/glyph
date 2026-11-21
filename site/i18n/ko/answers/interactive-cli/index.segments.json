@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/interactive-cli/index.html",
   "locale": "ko",
-  "source_hash": "a2332eec4a663662",
+  "source_hash": "e06954a40c0a760a",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "네. <code>io.read_line</code>은 <strong>한 줄이 완전히 도착하는 즉시</strong> 반환하고 stdin이 닫히기를 기다리지 않으므로, REPL, 게임 루프, 채팅 클라이언트가 다음 줄을 읽기 전에 각 줄에 응답합니다. 0.1.62까지는 기다렸고, 이 점은 분명히 말해 둘 만합니다. 그 때문에 모든 대화형 프로그램이 불가능했기 때문입니다."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "왜 중요한가"
-    },
-    {
-      "id": "h-4473016d",
-      "kind": "html",
-      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
-      "tr": "입력이 끝날 때만 반환하는 줄 읽기는 이름만 줄 읽기인 파일 읽기입니다. 파일을 파이프로 넘기면 완벽하게 동작하므로 아무것도 이를 잡지 못했습니다. 저장소에서 stdin을 읽는 모든 앱이 파이프를 읽었습니다. 그러다 누군가 채팅 클라이언트를 만들었는데, 입력하는 동안 아무 반응이 없다가 Ctrl-D를 누른 뒤에 모든 답을 한꺼번에 출력했습니다."
-    },
-    {
-      "id": "h-02cdf3c6",
-      "kind": "html",
-      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
-      "tr": "그 앱은 결국 녹화된 JSON 파일을 재생하는 세션 재생기로 배포되었고, 소스에 그 이유를 적은 주석이 남았습니다. 다른 앱 세 개도 아무도 이름 붙이지 않은 채 같은 문제에 맞춰 형태가 정해져 있었습니다. 지뢰찾기는 수마다 화면을 다시 그릴 수 없었고, 텍스트 어드벤처는 <code>look</code>에 답할 수 없었으며, REPL은 연결을 끊을 때까지 아무것도 평가하지 않았습니다."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
-    },
-    {
       "id": "h-b3adfa1a",
       "kind": "html",
       "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
@@ -101,10 +77,58 @@
       "tr": "glyph run examples/apps/chat/main.glyph --stdin"
     },
     {
-      "id": "h-c4443d66",
+      "id": "h-2109b4f0",
       "kind": "html",
-      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
-      "tr": "줄을 입력하고 답이 나오기까지 1~2밀리초입니다. 수정 전에는 stdin이 닫힌 6460ms까지 아무것도 출력되지 않았습니다. 전체 실행에서 첫 응답은 약 1.6초쯤 나오는데, 이는 읽기 지연이 아니라 <code>tsx</code>가 시작하는 시간입니다."
+      "en": "<span>One to two milliseconds from typed line to answer.</span>",
+      "tr": "<span>줄을 입력하고 답이 나오기까지 1~2밀리초입니다.</span>"
+    },
+    {
+      "id": "h-31a4afbb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">before the fix, and where the first 1.6 seconds go</span>",
+      "tr": "자세히 <span class=\"hint\">수정 전, 그리고 처음 1.6초가 쓰이는 곳</span>"
+    },
+    {
+      "id": "h-5e15f281",
+      "kind": "html",
+      "en": "Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "수정 전에는 stdin이 닫힌 6460ms까지 아무것도 출력되지 않았습니다. 전체 실행에서 첫 응답은 약 1.6초쯤 나오는데, 이는 읽기 지연이 아니라 <code>tsx</code>가 시작하는 시간입니다."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-b79b0674",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name.",
+      "tr": "입력이 끝날 때만 반환하는 줄 읽기는 이름만 줄 읽기인 파일 읽기입니다."
+    },
+    {
+      "id": "h-880c0447",
+      "kind": "html",
+      "en": "Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "파일을 파이프로 넘기면 완벽하게 동작하므로 아무것도 이를 잡지 못했습니다. 저장소에서 stdin을 읽는 모든 앱이 파이프를 읽었습니다. 그러다 누군가 채팅 클라이언트를 만들었는데, 입력하는 동안 아무 반응이 없다가 Ctrl-D를 누른 뒤에 모든 답을 한꺼번에 출력했습니다."
+    },
+    {
+      "id": "h-665ff28b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the apps shaped around it</span>",
+      "tr": "이력 <span class=\"hint\">이에 맞춰 형태가 정해진 앱들</span>"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "그 앱은 결국 녹화된 JSON 파일을 재생하는 세션 재생기로 배포되었고, 소스에 그 이유를 적은 주석이 남았습니다. 다른 앱 세 개도 아무도 이름 붙이지 않은 채 같은 문제에 맞춰 형태가 정해져 있었습니다. 지뢰찾기는 수마다 화면을 다시 그릴 수 없었고, 텍스트 어드벤처는 <code>look</code>에 답할 수 없었으며, REPL은 연결을 끊을 때까지 아무것도 평가하지 않았습니다."
     },
     {
       "id": "h-a2b1ea84",
@@ -113,22 +137,46 @@
       "tr": "실제로 문제가 되는 부분"
     },
     {
-      "id": "h-92f12884",
+      "id": "h-b12d0301",
       "kind": "html",
-      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
-      "tr": "줄 끝의 <code>\\r</code>는 제거되므로 CRLF 파일과 LF 파일이 같은 줄을 주고, Windows 입력에서 보이지 않는 문자를 디버깅할 일이 없습니다. 마지막 줄바꿈 없이 끝나는 입력도 <code>None</code> 전에 마지막 줄을 한 번 돌려주므로, 줄바꿈으로 끝나지 않는 파일의 마지막 행이 조용히 버려지지 않습니다. 읽기 경계에서 나뉜 멀티바이트 UTF-8은 대체 문자로 바뀌지 않고 보관했다가 완성됩니다."
+      "en": "<b>CRLF</b>A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input.",
+      "tr": "<b>CRLF</b>줄 끝의 <code>\\r</code>는 제거되므로 CRLF 파일과 LF 파일이 같은 줄을 주고, Windows 입력에서 보이지 않는 문자를 디버깅할 일이 없습니다."
     },
     {
-      "id": "h-734ae2bb",
+      "id": "h-61bc0f0f",
       "kind": "html",
-      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
-      "tr": "<code>read_to_string</code>은 같은 버퍼를 비우므로 둘을 함께 쓸 수 있습니다. 헤더에 <code>read_line</code>을 쓰고 본문에 <code>read_to_string</code>을 쓰면 두 번째 사본이나 빈 문자열이 아니라 나머지를 받습니다. 먼저 호출하면 여전히 stdin 전체를 반환합니다. 파이프로 넘긴 200,000줄을 세는 데 약 20ms가 걸리므로, 한 줄씩 읽는다고 처리량을 희생하지 않습니다."
+      "en": "<b>No final newline</b>Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped.",
+      "tr": "<b>마지막 줄바꿈 없음</b>마지막 줄바꿈 없이 끝나는 입력도 <code>None</code> 전에 마지막 줄을 한 번 돌려주므로, 줄바꿈으로 끝나지 않는 파일의 마지막 행이 조용히 버려지지 않습니다."
+    },
+    {
+      "id": "h-19f6ad49",
+      "kind": "html",
+      "en": "<b>Split UTF-8</b>Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "<b>나뉜 UTF-8</b>읽기 경계에서 나뉜 멀티바이트 UTF-8은 대체 문자로 바뀌지 않고 보관했다가 완성됩니다."
+    },
+    {
+      "id": "h-223ab389",
+      "kind": "html",
+      "en": "<code>read_line</code>, then <code>read_to_string</code>",
+      "tr": "<code>read_line</code> 다음에 <code>read_to_string</code>"
+    },
+    {
+      "id": "h-e058bf0b",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin.",
+      "tr": "<code>read_to_string</code>은 같은 버퍼를 비우므로 둘을 함께 쓸 수 있습니다. 헤더에 <code>read_line</code>을 쓰고 본문에 <code>read_to_string</code>을 쓰면 두 번째 사본이나 빈 문자열이 아니라 나머지를 받습니다. 먼저 호출하면 여전히 stdin 전체를 반환합니다."
     },
     {
       "id": "h-dbb27136",
       "kind": "html",
       "en": "A header line, then the body",
       "tr": "헤더 한 줄, 그다음 본문"
+    },
+    {
+      "id": "h-e4472dc4",
+      "kind": "html",
+      "en": "200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "파이프로 넘긴 200,000줄을 세는 데 약 20ms가 걸리므로, 한 줄씩 읽는다고 처리량을 희생하지 않습니다."
     },
     {
       "id": "h-b55f380c",
@@ -143,16 +191,64 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-d2b638c8",
+      "id": "h-a2c1f233",
       "kind": "html",
-      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
-      "tr": "<code>io.read_line</code>은 스트림이 닫힐 때가 아니라 줄이 도착할 때 반환하므로, 프롬프트/읽기/응답 루프가 터미널에서도 파이프에서도 동작합니다. CRLF는 정규화되고, 끝나지 않은 마지막 줄은 한 번 전달되며, 멀티바이트 문자는 청크 경계를 넘어도 유지되고, <code>read_to_string</code>은 같은 버퍼의 나머지를 가져갑니다. 파일을 파이프로 넘기는 테스트는 망가진 구현에서도 통과하므로, 회귀 테스트는 stdin을 열어 둔 채 응답이 돌아오기를 요구합니다. <code>io.print</code>와 <code>io.eprint</code>는 줄바꿈 없이 쓰므로 REPL의 <code>&gt; </code> 프롬프트가 답을 입력하는 줄에 머물고, <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code>은 프로그램이 사람과 대화하는지 파이프와 대화하는지 알려 주므로, 채팅 앱의 <code>--stdin</code> 같은 플래그가 더 이상 유일한 방법이 아닙니다."
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike.",
+      "tr": "<code>io.read_line</code>은 스트림이 닫힐 때가 아니라 줄이 도착할 때 반환하므로, 프롬프트/읽기/응답 루프가 터미널에서도 파이프에서도 동작합니다."
+    },
+    {
+      "id": "h-94947ad8",
+      "kind": "html",
+      "en": "CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer.",
+      "tr": "CRLF는 정규화되고, 끝나지 않은 마지막 줄은 한 번 전달되며, 멀티바이트 문자는 청크 경계를 넘어도 유지되고, <code>read_to_string</code>은 같은 버퍼의 나머지를 가져갑니다."
+    },
+    {
+      "id": "h-8618bd0c",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back",
+      "tr": "회귀 테스트는 stdin을 열어 둔 채 응답이 돌아오기를 요구합니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-9436a961",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.",
+      "tr": "파일을 파이프로 넘기는 테스트는 망가진 구현에서도 통과하므로, 회귀 테스트는 stdin을 열어 둔 채 응답이 돌아오기를 요구합니다."
+    },
+    {
+      "id": "h-18b0c175",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline",
+      "tr": "<code>io.print</code>와 <code>io.eprint</code>는 줄바꿈 없이 씁니다"
+    },
+    {
+      "id": "h-800433b7",
+      "kind": "html",
+      "en": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe",
+      "tr": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code>은 프로그램이 사람과 대화하는지 파이프와 대화하는지 알려 줍니다"
+    },
+    {
+      "id": "h-3842dbc3",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.print</code>와 <code>io.eprint</code>는 줄바꿈 없이 쓰므로 REPL의 <code>&gt; </code> 프롬프트가 답을 입력하는 줄에 머물고, <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code>은 프로그램이 사람과 대화하는지 파이프와 대화하는지 알려 주므로, 채팅 앱의 <code>--stdin</code> 같은 플래그가 더 이상 유일한 방법이 아닙니다."
     },
     {
       "id": "h-43278834",
       "kind": "html",
       "en": "Still rough",
       "tr": "아직 거친 부분"
+    },
+    {
+      "id": "h-88dfc50f",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control",
+      "tr": "화면을 다시 그리려는 프로그램에는 커서 제어가 없습니다"
     },
     {
       "id": "h-ec1da8e1",

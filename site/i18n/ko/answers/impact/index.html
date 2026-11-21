@@ -1,7 +1,7 @@
 ---
 title: 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요? · Glyph
 description: glyph_impact는 바꾸려는 선언과 편집 내용을 받아, 파일을 건드리기 전에 모든 위치에 대해 판정과 이유를 답합니다.
-source_hash: 42e24af1156f67f1
+source_hash: 430fde319321c2e5
 prev: /answers/binary/ | &larr; 이전 | 바이너리 데이터를 다룰 수 있나요, 아니면 모든 것이 문자열인가요?
 next: /answers/ask-the-compiler/ | 다음 &rarr; | 에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?
 ---
@@ -12,26 +12,13 @@ next: /answers/ask-the-compiler/ | 다음 &rarr; | 에이전트가 코드를 쓰
         여섯 가지 편집에 대해서는 그렇습니다. <code>glyph_impact</code>는 바꾸려는 선언과 변경 자체(이름 바꾸기, variant 제거, 매개변수 타입 변경, 인자 개수 변경, 삭제)를 받아, 정해진 목록에서 고른 <strong>위치마다 하나의 판정</strong>을, 다른 판정이 아니라 그 판정인 이유와 함께 답합니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">왜 중요한가</h2>
-        <p>
-          함수 이름을 바꾸거나, 유니언을 넓히거나, 매개변수가 받는 것을 바꿀 때는 이전 이름을 grep하고 모든 호출을 찾았기를 바라거나, 편집한 뒤 컴파일러가 하는 말을 읽습니다. 어느 방법도 어떤 위치가 계속 컴파일되면서 조용히 틀리게 될지는 알려 주지 않습니다. catch-all arm이 있는 <code>match</code>는 variant를 추가해도 실패하지 않고, 새 case를 아무도 고르지 않은 곳으로 보내기 시작할 뿐입니다. 그런 위치는 빌드에 절대 나타나지 않습니다. <code>glyph_impact</code>는 컴파일러가 실행하는 것과 같은 분석으로 편집 전에 답합니다.
-        </p>
-
-        <h2 class="block-label">돌아오는 것</h2>
-        <p>
-          요청은 엔티티를 <code>module::name</code> 식별자로, 변경을 정해진 목록에서 지정합니다: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. 판정은 편집에 대한 사실이므로 변경은 필수입니다. 편집을 지정하지 않으면 모든 위치가 결과가 아니라 그저 참조로 돌아올 것입니다. 답에는 엔티티, 변경, 그리고 <code>impact</code> 목록이 있습니다. 위치마다 항목 하나이며, 각 항목에는 그 위치가 속한 선언, <code>relation</code>, <code>verdict</code>, <code>because</code>, 그리고 컴파일러가 내는 진단 코드가 정확히 하나일 때 그 코드가 들어 있습니다. 판정은 정해진 목록이고 각각 한 가지를 뜻합니다. <code>WILL_FAIL</code>(컴파일러가 그 위치가 컴파일되지 않게 된다는 것을 증명할 수 있음), <code>ABSORBS</code>(변경이 여기서 조용히 흡수된다는 것을 증명할 수 있음), <code>SAFE</code>(그 위치가 올바르게 유지된다는 것을 증명할 수 있음), <code>UNDETERMINED</code>(그 위치를 살펴봤지만 결과를 확정할 수 없음), <code>NOT_INDEXED</code>(이런 모양의 위치에 대해서는 애초에 물을 수 없는 질문임)입니다.
-        </p>
-
-        <h2 class="block-label">직접 보기</h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           어떤 모듈이 <code>label(s: string) -&gt; number</code>를 선언합니다. 호출자 세 곳이 여기에 닿습니다. 하나는 문자열 리터럴을 넘기고, 하나는 다른 모듈에서 import한 <code>string</code> 별칭 타입의 값을 넘기고, 하나는 <code>label</code>을 값으로 읽기만 하고 호출하지 않습니다. 각각에 <code>change_signature_type</code>이 어떤 영향을 주는지 물으면 세 가지 다른 판정이 나옵니다. 세 가지 다른 주장이기 때문입니다.
         </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">요청</span>
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">요청</span>
 <pre>{
   "method": "tools/call",
   "params": {
@@ -42,9 +29,9 @@ next: /answers/ask-the-compiler/ | 다음 &rarr; | 에이전트가 코드를 쓰
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">결과, 세 위치만 남기고 줄임</span>
+          </div>
+          <div class="code term">
+            <span class="cap">결과, 세 위치만 남기고 줄임</span>
 <pre>{
   "entity": "lib::label",
   "impact": [
@@ -83,28 +70,102 @@ next: /answers/ask-the-compiler/ | 다음 &rarr; | 에이전트가 코드를 쓰
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>같은 편집, 세 위치, 세 판정이며, 각각의 <code>because</code>는 분류 레이블이 아니라 컴파일러가 실제로 만드는 문장입니다.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">이것이 반영하는 컴파일러 테스트</span></summary><div class="body">
+          <p>
+            이는 이 변경에 대한 컴파일러 자체 테스트(<code>glyph-cli/tests/agent_loop.rs</code>의 <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>)를 그대로 반영합니다. 테스트는 이후에 실제로 편집하고, <code>WILL_FAIL</code>이라고 한 곳에 정확히 E0211이 나는지, 나머지 두 곳에서는 컴파일러가 조용한지 확인합니다.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-it-matters">왜 중요한가</a></li>
+          <li><a href="#what-comes-back">돌아오는 답</a></li>
+          <li><a href="#on-a-real-application">실제 애플리케이션에서</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        함수 이름을 바꾸거나, 유니언을 넓히거나, 매개변수가 받는 것을 바꿀 때는 이전 이름을 grep하고 모든 호출을 찾았기를 바라거나, 편집한 뒤 컴파일러가 하는 말을 읽습니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        어느 방법도 어떤 위치가 계속 컴파일되면서 조용히 틀리게 될지는 알려 주지 않습니다. catch-all arm이 있는 <code>match</code>는 variant를 추가해도 실패하지 않고, 새 case를 아무도 고르지 않은 곳으로 보내기 시작할 뿐입니다. 그런 위치는 빌드에 절대 나타나지 않습니다. <code>glyph_impact</code>는 컴파일러가 실행하는 것과 같은 분석으로 편집 전에 답합니다.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">돌아오는 것<a class="ak-anchor" href="#what-comes-back" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        요청은 엔티티를 <code>module::name</code> 식별자로, 변경을 정해진 목록에서 지정합니다: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. 판정은 정해진 목록이고 각각 한 가지를 뜻합니다.
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>판정</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">컴파일러가 그 위치가 컴파일되지 않게 된다는 것을 증명할 수 있음</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">변경이 여기서 조용히 흡수된다는 것을 증명할 수 있음</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">그 위치가 올바르게 유지된다는 것을 증명할 수 있음</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">그 위치를 살펴봤지만 결과를 확정할 수 없음</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">이런 모양의 위치에 대해서는 애초에 물을 수 없는 질문임</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">변경이 필수인 이유와 각 항목에 담기는 것</span></summary><div class="body">
         <p>
-          같은 편집, 세 위치, 세 판정이며, 각각의 <code>because</code>는 분류 레이블이 아니라 컴파일러가 실제로 만드는 문장입니다. 이는 이 변경에 대한 컴파일러 자체 테스트(<code>glyph-cli/tests/agent_loop.rs</code>의 <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>)를 그대로 반영합니다. 테스트는 이후에 실제로 편집하고, <code>WILL_FAIL</code>이라고 한 곳에 정확히 E0211이 나는지, 나머지 두 곳에서는 컴파일러가 조용한지 확인합니다.
+          판정은 편집에 대한 사실이므로 변경은 필수입니다. 편집을 지정하지 않으면 모든 위치가 결과가 아니라 그저 참조로 돌아올 것입니다. 답에는 엔티티, 변경, 그리고 <code>impact</code> 목록이 있습니다. 위치마다 항목 하나이며, 각 항목에는 그 위치가 속한 선언, <code>relation</code>, <code>verdict</code>, <code>because</code>, 그리고 컴파일러가 내는 진단 코드가 정확히 하나일 때 그 코드가 들어 있습니다.
         </p>
+      </div></details>
 
-        <h2 class="block-label">실제 애플리케이션에서</h2>
-        <p>
-          이 저장소에 있는 파일 열한 개짜리 CSV 쿼리 엔진 <code>examples/apps/csvql</code>에는 현재 variant 네 개를 가진 태그 유니언 <code>Value</code>가 하나 있습니다. 다섯 번째(<code>Blob</code>)를 추가하면 어떻게 되는지 <code>glyph_impact</code>에 물으면 파일 4개에 걸쳐 match 위치 10곳을 찾습니다. 8곳은 컴파일에 실패하고, 2곳에는 새 variant를 조용히 흡수할 catch-all arm이 있습니다. 실제로 variant를 추가하면 컴파일러는 정확히 그 8곳에서 <code>E0200</code> 실패 8개를 보고하고, <code>ABSORBS</code> 2곳에 대해서는 전후 모두 아무 말도 하지 않습니다. 도구 없이 하게 될 방법인, 같은 앱에서 catch-all arm을 텍스트로 검색하면 같은 실제 위치 2곳이 결과 20개 속에 묻혀 나오고(정밀도 0.10), 실패하는 8곳에 대해서는 아무것도 알려 주지 않습니다. <code>match</code>가 어떤 타입을 검사하는지 전혀 모르기 때문입니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">실제 애플리케이션에서<a class="ak-anchor" href="#on-a-real-application" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        이 저장소에 있는 파일 열한 개짜리 CSV 쿼리 엔진 <code>examples/apps/csvql</code>에는 현재 variant 네 개를 가진 태그 유니언 <code>Value</code>가 하나 있습니다. 다섯 번째(<code>Blob</code>)를 추가하면 어떻게 되는지 <code>glyph_impact</code>에 물으면 파일 4개에 걸쳐 match 위치 10곳을 찾습니다. 8곳은 컴파일에 실패하고, 2곳에는 새 variant를 조용히 흡수할 catch-all arm이 있습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>빌드로 확인</b>실제로 variant를 추가하면 컴파일러는 정확히 그 8곳에서 <code>E0200</code> 실패 8개를 보고하고, <code>ABSORBS</code> 2곳에 대해서는 전후 모두 아무 말도 하지 않습니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>대신 텍스트로 검색하면</b>도구 없이 하게 될 방법인, 같은 앱에서 catch-all arm을 텍스트로 검색하면 같은 실제 위치 2곳이 결과 20개 속에 묻혀 나오고(정밀도 0.10), 실패하는 8곳에 대해서는 아무것도 알려 주지 않습니다. <code>match</code>가 어떤 타입을 검사하는지 전혀 모르기 때문입니다.</li>
+      </ul>
 
-      <h2 class="block-label">현재 상태</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p>정해진 변경 종류 여섯 가지(<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>)와 정해진 판정 다섯 가지, 그리고 영향받는 위치마다 이유와 진단 코드를 담은 항목 하나. <code>change_signature_type</code>은 호출 인자마다 검사기 자체의 비교 규칙으로 판정하며, 위치의 판정은 인자 중 가장 약한 것입니다. JSX 요소는 변환된 호출로 판정합니다. <code>&lt;Card title="x" /&gt;</code>는 <code>Card</code>에 넘기는 props 레코드 하나이고, 각 속성은 검사 대상 필드와 함께 같은 타입의 호출 인자가 받을 판정으로 나열됩니다. 커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">한계</h3>
-          <p>깊이는 한 단계에서 정확하고 그 너머는 비어 있습니다. Glyph는 선언의 타입을 본문에서 추론하지 않으므로 피호출자의 타입이 호출자의 시그니처에 닿을 수 없고, X에 대한 변경은 X를 언급하는 표현식만 무효화할 수 있습니다. 깊이 2를 요청하면 대신 정확한 질문을 짚는 <code>next_query</code>와 함께 답이 돌아옵니다. 두 번째 단계에 필요한 것은 누군가 첫 번째 위치에 하는 수정인데, 그 수정은 아직 존재하지 않기 때문입니다. <code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다. 주의해서 볼 것은 <code>ABSORBS</code>입니다. 그 위치는 계속 컴파일되면서도 틀렸다고 증명되며, 통과한 빌드는 이를 결코 보여 주지 않습니다.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">정해진 변경 종류 여섯 가지(<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>)와 정해진 판정 다섯 가지, 그리고 영향받는 위치마다 이유와 진단 코드를 담은 항목 하나.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code>은 호출 인자마다 검사기 자체의 비교 규칙으로 판정하며, 위치의 판정은 인자 중 가장 약한 것입니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX 요소는 변환된 호출로 판정합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>JSX 요소는 변환된 호출로 판정합니다. <code>&lt;Card title="x" /&gt;</code>는 <code>Card</code>에 넘기는 props 레코드 하나이고, 각 속성은 검사 대상 필드와 함께 같은 타입의 호출 인자가 받을 판정으로 나열됩니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">커버리지는 검색마다 밝히고, 모든 노드에는 출처가 표시됩니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>커버리지(검색이 읽을 수 있었던 것과 없었던 것)는 답 전체에 대해 한 번이 아니라 검색마다 밝히고, 모든 노드에는 Glyph 소스, <code>extern_ts</code> 탈출구, 불투명한 <code>.d.ts</code> 중 어디서 왔는지가 표시됩니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 한계</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">깊이는 한 단계에서 정확하고 그 너머는 비어 있습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>깊이는 한 단계에서 정확하고 그 너머는 비어 있습니다. Glyph는 선언의 타입을 본문에서 추론하지 않으므로 피호출자의 타입이 호출자의 시그니처에 닿을 수 없고, X에 대한 변경은 X를 언급하는 표현식만 무효화할 수 있습니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">깊이 2를 요청하면 대신 정확한 질문을 짚는 <code>next_query</code>와 함께 답이 돌아옵니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>깊이 2를 요청하면 대신 정확한 질문을 짚는 <code>next_query</code>와 함께 답이 돌아옵니다. 두 번째 단계에 필요한 것은 누군가 첫 번째 위치에 하는 수정인데, 그 수정은 아직 존재하지 않기 때문입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>UNDETERMINED</code>와 <code>NOT_INDEXED</code>는 다른 주장입니다. 검사기가 타입을 갖고 있지 않은 인자나, 어떤 규칙도 읽지 않는 필드와 짝지어진 레코드는 <code>UNDETERMINED</code>(살펴봤지만 결정할 수 없음)이고, 호출하지 않고 값으로 읽은 함수는 <code>NOT_INDEXED</code>(거기서는 애초에 물을 수 없는 질문)입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">주의해서 볼 것은 <code>ABSORBS</code>입니다. 그 위치는 계속 컴파일되면서도 틀렸다고 증명되며, 통과한 빌드는 이를 결코 보여 주지 않습니다.</span></span></li>
+          </ul>
+        </section>
       </div>

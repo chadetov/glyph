@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/vs-tooled-ts/index.html",
   "locale": "ko",
-  "source_hash": "d0694478c32b0491",
+  "source_hash": "47270533d1ace9c6",
   "segments": [
     {
       "id": "title",
@@ -59,12 +59,6 @@
       "tr": "그 보장들은 모두 <strong>직접 켜야 하는 것</strong>이고, 에이전트는 각각을 한 줄로 우회할 수 있기 때문입니다. Glyph의 엄격함은 에이전트가 편집할 수 있는 설정 파일이 아닙니다. 언어 자체입니다. 강제되는 지점이 \"이 파일에 lint를 돌리는 걸 잊지 않았나\"에서 \"컴파일되는가\"로 옮겨 갑니다."
     },
     {
-      "id": "h-6fe61e8e",
-      "kind": "html",
-      "en": "What tooled TypeScript already covers",
-      "tr": "도구를 갖춘 TypeScript가 이미 다루는 것"
-    },
-    {
       "id": "h-81a5cd3d",
       "kind": "html",
       "en": "A well-configured TypeScript setup gets you a long way, and if your team runs all of it in CI you've already closed most of the gaps Glyph targets. It's the alternative worth taking seriously, so here's the mapping:",
@@ -77,10 +71,58 @@
       "tr": "도구를 갖춘 TypeScript가 이미 주는 것"
     },
     {
-      "id": "h-97277570",
+      "id": "h-82ea38d1",
       "kind": "html",
-      "en": "If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.",
-      "tr": "이 모든 것을 연결하고 강제하고 있다면 대부분은 이미 갖춘 셈입니다. TypeScript에도 이런 아이디어가 있습니다. 언어가 이를 선택 사항이 아니게 만들어서 더하는 것은 세 가지로 요약됩니다."
+      "en": "<span>What tooled TypeScript already covers. If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.</span>",
+      "tr": "<span>도구를 갖춘 TypeScript가 이미 다루는 것. 이 모든 것을 연결하고 강제하고 있다면 대부분은 이미 갖춘 셈입니다. TypeScript에도 이런 아이디어가 있습니다. 언어가 이를 선택 사항이 아니게 만들어서 더하는 것은 세 가지로 요약됩니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-a61c5a32",
+      "kind": "html",
+      "en": "<a href=\"#non-optional-beats-opt-in\">Non-optional beats opt-in</a>",
+      "tr": "<a href=\"#non-optional-beats-opt-in\">선택이 아닌 것이 선택보다 낫다</a>"
+    },
+    {
+      "id": "h-56fdd1d5",
+      "kind": "html",
+      "en": "<a href=\"#the-type-is-the-validator-no-second-artifact\">The type is the validator</a>",
+      "tr": "<a href=\"#the-type-is-the-validator-no-second-artifact\">타입이 곧 검증기</a>"
+    },
+    {
+      "id": "h-78207e88",
+      "kind": "html",
+      "en": "<a href=\"#greppable-mutation\">Greppable mutation</a>",
+      "tr": "<a href=\"#greppable-mutation\">grep할 수 있는 변경</a>"
+    },
+    {
+      "id": "h-183c1a0f",
+      "kind": "html",
+      "en": "<a href=\"#the-failure-mode-diff\">The failure-mode diff</a>",
+      "tr": "<a href=\"#the-failure-mode-diff\">실패 방식의 차이</a>"
+    },
+    {
+      "id": "h-667150a9",
+      "kind": "html",
+      "en": "<a href=\"#where-tooled-typescript-is-still-ahead\">Where TypeScript is ahead</a>",
+      "tr": "<a href=\"#where-tooled-typescript-is-still-ahead\">TypeScript가 앞서는 곳</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
     },
     {
       "id": "h-f41467bd",
@@ -89,10 +131,16 @@
       "tr": "<span class=\"ex-label\">01</span> 선택 사항이 아닌 것이 직접 켜는 것보다 낫습니다"
     },
     {
-      "id": "h-4b85313e",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-6e8d3377",
       "kind": "html",
-      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges. Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
-      "tr": "eslint 설정은 에이전트가 그것을 <em>거쳐 가는</em> 코드만 보호하며, 에이전트는 <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>을 쓰거나 그냥 <code>.exhaustive()</code>를 잊을 수 있고, 그래도 컴파일되고 병합됩니다. 이 탈출구들은 모두 에이전트가 편집할 수 있는 설정입니다. Glyph에는 손을 뻗을 그런 탈출구가 없습니다. <code>as</code>도, 무시 pragma도 없고, 컴파일러가 볼 수 있는 검사 없이 <code>unknown</code>에서 타입이 있는 값을 꺼낼 방법도 없습니다."
+      "en": "Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
+      "tr": "이 탈출구들은 모두 에이전트가 편집할 수 있는 설정입니다. Glyph에는 손을 뻗을 그런 탈출구가 없습니다. <code>as</code>도, 무시 pragma도 없고, 컴파일러가 볼 수 있는 검사 없이 <code>unknown</code>에서 타입이 있는 값을 꺼낼 방법도 없습니다."
     },
     {
       "id": "h-c68c151a",
@@ -107,10 +155,22 @@
       "tr": "Glyph: 끌 것이 없음"
     },
     {
-      "id": "h-dab47249",
+      "id": "h-58790978",
       "kind": "html",
-      "en": "Strictness the agent <strong>cannot config-disable</strong> sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
-      "tr": "에이전트가 <strong>설정으로 끌 수 없는</strong> 엄격함은 끌 수 있는 엄격함과 강제되는 지점이 다릅니다. Glyph는 그 차이 위에 만들어졌습니다."
+      "en": "Strictness the agent cannot config-disable sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
+      "tr": "에이전트가 설정으로 끌 수 없는 엄격함은 끌 수 있는 엄격함과 강제되는 지점이 다릅니다. Glyph는 그 차이 위에 만들어졌습니다."
+    },
+    {
+      "id": "h-23d23b4a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what an agent can write past eslint</span>",
+      "tr": "자세히 <span class=\"hint\">에이전트가 eslint를 지나쳐 쓸 수 있는 것</span>"
+    },
+    {
+      "id": "h-c40024ce",
+      "kind": "html",
+      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges.",
+      "tr": "eslint 설정은 에이전트가 그것을 <em>거쳐 가는</em> 코드만 보호하며, 에이전트는 <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>을 쓰거나 그냥 <code>.exhaustive()</code>를 잊을 수 있고, 그래도 컴파일되고 병합됩니다."
     },
     {
       "id": "h-351a8ad8",
@@ -119,10 +179,22 @@
       "tr": "<span class=\"ex-label\">02</span> 타입이 곧 검증기: 두 번째 산출물이 없음"
     },
     {
-      "id": "h-4895997c",
+      "id": "h-b4be93d8",
       "kind": "html",
-      "en": "zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand. Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile. In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
-      "tr": "zod는 기준을 뒤집습니다. <em>스키마</em>를 작성하고 거기서 타입을 끌어낸 다음, 타입, 스키마, 직렬화 코드를 직접 맞춰 둬야 합니다. 이를 맞추는 곳이 바로 에이전트가 어긋남을 만드는 곳입니다. 타입에서는 필드 이름을 바꾸고 스키마에서는 바꾸지 않아도 둘 다 컴파일됩니다. Glyph에서는 타입이 <em>곧</em> 검증기입니다. <code>type User = {...}</code>를 선언하면 <code>User.parse</code>가 함께 생성됩니다. 산출물은 하나이고, 맞춰 둘 것도, 잊을 것도 없습니다."
+      "en": "In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
+      "tr": "Glyph에서는 타입이 <em>곧</em> 검증기입니다. <code>type User = {...}</code>를 선언하면 <code>User.parse</code>가 함께 생성됩니다. 산출물은 하나이고, 맞춰 둘 것도, 잊을 것도 없습니다."
+    },
+    {
+      "id": "h-573fdca2",
+      "kind": "html",
+      "en": "<b>zod: schema first</b>zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand.",
+      "tr": "<b>zod: 스키마가 먼저</b>zod는 기준을 뒤집습니다. <em>스키마</em>를 작성하고 거기서 타입을 끌어낸 다음, 타입, 스키마, 직렬화 코드를 직접 맞춰 둬야 합니다."
+    },
+    {
+      "id": "h-c2556156",
+      "kind": "html",
+      "en": "<b>Where drift comes in</b>Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile.",
+      "tr": "<b>어긋남이 들어오는 곳</b>이를 맞추는 곳이 바로 에이전트가 어긋남을 만드는 곳입니다. 타입에서는 필드 이름을 바꾸고 스키마에서는 바꾸지 않아도 둘 다 컴파일됩니다."
     },
     {
       "id": "h-e7c43b4b",
@@ -131,10 +203,22 @@
       "tr": "<span class=\"ex-label\">03</span> grep할 수 있는 변경"
     },
     {
-      "id": "h-84ccbe2f",
+      "id": "h-6bcb048e",
       "kind": "html",
-      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
-      "tr": "TypeScript에서는 상태 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. 검색할 토큰이 하나로 정해져 있지 않고, 어떤 lint 규칙도 이를 완전히 고치지 못합니다. Glyph에서는 공유 상태가 store에 있고 모든 변경은 <code>.set(</code>/<code>.update(</code> 그대로이며, <code>grep 'mut '</code>은 모든 로컬 변경을 찾습니다. 기본 TypeScript에는 이에 해당하는 것이 없습니다."
+      "en": "In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
+      "tr": "Glyph에서는 공유 상태가 store에 있고 모든 변경은 <code>.set(</code>/<code>.update(</code> 그대로이며, <code>grep 'mut '</code>은 모든 로컬 변경을 찾습니다. 기본 TypeScript에는 이에 해당하는 것이 없습니다."
+    },
+    {
+      "id": "h-185a9af8",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where a TypeScript write can hide</span>",
+      "tr": "자세히 <span class=\"hint\">TypeScript의 쓰기가 숨을 수 있는 곳</span>"
+    },
+    {
+      "id": "h-1a86e571",
+      "kind": "html",
+      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it.",
+      "tr": "TypeScript에서는 상태 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. 검색할 토큰이 하나로 정해져 있지 않고, 어떤 lint 규칙도 이를 완전히 고치지 못합니다."
     },
     {
       "id": "h-c48915e0",
@@ -173,34 +257,40 @@
       "tr": "현재 Glyph보다 앞서는 곳이 네 군데 있습니다."
     },
     {
-      "id": "h-18d16c34",
+      "id": "h-03c8dc23",
       "kind": "html",
-      "en": "<strong>Richer validation.</strong> Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
-      "tr": "<strong>더 풍부한 검증.</strong> Glyph 디스크립터는 기본적으로 엄격하고(선언되지 않은 키를 거부합니다), <code>where</code> 정제는 원시 타입에 조건식을 붙이며(<code>type Email = string where value.includes(\"@\")</code>), 디스크립터는 타입이 닿는 모든 경계에서 이를 실행합니다. zod는 여전히 두 가지에서 앞섭니다. Glyph에서는 직접 작성해야 하는 <code>.email()</code>, <code>.url()</code> 같은 기성 검사를 제공하고, 객체 전체를 정제할 수 있는 반면, 레코드에 대한 <code>where</code>(두 필드에 걸친 <code>lo &lt;= hi</code>)는 현재 <code>E0300</code>입니다."
+      "en": "<b>Richer validation.</b>Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
+      "tr": "<b>더 풍부한 검증.</b>Glyph 디스크립터는 기본적으로 엄격하고(선언되지 않은 키를 거부합니다), <code>where</code> 정제는 원시 타입에 조건식을 붙이며(<code>type Email = string where value.includes(\"@\")</code>), 디스크립터는 타입이 닿는 모든 경계에서 이를 실행합니다. zod는 여전히 두 가지에서 앞섭니다. Glyph에서는 직접 작성해야 하는 <code>.email()</code>, <code>.url()</code> 같은 기성 검사를 제공하고, 객체 전체를 정제할 수 있는 반면, 레코드에 대한 <code>where</code>(두 필드에 걸친 <code>lo &lt;= hi</code>)는 현재 <code>E0300</code>입니다."
     },
     {
-      "id": "h-39dcdf91",
+      "id": "h-b4ae2d52",
       "kind": "html",
-      "en": "<strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
-      "tr": "<strong>더 깊은 매칭.</strong> ts-pattern의 가드와 깊은 구조적 패턴은 Glyph의 <code>match</code>가 표현하는 범위를 넘어섭니다."
+      "en": "<b>Deeper matching.</b>ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
+      "tr": "<b>더 깊은 매칭.</b>ts-pattern의 가드와 깊은 구조적 패턴은 Glyph의 <code>match</code>가 표현하는 범위를 넘어섭니다."
     },
     {
-      "id": "h-5f78ed48",
+      "id": "h-8880bb8d",
       "kind": "html",
-      "en": "<strong>\"Provable absence\" stops at the <code>.ts</code> boundary.</strong> Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
-      "tr": "<strong>\"증명 가능한 부재\"는 <code>.ts</code> 경계에서 멈춥니다.</strong> Glyph의 보장은 Glyph로 작성한 코드에 대해 성립합니다. npm 의존성에서 던진 예외는 여전히 <code>Result</code>를 우회하고, import한 <code>.d.ts</code> 타입에는 런타임 디스크립터가 없습니다."
+      "en": "<b>\"Provable absence\" stops at the <code>.ts</code> boundary.</b>Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
+      "tr": "<b>\"증명 가능한 부재\"는 <code>.ts</code> 경계에서 멈춥니다.</b>Glyph의 보장은 Glyph로 작성한 코드에 대해 성립합니다. npm 의존성에서 던진 예외는 여전히 <code>Result</code>를 우회하고, import한 <code>.d.ts</code> 타입에는 런타임 디스크립터가 없습니다."
     },
     {
-      "id": "h-e663b903",
+      "id": "h-bc73c7f8",
       "kind": "html",
-      "en": "<strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
-      "tr": "<strong>생태계와 채용.</strong> TypeScript의 도구, 커뮤니티, 채용 인력 풀은 훨씬 크고, 수년간의 프로덕션 사용이 뒷받침합니다. Glyph는 초기 프리뷰입니다."
+      "en": "<b>Ecosystem and hiring.</b>The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
+      "tr": "<b>생태계와 채용.</b>TypeScript의 도구, 커뮤니티, 채용 인력 풀은 훨씬 크고, 수년간의 프로덕션 사용이 뒷받침합니다. Glyph는 초기 프리뷰입니다."
     },
     {
       "id": "h-fe2104b6",
       "kind": "html",
       "en": "If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that \"stay inside it\" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.",
       "tr": "도구를 갖춘 TypeScript를 완전히 연결했고 에이전트가 그 안에 머문다면 이 대부분을 이미 갖춘 것입니다. Glyph의 주장은 \"그 안에 머문다\"가 하중을 받는 구절이고, 에이전트가 깨뜨리는 것이 바로 그 구절이라는 것입니다. 선택 사항이 아닌 엄격함, 산출물 하나로 하는 검증, grep할 수 있는 변경은 직접 켜는 도구를 더 추가해서는 얻을 수 없는 부분입니다."
+    },
+    {
+      "id": "h-4eb3fb1a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">ReScript, Gleam or Elm</span>",
+      "tr": "자세히 <span class=\"hint\">ReScript, Gleam, Elm</span>"
     },
     {
       "id": "h-39372df5",
@@ -219,6 +309,48 @@
       "kind": "html",
       "en": "Shipping today",
       "tr": "지금 제공되는 것"
+    },
+    {
+      "id": "h-0a6a9374",
+      "kind": "html",
+      "en": "No <code>any</code>/<code>as</code>.",
+      "tr": "<code>any</code>/<code>as</code> 없음."
+    },
+    {
+      "id": "h-49eec597",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code>.",
+      "tr": "망라적인 <code>match</code>."
+    },
+    {
+      "id": "h-35ca1001",
+      "kind": "html",
+      "en": "Discarded-<code>Result</code> warning.",
+      "tr": "버려진 <code>Result</code> 경고."
+    },
+    {
+      "id": "h-33f4234f",
+      "kind": "html",
+      "en": "Type-generated validators.",
+      "tr": "타입에서 생성되는 검증기."
+    },
+    {
+      "id": "h-cbc7347a",
+      "kind": "html",
+      "en": "Greppable mutation.",
+      "tr": "grep할 수 있는 변경."
+    },
+    {
+      "id": "h-ac94eb5f",
+      "kind": "html",
+      "en": "All non-optional, none an eslint rule you can disable.",
+      "tr": "모두 선택 사항이 아니며, 어느 것도 끌 수 있는 eslint 규칙이 아닙니다."
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
     },
     {
       "id": "h-a2418e07",

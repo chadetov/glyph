@@ -1,7 +1,7 @@
 ---
 title: 추상화 · 작고 직교하는 핵심 · Glyph
 description: Glyph의 네 번째 기둥: 개념마다 방법 하나. switch 사다리 대신 패턴 매칭, 예외 대신 Result, 튜플 대신 레코드, 그리고 조건문으로서의 match.
-source_hash: 01e075d4f0eca884
+source_hash: 20ee19449bc530dd
 prev: /pillars/greppability/ | &larr; 이전 기둥 | diff 안정성: 한 줄을 바꾸면 diff도 한 줄
 next: /pillars/diff-stability/ | 처음으로 돌아가기 &rarr; | 검증 가능성: 런타임에도 참
 ---
@@ -12,21 +12,7 @@ next: /pillars/diff-stability/ | 처음으로 돌아가기 &rarr; | 검증 가�
         <strong>작고 직교하는 핵심</strong>으로 의도를 그대로 표현합니다. switch 사다리 대신 패턴 매칭, 던지는 예외 대신 <code>Result</code>, 튜플 대신 이름 붙은 레코드. TypeScript처럼 덧붙여 쌓인 계층이 아니라, 개념마다 좋은 방법 하나입니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">같은 것을 말하는 방법이 너무 많습니다</h2>
-        <p class="lede">
-          TypeScript는 덧붙이며 자랐고, 모든 계층을 남겨 두었습니다. 정해진 case 집합을 <code>enum</code>, 문자열 리터럴 유니언, <code>const</code> 객체로 모델링할 수 있습니다. 모양은 <code>interface</code>, <code>type</code>, <code>class</code>로 기술할 수 있습니다. <code>namespace</code>와 모듈, 데코레이터와 고차 함수가 있고, 거의 모든 것에 관용구가 다섯 가지씩 있으며, 저마다 경계 사례가 있습니다.
-        </p>
-        <p class="lede">
-          사람에게는 유연함입니다. <strong>에이전트</strong>에게는 지뢰밭입니다. 표현 방법이 많을수록 함정이 있는 것을 고를 방법도 많고, 그러면서 헷갈리지 말아야 할 관용구도 많아집니다. Glyph의 추상화 기둥은 의도적인 빼기입니다. 일마다 날카로운 도구 하나를 두고, 가장 자연스러운 방법이 안전한 방법이 되도록 골랐습니다.
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code>가 유일한 조건문입니다</h2>
-        <p>
-          <code>if</code>/<code>else</code> 문이 없습니다. 분기는 어디서나 <code>match</code>이고, <code>match</code>는 값을 만드는 표현식입니다. 구문 하나가 불리언 검사, 유니언 분기, 값 테이블을 모두 다루므로, <em>어떤</em> 분기 형태를 쓸지 고민할 필요가 없습니다.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: 값이 아니라 문장</span>
@@ -48,14 +34,47 @@ else label = "C";</pre>
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">02</span> 태그 유니언과 패턴 매칭</h2>
-        <p>
-          "이 모양들 중 하나"를 모델링하는 방법은 태그 유니언이고, 이를 분해하는 방법은 case를 고르는 단계에서 payload도 함께 구조 분해하는 <code>match</code>입니다. 직접 관리해야 할 판별 필드도, 문자열 태그에 대한 <code>switch</code> 사다리도, 모양을 되찾기 위한 분기마다의 캐스트도 없습니다.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">방법이 너무 많다</a></li>
+          <li><a href="#match-is-the-only-conditional">조건문인 <code>match</code></a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">태그 유니언</a></li>
+          <li><a href="#result-over-exceptions">예외 대신 <code>Result</code></a></li>
+          <li><a href="#named-records-over-positional-tuples">이름 붙은 레코드</a></li>
+          <li><a href="#one-primitive-per-job">일마다 기본 요소 하나</a></li>
+          <li><a href="#the-benchmark-coming">벤치마크</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">같은 것을 말하는 방법이 너무 많습니다<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript는 덧붙이며 자랐고, 모든 계층을 남겨 두었습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>정해진 case</b>정해진 case 집합을 <code>enum</code>, 문자열 리터럴 유니언, <code>const</code> 객체로 모델링할 수 있습니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>모양</b>모양은 <code>interface</code>, <code>type</code>, <code>class</code>로 기술할 수 있습니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>그 밖의 모든 것</b><code>namespace</code>와 모듈, 데코레이터와 고차 함수가 있고, 거의 모든 것에 관용구가 다섯 가지씩 있으며, 저마다 경계 사례가 있습니다.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          사람에게는 유연함입니다. <strong>에이전트</strong>에게는 지뢰밭입니다. 표현 방법이 많을수록 함정이 있는 것을 고를 방법도 많고, 그러면서 헷갈리지 말아야 할 관용구도 많아집니다.
+      </p></div>
+      <p class="ak-lede">
+          Glyph의 추상화 기둥은 의도적인 빼기입니다. 일마다 날카로운 도구 하나를 두고, 가장 자연스러운 방법이 안전한 방법이 되도록 골랐습니다.
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code>가 유일한 조건문입니다<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          <code>if</code>/<code>else</code> 문이 없습니다. 분기는 어디서나 <code>match</code>이고, <code>match</code>는 값을 만드는 표현식입니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>구문 하나가 불리언 검사, 유니언 분기, 값 테이블을 모두 다루므로, <em>어떤</em> 분기 형태를 쓸지 고민할 필요가 없습니다.</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> 태그 유니언과 패턴 매칭<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          "이 모양들 중 하나"를 모델링하는 방법은 태그 유니언이고, 이를 분해하는 방법은 case를 고르는 단계에서 payload도 함께 구조 분해하는 <code>match</code>입니다.
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre>type Feed =
@@ -71,19 +90,22 @@ fn view(feed: Feed) -&gt; string {
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">03</span> 예외 대신 <code>Result</code></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">더 이상 직접 쓰지 않는 것</span></summary><div class="body">
         <p>
-          실패는 숨겨진 제어 흐름 점프가 아니라 값입니다. 실패할 수 있는 함수는 반환 타입(<code>Result&lt;T, E&gt;</code>)에서 그렇다고 밝히고, 호출 지점을 <code>try</code>/<code>catch</code>로 감싸고 올바른 곳에서 올바른 클래스가 던져지기를 바라는 대신 <code>?</code> 연산자로 실패를 조합합니다. 오류 경로가 정상 경로만큼 잘 보입니다.
+          직접 관리해야 할 판별 필드도, 문자열 태그에 대한 <code>switch</code> 사다리도, 모양을 되찾기 위한 분기마다의 캐스트도 없습니다.
         </p>
+      </div></details>
 
-        <h2 class="block-label"><span class="ex-label">04</span> 위치 기반 튜플 대신 이름 붙은 레코드</h2>
-        <p>
-          데이터는 언제나 이름 붙은 필드로 기술합니다. 객체 리터럴 축약 문법도 없고, <code>[0]</code>과 <code>[1]</code>이 무엇인지 기억해야 하는 익명 튜플에 손을 뻗을 일도 없습니다. 모양은 정의, 생성, 사용하는 곳에서 똑같이 읽힙니다.
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> 예외 대신 <code>Result</code><a class="ak-anchor" href="#result-over-exceptions" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          실패는 숨겨진 제어 흐름 점프가 아니라 값입니다. 실패할 수 있는 함수는 반환 타입(<code>Result&lt;T, E&gt;</code>)에서 그렇다고 밝히고, 호출 지점을 <code>try</code>/<code>catch</code>로 감싸고 올바른 곳에서 올바른 클래스가 던져지기를 바라는 대신 <code>?</code> 연산자로 실패를 조합합니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>오류 경로가 정상 경로만큼 잘 보입니다.</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> 위치 기반 튜플 대신 이름 붙은 레코드<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          데이터는 언제나 이름 붙은 필드로 기술합니다. 모양은 정의, 생성, 사용하는 곳에서 똑같이 읽힙니다.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: [0]과 [1]은 무엇인가?</span>
@@ -104,23 +126,34 @@ fn origin() -&gt; Point {
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> 일마다 기본 요소 하나</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">축약 문법 없음, 익명 튜플 없음</span></summary><div class="body">
         <p>
-          개념에 고유한 도구가 필요하면 Glyph는 정확히 하나를 줍니다. 공유되는 변경 가능 상태는 <code>std/store</code>에 둡니다. 한 번만 닫아야 하는 파일이나 소켓 핸들은 <code>owned</code> 리소스입니다. 반복은 <code>for x in xs</code>입니다. 각각은 이름이 있고 목적에 맞게 만든 단일 기본 요소이며, 잡다한 범용 부품에서 매번 다시 끌어내다 미묘하게 틀리는 패턴이 아닙니다.
+          객체 리터럴 축약 문법도 없고, <code>[0]</code>과 <code>[1]</code>이 무엇인지 기억해야 하는 익명 튜플에 손을 뻗을 일도 없습니다.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> 일마다 기본 요소 하나<a class="ak-anchor" href="#one-primitive-per-job" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          개념에 고유한 도구가 필요하면 Glyph는 정확히 하나를 줍니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>공유 상태</b>공유되는 변경 가능 상태는 <code>std/store</code>에 둡니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>핸들</b>한 번만 닫아야 하는 파일이나 소켓 핸들은 <code>owned</code> 리소스입니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>반복</b>반복은 <code>for x in xs</code>입니다.</li>
+      </ul>
+      <p class="ak-lede">
+          각각은 이름이 있고 목적에 맞게 만든 단일 기본 요소이며, 잡다한 범용 부품에서 매번 다시 끌어내다 미묘하게 틀리는 패턴이 아닙니다.
+      </p>
 
         <p class="pull-quote">
           여기서 추상화란 더 많은 도구가 아니라 <strong>더 적고 날카로운 도구</strong>를 뜻합니다. 모든 개념에는 자연스러운 형태가 있고, 그 자연스러운 형태가 쓰라고 만든 형태입니다.
         </p>
 
-        <h2 class="block-label">벤치마크: 준비 중</h2>
-        <p>
-          이를 측정하는 방법은 표면적입니다. 프로그램을 이해하려면 독자가 개념을 몇 가지나 알고 있어야 하는지, 흔한 작업을 깔끔하게 표현하는 데 코드가 얼마나 필요한지입니다. Glyph는 아직 실제 환경에서 쓰이지 않으므로, 아래 차트는 비교할 실제 프로그램이 충분히 쌓이면 실제 측정값으로 채울 자리 표시입니다.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">벤치마크: 준비 중<a class="ak-anchor" href="#the-benchmark-coming" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          이를 측정하는 방법은 표면적입니다. 프로그램을 이해하려면 독자가 개념을 몇 가지나 알고 있어야 하는지, 흔한 작업을 깔끔하게 표현하는 데 코드가 얼마나 필요한지입니다.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph는 아직 실제 환경에서 쓰이지 않으므로, 아래 차트는 비교할 실제 프로그램이 충분히 쌓이면 실제 측정값으로 채울 자리 표시입니다.</p></div>
       <div class="chart">
         <span class="label">일반적인 모듈을 읽는 데 필요한 개념 수 &middot; 낮을수록 좋음</span>
         <h3>TypeScript와 Glyph 비교</h3>
@@ -137,8 +170,6 @@ fn origin() -&gt; Point {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           작은 핵심은 사람이 한 번 배우기 쉽고, 모델이 매번 올바르게 쓰기 쉽습니다. 마무리 계층 전체를 한 문장으로 말하면 이렇습니다. 위험만 더하던 선택지를 걷어 내면, 의도를 그대로 말하는 언어가 남습니다.
-        </p>
-      </div>
+      </p></div>

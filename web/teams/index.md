@@ -50,16 +50,16 @@ Details in [Will a new Glyph release break my build?](https://glyphlang.io/answe
 
 ## Release cadence and the Breaking marker
 
-The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.160, 159 in all, and 33 of them shipped between 1 Nov 2026 and 21 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 43 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
+The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.161, 160 in all, and 34 of them shipped between 1 Nov 2026 and 22 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 44 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
 
 What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:
 
+- [0.1.161](https://glyphlang.io/versions/2026-11/#0.1.161): “Across the 97 example apps and standalone files, nothing changes except the catch case for this mistake.”
 - [0.1.160](https://glyphlang.io/versions/2026-11/#0.1.160): “Across the 394 example apps and standalone files, the only new diagnostic is on the catch case for this mistake.”
 - [0.1.159](https://glyphlang.io/versions/2026-11/#0.1.159): The note does not say.
 - [0.1.158](https://glyphlang.io/versions/2026-11/#0.1.158): The note does not say.
 - [0.1.157](https://glyphlang.io/versions/2026-11/#0.1.157): “Writing this rule turned up a real bug in one of the example apps.”
 - [0.1.156](https://glyphlang.io/versions/2026-11/#0.1.156): The note does not say.
-- [0.1.155](https://glyphlang.io/versions/2026-11/#0.1.155): The note does not say.
 
 The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.
 

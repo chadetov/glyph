@@ -1,0 +1,24 @@
+---
+version: 0.1.161
+month: 2026-11
+date: 2026-11-22
+tags: breaking
+headline: A method that returns undefined when nothing is there is refused, and the Option form is named
+---
+            <p><code>users.find(fn(u: User) -&gt; bool { u.id == id }).name</code> passed Glyph's own checker. Only <code>tsc</code> refused it, so the editor, the MCP tools and the <code>applyEdit</code> gate, which run without <code>tsc</code>, saw nothing wrong. The stdlib spelling, <code>array.find(users, ...)</code>, has always returned an <code>Option&lt;User&gt;</code> and was caught.</p>
+
+            <p>Now a call to a built-in method whose TypeScript return can be <code>undefined</code> is E0242, and the help names the <code>std</code> function that returns an <code>Option</code>:</p>
+
+<pre><code>[E0242] `xs.at(-1)` returns `number | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: write `match array.get(xs, array.len(xs) - 1) { Some(v) =&gt; v, None =&gt; 0, }` (with `import std/array`)</code></pre>
+
+            <p>The methods are <code>find</code>, <code>findLast</code> and <code>at</code> on arrays, and <code>at</code>, <code>codePointAt</code> and <code>match</code> on strings. The list is read from the return types in TypeScript's own library, and a check fails if a new TypeScript adds such a method before someone names its <code>Option</code> form. <code>pop</code> and <code>shift</code> were already covered by 0.1.160's rule.</p>
+
+            <p>Three stdlib functions are new, so every refusal has somewhere to go: <code>array.find_last</code>, <code>string.char_at</code> and <code>string.code_point_at</code>. The string ones still count in UTF-16 units, but they return the whole character that starts at the index, or <code>None</code> when the index is past the end or lands on the second half of an emoji. They never hand back half of a character. The spec had ruled out a character accessor for exactly that reason, and this is the form it allows.</p>
+
+            <p><code>glyph fix</code> rewrites <code>xs.find(f)</code> to <code>array.find(xs, f)</code>, adding the import, but only where the <code>Option</code> is used up on the spot: a <code>match</code>, a <code>??</code> default (rewritten as a <code>match</code>), a statement, or a place declared <code>Option</code>. Elsewhere, an untyped <code>let</code> for example, it declines and says why, because a later <code>u ?? 0</code> on an <code>Option</code> would quietly hand back the object. It never rewrites the string methods, since the new functions answer <code>None</code> where the old ones answered half a character.</p>
+
+            <p>That last case, <code>??</code> on an <code>Option</code>, passes both checkers today and is G429, scheduled next.</p>
+
+            <h3>Breaking</h3>
+            <p>A program that calls one of these methods now fails to compile, under full <code>check</code> as well as <code>--no-tsc</code>. <code>let n = xs.at(-1) ?? 0</code> passes <code>tsc --strict</code> on 0.1.160 (exit 0) and is refused on 0.1.161 (exit 1). Across the 97 example apps and standalone files, nothing changes except the catch case for this mistake.</p>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "ja",
-  "source_hash": "31b76a81a51f0211",
+  "source_hash": "cfa565ac48a19111",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "生成されたものです。<code>glyph llms --json</code> は、診断カタログ、prelude、stdlib のシグネチャ、言語の設計判断、ツールのマニュアルをコンパイラ自身のテーブルから出力します。手書きのコピーと食い違えば、ゲートがビルドを失敗させます。エージェントが最初に読み込むドキュメントにある Glyph の例はすべてコンパイルされます。誤りを示す例も含めてです。"
     },
     {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json の E0200 エントリ（抜粋）"
+    },
+    {
+      "id": "h-f5ddcc36",
+      "kind": "html",
+      "en": "<span>Seven sections, each read off a table the compiler already has.</span>",
+      "tr": "<span>7 つのセクションがあり、それぞれコンパイラがすでに持っているテーブルから読み出されます。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">なぜ重要か</a>"
+    },
+    {
+      "id": "h-2eb90f00",
+      "kind": "html",
+      "en": "<a href=\"#diagnostics\">Diagnostics</a>",
+      "tr": "<a href=\"#diagnostics\">診断</a>"
+    },
+    {
+      "id": "h-3d52eed8",
+      "kind": "html",
+      "en": "<a href=\"#the-prelude-the-stdlib-and-the-decisions\">Prelude, stdlib, decisions</a>",
+      "tr": "<a href=\"#the-prelude-the-stdlib-and-the-decisions\">prelude、stdlib、設計判断</a>"
+    },
+    {
+      "id": "h-be3d93a7",
+      "kind": "html",
+      "en": "<a href=\"#the-wrong-programs-are-readable-too\">Wrong programs</a>",
+      "tr": "<a href=\"#the-wrong-programs-are-readable-too\">誤ったプログラム</a>"
+    },
+    {
+      "id": "h-0851af65",
+      "kind": "html",
+      "en": "<a href=\"#every-example-compiles-including-the-wrong-ones\">Compiled examples</a>",
+      "tr": "<a href=\"#every-example-compiles-including-the-wrong-ones\">コンパイルされる例</a>"
+    },
+    {
+      "id": "h-b5f4c54f",
+      "kind": "html",
+      "en": "<a href=\"#what-it-costs-to-hand-over-and-what-it-stopped-costing\">What it costs</a>",
+      "tr": "<a href=\"#what-it-costs-to-hand-over-and-what-it-stopped-costing\">受け渡しのコスト</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "なぜ重要か"
     },
     {
-      "id": "h-c74ff5a4",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-ca6074b0",
       "kind": "html",
-      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
-      "tr": "これは修辞的な質問ではありません。以前の正直な答えは「手書きで、しかも古い」だったからです。エージェント向けのブートストラップ文書には、MCP サーバーが「5 つのツールを公開する」と書かれ、5 つが挙げられていました。実際のサーバーは 7 つを提供していました。サーバー自身の説明がエージェントに真っ先に使うよう指示している 2 つは、文書に一度も登場しませんでした。58 個のエラーコードは手作業で管理する 3 つのコピーにあり、検査はコード文字列が存在するかどうかだけでした。その文書にある 19 個の Glyph の例のうち、コンパイルされていたのは 2 個で、17 個は断片としてスキップされていました。"
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\"",
+      "tr": "これは修辞的な質問ではありません。以前の正直な答えは「手書きで、しかも古い」だったからです。"
+    },
+    {
+      "id": "h-af97880e",
+      "kind": "html",
+      "en": "<b>The tool list</b>The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times.",
+      "tr": "<b>ツールの一覧</b>エージェント向けのブートストラップ文書には、MCP サーバーが「5 つのツールを公開する」と書かれ、5 つが挙げられていました。実際のサーバーは 7 つを提供していました。サーバー自身の説明がエージェントに真っ先に使うよう指示している 2 つは、文書に一度も登場しませんでした。"
+    },
+    {
+      "id": "h-ecced3e1",
+      "kind": "html",
+      "en": "<b>The error codes</b>The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present.",
+      "tr": "<b>エラーコード</b>58 個のエラーコードは手作業で管理する 3 つのコピーにあり、検査はコード文字列が存在するかどうかだけでした。"
+    },
+    {
+      "id": "h-61ee9e27",
+      "kind": "html",
+      "en": "<b>The examples</b>Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "<b>例</b>その文書にある 19 個の Glyph の例のうち、コンパイルされていたのは 2 個で、17 個は断片としてスキップされていました。"
     },
     {
       "id": "h-b65fc913",
@@ -77,22 +167,28 @@
       "tr": "どれも同じ欠陥です。コンパイラについての文書が、善意の人たちの手でコンパイラと並んで保守されていました。それを読むエージェントには、どの文がまだ正しいのか判断できません。私たちにもできませんでした。"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-4ee26ed3",
       "kind": "html",
-      "en": "See it",
-      "tr": "実例"
+      "en": "One table for the diagnostics",
+      "tr": "診断のための 1 つのテーブル"
     },
     {
-      "id": "h-b81e3a56",
+      "id": "h-8cb613f9",
       "kind": "html",
-      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
-      "tr": "7 つのセクションがあり、それぞれコンパイラがすでに持っているテーブルから読み出されます。診断のエントリには、カタログの説明文、1 行の修正方法、詳しい説明、そしてコンパイラが実際に出した診断から取った help と note が入っています。77 個のコードのうち 51 個には、そのコードを出す誤ったプログラムも付いていて、問い合わせた時点でコンパイルされます。残りの 26 個には、コーパスにケースがないと書かれています。"
+      "en": "A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew.",
+      "tr": "診断のエントリには、カタログの説明文、1 行の修正方法、詳しい説明、そしてコンパイラが実際に出した診断から取った help と note が入っています。"
     },
     {
-      "id": "h-25ad2c9c",
+      "id": "h-61717901",
       "kind": "html",
-      "en": "glyph llms --json, the E0200 entry (trimmed)",
-      "tr": "glyph llms --json の E0200 エントリ（抜粋）"
+      "en": "51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "77 個のコードのうち 51 個には、そのコードを出す誤ったプログラムも付いていて、問い合わせた時点でコンパイルされます。残りの 26 個には、コーパスにケースがないと書かれています。"
+    },
+    {
+      "id": "h-00da3faf",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">three copies merged into one</span>",
+      "tr": "詳細 <span class=\"hint\">3 つのコピーを 1 つにまとめた</span>"
     },
     {
       "id": "h-3b207613",
@@ -107,10 +203,10 @@
       "tr": "prelude、stdlib、設計判断"
     },
     {
-      "id": "h-527db667",
+      "id": "h-94089cbd",
       "kind": "html",
-      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
-      "tr": "prelude は、名前解決で参照される 24 個の名前と、それぞれが何であるかです。stdlib は 40 モジュール、340 個のエクスポートで、各シグネチャはチェッカー自身のテーブルから読み出され、診断と同じ型プリンタで出力されます。つまり文書にあるシグネチャは、チェッカーが実際に適用するシグネチャそのものです。エクスポートは必ず 3 つに分かれ、2 つになることはありません。129 個はすべての位置がモデル化されたシグネチャ、46 個はパラメータの型があるべき場所に <code>?</code> があり、<code>partially_modeled</code> として数えられて残りの位置の数を示す行が付きます。165 個にはシグネチャがまったくありません。<code>?</code> は <code>unknown</code> を表示したものなので、完全なシグネチャとして公開されることはありません。"
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to.",
+      "tr": "prelude は、名前解決で参照される 24 個の名前と、それぞれが何であるかです。stdlib は 40 モジュール、340 個のエクスポートで、各シグネチャはチェッカー自身のテーブルから読み出され、診断と同じ型プリンタで出力されます。つまり文書にあるシグネチャは、チェッカーが実際に適用するシグネチャそのものです。"
     },
     {
       "id": "h-1016682f",
@@ -125,6 +221,24 @@
       "tr": "\"prelude\" と \"decisions\""
     },
     {
+      "id": "h-e5bff88f",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the exports split</span>",
+      "tr": "詳細 <span class=\"hint\">エクスポートの分かれ方</span>"
+    },
+    {
+      "id": "h-126fc4da",
+      "kind": "html",
+      "en": "The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "エクスポートは必ず 3 つに分かれ、2 つになることはありません。129 個はすべての位置がモデル化されたシグネチャ、46 個はパラメータの型があるべき場所に <code>?</code> があり、<code>partially_modeled</code> として数えられて残りの位置の数を示す行が付きます。165 個にはシグネチャがまったくありません。<code>?</code> は <code>unknown</code> を表示したものなので、完全なシグネチャとして公開されることはありません。"
+    },
+    {
+      "id": "h-0f3031bc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why <code>duplicate_numbers</code> exists</span>",
+      "tr": "経緯 <span class=\"hint\"><code>duplicate_numbers</code> がある理由</span>"
+    },
+    {
       "id": "h-d02a769f",
       "kind": "html",
       "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
@@ -137,16 +251,28 @@
       "tr": "誤ったプログラムも読める"
     },
     {
-      "id": "h-b2d0bb7d",
+      "id": "h-3b1cb5e2",
       "kind": "html",
-      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
-      "tr": "コンパイラのネガティブコーパスは、失敗しなければならないプログラムと、それぞれが出すべきコードの集まりです。以前は <code>cargo test</code> からしか見えませんでした。ある規則が何を拒否するかを学ぼうとするエージェントこそ、このコーパスが想定する読者です。そこで今は問い合わせに答えるようになり、各ケースは問い合わせた時点でコンパイルされるので、横に並ぶ診断はこのコンパイラが出したものです。"
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>.",
+      "tr": "コンパイラのネガティブコーパスは、失敗しなければならないプログラムと、それぞれが出すべきコードの集まりです。以前は <code>cargo test</code> からしか見えませんでした。"
+    },
+    {
+      "id": "h-5743f0ef",
+      "kind": "html",
+      "en": "An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "ある規則が何を拒否するかを学ぼうとするエージェントこそ、このコーパスが想定する読者です。そこで今は問い合わせに答えるようになり、各ケースは問い合わせた時点でコンパイルされるので、横に並ぶ診断はこのコンパイラが出したものです。"
     },
     {
       "id": "h-eb5a2b6c",
       "kind": "html",
       "en": "glyph llms --negative E0008",
       "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-fa0dce8a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">coverage, and the <code>catches/</code> corpus</span>",
+      "tr": "詳細 <span class=\"hint\">カバー範囲と、<code>catches/</code> のコーパス</span>"
     },
     {
       "id": "h-0eeb8564",
@@ -161,16 +287,40 @@
       "tr": "誤ったものも含め、すべての例がコンパイルされる"
     },
     {
-      "id": "h-31753a2c",
+      "id": "h-63d0dd2c",
       "kind": "html",
-      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
-      "tr": "リファレンスを生成するのは半分にすぎません。残りの半分は、エージェントが最初に読み込む文章で、その中の例はエージェントがそのままコピーする部分です。その文書にある Glyph のコードブロックは、コンパイルが通る完全なプログラムか、名前付きの完全な例の断片として印が付いていて、その例の行の中に含まれていなければならないかのどちらかです。以前は 19 個のブロックのうち 2 個がコンパイルされていましたが、今は 24 個のうち 20 個がコンパイルされ、4 個に印が付いていて、スキップされるものはありません。stdlib のリファレンスは 8 個中 4 個から 8 個中 8 個になりました。"
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies.",
+      "tr": "リファレンスを生成するのは半分にすぎません。残りの半分は、エージェントが最初に読み込む文章で、その中の例はエージェントがそのままコピーする部分です。"
     },
     {
-      "id": "h-d4615d6d",
+      "id": "h-f6d38040",
       "kind": "html",
-      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
-      "tr": "コードブロックには、失敗しなければならないプログラムとして、出すコードを指定した印を付けることもできます。文書が警告している 5 つの誤った書き方はこうして載せています。<code>E0228</code> を出すもの、<code>E0008</code> を出すもの、ほかに 3 つです。診断と対になった警告は検査できます。文章だけで書いた警告は約束にすぎません。"
+      "en": "Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in.",
+      "tr": "その文書にある Glyph のコードブロックは、コンパイルが通る完全なプログラムか、名前付きの完全な例の断片として印が付いていて、その例の行の中に含まれていなければならないかのどちらかです。"
+    },
+    {
+      "id": "h-46e5a2fa",
+      "kind": "html",
+      "en": "<b>The bootstrap</b>It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped.",
+      "tr": "<b>ブートストラップ</b>以前は 19 個のブロックのうち 2 個がコンパイルされていましたが、今は 24 個のうち 20 個がコンパイルされ、4 個に印が付いていて、スキップされるものはありません。"
+    },
+    {
+      "id": "h-8f918e23",
+      "kind": "html",
+      "en": "<b>The stdlib reference</b>The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "<b>stdlib のリファレンス</b>stdlib のリファレンスは 8 個中 4 個から 8 個中 8 個になりました。"
+    },
+    {
+      "id": "h-66882521",
+      "kind": "html",
+      "en": "<b>The wrong forms</b>A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "<b>誤った書き方</b>コードブロックには、失敗しなければならないプログラムとして、出すコードを指定した印を付けることもできます。文書が警告している 5 つの誤った書き方はこうして載せています。<code>E0228</code> を出すもの、<code>E0008</code> を出すもの、ほかに 3 つです。診断と対になった警告は検査できます。文章だけで書いた警告は約束にすぎません。"
+    },
+    {
+      "id": "h-c126392e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">two things compiling the documents found</span>",
+      "tr": "詳細 <span class=\"hint\">文書をコンパイルして見つかった 2 つのこと</span>"
     },
     {
       "id": "h-10fd6248",
@@ -185,16 +335,46 @@
       "tr": "受け渡しのコストと、かからなくなったコスト"
     },
     {
-      "id": "h-2dc5770c",
+      "id": "h-eadd10b0",
       "kind": "html",
-      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
-      "tr": "11 個の MCP ツールは以前、マニュアル全文を <code>tools/list</code> の応答に載せていて、すべてのセッションが接続時にそのコストを払っていました。45,509 バイトの応答のうち 31,446 バイトが説明でした。今は同じ 11 個のツールで、20,386 バイトの応答のうち 8,627 バイトです。削除したものはありません。以前の文章はツール名をキーにしてそのまま保持され、<code>glyph llms --json</code> の中で公開されています。呼び出す瞬間に必要な契約は説明に入っていて、残りはすべてのセッションの最初の応答ではなく、コマンド 1 つで取得できます。ツール一覧と文書を一緒に読むテストがあり、サーバーが提供していないツールを文書が挙げたり、件数が一覧と食い違ったりすればビルドが失敗します。「5 つのツールを公開する」に必要だったのは、この検査です。"
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now.",
+      "tr": "11 個の MCP ツールは以前、マニュアル全文を <code>tools/list</code> の応答に載せていて、すべてのセッションが接続時にそのコストを払っていました。45,509 バイトの応答のうち 31,446 バイトが説明でした。今は同じ 11 個のツールで、20,386 バイトの応答のうち 8,627 バイトです。"
     },
     {
-      "id": "h-ebc0730a",
+      "id": "h-06024752",
       "kind": "html",
-      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
-      "tr": "これはすべてオフラインかつローカルで動きます。<code>glyph llms</code> は文章を、<code>glyph llms --json</code> はデータを、<code>glyph llms --negative</code> は誤ったプログラムを出力します。同じ文章は、ネットワークはあるがバイナリのないエージェント向けに <a href=\"/llms.txt\">llms.txt</a> でも提供しています。言語についてではなく<em>あなたの</em>コードについてエージェントが問い合わせるのは、<a href=\"/answers/ask-the-compiler/\">クエリツール</a>です。"
+      "en": "Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply.",
+      "tr": "削除したものはありません。以前の文章はツール名をキーにしてそのまま保持され、<code>glyph llms --json</code> の中で公開されています。呼び出す瞬間に必要な契約は説明に入っていて、残りはすべてのセッションの最初の応答ではなく、コマンド 1 つで取得できます。"
+    },
+    {
+      "id": "h-af7632b1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the test that holds the count</span>",
+      "tr": "詳細 <span class=\"hint\">件数を守るテスト</span>"
+    },
+    {
+      "id": "h-c00d6973",
+      "kind": "html",
+      "en": "A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "ツール一覧と文書を一緒に読むテストがあり、サーバーが提供していないツールを文書が挙げたり、件数が一覧と食い違ったりすればビルドが失敗します。「5 つのツールを公開する」に必要だったのは、この検査です。"
+    },
+    {
+      "id": "h-ab486bf3",
+      "kind": "html",
+      "en": "Offline and local",
+      "tr": "オフラインかつローカル"
+    },
+    {
+      "id": "h-f9c7e75b",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs.",
+      "tr": "これはすべてオフラインかつローカルで動きます。<code>glyph llms</code> は文章を、<code>glyph llms --json</code> はデータを、<code>glyph llms --negative</code> は誤ったプログラムを出力します。"
+    },
+    {
+      "id": "h-66d93a53",
+      "kind": "html",
+      "en": "The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "同じ文章は、ネットワークはあるがバイナリのないエージェント向けに <a href=\"/llms.txt\">llms.txt</a> でも提供しています。言語についてではなく<em>あなたの</em>コードについてエージェントが問い合わせるのは、<a href=\"/answers/ask-the-compiler/\">クエリツール</a>です。"
     },
     {
       "id": "h-b55f380c",
@@ -209,10 +389,58 @@
       "tr": "提供中"
     },
     {
-      "id": "h-ef7b0c9f",
+      "id": "h-4c65167b",
       "kind": "html",
-      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
-      "tr": "<code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力します。77 個の診断コード（うち 51 個はコンパイル済みの反例付き）、32 個の予約語、24 個の prelude の名前、340 個のエクスポートを持つ 40 個の stdlib モジュール、仕様書からパースした 49 個の言語の設計判断、そして <code>glyph query</code> の動詞と完全なマニュアルを備えた 11 個のツールです。<code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表からスクリプトで書き出され、ずれがあればスクリプトが失敗し、あわせて <code>llms.txt</code> にも再反映されます。テストがツールのカタログをサーバーが実際に提供するものに合わせます。ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いています。5 つの誤った書き方は、それぞれが出すコードと対になったプログラムです。<code>glyph llms --negative</code> は、<code>cargo test</code> が実行するのと同じコーパスから答えます。"
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler",
+      "tr": "<code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力する"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-c8eadb90",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals.",
+      "tr": "<code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力します。77 個の診断コード（うち 51 個はコンパイル済みの反例付き）、32 個の予約語、24 個の prelude の名前、340 個のエクスポートを持つ 40 個の stdlib モジュール、仕様書からパースした 49 個の言語の設計判断、そして <code>glyph query</code> の動詞と完全なマニュアルを備えた 11 個のツールです。"
+    },
+    {
+      "id": "h-4b53aa9d",
+      "kind": "html",
+      "en": "<code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table",
+      "tr": "<code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表から書き出される"
+    },
+    {
+      "id": "h-acb04dc3",
+      "kind": "html",
+      "en": "<code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it.",
+      "tr": "<code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表からスクリプトで書き出され、ずれがあればスクリプトが失敗し、あわせて <code>llms.txt</code> にも再反映されます。"
+    },
+    {
+      "id": "h-0c0ce912",
+      "kind": "html",
+      "en": "A test holds the tool catalogue to what the server serves.",
+      "tr": "テストがツールのカタログをサーバーが実際に提供するものに合わせます。"
+    },
+    {
+      "id": "h-52ffcb4a",
+      "kind": "html",
+      "en": "Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does",
+      "tr": "ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いている"
+    },
+    {
+      "id": "h-4b0f5fb1",
+      "kind": "html",
+      "en": "Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws.",
+      "tr": "ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いています。5 つの誤った書き方は、それぞれが出すコードと対になったプログラムです。"
+    },
+    {
+      "id": "h-5042c3bb",
+      "kind": "html",
+      "en": "<code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --negative</code> は、<code>cargo test</code> が実行するのと同じコーパスから答えます。"
     },
     {
       "id": "h-c647197d",
@@ -221,10 +449,46 @@
       "tr": "限界"
     },
     {
-      "id": "h-5c7219d3",
+      "id": "h-9ff540f4",
       "kind": "html",
-      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
-      "tr": "この文書には誤ったプログラムの件数が 2 つ出てきますが、数えているものが違います。77 個のコードのうち 51 個は <code>tests/negative/</code> の反例を持ち、<code>glyph llms --negative</code> は <code>catches/</code> の拒否も読むので、0.1.149 では 53 個のコードにわたる 117 件のケースを一覧します。次のリリースでは、その後 <code>catches/</code> に追加された 22 件の拒否が加わり、55 個のコードにわたる 139 件になります。0.1.149 では 24 個のコードがどちらのコーパスにも誤ったプログラムを持たず、回答は例をでっち上げずにそのコードの名前を示します。stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返ります。実装は <code>tsc</code> が検査する TypeScript で、コンパイラ自身のテーブルはそれについて何もモデル化していないため、<code>std/result::all</code> や <code>std/io::println</code> に対する <code>glyph_symbol</code> は、その理由とともに <code>kind: null</code> を返します。シグネチャを持つ 175 個のうち 46 個には、まだパラメータの型の位置に <code>?</code> が残っています。また、この文書は取得するスナップショットであってサービスではありません。検索の仕組みも埋め込みもなく、チャットのインターフェースもありません。"
+      "en": "Two counts of the wrong programs appear in this document and they count different things",
+      "tr": "この文書には誤ったプログラムの件数が 2 つ出てくるが、数えているものが違う"
+    },
+    {
+      "id": "h-be03024b",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes.",
+      "tr": "この文書には誤ったプログラムの件数が 2 つ出てきますが、数えているものが違います。77 個のコードのうち 51 個は <code>tests/negative/</code> の反例を持ち、<code>glyph llms --negative</code> は <code>catches/</code> の拒否も読むので、0.1.149 では 53 個のコードにわたる 117 件のケースを一覧します。次のリリースでは、その後 <code>catches/</code> に追加された 22 件の拒否が加わり、55 個のコードにわたる 139 件になります。"
+    },
+    {
+      "id": "h-691ffd15",
+      "kind": "html",
+      "en": "In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one.",
+      "tr": "0.1.149 では 24 個のコードがどちらのコーパスにも誤ったプログラムを持たず、回答は例をでっち上げずにそのコードの名前を示します。"
+    },
+    {
+      "id": "h-b98b950b",
+      "kind": "html",
+      "en": "165 of the 340 stdlib exports come back with no signature",
+      "tr": "stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返る"
+    },
+    {
+      "id": "h-7158d2ba",
+      "kind": "html",
+      "en": "165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason.",
+      "tr": "stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返ります。実装は <code>tsc</code> が検査する TypeScript で、コンパイラ自身のテーブルはそれについて何もモデル化していないため、<code>std/result::all</code> や <code>std/io::println</code> に対する <code>glyph_symbol</code> は、その理由とともに <code>kind: null</code> を返します。"
+    },
+    {
+      "id": "h-f773b8d6",
+      "kind": "html",
+      "en": "Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs.",
+      "tr": "シグネチャを持つ 175 個のうち 46 個には、まだパラメータの型の位置に <code>?</code> が残っています。"
+    },
+    {
+      "id": "h-438793a7",
+      "kind": "html",
+      "en": "And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "また、この文書は取得するスナップショットであってサービスではありません。検索の仕組みも埋め込みもなく、チャットのインターフェースもありません。"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/human-value/index.html",
   "locale": "ja",
-  "source_hash": "353b3dea2a444a3f",
+  "source_hash": "afc93229f6bea704",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,64 @@
       "tr": "あります。AI エージェントを前面に出しているのは、エージェントがこうしたものを頻繁に壊すからです。しかしその下にある保証はどれも、<strong>人間が直接受け取れる、ふつうのエンジニアリング上の利点</strong>です。実行時の予期しない挙動が減り、差分が小さくなり、コードを grep で探せるようになります。どれも LLM を必要としません。"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-6b42c22f",
+      "kind": "html",
+      "en": "<a href=\"#these-are-language-features-not-ai-features\">Language features</a>",
+      "tr": "<a href=\"#these-are-language-features-not-ai-features\">言語の機能</a>"
+    },
+    {
+      "id": "h-a6a62204",
+      "kind": "html",
+      "en": "<a href=\"#what-you-get-solo\">What you get, solo</a>",
+      "tr": "<a href=\"#what-you-get-solo\">1 人でも得られるもの</a>"
+    },
+    {
+      "id": "h-81243956",
+      "kind": "html",
+      "en": "<a href=\"#so-why-lead-with-agents\">Why lead with agents</a>",
+      "tr": "<a href=\"#so-why-lead-with-agents\">なぜエージェントを前面に出すのか</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-883d013e",
       "kind": "html",
       "en": "These are language features, not AI features",
       "tr": "これは AI の機能ではなく、言語の機能です"
     },
     {
-      "id": "h-377ab84f",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-6a786dfe",
       "kind": "html",
-      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
-      "tr": "「エージェント」という言葉を抜いてリストを読んでみてください。<code>any</code> がない、網羅的な <code>match</code>、値としてのエラー、実行時に検査される型、名前ごとに宣言の形が 1 つ、差分が安定する正規のフォーマット。Rust、Elm、OCaml を書いたことがある人なら、どれもコードベースを保守しやすくするものだとわかるはずです。AI がコードを書くずっと前から良いとされてきた考え方です。Glyph はそれを、1 ファイルずつ導入できる TypeScript 風の言語に持ち込んでいるだけです。"
+      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format.",
+      "tr": "「エージェント」という言葉を抜いてリストを読んでみてください。<code>any</code> がない、網羅的な <code>match</code>、値としてのエラー、実行時に検査される型、名前ごとに宣言の形が 1 つ、差分が安定する正規のフォーマット。"
+    },
+    {
+      "id": "h-307d3d43",
+      "kind": "html",
+      "en": "Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
+      "tr": "Rust、Elm、OCaml を書いたことがある人なら、どれもコードベースを保守しやすくするものだとわかるはずです。AI がコードを書くずっと前から良いとされてきた考え方です。Glyph はそれを、1 ファイルずつ導入できる TypeScript 風の言語に持ち込んでいるだけです。"
     },
     {
       "id": "h-bad10559",
@@ -77,28 +125,28 @@
       "tr": "1 人で使っても得られるもの"
     },
     {
-      "id": "h-4f15d4ac",
+      "id": "h-6ff118c8",
       "kind": "html",
-      "en": "<strong>Fewer 3am pages.</strong> Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
-      "tr": "<strong>深夜の呼び出しが減ります。</strong>境界のデータは構造上必ず検証され（<code>User.parse</code>）、ケースの漏れは本番で表面化する <code>undefined</code> ではなく、コンパイルエラーになります。"
+      "en": "<b>Fewer 3am pages.</b>Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
+      "tr": "<b>深夜の呼び出しが減ります。</b>境界のデータは構造上必ず検証され（<code>User.parse</code>）、ケースの漏れは本番で表面化する <code>undefined</code> ではなく、コンパイルエラーになります。"
     },
     {
-      "id": "h-3212661c",
+      "id": "h-579891e9",
       "kind": "html",
-      "en": "<strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
-      "tr": "<strong>レビューが速くなります。</strong>1 行の変更は 1 行の差分になるので、レビュアーは周りの整形の揺れではなく、変更そのものを読めます。"
+      "en": "<b>Faster review.</b>A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
+      "tr": "<b>レビューが速くなります。</b>1 行の変更は 1 行の差分になるので、レビュアーは周りの整形の揺れではなく、変更そのものを読めます。"
     },
     {
-      "id": "h-bde8ceea",
+      "id": "h-10c51631",
       "kind": "html",
-      "en": "<strong>You can find anything.</strong> <code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
-      "tr": "<strong>何でも見つけられます。</strong><code>grep \"fn parseUser\"</code> で定義にたどり着きます。オーバーロードやバレルファイル、デコレータで散らばることはありません。"
+      "en": "<b>You can find anything.</b><code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
+      "tr": "<b>何でも見つけられます。</b><code>grep \"fn parseUser\"</code> で定義にたどり着きます。オーバーロードやバレルファイル、デコレータで散らばることはありません。"
     },
     {
-      "id": "h-2d7f721c",
+      "id": "h-ce2cade1",
       "kind": "html",
-      "en": "<strong>Easier onboarding.</strong> A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
-      "tr": "<strong>新しいメンバーが早く慣れます。</strong>コアが小さく、1 つのことに 1 つのやり方しかないので、次の人が覚えるべき暗黙知が少なくなります。"
+      "en": "<b>Easier onboarding.</b>A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
+      "tr": "<b>新しいメンバーが早く慣れます。</b>コアが小さく、1 つのことに 1 つのやり方しかないので、次の人が覚えるべき暗黙知が少なくなります。"
     },
     {
       "id": "h-a45cacac",
@@ -107,10 +155,22 @@
       "tr": "では、なぜエージェントを前面に出すのか"
     },
     {
-      "id": "h-0cf505e4",
+      "id": "h-41bfa897",
       "kind": "html",
-      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on. The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
-      "tr": "そちらのほうが効果が<em>大きい</em>からです。人間はいずれ linter を走らせ、ケースを処理することを覚えます。エージェントは <code>any</code> に手を伸ばし、アームを書き忘れ、グリーンのままマージします。オプトインのツールを有効にしたままでいてくれるとも限りません。厳しさを<em>オプションにしない</em>ことの価値は、機械がコードを書くときに何倍にもなります。とはいえ、最低限の利点（上に挙げたもの）は、エージェントを使っても使わなくても得られます。"
+      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on.",
+      "tr": "そちらのほうが効果が<em>大きい</em>からです。人間はいずれ linter を走らせ、ケースを処理することを覚えます。エージェントは <code>any</code> に手を伸ばし、アームを書き忘れ、グリーンのままマージします。オプトインのツールを有効にしたままでいてくれるとも限りません。"
+    },
+    {
+      "id": "h-4173ea23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the floor is there either way</span>",
+      "tr": "詳細 <span class=\"hint\">最低限の利点はどちらでも得られる</span>"
+    },
+    {
+      "id": "h-18feeddc",
+      "kind": "html",
+      "en": "The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
+      "tr": "厳しさを<em>オプションにしない</em>ことの価値は、機械がコードを書くときに何倍にもなります。とはいえ、最低限の利点（上に挙げたもの）は、エージェントを使っても使わなくても得られます。"
     },
     {
       "id": "h-f388e69f",
@@ -131,10 +191,16 @@
       "tr": "トレードオフ"
     },
     {
-      "id": "h-4370ff74",
+      "id": "h-0231228b",
       "kind": "html",
-      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
-      "tr": "新しく何かを始める場合や、チームがすでに ML 系言語の規律を重視している場合は、利点がすぐに効いてきます。成熟し、ツールも整った TS スタックで 1 人で開発している場合は、判断が微妙になります。Glyph はアーリープレビューであり、それは考慮すべき実際のコストです。"
+      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately.",
+      "tr": "新しく何かを始める場合や、チームがすでに ML 系言語の規律を重視している場合は、利点がすぐに効いてきます。"
+    },
+    {
+      "id": "h-8dd4f5ff",
+      "kind": "html",
+      "en": "If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
+      "tr": "成熟し、ツールも整った TS スタックで 1 人で開発している場合は、判断が微妙になります。Glyph はアーリープレビューであり、それは考慮すべき実際のコストです。"
     },
     {
       "id": "h-e15e4388",

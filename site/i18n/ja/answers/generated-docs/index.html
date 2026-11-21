@@ -1,7 +1,7 @@
 ---
 title: エージェントが読むドキュメントは生成されたものか · Glyph
 description: glyph llms --json は、診断、prelude、stdlib のシグネチャ、言語の設計判断をコンパイラ自身のテーブルから出力します。そのため内容がずれることはありません。
-source_hash: 31b76a81a51f0211
+source_hash: cfa565ac48a19111
 prev: /answers/repair-protocol/ | &larr; 前へ | ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？
 next: /answers/tooling/ | 次へ &rarr; | エディタ、デバッグ、エラーの使い勝手はどうですか？
 ---
@@ -12,22 +12,8 @@ next: /answers/tooling/ | 次へ &rarr; | エディタ、デバッグ、エラ�
         生成されたものです。<code>glyph llms --json</code> は、診断カタログ、prelude、stdlib のシグネチャ、言語の設計判断、ツールのマニュアルをコンパイラ自身のテーブルから出力します。手書きのコピーと食い違えば、ゲートがビルドを失敗させます。エージェントが最初に読み込むドキュメントにある Glyph の例はすべてコンパイルされます。誤りを示す例も含めてです。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          これは修辞的な質問ではありません。以前の正直な答えは「手書きで、しかも古い」だったからです。エージェント向けのブートストラップ文書には、MCP サーバーが「5 つのツールを公開する」と書かれ、5 つが挙げられていました。実際のサーバーは 7 つを提供していました。サーバー自身の説明がエージェントに真っ先に使うよう指示している 2 つは、文書に一度も登場しませんでした。58 個のエラーコードは手作業で管理する 3 つのコピーにあり、検査はコード文字列が存在するかどうかだけでした。その文書にある 19 個の Glyph の例のうち、コンパイルされていたのは 2 個で、17 個は断片としてスキップされていました。
-        </p>
-        <p>
-          どれも同じ欠陥です。コンパイラについての文書が、善意の人たちの手でコンパイラと並んで保守されていました。それを読むエージェントには、どの文がまだ正しいのか判断できません。私たちにもできませんでした。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>
-          7 つのセクションがあり、それぞれコンパイラがすでに持っているテーブルから読み出されます。診断のエントリには、カタログの説明文、1 行の修正方法、詳しい説明、そしてコンパイラが実際に出した診断から取った help と note が入っています。77 個のコードのうち 51 個には、そのコードを出す誤ったプログラムも付いていて、問い合わせた時点でコンパイルされます。残りの 26 個には、コーパスにケースがないと書かれています。
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
         <span class="cap">glyph llms --json の E0200 エントリ（抜粋）</span>
 <pre>{
   "code": "E0200",
@@ -52,19 +38,49 @@ next: /answers/tooling/ | 次へ &rarr; | エディタ、デバッグ、エラ�
       invented here would compile nowhere and be checked by nothing."
   }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>7 つのセクションがあり、それぞれコンパイラがすでに持っているテーブルから読み出されます。</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#diagnostics">診断</a></li>
+          <li><a href="#the-prelude-the-stdlib-and-the-decisions">prelude、stdlib、設計判断</a></li>
+          <li><a href="#the-wrong-programs-are-readable-too">誤ったプログラム</a></li>
+          <li><a href="#every-example-compiles-including-the-wrong-ones">コンパイルされる例</a></li>
+          <li><a href="#what-it-costs-to-hand-over-and-what-it-stopped-costing">受け渡しのコスト</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        これは修辞的な質問ではありません。以前の正直な答えは「手書きで、しかも古い」だったからです。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>ツールの一覧</b>エージェント向けのブートストラップ文書には、MCP サーバーが「5 つのツールを公開する」と書かれ、5 つが挙げられていました。実際のサーバーは 7 つを提供していました。サーバー自身の説明がエージェントに真っ先に使うよう指示している 2 つは、文書に一度も登場しませんでした。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>エラーコード</b>58 個のエラーコードは手作業で管理する 3 つのコピーにあり、検査はコード文字列が存在するかどうかだけでした。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>例</b>その文書にある 19 個の Glyph の例のうち、コンパイルされていたのは 2 個で、17 個は断片としてスキップされていました。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>どれも同じ欠陥です。コンパイラについての文書が、善意の人たちの手でコンパイラと並んで保守されていました。それを読むエージェントには、どの文がまだ正しいのか判断できません。私たちにもできませんでした。</p></div>
+
+      <h2 class="ak-h" id="diagnostics">診断のための 1 つのテーブル<a class="ak-anchor" href="#diagnostics" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        診断のエントリには、カタログの説明文、1 行の修正方法、詳しい説明、そしてコンパイラが実際に出した診断から取った help と note が入っています。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>77 個のコードのうち 51 個には、そのコードを出す誤ったプログラムも付いていて、問い合わせた時点でコンパイルされます。残りの 26 個には、コーパスにケースがないと書かれています。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">3 つのコピーを 1 つにまとめた</span></summary><div class="body">
         <p>
           77 個のコードはコンパイラ内の 1 つのテーブルから出力されます。<code>docs/error-codes.md</code> とエージェント向けブートストラップのカタログ表はそこからスクリプトで書き出され、ずれがあればスクリプトが失敗します。以前あった 3 つのコピーを統合したところ、説明はあるのに一覧に載っていないコードが 1 つと、エスケープしたパイプ記号のせいで表を密かに壊していた行が 1 つ見つかりました。
         </p>
+      </div></details>
 
-        <h2 class="block-label">prelude、stdlib、設計判断</h2>
-        <p>
-          prelude は、名前解決で参照される 24 個の名前と、それぞれが何であるかです。stdlib は 40 モジュール、340 個のエクスポートで、各シグネチャはチェッカー自身のテーブルから読み出され、診断と同じ型プリンタで出力されます。つまり文書にあるシグネチャは、チェッカーが実際に適用するシグネチャそのものです。エクスポートは必ず 3 つに分かれ、2 つになることはありません。129 個はすべての位置がモデル化されたシグネチャ、46 個はパラメータの型があるべき場所に <code>?</code> があり、<code>partially_modeled</code> として数えられて残りの位置の数を示す行が付きます。165 個にはシグネチャがまったくありません。<code>?</code> は <code>unknown</code> を表示したものなので、完全なシグネチャとして公開されることはありません。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-prelude-the-stdlib-and-the-decisions">prelude、stdlib、設計判断<a class="ak-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        prelude は、名前解決で参照される 24 個の名前と、それぞれが何であるかです。stdlib は 40 モジュール、340 個のエクスポートで、各シグネチャはチェッカー自身のテーブルから読み出され、診断と同じ型プリンタで出力されます。つまり文書にあるシグネチャは、チェッカーが実際に適用するシグネチャそのものです。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">"stdlib"</span>
@@ -99,18 +115,22 @@ next: /answers/tooling/ | 次へ &rarr; | エディタ、デバッグ、エラ�
         head is a variant reference ..." }, ... ] }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">エクスポートの分かれ方</span></summary><div class="body">
+        <p>
+          エクスポートは必ず 3 つに分かれ、2 つになることはありません。129 個はすべての位置がモデル化されたシグネチャ、46 個はパラメータの型があるべき場所に <code>?</code> があり、<code>partially_modeled</code> として数えられて残りの位置の数を示す行が付きます。165 個にはシグネチャがまったくありません。<code>?</code> は <code>unknown</code> を表示したものなので、完全なシグネチャとして公開されることはありません。
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint"><code>duplicate_numbers</code> がある理由</span></summary><div class="body">
         <p>
           <code>duplicate_numbers</code> があるのは、生成器が仕様書自身の一覧を読むからです。初めて動かしたとき、どちらも D43 と番号が付いた 2 つの異なる設計判断を見つけ、<code>"duplicate_numbers": [43]</code> と出力しました。重複を勝手にまとめるのではなく衝突として報告したので、誰かが気づけたのです。コンパイラには D 番号をキーにしている箇所がないので、影響を受けたプログラムはありませんでした。影響を受けたのは、引用をたどる読者です。これは修正済みです。D43 は <code>mut</code>-across-<code>await</code> の規則で、<code>never</code> は D47 なので、一覧は空で返ります。現在の設計判断は D1 から D49 までの 49 個です。
         </p>
+      </div></details>
 
-        <h2 class="block-label">誤ったプログラムも読める</h2>
-        <p>
-          コンパイラのネガティブコーパスは、失敗しなければならないプログラムと、それぞれが出すべきコードの集まりです。以前は <code>cargo test</code> からしか見えませんでした。ある規則が何を拒否するかを学ぼうとするエージェントこそ、このコーパスが想定する読者です。そこで今は問い合わせに答えるようになり、各ケースは問い合わせた時点でコンパイルされるので、横に並ぶ診断はこのコンパイラが出したものです。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-wrong-programs-are-readable-too">誤ったプログラムも読める<a class="ak-anchor" href="#the-wrong-programs-are-readable-too" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        コンパイラのネガティブコーパスは、失敗しなければならないプログラムと、それぞれが出すべきコードの集まりです。以前は <code>cargo test</code> からしか見えませんでした。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ある規則が何を拒否するかを学ぼうとするエージェントこそ、このコーパスが想定する読者です。そこで今は問い合わせに答えるようになり、各ケースは問い合わせた時点でコンパイルされるので、横に並ぶ診断はこのコンパイラが出したものです。</p></div>
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
@@ -133,40 +153,88 @@ next: /answers/tooling/ | 次へ &rarr; | エディタ、デバッグ、エラ�
   "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">カバー範囲と、<code>catches/</code> のコーパス</span></summary><div class="body">
         <p>
           コードを指定しないと、0.1.149 では 77 個のコードのうち 53 個にわたる 117 件のケースが一覧され、ケースのない 24 個のコードも名前が示されます。返ってきたものからカバー範囲を推測させることはしません。もう 1 つのコーパス <code>catches/</code> は、<code>tsc --strict</code> が受け入れるプログラムと、それを拒否する Glyph を対にしたもので、該当するものがあれば同じ回答に含まれます。どちらもディレクトリそのものから埋め込まれるので、どちらかにケースを追加すれば、別の箇所を忘れずに編集しなくても回答に反映されます。
         </p>
+      </div></details>
 
-        <h2 class="block-label">誤ったものも含め、すべての例がコンパイルされる</h2>
-        <p>
-          リファレンスを生成するのは半分にすぎません。残りの半分は、エージェントが最初に読み込む文章で、その中の例はエージェントがそのままコピーする部分です。その文書にある Glyph のコードブロックは、コンパイルが通る完全なプログラムか、名前付きの完全な例の断片として印が付いていて、その例の行の中に含まれていなければならないかのどちらかです。以前は 19 個のブロックのうち 2 個がコンパイルされていましたが、今は 24 個のうち 20 個がコンパイルされ、4 個に印が付いていて、スキップされるものはありません。stdlib のリファレンスは 8 個中 4 個から 8 個中 8 個になりました。
-        </p>
-        <p>
-          コードブロックには、失敗しなければならないプログラムとして、出すコードを指定した印を付けることもできます。文書が警告している 5 つの誤った書き方はこうして載せています。<code>E0228</code> を出すもの、<code>E0008</code> を出すもの、ほかに 3 つです。診断と対になった警告は検査できます。文章だけで書いた警告は約束にすぎません。
-        </p>
+      <h2 class="ak-h" id="every-example-compiles-including-the-wrong-ones">誤ったものも含め、すべての例がコンパイルされる<a class="ak-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        リファレンスを生成するのは半分にすぎません。残りの半分は、エージェントが最初に読み込む文章で、その中の例はエージェントがそのままコピーする部分です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>その文書にある Glyph のコードブロックは、コンパイルが通る完全なプログラムか、名前付きの完全な例の断片として印が付いていて、その例の行の中に含まれていなければならないかのどちらかです。</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>ブートストラップ</b>以前は 19 個のブロックのうち 2 個がコンパイルされていましたが、今は 24 個のうち 20 個がコンパイルされ、4 個に印が付いていて、スキップされるものはありません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>stdlib のリファレンス</b>stdlib のリファレンスは 8 個中 4 個から 8 個中 8 個になりました。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>誤った書き方</b>コードブロックには、失敗しなければならないプログラムとして、出すコードを指定した印を付けることもできます。文書が警告している 5 つの誤った書き方はこうして載せています。<code>E0228</code> を出すもの、<code>E0008</code> を出すもの、ほかに 3 つです。診断と対になった警告は検査できます。文章だけで書いた警告は約束にすぎません。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">文書をコンパイルして見つかった 2 つのこと</span></summary><div class="body">
         <p>
           文書をコンパイルしたことで、読むだけでは決して見つからなかった問題が 2 つ見つかりました。インラインの三連バッククォートがコードブロックの開始として読まれ、250 行が 1 つのスニペットと数えられて、その中は何も検査されていませんでした。また、stdlib リファレンスにあるサーバーの実例が <code>http.serve</code> を呼んでいましたが、<code>std/http</code> はそれをエクスポートしていません。正しい関数は <code>listen</code> です。
         </p>
+      </div></details>
 
-        <h2 class="block-label">受け渡しのコストと、かからなくなったコスト</h2>
+      <h2 class="ak-h" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">受け渡しのコストと、かからなくなったコスト<a class="ak-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        11 個の MCP ツールは以前、マニュアル全文を <code>tools/list</code> の応答に載せていて、すべてのセッションが接続時にそのコストを払っていました。45,509 バイトの応答のうち 31,446 バイトが説明でした。今は同じ 11 個のツールで、20,386 バイトの応答のうち 8,627 バイトです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>削除したものはありません。以前の文章はツール名をキーにしてそのまま保持され、<code>glyph llms --json</code> の中で公開されています。呼び出す瞬間に必要な契約は説明に入っていて、残りはすべてのセッションの最初の応答ではなく、コマンド 1 つで取得できます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">件数を守るテスト</span></summary><div class="body">
         <p>
-          11 個の MCP ツールは以前、マニュアル全文を <code>tools/list</code> の応答に載せていて、すべてのセッションが接続時にそのコストを払っていました。45,509 バイトの応答のうち 31,446 バイトが説明でした。今は同じ 11 個のツールで、20,386 バイトの応答のうち 8,627 バイトです。削除したものはありません。以前の文章はツール名をキーにしてそのまま保持され、<code>glyph llms --json</code> の中で公開されています。呼び出す瞬間に必要な契約は説明に入っていて、残りはすべてのセッションの最初の応答ではなく、コマンド 1 つで取得できます。ツール一覧と文書を一緒に読むテストがあり、サーバーが提供していないツールを文書が挙げたり、件数が一覧と食い違ったりすればビルドが失敗します。「5 つのツールを公開する」に必要だったのは、この検査です。
+          ツール一覧と文書を一緒に読むテストがあり、サーバーが提供していないツールを文書が挙げたり、件数が一覧と食い違ったりすればビルドが失敗します。「5 つのツールを公開する」に必要だったのは、この検査です。
         </p>
-        <p>
-          これはすべてオフラインかつローカルで動きます。<code>glyph llms</code> は文章を、<code>glyph llms --json</code> はデータを、<code>glyph llms --negative</code> は誤ったプログラムを出力します。同じ文章は、ネットワークはあるがバイナリのないエージェント向けに <a href="/llms.txt">llms.txt</a> でも提供しています。言語についてではなく<em>あなたの</em>コードについてエージェントが問い合わせるのは、<a href="/answers/ask-the-compiler/">クエリツール</a>です。
-        </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p><code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力します。77 個の診断コード（うち 51 個はコンパイル済みの反例付き）、32 個の予約語、24 個の prelude の名前、340 個のエクスポートを持つ 40 個の stdlib モジュール、仕様書からパースした 49 個の言語の設計判断、そして <code>glyph query</code> の動詞と完全なマニュアルを備えた 11 個のツールです。<code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表からスクリプトで書き出され、ずれがあればスクリプトが失敗し、あわせて <code>llms.txt</code> にも再反映されます。テストがツールのカタログをサーバーが実際に提供するものに合わせます。ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いています。5 つの誤った書き方は、それぞれが出すコードと対になったプログラムです。<code>glyph llms --negative</code> は、<code>cargo test</code> が実行するのと同じコーパスから答えます。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">限界</h3>
-          <p>この文書には誤ったプログラムの件数が 2 つ出てきますが、数えているものが違います。77 個のコードのうち 51 個は <code>tests/negative/</code> の反例を持ち、<code>glyph llms --negative</code> は <code>catches/</code> の拒否も読むので、0.1.149 では 53 個のコードにわたる 117 件のケースを一覧します。次のリリースでは、その後 <code>catches/</code> に追加された 22 件の拒否が加わり、55 個のコードにわたる 139 件になります。0.1.149 では 24 個のコードがどちらのコーパスにも誤ったプログラムを持たず、回答は例をでっち上げずにそのコードの名前を示します。stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返ります。実装は <code>tsc</code> が検査する TypeScript で、コンパイラ自身のテーブルはそれについて何もモデル化していないため、<code>std/result::all</code> や <code>std/io::println</code> に対する <code>glyph_symbol</code> は、その理由とともに <code>kind: null</code> を返します。シグネチャを持つ 175 個のうち 46 個には、まだパラメータの型の位置に <code>?</code> が残っています。また、この文書は取得するスナップショットであってサービスではありません。検索の仕組みも埋め込みもなく、チャットのインターフェースもありません。</p>
-        </div>
+      <h3 class="ak-h3" id="offline-and-local">オフラインかつローカル<a class="ak-anchor" href="#offline-and-local" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        これはすべてオフラインかつローカルで動きます。<code>glyph llms</code> は文章を、<code>glyph llms --json</code> はデータを、<code>glyph llms --negative</code> は誤ったプログラムを出力します。
+      </p>
+      <p>
+        同じ文章は、ネットワークはあるがバイナリのないエージェント向けに <a href="/llms.txt">llms.txt</a> でも提供しています。言語についてではなく<em>あなたの</em>コードについてエージェントが問い合わせるのは、<a href="/answers/ask-the-compiler/">クエリツール</a>です。
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力する</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>glyph llms --json</code> はコンパイラから 7 つのセクションを出力します。77 個の診断コード（うち 51 個はコンパイル済みの反例付き）、32 個の予約語、24 個の prelude の名前、340 個のエクスポートを持つ 40 個の stdlib モジュール、仕様書からパースした 49 個の言語の設計判断、そして <code>glyph query</code> の動詞と完全なマニュアルを備えた 11 個のツールです。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表から書き出される</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>docs/error-codes.md</code> とブートストラップの診断表は、コンパイラ自身のコード表からスクリプトで書き出され、ずれがあればスクリプトが失敗し、あわせて <code>llms.txt</code> にも再反映されます。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">テストがツールのカタログをサーバーが実際に提供するものに合わせます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いている</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>ブートストラップと stdlib リファレンスにある Glyph のコードブロックはすべて、コンパイルが通るか、コンパイルが通る例の断片として印が付いています。5 つの誤った書き方は、それぞれが出すコードと対になったプログラムです。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --negative</code> は、<code>cargo test</code> が実行するのと同じコーパスから答えます。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 限界</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">この文書には誤ったプログラムの件数が 2 つ出てくるが、数えているものが違う</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>この文書には誤ったプログラムの件数が 2 つ出てきますが、数えているものが違います。77 個のコードのうち 51 個は <code>tests/negative/</code> の反例を持ち、<code>glyph llms --negative</code> は <code>catches/</code> の拒否も読むので、0.1.149 では 53 個のコードにわたる 117 件のケースを一覧します。次のリリースでは、その後 <code>catches/</code> に追加された 22 件の拒否が加わり、55 個のコードにわたる 139 件になります。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">0.1.149 では 24 個のコードがどちらのコーパスにも誤ったプログラムを持たず、回答は例をでっち上げずにそのコードの名前を示します。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返る</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>stdlib の 340 個のエクスポートのうち 165 個はシグネチャなしで返ります。実装は <code>tsc</code> が検査する TypeScript で、コンパイラ自身のテーブルはそれについて何もモデル化していないため、<code>std/result::all</code> や <code>std/io::println</code> に対する <code>glyph_symbol</code> は、その理由とともに <code>kind: null</code> を返します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">シグネチャを持つ 175 個のうち 46 個には、まだパラメータの型の位置に <code>?</code> が残っています。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">また、この文書は取得するスナップショットであってサービスではありません。検索の仕組みも埋め込みもなく、チャットのインターフェースもありません。</span></span></li>
+          </ul>
+        </section>
       </div>

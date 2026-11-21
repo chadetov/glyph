@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/finance/index.html",
   "locale": "ja",
-  "source_hash": "890e758a8ba38ece",
+  "source_hash": "ea0cf18a5e027680",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,94 @@
       "tr": "任せられます。金額は<strong>正確</strong>に扱われ、「負でない」のような不変条件は<strong>境界で強制される型</strong>になり、信頼できない入力はサニタイズされないかぎり <strong>SQL やシェルのシンクに届きません</strong>。どれも、間違えればコンパイルエラーかパースエラーになります。3 つ離れた関数で誰かが覚えておかなければならない慣習ではありません。"
     },
     {
+      "id": "h-73ae9568",
+      "kind": "html",
+      "en": "the bug it removes",
+      "tr": "取り除かれるバグ"
+    },
+    {
+      "id": "h-c00b70e9",
+      "kind": "html",
+      "en": "<span>A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision.</span>",
+      "tr": "<span>IEEE-754 の <code>number</code> で作った金融システムは、報告されるのを待っているバグです。<code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は黙って精度を失います。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-171d5570",
+      "kind": "html",
+      "en": "<a href=\"#money-is-not-a-float\">Money is not a float</a>",
+      "tr": "<a href=\"#money-is-not-a-float\">お金は浮動小数点数ではない</a>"
+    },
+    {
+      "id": "h-9260e943",
+      "kind": "html",
+      "en": "<a href=\"#ids-and-counters-stay-exact-past-253\">Ids and counters</a>",
+      "tr": "<a href=\"#ids-and-counters-stay-exact-past-253\">ID とカウンタ</a>"
+    },
+    {
+      "id": "h-52648752",
+      "kind": "html",
+      "en": "<a href=\"#an-invariant-is-a-type-not-a-comment\">Invariants as types</a>",
+      "tr": "<a href=\"#an-invariant-is-a-type-not-a-comment\">型としての不変条件</a>"
+    },
+    {
+      "id": "h-847fb1bc",
+      "kind": "html",
+      "en": "<a href=\"#injection-is-a-compile-error\">Injection</a>",
+      "tr": "<a href=\"#injection-is-a-compile-error\">インジェクション</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-f57cd228",
       "kind": "html",
       "en": "Money is not a float",
       "tr": "お金は浮動小数点数ではない"
     },
     {
-      "id": "h-318aa8fb",
-      "kind": "html",
-      "en": "A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt. Add, subtract, and multiply are exact; division takes an explicit scale and rounds half away from zero; a malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
-      "tr": "IEEE-754 の <code>number</code> で作った金融システムは、報告されるのを待っているバグです。<code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は黙って精度を失います。<code>std/decimal</code> は BigInt の上に作られた正確な 10 進固定小数点数です。加算、減算、乗算は正確で、除算は明示的なスケールを取り、ちょうど半分の端数は 0 から遠ざかる方向に丸めます。不正な金額は黙って <code>NaN</code> になるのではなく、<code>Err</code> としてパースされます。"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
     },
     {
-      "id": "h-73ae9568",
+      "id": "h-815af3b2",
       "kind": "html",
-      "en": "the bug it removes",
-      "tr": "取り除かれるバグ"
+      "en": "<code>std/decimal</code> is exact base-10 fixed-point over BigInt.",
+      "tr": "<code>std/decimal</code> は BigInt の上に作られた正確な 10 進固定小数点数です。"
+    },
+    {
+      "id": "h-7ae6391e",
+      "kind": "html",
+      "en": "<b>Exact arithmetic</b>Add, subtract, and multiply are exact.",
+      "tr": "<b>正確な演算</b>加算、減算、乗算は正確です。"
+    },
+    {
+      "id": "h-af0c6772",
+      "kind": "html",
+      "en": "<b>Division</b>Division takes an explicit scale and rounds half away from zero.",
+      "tr": "<b>除算</b>除算は明示的なスケールを取り、ちょうど半分の端数は 0 から遠ざかる方向に丸めます。"
+    },
+    {
+      "id": "h-5daa298d",
+      "kind": "html",
+      "en": "<b>Bad input</b>A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "<b>不正な入力</b>不正な金額は黙って <code>NaN</code> になるのではなく、<code>Err</code> としてパースされます。"
     },
     {
       "id": "h-24b27366",
@@ -83,10 +155,16 @@
       "tr": "ID やカウンタは 2<sup>53</sup> を超えても正確"
     },
     {
-      "id": "h-3a0b55f8",
+      "id": "h-8a4050be",
       "kind": "html",
-      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe. <code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
-      "tr": "アカウント ID や台帳のカウンタが浮動小数点数の範囲を超えて丸められるのは、また別の種類の大惨事です。<code>bigint</code> は <code>123n</code> リテラルを持つ正確な任意精度整数で、<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === \"bigint\"</code> を検証します。そのため JSON の <code>number</code> として届いた ID は、黙って切り捨てられるのではなく拒否されます。"
+      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe.",
+      "tr": "アカウント ID や台帳のカウンタが浮動小数点数の範囲を超えて丸められるのは、また別の種類の大惨事です。"
+    },
+    {
+      "id": "h-9119a893",
+      "kind": "html",
+      "en": "<code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
+      "tr": "<code>bigint</code> は <code>123n</code> リテラルを持つ正確な任意精度整数で、<code>bigint</code> 型のレコードフィールドは境界で <code>typeof === \"bigint\"</code> を検証します。そのため JSON の <code>number</code> として届いた ID は、黙って切り捨てられるのではなく拒否されます。"
     },
     {
       "id": "h-66804ead",
@@ -95,10 +173,16 @@
       "tr": "不変条件はコメントではなく型"
     },
     {
-      "id": "h-a4555080",
+      "id": "h-0a0cbba0",
       "kind": "html",
-      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary. A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
-      "tr": "「金額は負でない」や「評価は 1 から 5」は、一度書かれてその後忘れられるチェックです。<code>where</code> による絞り込みは不変条件を型に入れ、ディスクリプタがそれを境界で強制します。述語を満たさない値は、そもそも <code>Amount</code> になりません。"
+      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary.",
+      "tr": "「金額は負でない」や「評価は 1 から 5」は、一度書かれてその後忘れられるチェックです。<code>where</code> による絞り込みは不変条件を型に入れ、ディスクリプタがそれを境界で強制します。"
+    },
+    {
+      "id": "h-0fd039a5",
+      "kind": "html",
+      "en": "A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
+      "tr": "述語を満たさない値は、そもそも <code>Amount</code> になりません。"
     },
     {
       "id": "h-791f6228",
@@ -107,10 +191,22 @@
       "tr": "インジェクションはコンパイルエラー"
     },
     {
-      "id": "h-0f83c921",
+      "id": "h-8673680c",
       "kind": "html",
-      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error. A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>. The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>. Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
-      "tr": "リモートコード実行の典型的な経路は、信頼できない入力が SQL クエリ、シェルコマンド、HTML テンプレートに届くことです。<code>std/taint</code> はそれを型エラーにします。外部から来た値は <code>Tainted</code> で、保護したいシンクは <code>Trusted</code> を受け取ります。この 2 つは構造的に別物なので、一方から他方へ移る方法は明示的な <code>sanitize</code> しかありません。汚染された値をシンクに直接渡すと、<code>tsc</code> がコンパイルを拒否します。"
+      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error.",
+      "tr": "リモートコード実行の典型的な経路は、信頼できない入力が SQL クエリ、シェルコマンド、HTML テンプレートに届くことです。<code>std/taint</code> はそれを型エラーにします。"
+    },
+    {
+      "id": "h-f7a00fee",
+      "kind": "html",
+      "en": "<b>Two types</b>A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>.",
+      "tr": "<b>2 つの型</b>外部から来た値は <code>Tainted</code> で、保護したいシンクは <code>Trusted</code> を受け取ります。"
+    },
+    {
+      "id": "h-7e5b4979",
+      "kind": "html",
+      "en": "<b>One way across</b>The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>.",
+      "tr": "<b>渡る道は 1 つ</b>この 2 つは構造的に別物なので、一方から他方へ移る方法は明示的な <code>sanitize</code> しかありません。"
     },
     {
       "id": "h-8aff8559",
@@ -125,6 +221,12 @@
       "tr": "インジェクションの経路は通らない"
     },
     {
+      "id": "h-2f6fe04a",
+      "kind": "html",
+      "en": "Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
+      "tr": "汚染された値をシンクに直接渡すと、<code>tsc</code> がコンパイルを拒否します。"
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -137,10 +239,34 @@
       "tr": "提供中"
     },
     {
-      "id": "h-0571eb2f",
+      "id": "h-56a9e27c",
       "kind": "html",
-      "en": "<code>std/decimal</code> for exact money, <code>bigint</code> for exact large integers, <code>where</code> refinements so an invariant is validated at the boundary, and <code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>. Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
-      "tr": "正確な金額のための <code>std/decimal</code>、正確な大きい整数のための <code>bigint</code>、不変条件を境界で検証する <code>where</code> による絞り込み、そして信頼できない入力が明示的な <code>sanitize</code> なしに保護されたシンクへ届かないようにする <code>std/taint</code>。どれも検査されます。不正な金額や ID は <code>parse</code> で失敗し、不変条件を満たさない値も <code>parse</code> で失敗し、サニタイズされていない値は <code>tsc</code> で失敗します。"
+      "en": "<code>std/decimal</code> for exact money",
+      "tr": "正確な金額のための <code>std/decimal</code>"
+    },
+    {
+      "id": "h-668f24ca",
+      "kind": "html",
+      "en": "<code>bigint</code> for exact large integers",
+      "tr": "正確な大きい整数のための <code>bigint</code>"
+    },
+    {
+      "id": "h-45474544",
+      "kind": "html",
+      "en": "<code>where</code> refinements so an invariant is validated at the boundary",
+      "tr": "不変条件を境界で検証する <code>where</code> による絞り込み"
+    },
+    {
+      "id": "h-d278b134",
+      "kind": "html",
+      "en": "<code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>",
+      "tr": "信頼できない入力が明示的な <code>sanitize</code> なしに保護されたシンクへ届かないようにする <code>std/taint</code>"
+    },
+    {
+      "id": "h-3177afa4",
+      "kind": "html",
+      "en": "Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
+      "tr": "どれも検査されます。不正な金額や ID は <code>parse</code> で失敗し、不変条件を満たさない値も <code>parse</code> で失敗し、サニタイズされていない値は <code>tsc</code> で失敗します。"
     },
     {
       "id": "h-c647197d",
@@ -149,10 +275,28 @@
       "tr": "限界"
     },
     {
-      "id": "h-b6c3fdb9",
+      "id": "h-d50c7542",
       "kind": "html",
-      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension. Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
-      "tr": "<code>where</code> による絞り込みは、現在はプリミティブの基底型に対応しています。レコードやフィールドをまたぐ不変条件（<code>where value.paid &lt;= value.total</code>）は今後の拡張として計画しています。taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではありません。コンパイラは宣言した境界を強制しますが、プログラム全体にわたる汚染を推論してくれるわけではありません。"
+      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension.",
+      "tr": "<code>where</code> による絞り込みは、現在はプリミティブの基底型に対応しています。レコードやフィールドをまたぐ不変条件（<code>where value.paid &lt;= value.total</code>）は今後の拡張として計画しています。"
+    },
+    {
+      "id": "h-6c9965e0",
+      "kind": "html",
+      "en": "Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis",
+      "tr": "taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではない"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-312bf81b",
+      "kind": "html",
+      "en": "Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
+      "tr": "taint は、シンクを <code>Trusted</code> と型付けすることで自分から採用する規律であり、自動的なフロー解析ではありません。コンパイラは宣言した境界を強制しますが、プログラム全体にわたる汚染を推論してくれるわけではありません。"
     }
   ]
 }

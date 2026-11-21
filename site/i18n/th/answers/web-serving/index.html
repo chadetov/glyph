@@ -1,7 +1,7 @@
 ---
 title: ให้บริการหน้าเว็บได้ไหม หรือได้แค่ JSON API? · Glyph
 description: std/http ให้บริการหน้า HTML, redirect, response header แบบกำหนดเอง และ form post ไม่ใช่แค่ JSON โดยที่ type checker รู้จัก response header
-source_hash: 3919e268d4a46ec8
+source_hash: 8027a10034b53500
 prev: /answers/finance/ | &larr; ก่อนหน้า | ไว้ใจมันกับเรื่องเงิน และกับ input ที่ควบคุมไม่ได้ได้ไหม?
 next: /answers/interactive-cli/ | ถัดไป &rarr; | เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?
 ---
@@ -12,20 +12,12 @@ next: /answers/interactive-cli/ | ถัดไป &rarr; | เขียนโป
         หน้าเว็บได้ <code>std/http</code> ตั้ง response header ได้ หน้า <code>text/html</code>, redirect แบบ 302, header สำหรับ cache และ form post ของ HTML จึงเป็น Glyph ธรรมดาทั้งหมด ไม่มี Express ไม่มี shim TypeScript ที่เขียนเอง
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          จนถึง 0.1.46 response คือ <code>{ status, body }</code> และ server เลือก content type จากรูปร่างของ body: string เป็น <code>text/plain</code> อย่างอื่นเป็น JSON ซึ่งใช้ได้กับ API แต่ไร้ประโยชน์กับอะไรก็ตามที่เบราว์เซอร์แสดงผล ทางออกคือเขียน server ของคุณเองบน <code>node:http</code> ในไฟล์ <code>.ts</code> ที่เขียนเอง ซึ่งทำให้เส้นทางของ request ทั้งหมดอยู่นอก type checker constructor สองตัวที่ขาดไปทำให้เสียขอบเขตของแอปไปทั้งหมด
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           นี่คือ router ของ <code>examples/apps/shortlink/main.glyph</code> ตัวย่อ URL ที่อยู่ใน repo ฟอร์ม HTML สร้างรหัส POST ตอบกลับด้วย redirect เพื่อให้การ reload ในเบราว์เซอร์ไม่ส่งซ้ำ และการตามรหัสคือ 302 ไปยังปลายทาง:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">shortlink.glyph: หน้า HTML, form post และ 302</span>
+        <div class="code">
+          <span class="cap">shortlink.glyph: หน้า HTML, form post และ 302</span>
 <pre>fn handle_home(req: Request) -&gt; Response {
   return match req.method {
     "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
@@ -55,31 +47,74 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
   let outcome = await serve(8138, route)
   return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          แอปเดียวกันนี้อยู่ใน repo เมื่อรุ่นก่อนด้วยขนาด 615 บรรทัด 121 บรรทัดในนั้นเป็น server <code>node:http</code> ที่เขียนเองในไฟล์ <code>.ts</code> ข้างๆ เพราะ <code>Location</code> และ body แบบ <code>text/html</code> ไม่มีวิธีเขียน ตอนนี้เหลือ 494 บรรทัดและไม่ import อะไรนอก <code>std</code> handler คืนค่า <code>Result&lt;Response, string&gt;</code> 404 จึงเป็น <code>Ok</code> ธรรมดา และ <code>Err</code> สงวนไว้สำหรับสิ่งที่แอปตอบไม่ได้ ซึ่ง server เปลี่ยนเป็น 500 <code>serve</code> ค้างอยู่ระหว่างที่ listen จึงไม่ต้องมีอะไรคอยทำให้ process ยังทำงานเอง และการ bind ที่ล้มเหลวกลับมาเป็นค่า
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
-          <code>Response</code> มี <code>headers: Record&lt;string, string&gt;</code> ที่บังคับ บังคับ ไม่ใช่ไม่บังคับ: ทุก constructor ใส่ให้ การอ่าน <code>resp.headers</code> จึงไม่ต้องตรวจว่ามีหรือไม่ และช่องทางนี้ถูกลืมไม่ได้ <code>with_header(resp, "cache-control", "no-store")</code> คืน response ใหม่แทนที่จะแก้ตัวเดิม เพราะ Glyph ไม่มีการแก้ field ของ record type checker รู้ว่า constructor ทั้งสามคืน <code>Response</code> handler ที่ประกาศ return type ว่า <code>Result&lt;Response, string&gt;</code> จึงถูกตรวจใน Glyph ไม่ใช่โดย <code>tsc</code> บน output ที่ generate
-        </p>
-        <p>
-          สองรายละเอียดที่ถ้าทำเองมักทำผิด อักขระใดก็ตามที่ Node ไม่ยอมเขียนลง header จะถูกตัดออกจากค่าตอนส่งออก <code>location</code> ที่สร้างจาก query parameter จึง inject header ที่สองหรือ response ที่สองไม่ได้ และอีโมจิใน URL ที่ย่อก็ทำให้ server ล่มไม่ได้ และ <code>form(req)</code> ถอด <code>+</code> เป็นช่องว่างพร้อมกับ percent escape ซึ่งเป็นคู่ที่การ parse ฟอร์มเองมักพลาด มันอ่าน body ดิบ <code>req.body</code> จึงไม่ถูกแตะสำหรับ handler ที่ parse เอง
-        </p>
-      </div>
-
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> และ <code>form</code> response header ถูกส่งจริงบน wire โดยอนุมาน content type เฉพาะเมื่อคุณไม่ได้ตั้งเอง request header, query parameter, path segment และ body ดิบฝั่งขาเข้า และ client รายงาน response header ที่ได้รับ</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>percent encoding คือช่องว่างที่โค้ดข้างบนแสดงให้เห็น: <code>form</code> ถอด body ของฟอร์มได้ แต่ไม่มี <code>encode_component</code> สำหรับสร้าง URL ตัวย่อ URL จึงเขียนเอง ฝั่ง client ยังขาด: timeout, นโยบาย redirect, <code>head</code> และ URL สุดท้ายที่ redirect ไปถึง ไม่มี server สำหรับไฟล์ static และไม่มี template engine และไม่มีแผนจะทำทั้งสองอย่าง</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>แอปเดียวกันนี้อยู่ใน repo เมื่อรุ่นก่อนด้วยขนาด 615 บรรทัด 121 บรรทัดในนั้นเป็น server <code>node:http</code> ที่เขียนเองในไฟล์ <code>.ts</code> ข้างๆ เพราะ <code>Location</code> และ body แบบ <code>text/html</code> ไม่มีวิธีเขียน ตอนนี้เหลือ 494 บรรทัดและไม่ import อะไรนอก <code>std</code></span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#a-handler-returns-a-result">handler คืน Result</a></li>
+          <li><a href="#every-response-carries-headers">ทุก response มี header</a></li>
+          <li><a href="#two-details-you-would-otherwise-get-wrong-by-hand">สองรายละเอียด</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        จนถึง 0.1.46 response คือ <code>{ status, body }</code> และ server เลือก content type จากรูปร่างของ body: string เป็น <code>text/plain</code> อย่างอื่นเป็น JSON ซึ่งใช้ได้กับ API แต่ไร้ประโยชน์กับอะไรก็ตามที่เบราว์เซอร์แสดงผล
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ทางออกคือเขียน server ของคุณเองบน <code>node:http</code> ในไฟล์ <code>.ts</code> ที่เขียนเอง ซึ่งทำให้เส้นทางของ request ทั้งหมดอยู่นอก type checker constructor สองตัวที่ขาดไปทำให้เสียขอบเขตของแอปไปทั้งหมด
+      </p></div>
+
+      <h2 class="ak-h" id="a-handler-returns-a-result">handler คืน <code>Result</code><a class="ak-anchor" href="#a-handler-returns-a-result" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        handler คืนค่า <code>Result&lt;Response, string&gt;</code> 404 จึงเป็น <code>Ok</code> ธรรมดา และ <code>Err</code> สงวนไว้สำหรับสิ่งที่แอปตอบไม่ได้ ซึ่ง server เปลี่ยนเป็น 500
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>serve</code> ค้างอยู่ระหว่างที่ listen จึงไม่ต้องมีอะไรคอยทำให้ process ยังทำงานเอง และการ bind ที่ล้มเหลวกลับมาเป็นค่า
+      </p></div>
+
+      <h2 class="ak-h" id="every-response-carries-headers">ทุก response มี header<a class="ak-anchor" href="#every-response-carries-headers" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Response</code> มี <code>headers: Record&lt;string, string&gt;</code> ที่บังคับ บังคับ ไม่ใช่ไม่บังคับ: ทุก constructor ใส่ให้ การอ่าน <code>resp.headers</code> จึงไม่ต้องตรวจว่ามีหรือไม่ และช่องทางนี้ถูกลืมไม่ได้
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>response ใหม่ ไม่ใช่การแก้ตัวเดิม</b><code>with_header(resp, "cache-control", "no-store")</code> คืน response ใหม่แทนที่จะแก้ตัวเดิม เพราะ Glyph ไม่มีการแก้ field ของ record</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>ตรวจใน Glyph</b>type checker รู้ว่า constructor ทั้งสามคืน <code>Response</code> handler ที่ประกาศ return type ว่า <code>Result&lt;Response, string&gt;</code> จึงถูกตรวจใน Glyph ไม่ใช่โดย <code>tsc</code> บน output ที่ generate</li>
+      </ul>
+
+      <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">สองรายละเอียดที่ถ้าทำเองมักทำผิด<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>ค่าใน header</b>อักขระใดก็ตามที่ Node ไม่ยอมเขียนลง header จะถูกตัดออกจากค่าตอนส่งออก <code>location</code> ที่สร้างจาก query parameter จึง inject header ที่สองหรือ response ที่สองไม่ได้ และอีโมจิใน URL ที่ย่อก็ทำให้ server ล่มไม่ได้</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>body ของฟอร์ม</b>และ <code>form(req)</code> ถอด <code>+</code> เป็นช่องว่างพร้อมกับ percent escape ซึ่งเป็นคู่ที่การ parse ฟอร์มเองมักพลาด มันอ่าน body ดิบ <code>req.body</code> จึงไม่ถูกแตะสำหรับ handler ที่ parse เอง</li>
+      </ul>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> และ <code>form</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">response header ถูกส่งจริงบน wire โดยอนุมาน content type เฉพาะเมื่อคุณไม่ได้ตั้งเอง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">request header, query parameter, path segment และ body ดิบฝั่งขาเข้า</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">client รายงาน response header ที่ได้รับ</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">percent encoding คือช่องว่างที่โค้ดข้างบนแสดงให้เห็น</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>percent encoding คือช่องว่างที่โค้ดข้างบนแสดงให้เห็น: <code>form</code> ถอด body ของฟอร์มได้ แต่ไม่มี <code>encode_component</code> สำหรับสร้าง URL ตัวย่อ URL จึงเขียนเอง</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ฝั่ง client ยังขาด: timeout, นโยบาย redirect, <code>head</code> และ URL สุดท้ายที่ redirect ไปถึง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ไม่มี server สำหรับไฟล์ static และไม่มี template engine และไม่มีแผนจะทำทั้งสองอย่าง</span></span></li>
+          </ul>
+        </section>
       </div>

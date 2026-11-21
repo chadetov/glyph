@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ask-the-compiler/index.html",
   "locale": "th",
-  "source_hash": "49fea6335f3e735f",
+  "source_hash": "074134dc5808375e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "ในการเรียกครั้งเดียว <code>glyph_symbol</code> รับ <code>module::name</code> ที่ diagnostic พิมพ์ไว้แล้ว หรือตำแหน่งในไฟล์ แล้วตอบด้วย field ของ record พร้อม type, variant ของ union พร้อม payload <em>และ syntax ที่ใช้สร้างแต่ละตัว</em>, parameter และ return ของสิ่งที่เรียกได้, member ของ interface และ <code>match</code> บนมันต้องครบทุกกรณีหรือไม่"
     },
     {
+      "id": "h-5a61b662",
+      "kind": "html",
+      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
+      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+    },
+    {
+      "id": "h-1b5b4b70",
+      "kind": "html",
+      "en": "<span>A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it.</span>",
+      "tr": "<span>โปรเจกต์สามไฟล์ที่ประกาศ <code>OrderStatus</code> ไว้ใน <code>orders.glyph</code> ถามจาก <code>main.glyph</code> ซึ่งไม่ได้ import มัน</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมเรื่องนี้สำคัญ</a>"
+    },
+    {
+      "id": "h-3e1b2cdf",
+      "kind": "html",
+      "en": "<a href=\"#absent\">Every null says why</a>",
+      "tr": "<a href=\"#absent\">ทุก null บอกเหตุผล</a>"
+    },
+    {
+      "id": "h-a043de17",
+      "kind": "html",
+      "en": "<a href=\"#the-second-question-an-agent-asks\">Assignable</a>",
+      "tr": "<a href=\"#the-second-question-an-agent-asks\">Assignable</a>"
+    },
+    {
+      "id": "h-df1b183a",
+      "kind": "html",
+      "en": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">Dependencies and exports</a>",
+      "tr": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">dependency และ export</a>"
+    },
+    {
+      "id": "h-788b5b99",
+      "kind": "html",
+      "en": "<a href=\"#eleven-tools-and-no-client-required\">Eleven tools</a>",
+      "tr": "<a href=\"#eleven-tools-and-no-client-required\">สิบเอ็ดเครื่องมือ</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "ทำไมเรื่องนี้สำคัญ"
     },
     {
-      "id": "h-219d5bd7",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-9dd95e45",
       "kind": "html",
-      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first. Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic. The compiler had the payload the whole time. The tool dropped it one line before the reply.",
-      "tr": "เอเจนต์ที่ถูกขอให้จัดการ case ใหม่ใน union ที่มันไม่ได้ประกาศเองต้องรู้ว่า variant ถืออะไรไว้ การอ่าน declaration หมายถึงต้องหาไฟล์ก่อน การค้นหาสัญลักษณ์เคยให้แค่ชื่อและช่วงไบต์ และรายการ variant เคยให้แค่ <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code> จากตรงนั้นเอเจนต์เขียน <code>Paid(\"tx_1\")</code> ซึ่งไม่ใช่รูปร่างที่ถูก แล้วไปรู้จาก diagnostic คอมไพเลอร์มี payload อยู่ตลอด เครื่องมือทิ้งมันไปหนึ่งบรรทัดก่อนตอบ"
+      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first.",
+      "tr": "เอเจนต์ที่ถูกขอให้จัดการ case ใหม่ใน union ที่มันไม่ได้ประกาศเองต้องรู้ว่า variant ถืออะไรไว้ การอ่าน declaration หมายถึงต้องหาไฟล์ก่อน"
+    },
+    {
+      "id": "h-b71b5e03",
+      "kind": "html",
+      "en": "The compiler had the payload the whole time. The tool dropped it one line before the reply.",
+      "tr": "คอมไพเลอร์มี payload อยู่ตลอด เครื่องมือทิ้งมันไปหนึ่งบรรทัดก่อนตอบ"
+    },
+    {
+      "id": "h-80dc131b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what symbol search used to return</span>",
+      "tr": "ที่มา <span class=\"hint\">สิ่งที่การค้นหาสัญลักษณ์เคยคืนให้</span>"
+    },
+    {
+      "id": "h-cd6cfed4",
+      "kind": "html",
+      "en": "Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic.",
+      "tr": "การค้นหาสัญลักษณ์เคยให้แค่ชื่อและช่วงไบต์ และรายการ variant เคยให้แค่ <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code> จากตรงนั้นเอเจนต์เขียน <code>Paid(\"tx_1\")</code> ซึ่งไม่ใช่รูปร่างที่ถูก แล้วไปรู้จาก diagnostic"
     },
     {
       "id": "h-792dfc1e",
@@ -77,28 +161,34 @@
       "tr": "นั่นคือรูปแบบที่ช่องทางสำหรับเอเจนต์สร้างขึ้นมาเพื่อกำจัด: ข้อเท็จจริงที่คอมไพเลอร์คำนวณและ memoize ไว้แล้ว แต่ไม่มีเครื่องมือไหนส่งให้ การตรวจโปรเจกต์สาม module พบว่า hover ตอบได้สองจากสิบสี่ตำแหน่ง และทุก union มาโดยไม่มี payload"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-9dfde380",
       "kind": "html",
-      "en": "See it",
-      "tr": "ดูของจริง"
+      "en": "Every null says why",
+      "tr": "ทุก null บอกเหตุผล"
     },
     {
-      "id": "h-8933304a",
+      "id": "h-51cfd156",
       "kind": "html",
-      "en": "A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it:",
-      "tr": "โปรเจกต์สามไฟล์ที่ประกาศ <code>OrderStatus</code> ไว้ใน <code>orders.glyph</code> ถามจาก <code>main.glyph</code> ซึ่งไม่ได้ import มัน:"
+      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair.",
+      "tr": "ตัดบางส่วน: คำตอบยังมี <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> และ <code>examples</code> ทุกตัวมาเป็นคู่"
     },
     {
-      "id": "h-5a61b662",
+      "id": "h-2bc1e4c0",
       "kind": "html",
-      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
-      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+      "en": "A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look.",
+      "tr": "key จะเป็น null ก็ต่อเมื่อมีประโยค <code>&lt;key&gt;_absent</code> อยู่ข้างๆ บอกเหตุผล เอเจนต์จึงไม่ต้องเดาว่าคำตอบที่หายไปหมายถึงสัญลักษณ์ไม่มีสิ่งนั้น หรือเครื่องมือไม่ได้ดู"
     },
     {
-      "id": "h-02fdd57a",
+      "id": "h-9d019d94",
       "kind": "html",
-      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look. An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
-      "tr": "ตัดบางส่วน: คำตอบยังมี <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> และ <code>examples</code> ทุกตัวมาเป็นคู่ key จะเป็น null ก็ต่อเมื่อมีประโยค <code>&lt;key&gt;_absent</code> อยู่ข้างๆ บอกเหตุผล เอเจนต์จึงไม่ต้องเดาว่าคำตอบที่หายไปหมายถึงสัญลักษณ์ไม่มีสิ่งนั้น หรือเครื่องมือไม่ได้ดู <code>const</code> ที่ไม่มี annotation จะไม่รายงาน type ตามกฎนี้: ตัวตรวจตั้งใจไม่อนุมาน type ของ declaration จาก initializer การพิมพ์ type ของ initializer จะบอกผู้เรียกว่าการใช้ชื่อนั้นถูกตรวจกับบางอย่าง ทั้งที่ไม่ได้ตรวจอะไรเลย"
+      "en": "Details <span class=\"hint\">an unannotated const</span>",
+      "tr": "รายละเอียด <span class=\"hint\">const ที่ไม่มี annotation</span>"
+    },
+    {
+      "id": "h-327f00e8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
+      "tr": "<code>const</code> ที่ไม่มี annotation จะไม่รายงาน type ตามกฎนี้: ตัวตรวจตั้งใจไม่อนุมาน type ของ declaration จาก initializer การพิมพ์ type ของ initializer จะบอกผู้เรียกว่าการใช้ชื่อนั้นถูกตรวจกับบางอย่าง ทั้งที่ไม่ได้ตรวจอะไรเลย"
     },
     {
       "id": "h-cc83e6b0",
@@ -107,10 +197,10 @@
       "tr": "คำถามที่สองที่เอเจนต์ถาม"
     },
     {
-      "id": "h-2a8e6b09",
+      "id": "h-f8cc6140",
       "kind": "html",
-      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
-      "tr": "เมื่อได้รูปร่างแล้ว สิ่งถัดไปที่มันอยากรู้คือค่าที่ถืออยู่ใส่ในที่ที่กำลังจะใส่ได้ไหม <code>glyph_assignable</code> ใช้การเปรียบเทียบของตัวตรวจเอง แต่ละฝั่งเป็น <code>module::name</code> หรือการเขียน type ของ Glyph อ่านในขอบเขตของไฟล์ที่คุณระบุ และคำตัดสินบอกว่าเกิดอะไรขึ้นในสามแบบ"
+      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison.",
+      "tr": "เมื่อได้รูปร่างแล้ว สิ่งถัดไปที่มันอยากรู้คือค่าที่ถืออยู่ใส่ในที่ที่กำลังจะใส่ได้ไหม <code>glyph_assignable</code> ใช้การเปรียบเทียบของตัวตรวจเอง"
     },
     {
       "id": "h-e37be644",
@@ -125,6 +215,30 @@
       "tr": "--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'"
     },
     {
+      "id": "h-c17d3a79",
+      "kind": "html",
+      "en": "COMPATIBLE",
+      "tr": "COMPATIBLE"
+    },
+    {
+      "id": "h-72566458",
+      "kind": "html",
+      "en": "UNDETERMINED",
+      "tr": "UNDETERMINED"
+    },
+    {
+      "id": "h-880e6791",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the three verdicts, and why not SAFE</span>",
+      "tr": "รายละเอียด <span class=\"hint\">คำตัดสินสามแบบ และทำไมไม่มี SAFE</span>"
+    },
+    {
+      "id": "h-afce8128",
+      "kind": "html",
+      "en": "Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
+      "tr": "แต่ละฝั่งเป็น <code>module::name</code> หรือการเขียน type ของ Glyph อ่านในขอบเขตของไฟล์ที่คุณระบุ และคำตัดสินบอกว่าเกิดอะไรขึ้นในสามแบบ"
+    },
+    {
       "id": "h-0215b8b5",
       "kind": "html",
       "en": "The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed whenever no rule covers the pairing: two function types come back that way, because the relation underneath compares the returns and says nothing about the parameters. Its silence there is not an acceptance, and the tool won't report it as one.",
@@ -137,10 +251,34 @@
       "tr": "อีกทิศทาง: สิ่งนี้พึ่งพาอะไร และ module นั้นให้อะไรฉันบ้าง"
     },
     {
-      "id": "h-9ebb8917",
+      "id": "h-101d2e6c",
       "kind": "html",
-      "en": "<code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature. An agent about to write an import can ask what is on the other side instead of opening the file.",
-      "tr": "<code>glyph_references</code> ตอบว่าใครใช้สัญลักษณ์หนึ่ง <code>glyph_dependencies</code> คือตารางเดียวกันอ่านจากอีกฝั่ง: declaration หนึ่งพึ่งพาอะไร ทุก declaration ที่ซอร์สของมันอ้างถึง แยกเป็น <code>CALLS</code>, <code>REFERENCES</code> และ <code>FIELD_ACCESS</code> แต่ละเส้นมีทั้งสองปลายและตำแหน่งที่อยู่ <code>glyph_exports</code> ตอบว่า module หนึ่งเปิดอะไรให้ผู้ import เห็น จากคิวรี export ของคอมไพเลอร์เอง ไม่ใช่จากการสแกน: ทุก declaration ที่เป็น <code>pub</code> และทุก variant ที่ union แบบ <code>pub</code> ยกขึ้นมา แต่ละตัวเป็นรายการพร้อมตัวตน ชนิด และ signature เอเจนต์ที่กำลังจะเขียน import ถามได้ว่ามีอะไรอยู่อีกฝั่งแทนที่จะเปิดไฟล์"
+      "en": "An agent about to write an import can ask what is on the other side instead of opening the file.",
+      "tr": "เอเจนต์ที่กำลังจะเขียน import ถามได้ว่ามีอะไรอยู่อีกฝั่งแทนที่จะเปิดไฟล์"
+    },
+    {
+      "id": "h-7e43a45c",
+      "kind": "html",
+      "en": "<b>glyph_references</b><code>glyph_references</code> answers who uses a symbol.",
+      "tr": "<b>glyph_references</b><code>glyph_references</code> ตอบว่าใครใช้สัญลักษณ์หนึ่ง"
+    },
+    {
+      "id": "h-ea895ac1",
+      "kind": "html",
+      "en": "<b>glyph_dependencies</b><code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits.",
+      "tr": "<b>glyph_dependencies</b><code>glyph_dependencies</code> คือตารางเดียวกันอ่านจากอีกฝั่ง: declaration หนึ่งพึ่งพาอะไร ทุก declaration ที่ซอร์สของมันอ้างถึง แยกเป็น <code>CALLS</code>, <code>REFERENCES</code> และ <code>FIELD_ACCESS</code> แต่ละเส้นมีทั้งสองปลายและตำแหน่งที่อยู่"
+    },
+    {
+      "id": "h-1649710e",
+      "kind": "html",
+      "en": "<b>glyph_exports</b><code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature.",
+      "tr": "<b>glyph_exports</b><code>glyph_exports</code> ตอบว่า module หนึ่งเปิดอะไรให้ผู้ import เห็น จากคิวรี export ของคอมไพเลอร์เอง ไม่ใช่จากการสแกน: ทุก declaration ที่เป็น <code>pub</code> และทุก variant ที่ union แบบ <code>pub</code> ยกขึ้นมา แต่ละตัวเป็นรายการพร้อมตัวตน ชนิด และ signature"
+    },
+    {
+      "id": "h-fccb5493",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the PROVED bug the mirror caught</span>",
+      "tr": "ที่มา <span class=\"hint\">บั๊ก PROVED ที่ภาพสะท้อนจับได้</span>"
     },
     {
       "id": "h-09a3c3e6",
@@ -155,10 +293,28 @@
       "tr": "สิบเอ็ดเครื่องมือ และไม่ต้องมี client"
     },
     {
-      "id": "h-20c89689",
+      "id": "h-0479f586",
       "kind": "html",
-      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
-      "tr": "<code>glyph mcp</code> ให้บริการสิบเอ็ดตัว: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่รับ argument เดียวกันเป็น flag และพิมพ์ JSON เดียวกัน วิ่งผ่าน entry point เดียวกับที่ client ใช้ เอเจนต์ที่รันได้แค่คำสั่ง shell จึงถามคำถามเดียวกันได้ <code>glyph_diagnostics</code> ตรวจไฟล์ภายในโปรเจกต์และคืน diagnostic ที่ <code>glyph check --json</code> พิมพ์ จาก type ของ Rust ตัวเดียวกัน พร้อมเทสต์ที่รันทั้งสองช่องทางบนหกโปรเจกต์และเทียบ JSON ทีละ key รายละเอียดเต็มอยู่ใน<a href=\"/mcp/\">หน้า MCP</a>"
+      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>.",
+      "tr": "<code>glyph mcp</code> ให้บริการสิบเอ็ดตัว: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code>"
+    },
+    {
+      "id": "h-9abd68c7",
+      "kind": "html",
+      "en": "Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions.",
+      "tr": "แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่รับ argument เดียวกันเป็น flag และพิมพ์ JSON เดียวกัน วิ่งผ่าน entry point เดียวกับที่ client ใช้ เอเจนต์ที่รันได้แค่คำสั่ง shell จึงถามคำถามเดียวกันได้"
+    },
+    {
+      "id": "h-9bf2bb9c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">diagnostics, and what comes after an edit</span>",
+      "tr": "รายละเอียด <span class=\"hint\">diagnostic และสิ่งที่ตามมาหลังการแก้</span>"
+    },
+    {
+      "id": "h-5a225513",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
+      "tr": "<code>glyph_diagnostics</code> ตรวจไฟล์ภายในโปรเจกต์และคืน diagnostic ที่ <code>glyph check --json</code> พิมพ์ จาก type ของ Rust ตัวเดียวกัน พร้อมเทสต์ที่รันทั้งสองช่องทางบนหกโปรเจกต์และเทียบ JSON ทีละ key รายละเอียดเต็มอยู่ใน<a href=\"/mcp/\">หน้า MCP</a>"
     },
     {
       "id": "h-8c970d25",
@@ -179,10 +335,70 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-ee58dc62",
+      "id": "h-a4983ea8",
       "kind": "html",
-      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
-      "tr": "เครื่องมืออ่านสิบเอ็ดตัวผ่าน MCP แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> <code>glyph_symbol</code> ตอบตามตัวตนหรือตามตำแหน่ง และทุกข้อเท็จจริงที่มันไม่มีเป็น null พร้อมประโยคบอกเหตุผล ตัวตนไปถึง stdlib: <code>Result</code> ใน prelude คือ <code>std/result::Result</code> ซึ่งเป็น module ที่ resolver ลงทะเบียนมันไว้ และเป็น module ที่ emitter เขียน import มาจาก <code>glyph query symbol --entity std/result::Result</code> จึงตอบด้วย <code>Ok(T)</code> และ <code>Err(E)</code>, <code>glyph query exports --module std/result</code> แสดงรายการ API และ <code>E0200</code> บนมันมีตัวตนนั้นใน <code>cause</code> ไม่มีซอร์ส Glyph อยู่เบื้องหลัง <code>path</code> และ <code>range</code> จึงเป็น null พร้อมเหตุผลนั้น แทนที่จะหายไป hover ตอบได้ครบทั้งสิบสี่ตำแหน่งที่การตรวจทดสอบบนโปรเจกต์สาม module เทียบกับสองตำแหน่งก่อนเริ่มงานนี้: ชื่อที่ประกาศใน module อื่นตอบจาก declaration ของ module นั้นเอง binding ของ import ฟังก์ชันที่ import มา ณ จุดที่เรียก variant ที่ import มาและใช้เป็นค่า และ field ที่อ่านจาก record ที่ import มา จึงมี type ทั้งหมด <code>glyph_dependencies</code> และ <code>glyph_exports</code> ปิดชุดที่ G221 ขอไว้ <code>glyph_variants</code> มี payload และ syntax การสร้างของแต่ละตัว <code>glyph_definition</code> และ <code>glyph_symbols</code> มี <code>module::name</code> คำตอบจึงต่อเข้า <code>glyph_impact</code> ได้โดยไม่ต้องหาใหม่ ตาราง signature-type ของ <code>glyph_impact</code> ตัดสิน container เทียบ container, record เชิงโครงสร้างเทียบ record เชิงโครงสร้างหรือที่ประกาศไว้ (ในเครื่อง ที่ import มา generic หรือชื่อที่สอง), element ของ JSX ในฐานะการเรียกที่มันถูกแปลงไป และ union ของ string literal ทั้งสองฝั่งด้วยการเปรียบเทียบเดียวกับที่ <code>glyph_assignable</code> ทำ เครื่องมือทั้งสองจึงขัดแย้งกันเรื่องการจับคู่หนึ่งไม่ได้ argument ที่ความสัมพันธ์อ่านการจับคู่ได้ครบเป็น <code>WILL_FAIL</code> ไม่ว่าการเปรียบเทียบจะออกมาทางไหน เพราะ <code>change_signature_type</code> ไม่ได้ระบุ type ที่ใช้แทน และการจับคู่ที่ยอมรับคือการจับคู่ที่ type ที่ใช้แทนอาจถูกปฏิเสธได้ มีเพียงการจับคู่ที่ความสัมพันธ์ปฏิเสธที่จะตัดสินเท่านั้นที่เป็น <code>UNDETERMINED</code>"
+      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb.",
+      "tr": "เครื่องมืออ่านสิบเอ็ดตัวผ่าน MCP แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code>"
+    },
+    {
+      "id": "h-eaf09bfb",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why.",
+      "tr": "<code>glyph_symbol</code> ตอบตามตัวตนหรือตามตำแหน่ง และทุกข้อเท็จจริงที่มันไม่มีเป็น null พร้อมประโยคบอกเหตุผล"
+    },
+    {
+      "id": "h-26d3cf6c",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: <code>std/result::Result</code>",
+      "tr": "ตัวตนไปถึง stdlib: <code>std/result::Result</code>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "รายละเอียด"
+    },
+    {
+      "id": "h-c6a79276",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "ตัวตนไปถึง stdlib: <code>Result</code> ใน prelude คือ <code>std/result::Result</code> ซึ่งเป็น module ที่ resolver ลงทะเบียนมันไว้ และเป็น module ที่ emitter เขียน import มาจาก <code>glyph query symbol --entity std/result::Result</code> จึงตอบด้วย <code>Ok(T)</code> และ <code>Err(E)</code>, <code>glyph query exports --module std/result</code> แสดงรายการ API และ <code>E0200</code> บนมันมีตัวตนนั้นใน <code>cause</code> ไม่มีซอร์ส Glyph อยู่เบื้องหลัง <code>path</code> และ <code>range</code> จึงเป็น null พร้อมเหตุผลนั้น แทนที่จะหายไป"
+    },
+    {
+      "id": "h-a239fdbd",
+      "kind": "html",
+      "en": "Hover answers fourteen of fourteen probed positions",
+      "tr": "hover ตอบได้สิบสี่จากสิบสี่ตำแหน่งที่ทดสอบ"
+    },
+    {
+      "id": "h-12f1a0b3",
+      "kind": "html",
+      "en": "Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type.",
+      "tr": "hover ตอบได้ครบทั้งสิบสี่ตำแหน่งที่การตรวจทดสอบบนโปรเจกต์สาม module เทียบกับสองตำแหน่งก่อนเริ่มงานนี้: ชื่อที่ประกาศใน module อื่นตอบจาก declaration ของ module นั้นเอง binding ของ import ฟังก์ชันที่ import มา ณ จุดที่เรียก variant ที่ import มาและใช้เป็นค่า และ field ที่อ่านจาก record ที่ import มา จึงมี type ทั้งหมด"
+    },
+    {
+      "id": "h-21213f2b",
+      "kind": "html",
+      "en": "<code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for.",
+      "tr": "<code>glyph_dependencies</code> และ <code>glyph_exports</code> ปิดชุดที่ G221 ขอไว้"
+    },
+    {
+      "id": "h-b365fc61",
+      "kind": "html",
+      "en": "<code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.",
+      "tr": "<code>glyph_variants</code> มี payload และ syntax การสร้างของแต่ละตัว <code>glyph_definition</code> และ <code>glyph_symbols</code> มี <code>module::name</code> คำตอบจึงต่อเข้า <code>glyph_impact</code> ได้โดยไม่ต้องหาใหม่"
+    },
+    {
+      "id": "h-02aeeb71",
+      "kind": "html",
+      "en": "<code>glyph_impact</code> and <code>glyph_assignable</code> make the same comparison",
+      "tr": "<code>glyph_impact</code> และ <code>glyph_assignable</code> ใช้การเปรียบเทียบเดียวกัน"
+    },
+    {
+      "id": "h-55755ba6",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
+      "tr": "ตาราง signature-type ของ <code>glyph_impact</code> ตัดสิน container เทียบ container, record เชิงโครงสร้างเทียบ record เชิงโครงสร้างหรือที่ประกาศไว้ (ในเครื่อง ที่ import มา generic หรือชื่อที่สอง), element ของ JSX ในฐานะการเรียกที่มันถูกแปลงไป และ union ของ string literal ทั้งสองฝั่งด้วยการเปรียบเทียบเดียวกับที่ <code>glyph_assignable</code> ทำ เครื่องมือทั้งสองจึงขัดแย้งกันเรื่องการจับคู่หนึ่งไม่ได้ argument ที่ความสัมพันธ์อ่านการจับคู่ได้ครบเป็น <code>WILL_FAIL</code> ไม่ว่าการเปรียบเทียบจะออกมาทางไหน เพราะ <code>change_signature_type</code> ไม่ได้ระบุ type ที่ใช้แทน และการจับคู่ที่ยอมรับคือการจับคู่ที่ type ที่ใช้แทนอาจถูกปฏิเสธได้ มีเพียงการจับคู่ที่ความสัมพันธ์ปฏิเสธที่จะตัดสินเท่านั้นที่เป็น <code>UNDETERMINED</code>"
     },
     {
       "id": "h-c647197d",
@@ -191,10 +407,46 @@
       "tr": "หยุดตรงไหน"
     },
     {
-      "id": "h-10bbc9ca",
+      "id": "h-a76df265",
       "kind": "html",
-      "en": "No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
-      "tr": "ไม่มีเครื่องมือไหนที่นี่เขียน: ไม่มี rename ไม่มีการแก้ที่นำไปใช้ ฝั่งเขียนคือ <code>glyph fix</code> บน command line และมันซ่อมสามอย่าง ไม่ใช่อะไรก็ได้ที่คุณขอ: import ที่ไม่ได้ใช้, หัวของ arm ที่ตัวตรวจมีคำแนะนำเดียวพอดี และชื่อ field ที่ห่างหนึ่งตัวอักษรจาก field ที่ประกาศไว้ตัวเดียวพอดี export ของ stdlib ที่คอมไพเลอร์ไม่ได้ model ทั้ง declaration และ signature จะตอบ <code>kind: null</code> พร้อมเหตุผล: <code>std/result::all</code> และ <code>std/io::println</code> มี type อยู่ใน TypeScript ที่คอมไพเลอร์นำเข้าไป และไม่มี pass ของ Glyph ไหนอ่าน <code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ: <code>tsc</code>, การตรวจ <code>E0104</code> สำหรับ import ที่อ้างถึง module ที่ไม่มี ซึ่งต้องใช้มุมมอง <code>node_modules</code> ของ build และ <code>E0400</code> สำหรับ <code>@example</code> ที่ fail ซึ่งต้องรันโปรเจกต์ที่ emit ออกมา มันระบุทั้งสามไว้ใน <code>not_run</code> แทนที่จะตอบราวกับว่าได้ทำแล้ว"
+      "en": "No tool here writes: no rename, no applied edit.",
+      "tr": "ไม่มีเครื่องมือไหนที่นี่เขียน: ไม่มี rename ไม่มีการแก้ที่นำไปใช้"
+    },
+    {
+      "id": "h-59d7723c",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code>, and it repairs three things",
+      "tr": "ฝั่งเขียนคือ <code>glyph fix</code> และมันซ่อมสามอย่าง"
+    },
+    {
+      "id": "h-33bb06a4",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field.",
+      "tr": "ฝั่งเขียนคือ <code>glyph fix</code> บน command line และมันซ่อมสามอย่าง ไม่ใช่อะไรก็ได้ที่คุณขอ: import ที่ไม่ได้ใช้, หัวของ arm ที่ตัวตรวจมีคำแนะนำเดียวพอดี และชื่อ field ที่ห่างหนึ่งตัวอักษรจาก field ที่ประกาศไว้ตัวเดียวพอดี"
+    },
+    {
+      "id": "h-54ebfe52",
+      "kind": "html",
+      "en": "Some stdlib exports answer <code>kind: null</code>",
+      "tr": "export บางตัวของ stdlib ตอบ <code>kind: null</code>"
+    },
+    {
+      "id": "h-6945e06c",
+      "kind": "html",
+      "en": "A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads.",
+      "tr": "export ของ stdlib ที่คอมไพเลอร์ไม่ได้ model ทั้ง declaration และ signature จะตอบ <code>kind: null</code> พร้อมเหตุผล: <code>std/result::all</code> และ <code>std/io::println</code> มี type อยู่ใน TypeScript ที่คอมไพเลอร์นำเข้าไป และไม่มี pass ของ Glyph ไหนอ่าน"
+    },
+    {
+      "id": "h-58622937",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes, and names them in <code>not_run</code>",
+      "tr": "<code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ และระบุไว้ใน <code>not_run</code>"
+    },
+    {
+      "id": "h-66a285a5",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
+      "tr": "<code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ: <code>tsc</code>, การตรวจ <code>E0104</code> สำหรับ import ที่อ้างถึง module ที่ไม่มี ซึ่งต้องใช้มุมมอง <code>node_modules</code> ของ build และ <code>E0400</code> สำหรับ <code>@example</code> ที่ fail ซึ่งต้องรันโปรเจกต์ที่ emit ออกมา มันระบุทั้งสามไว้ใน <code>not_run</code> แทนที่จะตอบราวกับว่าได้ทำแล้ว"
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 title: เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน? · Glyph
 description: ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่
-source_hash: cb5e3e02dc597369
+source_hash: 15511937ba2844d1
 prev: /answers/diff-stability/ | &larr; ก่อนหน้า | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 next: /answers/why-typescript/ | ถัดไป &rarr; | ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?
 ---
@@ -12,30 +12,32 @@ next: /answers/why-typescript/ | ถัดไป &rarr; | ทำไมต้อ�
         ทุก construct มี<strong>รูปแบบเดียวเท่านั้น</strong>ให้ค้นหา <code>grep</code> ธรรมดา (ซึ่งเป็นวิธีที่เอเจนต์ใช้นำทางจริงๆ) เจอนิยามเดียว <strong>ไม่ใช่ห้าสิบจุดที่เกือบใช่</strong>
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          เอเจนต์ไม่ได้จำทั้ง repo ไว้ในหัว มัน<strong>ค้นหา</strong> ถ้าแนวคิดหนึ่งเขียนได้ห้าแบบ การค้นหาก็จะพลาดบางกรณี และเอเจนต์ที่มั่นใจแต่หานิยามที่มีอยู่ไม่เจอก็จะสร้างตัวที่สองขึ้นมา รูปแบบเดียวต่อแนวคิดหมายความว่าการค้นหาครบถ้วน เอเจนต์จึงแก้สิ่งที่มีอยู่แทนที่จะทำซ้ำ
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p>Glyph จำกัดการแก้ค่าไว้สองรูปแบบ (<code>mut x = &hellip;</code> และ <code>mut x.method(&hellip;)</code>) <em>ทุก</em>จุดที่ state เปลี่ยนจึงหาเจอได้ด้วยการค้นหาครั้งเดียว:</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/ (ทุกการแก้ค่าใน codebase)</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph จำกัดการแก้ค่าไว้สองรูปแบบ (<code>mut x = &hellip;</code> และ <code>mut x.method(&hellip;)</code>) <em>ทุก</em>จุดที่ state เปลี่ยนจึงหาเจอได้ด้วยการค้นหาครั้งเดียว สามการแก้ค่า ครบทุกตัว ในการค้นหาครั้งเดียว</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          เอเจนต์ไม่ได้จำทั้ง repo ไว้ในหัว มัน<strong>ค้นหา</strong> รูปแบบเดียวต่อแนวคิดหมายความว่าการค้นหาครบถ้วน เอเจนต์จึงแก้สิ่งที่มีอยู่แทนที่จะทำซ้ำ
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ถ้าแนวคิดหนึ่งเขียนได้ห้าแบบ การค้นหาก็จะพลาดบางกรณี และเอเจนต์ที่มั่นใจแต่หานิยามที่มีอยู่ไม่เจอก็จะสร้างตัวที่สองขึ้นมา</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมคำถามเดียวกันจึงไม่มีคำตอบใน TypeScript</span></summary><div class="body">
         <p>
-          สามการแก้ค่า ครบทุกตัว ในการค้นหาครั้งเดียว ใน TypeScript การแก้ค่าซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ grep คำถาม &ldquo;มีอะไรเปลี่ยนค่านี้ไหม?&rdquo; จึงไม่มีคำตอบที่เชื่อถือได้ กฎรูปแบบเดียวกันนี้ทำให้ตรวจสอบได้ทั้งหมวด:
+          ใน TypeScript การแก้ค่าซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ grep คำถาม &ldquo;มีอะไรเปลี่ยนค่านี้ไหม?&rdquo; จึงไม่มีคำตอบที่เชื่อถือได้
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">ทั้งหมวดในการค้นหาครั้งเดียว<a class="ak-anchor" href="#audits" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          กฎรูปแบบเดียวกันนี้ทำให้ตรวจสอบได้ทั้งหมวด:
+      </p>
+      <div class="code term">
         <span class="cap">ค้นหาหนึ่งครั้ง = คำตอบที่ครบหนึ่งชุด</span>
 <pre><span class="cm"># every UI component</span>
 grep -rn <span class="add">"^component "</span> src/
@@ -46,27 +48,28 @@ grep -rn <span class="add">"^fn "</span> src/
 <span class="cm"># the entire resource-ownership surface</span>
 grep -rn <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           ไม่มี object-literal shorthand ไม่มีวิธีที่สองในการประกาศ component ไม่มี syntax แบบ overload ที่ต้องแยกความหมาย การมีวิธีเขียนน้อยลงเป็นข้อจำกัดจริง และนั่นคือประเด็น: มันคือสิ่งที่ทำให้การค้นหาของเอเจนต์และของคุณเชื่อถือได้
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           construct ที่ Glyph ตัดออกไปเพื่อให้การค้นหาเชื่อถือได้ และเหตุผลที่กฎ lint ไม่ใช่การรับประกันแบบเดียวกัน อยู่ใน<a href="/pillars/greppability/">หน้าเสาหลักเรื่องค้นหาได้ด้วย grep</a>
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>รูปแบบมาตรฐานเดียวต่อ construct การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาได้ (<code>mut</code>) และตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">วางซ้อนอยู่ด้านบน</h3>
-          <p>language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">รูปแบบมาตรฐานเดียวต่อ construct</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาได้ (<code>mut</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> วางซ้อนอยู่ด้านบน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ</span></span></li>
+          </ul>
+        </section>
       </div>

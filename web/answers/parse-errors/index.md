@@ -117,4 +117,4 @@ fn status_for(issues: Array<Issue>) -> number {
 
   A module that declares its own type called `Issue` used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is `E0110` at the line that names the type, so you find out where the problem is instead of reading a `tsc` error about generated code.
 
-Code examples on this page are checked against Glyph 0.1.156 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.157 on every build. Last changed 21 Nov 2026.

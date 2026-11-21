@@ -8,6 +8,13 @@
   <updated>2026-11-21T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.157 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.157" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.157</id>
+    <updated>2026-11-21T00:00:00Z</updated>
+    <summary>A value with no text form can't be turned into text by accident</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.156 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.156" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.156</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.128</id>
     <updated>2026-11-01T00:00:00Z</updated>
     <summary>This release is about writing a React app in Glyph against real React.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.127 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.127" />
-    <id>https://glyphlang.io/versions/2026-10/#0.1.127</id>
-    <updated>2026-10-29T00:00:00Z</updated>
-    <summary>This release is about records.</summary>
   </entry>
 </feed>

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-416 entries, 310 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-86 are open. G144, the D28 boundary cast that never reached the returns a
+416 entries, 311 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+85 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12280,6 +12280,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.151 (the release build): `let s: string = u` with `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 with `tsc`.*
 
+  *Reproduced against 0.1.157 (the release build): unchanged, `--no-tsc` exits 0 and full `check` is TS2322.*
+
 - **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
@@ -12355,6 +12357,8 @@ and is the owner's to confirm.
   function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
 
   *Reproduced against 0.1.151 (the release build): `const s = "a"` in a function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
+
+  *Reproduced against 0.1.157 (the release build): unchanged, E0008 with the same help.*
 
 - **G329. A lex error inside a generic-call lookahead is replaced by an E0003
   on valid code.** `let x = f<a, "\q">(x)` reports ``unexpected token: Comma``
@@ -12665,6 +12669,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.151 (the release build): `let r = Ok(x)` then `let v = r.value` draws only E0107 (unused) under `--no-tsc`.*
 
+  *Reproduced against 0.1.157 (the release build): unchanged; `r.value` after `let r = Ok(x)`, `Ok(x).value` and `Some(x).tag` all pass `--no-tsc`, and the inline forms pass full `check` too.*
+
 - **G345. An `Option` or a `Result` read through an index, a spread, an array
   element or an untyped lambda parameter is not checked.** `r["value"]`,
   `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
@@ -12679,6 +12685,8 @@ and is the owner's to confirm.
   `Result<Note, string>` draws only E0107 (unused) under `--no-tsc`.*
 
   *Reproduced against 0.1.151 (the release build): `r["value"]` on a `Result<Note, string>` draws only E0107 (unused) under `--no-tsc`, and `rs[0].value` on an `Array<Result<Note, string>>` passes with only unused-import warnings.*
+
+  *Reproduced against 0.1.157 (the release build): unchanged for `r["value"]`, `rs[0].value`, `{ ...r }` and `o["tag"]`. `rs.map(fn(r) { r.value })` also passes, but its parameter is now an omitted annotation (not typed here, G414) rather than a typed one, so that form belongs to contextual typing.*
 
 - **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
   member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
@@ -12697,6 +12705,8 @@ and is the owner's to confirm.
   <default> }` `` and mentions `Nullable<Note>`.*
 
   *Reproduced against 0.1.151 (the release build): the `o.map(keep)` help still reads ``Open it with `match o { Some(n) => n.map(...), None => <default> }` `` and mentions `Nullable<Note>`. Following it is ``E0210 type `Note` has no field `map` ``.*
+
+  *Reproduced against 0.1.157 (the release build): following the `match` help is still E0210 on `Note`. On a call receiver the help is now a `match parse(...) { ... }` rather than `let n = parse(...)?`, and still cannot be pasted back; a type parameter still prints `Option<?>` and `Nullable<?>`.*
 
 - **G347. [FIXED] A generic record's own fields get no runtime check.** With `type
   Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
@@ -13262,7 +13272,9 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.151 (the release build) by record 112's probes `q/a_nextline_let` and `q/a_bare`: each is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`.*
 
-- **G376. A lambda parameter annotated `unknown` is emitted without its
+  *Reproduced against 0.1.157 (the release build): both probes still check clean under `--no-tsc`.*
+
+- **G376. [FIXED] A lambda parameter annotated `unknown` is emitted without its
   type.** `let f = fn(w: unknown) -> string { return "x" }` emits `let f =
   (w): string => {`, which `tsc --strict` refuses (TS7006, implicit `any`), so
   full `check` fails on a valid program while `check --no-tsc` exits 0. `w:
@@ -13273,6 +13285,8 @@ and is the owner's to confirm.
   114's probe (`/private/tmp/claude-501/linus114/`).*
 
   *Reproduced against 0.1.151 (the release build) by record 114's probe `lam_unknown`: it emits `let f = (w): string => {`, and full `check` is TS7006 while `check --no-tsc` exits 0.*
+
+  *Fixed in 0.1.156 by G412: the parser no longer stands in a written `unknown` for an omitted annotation, so the emitter writes `let f = (w: unknown): string => {`. Re-run against 0.1.157 with the same probe: full `check` passes `tsc --strict` and `glyph run` prints `R: x`.*
 
 - **G372. Glyph's checker does not read a `Record`'s key type.** Under
   `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b:
@@ -13878,6 +13892,8 @@ and is the owner's to confirm.
   branch's G391 change) by record 125's probe `r124/q`: R1 and R2 each print
   ``[{"path":["t"],"message":"field `t` is null, and its type does not accept null","code":"type"}]``.*
 
+  *Reproduced against 0.1.157 (the release build): `glyph run` still prints the `field `t` is null` message for both cases.*
+
 - **G401. `record.keys`'s published signature says `Array<K>` for every key.**
   Since 0.1.153 the checker types `record.keys(r)` as `Array<K>` for a
   string-like key and `Array<string>` for an `int` or `number` key, and the
@@ -13894,6 +13910,8 @@ and is the owner's to confirm.
   0.1.151 before the version bump): `check_stdlib_signatures.py`
   reports `std/record::keys` in both directions, `Type 'K' is not assignable
   to type 'K extends string ? K : string'`.*
+
+  *Reproduced against 0.1.157 (the release build): `glyph llms --json` still declares `fn(Record<K, V>) -> Array<K>`, and `check_stdlib_signatures.py` still records both directions of `std/record::keys` as known mismatches.*
 
 - **G402. `record.set`'s value is not checked without `tsc`.** The checker
   types `record.set`'s third argument as `unknown`, so

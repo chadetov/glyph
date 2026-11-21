@@ -1078,7 +1078,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
             - `Nullable<string>`: `let n_text = n ?? \"\"` (`?? 0` for a number)\n\
             - `Decimal`: `${d.to_string()}`\n\
             - a function with no parameters: call it, `${greet()}`\n\
-            - `unknown` in `${}` or `+`: say it with `${string.from(v)}`, or \
+            - `unknown` in `${}` or `+`: say it with `${string.from(v)}` \
+            (`string.from(v)` beside a `+`), or \
             `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`\n\
             - a type parameter `T`: a `T` could be a record, so take a \
             `fn(T) -> string` that formats it\n\
@@ -1091,6 +1092,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `${}` and `+` refuse one, and `string.from` refuses every other \
             type above. An `unknown` holding a record still prints \
             `[object Object]` there (G409).\n\n\
+            A `+` chain is judged whole: when any operand is a string, \
+            every operand is judged, so `\"Hello \" + name + \", \" + user` is \
+            refused at `user` though the partial sums have no type yet.\n\n\
             The message names the conversion as written: `${user}`, \
             `+` joins a `User` to a string, or `string.from(user)`. A value \
             the checker cannot type (an arithmetic result such as `${a + b}`, \

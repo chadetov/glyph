@@ -13596,6 +13596,22 @@ and is the owner's to confirm.
   D40, and is scheduled on its own as 0.1.159, where the catch moves to
   caught. A promise from a callee the checker types `Unknown` is G404.
 
+  0.1.159 amends D40: an async function given where a sync `fn(...) -> void`
+  is declared is E0211, with a message naming the callee and a help that
+  awaits each call in a loop (an array's `forEach`, from an async caller) or
+  passes a sync callback that calls `task.detach`. `timers.after` and
+  `every` were already typed; the `std/net` and `std/websocket` handlers
+  (`listen`'s connection handler and every `on_...`) are modeled for it.
+  The method form `ids.forEach(...)` is judged once the built-in array
+  methods' callback parameters have types, which 0.1.158 adds (record 142);
+  this entry and the catch close with that, and not before.
+
+  *Re-run against the 0.1.159 branch build, before 0.1.158 is under it:
+  `timers.every(200, async fn() { await save(3) })` and a user-declared
+  `fn(number) -> void` slot given `save` exit 1 with E0211; the catch
+  `gap-g384-dropped-async-call` still exits 0, because its `forEach` slot is
+  `Unknown`.*
+
   *Re-run against the 0.1.154 branch build (`glyph 0.1.153`, before the
   version bump): record 129's `p384/a.glyph` exits 1 with seven E0238 (it
   exited 0 with two E0217 warnings on the published 0.1.152 and on 0.1.153);
@@ -14023,7 +14039,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.158 (the release build): unchanged, `let n: number = f()` on an unannotated lambda is E0204 `expected number, found void`; contextual typing (0.1.158) covers parameters, not the return.*
 
-- **G407. An async lambda with no return type escapes G99's async-callback
+- **G407. [FIXED] An async lambda with no return type escapes G99's async-callback
   refusal.** `array.map(xs, async fn(x: number) { await save(x) })` passes
   both checkers and builds an array of promises, while the annotated
   `async fn(x: number) -> number { return await save(x) }` is E0211 at the
@@ -14041,7 +14057,20 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.158 (the release build): unchanged, record 128's `g.glyph` reports E0211 only on the annotated form.*
 
-- **G408. A sync function given to an async `void` parameter passes Glyph's
+  Fixed in 0.1.159 (D40 amended). Two functions of different kinds are
+  decided by kind alone now: an async function where a sync one is expected
+  is refused whatever its own return is, so the `void` an unannotated async
+  lambda lowers to no longer lets it past. The one return still not judged
+  is an expected return the checker cannot read. `array.map(xs, async fn(x:
+  number) { await save(x) })` is E0211 at the callback, with the general
+  argument message rather than the `void`-slot one, since `map` keeps the
+  value.
+
+  *Re-run against the 0.1.159 branch build (`glyph 0.1.154` before the
+  version bump): the probe above exits 1 with one E0211; the published
+  0.1.154 exits 0.*
+
+- **G408. [FIXED] A sync function given to an async `void` parameter passes Glyph's
   checker.** `task.detach(tick)` with `fn tick() { io.println("x") }` is no
   diagnostic under `check --no-tsc`, and full `check` reports ``[TS2345]
   Error: tsc: Argument of type '() => void' is not assignable to parameter
@@ -14058,6 +14087,18 @@ and is the owner's to confirm.
   bump): `check --no-tsc` gives no
   diagnostics, exit 0; full `check` gives the TS2345 above, exit 1.*
 
+  Fixed in 0.1.159 (D40 amended). A sync function where an async one is
+  expected is refused whatever it returns, `void` and an `Unknown` return
+  included, at every position the relation decides (both copies of the
+  function arm, the free one and the declaration-aware one, share the
+  verdict now). A sync lambda whose pending tail E0238 refuses is still
+  exempted by span (`refused_lambdas`, record 138), so it draws one
+  diagnostic.
+
+  *Re-run against the 0.1.159 branch build: `task.detach(tick)`,
+  `task.detach(fn() { print("y") })`, `task.detach(ext)` and
+  `run_num(ext)` are each E0211 under `check --no-tsc`, exit 1; the
+  published 0.1.154 exits 0 on all four.*
 
 - **G409. A `regex` pattern built from a run-time value is accepted.** Every
   `std/regex` function takes its pattern as a plain `string`, so
@@ -14292,3 +14333,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.158 (the release build) with record 146's probe
   `t/b.glyph`: hover on `i` at the `for` line is `string`, hover on the use in
   `let n: number = i` is `unknown`.*
+
+- **G421. A function-kind mismatch outside a sync `void` argument says only
+  ``expected `async function`, found `function` ``.** 0.1.159 gives an async
+  function in a sync `fn(...) -> void` argument its own E0211 message and a
+  help computed from the program. Every other pairing of the two kinds keeps
+  the general argument or `let` message, with the help "Pass a value of the
+  expected type, or change the parameter's type": `task.detach(tick)` with a
+  sync `fn tick()` (the fix is `async fn tick()`, or `async fn() -> void {
+  tick() }`), `array.map(xs, async fn(x: number) { ... })` (the fix is a loop
+  or `task.all`), an async lambda in a component's `fn(string) -> void` prop,
+  and `let cb: fn(number) -> void = save`. The display also drops the
+  signatures, so the two types read the same apart from the word `async`.
+  Each case is refused correctly; what is missing is the message naming the
+  callee and a help that compiles, as E0238's help-by-destination already
+  does. Not breaking. Found while building 0.1.159.
+
+  *Reproduced against 0.1.154 (the 0.1.159 branch build, before the version
+  bump): `task.detach(tick)` gives ``[E0211] argument type mismatch:
+  expected `async function`, found `function` `` with that help, and the
+  component prop case gives ``expected `function`, found `async function` ``.*
+

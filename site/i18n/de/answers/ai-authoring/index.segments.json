@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ai-authoring/index.html",
   "locale": "de",
-  "source_hash": "dc044819d67c5db7",
+  "source_hash": "7b8c6d4dac416f54",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,58 @@
       "tr": "Größtenteils. Glyph liest sich wie TypeScript: dieselben primitiven und generischen Typen (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), größtenteils dieselben Ausdrücke und npm-Pakete, die über ihren Namen importiert werden. Es ist keine Teilmenge von TypeScript: <code>match</code>, <code>Result</code> und <code>fn name(x: T) -&gt; R</code> sind Syntax, die TypeScript nicht hat, und <code>if</code>, der ternäre Operator und Casts sind kein Glyph. Das meiste, was ein Modell schon weiß, lässt sich übertragen, und der Compiler benennt die Stellen, an denen es nicht so ist."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Warum das wichtig ist"
-    },
-    {
-      "id": "h-2eedace6",
-      "kind": "html",
-      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write. The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
-      "tr": "Das ist die berechtigte Frage eines Skeptikers: Ein LLM sagt das nächste Token aus der riesigen Menge an Code in bestehenden Sprachen vorher, also müsste eine Sprache fast ohne Trainingsdaten schwer zu schreiben sein. Die Antwort ist strukturell: Glyph ist nicht fremd. Es sieht aus wie TypeScript, also kennt das Modell das meiste schon; die Unterschiede sind wenige, aufzählbar, und jeder schlägt beim Kompilieren <em>sofort</em> fehl, statt stillschweigend durchzugehen."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "So sieht es aus"
-    },
-    {
-      "id": "h-6a89d489",
-      "kind": "html",
-      "en": "An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop:",
-      "tr": "Ein Agent, der falsch rät, liefert die Vermutung nicht aus. Er bekommt einen präzisen, behebbaren Fehler und korrigiert in derselben Schleife:"
-    },
-    {
       "id": "h-ae716631",
       "kind": "html",
       "en": "the correction loop, in one step",
       "tr": "die Korrekturschleife, in einem Schritt"
     },
     {
-      "id": "h-b8bb97f4",
+      "id": "h-91359c50",
       "kind": "html",
-      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
-      "tr": "Der Fehler nennt das Glyph-Konstrukt und zeigt die Form, also ist der Fix eine Änderung entfernt: kein Wühlen im Quellcode, kein Raten. Diese enge Schleife gleicht die fehlenden Trainingsdaten aus. Ein einziges Dokument, <a href=\"/llms.txt\">llms.txt</a>, gibt einem Agenten die Form eines Programms, die Standardbibliothek und jede Diagnose mit ihrem Fix, und <code>glyph llms</code> gibt dieselbe Referenz offline aus."
+      "en": "<span>An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop.</span>",
+      "tr": "<span>Ein Agent, der falsch rät, liefert die Vermutung nicht aus. Er bekommt einen präzisen, behebbaren Fehler und korrigiert in derselben Schleife.</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-7b90c2b8",
+      "kind": "html",
+      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write.",
+      "tr": "Das ist die berechtigte Frage eines Skeptikers: Ein LLM sagt das nächste Token aus der riesigen Menge an Code in bestehenden Sprachen vorher, also müsste eine Sprache fast ohne Trainingsdaten schwer zu schreiben sein."
+    },
+    {
+      "id": "h-d9715266",
+      "kind": "html",
+      "en": "The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
+      "tr": "Die Antwort ist strukturell: Glyph ist nicht fremd. Es sieht aus wie TypeScript, also kennt das Modell das meiste schon; die Unterschiede sind wenige, aufzählbar, und jeder schlägt beim Kompilieren <em>sofort</em> fehl, statt stillschweigend durchzugehen."
+    },
+    {
+      "id": "h-2f7de78a",
+      "kind": "html",
+      "en": "The fix is one edit away",
+      "tr": "Der Fix ist eine Änderung entfernt"
+    },
+    {
+      "id": "h-40153cf8",
+      "kind": "html",
+      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data.",
+      "tr": "Der Fehler nennt das Glyph-Konstrukt und zeigt die Form, also ist der Fix eine Änderung entfernt: kein Wühlen im Quellcode, kein Raten. Diese enge Schleife gleicht die fehlenden Trainingsdaten aus."
+    },
+    {
+      "id": "h-28c79279",
+      "kind": "html",
+      "en": "One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
+      "tr": "Ein einziges Dokument, <a href=\"/llms.txt\">llms.txt</a>, gibt einem Agenten die Form eines Programms, die Standardbibliothek und jede Diagnose mit ihrem Fix, und <code>glyph llms</code> gibt dieselbe Referenz offline aus."
     },
     {
       "id": "h-b55f380c",
@@ -107,10 +125,22 @@
       "tr": "Heute verfügbar"
     },
     {
-      "id": "h-b8156a2d",
+      "id": "h-6e984118",
       "kind": "html",
-      "en": "A TypeScript-shaped syntax, errors with a stable code that name the fix, and <code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
-      "tr": "Eine Syntax in der Form von TypeScript, Fehler mit stabilem Code, die den Fix nennen, und <code>llms.txt</code> / <code>glyph llms</code> als ein einziges Referenzdokument für jeden Agenten."
+      "en": "A TypeScript-shaped syntax.",
+      "tr": "Eine Syntax in der Form von TypeScript."
+    },
+    {
+      "id": "h-f92a0285",
+      "kind": "html",
+      "en": "Errors with a stable code that name the fix.",
+      "tr": "Fehler mit stabilem Code, die den Fix nennen."
+    },
+    {
+      "id": "h-76133996",
+      "kind": "html",
+      "en": "<code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
+      "tr": "<code>llms.txt</code> / <code>glyph llms</code> als ein einziges Referenzdokument für jeden Agenten."
     },
     {
       "id": "h-37be0e88",

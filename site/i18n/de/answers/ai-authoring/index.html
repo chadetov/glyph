@@ -1,7 +1,7 @@
 ---
 title: Kann eine KI eine Sprache schreiben, die sie kaum gesehen hat? · Glyph
 description: Glyph liest sich wie TypeScript, ist aber keine Teilmenge davon. Das meiste, was ein Modell über TypeScript weiß, lässt sich übertragen, und der Compiler benennt die Stellen, an denen es nicht so ist.
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; Zurück | Lohnt sich Glyph, wenn ich keine KI verwende?
 next: /answers/upgrades/ | Weiter &rarr; | Macht ein neues Glyph-Release meinen Build kaputt?
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | Weiter &rarr; | Macht ein neues Glyph-Release meinen 
         Größtenteils. Glyph liest sich wie TypeScript: dieselben primitiven und generischen Typen (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), größtenteils dieselben Ausdrücke und npm-Pakete, die über ihren Namen importiert werden. Es ist keine Teilmenge von TypeScript: <code>match</code>, <code>Result</code> und <code>fn name(x: T) -&gt; R</code> sind Syntax, die TypeScript nicht hat, und <code>if</code>, der ternäre Operator und Casts sind kein Glyph. Das meiste, was ein Modell schon weiß, lässt sich übertragen, und der Compiler benennt die Stellen, an denen es nicht so ist.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Warum das wichtig ist</h2>
-        <p>
-          Das ist die berechtigte Frage eines Skeptikers: Ein LLM sagt das nächste Token aus der riesigen Menge an Code in bestehenden Sprachen vorher, also müsste eine Sprache fast ohne Trainingsdaten schwer zu schreiben sein. Die Antwort ist strukturell: Glyph ist nicht fremd. Es sieht aus wie TypeScript, also kennt das Modell das meiste schon; die Unterschiede sind wenige, aufzählbar, und jeder schlägt beim Kompilieren <em>sofort</em> fehl, statt stillschweigend durchzugehen.
-        </p>
-
-        <h2 class="block-label">So sieht es aus</h2>
-        <p>Ein Agent, der falsch rät, liefert die Vermutung nicht aus. Er bekommt einen präzisen, behebbaren Fehler und korrigiert in derselben Schleife:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">die Korrekturschleife, in einem Schritt</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">die Korrekturschleife, in einem Schritt</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Der Fehler nennt das Glyph-Konstrukt und zeigt die Form, also ist der Fix eine Änderung entfernt: kein Wühlen im Quellcode, kein Raten. Diese enge Schleife gleicht die fehlenden Trainingsdaten aus. Ein einziges Dokument, <a href="/llms.txt">llms.txt</a>, gibt einem Agenten die Form eines Programms, die Standardbibliothek und jede Diagnose mit ihrem Fix, und <code>glyph llms</code> gibt dieselbe Referenz offline aus.
-        </p>
-      </div>
-
-      <h2 class="block-label">Wo es steht</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Eine Syntax in der Form von TypeScript, Fehler mit stabilem Code, die den Fix nennen, und <code>llms.txt</code> / <code>glyph llms</code> als ein einziges Referenzdokument für jeden Agenten.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Wird belegt</h3>
-          <p>Ein Benchmark zur Erfolgsquote (Versuche bis zur Korrektur, verglichen mit TypeScript bei derselben Aufgabe), um aus &ldquo;es hat gehalten&rdquo; eine gemessene Zahl zu machen.</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Ein Agent, der falsch rät, liefert die Vermutung nicht aus. Er bekommt einen präzisen, behebbaren Fehler und korrigiert in derselben Schleife.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Das ist die berechtigte Frage eines Skeptikers: Ein LLM sagt das nächste Token aus der riesigen Menge an Code in bestehenden Sprachen vorher, also müsste eine Sprache fast ohne Trainingsdaten schwer zu schreiben sein.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die Antwort ist strukturell: Glyph ist nicht fremd. Es sieht aus wie TypeScript, also kennt das Modell das meiste schon; die Unterschiede sind wenige, aufzählbar, und jeder schlägt beim Kompilieren <em>sofort</em> fehl, statt stillschweigend durchzugehen.</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">Der Fix ist eine Änderung entfernt<a class="ak-anchor" href="#one-edit-away" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Der Fehler nennt das Glyph-Konstrukt und zeigt die Form, also ist der Fix eine Änderung entfernt: kein Wühlen im Quellcode, kein Raten. Diese enge Schleife gleicht die fehlenden Trainingsdaten aus.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ein einziges Dokument, <a href="/llms.txt">llms.txt</a>, gibt einem Agenten die Form eines Programms, die Standardbibliothek und jede Diagnose mit ihrem Fix, und <code>glyph llms</code> gibt dieselbe Referenz offline aus.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Syntax in der Form von TypeScript.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Fehler mit stabilem Code, die den Fix nennen.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>llms.txt</code> / <code>glyph llms</code> als ein einziges Referenzdokument für jeden Agenten.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird belegt</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Benchmark zur Erfolgsquote (Versuche bis zur Korrektur, verglichen mit TypeScript bei derselben Aufgabe), um aus &ldquo;es hat gehalten&rdquo; eine gemessene Zahl zu machen.</span></span></li>
+          </ul>
+        </section>
       </div>

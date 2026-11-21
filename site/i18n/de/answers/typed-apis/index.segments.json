@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "de",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "Ein Request-Body kommt schon dekodiert als <code>unknown</code> an, also greifst du dort stattdessen zu <code>T.parse(value)</code>: dieselbe Garantie, kein Cast."
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "Der Rest der nicht vertrauenswürdigen Grenze ist genauso typisiert: <code>header(req, name)</code> und <code>query_param(req, name)</code> geben <code>Option&lt;string&gt;</code> zurück, also ist ein fehlender Header oder Query-Parameter <code>None</code>, und das <code>match</code> <em>zwingt</em> dich, das zu behandeln. Lass den <code>None</code>-Arm weg, und es kompiliert nicht. Eine fehlende Eingabe lässt sich nicht so lesen, als wäre sie vorhanden."
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "Der Rest der nicht vertrauenswürdigen Grenze ist genauso typisiert: <code>header(req, name)</code> und <code>query_param(req, name)</code> geben <code>Option&lt;string&gt;</code> zurück, also ist ein fehlender Header oder Query-Parameter <code>None</code>, und das <code>match</code> <em>zwingt</em> dich, das zu behandeln. Lass den <code>None</code>-Arm weg, und es kompiliert nicht. Eine fehlende Eingabe lässt sich nicht so lesen, als wäre sie vorhanden. Für ein Feld im Body gilt dieselbe Regel: <code>timeout_ms?: number</code> ist ein fehlender Schlüssel oder eine Zahl, also ist <code>{\"timeout_ms\": null}</code> ein <code>Err</code> bei <code>[\"timeout_ms\"]</code>, von <code>T.parse</code>, <code>is T</code> und <code>json.parse&lt;T&gt;</code> gleichermaßen. Deklariere <code>timeout_ms?: Nullable&lt;number&gt;</code>, wenn der Absender <code>null</code> schreibt. Bis 0.1.152 kam dieses <code>null</code> innerhalb des <code>Ok</code> zurück."
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "genau die aufgeführten Schlüssel, keiner fehlt, keiner zu viel"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "Ein mit <code>where</code> verfeinerter Typ"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "Ein mit <code>where</code> verfeinerter <code>string</code> oder eine verfeinerte Zahl"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "nichts Neues"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "Details <span class=\"hint\">verfeinerte und int-Schlüssel, und was noch tsc überlassen bleibt</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "Details <span class=\"hint\">verfeinerte und int-Schlüssel, und was der Checker festhält</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "Ein mit <code>where</code> verfeinerter Schlüsseltyp führt sein Prädikat auf jedem Schlüssel aus, und ein <code>int</code>-Schlüssel muss die einfache Schreibweise einer ganzen Zahl sein, also werden <code>\"01\"</code> und <code>\"1.5\"</code> abgelehnt. Ein <code>Record&lt;string, V&gt;</code> wird genau wie vorher geprüft. Glyphs eigener Checker überlässt die Schlüssel eines Werts, den du im Code schreibst, weiterhin <code>tsc</code>, und ein generischer Record, dessen Schlüssel sein eigener Typparameter ist, wird abgelehnt, es sei denn, dieser Parameter ist <code>string</code>."
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "Ein mit <code>where</code> verfeinerter Schlüsseltyp führt sein Prädikat auf jedem Schlüssel aus, und ein <code>int</code>-Schlüssel muss die einfache Schreibweise einer ganzen Zahl sein, also werden <code>\"01\"</code> und <code>\"1.5\"</code> abgelehnt. Ein <code>Record&lt;string, V&gt;</code> wird genau wie vorher geprüft. Ein <code>where</code> kann keine Union aus String-Literalen verfeinern (<code>type T2 = Tier where value != \"pro\"</code> ist seit 0.1.152 <code>E0300</code>); schreib die gemeinten Mitglieder als eigene Union, <code>type T2 = \"free\"</code>, und sie dient als Schlüssel eines <code>Record</code> mit derselben Prüfung auf genau diese Schlüssel. Seit 0.1.153 hält Glyphs eigener Checker auch den Schlüssel eines Werts fest, den du im Code schreibst: Ein <code>Record&lt;string, int&gt;</code> steht nicht dort, wo ein <code>Record&lt;Tier, int&gt;</code> deklariert ist, und umgekehrt auch nicht, also führt der Übergang über ein <code>json.parse</code> oder einen <code>is Record&lt;Tier, int&gt;</code>-Arm, und <code>record.set</code> behält den Schlüssel, den es bekommen hat. Ein generischer Record, dessen Schlüssel sein eigener Typparameter ist, wird abgelehnt, es sei denn, dieser Parameter ist <code>string</code>."
     },
     {
       "id": "h-efd6b0f9",

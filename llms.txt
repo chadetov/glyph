@@ -400,6 +400,17 @@ pub fn task_for(url: string) -> async fn() -> Fetched {
 A plain `fn() -> T` emits `() => T`, so an async value does not fit it. Write the
 `async` out.
 
+A lambda's parameter may leave its type off when the lambda stands where a
+function type is expected: a call argument, an annotated `let` or `const`, a
+`return` from a function declared to return one, or a field of a record literal
+whose type is declared. It takes the type from there, with the callee's type
+parameters bound from the arguments before it, so in
+`array.map(users, fn(u) -> string { return u.nmae })` `u` is a `User` and the
+typo is `E0210`. With no such position (`let f = fn(q) { .. }`, or a callback
+slot the compiler does not model) Glyph's checker does not type the parameter
+and only `tsc` sees its uses, so write the annotation there. A written
+annotation is always the parameter's type.
+
 ### `Result` / `Option` and the `?` operator
 
 ```glyph

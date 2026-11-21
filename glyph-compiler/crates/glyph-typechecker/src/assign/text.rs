@@ -1,4 +1,4 @@
-//! D51 (G385, record 129): only a text-like value becomes text.
+//! D5y (G385, record 129): only a text-like value becomes text.
 //!
 //! A value turns into text in three places: a `${}` inside a `"..."` or
 //! `"""..."""` literal, an operand of `+` whose other operand is a string, and
@@ -35,7 +35,7 @@ enum Position {
 enum TextForm {
     /// A string, a number or a bool: its text is its value.
     TextLike,
-    /// The checker's internal `Unknown`. Not judged (D51's documented edge).
+    /// The checker's internal `Unknown`. Not judged (D5y's documented edge).
     NotJudged,
     /// Anything else, with what the help needs to name a fix.
     None(NoText),
@@ -116,6 +116,14 @@ impl Assigner<'_> {
         let TextForm::None(why) = self.text_form(&ty) else {
             return;
         };
+        // `string.from` is the explicit, greppable renderer, and the
+        // documented way to read an `unknown` such as a failed task's error
+        // (record 130, F2). A declared `unknown` passes there; `${}` and `+`
+        // still refuse it, and `string.from` still refuses every known type
+        // with no text form.
+        if matches!((position, &why), (Position::StringFrom { .. }, NoText::UnknownTop)) {
+            return;
+        }
         let shown = text_ty_display(&ty);
         let source = written_source(value);
         let head = match (position, &source) {
@@ -449,16 +457,23 @@ impl Assigner<'_> {
             }
             NoText::Function { .. } => "A function has no text of its own: call it and convert what it returns.".to_string(),
             NoText::Void => "This value is `void`, so there is nothing to show: leave it out of the text.".to_string(),
-            NoText::UnknownTop => match source {
-                Some(src) if is_plain_name(src) => {
-                    let name = bound(src, "text");
-                    format!(
-                        "Narrow it first, `let {name} = match {src} {{ is string => {src}, else => \"?\", }}`, then {}.",
-                        then_use(position, &name)
-                    )
+            NoText::UnknownTop => {
+                let (string_ns, string_import) = self.namespace_for("std/string");
+                let with = string_import
+                    .map(|i| format!(" (with `{i}`)"))
+                    .unwrap_or_default();
+                match source {
+                    Some(src) if is_plain_name(src) => format!(
+                        "Say the conversion out loud with `${{{string_ns}.from({src})}}`{with}; if `{src}` may hold a record it still prints `[object Object]`, so `match` it first: `match {src} {{ is string => \"${{{src}}}\", is number => \"${{{src}}}\", else => \"?\", }}`."
+                    ),
+                    Some(src) => format!(
+                        "Say the conversion out loud with `${{{string_ns}.from({src})}}`{with}; if it may hold a record it still prints `[object Object]`, so bind it with `let` and `match` the name with `is string` and `is number` arms first."
+                    ),
+                    None => format!(
+                        "Say the conversion out loud with `{string_ns}.from`{with}; if the value may hold a record it still prints `[object Object]`, so bind it with `let` and `match` the name with `is string` and `is number` arms first."
+                    ),
                 }
-                _ => "Narrow it with a `match` and an `is string` arm before it becomes text.".to_string(),
-            },
+            }
             NoText::TypeParam(name) => format!(
                 "A `{name}` could be a record. Take a `fn({name}) -> string` that formats it, and call that."
             ),

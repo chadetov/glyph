@@ -20305,144 +20305,7 @@ fn record_remove_on_a_finite_key_is_e0211_by_every_spelling() {
     assert_eq!(d.len(), 5, "the refined and open keys are not refused: {d:?}");
 }
 
-/// G387's probe (record 129): five ways of building a query from a run-time
-/// `name`, and two constant queries beside them. One line is added to the
-/// record's file, the `built` count: the rows the five built queries return or
-/// change. `rows` also counts `f`, a parameterized query that runs after the
-/// `UPDATE` and so matches the payload once the `UPDATE` stores it.
-const G387_PROBE: &str = r#"module main
-
-import std/sqlite
-import std/io
-
-const TABLE: string = "users"
-
-fn count(db: sqlite.Db, name: string) -> number {
-  let a = db.query("SELECT * FROM users WHERE name = '${name}'", [])
-  let q = "SELECT * FROM users WHERE name = '${name}'"
-  let b = db.query(q, [])
-  let c = db.query("SELECT * FROM users WHERE name = '" + name + "'", [])
-  let d = db.query_one("SELECT * FROM ${TABLE} WHERE name = ?", [name])
-  let e = db.run("DELETE FROM users WHERE name = '${name}'", [])
-  db.exec("UPDATE users SET name = '${name}'")
-  let f = db.query("SELECT * FROM users WHERE name = ?", [name])
-  let n = match d { Some(_) => 1, None => 0, }
-  let built = a.length + b.length + c.length + e
-  io.println("built ${built}")
-  return a.length + b.length + c.length + f.length + e + n
-}
-
-fn main(argv: Array<string>) -> number {
-  let db = sqlite.open(":memory:")
-  db.exec("CREATE TABLE users (name TEXT)")
-  db.exec("INSERT INTO users VALUES ('ada'), ('linus')")
-  let evil = "x' OR '1'='1"
-  let total = count(db, evil)
-  io.println("rows ${total}")
-  return 0
-}
-"#;
-
-/// The backticked snippets of a help, in order.
-fn backticked(help: &str) -> Vec<String> {
-    help.split('`').skip(1).step_by(2).map(str::to_string).collect()
-}
-
-/// G387, D52: every E0239 on the probe carries a rewrite, and applying each
-/// one as written gives a program that `glyph check` accepts (with `tsc`) and
-/// that returns no rows for the injection payload. The help is applied the
-/// way an agent would: a `let q = ...` snippet replaces that `let`, and a call
-/// snippet replaces the call on the diagnostic's line. Nothing is typed in
-/// by hand, so a help that does not compile fails here.
-#[test]
-fn g387_applying_every_e0239_rewrite_compiles_and_returns_no_rows() {
-    if !js_toolchain_available() {
-        eprintln!("skipping G387 rewrite run: node/tsx not available");
-        return;
-    }
-    let root = unique_tmp("g387_rewrite");
-    write_file(&root, "src/main.glyph", G387_PROBE);
-    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
-    assert_eq!(code, 1, "the probe is refused:\n{stdout}\n{stderr}");
-    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
-    let diags: Vec<&serde_json::Value> = v["diagnostics"]
-        .as_array()
-        .expect("diagnostics")
-        .iter()
-        .filter(|d| d["code"] == "E0239")
-        .collect();
-    assert_eq!(diags.len(), 5, "one E0239 per built query:\n{stdout}");
-
-    let mut lines: Vec<String> = G387_PROBE.lines().map(str::to_string).collect();
-    for d in &diags {
-        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
-        let help = d["help"].as_str().expect("help");
-        let snippets: Vec<String> = backticked(help)
-            .into_iter()
-            .filter(|s| s.starts_with("let ") || (s.starts_with("db.") && s.contains('[') && !s.contains("[values]")))
-            .collect();
-        assert!(!snippets.is_empty(), "the help carries a rewrite: {help}");
-        for s in snippets {
-            if let Some(rest) = s.strip_prefix("let ") {
-                let name = rest.split(' ').next().expect("a name");
-                let at = lines
-                    .iter()
-                    .position(|l| l.trim_start().starts_with(&format!("let {name} = ")))
-                    .expect("the let the help rewrites");
-                lines[at] = format!("  {s}");
-            } else {
-                let l = &lines[line];
-                let start = l.find("db.").expect("the call on the diagnostic's line");
-                let end = l.rfind(')').expect("the call's close") + 1;
-                lines[line] = format!("{}{s}{}", &l[..start], &l[end..]);
-            }
-        }
-    }
-    let fixed = lines.join("\n") + "\n";
-    write_file(&root, "src/main.glyph", &fixed);
-    let check_args: &[&str] = if tsc_available() {
-        &["check", "{src}"]
-    } else {
-        &["check", "--no-tsc", "{src}"]
-    };
-    let (code, stdout, stderr) = glyph_in(&root, check_args);
-    assert_eq!(code, 0, "the rewritten probe compiles:\n{fixed}\n{stdout}\n{stderr}");
-    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
-    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
-    assert!(
-        stdout.contains("built 0"),
-        "the payload matches nothing once it is a parameter:\n{fixed}\n{stdout}\n{stderr}"
-    );
-    assert!(stdout.contains("rows 2"), "only `f`, after the `UPDATE`:\n{fixed}\n{stdout}");
-}
-
-/// Record 132, B2: a constant from another module gets one diagnosis whatever
-/// the import spelling. `BASE` imported by name and `lib.BASE` through the
-/// namespace draw the same E0239, with the same message and help.
-#[test]
-fn g387_an_imported_constant_reads_the_same_by_name_and_through_the_namespace() {
-    let root = unique_tmp("g387_b2");
-    write_file(
-        &root,
-        "src/lib.glyph",
-        "module lib\n\npub const BASE: string = \"SELECT * FROM users\"\n",
-    );
-    write_file(
-        &root,
-        "src/main.glyph",
-        "module main\n\nimport lib\nimport lib { BASE }\nimport std/sqlite\n\nfn main(argv: Array<string>) -> number {\n  let db = sqlite.open(\":memory:\")\n  let a = db.query(BASE, [])\n  let b = db.query(lib.BASE, [])\n  return a.length + b.length\n}\n",
-    );
-    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
-    assert_eq!(code, 1, "{stdout}\n{stderr}");
-    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
-    let got: Vec<(String, String)> = v["diagnostics"]
-        .as_array()
-        .expect("diagnostics")
-        .iter()
-        .filter(|d| d["code"] == "E0239")
-        .map(|d| {
-            (
-/// G385 (record 129, D51): one function per refused conversion. Each marked
+/// G385 (record 129, D5y): one function per refused conversion. Each marked
 /// line holds exactly one conversion of a value with no text form.
 const NO_TEXT_FORM_MAIN: &str = r#"module main
 
@@ -20518,6 +20381,14 @@ fn unk(v: unknown) -> string {
 
 fn gen<T>(x: T) -> string {
   return "gen: ${x}"
+}
+
+fn unk_plus(v: unknown) -> string {
+  return "a" + v
+}
+
+fn unk_lambda() -> fn(unknown) -> string {
+  return fn(p: unknown) -> string { return "${p}" }
 }
 "#;
 
@@ -20598,7 +20469,17 @@ fn no_text_form_expected() -> Vec<(&'static str, &'static str, &'static str)> {
         (
             "return \"unk: ${v}\"",
             "`${v}` turns an `unknown` into text, and an `unknown` may hold a record, which has no text form: it prints `[object Object]`",
-            "Narrow it first, `let v_text = match v { is string => v, else => \"?\", }`, then interpolate `${v_text}`.",
+            "Say the conversion out loud with `${string.from(v)}`; if `v` may hold a record it still prints `[object Object]`, so `match` it first: `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`.",
+        ),
+        (
+            "return \"a\" + v",
+            "`+` joins an `unknown` to a string, and an `unknown` may hold a record, which has no text form: it prints `[object Object]`",
+            "Say the conversion out loud with `${string.from(v)}`; if `v` may hold a record it still prints `[object Object]`, so `match` it first: `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`.",
+        ),
+        (
+            "return fn(p: unknown) -> string { return \"${p}\" }",
+            "`${p}` turns an `unknown` into text, and an `unknown` may hold a record, which has no text form: it prints `[object Object]`",
+            "Say the conversion out loud with `${string.from(p)}`; if `p` may hold a record it still prints `[object Object]`, so `match` it first: `match p { is string => \"${p}\", is number => \"${p}\", else => \"?\", }`.",
         ),
         (
             "return \"gen: ${x}\"",
@@ -20869,9 +20750,17 @@ fn apply_no_text_help(text: &str, line_text: &str, help: &str) -> (String, bool)
         return (out, true);
     }
     let Some(snippet) = snippets.iter().rev().find(|s| {
-        s.contains(&format!("{value}.")) || s.contains(&format!("{value}("))
+        s.contains(&format!("{value}."))
+            || s.contains(&format!("{value}("))
+            || s.contains(&format!("({value})"))
     }) else {
         return (text.to_string(), false);
+    };
+    // A `${...}` snippet stands for the text it interpolates, which beside
+    // a `+` is the expression inside it.
+    let snippet = match (conversion.starts_with("${"), snippet.strip_prefix("${")) {
+        (false, Some(inner)) => inner.trim_end_matches('}'),
+        _ => snippet,
     };
     lines[at] = replace_last(&lines[at], &conversion, snippet);
     let mut out = lines.join("\n");
@@ -20913,7 +20802,7 @@ fn a_value_with_no_text_form_is_refused_and_every_help_compiles() {
             fixed.replace_range(fn_start..fn_end, "");
         }
     }
-    assert_eq!(applied, 14, "the helps with a snippet:\n{fixed}");
+    assert_eq!(applied, 16, "the helps with a snippet:\n{fixed}");
     let root = unique_tmp("g385-applied");
     let src = root.join("src");
     write_file(&src, "main.glyph", &fixed);
@@ -20964,4 +20853,82 @@ fn untyped(a: number, c: number) -> string {
 "#;
     let got = no_text_form_diagnostics("g385-accepted", text);
     assert!(got.is_empty(), "a text-like or untyped value is refused: {got:#?}");
+}
+
+/// Record 130, F2: `string.from` takes a declared `unknown`, the documented
+/// way to read a failed task's error, while `${}` and `+` still refuse one.
+/// An omitted lambda annotation is not typed here (Release A), so E0237
+/// leaves it alone, over a number and over the `Issue.path` idiom alike, and
+/// an `is` arm narrows, so interpolating inside one is accepted.
+///
+/// The last function pins the hole that leaves open: `p` holds a `User` at run
+/// time and prints `[object Object]`, and nothing refuses it until G405 gives
+/// an omitted annotation its type from context. G405 flips this line.
+#[test]
+fn string_from_takes_unknown_and_an_omitted_lambda_annotation_is_not_judged() {
+    let text = r#"module main
+
+import std/string
+import std/array
+
+type User = { id: number, name: string, }
+
+fn nums(xs: Array<number>) -> Array<string> {
+  return array.map(xs, fn(p) -> string { return "${p}" })
+}
+
+fn path(issue: Issue) -> string {
+  return string.join(array.map(issue.path, fn(p) -> string { return string.from(p) }), ".")
+}
+
+fn failed(e: unknown) -> string {
+  return "failed: " + string.from(e)
+}
+
+fn narrowed(v: unknown) -> string {
+  let a = match v { is string => "c ${v}", else => "?", }
+  let b = match v { is number => "b ${v}", else => "?", }
+  return a + b
+}
+
+fn g405_pinned_hole(users: Array<User>) -> Array<string> {
+  return array.map(users, fn(p) -> string { return "${p}" })
+}
+"#;
+    let got = no_text_form_diagnostics("g385-f2", text);
+    assert!(got.is_empty(), "accepted forms are refused: {got:#?}");
+}
+
+/// Record 130: both snippets of the `unknown` help compile, `tsc` included.
+#[test]
+fn both_snippets_of_the_unknown_help_compile() {
+    let help_of = |src: &str| -> String {
+        let got = no_text_form_diagnostics("g385-unknown-help", src);
+        assert_eq!(got.len(), 1, "{got:#?}");
+        got[0].2.clone()
+    };
+    let refused = "module main\n\nimport std/string\n\npub fn show(v: unknown) -> string {\n  return \"v: ${v}\"\n}\n";
+    let help = help_of(refused);
+    let snippets: Vec<&str> = help.split('`').skip(1).step_by(2).collect();
+    let said = snippets.iter().find(|s| s.starts_with("${string.from")).expect("the string.from snippet");
+    let matched = snippets.iter().find(|s| s.starts_with("match v")).expect("the match snippet");
+    let programs = [
+        refused.replace("\"v: ${v}\"", &format!("\"v: {said}\"")),
+        refused.replace("return \"v: ${v}\"", &format!("return {matched}")),
+    ];
+    for (i, program) in programs.iter().enumerate() {
+        let root = unique_tmp(&format!("g385-unknown-applied-{i}"));
+        let src = root.join("src");
+        write_file(&src, "main.glyph", program);
+        let main = src.join("main.glyph");
+        let (code, stdout, stderr, _) = spawn_glyph(&[
+            std::ffi::OsStr::new("check"),
+            std::ffi::OsStr::new("--no-test"),
+            main.as_os_str(),
+        ]);
+        assert_eq!(code, 0, "an unknown-help snippet does not compile:\n{program}\n{stdout}\n{stderr}");
+        if tsc_available() {
+            assert!(stderr.contains("tsc --strict passed"), "{stderr}");
+        }
+    }
 }

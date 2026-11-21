@@ -1051,7 +1051,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             is E0210.",
 
         "E0237" => "E0237: a value with no text form is converted to text\n\n\
-            A value becomes text in three places, and one rule (D51) judges \
+            A value becomes text in three places, and one rule (D5y) judges \
             all three: a `${}` inside a `\"...\"` or `\"\"\"...\"\"\"` literal, \
             an operand of `+` whose other operand is a string, and the \
             argument of `string.from`. Only a string, a number or a bool has \
@@ -1078,17 +1078,25 @@ pub fn explain(code: &str) -> Option<&'static str> {
             - `Nullable<string>`: `let n_text = n ?? \"\"` (`?? 0` for a number)\n\
             - `Decimal`: `${d.to_string()}`\n\
             - a function with no parameters: call it, `${greet()}`\n\
-            - `unknown`: `let v_text = match v { is string => v, else => \"?\", }`\n\
+            - `unknown` in `${}` or `+`: say it with `${string.from(v)}`, or \
+            `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`\n\
             - a type parameter `T`: a `T` could be a record, so take a \
             `fn(T) -> string` that formats it\n\
             - a tagged union: `match` on it with an arm per variant\n\
             - `Bytes`: `bytes.to_text` or `bytes.to_hex`\n\n\
             Every snippet binds the text with `let` before the `${}`, because \
             a string literal cannot stand inside `${}` (D22).\n\n\
+            `string.from` takes a declared `unknown`: it is the explicit \
+            renderer and the documented way to read a failed task's error. \
+            `${}` and `+` refuse one, and `string.from` refuses every other \
+            type above. An `unknown` holding a record still prints \
+            `[object Object]` there (G409).\n\n\
             The message names the conversion as written: `${user}`, \
             `+` joins a `User` to a string, or `string.from(user)`. A value \
             the checker cannot type (an arithmetic result such as `${a + b}`, \
-            an npm value with no materialized types) is not judged; `tsc` \
+            an npm value with no materialized types, a lambda parameter \
+            written without an annotation until G405 types it from context) \
+            is not judged; `tsc` \
             and the run are what see it. JSX children are not covered: \
             React's types check those.",
         "E0238" => "E0238: a pending value nothing waits for\n\n\
@@ -2303,7 +2311,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0237",
         phase: "typechecker",
-        meaning: "A value with no text form converted to text (G385, D51): in a `${}` (in `\"...\"` or `\"\"\"...\"\"\"`), as an operand of `+` beside a string, or as the argument of `string.from`. Text-like is an allowlist: `string`, a string-literal union, `number`, `int`, `bigint`, `bool`, an alias or `where` refinement of these, and `never`. A record, tagged union, `Option`, `Result`, `Array`, `Record` map, `Nullable`, `Decimal`, `Bytes`, function, `void`, `unknown` or type parameter is refused: these print `[object Object]`, `1,2`, `null`, `undefined` or source code. A value the checker cannot type is not judged. `tsc` accepts all three spellings",
+        meaning: "A value with no text form converted to text (G385, D5y): in a `${}` (in `\"...\"` or `\"\"\"...\"\"\"`), as an operand of `+` beside a string, or as the argument of `string.from`. Text-like is an allowlist: `string`, a string-literal union, `number`, `int`, `bigint`, `bool`, an alias or `where` refinement of these, and `never`. A record, tagged union, `Option`, `Result`, `Array`, `Record` map, `Nullable`, `Decimal`, `Bytes`, function, `void`, `unknown` (except at `string.from`, the explicit renderer) or type parameter is refused: these print `[object Object]`, `1,2`, `null`, `undefined` or source code. A value the checker cannot type is not judged. `tsc` accepts all three spellings",
         fix: "Convert it yourself first: a field (`${user.name}`), a `match` bound with `let` for an `Option` or `Result`, `string.join` for an array, `??` for a `Nullable`, `to_string()` for a `Decimal`; the help computes the snippet",
         code: "E0238",
         phase: "typechecker",

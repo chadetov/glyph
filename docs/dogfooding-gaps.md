@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-410 entries, 307 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-83 are open. G144, the D28 boundary cast that never reached the returns a
+411 entries, 307 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+84 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13566,6 +13566,17 @@ and is the owner's to confirm.
   result passes `glyph check` with `tsc` and that the five built queries
   return or change 0 rows for the payload, where they gave 8.
 
+  Record 132's review narrowed the help and closed two holes before
+  ceremony. The `?` rewrite is offered only where a parameter can stand (a
+  quoted `'${x}'`, or `${x}` after a comparison, `LIKE`, `GLOB`, `LIMIT`,
+  `OFFSET`, or in a `VALUES` or `IN` list); `FROM ${table}` and
+  `ORDER BY ${col}` get prose that points at a `match` of constant strings,
+  which is itself constant, and a several-statement `exec` is not rewritten
+  to one `run`. `g387_every_offered_rewrite_runs_on_node_sqlite` runs every
+  offered rewrite on node:sqlite. `lib.BASE` through a namespace now reads as
+  `BASE` imported by name does, and a primitive where a `taint.Trusted<T>`
+  or `taint.Tainted<T>` is declared is refused at every position.
+
   *Evidence for the fix, against the published 0.1.152 (`npx -y
   @glyphlang/glyph@0.1.152`) and this build: `check --no-tsc` on record
   129's `p387/a.glyph` exits 0 and then 1 with five E0239, and on
@@ -13917,3 +13928,19 @@ and is the owner's to confirm.
   `tsc --strict` passes; the response body for
   `name = "<script>alert(1)</script>"` is
   `"<p>Hello, <script>alert(1)</script></p>"`.*
+
+- **G411. E0239 gives prose, not a rewrite, for a quoted literal holding more
+  than a value.** `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])`
+  and `"... = '${first} ${last}'"` are refused correctly, but the help is the
+  general prose, because only a literal that is exactly `'${x}'` is rewritten.
+  The whole quoted literal can become one parameter instead: `?` with
+  `"%${name}%"`, and `?` with `"${first} ${last}"`, which keeps the meaning
+  when the literal holds no `''` escape. Not breaking. Recommended by record
+  132 (ruling 3) as a follow-up to G387.
+
+  *Reproduced against 0.1.153 (the build of `dev-0.1.159`, which ships as
+  0.1.155 and still prints 0.1.153): `check
+  --no-tsc` gives E0239 with ``Help: Build the query from constants and pass
+  values in the array; a structure that must vary goes through
+  `taint.sanitize` and `sqlite.from_trusted`.`` for the `LIKE '%${name}%'`
+  query.*

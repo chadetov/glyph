@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="주 메뉴">
         <div class="nav-brand">
           <a href="/ko/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.153</a>
+          <a href="/versions/" class="nav-version" title="릴리스 노트">v0.1.154</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -559,7 +559,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">어떤 호출 가능한 것이 판정하는가</span></summary><div class="body">
         <p>
-          예전에는 생성된 파일에 대한 <code>tsc</code>의 <code>TS1308</code>이었습니다. 이제는 <code>E0222</code>이며, 가장 안쪽의 둘러싼 호출 가능한 것이 판정하므로, <code>async fn</code> 안의 동기 람다는 별도의 문맥입니다. TypeScript와 같은 규칙입니다.
+          예전에는 생성된 파일에 대한 <code>tsc</code>의 <code>TS1308</code>이었습니다. 이제는 <code>E0222</code>이며, 가장 안쪽의 둘러싼 호출 가능한 것이 판정하므로, <code>async fn</code> 안의 동기 람다는 별도의 문맥입니다. TypeScript와 같은 규칙입니다. 반대 실수, 즉 아무도 await하지 않는 호출은 <code>E0238</code>입니다. 한 줄에 단독으로 있는 <code>save(1)</code>, <code>let _ = save(1)</code>, <code>let n: number = load()</code>는 거부됩니다. 호출은 시작되지만 프로그램은 그것을 기다리지 않고 넘어가기 때문입니다. 실행만 시켜 두려는 동기 콜백은 <code>task.detach(async fn() -&gt; void { await save(1) })</code>라고 씁니다. 이것은 실패를 stderr에 알립니다.
         </p>
       </div></details>
 
@@ -952,6 +952,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <p class="ak-st-group">문장과 문법</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn</code> 밖의 <code>await</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">아무것도 await하지 않는 async 함수 호출 (<code>let _ =</code>와 타입이 지정된 자리 포함)</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">값을 만들지 않는 값 위치 <code>match</code> arm</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>mut</code>가 빠진 대입</span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">레코드 형태만 존재하는데 위치 기반 payload 필드를 여러 개 준 variant</span><span class="chip code">E0010</span></span></li>
@@ -987,6 +988,11 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 개선 중</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code>은 Glyph 검사기가 시그니처를 알 때만 호출을 async로 인식합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>E0238</code>은 Glyph 검사기가 호출의 시그니처를 알 때만 그것이 async임을 알기 때문에, npm 패키지나 node 내장 모듈이 돌려주는 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>나 타이머에 넘긴 <code>async</code> 콜백도 아직 거부되지 않습니다. 이 규칙은 콜백 자리를 모델링해야 하며, 계획되어 있습니다.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받습니다</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받아 pending 값의 배열을 돌려주며, 이는 <code>[object Promise]</code>로 출력됩니다. 조건 함수를 받는 배열 함수 다섯 개는 콜백 위치에서 <code>E0211</code>로 이를 막습니다. 나머지 세 개를 같은 방식으로 모델링하면 Glyph가 작업을 동시에 실행하는 방법인 <code>par.all(array.map(items, async fn ...))</code>도 거부하게 됩니다. pending 값의 배열을 언어에서 표현할 방법이 없기 때문입니다. 이는 빠진 항목이 아니라 타입 시스템 차원의 결정이므로 열려 있습니다.</p>
@@ -1022,7 +1028,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.153으로 검사합니다. 마지막 변경: <time datetime="2026-11-21">2026년 11월 21일</time>.</p>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.154으로 검사합니다. 마지막 변경: <time datetime="2026-11-21">2026년 11월 21일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/tooling/">
           <span class="dir">&larr; 이전</span>

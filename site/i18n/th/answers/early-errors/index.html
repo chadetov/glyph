@@ -1,7 +1,7 @@
 ---
 title: ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า? · Glyph
 description: Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc
-source_hash: 39590229d161d4c3
+source_hash: c5e5837369abce5e
 prev: /answers/tooling/ | &larr; ก่อนหน้า | ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?
 next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?
 ---
@@ -91,7 +91,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่เรียกได้ตัวไหนเป็นตัวตัดสิน</span></summary><div class="body">
         <p>
-          สิ่งนั้นเคยเป็น <code>TS1308</code> ของ <code>tsc</code> บนไฟล์ที่ generate ตอนนี้เป็น <code>E0222</code> และสิ่งที่เรียกได้ซึ่งครอบอยู่ชั้นในสุดเป็นตัวตัดสิน lambda แบบ synchronous ภายใน <code>async fn</code> จึงเป็นบริบทของตัวเอง ซึ่งเป็นกฎเดียวกับที่ TypeScript ใช้
+          สิ่งนั้นเคยเป็น <code>TS1308</code> ของ <code>tsc</code> บนไฟล์ที่ generate ตอนนี้เป็น <code>E0222</code> และสิ่งที่เรียกได้ซึ่งครอบอยู่ชั้นในสุดเป็นตัวตัดสิน lambda แบบ synchronous ภายใน <code>async fn</code> จึงเป็นบริบทของตัวเอง ซึ่งเป็นกฎเดียวกับที่ TypeScript ใช้ ความผิดพลาดในทางกลับกัน คือการเรียกที่ไม่มีใคร await เป็น <code>E0238</code>: <code>save(1)</code> ที่อยู่บรรทัดเดียว <code>let _ = save(1)</code> และ <code>let n: number = load()</code> จะถูกปฏิเสธ เพราะการเรียกเริ่มทำงานแล้วโปรแกรมก็ไปต่อโดยไม่รอ callback แบบ sync ที่ตั้งใจสั่งงานแล้วไม่รอให้เขียน <code>task.detach(async fn() -&gt; void { await save(1) })</code> ซึ่งจะรายงานความล้มเหลวทาง stderr
         </p>
       </div></details>
 
@@ -484,6 +484,7 @@ string.repeeat(s, 2)
           <p class="ak-st-group">statement และ syntax</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> นอก <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การเรียกฟังก์ชัน async ที่ไม่มีอะไร await รวมถึง <code>let _ =</code> และตำแหน่งที่มีการระบุ type</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">arm ของ <code>match</code> ในตำแหน่งค่าที่ไม่ให้ค่า</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การ assign ที่ขาด <code>mut</code></span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">variant ที่ได้ payload ตามตำแหน่งหลาย field ในขณะที่รูปแบบ record คือรูปแบบที่มีอยู่</span><span class="chip code">E0010</span></span></li>
@@ -519,6 +520,11 @@ string.repeeat(s, 2)
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> รู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>E0238</code> รู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน ดังนั้น promise จากแพ็กเกจ npm หรือ builtin ของ node ยังอาจถูกทิ้งไปเงียบๆ ได้ callback แบบ <code>async</code> ที่ส่งให้ <code>forEach</code> หรือ timer ก็ยังไม่ถูกปฏิเสธเช่นกัน: กฎนี้ต้องจำลองตำแหน่งของ callback ก่อน และอยู่ในแผนแล้ว</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่</p>

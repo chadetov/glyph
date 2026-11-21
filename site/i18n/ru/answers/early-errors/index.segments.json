@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ru",
-  "source_hash": "39590229d161d4c3",
+  "source_hash": "c5e5837369abce5e",
   "segments": [
     {
       "id": "title",
@@ -281,10 +281,10 @@
       "tr": "Подробнее <span class=\"hint\">какая вызываемая конструкция решает</span>"
     },
     {
-      "id": "h-bd0de091",
+      "id": "h-da6289b9",
       "kind": "html",
-      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
-      "tr": "Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript."
+      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses. The opposite mistake, a call nobody awaits, is <code>E0238</code>: <code>save(1)</code> on its own line, <code>let _ = save(1)</code> and <code>let n: number = load()</code> are refused, because the call starts and the program moves on without it. A sync callback that means to fire and forget writes <code>task.detach(async fn() -&gt; void { await save(1) })</code>, which reports a failure on stderr.",
+      "tr": "Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript. Обратная ошибка, вызов, который никто не ждёт, это <code>E0238</code>: <code>save(1)</code> отдельной строкой, <code>let _ = save(1)</code> и <code>let n: number = load()</code> отклоняются, потому что вызов начинается, а программа идёт дальше без него. Синхронный колбэк, который хочет запустить работу и забыть о ней, пишет <code>task.detach(async fn() -&gt; void { await save(1) })</code>; это сообщает об ошибке в stderr."
     },
     {
       "id": "h-868a3ae0",
@@ -1025,6 +1025,12 @@
       "tr": "<code>await</code> вне <code>async fn</code>"
     },
     {
+      "id": "h-9d81475f",
+      "kind": "html",
+      "en": "A call to an async function that nothing awaits, <code>let _ =</code> and a typed slot included",
+      "tr": "Вызов async-функции, который ничто не ждёт, включая <code>let _ =</code> и типизированную позицию"
+    },
+    {
       "id": "h-46773e34",
       "kind": "html",
       "en": "A value-position <code>match</code> arm that produces no value",
@@ -1151,16 +1157,28 @@
       "tr": "Становится точнее"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-4f8e68bf",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк"
+      "en": "<code>E0238</code> sees a call as async only when Glyph's checker has its signature",
+      "tr": "<code>E0238</code> распознаёт вызов как async, только если у проверки Glyph есть его сигнатура"
     },
     {
       "id": "h-45989de4",
       "kind": "html",
       "en": "Details",
       "tr": "Подробнее"
+    },
+    {
+      "id": "h-58e46187",
+      "kind": "html",
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
+      "tr": "<code>E0238</code> знает, что вызов async, только если у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча отброшен. Колбэк <code>async</code>, переданный в <code>forEach</code> или таймер, тоже пока не отклоняется: для этого правила нужно смоделировать позиции колбэков, и оно запланировано."
+    },
+    {
+      "id": "h-c6868905",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
+      "tr": "<code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк"
     },
     {
       "id": "h-ef5ceb2e",

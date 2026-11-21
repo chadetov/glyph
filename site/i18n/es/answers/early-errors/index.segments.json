@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "es",
-  "source_hash": "39590229d161d4c3",
+  "source_hash": "c5e5837369abce5e",
   "segments": [
     {
       "id": "title",
@@ -281,10 +281,10 @@
       "tr": "Detalles <span class=\"hint\">qué función decide</span>"
     },
     {
-      "id": "h-bd0de091",
+      "id": "h-da6289b9",
       "kind": "html",
-      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
-      "tr": "Antes eso era el <code>TS1308</code> de <code>tsc</code> sobre el archivo generado. Ahora es <code>E0222</code>, y decide la función que lo contiene más de cerca, así que una lambda síncrona dentro de un <code>async fn</code> es su propio contexto, la misma regla que usa TypeScript."
+      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses. The opposite mistake, a call nobody awaits, is <code>E0238</code>: <code>save(1)</code> on its own line, <code>let _ = save(1)</code> and <code>let n: number = load()</code> are refused, because the call starts and the program moves on without it. A sync callback that means to fire and forget writes <code>task.detach(async fn() -&gt; void { await save(1) })</code>, which reports a failure on stderr.",
+      "tr": "Antes eso era el <code>TS1308</code> de <code>tsc</code> sobre el archivo generado. Ahora es <code>E0222</code>, y decide la función que lo contiene más de cerca, así que una lambda síncrona dentro de un <code>async fn</code> es su propio contexto, la misma regla que usa TypeScript. El error opuesto, una llamada que nadie espera, es <code>E0238</code>: <code>save(1)</code> sola en una línea, <code>let _ = save(1)</code> y <code>let n: number = load()</code> se rechazan, porque la llamada empieza y el programa sigue sin ella. Un callback síncrono que quiere lanzar y olvidar escribe <code>task.detach(async fn() -&gt; void { await save(1) })</code>, que informa de un fallo en stderr."
     },
     {
       "id": "h-868a3ae0",
@@ -1025,6 +1025,12 @@
       "tr": "<code>await</code> fuera de un <code>async fn</code>"
     },
     {
+      "id": "h-9d81475f",
+      "kind": "html",
+      "en": "A call to an async function that nothing awaits, <code>let _ =</code> and a typed slot included",
+      "tr": "Una llamada a una función asíncrona que nada espera, incluidos <code>let _ =</code> y un slot tipado"
+    },
+    {
       "id": "h-46773e34",
       "kind": "html",
       "en": "A value-position <code>match</code> arm that produces no value",
@@ -1151,16 +1157,28 @@
       "tr": "Cada vez más preciso"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-4f8e68bf",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse"
+      "en": "<code>E0238</code> sees a call as async only when Glyph's checker has its signature",
+      "tr": "<code>E0238</code> solo reconoce una llamada como asíncrona cuando el checker de Glyph tiene su firma"
     },
     {
       "id": "h-45989de4",
       "kind": "html",
       "en": "Details",
       "tr": "Detalles"
+    },
+    {
+      "id": "h-58e46187",
+      "kind": "html",
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
+      "tr": "<code>E0238</code> solo sabe que una llamada es asíncrona cuando el checker de Glyph tiene su firma, así que una promise de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code> o a un timer tampoco se rechaza aún: esa regla necesita modelar los slots de callback, y está prevista."
+    },
+    {
+      "id": "h-c6868905",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
+      "tr": "<code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse"
     },
     {
       "id": "h-ef5ceb2e",

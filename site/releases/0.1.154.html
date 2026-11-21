@@ -1,0 +1,24 @@
+---
+version: 0.1.154
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: An async call nothing waits for is refused, and task.detach starts work on purpose
+---
+            <p>Calling an <code>async fn</code> without <code>await</code> starts the work and moves on. If it fails, nothing sees the error, and anything that runs after it may run before it. Glyph's checker used to type such a call as the value it would eventually produce, so <code>let n: number = load()</code> passed without <code>tsc</code>, and a bare <code>save(1)</code> on its own line passed everywhere.</p>
+
+            <p>Now an un-awaited call to an async function is a pending value, and using it anywhere other than <code>await</code> or <code>return</code> from an async function is E0238:</p>
+
+<pre><code>[E0238] `save(1)` is never awaited: `save` is async, so this starts it and moves on without waiting, and if it fails nothing sees the error
+Help: Write `await save(1)`.</code></pre>
+
+            <p>That covers a call on its own line, the last line of a block, <code>let _ = save(1)</code>, a <code>let</code> that is never read, a typed <code>let</code>, a <code>match</code> on the call, an argument, an operand, and a sync function returning the call. A sync lambda whose last expression is an un-awaited call is refused too, with help that depends on where the lambda goes: <code>task.detach</code> gets <code>async fn() -&gt; void { … }</code>, a timer callback gets a <code>task.detach</code> inside the callback, and <code>array.map</code> gets a loop. Every suggested snippet compiles. Hover shows the type as a pending <code>number</code>.</p>
+
+            <h3>task.detach</h3>
+            <p>Sometimes a sync context really does want to start work and not wait, like a timer callback. <code>task.detach(async fn() -&gt; void { await save(1) })</code> in <code>std/task</code> says so in the code, and a failure is reported on stderr instead of disappearing.</p>
+
+            <h3>Breaking</h3>
+            <p>Programs that drop an async call no longer compile. In the repository, two example apps did, and both were real bugs: the chat server's <code>main</code> started <code>daemon.serve(port)</code> and returned before the server bound, and the job queue's timer dropped each <code>drain</code>. Both are fixed. No other tracked <code>.glyph</code> file changed.</p>
+
+            <h3>Not yet</h3>
+            <p>E0238 knows a call is async only when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback given to <code>forEach</code> or a timer is not refused yet; that is planned.</p>

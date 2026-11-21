@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Ana menü">
         <div class="nav-brand">
           <a href="/tr/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Sürüm notları">v0.1.153</a>
+          <a href="/versions/" class="nav-version" title="Sürüm notları">v0.1.154</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -557,7 +557,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kararı hangi callable veriyor</span></summary><div class="body">
         <p>
-          Bu eskiden üretilen dosyada <code>tsc</code>'nin <code>TS1308</code> hatasıydı. Artık <code>E0222</code> ve karar en içteki çevreleyen callable'a aittir; yani bir <code>async fn</code> içindeki senkron bir lambda kendi bağlamıdır, TypeScript'in kullandığı kuralın aynısı.
+          Bu eskiden üretilen dosyada <code>tsc</code>'nin <code>TS1308</code> hatasıydı. Artık <code>E0222</code> ve karar en içteki çevreleyen callable'a aittir; yani bir <code>async fn</code> içindeki senkron bir lambda kendi bağlamıdır, TypeScript'in kullandığı kuralın aynısı. Tersi hata, yani kimsenin beklemediği bir çağrı <code>E0238</code>'dir: tek satırda <code>save(1)</code>, <code>let _ = save(1)</code> ve <code>let n: number = load()</code> reddedilir, çünkü çağrı başlar ve program onu beklemeden devam eder. Ateşleyip unutmak isteyen senkron bir callback <code>task.detach(async fn() -&gt; void { await save(1) })</code> yazar; bu, bir hatayı stderr'e bildirir.
         </p>
       </div></details>
 
@@ -950,6 +950,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <p class="ak-st-group">Deyimler ve sözdizimi</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn</code> dışındaki <code>await</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Hiçbir şeyin beklemediği bir async fonksiyon çağrısı, <code>let _ =</code> ve tipli bir yer dahil</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değer üretmeyen, değer konumundaki bir <code>match</code> arm'ı</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>mut</code>'u eksik bir atama</span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Var olan biçim record biçimiyken birkaç konumsal payload alanı verilmiş bir variant</span><span class="chip code">E0010</span></span></li>
@@ -985,6 +986,11 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Daha da keskinleşiyor</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> bir çağrıyı yalnızca Glyph'in checker'ı imzasını bildiğinde async olarak görür</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>E0238</code> bir çağrının async olduğunu yalnızca Glyph'in checker'ı imzasını bildiğinde anlar; bu yüzden bir npm paketinden ya da node yerleşiğinden gelen bir promise hâlâ sessizce düşürülebilir. <code>forEach</code>'e ya da bir zamanlayıcıya verilen <code>async</code> bir callback de henüz reddedilmiyor: bu kural callback yerlerinin modellenmesini gerektiriyor ve planlandı.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor ve <code>[object Promise]</code> olarak yazdırılan, bekleyen değerlerden oluşan bir dizi döndürüyor; predicate alan beş dizi fonksiyonu ise bunu callback'te <code>E0211</code> ile durduruyor. Diğer üçünü aynı şekilde modellemek, Glyph'in işleri eşzamanlı çalıştırma yolu olan <code>par.all(array.map(items, async fn ...))</code>'yi de reddeder, çünkü bekleyen değerlerden oluşan bir dizinin dilde bir yazımı yok. Bu eksik bir girdi değil bir tip sistemi kararı, bu yüzden açık.</p>
@@ -1020,7 +1026,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.154 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/tooling/">
           <span class="dir">&larr; Önceki</span>

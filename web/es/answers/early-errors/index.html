@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/es/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.153</a>
+          <a href="/versions/" class="nav-version" title="Notas de la versión">v0.1.154</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -557,7 +557,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué función decide</span></summary><div class="body">
         <p>
-          Antes eso era el <code>TS1308</code> de <code>tsc</code> sobre el archivo generado. Ahora es <code>E0222</code>, y decide la función que lo contiene más de cerca, así que una lambda síncrona dentro de un <code>async fn</code> es su propio contexto, la misma regla que usa TypeScript.
+          Antes eso era el <code>TS1308</code> de <code>tsc</code> sobre el archivo generado. Ahora es <code>E0222</code>, y decide la función que lo contiene más de cerca, así que una lambda síncrona dentro de un <code>async fn</code> es su propio contexto, la misma regla que usa TypeScript. El error opuesto, una llamada que nadie espera, es <code>E0238</code>: <code>save(1)</code> sola en una línea, <code>let _ = save(1)</code> y <code>let n: number = load()</code> se rechazan, porque la llamada empieza y el programa sigue sin ella. Un callback síncrono que quiere lanzar y olvidar escribe <code>task.detach(async fn() -&gt; void { await save(1) })</code>, que informa de un fallo en stderr.
         </p>
       </div></details>
 
@@ -950,6 +950,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <p class="ak-st-group">Sentencias y sintaxis</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> fuera de un <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una llamada a una función asíncrona que nada espera, incluidos <code>let _ =</code> y un slot tipado</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un brazo de <code>match</code> en posición de valor que no produce valor</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una asignación sin <code>mut</code></span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una variante con varios campos de payload posicionales cuando la forma que existe es la de record</span><span class="chip code">E0010</span></span></li>
@@ -985,6 +986,11 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Cada vez más preciso</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> solo reconoce una llamada como asíncrona cuando el checker de Glyph tiene su firma</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p><code>E0238</code> solo sabe que una llamada es asíncrona cuando el checker de Glyph tiene su firma, así que una promise de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code> o a un timer tampoco se rechaza aún: esa regla necesita modelar los slots de callback, y está prevista.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse y devuelven un array de valores pendientes, que se imprime como <code>[object Promise]</code>; las cinco funciones de array que reciben un predicado sí lo impiden, con <code>E0211</code> en el callback. Modelar las otras tres de la misma forma también rechazaría <code>par.all(array.map(items, async fn ...))</code>, que es como Glyph ejecuta trabajo en concurrencia, porque un array de valores pendientes no tiene forma de escribirse en el lenguaje. Es una decisión del sistema de tipos y no una entrada que falte, así que sigue abierta.</p>
@@ -1020,7 +1026,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-21">21 nov 2026</time>.</p>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.154 en cada build. Último cambio: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/tooling/">
           <span class="dir">&larr; Anterior</span>

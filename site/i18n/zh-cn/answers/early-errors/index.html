@@ -1,7 +1,7 @@
 ---
 title: 为什么 Glyph 能发现 tsc 能发现的问题，而且更早？ · Glyph
 description: Glyph 会针对你的源码报告 async fn 之外的 await、不产生值的 match 分支以及缺少的 mut，附上规则和修复方法，而且在 tsc 之前。
-source_hash: 39590229d161d4c3
+source_hash: c5e5837369abce5e
 prev: /answers/tooling/ | &larr; 上一篇 | 编辑器、调试和报错的体验如何？
 next: /answers/parse-errors/ | 下一篇 &rarr; | 解析失败时，我能知道原因吗？
 ---
@@ -91,7 +91,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">由哪个可调用体决定</span></summary><div class="body">
         <p>
-          这以前是生成文件上的 <code>tsc</code> 的 <code>TS1308</code>，现在是 <code>E0222</code>，由最内层的外围可调用体决定，所以 <code>async fn</code> 里的同步 lambda 是它自己的上下文，规则和 TypeScript 相同。
+          这以前是生成文件上的 <code>tsc</code> 的 <code>TS1308</code>，现在是 <code>E0222</code>，由最内层的外围可调用体决定，所以 <code>async fn</code> 里的同步 lambda 是它自己的上下文，规则和 TypeScript 相同。 相反的错误，即没有任何地方 await 的调用，是 <code>E0238</code>：单独一行的 <code>save(1)</code>、<code>let _ = save(1)</code> 和 <code>let n: number = load()</code> 都会被拒绝，因为调用开始了，程序却不等它就继续往下走。想要“发出后不管”的同步回调写成 <code>task.detach(async fn() -&gt; void { await save(1) })</code>，它会在 stderr 上报告失败。
         </p>
       </div></details>
 
@@ -484,6 +484,7 @@ string.repeeat(s, 2)
           <p class="ak-st-group">语句与语法</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn</code> 之外的 <code>await</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">对异步函数的调用没有被任何地方 await，包括 <code>let _ =</code> 和带类型的位置</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">处于值位置、不产生值的 <code>match</code> 分支</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">缺少 <code>mut</code> 的赋值</span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">给变体传了多个位置负载字段，而实际存在的是记录形式</span><span class="chip code">E0010</span></span></li>
@@ -519,6 +520,11 @@ string.repeeat(s, 2)
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在改进</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">只有当 Glyph 的检查器知道某个调用的签名时，<code>E0238</code> 才能认出它是异步的</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>只有当 Glyph 的检查器知道调用的签名时，<code>E0238</code> 才知道它是异步的，所以来自 npm 包或 node 内置模块的 promise 仍可能被悄悄丢掉。传给 <code>forEach</code> 或定时器的 <code>async</code> 回调目前也还不会被拒绝：这条规则需要先对回调位置建模，已在计划中。</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
                 <p><code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调，并返回一个由待定值组成的数组，打印出来是 <code>[object Promise]</code>；五个接受谓词的数组函数确实会阻止这种情况，在回调处报告 <code>E0211</code>。用同样方式为另外三个建模，也会拒绝 <code>par.all(array.map(items, async fn ...))</code>，而这正是 Glyph 并发执行任务的方式，因为由待定值组成的数组在语言中没有写法。这是一个类型系统层面的决定，而不是少了一个条目，所以它仍是开放问题。</p>

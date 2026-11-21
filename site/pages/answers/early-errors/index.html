@@ -2,10 +2,13 @@
 title: Why does Glyph catch what tsc catches, but earlier? · Glyph
 description: Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/tooling/ | &larr; Previous | What's the editor, debugging, and error experience?
 next: /answers/parse-errors/ | Next &rarr; | When a parse fails, do I find out why?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">26 &middot; Caught earlier</p>
       <h1 class="q-title">Why does Glyph catch what tsc catches, but earlier?</h1>
@@ -16,35 +19,9 @@ next: /answers/parse-errors/ | Next &rarr; | When a parse fails, do I find out w
         edit that fixes it.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          Glyph compiles to TypeScript and then type-checks the output with
-          <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes
-          back one stage later, phrased in terms of the emitted file: a
-          <code>TS1308</code> pointing at an <code>await</code> in a function you never
-          spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write.
-          The line is mapped back to your <code>.glyph</code>, but the explanation isn't.
-        </p>
-        <p>
-          That gap is where the compiler stops teaching. So each rule Glyph can decide
-          for itself moves up: <code>await</code> outside an <code>async fn</code>
-          (<code>E0222</code>), a <code>match</code> arm that produces no value while the
-          <code>match</code> is used as a value (<code>E0223</code>), and an assignment
-          written without <code>mut</code> (<code>E0008</code>). Each names the rule, cites
-          the decision behind it, and shows the before and after.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>
-          The arm case is the one that used to escape entirely. <code>{}</code> in arm
-          position is an empty <em>block</em>, not an empty record, so the arm ran and
-          produced nothing:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">status.glyph: an arm that yields nothing, in a position that needs a value</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">status.glyph: an arm that yields nothing, in a position that needs a value</span>
 <pre>fn label(s: Status) -&gt; string {
   let text = match s {
 <span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
@@ -53,39 +30,82 @@ next: /answers/parse-errors/ | Next &rarr; | When a parse fails, do I find out w
   }
   return text
 }</pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
    ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
       only where the `match` is a statement.
    note: A value-position arm lowers to `case X: { break; }` when it yields
          nothing, so the value would be `undefined` at run time.</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>The arm case is the one that used to escape entirely. <code>{}</code> in arm
+          position is an empty <em>block</em>, not an empty record, so the arm ran and
+          produced nothing.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Before this, the emitted <code>switch</code> fell out of its own cases and
-          <code>text</code> held <code>undefined</code> while its type said
-          <code>string</code>. <code>tsc</code> catches some shapes of that and misses
-          others. Glyph now decides it wherever the position is decidable: a
-          <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a
-          function that declares a return type. A statement <code>match</code> keeps
-          <code>X =&gt; {}</code> as the deliberate no-op it is.
-        </p>
-        <p>
-          <code>await</code> is the same move. Glyph has no user-visible
-          <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a
-          <code>T</code>, so <code>await</code> anywhere else has nothing to suspend. That
-          used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is
-          <code>E0222</code> now, and the innermost enclosing callable decides, so a
-          synchronous lambda inside an <code>async fn</code> is its own context, the same
-          rule TypeScript uses.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#value-arm">An arm with no value</a></li>
+          <li><a href="#await">await outside async</a></li>
+          <li><a href="#missing-mut">A missing mut</a></li>
+          <li><a href="#the-worse-case-when-tsc-is-happy-too">When tsc is happy too</a></li>
+          <li><a href="#a-wrong-message-is-worse-than-no-message">A wrong message</a></li>
+          <li><a href="#naming-the-rule-not-the-token">The rule, not the token</a></li>
+          <li><a href="#two-more-the-checker-took-over-in-0-1-121">Taken over in 0.1.121</a></li>
+          <li><a href="#and-three-more-since-0-1-133">Since 0.1.133</a></li>
+          <li><a href="#and-two-more-in-0-1-122">In 0.1.122</a></li>
+          <li><a href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">Literal types, 0.1.123</a></li>
+          <li><a href="#a-module-under-std-was-dead-code-with-no-diagnostic">A module under std/</a></li>
+          <li><a href="#nesting-limit">The nesting limit</a></li>
+          <li><a href="#when-neither-compiler-is-wrong">When neither is wrong</a></li>
+          <li><a href="#the-same-typo-two-answers">The same typo</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
 
-      <div class="code">
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph compiles to TypeScript and then type-checks the output with
+        <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes
+        back one stage later, phrased in terms of the emitted file: a
+        <code>TS1308</code> pointing at an <code>await</code> in a function you never
+        spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The line is mapped back to your <code>.glyph</code>, but the explanation isn't.
+        That gap is where the compiler stops teaching.</p></div>
+      <p class="ak-lede">So each rule Glyph can decide for itself moves up:</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>await</code> outside an <code>async fn</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b>a <code>match</code> arm that produces no value while the
+          <code>match</code> is used as a value</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>and an assignment
+          written without <code>mut</code></li>
+      </ul>
+      <p class="ak-lede">Each names the rule, cites
+        the decision behind it, and shows the before and after.</p>
+
+      <h2 class="ak-h" id="value-arm">An arm that produces no value<a class="ak-anchor" href="#value-arm" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Before this, the emitted <code>switch</code> fell out of its own cases and
+        <code>text</code> held <code>undefined</code> while its type said
+        <code>string</code>. <code>tsc</code> catches some shapes of that and misses
+        others.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph now decides it wherever the position is decidable: a
+        <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a
+        function that declares a return type. A statement <code>match</code> keeps
+        <code>X =&gt; {}</code> as the deliberate no-op it is.</p></div>
+
+      <h2 class="ak-h" id="await">await outside an async fn<a class="ak-anchor" href="#await" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>await</code> is the same move. Glyph has no user-visible
+        <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a
+        <code>T</code>, so <code>await</code> anywhere else has nothing to suspend.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build, on `fn total() -&gt; number { return await fetch_count() }`</span>
 <pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
    ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
@@ -94,17 +114,29 @@ next: /answers/parse-errors/ | Next &rarr; | When a parse fails, do I find out w
 <span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
 within async functions and at the top levels of modules.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">which callable decides</span></summary><div class="body">
         <p>
-          The third one is about a rule people break on day one. Glyph marks every
-          mutation, so reassigning a binding is <code>mut x = e</code> and introducing one
-          is <code>let x = e</code>. A bare <code>x = e</code> used to report "unexpected
-          token: Equals", which names a character rather than the rule. It is
-          <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the
-          mark exists: every place a value changes starts with <code>mut</code>, so
-          <code>grep "mut total"</code> finds all of them.
+          That
+          used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is
+          <code>E0222</code> now, and the innermost enclosing callable decides, so a
+          synchronous lambda inside an <code>async fn</code> is its own context, the same
+          rule TypeScript uses.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="missing-mut">An assignment without mut<a class="ak-anchor" href="#missing-mut" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The third one is about a rule people break on day one. Glyph marks every
+        mutation, so reassigning a binding is <code>mut x = e</code> and introducing one
+        is <code>let x = e</code>.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0008</span><span class="chip code">E0302</span><span class="chip code">E0303</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A bare <code>x = e</code> used to report "unexpected
+        token: Equals", which names a character rather than the rule. It is
+        <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the
+        mark exists: every place a value changes starts with <code>mut</code>, so
+        <code>grep "mut total"</code> finds all of them.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the <code>?</code> operator, E0302 and E0303</span></summary><div class="body">
         <p>
           The <code>?</code> operator gets the same treatment from the other direction.
           <code>?</code> expands to a binding plus an early <code>return</code> placed
@@ -114,30 +146,19 @@ within async functions and at the top levels of modules.</span></pre>
           it is and how to bind out of it (<code>E0302</code> and <code>E0303</code>)
           instead of claiming the operator isn't implemented.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">The worse case: when tsc is happy too</h2>
-        <p>
-          A <code>tsc</code> error in the wrong place is annoying. A clean build on a
-          program that means something else is the real problem, and Glyph had one. Every
-          top-level name you declare goes into the emitted module verbatim, including a
-          tagged union's variant constructors, so a variant named <code>Error</code> emits
-          <code>export function Error(...)</code> at module top level. The
-          <code>new Error(...)</code> the compiler writes below it then calls your variant.
-        </p>
-        <p>
-          <code>type Key = string | number</code> is the same defect with a friendlier
-          face. In Glyph <code>A | B</code> declares a tagged union whose members are
-          variant <em>constructors</em>, so that line declares variants called
-          <code>string</code> and <code>number</code>. It compiled, passed
-          <code>tsc --strict</code>, and emitted an <code>export const number</code> that
-          shadowed the prelude <code>number</code> namespace. Nothing failed until a later
-          <code>number.to_string</code> call did.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-worse-case-when-tsc-is-happy-too">The worse case: when tsc is happy too<a class="ak-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A <code>tsc</code> error in the wrong place is annoying. A clean build on a
+        program that means something else is the real problem, and Glyph had one.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Every
+        top-level name you declare goes into the emitted module verbatim, including a
+        tagged union's variant constructors, so a variant named <code>Error</code> emits
+        <code>export function Error(...)</code> at module top level. The
+        <code>new Error(...)</code> the compiler writes below it then calls your variant.</p></div>
+      <div class="code term">
         <span class="cap">glyph build, on a union with an `Error` variant</span>
 <pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
         references the JavaScript global `Error`, and this declaration would
@@ -151,8 +172,17 @@ within async functions and at the top levels of modules.</span></pre>
 <span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
 assignable to parameter of type ...</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0110</span><span class="chip code">E0111</span><span class="chip code">E0109</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint"><code>type Key = string | number</code>, the guarded list, E0111</span></summary><div class="body">
+        <p>
+          <code>type Key = string | number</code> is the same defect with a friendlier
+          face. In Glyph <code>A | B</code> declares a tagged union whose members are
+          variant <em>constructors</em>, so that line declares variants called
+          <code>string</code> and <code>number</code>. It compiled, passed
+          <code>tsc --strict</code>, and emitted an <code>export const number</code> that
+          shadowed the prelude <code>number</code> namespace. Nothing failed until a later
+          <code>number.to_string</code> call did.
+        </p>
         <p>
           The span is the declaration, which is where the rename goes. The guarded list is
           derived from the emitter rather than from a general list of JavaScript globals,
@@ -173,25 +203,49 @@ assignable to parameter of type ...</span></pre>
           reserved words behind <code>E0109</code>, and the shadow list, each with the
           reason the name is taken.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Worth being clear about what this does not do. You still cannot name a type or a
+        variant <code>Error</code>, and the spreadsheet that turned this up ships a
+        variant called <code>Cellerr</code> because of it. The program it wanted to be is
+        still not writable; what changed is that the compiler now says so at the
+        declaration instead of letting the build go green and mean something else.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why the name is not simply made usable</span></summary><div class="body">
         <p>
-          Worth being clear about what this does not do. You still cannot name a type or a
-          variant <code>Error</code>, and the spreadsheet that turned this up ships a
-          variant called <code>Cellerr</code> because of it. The program it wanted to be is
-          still not writable; what changed is that the compiler now says so at the
-          declaration instead of letting the build go green and mean something else.
           Making the name usable means mangling Glyph names on the way into TypeScript,
           which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and
           a hand-written <code>extern/</code> shim see, so it is not a patch we can make
           quietly.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">A wrong message is worse than no message</h2>
+      <h2 class="ak-h" id="a-wrong-message-is-worse-than-no-message">A wrong message is worse than no message<a class="ak-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The shadow list started with names the emitter writes as <em>values</em>. It
+        was missing the ones it writes as <em>types</em>, and that produced the sharpest
+        version of this whole problem.
+      </p>
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code term">
+            <span class="cap">glyph build, before: fifteen of these, none of them near the cause</span>
+<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code term">
+            <span class="cap">glyph build, now</span>
+<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global `Issue`, and this declaration
+        would shadow it</span>
+   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+          </div>
+        </div>
+      </div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why <code>Issue</code> collides, and <code>Record</code></span></summary><div class="body">
         <p>
-          The shadow list started with names the emitter writes as <em>values</em>. It
-          was missing the ones it writes as <em>types</em>, and that produced the sharpest
-          version of this whole problem. Every descriptor's <code>parse</code> returns
+          Every descriptor's <code>parse</code> returns
           <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes
           <code>Issue</code> whether or not you did. Declare
           <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own
@@ -199,24 +253,6 @@ assignable to parameter of type ...</span></pre>
           <code>code</code> field yours has never heard of, and the build fails with a
           <code>tsc</code> error about generated code, at a span pointing somewhere else.
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, before: fifteen of these, none of them near the cause</span>
-<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
-specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, now</span>
-<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
-        references the Glyph prelude global `Issue`, and this declaration
-        would shadow it</span>
-   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
-      the rebinding.</pre>
-      </div>
-
-      <div class="detail">
         <p>
           <code>Record</code> joined the list at the same time, filed with the JavaScript
           globals rather than the prelude names because it is a TypeScript built-in and
@@ -228,19 +264,15 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           free: the emitter writes them only because you wrote them in an annotation, so
           declaring one shadows nothing.
         </p>
-        <p>
-          The other one in this class was an import. A local import path resolves from the
-          build root, the directory you hand to <code>glyph build</code>, not from the
-          directory of the file doing the importing. Build an enclosing tree and
-          <code>import catalog</code> finds nothing, and until now nothing said so. The
-          type degraded to unknown, a <code>match</code> over it lost the variants it was
-          matching, and what you got was <code>E0218</code>, non-exhaustive match, on a
-          <code>match</code> that covered every case. Doing what that message asked would
-          have added a dead <code>else</code> arm to correct code.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h3 class="ak-h3" id="wrong-cause-import">An import that blamed a match<a class="ak-anchor" href="#wrong-cause-import" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        The other one in this class was an import. A local import path resolves from the
+        build root, the directory you hand to <code>glyph build</code>, not from the
+        directory of the file doing the importing.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build examples/apps, on `import catalog` inside csvql/</span>
 <pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
         root `examples/apps`. There is a `csvql/catalog.glyph` under the
@@ -252,8 +284,15 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// before: no import diagnostic, then</span>
 <span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what it used to report, and how it avoids false positives</span></summary><div class="body">
+        <p>
+          Build an enclosing tree and
+          <code>import catalog</code> finds nothing, and until now nothing said so. The
+          type degraded to unknown, a <code>match</code> over it lost the variants it was
+          matching, and what you got was <code>E0218</code>, non-exhaustive match, on a
+          <code>match</code> that covered every case. Doing what that message asked would
+          have added a dead <code>else</code> arm to correct code.
+        </p>
         <p>
           The risk in a check like this is that it fires on things that are fine, and an
           import checker that cries wolf on every npm package is worse than the silence it
@@ -266,30 +305,19 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           dependency from a typo, so it reports only what it can prove: an import that some
           <code>.glyph</code> file under the root answers to.
         </p>
-        <p>
-          Resolution itself did not change. The same programs build and the same programs
-          fail. What changed is that the failure now names the import instead of accusing a
-          <code>match</code> two files away, which is the whole of it: a compiler that
-          reports the wrong cause costs you the hour spent chasing it, and then the benefit
-          of the doubt on every message after.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Resolution itself did not change. The same programs build and the same programs
+        fail. What changed is that the failure now names the import instead of accusing a
+        <code>match</code> two files away, which is the whole of it: a compiler that
+        reports the wrong cause costs you the hour spent chasing it, and then the benefit
+        of the doubt on every message after.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Naming the rule, not the token</h2>
-        <p>
-          The quieter version of the same problem is an error that is correct and
-          still tells you nothing. An agent writing a red-black tree reached for the
-          positional constructor every ML-family language has, and the parser stopped
-          on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice
-          &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces
-          a different program, not a working one. A Glyph variant carries one payload,
-          and a payload with several fields is a record. Neither of those sentences was
-          anywhere in the output.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="naming-the-rule-not-the-token">Naming the rule, not the token<a class="ak-anchor" href="#naming-the-rule-not-the-token" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The quieter version of the same problem is an error that is correct and
+        still tells you nothing.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, before and now</span>
 <pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
    ╰─ Add the expected token.</span>
@@ -301,8 +329,16 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
               /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
       and destructure it by those names in a match arm.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the red-black tree, and how the fix names your program</span></summary><div class="body">
+        <p>
+          An agent writing a red-black tree reached for the
+          positional constructor every ML-family language has, and the parser stopped
+          on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice
+          &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces
+          a different program, not a working one. A Glyph variant carries one payload,
+          and a payload with several fields is a record. Neither of those sentences was
+          anywhere in the output.
+        </p>
         <p>
           To say that, the parser had to read the whole list before refusing it, which
           is also what lets it count. The span underlines all six fields rather than
@@ -311,21 +347,33 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           program rather than an example of someone else&rsquo;s. Field names are the
           one thing the compiler cannot supply, so it leaves them as holes.
         </p>
-        <p>
-          The rule behind the message is a choice, not a gap.
-          <code>Node(Black, l, x, b, h, r)</code> is the argument swap that type-checks,
-          and position four tells a reader nothing. The record spelling names every
-          field, a match arm names only the fields it uses, and both of those are things
-          <code>grep</code> can find.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The rule behind the message is a choice, not a gap.
+        <code>Node(Black, l, x, b, h, r)</code> is the argument swap that type-checks,
+        and position four tells a reader nothing. The record spelling names every
+        field, a match arm names only the fields it uses, and both of those are things
+        <code>grep</code> can find.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Two more the checker took over in 0.1.121</h2>
+      <h2 class="ak-h" id="two-more-the-checker-took-over-in-0-1-121">Two more the checker took over in 0.1.121<a class="ak-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Order { id: "a", total: 1 }</code> is what someone coming from TypeScript
+        writes to build a record, and Glyph has no such form: a value is written on its
+        own and the type goes on the annotation.
+      </p>
+      <div class="code term">
+        <span class="cap">glyph check, on a record built the TypeScript way</span>
+<pre><span class="del">[E0013] a statement cannot begin on the line where
+        `return Order` ends</span>
+   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
+      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
+
+<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
+<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
+      </div>
+      <div class="ak-chips"><span class="chip code">E0228</span><span class="chip code">E0013</span><span class="chip since">since 0.1.146</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">from E0108 to E0228 to E0013</span></summary><div class="body">
         <p>
-          <code>Order { id: "a", total: 1 }</code> is what someone coming from TypeScript
-          writes to build a record, and Glyph has no such form: a value is written on its
-          own and the type goes on the annotation. What the compiler used to say about that
+          What the compiler used to say about that
           line was <code>E0108</code>, unreachable code, on a build that exited 0, because
           the name resolved to the type and the braces parsed as a block after the
           <code>return</code>. A type's name written as a value is <code>E0228</code>, and
@@ -343,34 +391,29 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           and its help gives the same rewrite. Since 0.1.149 the rule covers every
           statement, not only one opening with a brace: <code>let s = "a" "b"</code> used to
           bind <code>"a"</code> and drop <code>"b"</code>, and <code>return x as User</code> was
-          three statements, since Glyph has no cast. Each statement in a block starts its
-          own line.
+          three statements, since Glyph has no cast.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Each statement in a block starts its
+        own line.</p></div>
 
-      <div class="code">
-        <span class="cap">glyph check, on a record built the TypeScript way</span>
-<pre><span class="del">[E0013] a statement cannot begin on the line where
-        `return Order` ends</span>
-   ╰─ Glyph has no `TypeName { ... }` construction form. Write the literal
-      alone and put the type on the annotation: `let o: Order = { id: "a" }`.
-
-<span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
-<span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
-      </div>
-
-      <div class="detail">
+      <h3 class="ak-h3" id="prelude-containers">A container where a primitive is declared<a class="ak-anchor" href="#prelude-containers" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        The other one is a prelude container assigned to a primitive.
+        <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing
+        from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code>
+        to a parameter declared <code>int</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Five containers are covered in both
+        directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>,
+        <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a
+        <code>number</code> or a <code>bool</code>, whatever their arguments, and
+        <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against
+        <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and
+        <code>let v: Nullable&lt;int&gt; = "three"</code> is <code>E0204</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the case only Glyph can catch, and records since 0.1.130</span></summary><div class="body">
         <p>
-          The other one is a prelude container assigned to a primitive.
-          <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing
-          from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code>
-          to a parameter declared <code>int</code>. Five containers are covered in both
-          directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>,
-          <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a
-          <code>number</code> or a <code>bool</code>, whatever their arguments, and
-          <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against
-          <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and
-          <code>let v: Nullable&lt;int&gt; = "three"</code> is <code>E0204</code>. The
+          The
           <code>Nullable</code> case belongs on this page more than the others, because it
           is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code>
           narrows back to <code>number</code> before the call is checked, so a boundary type
@@ -378,9 +421,6 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           <code>int</code> was declared, and the Glyph checker was the only place it could
           have been caught.
         </p>
-      </div>
-
-      <div class="detail">
         <p>
           The same containers against a declared record or union came next. Since 0.1.130
           <code>let user: User = json.parse(body)</code> is <code>E0204</code>, expected
@@ -388,62 +428,76 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
           only <code>tsc</code> said so, which meant <code>glyph check --no-tsc</code>, the editor
           and the playground showed a clean file on the one line a boundary exists to get right.
         </p>
-        <p>
-          A misspelled member on an array or a string is the other case that used to wait for
-          <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with "did you mean
-          <code>length</code>", checked against the members TypeScript's library declares for
-          arrays and strings, the way a record's field read is checked against its fields.
-          <code>tsc</code> would have refused both, so a build that ran it was already red; the
-          change is that the checker, and everything built on it, sees them first.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">And three more, since 0.1.133</h2>
+      <h3 class="ak-h3" id="member-typo">A misspelled member on an array or a string<a class="ak-anchor" href="#member-typo" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        A misspelled member on an array or a string is the other case that used to wait for
+        <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with "did you mean
+        <code>length</code>", checked against the members TypeScript's library declares for
+        arrays and strings, the way a record's field read is checked against its fields.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> would have refused both, so a build that ran it was already red; the
+        change is that the checker, and everything built on it, sees them first.</p></div>
+
+      <h2 class="ak-h" id="and-three-more-since-0-1-133">And three more, since 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+
+      <h3 class="ak-h3" id="detached-method">A method read off its string<a class="ak-anchor" href="#detached-method" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when
+        <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses
+        it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a
+        lambda instead.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0234</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the method types come from</span></summary><div class="body">
         <p>
-          <code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when
-          <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses
-          it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a
-          lambda instead. The checker now knows what each array and string method returns,
+          The checker now knows what each array and string method returns,
           from a table generated out of TypeScript's own declarations.
         </p>
-        <p>
-          <code>r?.label</code> on a <code>Result</code> reads like "propagate the error, then read
-          the field". It is optional chaining, and a <code>Result</code> is never null, so it reads
-          the field off the <code>Result</code> object and propagates nothing. An agent wrote
-          exactly that while building a CSV query tool. It is <code>E0236</code> now, on an
-          <code>Option</code> as well, and the help says to bind with <code>?</code> first.
-        </p>
-        <p>
-          <code>json.parse(body)</code> with no type argument is the unchecked read, a
-          <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code>
-          was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and
-          the program crashed on its first field read. The emitter now writes the
-          <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>.
-          Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared
-          type, so <code>--no-tsc</code> and the editor still miss
-          <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is
-          declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from
-          Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code>
-          at every depth is planned as G325, on the <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">release roadmap</a>.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">And two more in 0.1.122</h2>
-        <p>
-          <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
-          Glyph checker compared a value against it by nothing at all. A number, a
-          <code>bool</code>, a record and a string outside the set all passed
-          <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while
-          <code>tsc</code> refused every one of them on the emitted TypeScript. So a full
-          <code>glyph build</code> was never wrong about this, but the four surfaces that have no
-          <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP
-          tools and the playground.
-        </p>
-      </div>
+      <h3 class="ak-h3" id="optional-chain-result">Optional chaining on a Result<a class="ak-anchor" href="#optional-chain-result" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>r?.label</code> on a <code>Result</code> reads like "propagate the error, then read
+        the field". It is optional chaining, and a <code>Result</code> is never null, so it reads
+        the field off the <code>Result</code> object and propagates nothing.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0236</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>An agent wrote
+        exactly that while building a CSV query tool. It is <code>E0236</code> now, on an
+        <code>Option</code> as well, and the help says to bind with <code>?</code> first.</p></div>
 
-      <div class="code">
+      <h3 class="ak-h3" id="unchecked-parse">An unchecked json.parse<a class="ak-anchor" href="#unchecked-parse" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>json.parse(body)</code> with no type argument is the unchecked read, a
+        <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code>
+        was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and
+        the program crashed on its first field read.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The emitter now writes the
+        <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared
+        type, so <code>--no-tsc</code> and the editor still miss
+        <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is
+        declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from
+        Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code>
+        at every depth is planned as G325, on the <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">release roadmap</a>.</p></div>
+      <div class="ak-chips"><span class="chip gap">G325</span></div>
+
+      <h2 class="ak-h" id="and-two-more-in-0-1-122">And two more in 0.1.122<a class="ak-anchor" href="#and-two-more-in-0-1-122" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> declares a finite set of strings, and the
+        Glyph checker compared a value against it by nothing at all. A number, a
+        <code>bool</code>, a record and a string outside the set all passed
+        <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while
+        <code>tsc</code> refused every one of them on the emitted TypeScript.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>So a full
+        <code>glyph build</code> was never wrong about this, but the four surfaces that have no
+        <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP
+        tools and the playground.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, on a type that lists its legal strings</span>
 <pre>type Mode = "read" | "write"
 
@@ -457,8 +511,7 @@ let d: Mode = { x: 1 }
 [E0211] argument type mismatch: expected `Mode`, found `bool`
 [E0204] type mismatch: expected `Mode`, found `record`</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how the union is compared</span></summary><div class="body">
         <p>
           That is the four <code>tsc</code> reported, at the same four statements, without running
           <code>tsc</code>. The rule reads the union as what it is at run time, a
@@ -473,22 +526,17 @@ let d: Mode = { x: 1 }
           A union nested in a record field or a generic argument was left to <code>tsc</code> in
           0.1.122 and is decided in 0.1.123. See below.
         </p>
-        <p>
-          The second one is not a <code>tsc</code> story at all. The parser is recursive descent
-          with no depth guard, so an expression nested two thousand levels deep ran the process out
-          of stack and aborted with exit 134. That is bad on <code>glyph check</code> and worse on
-          <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root:
-          one pathological file took the server down for the whole workspace. It is
-          <code>E0011</code> now, raised at the token that would have opened level 65.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">0.1.123: the literal a value is, not the <code>string</code> it emits to</h2>
+      <h2 class="ak-h" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: the literal a value is, not the <code>string</code> it emits to<a class="ak-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> put the set on the declaration and nothing on
+        the value, so <code>"read"</code> was a <code>string</code> and
+        <code>["read", "write"]</code> an <code>Array&lt;string&gt;</code>.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what 0.1.122 gave up</span></summary><div class="body">
         <p>
-          <code>type Mode = "read" | "write"</code> put the set on the declaration and nothing on
-          the value, so <code>"read"</code> was a <code>string</code> and
-          <code>["read", "write"]</code> an <code>Array&lt;string&gt;</code>. That made two
+          That made two
           programs indistinguishable: <code>return ["read", "write"]</code> where an
           <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and
           <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses.
@@ -496,15 +544,12 @@ let d: Mode = { x: 1 }
           by giving up the wrong one: <code>{ mode: "nope" }</code> against a
           <code>{ mode: Mode }</code> drew nothing.
         </p>
-        <p>
-          A written string literal now has the one-literal type it spells, an array literal's
-          element type is the join of its elements', and a written array or object literal is
-          checked element by element and field by field against the declared type, so the
-          diagnostic names the literal and underlines it.
-        </p>
-      </div>
-
-      <div class="code">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A written string literal now has the one-literal type it spells, an array literal's
+        element type is the join of its elements', and a written array or object literal is
+        checked element by element and field by field against the declared type, so the
+        diagnostic names the literal and underlines it.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, on a literal one container in</span>
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
@@ -515,8 +560,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// 0.1.122: nothing, on all three</span>
 <span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the literal widens, and <code>Record</code> keys since 0.1.153</span></summary><div class="body">
         <p>
           The literal widens back to <code>string</code> where TypeScript widens it: at a
           <code>let</code> with no annotation, whose emitted TypeScript <code>let</code> widens the
@@ -534,27 +578,21 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           signature and accepts it against a <code>Record&lt;Mode, V&gt;</code> in both directions.
           Glyph refuses both: the open map may hold keys outside <code>Mode</code> or miss one, and a
           <code>Record&lt;Mode, V&gt;</code> passed on as the open one can be written a stray key.
-          Going from one to the other is an <code>is</code> arm or a <code>json.parse</code>. Two shapes
-          the checker still says nothing about: a literal inside <code>Some(...)</code>, because a
-          prelude constructor has no type here yet, and a record literal bound to an unannotated
-          <code>let</code>, because no record type is synthesized for an object literal.
+          Going from one to the other is an <code>is</code> arm or a <code>json.parse</code>.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Two shapes
+        the checker still says nothing about: a literal inside <code>Some(...)</code>, because a
+        prelude constructor has no type here yet, and a record literal bound to an unannotated
+        <code>let</code>, because no record type is synthesized for an object literal.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">A module under <code>std/</code> was dead code with no diagnostic</h2>
-        <p>
-          <code>std/</code> and <code>extern/</code> name modules the compiler carries, and the
-          resolver reserved them for imports. Nothing stopped a project file from
-          <em>declaring</em> one. <code>module std/io</code> in your own <code>src/io.glyph</code>
-          compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and
-          reported that <code>shout</code> is not exported: your file was never read. A file that
-          draws no diagnostic and runs no code is the worst shape a compiler can leave you in,
-          because nothing about it looks wrong.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-module-under-std-was-dead-code-with-no-diagnostic">A module under <code>std/</code> was dead code with no diagnostic<a class="ak-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/</code> and <code>extern/</code> name modules the compiler carries, and the
+        resolver reserved them for imports. Nothing stopped a project file from
+        <em>declaring</em> one.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, on src/io.glyph declaring `module std/io`</span>
 <pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
 
@@ -564,16 +602,30 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
    &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
    &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what used to happen, and which paths are reserved</span></summary><div class="body">
+        <p>
+          <code>module std/io</code> in your own <code>src/io.glyph</code>
+          compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and
+          reported that <code>shout</code> is not exported: your file was never read.
+        </p>
         <p>
           The prefix is matched as a whole first segment, so <code>standard</code>,
           <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are
           untouched, and importing under either prefix still works the way it always did.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A file that
+        draws no diagnostic and runs no code is the worst shape a compiler can leave you in,
+        because nothing about it looks wrong.</p></div>
 
-      <div class="code">
+      <p class="ak-kicker">The second one in 0.1.122</p>
+      <h2 class="ak-h" id="nesting-limit">A parser depth limit<a class="ak-anchor" href="#nesting-limit" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The second one is not a <code>tsc</code> story at all. The parser is recursive descent
+        with no depth guard, so an expression nested two thousand levels deep ran the process out
+        of stack and aborted with exit 134.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, on `const x = ` followed by 2,000 nested brackets</span>
 <pre><span class="cm">// before: thread 'main' has overflowed its stack
 //         fatal runtime error: stack overflow, aborting   (exit 134)</span>
@@ -583,10 +635,18 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       `fn` that returns one of them, so no single expression, type or
       pattern is more than 64 levels deep.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why it mattered for the language server</span></summary><div class="body">
         <p>
-          The limit is 64 and it was measured rather than picked. One level of the costliest
+          That is bad on <code>glyph check</code> and worse on
+          <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root:
+          one pathological file took the server down for the whole workspace. It is
+          <code>E0011</code> now, raised at the token that would have opened level 65.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The limit is 64 and it was measured rather than picked.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how 64 was measured</span></summary><div class="body">
+        <p>
+          One level of the costliest
           construct, a nested array literal, costs 7,792 bytes of stack in the release build and
           8,810 in the debug one, found by binary-searching the smallest thread stack a given depth
           will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which
@@ -596,24 +656,15 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           alike, and a thousand sibling arrays still parse, because depth is per-construct nesting
           and not a budget spent over the file.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">When neither compiler is wrong</h2>
-      <div class="detail">
-        <p>
-          There is a third shape, and it is the one that reads worst. Glyph reports
-          nothing, <code>tsc</code> reports something true, and the program you wrote was
-          fine. What failed is the translation between them.
-        </p>
-        <p>
-          A binding in Glyph has one type for the whole of its life. TypeScript narrows a
-          binding to whatever it last saw assigned, and its <code>boolean</code> is the
-          union <code>true | false</code>, so <code>let done = false</code> reached
-          <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the
-          emitted <code>switch</code> had nothing to match.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="when-neither-compiler-is-wrong">When neither compiler is wrong<a class="ak-anchor" href="#when-neither-compiler-is-wrong" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        There is a third shape, and it is the one that reads worst. Glyph reports
+        nothing, <code>tsc</code> reports something true, and the program you wrote was
+        fine.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>What failed is the translation between them.</p></div>
       <div class="code">
         <span class="cap">poll.glyph, and what tsc said about it before 0.1.89</span>
 <pre>fn classify() -&gt; int {
@@ -627,8 +678,14 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// no Glyph diagnostic, then</span>
 <span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why <code>tsc</code> saw <code>false</code>, and the app that hit it</span></summary><div class="body">
+        <p>
+          A binding in Glyph has one type for the whole of its life. TypeScript narrows a
+          binding to whatever it last saw assigned, and its <code>boolean</code> is the
+          union <code>true | false</code>, so <code>let done = false</code> reached
+          <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the
+          emitted <code>switch</code> had nothing to match.
+        </p>
         <p>
           A type declared as a set of string literals failed the same way, and so did
           <code>==</code>, which came back as <code>TS2367</code> instead: two messages,
@@ -637,11 +694,14 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <code>Promise</code> you can construct by hand. The callback turned out to be
           beside the point: four lines with no callback do it.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The fix is not a new diagnostic, because there is nothing to diagnose. The
+        emitter now restates the type the checker already decided, at the two places
+        that discriminate over a value: the <code>match</code> scrutinee and either side
+        of a <code>==</code> or <code>!=</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the checks that still fire, and what it costs</span></summary><div class="body">
         <p>
-          The fix is not a new diagnostic, because there is nothing to diagnose. The
-          emitter now restates the type the checker already decided, at the two places
-          that discriminate over a value: the <code>match</code> scrutinee and either side
-          of a <code>==</code> or <code>!=</code>. Each side is decided by its own type and
+          Each side is decided by its own type and
           ignores what sits next to it, so a comparison between two bindings is covered
           the same way a comparison against a literal is.
         </p>
@@ -662,37 +722,33 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           enough to matter, <code>string</code> against <code>bool</code>, reports
           <code>TS2352</code> rather than nothing.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">The same typo, two answers</h2>
-      <div class="detail">
-        <p>
-          A misspelled standard-library function used to get a different answer depending
-          on how you had written the import, which is the kind of inconsistency that
-          teaches you not to trust either answer.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-same-typo-two-answers">The same typo, two answers<a class="ak-anchor" href="#the-same-typo-two-answers" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A misspelled standard-library function used to get a different answer depending
+        on how you had written the import, which is the kind of inconsistency that
+        teaches you not to trust either answer.
+      </p>
       <div class="code">
         <span class="cap">the named import, always an E0105</span>
 <pre>import std/string { repeeat }
 <span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
       </div>
-
       <div class="code">
         <span class="cap">the namespace read, before 0.1.72</span>
 <pre>import std/string
 string.repeeat(s, 2)
 <span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Both spellings go through the export list now, and both say
+        <code>E0105</code>, naming the member and the module it is missing from.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why the two spellings differed, and what switching it on found</span></summary><div class="body">
         <p>
           The first spelling was checked against the module's export list during
           resolution. The second was not checked at all, so it fell through to
           <code>tsc</code>, which saw a property access on an object and answered in those
-          terms. Both spellings go through the export list now, and both say
-          <code>E0105</code>, naming the member and the module it is missing from.
+          terms.
         </p>
         <p>
           Switching it on immediately found something nobody was looking for: a test
@@ -704,16 +760,83 @@ string.repeeat(s, 2)
           then deliberately broken to confirm it failed, which is how we found its first
           version had been silently checking nothing.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0013</code> for a statement that begins on the line where another ended, which used to drop the value after it, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic "expected module path segment", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Getting sharper</h3>
-          <p><code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+
+          <p class="ak-st-group">Statements and syntax</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> outside an <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A value-position <code>match</code> arm that produces no value</span><span class="chip code">E0223</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">An assignment missing <code>mut</code></span><span class="chip code">E0008</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A variant given several positional payload fields where the record form is the one that exists</span><span class="chip code">E0010</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A <code>?</code> in a position it cannot propagate from</span><span class="chip code">E0302</span><span class="chip code">E0303</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A type's name written where a value is expected</span><span class="chip code">E0228</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A statement that begins on the line where another ended, which used to drop the value after it</span><span class="chip code">E0013</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A construct nested past 64 levels</span><span class="chip code">E0011</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Names and modules</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A declaration that would shadow a name the emitted module already depends on</span><span class="chip code">E0110</span><span class="chip code">E0111</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A local import that names no module under the build root</span><span class="chip code">E0104</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A name a module does not export, whether you reached it through a named import or off a namespace</span><span class="chip code">E0105</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A relative import path, which used to stop in the parser as a generic "expected module path segment"</span><span class="chip code">E0101</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable</span><span class="chip code">E0113</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Types</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A member an array or a string does not have</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The same two codes for a value that is not in a string-literal union's declared set</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Every code</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A top-level <code>await</code> is allowed</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0110</code> tells you to rename rather than letting you keep the name</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The read-site pin follows a type alias only inside the module being emitted</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

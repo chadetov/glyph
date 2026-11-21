@@ -20831,6 +20831,95 @@ pub fn ret() -> Show {
     assert!(!got.iter().any(|d| d.1.contains("q.anything")), "{got:#?}");
 }
 
+/// Record 142, B1: the method spelling of a callback gets the answer the
+/// function spelling does. The generated method rows model these callbacks
+/// as `unknown` (or leave the method untyped where TypeScript declares
+/// overloads), so before the context-only slots `users.map(fn(p) ..)` was
+/// unjudged while `array.map(users, fn(p) ..)` was E0237, and an agent could
+/// silence the refusal by switching spellings. `reduce` types the
+/// accumulator from its seed and `sort` passes two elements.
+#[test]
+fn a_method_callback_is_judged_like_the_function_spelling() {
+    let text = r#"module main
+
+import std/array
+
+type User = { id: number, name: string, }
+
+pub fn both(users: Array<User>) -> number {
+  let a1 = array.map(users, fn(p) -> string { return "${p}" })
+  let a2 = users.map(fn(p) -> string { return "${p}" })
+  let b1 = array.filter(users, fn(p) -> bool { return p.nmae == "a" })
+  let b2 = users.filter(fn(p) -> bool { return p.nmae == "a" })
+  let c1 = array.find(users, fn(p) -> bool { return p.nmae == "a" })
+  let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })
+  users.forEach(fn(p) { let _s = p.nmae })
+  let d = users.reduce(fn(acc, p) -> number { return acc + p.idd }, 0)
+  let e = users.sort(fn(x, y) -> number { return x.idd - y.id })
+  let _all = [b1, b2, c1, c2, e]
+  return a1.length + a2.length + d
+}
+"#;
+    let got = no_tsc_diagnostics("d5z-methods", text);
+    let errors: Vec<(&str, &str)> =
+        got.iter().filter(|d| d.0.starts_with("E0")).filter(|d| d.0 != "E0107").map(|d| (d.0.as_str(), d.1.as_str())).collect();
+    assert_eq!(
+        errors,
+        vec![
+            ("E0237", r#"let a1 = array.map(users, fn(p) -> string { return "${p}" })"#),
+            ("E0237", r#"let a2 = users.map(fn(p) -> string { return "${p}" })"#),
+            ("E0210", r#"let b1 = array.filter(users, fn(p) -> bool { return p.nmae == "a" })"#),
+            ("E0210", r#"let b2 = users.filter(fn(p) -> bool { return p.nmae == "a" })"#),
+            ("E0210", r#"let c1 = array.find(users, fn(p) -> bool { return p.nmae == "a" })"#),
+            ("E0210", r#"let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })"#),
+            ("E0210", "users.forEach(fn(p) { let _s = p.nmae })"),
+            ("E0210", "let d = users.reduce(fn(acc, p) -> number { return acc + p.idd }, 0)"),
+            ("E0210", "let e = users.sort(fn(x, y) -> number { return x.idd - y.id })"),
+        ],
+        "{got:#?}"
+    );
+}
+
+/// Record 142, B2: an attribute of a component element is a field of the
+/// props object the element passes, so a lambda in it takes the field's
+/// type, as the record-literal form of the same props already did. A DOM
+/// element's attribute (`onClick` on a `<button>`) is typed by React's
+/// declarations, which the checker does not hold, so `e.nmae7` there is
+/// left to `tsc`.
+#[test]
+fn a_component_attribute_lambda_takes_the_props_field_type() {
+    let text = r#"module main
+
+type User = { name: string, }
+type CardProps = { user: User, on_pick: fn(User) -> void, }
+
+component Card(props: CardProps) -> Component {
+  return <button>{props.user.name}</button>
+}
+
+pub component List(props: { users: Array<User>, }) -> Component {
+  let u: User = { name: "a" }
+  let _p: CardProps = { user: u, on_pick: fn(x) { let _s = x.nmae5 } }
+  return <Card user={u} on_pick={fn(x) { let _s = x.nmae6 }} />
+}
+
+pub component Dom(props: { users: Array<User>, }) -> Component {
+  return <button onClick={fn(e) { let _s = e.nmae7 }}>x</button>
+}
+"#;
+    let got = no_tsc_diagnostics("d5z-jsx", text);
+    let e0210: Vec<&str> = got.iter().filter(|d| d.0 == "E0210").map(|d| d.1.as_str()).collect();
+    assert_eq!(
+        e0210,
+        vec![
+            "let _p: CardProps = { user: u, on_pick: fn(x) { let _s = x.nmae5 } }",
+            "return <Card user={u} on_pick={fn(x) { let _s = x.nmae6 }} />",
+        ],
+        "{got:#?}"
+    );
+    assert!(!got.iter().any(|d| d.1.contains("nmae7")), "{got:#?}");
+}
+
 /// D5z refuses nothing `tsc` accepts in the common callback shapes, and the
 /// types it gives are the ones `tsc` infers: a string literal seed widens to
 /// `string` (`acc == ""` compares strings, not two literals), a literal-union
@@ -20902,9 +20991,10 @@ pub fn run(users: Array<User>, tiers: Array<Tier>) -> string {
 
 /// D5z leaves a written annotation alone: `fn(p: unknown)` over an
 /// `Array<number>` is the declared `unknown`, so `${p}` is refused, where the
-/// position alone would have typed `p` a `number`. A callback slot the
-/// checker models as `Unknown` (the `forEach` method's, until its callback
-/// is modeled) gives no type, so `u.nmae` there is not judged here.
+/// position alone would have typed `p` a `number`. A callback slot whose
+/// type the checker does not know gives no type: `Issue.path` is not typed
+/// (G407), so the `forEach` method on it has no element type to pass, and
+/// `p.nmae` there is not judged here.
 #[test]
 fn a_written_annotation_wins_and_an_unknown_slot_types_nothing() {
     let text = r#"module main
@@ -20918,8 +21008,8 @@ pub fn written(xs: Array<number>) -> Array<string> {
   return array.map(xs, fn(p: unknown) -> string { return "${p}" })
 }
 
-pub fn unmodeled(users: Array<User>) -> void {
-  users.forEach(fn(u) { io.println(u.nmae) })
+pub fn unmodeled(issue: Issue) -> void {
+  issue.path.forEach(fn(p) { io.println(p.nmae) })
 }
 "#;
     let got = no_tsc_diagnostics("d5z-written", text);

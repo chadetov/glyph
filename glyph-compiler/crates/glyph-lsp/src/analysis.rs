@@ -2687,6 +2687,21 @@ mod tests {
         assert_eq!(a.hover(text, written), Some("unknown".to_string()));
     }
 
+    /// F3 (record 130): inside an `is T` arm the scrutinee has type `T`, the
+    /// type the emitted check establishes; outside the arm it keeps its own.
+    /// It used to hover `unknown` everywhere, inside the arm included.
+    #[test]
+    fn hover_narrows_a_scrutinee_inside_an_is_arm() {
+        let text = "module x\npub fn b(v: unknown) -> number {\n  let w = v\n  return match v { is number => v + 1, else => 0, }\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let inside = text.find("v + 1").unwrap();
+        assert_eq!(a.hover(text, inside), Some("number".to_string()));
+        let before = text.find("= v").unwrap() + 2;
+        assert_eq!(a.hover(text, before), Some("unknown".to_string()));
+        let scrutinee = text.find("match v").unwrap() + 6;
+        assert_eq!(a.hover(text, scrutinee), Some("unknown".to_string()));
+    }
+
     /// The file the agent-surface audit probed, cut down to the positions
     /// hover used to answer `null` at.
     const HOVER_SRC: &str = "module orders\n\

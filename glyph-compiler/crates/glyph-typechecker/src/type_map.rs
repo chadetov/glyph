@@ -38,6 +38,12 @@ pub struct TypeMap {
     /// The checker's classification of every `Pattern::Ident` node inside a
     /// `match` arm, keyed by the node's span. See `IdentPattern`.
     ident_patterns: HashMap<(u32, u32), IdentPattern>,
+    /// The function type a built-in `Array<T>` method expects for the lambda
+    /// argument at a span (D55). The generated method rows model those
+    /// callbacks as `unknown`, so a pass that reads the callee's signature
+    /// (the E0238 help's choice of rewrite) reads the slot from here, the
+    /// same answer the checker typed the lambda's parameters from.
+    callback_slots: HashMap<(u32, u32), Ty>,
 }
 
 impl TypeMap {
@@ -80,6 +86,16 @@ impl TypeMap {
     /// about the pattern and not a licence to guess from its spelling.
     pub fn ident_pattern(&self, span: Span) -> Option<IdentPattern> {
         self.ident_patterns.get(&(span.start, span.end)).copied()
+    }
+
+    /// Record the built-in method callback slot for the lambda at `span`.
+    pub fn record_callback_slot(&mut self, span: Span, ty: Ty) {
+        self.callback_slots.insert((span.start, span.end), ty);
+    }
+
+    /// The built-in method callback slot recorded for the lambda at `span`.
+    pub fn callback_slot(&self, span: Span) -> Option<&Ty> {
+        self.callback_slots.get(&(span.start, span.end))
     }
 
     /// Iterate recorded `(span, type)` entries in arbitrary order. Used by the

@@ -1342,7 +1342,7 @@ struct Assigner<'a> {
     /// B2). Read before the declaration's own type.
     narrowed_consts: HashMap<SymbolId, Ty>,
     /// The contextual type of each parameter of a lambda about to be walked,
-    /// keyed by the lambda's span start (D5z). Filled by
+    /// keyed by the lambda's span start (D55). Filled by
     /// `register_lambda_context` from the slot the lambda stands in (a call
     /// argument, an annotated `let`/`const`, a `return`, a record field) and
     /// consumed by the lambda arm. A parameter written with an annotation
@@ -1939,7 +1939,7 @@ impl Assigner<'_> {
     /// A lambda's parameters. A written annotation lowers like a
     /// declaration's (a written `unknown` is the judged `unknown`), whatever
     /// the slot expects. An omitted one takes the contextual type at its
-    /// position (D5z), and is `Ty::Unknown`, "not typed here", which no rule
+    /// position (D55), and is `Ty::Unknown`, "not typed here", which no rule
     /// judges, when the slot supplies none. An omitted one records no written
     /// type for diagnostics to quote.
     fn bind_lambda_param_tys(&mut self, params: &[LambdaParam], context: Option<&[Ty]>) {
@@ -1959,7 +1959,7 @@ impl Assigner<'_> {
     }
 
     /// Record the contextual parameter types for the lambdas `e` reaches
-    /// when it stands where `expected` is declared (D5z): `e` itself when it
+    /// when it stands where `expected` is declared (D55): `e` itself when it
     /// is a lambda with an omitted annotation and `expected` is a function
     /// type (read through aliases), and the field values of a record literal
     /// against a record type, field by field. Anything else supplies no
@@ -2012,7 +2012,7 @@ impl Assigner<'_> {
     }
 
     /// The function type a built-in `Array<T>` method expects at argument
-    /// `index`, for contextual typing only (D5z). The generated method rows
+    /// `index`, for contextual typing only (D55). The generated method rows
     /// (G312) model these callbacks as `unknown`, or leave the whole method
     /// untyped where TypeScript declares overloads, so the method spelling
     /// `users.map(fn(u) ..)` would type nothing where `array.map(users, ..)`
@@ -2020,8 +2020,11 @@ impl Assigner<'_> {
     /// them, over the receiver's element type: `(T, number, Array<T>)` for
     /// the per-element callbacks, the accumulator then `T` for `reduce`
     /// (the seed's widened type, or `T` with no seed), and `(T, T)` for a
-    /// comparator. The return type is left unknown: it binds nothing here,
-    /// and the method's result typing stays the generated row's.
+    /// comparator. The return type is what TypeScript declares (`void` for
+    /// `forEach`, `bool` for a predicate, `number` for a comparator, the
+    /// accumulator for `reduce`, unknown for `map`), which binds nothing here
+    /// and is what the E0238 help reads to choose its rewrite; the method's
+    /// result typing stays the generated row's.
     fn builtin_callback_slot(&self, callee: &Expr, args: &[Expr], index: usize) -> Option<Ty> {
         let Expr::Member { object, field, .. } = callee else {
             return None;
@@ -2040,37 +2043,44 @@ impl Assigner<'_> {
             ty,
             optional: true,
         };
-        let params = match field.as_ref() {
-            "map" | "forEach" | "flatMap" | "filter" | "find" | "findIndex" | "findLast"
-            | "findLastIndex" | "some" | "every" => vec![
+        let per_element = || {
+            vec![
                 param(elem.clone()),
                 param(Ty::Prim(Primitive::Number)),
                 param(self.array_ty(elem.clone())),
-            ],
+            ]
+        };
+        let (params, ret) = match field.as_ref() {
+            "forEach" => (per_element(), Ty::Prim(Primitive::Void)),
+            "map" | "flatMap" => (per_element(), Ty::Unknown),
+            "filter" | "find" | "findIndex" | "findLast" | "findLastIndex" | "some" | "every" => {
+                (per_element(), Ty::Prim(Primitive::Bool))
+            }
             "reduce" | "reduceRight" => {
                 let acc = match args.get(1) {
                     Some(seed) => self.widen_fresh_literals(seed, self.tm.get(seed.span()).clone()),
                     None => elem.clone(),
                 };
-                vec![
-                    param(acc),
+                let params = vec![
+                    param(acc.clone()),
                     param(elem.clone()),
                     param(Ty::Prim(Primitive::Number)),
                     param(self.array_ty(elem.clone())),
-                ]
+                ];
+                (params, acc)
             }
-            "sort" | "toSorted" => vec![param(elem.clone()), param(elem.clone())],
+            "sort" | "toSorted" => (vec![param(elem.clone()), param(elem.clone())], Ty::Prim(Primitive::Number)),
             _ => return None,
         };
         Some(Ty::Fn {
             params,
-            return_ty: Arc::new(Ty::Unknown),
+            return_ty: Arc::new(ret),
             is_async: false,
             type_params: None,
         })
     }
 
-    /// Walk the arguments of a call that need a contextual type (D5z), after
+    /// Walk the arguments of a call that need a contextual type (D55), after
     /// every other argument has been walked. Each one is walked against its
     /// parameter's type with the callee's type parameters instantiated from
     /// what the earlier arguments bound and from written type arguments, so
@@ -2901,13 +2911,23 @@ impl Assigner<'_> {
                 // An argument that needs a contextual type (a lambda with an
                 // omitted annotation, or a record literal holding one) is
                 // walked after the others have bound the callee's type
-                // parameters (D5z).
+                // parameters (D55).
                 let deferred: Vec<bool> = args.iter().map(needs_context).collect();
                 for (a, _) in args.iter().zip(&deferred).filter(|(_, d)| !**d) {
                     self.walk_expr(a);
                 }
                 if deferred.iter().any(|d| *d) {
                     self.walk_contextual_args(callee, type_args, args, &deferred);
+                }
+                // A built-in method's callback slot, for every lambda passed
+                // to one, annotated or not, so the E0238 help reads the slot
+                // the parameters were typed from (D55).
+                for (i, a) in args.iter().enumerate() {
+                    if let Expr::Lambda { span: lambda_span, .. } = a {
+                        if let Some(slot) = self.builtin_callback_slot(callee, args, i) {
+                            self.tm.record_callback_slot(*lambda_span, slot);
+                        }
+                    }
                 }
                 // Synthesize the call's type from the callee's signature.
                 // When the callee resolves to a `Ty::Fn` (a module-level
@@ -3253,7 +3273,7 @@ impl Assigner<'_> {
                     }
                 }
                 // The signature carries what the parameters were typed as, so
-                // the lambda's own type agrees with its parameters' (D5z).
+                // the lambda's own type agrees with its parameters' (D55).
                 if let (Some(context), Ty::Fn { params: slots, .. }) = (&context, &mut ty) {
                     for ((slot, p), c) in slots.iter_mut().zip(params).zip(context) {
                         if p.ty.is_none() {
@@ -3469,7 +3489,7 @@ impl Assigner<'_> {
         }
         // An attribute of a component element is a field of the one props
         // object the element passes, so a lambda in it takes the field's type
-        // the way a record-literal field does (D5z). A DOM element's
+        // the way a record-literal field does (D55). A DOM element's
         // attributes come from React's types, which this checker does not
         // hold, so there is no shape and nothing is registered.
         if let Some((_, shape)) = self.jsx_component_props_shape(j) {
@@ -9991,7 +10011,7 @@ fn weak_record_disjoint(found: &Ty, declared: &[RecordField]) -> bool {
 }
 
 /// Whether a type parameter appears anywhere in `ty`.
-/// Whether `e` reads a contextual type (D5z): a lambda with at least one
+/// Whether `e` reads a contextual type (D55): a lambda with at least one
 /// parameter written without an annotation, or a record literal one of whose
 /// field values is such a lambda, at any depth.
 fn needs_context(e: &Expr) -> bool {

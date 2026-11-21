@@ -573,7 +573,7 @@ pub fn hover_at(
 }
 
 /// What hover says at a use of a lambda parameter written without an
-/// annotation whose position supplies no type either (D5z): no function type
+/// annotation whose position supplies no type either (D55): no function type
 /// is expected there, or the one expected leaves it open. Glyph's checker has
 /// no type for it ("not typed here"), and an empty answer would read the same
 /// as a failed query (record 134). One that takes a type from its position
@@ -2742,13 +2742,13 @@ mod tests {
         assert_eq!(a.hover(text, binding), Some("a pending `number`".to_string()));
     }
 
-    /// Record 130 and D5z: an omitted lambda annotation takes the type its
+    /// Record 130 and D55: an omitted lambda annotation takes the type its
     /// position supplies, so `p` passed where `fn(number) -> U` is expected
     /// hovers `number`. With no type from its position it is "not typed
     /// here", and hover says so in a note rather than answering nothing,
     /// which an agent could not tell from a failed query (record 134). A
     /// written `unknown` is the declared `unknown` whatever the position
-    /// expects. Before D5z the first `p` hovered the note too.
+    /// expects. Before D55 the first `p` hovered the note too.
     #[test]
     fn hover_tells_an_omitted_lambda_annotation_from_a_written_unknown() {
         let text = "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  let a = array.map(xs, fn(p) -> number { return p })\n  let g = fn(r) -> number { return r }\n  return array.map(a, fn(q: unknown) -> number { return g(q) })\n}\n";
@@ -2759,6 +2759,19 @@ mod tests {
         assert_eq!(a.hover(text, omitted), Some(OMITTED_LAMBDA_PARAM_NOTE.to_string()));
         let written = text.find("g(q)").unwrap() + 2;
         assert_eq!(a.hover(text, written), Some("unknown".to_string()));
+    }
+
+    /// Record 143, item 3: a parameter typed by a built-in method's callback
+    /// slot hovers the receiver's element type, as one passed to the
+    /// function spelling does.
+    #[test]
+    fn hover_shows_the_type_a_method_callback_gives_its_parameter() {
+        let text = "module x\nimport std/array\ntype User = { name: string, }\npub fn f(us: Array<User>) -> number {\n  let a = us.map(fn(u) -> string { return u.name })\n  let b = array.map(us, fn(v) -> string { return v.name })\n  return a.length + array.len(b)\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let method = text.find("return u.name").unwrap() + 7;
+        assert_eq!(a.hover(text, method), Some("User".to_string()));
+        let function = text.find("return v.name").unwrap() + 7;
+        assert_eq!(a.hover(text, function), Some("User".to_string()));
     }
 
     /// Record 134, B1: a name a closure reassigns is not narrowed, so hover

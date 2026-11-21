@@ -910,8 +910,12 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with "did you mean
         <code>length</code>", checked against the members TypeScript's library declares for
         arrays and strings, the way a record's field read is checked against its fields.
+        The same holds inside a callback whose parameter has no written type: the parameter
+        takes the type its position expects, so in
+        <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a
+        <code>User</code> and the typo is <code>E0210</code>.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> would have refused both, so a build that ran it was already red; the
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> would have refused all three, so a build that ran it was already red; the
         change is that the checker, and everything built on it, sees them first.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">And three more, since 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

@@ -2,10 +2,13 @@
 title: Can an agent (or I) find where anything is defined? · Glyph
 description: Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/diff-stability/ | &larr; Previous | Will agent edits stay clean, or reformat my whole file?
 next: /answers/why-typescript/ | Next &rarr; | Why TypeScript, and not Go or a new language?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">03 &middot; Navigation by search</p>
       <h1 class="q-title">Can an agent (or I) find where anything is defined?</h1>
@@ -16,37 +19,39 @@ next: /answers/why-typescript/ | Next &rarr; | Why TypeScript, and not Go or a n
         definition, <strong>not fifty near-misses</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a
-          concept can be written five different ways, search misses cases, and a confident
-          agent that can't find the existing definition invents a second one. One shape per
-          concept means search is complete, so the agent edits what's there instead of
-          duplicating it.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/ (every mutation in the codebase)</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. One shape per
+          concept means search is complete, so the agent edits what's there instead of
+          duplicating it.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>If a
+          concept can be written five different ways, search misses cases, and a confident
+          agent that can't find the existing definition invents a second one.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why the same question has no answer in TypeScript</span></summary><div class="body">
         <p>
-          Three mutations, all of them, in one search. In TypeScript a mutation can hide behind
+          In TypeScript a mutation can hide behind
           <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a
           spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo;
-          has no reliable answer. The same one-shape rule makes whole categories auditable:
+          has no reliable answer.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">Whole categories in one search<a class="ak-anchor" href="#audits" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          The same one-shape rule makes whole categories auditable:
+      </p>
+      <div class="code term">
         <span class="cap">one search = one complete answer</span>
 <pre><span class="cm"># every UI component</span>
 grep -rn <span class="add">"^component "</span> src/
@@ -57,30 +62,31 @@ grep -rn <span class="add">"^fn "</span> src/
 <span class="cm"># the entire resource-ownership surface</span>
 grep -rn <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           There's no object-literal shorthand, no second way to declare a component, no
           overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint,
           and it's the point: it's what makes an agent's search, and yours, trustworthy.
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           The constructs Glyph leaves out so that a search can be trusted, and why a lint rule
           is not the same guarantee, are on the <a href="/pillars/greppability/">greppability pillar page</a>.
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Layered on top</h3>
-          <p>The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">One canonical form per construct.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation restricted to two greppable shapes (<code>mut</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Layered on top</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</span></span></li>
+          </ul>
+        </section>
       </div>

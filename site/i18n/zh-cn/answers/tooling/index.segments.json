@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "zh-cn",
-  "source_hash": "d0791fdb41f61a1e",
+  "source_hash": "6673445690cb5116",
   "segments": [
     {
       "id": "title",
@@ -59,10 +59,94 @@
       "tr": "<code>glyph lsp</code> 通过 stdio 使用 Language Server Protocol，所以任何带 LSP 客户端的编辑器都能获得诊断、悬停类型、跳转到定义、补全和保存时格式化。仓库里有一个 VS Code 扩展；它还没有上架 Marketplace，所以需要你从源码构建。每个错误都带有稳定的错误码、修复方法和原因。"
     },
     {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-926bbd75",
+      "kind": "html",
+      "en": "<span>See it: every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them.</span>",
+      "tr": "<span>看看实际效果：每条诊断都带有稳定的错误码、一行修复说明，通常还有设计上的原因。<code>glyph --explain</code> 可以打印其中任何一条的详细说明。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-b0862ea5",
+      "kind": "html",
+      "en": "<a href=\"#is-it-a-real-lsp-or-just-a-vs-code-plugin\">The language server</a>",
+      "tr": "<a href=\"#is-it-a-real-lsp-or-just-a-vs-code-plugin\">语言服务器</a>"
+    },
+    {
+      "id": "h-394f88a3",
+      "kind": "html",
+      "en": "<a href=\"#error-messages\">Error messages</a>",
+      "tr": "<a href=\"#error-messages\">错误信息</a>"
+    },
+    {
+      "id": "h-4bbe1b07",
+      "kind": "html",
+      "en": "<a href=\"#debugging\">Debugging</a>",
+      "tr": "<a href=\"#debugging\">调试</a>"
+    },
+    {
+      "id": "h-f8ac489f",
+      "kind": "html",
+      "en": "<a href=\"#checking-without-running\">Checking without running</a>",
+      "tr": "<a href=\"#checking-without-running\">不运行就检查</a>"
+    },
+    {
+      "id": "h-f7c787bd",
+      "kind": "html",
+      "en": "<a href=\"#an-honest-transcript\">The build transcript</a>",
+      "tr": "<a href=\"#an-honest-transcript\">构建输出</a>"
+    },
+    {
+      "id": "h-76bd0dd6",
+      "kind": "html",
+      "en": "<a href=\"#for-the-agent-in-the-loop\">For agents</a>",
+      "tr": "<a href=\"#for-the-agent-in-the-loop\">面向智能体</a>"
+    },
+    {
+      "id": "h-66af3262",
+      "kind": "html",
+      "en": "<a href=\"#warnings\">Warnings</a>",
+      "tr": "<a href=\"#warnings\">警告</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "为什么这很重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
     },
     {
       "id": "h-ff6f4a0b",
@@ -77,34 +161,52 @@
       "tr": "它是真正的 LSP，还是只是一个 VS Code 插件？"
     },
     {
-      "id": "h-45403764",
+      "id": "h-2e969777",
       "kind": "html",
-      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands). The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
-      "tr": "是真正的 LSP。编译器自带一个语言服务器，用 <code>glyph lsp</code> 启动，它通过 stdio 使用 Language Server Protocol（每个 LSP 客户端都支持的标准 JSON-RPC 传输方式）。随附的 VS Code 扩展只是它外面的一层薄客户端，没有任何东西是 VS Code 专属的：把<strong>任何</strong>支持 LSP 的编辑器，比如 Neovim、Helix、Zed、Emacs（eglot），指向 <code>glyph lsp</code>，行为都一样。它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。"
+      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands).",
+      "tr": "是真正的 LSP。编译器自带一个语言服务器，用 <code>glyph lsp</code> 启动，它通过 stdio 使用 Language Server Protocol（每个 LSP 客户端都支持的标准 JSON-RPC 传输方式）。"
     },
     {
-      "id": "h-83dcf965",
+      "id": "h-b38ab28b",
       "kind": "html",
-      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything. Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
-      "tr": "服务器实现了编辑器需要的功能：带有下面这些稳定错误码的实时诊断、悬停类型、跳转到定义（通过具名导入可跨模块跳转；通过命名空间时，<code>ui.Button</code> 仍然没有结果）、补全、用于大纲和符号搜索的文档符号与工作区符号、覆盖整个工作区的查找引用、重命名，以及用于保存时格式化的标准 <code>glyph fmt</code> 排版。重命名是完整的：重命名一个模块级声明，会修改它的定义、每一处引用，以及工作区中每个导入它的模块的 <code>import</code> 绑定，并且在改动任何东西之前先检查新名字（必须是真正的标识符，而不是关键字）。有两个限制值得了解：跨文件索引在每次请求时重建，而不是缓存（对普通项目没问题，以后值得加速）；当前无法解析的文件会被跳过，所以重命名不会触及本身已经损坏的文件里的引用。"
+      "en": "The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same.",
+      "tr": "随附的 VS Code 扩展只是它外面的一层薄客户端，没有任何东西是 VS Code 专属的：把<strong>任何</strong>支持 LSP 的编辑器，比如 Neovim、Helix、Zed、Emacs（eglot），指向 <code>glyph lsp</code>，行为都一样。"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-1cde591c",
       "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
+      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
+      "tr": "它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。"
     },
     {
-      "id": "h-f168aa2b",
+      "id": "h-7122439f",
       "kind": "html",
-      "en": "Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:",
-      "tr": "每条诊断都带有稳定的错误码、一行修复说明，通常还有设计上的原因。<code>glyph --explain</code> 可以打印其中任何一条的详细说明："
+      "en": "What the server implements",
+      "tr": "服务器实现了什么"
     },
     {
-      "id": "h-b37fe312",
+      "id": "h-99b44c18",
       "kind": "html",
-      "en": "glyph build",
-      "tr": "glyph build"
+      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save.",
+      "tr": "服务器实现了编辑器需要的功能：带有下面这些稳定错误码的实时诊断、悬停类型、跳转到定义（通过具名导入可跨模块跳转；通过命名空间时，<code>ui.Button</code> 仍然没有结果）、补全、用于大纲和符号搜索的文档符号与工作区符号、覆盖整个工作区的查找引用、重命名，以及用于保存时格式化的标准 <code>glyph fmt</code> 排版。"
+    },
+    {
+      "id": "h-7897dc1a",
+      "kind": "html",
+      "en": "Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything.",
+      "tr": "重命名是完整的：重命名一个模块级声明，会修改它的定义、每一处引用，以及工作区中每个导入它的模块的 <code>import</code> 绑定，并且在改动任何东西之前先检查新名字（必须是真正的标识符，而不是关键字）。"
+    },
+    {
+      "id": "h-81aa15e1",
+      "kind": "html",
+      "en": "Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
+      "tr": "有两个限制值得了解：跨文件索引在每次请求时重建，而不是缓存（对普通项目没问题，以后值得加速）；当前无法解析的文件会被跳过，所以重命名不会触及本身已经损坏的文件里的引用。"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "错误信息"
     },
     {
       "id": "h-f4269bfb",
@@ -113,46 +215,160 @@
       "tr": "我们正是在智能体和新手最容易绊倒的地方改进了报错信息：写 <code>if</code> 时现在会指引你使用 <code>match</code>，而不是笼统的&ldquo;意外的 token&rdquo;；参数数量错误、不穷尽的 <code>match</code>、拼错的变体，各自都有带错误码、可修复的报错。"
     },
     {
-      "id": "h-6fe35c75",
+      "id": "h-399b9dab",
       "kind": "html",
-      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
-      "tr": "只有 TypeScript 后端才能发现的类型错误，过去指向的是生成的 <code>.ts</code>。现在它们会<strong>映射回你的 <code>.glyph</code></strong>（同样的 ariadne 插入符，同样的稳定错误码），所以 <code>tsc</code> 错误读起来就像原生的 Glyph 错误。"
+      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're mapped back onto your <code>.glyph</code> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
+      "tr": "只有 TypeScript 后端才能发现的类型错误，过去指向的是生成的 <code>.ts</code>。现在它们会映射回你的 <code>.glyph</code>（同样的 ariadne 插入符，同样的稳定错误码），所以 <code>tsc</code> 错误读起来就像原生的 Glyph 错误。"
     },
     {
-      "id": "h-6896e18a",
+      "id": "h-47fc5bfb",
       "kind": "html",
-      "en": "<strong>Debugging:</strong> you debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger. Every build ships a standard <strong>v3 source map</strong> beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers. One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
-      "tr": "<strong>调试：</strong>你用已经在用的工具调试生成的 TypeScript，比如 Node 的 inspector、浏览器 devtools 或 IDE 的 JS/TS 调试器。每次构建都会在每个 <code>.ts</code> 旁边附上一个标准的 <strong>v3 source map</strong>（嵌入了 Glyph 源码），所以能串联 source map 的调试器或打包工具会定位回你的 <code>.glyph</code> 行号。还有一点没覆盖到：<code>glyph run</code> 自身的崩溃堆栈仍然打印 <code>.ts</code> 的行，因为 <code>tsx</code> 不会把 source map 串过它的转换。下一步就是重新映射这个堆栈。"
+      "en": "Debugging",
+      "tr": "调试"
     },
     {
-      "id": "h-27214eb4",
+      "id": "h-1fb6c4be",
       "kind": "html",
-      "en": "<strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong> <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory). It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
-      "tr": "<strong>不运行就问&ldquo;这能编译吗？&rdquo;：</strong><code>glyph check path.glyph</code> 对单个文件或整个目录做类型检查，然后退出。它不会往你的目录树里写任何东西，这是 <code>glyph run</code> 无法保证的，而 <code>glyph build</code> 根本不会这样做（它拒绝任何不是目录的参数）。它运行的流水线和构建相同，包括对生成的 TypeScript 运行 <code>tsc --strict</code>，输出到一个退出时会删除的临时目录。想要快速得到答案时，<code>--no-tsc</code> 会在 Glyph 阶段之后停止；<code>--json</code> 给智能体提供和 <code>glyph build --json</code> 相同格式的诊断。文件会在它所在目录的上下文中检查，所以有问题的同级文件仍然会让检查失败。你的 <code>@example</code> 和 <code>@doc @run</code> 测试也在这里运行，与 <code>glyph build</code> 使用的是同一道关卡，所以检查不可能对一棵构建会失败的目录树报告通过；如果你想要一个不执行任何代码的答案，<code>--no-test</code> 会跳过它们。"
+      "en": "You debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger.",
+      "tr": "你用已经在用的工具调试生成的 TypeScript，比如 Node 的 inspector、浏览器 devtools 或 IDE 的 JS/TS 调试器。"
     },
     {
-      "id": "h-1608da85",
+      "id": "h-68298ff4",
       "kind": "html",
-      "en": "<strong>The transcript doesn't lie to you either.</strong> A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran. The summary now prints after every stage that can turn the build red, so a red build never shows a green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
-      "tr": "<strong>终端输出也不会骗你。</strong>失败的构建过去会以&ldquo;没有诊断&rdquo;开头，然后在下面打印 <code>tsc</code> 错误，因为 Glyph 阶段的摘要是在 TypeScript 阶段运行之前写出的。现在摘要会在所有可能让构建失败的阶段之后才打印，所以失败的构建永远不会显示一行成功信息。同一轮改进中，<code>glyph run app.glyph --min -12.50</code> 也能用了：以前开头的连字符会让 clap 在你的 <code>main</code> 看到参数之前就拒绝它。属于 glyph 自己的 flag 仍然由 glyph 解析，所以如果程序的 flag 和其中某个冲突，在它前面加上 <code>--</code>。"
+      "en": "Every build ships a standard v3 source map beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers.",
+      "tr": "每次构建都会在每个 <code>.ts</code> 旁边附上一个标准的 v3 source map（嵌入了 Glyph 源码），所以能串联 source map 的调试器或打包工具会定位回你的 <code>.glyph</code> 行号。"
     },
     {
-      "id": "h-c48aa55b",
+      "id": "h-7391441b",
       "kind": "html",
-      "en": "<strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
-      "tr": "<strong>对于循环中的智能体：</strong><code>glyph build --json</code> 把每条诊断输出为结构化 JSON：稳定的错误码、严重程度、信息、文件、从 1 开始的行/列范围，以及帮助和注释，其中包括映射到你的 Glyph 源码上的 <code>tsc</code> 错误。智能体直接读取并据此行动，而不用从终端文本里抓取。"
+      "en": "One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
+      "tr": "还有一点没覆盖到：<code>glyph run</code> 自身的崩溃堆栈仍然打印 <code>.ts</code> 的行，因为 <code>tsx</code> 不会把 source map 串过它的转换。下一步就是重新映射这个堆栈。"
     },
     {
-      "id": "h-4f44d56b",
+      "id": "h-9ee5583f",
       "kind": "html",
-      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a <strong>Model Context Protocol server</strong> over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a position, where a name is <strong>defined</strong> (following imports), every <strong>reference</strong> to a symbol across the whole project, or a <strong>symbol search</strong>, without running a full build or reading every file. It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
-      "tr": "对于交互式智能体，除了批量诊断还有更多：<a href=\"/mcp/\"><code>glyph mcp</code></a> 通过 stdio 运行一个 <strong>Model Context Protocol 服务器</strong>（同一个二进制文件，与编辑器使用相同的分析），把语言服务器的查询作为 MCP 工具提供。智能体可以询问一个文件的<strong>诊断</strong>、某个位置的<strong>类型</strong>、一个名字在哪里<strong>定义</strong>（会跟随导入）、某个符号在整个项目中的每一处<strong>引用</strong>，或者进行<strong>符号搜索</strong>，不需要运行完整构建，也不需要读遍每个文件。它是同一个纯分析层之上的薄适配层，而不是第二套实现，所以不会和编译器、编辑器看到的内容产生偏差。"
+      "en": "Asking &ldquo;does this compile?&rdquo; without running it",
+      "tr": "不运行就问&ldquo;这能编译吗？&rdquo;"
     },
     {
-      "id": "h-b7132d5c",
+      "id": "h-0084ac49",
       "kind": "html",
-      "en": "<strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
-      "tr": "<strong>并非一切都是硬错误。</strong>Glyph 有一个警告级别，用来标出无用的代码而不让构建失败：<em>未使用的导入</em>（<code>E0106</code>）、<em>未使用的</em> <code>let</code>（<code>E0107</code>，以 <code>_</code> 开头的名字除外），以及 <code>return</code>/<code>break</code>/<code>continue</code> 之后的<em>不可达代码</em>（<code>E0108</code>）。它们让模块保持如实：一个无用的导入正是那种损害可检索性的噪音，会让读者去寻找代码实际上并不存在的依赖。警告会出现在同样的渲染输出和 <code>--json</code> 输出中，以严重程度标记，并且仍然会生成 TypeScript。"
+      "en": "<code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory).",
+      "tr": "<code>glyph check path.glyph</code> 对单个文件或整个目录做类型检查，然后退出。它不会往你的目录树里写任何东西，这是 <code>glyph run</code> 无法保证的，而 <code>glyph build</code> 根本不会这样做（它拒绝任何不是目录的参数）。"
+    },
+    {
+      "id": "h-2b44d12c",
+      "kind": "html",
+      "en": "--no-tsc",
+      "tr": "--no-tsc"
+    },
+    {
+      "id": "h-2903d237",
+      "kind": "html",
+      "en": "--json",
+      "tr": "--json"
+    },
+    {
+      "id": "h-80e15faf",
+      "kind": "html",
+      "en": "--no-test",
+      "tr": "--no-test"
+    },
+    {
+      "id": "h-52b3e2a3",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what it runs, and the flags</span>",
+      "tr": "详情 <span class=\"hint\">它运行什么，以及各个 flag</span>"
+    },
+    {
+      "id": "h-90cfdd90",
+      "kind": "html",
+      "en": "It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
+      "tr": "它运行的流水线和构建相同，包括对生成的 TypeScript 运行 <code>tsc --strict</code>，输出到一个退出时会删除的临时目录。想要快速得到答案时，<code>--no-tsc</code> 会在 Glyph 阶段之后停止；<code>--json</code> 给智能体提供和 <code>glyph build --json</code> 相同格式的诊断。文件会在它所在目录的上下文中检查，所以有问题的同级文件仍然会让检查失败。你的 <code>@example</code> 和 <code>@doc @run</code> 测试也在这里运行，与 <code>glyph build</code> 使用的是同一道关卡，所以检查不可能对一棵构建会失败的目录树报告通过；如果你想要一个不执行任何代码的答案，<code>--no-test</code> 会跳过它们。"
+    },
+    {
+      "id": "h-ee530faa",
+      "kind": "html",
+      "en": "The transcript doesn't lie to you either",
+      "tr": "终端输出也不会骗你"
+    },
+    {
+      "id": "h-2dd69876",
+      "kind": "html",
+      "en": "The summary now prints after every stage that can turn the build red, so a red build never shows a green line.",
+      "tr": "现在摘要会在所有可能让构建失败的阶段之后才打印，所以失败的构建永远不会显示一行成功信息。"
+    },
+    {
+      "id": "h-b498e1de",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the summary that came too early</span>",
+      "tr": "历史 <span class=\"hint\">打印得太早的摘要</span>"
+    },
+    {
+      "id": "h-27472e19",
+      "kind": "html",
+      "en": "A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran.",
+      "tr": "失败的构建过去会以&ldquo;没有诊断&rdquo;开头，然后在下面打印 <code>tsc</code> 错误，因为 Glyph 阶段的摘要是在 TypeScript 阶段运行之前写出的。"
+    },
+    {
+      "id": "h-1184e08a",
+      "kind": "html",
+      "en": "In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it.",
+      "tr": "同一轮改进中，<code>glyph run app.glyph --min -12.50</code> 也能用了：以前开头的连字符会让 clap 在你的 <code>main</code> 看到参数之前就拒绝它。"
+    },
+    {
+      "id": "h-54209177",
+      "kind": "html",
+      "en": "Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
+      "tr": "属于 glyph 自己的 flag 仍然由 glyph 解析，所以如果程序的 flag 和其中某个冲突，在它前面加上 <code>--</code>。"
+    },
+    {
+      "id": "h-e651945a",
+      "kind": "html",
+      "en": "And for the agent in the loop",
+      "tr": "对于循环中的智能体"
+    },
+    {
+      "id": "h-39af60f1",
+      "kind": "html",
+      "en": "<code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
+      "tr": "<code>glyph build --json</code> 把每条诊断输出为结构化 JSON：稳定的错误码、严重程度、信息、文件、从 1 开始的行/列范围，以及帮助和注释，其中包括映射到你的 Glyph 源码上的 <code>tsc</code> 错误。智能体直接读取并据此行动，而不用从终端文本里抓取。"
+    },
+    {
+      "id": "h-327a87a9",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> for interactive agents",
+      "tr": "面向交互式智能体的 <code>glyph mcp</code>"
+    },
+    {
+      "id": "h-eaf1f143",
+      "kind": "html",
+      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a Model Context Protocol server over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's diagnostics, the type at a position, where a name is defined (following imports), every reference to a symbol across the whole project, or a symbol search, without running a full build or reading every file.",
+      "tr": "对于交互式智能体，除了批量诊断还有更多：<a href=\"/mcp/\"><code>glyph mcp</code></a> 通过 stdio 运行一个 Model Context Protocol 服务器（同一个二进制文件，与编辑器使用相同的分析），把语言服务器的查询作为 MCP 工具提供。智能体可以询问一个文件的诊断、某个位置的类型、一个名字在哪里定义（会跟随导入）、某个符号在整个项目中的每一处引用，或者进行符号搜索，不需要运行完整构建，也不需要读遍每个文件。"
+    },
+    {
+      "id": "h-70b14055",
+      "kind": "html",
+      "en": "It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
+      "tr": "它是同一个纯分析层之上的薄适配层，而不是第二套实现，所以不会和编译器、编辑器看到的内容产生偏差。"
+    },
+    {
+      "id": "h-6bb01c84",
+      "kind": "html",
+      "en": "Not everything is a hard error",
+      "tr": "并非一切都是硬错误"
+    },
+    {
+      "id": "h-5efb1c4d",
+      "kind": "html",
+      "en": "Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>).",
+      "tr": "Glyph 有一个警告级别，用来标出无用的代码而不让构建失败：<em>未使用的导入</em>（<code>E0106</code>）、<em>未使用的</em> <code>let</code>（<code>E0107</code>，以 <code>_</code> 开头的名字除外），以及 <code>return</code>/<code>break</code>/<code>continue</code> 之后的<em>不可达代码</em>（<code>E0108</code>）。"
+    },
+    {
+      "id": "h-50a086a5",
+      "kind": "html",
+      "en": "These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
+      "tr": "它们让模块保持如实：一个无用的导入正是那种损害可检索性的噪音，会让读者去寻找代码实际上并不存在的依赖。警告会出现在同样的渲染输出和 <code>--json</code> 输出中，以严重程度标记，并且仍然会生成 TypeScript。"
     },
     {
       "id": "h-b55f380c",
@@ -167,10 +383,52 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-090dcbbc",
+      "id": "h-8cab8cec",
       "kind": "html",
-      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file; a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
-      "tr": "一个语言服务器（通过 stdio 运行 <code>glyph lsp</code>，适用于任何编辑器；随附 VS Code 扩展），提供高亮、诊断、悬停、跳转到定义、补全、符号、覆盖整个工作区的查找引用和重命名，以及保存时格式化；从 0.1.124 开始可以跨模块边界回答：服务器为每个项目维护一个数据库，你打开的缓冲区叠加在磁盘上的文件之上，所以悬停在导入的函数或导入记录的字段上，得到的答案与 <code>glyph query hover</code> 相同，一个文件中未保存的编辑能被另一个文件看到，每次按键的开销比单文件时多 1% 到 9%；一个 <code>glyph mcp</code> Model Context Protocol 服务器，提供十一个工具，即编辑器的查询加上 <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>，每个工具都有一个打印相同 JSON 的 <code>glyph query</code> 子命令，供没有 MCP 客户端的智能体使用；稳定的错误码、<code>glyph --explain</code>、映射到 <code>.glyph</code> 源码的 <code>tsc</code> 后端错误、警告级别（未使用的导入/绑定、不可达代码），以及 <code>--json</code> 结构化诊断。<code>glyph check [path]</code> 对单个文件或目录树做类型检查，不运行，也不写输出。<code>glyph fmt --check</code> 在 CI 中把关格式：它不写任何东西，当某个文件不符合唯一的标准排版时以非零退出。"
+      "en": "A language server for any editor, answering across a module boundary<span class=\"chip since\">since 0.1.124</span>",
+      "tr": "适用于任何编辑器、可跨模块边界回答的语言服务器<span class=\"chip since\">自 0.1.124 起</span>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-f8afc45f",
+      "kind": "html",
+      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file;",
+      "tr": "一个语言服务器（通过 stdio 运行 <code>glyph lsp</code>，适用于任何编辑器；随附 VS Code 扩展），提供高亮、诊断、悬停、跳转到定义、补全、符号、覆盖整个工作区的查找引用和重命名，以及保存时格式化；从 0.1.124 开始可以跨模块边界回答：服务器为每个项目维护一个数据库，你打开的缓冲区叠加在磁盘上的文件之上，所以悬停在导入的函数或导入记录的字段上，得到的答案与 <code>glyph query hover</code> 相同，一个文件中未保存的编辑能被另一个文件看到，每次按键的开销比单文件时多 1% 到 9%；"
+    },
+    {
+      "id": "h-5d2d8166",
+      "kind": "html",
+      "en": "A <code>glyph mcp</code> Model Context Protocol server with eleven tools",
+      "tr": "提供十一个工具的 <code>glyph mcp</code> Model Context Protocol 服务器"
+    },
+    {
+      "id": "h-04977e83",
+      "kind": "html",
+      "en": "a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client;",
+      "tr": "一个 <code>glyph mcp</code> Model Context Protocol 服务器，提供十一个工具，即编辑器的查询加上 <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code> 和 <code>glyph_exports</code>，每个工具都有一个打印相同 JSON 的 <code>glyph query</code> 子命令，供没有 MCP 客户端的智能体使用；"
+    },
+    {
+      "id": "h-88c1a36e",
+      "kind": "html",
+      "en": "Stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics.",
+      "tr": "稳定的错误码、<code>glyph --explain</code>、映射到 <code>.glyph</code> 源码的 <code>tsc</code> 后端错误、警告级别（未使用的导入/绑定、不可达代码），以及 <code>--json</code> 结构化诊断。"
+    },
+    {
+      "id": "h-cef35f2e",
+      "kind": "html",
+      "en": "<code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output.",
+      "tr": "<code>glyph check [path]</code> 对单个文件或目录树做类型检查，不运行，也不写输出。"
+    },
+    {
+      "id": "h-9e1cc669",
+      "kind": "html",
+      "en": "<code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
+      "tr": "<code>glyph fmt --check</code> 在 CI 中把关格式：它不写任何东西，当某个文件不符合唯一的标准排版时以非零退出。"
     },
     {
       "id": "h-b63a305d",
@@ -179,10 +437,16 @@
       "tr": "正在进行"
     },
     {
-      "id": "h-ad09c9c6",
+      "id": "h-c337dcaa",
       "kind": "html",
-      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
-      "tr": "缓存跨文件索引，而不是每次请求都重建（在大型目录树上能提速），以及重新映射 <code>glyph run</code> 自身的崩溃堆栈：由于 <code>tsx</code> 不会把生成的 source map 串过它的转换，这个堆栈仍然指向生成的 <code>.ts</code>，而不是你的 <code>.glyph</code>。"
+      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees).",
+      "tr": "缓存跨文件索引，而不是每次请求都重建（在大型目录树上能提速）。"
+    },
+    {
+      "id": "h-fd729464",
+      "kind": "html",
+      "en": "Remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
+      "tr": "重新映射 <code>glyph run</code> 自身的崩溃堆栈：由于 <code>tsx</code> 不会把生成的 source map 串过它的转换，这个堆栈仍然指向生成的 <code>.ts</code>，而不是你的 <code>.glyph</code>。"
     }
   ]
 }

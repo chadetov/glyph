@@ -1,7 +1,7 @@
 ---
 title: 凌晨 3 点出问题时，值班的人会看到什么？ · Glyph
 description: Glyph 编译成可读的 TypeScript，并为每个 .glyph 文件生成指回源码的 v3 source map，所以堆栈和 tsc 报错都指向你写的 Glyph。
-source_hash: 23c0350a6befa9fd
+source_hash: 4049ecaf7d564dbf
 prev: /answers/parse-errors/ | &larr; 上一篇 | 解析失败时，我能知道原因吗？
 next: /playground/ | 看完了 &rarr; | 现在去 Playground 写点 Glyph
 ---
@@ -12,35 +12,51 @@ next: /playground/ | 看完了 &rarr; | 现在去 Playground 写点 Glyph
         你自己掌握的可读 TypeScript，每个生成的文件旁边都有<strong>指回你的 <code>.glyph</code> 的 source map</strong>。调试器、打包工具或错误追踪服务能把运行中的代码追溯到你的源码，即使从没见过 Glyph 的人也能读懂生成的 TS。在这一切之前，<code>glyph build</code> 和 <code>glyph run</code> 对同一棵目录树报告相同的诊断，所以快速迭代的循环不会藏住构建本来能发现的问题。下面列出了两个限制，都在 <code>glyph run</code> 这条路径上。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">1 &middot; 生成的 TypeScript 由你来读</h2>
-        <p>
-          Glyph 不附带不透明的运行时。它生成普通的、格式化好的 TypeScript，你像对待其他 TS 一样提交和部署它。所以最坏的情况（凌晨 3 点，一个不懂 Glyph 的值班工程师）读的仍然是普通的 TypeScript，而不是某种方言。从你的源码到生产环境之间没有黑盒。
-        </p>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#1-the-generated-typescript-is-yours-to-read">可读的 TypeScript</a></li>
+          <li><a href="#2-source-maps-back-to-glyph">Source map</a></li>
+          <li><a href="#3-build-and-type-errors-already-point-at-glyph">构建错误与类型错误</a></li>
+          <li><a href="#4-glyph-run-tells-you-the-same-things">glyph run 的诊断</a></li>
+          <li><a href="#two-current-limitations">两个限制</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">2 &middot; 指回 <code>.glyph</code> 的 source map</h2>
-        <p>
-          每个生成的 <code>.ts</code> 旁边都有一个标准的 v3 source map（<code>.ts.map</code>），带有 <code>sourceMappingURL</code> 注释，并嵌入了你的 Glyph 源码（<code>sourcesContent</code>）。任何使用 source map 的工具（Chrome DevTools、Node 调试器、Sentry 这样的错误追踪服务、你的打包工具）都能沿着它串起来，显示 <code>.glyph</code> 的行，而不是生成代码的行。
-        </p>
-      </div>
+      <h2 class="ak-h" id="1-the-generated-typescript-is-yours-to-read">1 &middot; 生成的 TypeScript 由你来读<a class="ak-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph 不附带不透明的运行时。它生成普通的、格式化好的 TypeScript，你像对待其他 TS 一样提交和部署它。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>所以最坏的情况（凌晨 3 点，一个不懂 Glyph 的值班工程师）读的仍然是普通的 TypeScript，而不是某种方言。从你的源码到生产环境之间没有黑盒。</p></div>
+
+      <h2 class="ak-h" id="2-source-maps-back-to-glyph">2 &middot; 指回 <code>.glyph</code> 的 source map<a class="ak-anchor" href="#2-source-maps-back-to-glyph" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        每个生成的 <code>.ts</code> 旁边都有一个标准的 v3 source map（<code>.ts.map</code>），带有 <code>sourceMappingURL</code> 注释，并嵌入了你的 Glyph 源码（<code>sourcesContent</code>）。
+      </p>
       <div class="code">
         <span class="cap">dist/main.ts（末尾）</span>
 <pre>// ...emitted TypeScript...
 //# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>任何使用 source map 的工具（Chrome DevTools、Node 调试器、Sentry 这样的错误追踪服务、你的打包工具）都能沿着它串起来，显示 <code>.glyph</code> 的行，而不是生成代码的行。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">3 &middot; 构建和类型错误本来就指向 Glyph</h2>
+      <h2 class="ak-h" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; 构建和类型错误本来就指向 Glyph<a class="ak-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        带着类型错误进入生产环境的情况很少见，因为 <code>glyph build</code> 会运行 <code>tsc --strict</code>，并把每个 <code>tsc</code> 错误映射回你的 <code>.glyph</code> 源码（同样的插入符，保留 TypeScript 错误码）。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build --json</code> 则把每条诊断输出为结构化 JSON（错误码、严重程度、文件、从 1 开始的行/列、帮助），供你的 CI 或工具使用。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">插入符落在哪里</span></summary><div class="body">
         <p>
-          带着类型错误进入生产环境的情况很少见，因为 <code>glyph build</code> 会运行 <code>tsc --strict</code>，并<strong>把每个 <code>tsc</code> 错误映射回你的 <code>.glyph</code> 源码</strong>（同样的插入符，保留 TypeScript 错误码）。插入符落在 <code>tsc</code> 拒绝的代码所对应的最小 Glyph 表达式上：参数错误时标出那个参数，JSX 事件处理器里拼错的字段标出那次成员访问，而不是包住它的整个 <code>return</code>。<code>glyph build --json</code> 则把每条诊断输出为结构化 JSON（错误码、严重程度、文件、从 1 开始的行/列、帮助），供你的 CI 或工具使用。
+          插入符落在 <code>tsc</code> 拒绝的代码所对应的最小 Glyph 表达式上：参数错误时标出那个参数，JSX 事件处理器里拼错的字段标出那次成员访问，而不是包住它的整个 <code>return</code>。
         </p>
+      </div></details>
 
-        <h2 class="block-label">4 &middot; <code>glyph run</code> 告诉你同样的东西</h2>
-        <p>
-          你每天都在敲的命令是 <code>glyph run</code>，而在 0.1.40 之前，它比构建安静。它编译整个目录，从报告里取出生成的文件列表，然后把诊断丢掉。一棵被 <code>glyph build</code> 指出问题的目录树，用它运行却毫无提示，退出码为 0。现在它报告同样的一组诊断：包括警告，覆盖你指定的文件及其同级文件，显示在程序输出之后，并附一行计数。运行缓存会保存这些诊断，所以对未改动的源码第二次运行时，说的和第一次一样，不会变得沉默；缺少诊断的缓存条目算作未命中，会重新构建。
-        </p>
-      </div>
-      <div class="code">
+      <h2 class="ak-h" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> 告诉你同样的东西<a class="ak-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        你每天都在敲的命令是 <code>glyph run</code>，而在 0.1.40 之前，它比构建安静。现在它报告同样的一组诊断：包括警告，覆盖你指定的文件及其同级文件，显示在程序输出之后，并附一行计数。
+      </p>
+      <div class="code term">
         <span class="cap">一个未使用的导入，在会用到它的代码之前一步加入</span>
 <pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
@@ -54,25 +70,51 @@ next: /playground/ | 看完了 &rarr; | 现在去 Playground 写点 Glyph
 
 glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">当前的两个限制</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">运行缓存</span></summary><div class="body">
         <p>
-          <strong><code>glyph run</code> 自身的崩溃堆栈仍然显示 <code>.ts</code> 行号。</strong><code>glyph run</code> 通过 <code>tsx</code> 执行，而 <code>tsx</code> 不会把 source map 串过它自己的 <code>.ts</code>&rarr;<code>.js</code> 转换，所以 <code>glyph run</code> 期间未捕获的异常报告的是生成代码的行。重新映射这个堆栈是后续工作。它影响本地的 <code>run</code> 循环；在实际部署中，你用 <code>glyph build</code> 生成 <code>.ts</code>，用常规工具链打包，<code>.ts.map</code> 照常串起来，所以真正让你被呼叫的生产堆栈能映射回 <code>.glyph</code>。
+          运行缓存会保存这些诊断，所以对未改动的源码第二次运行时，说的和第一次一样，不会变得沉默；缺少诊断的缓存条目算作未命中，会重新构建。
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.40 之前</span></summary><div class="body">
+        <p>
+          它编译整个目录，从报告里取出生成的文件列表，然后把诊断丢掉。一棵被 <code>glyph build</code> 指出问题的目录树，用它运行却毫无提示，退出码为 0。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="two-current-limitations">当前的两个限制<a class="ak-anchor" href="#two-current-limitations" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b><code>glyph run</code> 自身的崩溃堆栈仍然显示 <code>.ts</code> 行号。</b><code>glyph run</code> 通过 <code>tsx</code> 执行，而 <code>tsx</code> 不会把 source map 串过它自己的 <code>.ts</code>&rarr;<code>.js</code> 转换，所以 <code>glyph run</code> 期间未捕获的异常报告的是生成代码的行。重新映射这个堆栈是后续工作。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>同级模块中的错误不会改变 <code>glyph run</code> 的退出码。</b>编译失败的模块无法被导入，而从没导入它的程序照常运行。现在你能看到这个错误，但进程的退出码仍然是 <code>main</code> 返回的值。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">生产环境的堆栈，以及退出码为什么保持不变</span></summary><div class="body">
+        <p>
+          它影响本地的 <code>run</code> 循环；在实际部署中，你用 <code>glyph build</code> 生成 <code>.ts</code>，用常规工具链打包，<code>.ts.map</code> 照常串起来，所以真正让你被呼叫的生产堆栈能映射回 <code>.glyph</code>。
         </p>
         <p>
-          <strong>同级模块中的错误不会改变 <code>glyph run</code> 的退出码。</strong>编译失败的模块无法被导入，而从没导入它的程序照常运行。现在你能看到这个错误，但进程的退出码仍然是 <code>main</code> 返回的值。让它以非零退出，会使今天运行正常的目录树失败，所以这是一个尚未做出的决定，而不是疏忽。如果你希望由目录树的健康状况决定退出码，那就用 <code>glyph build</code>。
+          让它以非零退出，会使今天运行正常的目录树失败，所以这是一个尚未做出的决定，而不是疏忽。如果你希望由目录树的健康状况决定退出码，那就用 <code>glyph build</code>。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>提交到仓库的可读 TS，每个文件一个 v3 <code>.ts.map</code>，<code>tsc</code> 错误重新映射到 <code>.glyph</code>，以及 <code>--json</code> 诊断。<code>glyph run</code> 报告的内容和 <code>glyph build</code> 一致，缓存命中时也一样。你的部署工具链的 source map 链能追溯到 <code>.glyph</code>。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>重新映射 <code>glyph run</code> 自身的崩溃堆栈（让本地运行循环也显示 <code>.glyph</code> 帧），决定同级模块的错误是否应让 <code>glyph run</code> 以非零退出，以及通过 LSP 提供更丰富的编辑器调试。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">提交到仓库的可读 TS。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">每个文件一个 v3 <code>.ts.map</code>。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>tsc</code> 错误重新映射到 <code>.glyph</code>。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>--json</code> 诊断。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph run</code> 报告的内容和 <code>glyph build</code> 一致，缓存命中时也一样。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">你的部署工具链的 source map 链能追溯到 <code>.glyph</code>。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">重新映射 <code>glyph run</code> 自身的崩溃堆栈（让本地运行循环也显示 <code>.glyph</code> 帧）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">决定同级模块的错误是否应让 <code>glyph run</code> 以非零退出。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">通过 LSP 提供更丰富的编辑器调试。</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/parse-errors/index.html",
   "locale": "zh-cn",
-  "source_hash": "7f1a8b2bd45c7f9e",
+  "source_hash": "4e3c1f0c9f2ab861",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "能。每个问题都会指出字段，说明<strong>值违反了哪条规则</strong>，并带有一个可以用来分支处理的 <code>code</code>。受 <code>where</code> 谓词约束的字段会报告谓词本身，所以通过 grep 就能从拒绝信息找回施加这条约束的那一行。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "为什么这很重要"
-    },
-    {
-      "id": "h-2b8c51b7",
-      "kind": "html",
-      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
-      "tr": "一个只会说“这个负载有问题”的校验器只做了一半的工作。处理函数仍然要判断：这是一个忘了某个字段的客户端，还是一个发来四个字符长密码的客户端？前者是 400，后者是 422，如果校验器不说，你最终只能用两个不同的类型把同一个请求体解析两遍，来找回校验器本来就知道的那一点信息。"
-    },
-    {
-      "id": "h-333aed3e",
-      "kind": "html",
-      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
-      "tr": "用 Glyph 构建一个认证 API 时正好遇到了这种情况。一个完全没有 <code>password</code> 键的注册请求返回了 <code>weak_password</code>，因为缺失和过短产生的是同一个字符串。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
-    },
-    {
       "id": "h-bddd14ad",
       "kind": "html",
       "en": "One type, one constraint:",
@@ -95,10 +71,28 @@
       "tr": "四个有问题的负载，四个不同的答案。每个都是一个 <code>Issue</code>，显示为 <code>code | path | message</code>："
     },
     {
-      "id": "h-cb372fc2",
+      "id": "h-e9f3d57d",
       "kind": "html",
-      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
-      "tr": "关键是第二个。<code>value.length &gt;= 8</code> 只在类型上写了一次，拒绝信息原样引用它。从 HTTP 422 响应体里把这个字符串复制出来，用 <code>grep</code> 搜索，就能找到产生它的声明。没有人需要在错误信息层另存一份规则，而两份副本正是这样渐渐不一致的。"
+      "en": "<span>The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim.</span>",
+      "tr": "<span>关键是第二个。<code>value.length &gt;= 8</code> 只在类型上写了一次，拒绝信息原样引用它。</span>"
+    },
+    {
+      "id": "h-e5637b50",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">from a 422 body back to the declaration</span>",
+      "tr": "详情 <span class=\"hint\">从 422 响应体找回声明</span>"
+    },
+    {
+      "id": "h-56143245",
+      "kind": "html",
+      "en": "Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "从 HTTP 422 响应体里把这个字符串复制出来，用 <code>grep</code> 搜索，就能找到产生它的声明。没有人需要在错误信息层另存一份规则，而两份副本正是这样渐渐不一致的。"
+    },
+    {
+      "id": "h-368d2a6e",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what an array used to do</span>",
+      "tr": "历史 <span class=\"hint\">数组以前会怎样</span>"
     },
     {
       "id": "h-c1b3d39f",
@@ -107,16 +101,118 @@
       "tr": "第四个以前比糟糕的信息还要糟。对 <code>typeof</code> 来说数组也是对象，所以没有必填字段的记录会直接接受它，而提交的 <code>[1, 2, 3]</code> 会按每个声明的字段各返回一个让人困惑的问题，没有一个提到你发来的是一个列表。"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-c67fef3c",
+      "kind": "html",
+      "en": "<a href=\"#nested-types-answer-for-themselves\">Nested types</a>",
+      "tr": "<a href=\"#nested-types-answer-for-themselves\">嵌套类型</a>"
+    },
+    {
+      "id": "h-4ae08760",
+      "kind": "html",
+      "en": "<a href=\"#the-code-not-the-string\">The code, not the string</a>",
+      "tr": "<a href=\"#the-code-not-the-string\">看 code，不看字符串</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么这很重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-7c00eb67",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job.",
+      "tr": "一个只会说“这个负载有问题”的校验器只做了一半的工作。"
+    },
+    {
+      "id": "h-5710a37f",
+      "kind": "html",
+      "en": "The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "处理函数仍然要判断：这是一个忘了某个字段的客户端，还是一个发来四个字符长密码的客户端？前者是 400，后者是 422，如果校验器不说，你最终只能用两个不同的类型把同一个请求体解析两遍，来找回校验器本来就知道的那一点信息。"
+    },
+    {
+      "id": "h-77e96ed1",
+      "kind": "html",
+      "en": "History <span class=\"hint\">where this came up</span>",
+      "tr": "历史 <span class=\"hint\">这个问题是在哪里出现的</span>"
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "用 Glyph 构建一个认证 API 时正好遇到了这种情况。一个完全没有 <code>password</code> 键的注册请求返回了 <code>weak_password</code>，因为缺失和过短产生的是同一个字符串。"
+    },
+    {
       "id": "h-f15fe14d",
       "kind": "html",
       "en": "Nested types answer for themselves",
       "tr": "嵌套类型自己给出答案"
     },
     {
-      "id": "h-1c1f349a",
+      "id": "h-f34a842c",
       "kind": "html",
-      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
-      "tr": "如果字段的类型有自己的描述符，就由那个类型的 <code>parse</code> 来校验，它的问题返回时路径前面会加上字段名。所以嵌套两层的 <code>Password</code> 会报告 <code>[\"body\", \"password\"]</code>，并仍然带着它自己的信息。你从同一个问题里同时得到位置和原因，不需要重新运行任何东西。"
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message.",
+      "tr": "如果字段的类型有自己的描述符，就由那个类型的 <code>parse</code> 来校验，它的问题返回时路径前面会加上字段名。所以嵌套两层的 <code>Password</code> 会报告 <code>[\"body\", \"password\"]</code>，并仍然带着它自己的信息。"
+    },
+    {
+      "id": "a-5132ab55",
+      "kind": "attr:aria-label",
+      "en": "The path a nested issue reports",
+      "tr": "嵌套问题报告的路径"
+    },
+    {
+      "id": "h-59744442",
+      "kind": "html",
+      "en": "<span>body</span>",
+      "tr": "<span>body</span>"
+    },
+    {
+      "id": "h-8e14aceb",
+      "kind": "html",
+      "en": "<span>password</span>",
+      "tr": "<span>password</span>"
+    },
+    {
+      "id": "h-783c1919",
+      "kind": "html",
+      "en": "<span>Password</span>",
+      "tr": "<span>Password</span>"
+    },
+    {
+      "id": "h-3d8b546d",
+      "kind": "html",
+      "en": "<span>You get the location and the reason from the same issue, without re-running anything.</span>",
+      "tr": "<span>你从同一个问题里同时得到位置和原因，不需要重新运行任何东西。</span>"
     },
     {
       "id": "h-f4063e91",
@@ -125,10 +221,10 @@
       "tr": "看错误码，而不是看字符串"
     },
     {
-      "id": "h-0696faed",
+      "id": "h-a4d51c89",
       "kind": "html",
-      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
-      "tr": "<code>Issue</code> 带有一个可选的 <code>code</code>：<code>\"missing\"</code>、<code>\"type\"</code>、<code>\"refinement\"</code> 或 <code>\"unexpected\"</code>。根据它来分支。匹配信息文本正是 Glyph 要消除的脆弱之处，信息是给阅读响应体的人看的。"
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code>, or <code>\"depth\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> 带有一个可选的 <code>code</code>：<code>\"missing\"</code>、<code>\"type\"</code>、<code>\"refinement\"</code>、<code>\"unexpected\"</code> 或 <code>\"depth\"</code>。根据它来分支。匹配信息文本正是 Glyph 要消除的脆弱之处，信息是给阅读响应体的人看的。"
     },
     {
       "id": "h-d38a3f61",
@@ -143,6 +239,18 @@
       "tr": "<code>code</code> 是可选的，所以你手动构造的 <code>Issue</code>，以及在它出现之前写好的所有使用方，都无需修改就能编译。"
     },
     {
+      "id": "h-66caedb4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the <code>\"depth\"</code> code</span>",
+      "tr": "详情 <span class=\"hint\"><code>\"depth\"</code> 这个 code</span>"
+    },
+    {
+      "id": "h-e1454553",
+      "kind": "html",
+      "en": "<code>\"depth\"</code> is the answer for a body nested more than 1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>): one issue at the field where it happened, where before 0.1.150 the check threw <code>RangeError: Maximum call stack size exceeded</code> and took the handler with it.",
+      "tr": "当请求体中对象和数组的嵌套超过 1000 层（<code>std/schema</code> 中的 <code>MAX_DEPTH</code>）时，答案就是 <code>\"depth\"</code>：在发生嵌套过深的字段上报告一个问题。而在 0.1.150 之前，这个检查会抛出 <code>RangeError: Maximum call stack size exceeded</code>，连同处理函数一起崩掉。"
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -155,22 +263,106 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-7654d152",
+      "id": "h-597fe3e1",
       "kind": "html",
-      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
-      "tr": "记录和 <code>where</code> 类型会报告失败的规则，而不只是失败的字段：缺少必填字段时为 <code>\"missing\"</code>，形状不对（包括非对象或数组）时为 <code>\"type\"</code>，值通过了基础类型但不满足谓词时为 <code>\"refinement\"</code>，类型没有声明的键为 <code>\"unexpected\"</code>。细化类型会引用它的谓词。字段的类型有描述符时会委托给它，所以嵌套的问题带着完整路径返回。可选字段（<code>f?: T</code>）永远不会被报告为缺失。"
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field",
+      "tr": "记录和 <code>where</code> 类型会报告失败的规则，而不只是失败的字段"
     },
     {
-      "id": "h-5db269e9",
+      "id": "h-ffa63583",
       "kind": "html",
-      "en": "Getting sharper",
-      "tr": "正在改进"
+      "en": "missing",
+      "tr": "missing"
     },
     {
-      "id": "h-7339349c",
+      "id": "h-1303c06b",
       "kind": "html",
-      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
-      "tr": "有两个边缘情况。如果字段的类型自身没有描述符，比如不受约束的类型参数，或者从手写的 <code>.d.ts</code> 导入的类型，它仍然只做扁平检查并得到 <code>\"type\"</code> 问题；编译器不会为这些类型合成描述符，对声明运行 <code>glyph gen dts</code> 才能为它们生成一个。以前，一个模块如果自己声明了名为 <code>Issue</code> 的类型，会在生成的文件里遮蔽 prelude 中的那个，导致该模块的每个描述符都失效；从 0.1.60 开始，这样的声明会在命名该类型的那一行报 <code>E0110</code>，所以你能知道问题出在哪，而不是去读一条关于生成代码的 <code>tsc</code> 错误。"
+      "en": "type",
+      "tr": "type"
+    },
+    {
+      "id": "h-1a53d443",
+      "kind": "html",
+      "en": "refinement",
+      "tr": "refinement"
+    },
+    {
+      "id": "h-bcf76901",
+      "kind": "html",
+      "en": "unexpected",
+      "tr": "unexpected"
+    },
+    {
+      "id": "h-ded32129",
+      "kind": "html",
+      "en": "depth",
+      "tr": "depth"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-13de36e7",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, <code>\"unexpected\"</code> for a key the type does not declare, and <code>\"depth\"</code> for a value nested more than 1000 deep.",
+      "tr": "记录和 <code>where</code> 类型会报告失败的规则，而不只是失败的字段：缺少必填字段时为 <code>\"missing\"</code>，形状不对（包括非对象或数组）时为 <code>\"type\"</code>，值通过了基础类型但不满足谓词时为 <code>\"refinement\"</code>，类型没有声明的键为 <code>\"unexpected\"</code>，值的嵌套超过 1000 层时为 <code>\"depth\"</code>。"
+    },
+    {
+      "id": "h-3ac6ed8a",
+      "kind": "html",
+      "en": "A refinement quotes its predicate.",
+      "tr": "细化类型会引用它的谓词。"
+    },
+    {
+      "id": "h-0925dc35",
+      "kind": "html",
+      "en": "A field whose type has a descriptor delegates to it, so nested issues arrive with the full path.",
+      "tr": "字段的类型有描述符时会委托给它，所以嵌套的问题带着完整路径返回。"
+    },
+    {
+      "id": "h-aa75521c",
+      "kind": "html",
+      "en": "Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "可选字段（<code>f?: T</code>）永远不会被报告为缺失。"
+    },
+    {
+      "id": "h-42a8d834",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">2</span>",
+      "tr": "正在加强 <span class=\"count\">2</span>"
+    },
+    {
+      "id": "h-5064bfc9",
+      "kind": "html",
+      "en": "A field typed by something with no descriptor of its own still gets the flat check and a <code>\"type\"</code> issue",
+      "tr": "如果字段的类型自身没有描述符，它仍然只做扁平检查并得到 <code>\"type\"</code> 问题"
+    },
+    {
+      "id": "h-38b590d3",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one.",
+      "tr": "有两个边缘情况。如果字段的类型自身没有描述符，比如不受约束的类型参数，或者从手写的 <code>.d.ts</code> 导入的类型，它仍然只做扁平检查并得到 <code>\"type\"</code> 问题；编译器不会为这些类型合成描述符，对声明运行 <code>glyph gen dts</code> 才能为它们生成一个。"
+    },
+    {
+      "id": "h-b0ffbce4",
+      "kind": "html",
+      "en": "A module's own type called <code>Issue</code> is refused at the line that names it",
+      "tr": "模块自己声明的名为 <code>Issue</code> 的类型，会在命名它的那一行被拒绝"
+    },
+    {
+      "id": "h-42d20e8c",
+      "kind": "html",
+      "en": "since 0.1.60",
+      "tr": "自 0.1.60 起"
+    },
+    {
+      "id": "h-04cd298e",
+      "kind": "html",
+      "en": "A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "以前，一个模块如果自己声明了名为 <code>Issue</code> 的类型，会在生成的文件里遮蔽 prelude 中的那个，导致该模块的每个描述符都失效；从 0.1.60 开始，这样的声明会在命名该类型的那一行报 <code>E0110</code>，所以你能知道问题出在哪，而不是去读一条关于生成代码的 <code>tsc</code> 错误。"
     }
   ]
 }

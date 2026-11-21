@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/diff-stability/index.html",
   "locale": "zh-cn",
-  "source_hash": "dda01800844f43a2",
+  "source_hash": "efcaa38e3c37f640",
   "segments": [
     {
       "id": "title",
@@ -59,42 +59,6 @@
       "tr": "改一行就是<strong>一行 diff</strong>。唯一的标准格式、尾随逗号，列表要么全部写在一行，要么每个元素一行，从不重新打包，所以审查时看到的是真正做出的改动，而不是周围的无关变动。"
     },
     {
-      "id": "h-d88b5884",
-      "kind": "html",
-      "en": "Review is reading diffs",
-      "tr": "审查就是读 diff"
-    },
-    {
-      "id": "h-199ca7e9",
-      "kind": "html",
-      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency. In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
-      "tr": "我们对一个改动所信任的几乎一切（审查、blame、回退、bisect）都建立在 diff 之上。所以 diff 的信噪比才是真正的硬通货。在大多数代码库中它都很糟糕：格式化工具把一行折行重新排版，import 排序工具把一块代码打乱，一次重命名改动了每个调用处的空白，而那一行<em>真正重要</em>的改动被埋在五十行无关的改动里。"
-    },
-    {
-      "id": "h-f039c970",
-      "kind": "html",
-      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout gives the model nothing to churn.",
-      "tr": "智能体让情况严重恶化。给它一个小任务，模型会很乐意为了改一处而重写整个函数，甚至整个文件，因为对它来说重新生成比精确编辑容易。审查者只能拿重写后的版本和原版做 diff，然后<em>祈祷</em>唯一真正的改动就是预期的那一处。Glyph 的设计让排版没有任何可供模型折腾的余地。"
-    },
-    {
-      "id": "h-afcfd1de",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
-      "tr": "<span class=\"ex-label\">01</span> 唯一的标准排版，没有选择"
-    },
-    {
-      "id": "h-f8a89d48",
-      "kind": "html",
-      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing. The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
-      "tr": "<code>glyph fmt</code> 用一种固定排版重新打印每个文件：两个空格缩进，每个多行列表都有尾随逗号，列表放得进 100 列时保持一行，放不下时每个元素一行。这个选择是全有或全无的。格式化工具从不为了填满一行而重新打包元素，所以列表永远不会一部分在这一行、一部分在下一行，新增一个字段就是新增一行。因为合法的形式只有一种，所以没有什么可争论的，也没有什么能让工具顺手“修正”的。"
-    },
-    {
-      "id": "h-d74094e1",
-      "kind": "html",
-      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
-      "tr": "宽度阈值就是这样做的代价。给一个绑定改名，导致一个调用超过 100 列，这个调用就会展开成每个参数一行：改了一个 token，diff 却是四行。换来的是排版只取决于代码本身和它起始的列，别无其他，所以两个智能体编辑同一个文件，最终会得到相同的字节。"
-    },
-    {
       "id": "h-79570668",
       "kind": "html",
       "en": "Reflowed style: one change, three touched lines",
@@ -119,6 +83,132 @@
       "tr": "git diff（标准格式）"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-397463bb",
+      "kind": "html",
+      "en": "<a href=\"#review-is-reading-diffs\">Review is reading diffs</a>",
+      "tr": "<a href=\"#review-is-reading-diffs\">审查就是读 diff</a>"
+    },
+    {
+      "id": "h-ce58ab88",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-no-choices\">One canonical layout</a>",
+      "tr": "<a href=\"#one-canonical-layout-no-choices\">唯一的标准排版</a>"
+    },
+    {
+      "id": "h-5642172f",
+      "kind": "html",
+      "en": "<a href=\"#order-is-stable-so-history-is-legible\">Stable order</a>",
+      "tr": "<a href=\"#order-is-stable-so-history-is-legible\">稳定的顺序</a>"
+    },
+    {
+      "id": "h-93c2a791",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-no-import-churn\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-no-import-churn\">没有 barrel 文件</a>"
+    },
+    {
+      "id": "h-903080aa",
+      "kind": "html",
+      "en": "<a href=\"#generation-is-idempotent-not-a-blob\">Idempotent generation</a>",
+      "tr": "<a href=\"#generation-is-idempotent-not-a-blob\">幂等的生成</a>"
+    },
+    {
+      "id": "h-65de8b4a",
+      "kind": "html",
+      "en": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>",
+      "tr": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">基准测试</a>"
+    },
+    {
+      "id": "h-d88b5884",
+      "kind": "html",
+      "en": "Review is reading diffs",
+      "tr": "审查就是读 diff"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-d0dd6080",
+      "kind": "html",
+      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency.",
+      "tr": "我们对一个改动所信任的几乎一切（审查、blame、回退、bisect）都建立在 diff 之上。所以 diff 的信噪比才是真正的硬通货。"
+    },
+    {
+      "id": "h-f342f678",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the noise comes from</span>",
+      "tr": "详情 <span class=\"hint\">噪音从哪里来</span>"
+    },
+    {
+      "id": "h-89489cc0",
+      "kind": "html",
+      "en": "In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
+      "tr": "在大多数代码库中它都很糟糕：格式化工具把一行折行重新排版，import 排序工具把一块代码打乱，一次重命名改动了每个调用处的空白，而那一行<em>真正重要</em>的改动被埋在五十行无关的改动里。"
+    },
+    {
+      "id": "h-e3147d32",
+      "kind": "html",
+      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one.",
+      "tr": "智能体让情况严重恶化。给它一个小任务，模型会很乐意为了改一处而重写整个函数，甚至整个文件，因为对它来说重新生成比精确编辑容易。审查者只能拿重写后的版本和原版做 diff，然后<em>祈祷</em>唯一真正的改动就是预期的那一处。"
+    },
+    {
+      "id": "h-408937d1",
+      "kind": "html",
+      "en": "Glyph is built so that the layout gives the model nothing to churn.",
+      "tr": "Glyph 的设计让排版没有任何可供模型折腾的余地。"
+    },
+    {
+      "id": "h-afcfd1de",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
+      "tr": "<span class=\"ex-label\">01</span> 唯一的标准排版，没有选择"
+    },
+    {
+      "id": "h-b77fb19e",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing.",
+      "tr": "<code>glyph fmt</code> 用一种固定排版重新打印每个文件：两个空格缩进，每个多行列表都有尾随逗号，列表放得进 100 列时保持一行，放不下时每个元素一行。这个选择是全有或全无的。"
+    },
+    {
+      "id": "h-7b7a954c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no repacking, one legal shape</span>",
+      "tr": "详情 <span class=\"hint\">不重新打包，只有一种合法形式</span>"
+    },
+    {
+      "id": "h-138c6b00",
+      "kind": "html",
+      "en": "The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
+      "tr": "格式化工具从不为了填满一行而重新打包元素，所以列表永远不会一部分在这一行、一部分在下一行，新增一个字段就是新增一行。因为合法的形式只有一种，所以没有什么可争论的，也没有什么能让工具顺手“修正”的。"
+    },
+    {
+      "id": "h-d74094e1",
+      "kind": "html",
+      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
+      "tr": "宽度阈值就是这样做的代价。给一个绑定改名，导致一个调用超过 100 列，这个调用就会展开成每个参数一行：改了一个 token，diff 却是四行。换来的是排版只取决于代码本身和它起始的列，别无其他，所以两个智能体编辑同一个文件，最终会得到相同的字节。"
+    },
+    {
       "id": "h-90e0d667",
       "kind": "html",
       "en": "The trailing comma is doing quiet work: because the last element already ends in a comma, adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.",
@@ -131,10 +221,16 @@
       "tr": "<span class=\"ex-label\">02</span> 顺序稳定，所以历史清晰可读"
     },
     {
-      "id": "h-caf8f67b",
+      "id": "h-71cbcedc",
       "kind": "html",
-      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours. <code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
-      "tr": "每个元素一行，意味着重新排序、插入或删除一项只影响这一项所在的行，不会碰到相邻的行。<code>git blame</code> 保持有意义：每一行最后一次被修改的提交，就是真正修改了<em>那个</em>元素的提交，而不是碰巧把它所在的行重新打包的那次格式化。"
+      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours.",
+      "tr": "每个元素一行，意味着重新排序、插入或删除一项只影响这一项所在的行，不会碰到相邻的行。"
+    },
+    {
+      "id": "h-59fb6fdf",
+      "kind": "html",
+      "en": "<code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
+      "tr": "<code>git blame</code> 保持有意义：每一行最后一次被修改的提交，就是真正修改了<em>那个</em>元素的提交，而不是碰巧把它所在的行重新打包的那次格式化。"
     },
     {
       "id": "h-bfb2f0bd",
@@ -155,16 +251,22 @@
       "tr": "<span class=\"ex-label\">04</span> 代码生成是幂等的，而不是一大坨"
     },
     {
-      "id": "h-c4bbd5c2",
+      "id": "h-6837705f",
       "kind": "html",
-      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file. And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
-      "tr": "同样的规矩也适用于生成的代码。<code>glyph gen</code> 和 <code>glyph regen</code> 会通过标准格式化工具重新打印输出，所以规范变化后重新生成，得到的是一个<em>最小的</em>、真正能审查的 diff，只有几行改动，而不是把机器写的文件整个替换掉。每个生成的 <code>.ts</code> 都附带 source map，所以即使是编译后的输出，也能清楚地追溯到你修改的那一行。"
+      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file.",
+      "tr": "同样的规矩也适用于生成的代码。<code>glyph gen</code> 和 <code>glyph regen</code> 会通过标准格式化工具重新打印输出，所以规范变化后重新生成，得到的是一个<em>最小的</em>、真正能审查的 diff，只有几行改动，而不是把机器写的文件整个替换掉。"
     },
     {
       "id": "h-e4efdc9c",
       "kind": "html",
       "en": "a field added to the spec &rarr; the regenerated diff",
       "tr": "规范中新增一个字段 &rarr; 重新生成后的 diff"
+    },
+    {
+      "id": "h-8d821d14",
+      "kind": "html",
+      "en": "And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
+      "tr": "每个生成的 <code>.ts</code> 都附带 source map，所以即使是编译后的输出，也能清楚地追溯到你修改的那一行。"
     },
     {
       "id": "h-91e761f8",
@@ -179,22 +281,22 @@
       "tr": "就大部分格式化而言，确实可以。设置了 <code>trailingComma: \"all\"</code> 的 Prettier 会给最后一个元素加逗号，并把长列表每个元素打印一行，这就实现了第 01 节的大部分内容。区别在三个地方。"
     },
     {
-      "id": "h-abb494fb",
+      "id": "h-d78411aa",
       "kind": "html",
-      "en": "<strong>The layout depends only on the code.</strong> Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
-      "tr": "<strong>排版只取决于代码。</strong>如果作者在 <code>{</code> 后面换了行，Prettier 会让对象字面量保持展开，否则就折叠，所以同一个对象可能因为最初的输入方式不同而被打印成两种样子。两个智能体写同样的东西，会得到两种排版，下一次编辑其中一个时就会表现为重新排版。<code>glyph fmt</code> 无论输入怎样折行，打印出来的 <code>{ a: 1, b: 2 }</code> 都一样。"
+      "en": "<b>The layout depends only on the code.</b>Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
+      "tr": "<b>排版只取决于代码。</b>如果作者在 <code>{</code> 后面换了行，Prettier 会让对象字面量保持展开，否则就折叠，所以同一个对象可能因为最初的输入方式不同而被打印成两种样子。两个智能体写同样的东西，会得到两种排版，下一次编辑其中一个时就会表现为重新排版。<code>glyph fmt</code> 无论输入怎样折行，打印出来的 <code>{ a: 1, b: 2 }</code> 都一样。"
     },
     {
-      "id": "h-2b89c0b6",
+      "id": "h-cadbc396",
       "kind": "html",
-      "en": "<strong>There is nothing to configure.</strong> Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
-      "tr": "<strong>没有任何东西可以配置。</strong>Prettier 的输出取决于仓库的配置文件，而有些仓库根本没有配置文件。在不同 TypeScript 项目之间切换的智能体，在每个项目里遇到的排版都不一样。一个 Glyph 文件在每个项目中的排版都相同，因为格式化工具没有选项。"
+      "en": "<b>There is nothing to configure.</b>Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
+      "tr": "<b>没有任何东西可以配置。</b>Prettier 的输出取决于仓库的配置文件，而有些仓库根本没有配置文件。在不同 TypeScript 项目之间切换的智能体，在每个项目里遇到的排版都不一样。一个 Glyph 文件在每个项目中的排版都相同，因为格式化工具没有选项。"
     },
     {
-      "id": "h-68832179",
+      "id": "h-45adf37f",
       "kind": "html",
-      "en": "<strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
-      "tr": "<strong>格式化工具不能改变文件的含义。</strong><code>glyph fmt</code> 的测试方法是解析它自己的输出，并把语法树与输入的语法树比较，覆盖仓库中的每个示例，还在模糊测试下进行。如果一条注释所在的位置在排版中没有对应的行，它会拒绝这个文件（<code>E0500</code>），而不是把注释移到与之无关的代码旁边。"
+      "en": "<b>The formatter can't change what a file says.</b><code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
+      "tr": "<b>格式化工具不能改变文件的含义。</b><code>glyph fmt</code> 的测试方法是解析它自己的输出，并把语法树与输入的语法树比较，覆盖仓库中的每个示例，还在模糊测试下进行。如果一条注释所在的位置在排版中没有对应的行，它会拒绝这个文件（<code>E0500</code>），而不是把注释移到与之无关的代码旁边。"
     },
     {
       "id": "h-759bd893",
@@ -215,10 +317,16 @@
       "tr": "基准测试：即将进行"
     },
     {
-      "id": "h-2ef42aea",
+      "id": "h-6219861d",
       "kind": "html",
-      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
-      "tr": "能体现这一点的数字是每个逻辑改动的 diff 大小：做一处预期的编辑时，Glyph 中有多少行发生变动，对比经过常见格式化工具处理的等价 TypeScript 改动。Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有了真实的历史记录可供取材，就会填入真实的测量结果。"
+      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter.",
+      "tr": "能体现这一点的数字是每个逻辑改动的 diff 大小：做一处预期的编辑时，Glyph 中有多少行发生变动，对比经过常见格式化工具处理的等价 TypeScript 改动。"
+    },
+    {
+      "id": "h-4f7ab29f",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
+      "tr": "Glyph 还没有在实际项目中使用，所以下面的图表是占位，一旦有了真实的历史记录可供取材，就会填入真实的测量结果。"
     },
     {
       "id": "h-2f2e8c1d",

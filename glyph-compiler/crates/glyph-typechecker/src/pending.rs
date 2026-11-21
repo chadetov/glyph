@@ -590,6 +590,7 @@ pub(crate) fn expr_source(e: &Expr) -> String {
             format!("{}({})", expr_source(callee), rendered.join(", "))
         }
         Expr::Await { expr, .. } => format!("await {}", expr_source(expr)),
+        Expr::Index { object, index, .. } => format!("{}[{}]", expr_source(object), expr_source(index)),
         _ => "...".to_string(),
     }
 }

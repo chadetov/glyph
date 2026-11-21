@@ -36,7 +36,7 @@ use crate::ty::{
 use crate::builtin_members::{MethodSig, MethodTy};
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
-    Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, PropsRefusal,
+    Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, MutationSite, PropsRefusal,
     TypeError,
 };
 
@@ -356,6 +356,9 @@ pub fn assign_types_with_relations(
             field_uses: &mut field_uses,
             assign_target: None,
             call_callee: None,
+            mut_call: None,
+            stmt_call: None,
+            arm_calls: Vec::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
@@ -470,6 +473,9 @@ pub fn assignability(
         field_uses: &mut field_uses,
         assign_target: None,
         call_callee: None,
+        mut_call: None,
+        stmt_call: None,
+        arm_calls: Vec::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -530,6 +536,9 @@ pub fn declared_record_fields(
         field_uses: &mut field_uses,
         assign_target: None,
         call_callee: None,
+        mut_call: None,
+        stmt_call: None,
+        arm_calls: Vec::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -1259,6 +1268,14 @@ struct Assigner<'a> {
     /// with it still set, and a flag would take the `s.trim` in
     /// `s.trim.bind(s)()` for a call.
     call_callee: Option<Span>,
+    /// Where the call being walked stands, for E0240 (G380, D5): the call of
+    /// the `mut` statement being walked, the whole expression of the
+    /// expression statement being walked, and the non-block arm values of a
+    /// `match` that is itself a statement. Spans identify the nodes, as they
+    /// do in the type map, so a nested call never matches its parent's.
+    mut_call: Option<Span>,
+    stmt_call: Option<Span>,
+    arm_calls: Vec<Span>,
     /// The interface pairings the relation is in the middle of deciding, so a
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
@@ -2323,7 +2340,10 @@ impl Assigner<'_> {
                     }
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
+                    let outer = self.mut_call.replace(call.span());
                     self.walk_expr(call);
+                    self.mut_call = outer;
+                    self.check_mut_call_changes(call);
                 }
             },
             Stmt::Return(r) => {
@@ -2401,7 +2421,16 @@ impl Assigner<'_> {
             Stmt::Loop(l) => self.walk_block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Defer(d) => self.walk_expr(&d.expr),
-            Stmt::Expr(e) => self.walk_expr(e),
+            Stmt::Expr(e) => {
+                let outer = self.stmt_call.replace(e.span());
+                let arms = self.arm_calls.len();
+                if let Expr::Match { arms: match_arms, .. } = e {
+                    statement_arm_values(match_arms, &mut self.arm_calls);
+                }
+                self.walk_expr(e);
+                self.arm_calls.truncate(arms);
+                self.stmt_call = outer;
+            }
         }
     }
 
@@ -2525,6 +2554,11 @@ impl Assigner<'_> {
 
     fn walk_expr(&mut self, e: &Expr) {
         self.walk_expr_node(e);
+        // G380: a call that changes its receiver stands only as the whole
+        // call of a `mut` statement, on a place.
+        if let Expr::Call { .. } = e {
+            self.check_mutating_call(e);
+        }
         // D54: each implicit conversion to text is judged once its operands
         // are typed, by one rule, whichever of the three spellings it takes.
         self.check_text_conversions(e);
@@ -6880,6 +6914,135 @@ impl Assigner<'_> {
         is_map_ty(&self.lowerer.lower(&td.body))
     }
 
+    /// E0240 (G380, D5): a call to a method that changes its receiver, on a
+    /// receiver Glyph types as a built-in (`Array<T>`; no `string` or
+    /// `number` method mutates), standing anywhere but as the whole call of a
+    /// `mut` statement, or standing there on a receiver that is not a place.
+    /// A receiver the checker types `Unknown` is not judged.
+    fn check_mutating_call(&mut self, call: &Expr) {
+        let Expr::Call { callee, args, span, .. } = call else {
+            return;
+        };
+        let Expr::Member { object, field, .. } = callee.as_ref() else {
+            return;
+        };
+        let Some(receiver) = self.mutation_receiver(object) else {
+            return;
+        };
+        let Some(m) = receiver.method(field.as_ref()) else {
+            return;
+        };
+        if !m.mutates {
+            return;
+        }
+        let site = if !object.is_place() {
+            // Under `mut` the receiver is the only fault; elsewhere a
+            // statement on a temporary is the same lost write, and `mut `
+            // before it would not keep it either.
+            match Some(*span) == self.mut_call || Some(*span) == self.stmt_call {
+                true => MutationSite::NotPlace,
+                false => MutationSite::Value,
+            }
+        } else if Some(*span) == self.mut_call {
+            return;
+        } else if Some(*span) == self.stmt_call {
+            MutationSite::Statement
+        } else if self.arm_calls.contains(span) {
+            MutationSite::ArmValue
+        } else {
+            MutationSite::Value
+        };
+        let ns = crate::mutation::ArrayNs::of(self.module);
+        let (message, help) = crate::mutation::mutation_outside_mut(site, object, m.name, args, &ns);
+        self.errors.push(TypeError::MutationOutsideMut {
+            kind: site,
+            message,
+            help,
+            span: *span,
+        });
+    }
+
+    /// The built-in receiver a call's object is, for E0240: its type, or,
+    /// when the checker leaves that `Unknown`, an array method known to
+    /// return a new array (`filter` is overloaded, so its row is untyped).
+    fn mutation_receiver(&self, object: &Expr) -> Option<BuiltinReceiver> {
+        if let Some((receiver, _)) = self.builtin_receiver_elem(self.tm.get(object.span())) {
+            return Some(receiver);
+        }
+        let Expr::Call { callee, .. } = object else {
+            return None;
+        };
+        let Expr::Member { object: inner, field, .. } = callee.as_ref() else {
+            return None;
+        };
+        let inner_array = matches!(
+            self.mutation_receiver(inner),
+            Some(BuiltinReceiver::Array)
+        );
+        (inner_array && crate::mutation::returns_new_array(field.as_ref())).then_some(BuiltinReceiver::Array)
+    }
+
+    /// E0241 (G380, D5): `mut` before a call Glyph knows changes nothing. A
+    /// method the generated rows mark non-mutating on a built-in receiver,
+    /// or a function read through a namespace import of a Glyph module (the
+    /// standard library or a project sibling). Decided from what the
+    /// receiver resolves to, so a local `result` that shadows `std/result` is
+    /// a value, and an npm namespace or an `Unknown` receiver is not judged.
+    fn check_mut_call_changes(&mut self, call: &Expr) {
+        let Expr::Call { callee, args, span, .. } = call else {
+            return;
+        };
+        let Expr::Member { object, field, .. } = callee.as_ref() else {
+            return;
+        };
+        if let Expr::Ident { span: base, name } = object.as_ref() {
+            if let Some(path) = self.glyph_namespace_path(*base, field.as_ref()) {
+                let array_copy = path == "std/array"
+                    && args.first().is_some_and(Expr::is_place)
+                    && match self.tm.get(callee.span()) {
+                        Ty::Fn { return_ty, .. } => matches!(
+                            self.builtin_receiver_elem(return_ty),
+                            Some((BuiltinReceiver::Array, _))
+                        ),
+                        _ => false,
+                    };
+                let (message, help) =
+                    crate::mutation::mut_on_module_call(name.as_ref(), field.as_ref(), args, array_copy);
+                self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
+                return;
+            }
+        }
+        let Some((receiver, _)) = self.builtin_receiver_elem(self.tm.get(object.span())) else {
+            return;
+        };
+        let Some(m) = receiver.method(field.as_ref()) else {
+            return;
+        };
+        if m.mutates {
+            return;
+        }
+        let (message, help) = crate::mutation::mut_on_pure_method(receiver, m, object, args);
+        self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
+    }
+
+    /// The module path behind the namespace import referenced at `base`,
+    /// when it is a Glyph module: the standard library, or a module whose
+    /// `field` Glyph's checker can read. `None` for anything else, an npm
+    /// package's namespace included, whose functions Glyph does not type.
+    fn glyph_namespace_path(&self, base: Span, field: &str) -> Option<String> {
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(base)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let path = match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
+            _ => return None,
+        };
+        let key = path.segments.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("/");
+        let glyph = key.starts_with("std/") || self.namespace_member_ty(base, field).is_some();
+        glyph.then_some(key)
+    }
+
     /// The built-in receiver `ty` is, when its member reads can be checked
     /// against a fixed set (G288): an `Array<T>`, a `string`, a string-literal
     /// union or a `number`, written directly or reached through aliases in
@@ -10611,6 +10774,19 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
 /// A receiver as the help can write it back: a name, a member path, or a
 /// call (`load()`, with its arguments elided when it has any). Anything else
 /// is written as a placeholder.
+/// The non-block arm values of a `match` that stands as a statement, and of
+/// any `match` that is itself such an arm value, for E0240's arm site.
+fn statement_arm_values(arms: &[MatchArm], out: &mut Vec<Span>) {
+    for arm in arms {
+        if let MatchArmBody::Expr(e) = &arm.body {
+            out.push(e.span());
+            if let Expr::Match { arms: inner, .. } = e {
+                statement_arm_values(inner, out);
+            }
+        }
+    }
+}
+
 fn receiver_source(e: &Expr) -> String {
     match e {
         Expr::Ident { name, .. } => name.to_string(),
@@ -17690,6 +17866,9 @@ component View(props: { s: Status }) -> Component {
             field_uses: &mut field_uses,
             assign_target: None,
             call_callee: None,
+            mut_call: None,
+            stmt_call: None,
+            arm_calls: Vec::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,

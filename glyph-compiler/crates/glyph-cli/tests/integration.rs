@@ -20837,7 +20837,8 @@ pub fn ret() -> Show {
 /// overloads), so before the context-only slots `users.map(fn(p) ..)` was
 /// unjudged while `array.map(users, fn(p) ..)` was E0237, and an agent could
 /// silence the refusal by switching spellings. `reduce` types the
-/// accumulator from its seed and `sort` passes two elements.
+/// accumulator from its seed and `sort` passes two elements. The `sort` is a
+/// `mut` statement since G380: it changes `users`, so its value is not read.
 #[test]
 fn a_method_callback_is_judged_like_the_function_spelling() {
     let text = r#"module main
@@ -20855,8 +20856,8 @@ pub fn both(users: Array<User>) -> number {
   let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })
   users.forEach(fn(p) { let _s = p.nmae })
   let d = users.reduce(fn(acc, p) -> number { return acc + p.idd }, 0)
-  let e = users.sort(fn(x, y) -> number { return x.idd - y.id })
-  let _all = [b1, b2, c1, c2, e]
+  mut users.sort(fn(x, y) -> number { return x.idd - y.id })
+  let _all = [b1, b2, c1, c2]
   return a1.length + a2.length + d
 }
 "#;
@@ -20874,7 +20875,7 @@ pub fn both(users: Array<User>) -> number {
             ("E0210", r#"let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })"#),
             ("E0210", "users.forEach(fn(p) { let _s = p.nmae })"),
             ("E0210", "let d = users.reduce(fn(acc, p) -> number { return acc + p.idd }, 0)"),
-            ("E0210", "let e = users.sort(fn(x, y) -> number { return x.idd - y.id })"),
+            ("E0210", "mut users.sort(fn(x, y) -> number { return x.idd - y.id })"),
         ],
         "{got:#?}"
     );

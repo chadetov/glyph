@@ -253,8 +253,10 @@ fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
 }
 
 /// D5: `mut` statement. Grammar restricts to these four shapes; anything else
-/// is a syntax error. The typechecker does NOT verify that called methods
-/// actually mutate (Q7).
+/// is a syntax error. Whether a called method changes anything is the
+/// checker's question, since it needs the receiver's type: a mutating call
+/// outside `mut`, or on a receiver that is not a place, is E0240, and `mut`
+/// before a call that changes nothing is E0241 (G380, reversing Q7).
 fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
     let mut_span = p.expect(&Token::Mut, "`mut`")?;
     // The target parses as an expression up to `=`. Since `=` is not an
@@ -267,7 +269,7 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
             p.advance();
             let value = expr::parse_expr(p)?;
             let end = value.span().end;
-            if !is_lvalue(&target) {
+            if !target.is_place() {
                 return Err(ParseError::Expected {
                     expected: "an assignable target before `=` (a name, field access, or index)",
                     found: format!("{target:?}"),
@@ -279,9 +281,11 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
                 span: Span::new(mut_span.start, end),
             })
         }
-        // `mut <method call>` — D5's method-call mutation form: the call must be
-        // a *method* call (`x.method(args)`), not a free function or an
-        // index-element call.
+        // `mut <method call>`: D5's method-call mutation form. The callee must
+        // be a plain member read (`x.method(args)`), so a bare free-function
+        // call is refused here. Everything that needs types is the checker's:
+        // a receiver that is not a place, a module-qualified function call,
+        // and a method that changes nothing (G380, E0240 and E0241).
         _ if is_method_call(&target) => {
             let end = target.span().end;
             Ok(MutStmt {
@@ -297,22 +301,10 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
     }
 }
 
-/// Whether `e` is an assignable place (an lvalue): a name, or a chain of plain
-/// (non-optional) field accesses and index subscripts bottoming out at one.
-/// Calls, literals, operator expressions, and optional-chain (`?.`) accesses are
-/// not assignable.
-fn is_lvalue(e: &Expr) -> bool {
-    match e {
-        Expr::Ident { .. } => true,
-        Expr::Member { object, optional, .. } => !optional && is_lvalue(object),
-        Expr::Index { object, .. } => is_lvalue(object),
-        _ => false,
-    }
-}
-
-/// Whether `e` is a method call `<lvalue>.method(args)` — a call whose callee is
-/// a plain field access. Excludes free-function calls and calls on an index
-/// element, which D5 does not permit as `mut` statements.
+/// Whether `e` is a call whose callee is a plain (non-optional) member read,
+/// `<expr>.method(args)`. A free-function call and a `?.` call are not. The
+/// receiver is not judged here: whether it is a place, and whether the call
+/// changes anything, are the checker's (G380).
 fn is_method_call(e: &Expr) -> bool {
     matches!(
         e,

@@ -1,7 +1,7 @@
 ---
 title: 手元の TypeScript、JavaScript、npm のコードは使えるか · Glyph
 description: Glyph は普通の TypeScript にコンパイルされ、npm の上で動きます。.glyph モジュールはどのパッケージでも import でき、既存の .ts からも import できます。1 ファイルずつ導入できます。
-source_hash: 5a2ca99ba7fdb55b
+source_hash: 23b2b45b7b2aff03
 prev: /answers/upgrades/ | &larr; 前へ | Glyph の新しいリリースでビルドが壊れることはないか？
 next: /answers/embedding/ | 次へ &rarr; | 既存のアプリの中で Glyph を導入できるか、それとも全面移行しかないのか
 ---
@@ -12,17 +12,8 @@ next: /answers/embedding/ | 次へ &rarr; | 既存のアプリの中で Glyph �
         使えます。Glyph は<strong>普通の TypeScript</strong> にコンパイルされ、npm の上で動きます。<code>.glyph</code> モジュールはどのパッケージからでも import でき、それ自体も既存の <code>.ts</code> から import できます。<strong>1 ファイルずつ</strong>導入できます。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          言語を試すためにコードベースを書き直す人はいません。Glyph の出力は TypeScript <em>そのもの</em>なので、<code>.glyph</code> ファイルは既存の TS/React/Node プロジェクトの片隅に置けて、同じパッケージを import し、周りの <code>.ts</code> に向けて export できます。新しいランタイムを出すのではなく TypeScript をターゲットにする理由は、この段階的な導入経路にあります。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>パッケージは名前で import します（ハイフンを含む名前や npm のスコープ付きの名前も使えます）。Glyph は期待どおりの import を出力します。</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre>import react { useState }
@@ -38,14 +29,36 @@ import { useForm } from "react-hook-form";
 import { zodResolver }
   from "@hookform/resolvers/zod";</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>パッケージは名前で import します（ハイフンを含む名前や npm のスコープ付きの名前も使えます）。Glyph は期待どおりの import を出力します。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          パッケージがインストール済みで、自前の型を同梱している（または <code>@types/...</code> がある）なら、やることはそれだけです。スタブもアダプタファイルも要りません。<code>glyph build</code> がプロジェクトの <code>node_modules</code> を見つけて型チェッカーに渡すので、パッケージの本物の型があなたのコードを検査し、誤った呼び出しはちゃんとエラーになります。サブパスの import（<code>pkg/sub</code>）もパッケージの <code>exports</code> マップを通して解決されるので、サブパス自身の型も検査されます。次の例では zod をそのまま使っていて、手書きのものは何もありません。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#installed-packages">インストール済みのパッケージ</a></li>
+          <li><a href="#value-derived-types">値から導かれる型</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">手書きの TypeScript</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">サブプロセス</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">シムの編集</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">クラスベースのクライアント</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        言語を試すためにコードベースを書き直す人はいません。Glyph の出力は TypeScript <em>そのもの</em>なので、<code>.glyph</code> ファイルは既存の TS/React/Node プロジェクトの片隅に置けて、同じパッケージを import し、周りの <code>.ts</code> に向けて export できます。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>新しいランタイムを出すのではなく TypeScript をターゲットにする理由は、この段階的な導入経路にあります。</p></div>
+
+      <h2 class="ak-h" id="installed-packages">インストール済みのパッケージは自前の型を持ち込む<a class="ak-anchor" href="#installed-packages" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        パッケージがインストール済みで、自前の型を同梱している（または <code>@types/...</code> がある）なら、やることはそれだけです。スタブもアダプタファイルも要りません。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> がプロジェクトの <code>node_modules</code> を見つけて型チェッカーに渡すので、パッケージの本物の型があなたのコードを検査し、誤った呼び出しはちゃんとエラーになります。</p></div>
+      <p>次の例では zod をそのまま使っていて、手書きのものは何もありません。</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -75,34 +88,55 @@ pub fn main() -&gt; number {
 //   mapped back onto main.glyph:7</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> は同じプログラムをインストール済みの zod に対して実行するので、型チェックだけで終わりません。型チェッカーのためにパッケージを解決する設定項目 1 つが、ランタイムのための解決も兼ねています。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>型を<em>同梱せず</em> <code>@types/...</code> もないパッケージには、やはり自分で書く宣言が必要で、そのための場所が <code>.types/</code> フォルダです（TypeScript がすでに使っている <code>.d.ts</code> と同じ仕組みです）。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">サブパスの import と、<code>.d.ts</code> から作る検証される型</span></summary><div class="body">
         <p>
-          <code>glyph run</code> は同じプログラムをインストール済みの zod に対して実行するので、型チェックだけで終わりません。型チェッカーのためにパッケージを解決する設定項目 1 つが、ランタイムのための解決も兼ねています。型を<em>同梱せず</em> <code>@types/...</code> もないパッケージには、やはり自分で書く宣言が必要で、そのための場所が <code>.types/</code> フォルダです（TypeScript がすでに使っている <code>.d.ts</code> と同じ仕組みです）。また、型だけの import ではなく、ライブラリの形を Glyph のファーストクラスの<em>検証される</em>型として扱いたい場合は、<code>glyph gen dts</code> が <code>.d.ts</code> から記述子付きの本物の型を生成します。<a href="/answers/typed-apis/">API ごとにバリデータを手書きする必要があるか</a>を参照してください。
+          サブパスの import（<code>pkg/sub</code>）もパッケージの <code>exports</code> マップを通して解決されるので、サブパス自身の型も検査されます。
         </p>
         <p>
-          値から導かれる型もファーストクラスです。<code>type User = z.infer&lt;typeof user_schema&gt;</code> はそのまま動きます。<code>typeof user_schema</code> は実在する値の参照に対する型クエリで（タイプミスは未解決の名前のエラーになります）、<code>z.infer&lt;...&gt;</code> は普通のメンバージェネリック型です。そのまま出力されて <code>tsc</code> が簡約するので、<code>u.name</code> は <code>string</code> になります。検証はスキーマ自身の <code>parse</code> が行い、これは zod 本来の動き方です。JSX の props スプレッド（<code>&lt;input {...register()} /&gt;</code>）もファーストクラスです。Glyph がまだ書けないまれな TypeScript のイディオムには、範囲が限定され grep で見つけられる抜け道として <code>extern_ts("...")</code> があります。<code>tsc</code> は検査しますが、正確に言えば、これは信頼の境界であって実行時に検証される境界ではありません（Glyph からは中身が見えず、値は <code>unknown</code> で返るので絞り込みが必要です）。そのため、ライブラリのせいでアダプタファイルを手書きさせられることはありません。
+          また、型だけの import ではなく、ライブラリの形を Glyph のファーストクラスの<em>検証される</em>型として扱いたい場合は、<code>glyph gen dts</code> が <code>.d.ts</code> から記述子付きの本物の型を生成します。<a href="/answers/typed-apis/">API ごとにバリデータを手書きする必要があるか</a>を参照してください。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">TypeScript を丸ごと手書きしたいとき</h2>
+      <h2 class="ak-h" id="value-derived-types">値から導かれる型、JSX のスプレッド、そして抜け道<a class="ak-anchor" href="#value-derived-types" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        値から導かれる型もファーストクラスです。JSX の props スプレッド（<code>&lt;input {...register()} /&gt;</code>）もファーストクラスです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>そのため、ライブラリのせいでアダプタファイルを手書きさせられることはありません。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph がまだ書けないまれな TypeScript のイディオムには、範囲が限定され grep で見つけられる抜け道として <code>extern_ts("...")</code> があります。<code>tsc</code> は検査しますが、正確に言えば、これは信頼の境界であって実行時に検証される境界ではありません（Glyph からは中身が見えず、値は <code>unknown</code> で返るので絞り込みが必要です）。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint"><code>z.infer&lt;typeof s&gt;</code> の解決のされ方</span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> はそのまま動きます。<code>typeof user_schema</code> は実在する値の参照に対する型クエリで（タイプミスは未解決の名前のエラーになります）、<code>z.infer&lt;...&gt;</code> は普通のメンバージェネリック型です。そのまま出力されて <code>tsc</code> が簡約するので、<code>u.name</code> は <code>string</code> になります。検証はスキーマ自身の <code>parse</code> が行い、これは zod 本来の動き方です。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">TypeScript を丸ごと手書きしたいとき<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           抜け道として必要なのが型や式ではなく、実際のランタイムコードのこともあります。node のストリームのループ、<code>new Promise</code>、ワーカースレッドなどです。その <code>.ts</code> を <code>&lt;src&gt;/extern/</code> の下に置き、<code>import extern/&lt;name&gt;</code> で参照します。
-        </p>
+      </p>
+      <div class="code">
 <pre>// src/extern/raw_server.ts   (hand-written TypeScript)
 export function serve_raw(port: number, handler: (raw: string) =&gt; string): void { ... }
 
 // src/main.glyph
 import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a real tsc error</pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph のソースでは相対 import は今も禁止なので（grep しやすさのための規則）、<code>extern/*</code> だけが予約されたパスです。<code>grep -rn 'import extern/'</code> で、言語の外に出たすべての箇所が見つかります。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">配置、逆方向、node シム</span></summary><div class="body">
         <p>
-          ビルドは <code>&lt;src&gt;/extern/**</code> を出力に配置して相対指定子を出力するので、<code>tsc</code> は extern を Glyph のコードと一緒に型チェックし、再ビルドで消されることもありません。Glyph のソースでは相対 import は今も禁止なので（grep しやすさのための規則）、<code>extern/*</code> だけが予約されたパスです。<code>grep -rn 'import extern/'</code> で、言語の外に出たすべての箇所が見つかります。これは簡単な方向、つまりコンパイル済みの Glyph を <code>.ts</code> ファイルから import する場合の逆で、そちらは何も要りません。よくある extern（http サーバー、<code>fs</code>）は、何もインストールしなくても同梱の node シムに対して型チェックされます。
+          ビルドは <code>&lt;src&gt;/extern/**</code> を出力に配置して相対指定子を出力するので、<code>tsc</code> は extern を Glyph のコードと一緒に型チェックし、再ビルドで消されることもありません。
         </p>
+        <p>
+          これは簡単な方向、つまりコンパイル済みの Glyph を <code>.ts</code> ファイルから import する場合の逆で、そちらは何も要りません。よくある extern（http サーバー、<code>fs</code>）は、何もインストールしなくても同梱の node シムに対して型チェックされます。
+        </p>
+      </div></details>
 
-        <h2 class="block-label">何もインストールせずにサブプロセスを監視する</h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">何もインストールせずにサブプロセスを監視する<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           同梱の node 宣言には、ブロッキングな方だけでなく <code>child_process</code> の非同期な方も含まれています。そのため、長いコマンドの出力を実行中に表示するツールは、extern ではなく Glyph で書けます。
-        </p>
+      </p>
+      <div class="code">
 <pre>module main
 
 import child_process { spawn }
@@ -122,9 +156,12 @@ pub async fn main(argv: Array&lt;string&gt;) -&gt; number {
   })
   return 0
 }</pre>
-        <p>
-          <code>io.println</code> ではなく <code>io.print</code> を使います。チャンクはストリームの一部であって行ではなく、1 行が 2 つのチャンクにまたがって届くこともあるからです。オーバーロードは <code>@types/node</code> に従うので、単純な <code>spawn(command, args)</code> ではパイプが非 null で返り、<code>stdio</code> を渡すと null になりうる型になります。<code>stdio: "inherit"</code> の後で <code>child.stdout</code> を読むと、ここでは <code>TS18047</code>、本物の型定義でも <code>TS18047</code> になります。同じ値について 2 つの異なる説明が出ることはありません。
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>io.println</code> ではなく <code>io.print</code> を使います。チャンクはストリームの一部であって行ではなく、1 行が 2 つのチャンクにまたがって届くこともあるからです。</p></div>
+      <p>
+          オーバーロードは <code>@types/node</code> に従うので、単純な <code>spawn(command, args)</code> ではパイプが非 null で返り、<code>stdio</code> を渡すと null になりうる型になります。<code>stdio: "inherit"</code> の後で <code>child.stdout</code> を読むと、ここでは <code>TS18047</code>、本物の型定義でも <code>TS18047</code> になります。同じ値について 2 つの異なる説明が出ることはありません。
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047">module main
 
 import child_process { spawn }
@@ -134,16 +171,21 @@ pub fn main() -&gt; void {
   // [TS18047] 'child.stdout' is possibly 'null'.
   child.stdout.setEncoding(&quot;utf8&quot;)
 }</pre>
-
-        <h2 class="block-label">シムを編集すれば、次の実行は編集後のシムになる</h2>
-        <p>
-          シムは繰り返し手を入れるファイルなので、ソースとして扱われる必要があります。<code>glyph run</code> はビルドをソースのフィンガープリントでキャッシュしますが、このフィンガープリントは <code>extern/</code> の下にあるすべての <code>.ts</code> と <code>.tsx</code> を、内容だけでなくパスも含めて対象にします。1 つ編集しても、名前を変えても、追加しても、削除しても、次の実行で再ビルドされ <code>tsc</code> が再実行されます。シンボリックリンクのシムはたどられるので、ソースツリーの外に置いた <code>.ts</code> も実際の内容でハッシュされます。
-        </p>
-        <p>
-          これがあるので、両方のファイルがそれぞれ型のコピーを宣言するのではなく、シムが型を持てます。シムから形を export し、Glyph モジュールでそれを import すれば、コンパイラが実行のたびに両者を一致させます。
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">シムを編集すれば、次の実行は編集後のシムになる<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          シムは繰り返し手を入れるファイルなので、ソースとして扱われる必要があります。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> はビルドをソースのフィンガープリントでキャッシュしますが、このフィンガープリントは <code>extern/</code> の下にあるすべての <code>.ts</code> と <code>.tsx</code> を、内容だけでなくパスも含めて対象にします。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">再ビルドのきっかけになるもの</span></summary><div class="body">
+        <p>
+          1 つ編集しても、名前を変えても、追加しても、削除しても、次の実行で再ビルドされ <code>tsc</code> が再実行されます。シンボリックリンクのシムはたどられるので、ソースツリーの外に置いた <code>.ts</code> も実際の内容でハッシュされます。
+        </p>
+      </div></details>
+      <p>
+          これがあるので、両方のファイルがそれぞれ型のコピーを宣言するのではなく、シムが型を持てます。シムから形を export し、Glyph モジュールでそれを import すれば、コンパイラが実行のたびに両者を一致させます。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -166,20 +208,16 @@ exist in type 'WebResponse'.
    ╰─ server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.44 より前と、対象にならないファイル</span></summary><div class="body">
         <p>
           0.1.44 までフィンガープリントは <code>extern/</code> を完全に無視していたので、この名前変更をしても、型チェックの通ったきれいなビルドが前のシムのまま動いていました。<code>extern/</code> の下にある <code>.ts</code> や <code>.tsx</code> 以外のファイルは今もキャッシュに影響しませんが、これは意図的です。シムの隣の <code>README.md</code> は一緒に出力へコピーされますが、型チェックも実行もされないので、再ビルドするものがありません。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">クラスベースのクライアント：データベースやメッセージング</h2>
-        <p>
-          データベースやメッセージングのクライアントの多くはクラスベースです。<code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code> のように書きます。Glyph の <code>new</code> はまさにこのためにあります。TypeScript の <code>new</code> をそのまま出力し、<code>tsc</code> がパッケージの本物のコンストラクタに対して検査するので、誤った引数はちゃんとエラーになり、未定義の呼び出し先は名前で検出されます。用途は相互運用に限られます。Glyph 自体には <code>class</code> がなく、<code>new</code> で生成できるのは、パッケージ、<code>.types</code> の宣言、<code>extern_ts</code> のいずれかから来た型だけです。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">クラスベースのクライアント：データベースやメッセージング<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          データベースやメッセージングのクライアントの多くはクラスベースです。<code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code> のように書きます。Glyph の <code>new</code> はまさにこのためにあります。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">クラスベースのクライアント（kafkajs）</span>
@@ -203,15 +241,48 @@ await client.connect()
 await client.set("k", "v")</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>TypeScript の <code>new</code> をそのまま出力し、<code>tsc</code> がパッケージの本物のコンストラクタに対して検査するので、誤った引数はちゃんとエラーになり、未定義の呼び出し先は名前で検出されます。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>用途は相互運用に限られます。Glyph 自体には <code>class</code> がなく、<code>new</code> で生成できるのは、パッケージ、<code>.types</code> の宣言、<code>extern_ts</code> のいずれかから来た型だけです。</p></div>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>どの npm パッケージでも import できます（ハイフンを含む名前やスコープ付きの名前も含む）。自前の型を同梱している（または <code>@types/...</code> がある）インストール済みのパッケージは、スタブなしで型チェックされ実行されます。クラスベースのクライアントは <code>new</code> で生成し、<code>tsc</code> が本物のコンストラクタに対して検査します。ファクトリ型のクライアントはそのまま import して呼び出せます。Node の組み込みモジュール（<code>fs</code>、<code>path</code>、<code>http</code>、ストリーミングの <code>spawn</code> を含む <code>child_process</code> など）は最初から型チェックされ、<code>@types/node</code> をインストールすれば自動的に読み込まれます。CI はコンパイラ自身のランタイムをそのパッケージの <code>latest</code> に対してビルドするので、stdlib が依存する宣言が node の本物の宣言からずれることはありません。あなたのコードだけが使う宣言はまだこの検査の対象外で、node より型が広いものもいくつか残っています。それ以外のものには <code>.types/</code> のアンビエント宣言、<code>.d.ts</code> を検証される Glyph の型にする <code>glyph gen dts</code>、既存の TypeScript から import できるきれいな <code>.ts</code> 出力があります。TypeScript を丸ごと手書きしたいときは、<code>import extern/&lt;name&gt;</code> で <code>&lt;src&gt;/extern/</code> の下の <code>.ts</code> を参照できます。それはコードと一緒に配置・型チェックされ、<code>glyph run</code> のキャッシュに追跡されるので、編集すれば再ビルドされます。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">予定</h3>
-          <p>型の生成は、実際の SDK が提供する形（名前空間、ファイルをまたぐ再エクスポートや別名・名前空間の再エクスポート、サブパスの <code>exports</code>、ファーストクラスのジェネリクス）を扱えるようになり、値から導かれる型（<code>z.infer&lt;typeof s&gt;</code>）もファーストクラスになりました。残る主な穴は、型を生成していないパッケージの出力は <code>.d.ts</code> に対して型チェックされるものの、生成しない限り実行時には検証されないことです。<code>extern/</code> については、2 つのコマンドでソースルートが異なります。<code>glyph run app.glyph</code> はファイル自身のディレクトリを、<code>glyph build src/</code> は指定したディレクトリをルートにします。そのためサブディレクトリにあるプログラムは 2 か所でシムを探すことになり、ルートを 1 つに決めるまでは、そうした構成のプロジェクトでは両方からシムに届くようにしておく必要があります。届かない場合ははっきりと失敗します。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">どの npm パッケージでも import できます（ハイフンを含む名前やスコープ付きの名前も含む）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">自前の型を同梱している（または <code>@types/...</code> がある）インストール済みのパッケージは、スタブなしで型チェックされ実行されます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">クラスベースのクライアントは <code>new</code> で生成し、<code>tsc</code> が本物のコンストラクタに対して検査します。ファクトリ型のクライアントはそのまま import して呼び出せます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node の組み込みモジュールは最初から型チェックされる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>Node の組み込みモジュール（<code>fs</code>、<code>path</code>、<code>http</code>、ストリーミングの <code>spawn</code> を含む <code>child_process</code> など）は最初から型チェックされ、<code>@types/node</code> をインストールすれば自動的に読み込まれます。CI はコンパイラ自身のランタイムをそのパッケージの <code>latest</code> に対してビルドするので、stdlib が依存する宣言が node の本物の宣言からずれることはありません。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">あなたのコードだけが使う宣言はまだこの検査の対象外で、node より型が広いものもいくつか残っています。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">その他すべてに使える <code>.types/</code> のアンビエント宣言。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.d.ts</code> を検証される Glyph の型にする <code>glyph gen dts</code>。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">既存の TypeScript から import できるきれいな <code>.ts</code> 出力。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code> で <code>&lt;src&gt;/extern/</code> の下の手書きの TypeScript を参照できる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>TypeScript を丸ごと手書きしたいときは、<code>import extern/&lt;name&gt;</code> で <code>&lt;src&gt;/extern/</code> の下の <code>.ts</code> を参照できます。それはコードと一緒に配置・型チェックされ、<code>glyph run</code> のキャッシュに追跡されるので、編集すれば再ビルドされます。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">型の生成は実際の SDK が提供する形を扱え、値から導かれる型もファーストクラス</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>型の生成は、実際の SDK が提供する形（名前空間、ファイルをまたぐ再エクスポートや別名・名前空間の再エクスポート、サブパスの <code>exports</code>、ファーストクラスのジェネリクス）を扱えるようになり、値から導かれる型（<code>z.infer&lt;typeof s&gt;</code>）もファーストクラスになりました。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">残る主な穴は、型を生成していないパッケージの出力は <code>.d.ts</code> に対して型チェックされるものの、生成しない限り実行時には検証されないことです。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>extern/</code> については、<code>glyph run</code> と <code>glyph build</code> でソースルートが異なる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>extern/</code> については、2 つのコマンドでソースルートが異なります。<code>glyph run app.glyph</code> はファイル自身のディレクトリを、<code>glyph build src/</code> は指定したディレクトリをルートにします。そのためサブディレクトリにあるプログラムは 2 か所でシムを探すことになり、ルートを 1 つに決めるまでは、そうした構成のプロジェクトでは両方からシムに届くようにしておく必要があります。届かない場合ははっきりと失敗します。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

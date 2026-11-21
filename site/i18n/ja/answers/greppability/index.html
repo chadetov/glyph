@@ -1,7 +1,7 @@
 ---
 title: エージェント（や自分）は、何がどこで定義されているかを見つけられるか · Glyph
 description: Glyph のすべての構文には検索すべき形が 1 つしかありません。そのため grep（やエージェントの検索）は、50 件の似て非なる候補ではなく、1 つの定義にたどり着きます。
-source_hash: cb5e3e02dc597369
+source_hash: 15511937ba2844d1
 prev: /answers/diff-stability/ | &larr; 前へ | エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？
 next: /answers/why-typescript/ | 次へ &rarr; | なぜ Go や新しい言語ではなく TypeScript なのか
 ---
@@ -12,30 +12,32 @@ next: /answers/why-typescript/ | 次へ &rarr; | なぜ Go や新しい言語で
         すべての構文には、検索すべき形が<strong>ちょうど 1 つ</strong>しかありません。素の <code>grep</code>（エージェントが実際にコードをたどる方法です）が、<strong>50 件の似て非なる候補ではなく</strong>、1 つの定義にたどり着きます。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          エージェントはリポジトリ全体を頭に入れているわけではなく、<strong>検索</strong>します。ある概念を 5 通りの書き方で書けるなら、検索は取りこぼしますし、既存の定義を見つけられなかったエージェントは、自信を持って 2 つ目を作ってしまいます。1 つの概念に 1 つの形しかなければ検索は漏れなく、エージェントは重複を作らずに既存のものを編集します。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/（コードベース内のすべての変更）</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。3 つの変更、それで全部です。1 回の検索で済みます。</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          エージェントはリポジトリ全体を頭に入れているわけではなく、<strong>検索</strong>します。1 つの概念に 1 つの形しかなければ検索は漏れなく、エージェントは重複を作らずに既存のものを編集します。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ある概念を 5 通りの書き方で書けるなら、検索は取りこぼしますし、既存の定義を見つけられなかったエージェントは、自信を持って 2 つ目を作ってしまいます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">同じ問いに TypeScript では答えが出ない理由</span></summary><div class="body">
         <p>
-          3 つの変更、それで全部です。1 回の検索で済みます。TypeScript では、変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter、スプレッドの陰に隠れられます。grep すべき単一のトークンがないので、「これを変更しているものはあるか」に確実な答えが出ません。同じ「形は 1 つ」のルールによって、カテゴリ全体を監査できるようになります。
+          TypeScript では、変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter、スプレッドの陰に隠れられます。grep すべき単一のトークンがないので、「これを変更しているものはあるか」に確実な答えが出ません。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">カテゴリ全体を 1 回の検索で<a class="ak-anchor" href="#audits" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          同じ「形は 1 つ」のルールによって、カテゴリ全体を監査できるようになります。
+      </p>
+      <div class="code term">
         <span class="cap">1 回の検索 = 1 つの完全な答え</span>
 <pre><span class="cm"># every UI component</span>
 grep -rn <span class="add">"^component "</span> src/
@@ -46,27 +48,28 @@ grep -rn <span class="add">"^fn "</span> src/
 <span class="cm"># the entire resource-ownership surface</span>
 grep -rn <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           オブジェクトリテラルの省略記法も、コンポーネントを宣言する 2 つ目の方法も、曖昧さを解消しなければならないオーバーロードされた構文もありません。書き方が少ないのは本当に制約ですが、それが狙いです。それがあるからこそ、エージェントの検索も、あなたの検索も信頼できます。
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           検索を信頼できるものにするために Glyph が入れなかった構文と、lint ルールでは同じ保証にならない理由は、<a href="/pillars/greppability/">grep しやすさの柱のページ</a>にあります。
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>構文ごとに 1 つの正規形、変更は grep できる 2 つの形（<code>mut</code>）に限定、そしてキーワード 1 つでの監査（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">その上に重ねるもの</h3>
-          <p>言語サーバーが、ワークスペース全体の定義へのジャンプと参照検索を加えます。同じ保証を、エディタの中で対話的に使えます。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">構文ごとに 1 つの正規形。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">変更は grep できる 2 つの形（<code>mut</code>）に限定。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">キーワード 1 つでの監査（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> その上に重ねるもの</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">言語サーバーが、ワークスペース全体の定義へのジャンプと参照検索を加えます。同じ保証を、エディタの中で対話的に使えます。</span></span></li>
+          </ul>
+        </section>
       </div>

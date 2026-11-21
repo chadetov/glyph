@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "de",
-  "source_hash": "59f9695c32448ee8",
+  "source_hash": "1ed9e897f4bdcd8e",
   "segments": [
     {
       "id": "title",
@@ -65,6 +65,12 @@
       "tr": "So sieht es aus"
     },
     {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
       "id": "h-3ba2ac81",
       "kind": "html",
       "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
@@ -83,10 +89,22 @@
       "tr": "Warum ein Store und keine veränderliche globale Variable"
     },
     {
-      "id": "h-3b512acb",
+      "id": "h-97cea261",
       "kind": "html",
-      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
-      "tr": "Das ist eine bewusste Design-Entscheidung. Glyph beschränkt <code>mut</code> auf lokale Zuweisungen und hält Modul-Bindings <code>const</code>, weil eine verstreute Menge beschreibbarer globaler Variablen genau das ist, was Zustand schwer nachvollziehbar und schwer zu <em>finden</em> macht. Ein Store braucht keine der beiden Regeln zu lockern: Das Binding <code>const s</code> ist unveränderlich, und der Wert darin ändert sich nur über <code>set</code>/<code>update</code>. Gemeinsamer Zustand kommt also als <strong>Bibliothek, nicht als neue Syntax</strong> (keine linearen Typen, keine aufgeweichten Mutationsregeln), und die Mutation lebt an genau einer geprüften Stelle, statt über dein Programm verstreut zu sein."
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>.",
+      "tr": "Das ist eine bewusste Design-Entscheidung. Glyph beschränkt <code>mut</code> auf lokale Zuweisungen und hält Modul-Bindings <code>const</code>, weil eine verstreute Menge beschreibbarer globaler Variablen genau das ist, was Zustand schwer nachvollziehbar und schwer zu <em>finden</em> macht."
+    },
+    {
+      "id": "h-b6672ed5",
+      "kind": "html",
+      "en": "<b>The binding never moves</b>A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>.",
+      "tr": "<b>Das Binding bewegt sich nie</b>Ein Store braucht keine der beiden Regeln zu lockern: Das Binding <code>const s</code> ist unveränderlich, und der Wert darin ändert sich nur über <code>set</code>/<code>update</code>."
+    },
+    {
+      "id": "h-6f754fc2",
+      "kind": "html",
+      "en": "<b>A library, not syntax</b>So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "<b>Eine Bibliothek, keine Syntax</b>Gemeinsamer Zustand kommt also als <strong>Bibliothek, nicht als neue Syntax</strong> (keine linearen Typen, keine aufgeweichten Mutationsregeln), und die Mutation lebt an genau einer geprüften Stelle, statt über dein Programm verstreut zu sein."
     },
     {
       "id": "h-90f9eefd",

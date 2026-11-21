@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "es",
-  "source_hash": "59f9695c32448ee8",
+  "source_hash": "1ed9e897f4bdcd8e",
   "segments": [
     {
       "id": "title",
@@ -65,6 +65,12 @@
       "tr": "Míralo"
     },
     {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Enlace a esta sección"
+    },
+    {
       "id": "h-3ba2ac81",
       "kind": "html",
       "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
@@ -83,10 +89,22 @@
       "tr": "Por qué un store, y no una variable global mutable"
     },
     {
-      "id": "h-3b512acb",
+      "id": "h-97cea261",
       "kind": "html",
-      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
-      "tr": "Es una decisión de diseño deliberada. Glyph restringe <code>mut</code> a las asignaciones locales y hace que los bindings de módulo sean <code>const</code>, porque un conjunto disperso de globales modificables es justo lo que hace que el estado sea difícil de razonar y difícil de <em>encontrar</em>. Un store no necesita relajar ninguna de las dos reglas: el binding <code>const s</code> es inmutable, y el valor que contiene solo cambia mediante <code>set</code>/<code>update</code>. Así que el estado compartido llega como una <strong>biblioteca, no como sintaxis nueva</strong> (sin tipos lineales, sin reglas de mutación más laxas), y la mutación vive en un único sitio auditado en lugar de repartida por todo el programa."
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>.",
+      "tr": "Es una decisión de diseño deliberada. Glyph restringe <code>mut</code> a las asignaciones locales y hace que los bindings de módulo sean <code>const</code>, porque un conjunto disperso de globales modificables es justo lo que hace que el estado sea difícil de razonar y difícil de <em>encontrar</em>."
+    },
+    {
+      "id": "h-b6672ed5",
+      "kind": "html",
+      "en": "<b>The binding never moves</b>A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>.",
+      "tr": "<b>El binding nunca se mueve</b>Un store no necesita relajar ninguna de las dos reglas: el binding <code>const s</code> es inmutable, y el valor que contiene solo cambia mediante <code>set</code>/<code>update</code>."
+    },
+    {
+      "id": "h-6f754fc2",
+      "kind": "html",
+      "en": "<b>A library, not syntax</b>So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "<b>Una biblioteca, no sintaxis</b>Así que el estado compartido llega como una <strong>biblioteca, no como sintaxis nueva</strong> (sin tipos lineales, sin reglas de mutación más laxas), y la mutación vive en un único sitio auditado en lugar de repartida por todo el programa."
     },
     {
       "id": "h-90f9eefd",

@@ -1,7 +1,7 @@
 ---
 title: Wie teile ich veränderlichen Zustand zwischen Funktionen? · Glyph
 description: Glyph hat keine veränderlichen globalen Variablen. Gemeinsamer Zustand lebt in einem std/store: einer const auf Modulebene, deren get, set und update die einzigen Schreibzugriffe sind, auffindbar mit einer Suche.
-source_hash: 59f9695c32448ee8
+source_hash: 1ed9e897f4bdcd8e
 prev: /answers/react/ | &larr; Zurück | Funktioniert es mit React: Komponenten, Hooks und Context?
 next: /answers/language/ | Weiter &rarr; | Ist das eine echte Sprache oder ein Spielzeug mit Lücken?
 ---
@@ -12,12 +12,10 @@ next: /answers/language/ | Weiter &rarr; | Ist das eine echte Sprache oder ein S
         Mit einem <strong>Store</strong>. Glyph hat keine veränderlichen globalen Variablen. Modul-Bindings sind <code>const</code>. Gemeinsamer Zustand lebt in einem <code>std/store</code>: einer <code>const</code> auf Modulebene, die einen Wert hält, den du mit <code>get()</code> liest und mit <code>set()</code>/<code>update()</code> änderst. Das Binding bewegt sich nie; nur der Wert darin ändert sich, über einen Methodenaufruf, also ist jeder Schreibzugriff ein wörtliches <code>.set(</code> oder <code>.update(</code>, nach dem du greppen kannst.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">So sieht es aus</h2>
-        <p>
-          Deklariere den Store einmal auf Modulebene. Jede Funktion im Modul teilt ihn. Kein <code>let</code>, das durch <code>main</code> gereicht wird, keine Closures, die etwas einfangen:
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">So sieht es aus<a class="ak-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Deklariere den Store einmal auf Modulebene. Jede Funktion im Modul teilt ihn. Kein <code>let</code>, das durch <code>main</code> gereicht wird, keine Closures, die etwas einfangen:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -60,24 +58,31 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Warum ein Store und keine veränderliche globale Variable</h2>
-        <p>
-          Das ist eine bewusste Design-Entscheidung. Glyph beschränkt <code>mut</code> auf lokale Zuweisungen und hält Modul-Bindings <code>const</code>, weil eine verstreute Menge beschreibbarer globaler Variablen genau das ist, was Zustand schwer nachvollziehbar und schwer zu <em>finden</em> macht. Ein Store braucht keine der beiden Regeln zu lockern: Das Binding <code>const s</code> ist unveränderlich, und der Wert darin ändert sich nur über <code>set</code>/<code>update</code>. Gemeinsamer Zustand kommt also als <strong>Bibliothek, nicht als neue Syntax</strong> (keine linearen Typen, keine aufgeweichten Mutationsregeln), und die Mutation lebt an genau einer geprüften Stelle, statt über dein Programm verstreut zu sein.
-        </p>
-        <p>
-          Eine scharfe Kante, die es auch in TypeScript gibt: Eine leere Collection kann ihren Elementtyp nicht ableiten, also gib ihr ein explizites Typargument mit: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Ein skalarer Store (<code>create(0)</code>) wird problemlos abgeleitet.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">Warum ein Store und keine veränderliche globale Variable<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Das ist eine bewusste Design-Entscheidung. Glyph beschränkt <code>mut</code> auf lokale Zuweisungen und hält Modul-Bindings <code>const</code>, weil eine verstreute Menge beschreibbarer globaler Variablen genau das ist, was Zustand schwer nachvollziehbar und schwer zu <em>finden</em> macht.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Das Binding bewegt sich nie</b>Ein Store braucht keine der beiden Regeln zu lockern: Das Binding <code>const s</code> ist unveränderlich, und der Wert darin ändert sich nur über <code>set</code>/<code>update</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Eine Bibliothek, keine Syntax</b>Gemeinsamer Zustand kommt also als <strong>Bibliothek, nicht als neue Syntax</strong> (keine linearen Typen, keine aufgeweichten Mutationsregeln), und die Mutation lebt an genau einer geprüften Stelle, statt über dein Programm verstreut zu sein.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Eine scharfe Kante, die es auch in TypeScript gibt: Eine leere Collection kann ihren Elementtyp nicht ableiten, also gib ihr ein explizites Typargument mit: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Ein skalarer Store (<code>create(0)</code>) wird problemlos abgeleitet.
+      </p></div>
 
-      <h2 class="block-label">Wo es steht</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p><code>std/store</code> mit <code>create</code>, <code>get</code>, <code>set</code> und <code>update</code>: das einzige, durchsuchbare Zuhause für gemeinsamen veränderlichen Zustand.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">In Arbeit</h3>
-          <p>Komfortfunktionen über demselben Grundbaustein (abgeleitete/berechnete Stores, Subscriptions), aufgesetzt, ohne die Sprache zu ändern.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code> mit <code>create</code>, <code>get</code>, <code>set</code> und <code>update</code>: das einzige, durchsuchbare Zuhause für gemeinsamen veränderlichen Zustand.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Komfortfunktionen über demselben Grundbaustein (abgeleitete/berechnete Stores, Subscriptions), aufgesetzt, ohne die Sprache zu ändern.</span></span></li>
+          </ul>
+        </section>
       </div>

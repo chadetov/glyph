@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "ru",
-  "source_hash": "59f9695c32448ee8",
+  "source_hash": "1ed9e897f4bdcd8e",
   "segments": [
     {
       "id": "title",
@@ -65,6 +65,12 @@
       "tr": "Посмотрите сами"
     },
     {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
       "id": "h-3ba2ac81",
       "kind": "html",
       "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
@@ -83,10 +89,22 @@
       "tr": "Почему store, а не изменяемая глобальная переменная"
     },
     {
-      "id": "h-3b512acb",
+      "id": "h-97cea261",
       "kind": "html",
-      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
-      "tr": "Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>. Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>. Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе."
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>.",
+      "tr": "Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>."
+    },
+    {
+      "id": "h-b6672ed5",
+      "kind": "html",
+      "en": "<b>The binding never moves</b>A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>.",
+      "tr": "<b>Привязка никогда не меняется</b>Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>."
+    },
+    {
+      "id": "h-6f754fc2",
+      "kind": "html",
+      "en": "<b>A library, not syntax</b>So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "<b>Библиотека, а не синтаксис</b>Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе."
     },
     {
       "id": "h-90f9eefd",

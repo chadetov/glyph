@@ -1,7 +1,7 @@
 ---
 title: Как разделять изменяемое состояние между функциями? · Glyph
 description: В Glyph нет изменяемых глобальных переменных. Общее состояние живёт в std/store: const на уровне модуля, у которого get, set и update единственные способы записи, и все они находятся одним поиском.
-source_hash: 59f9695c32448ee8
+source_hash: 1ed9e897f4bdcd8e
 prev: /answers/react/ | &larr; Назад | Работает ли он с React: компоненты, хуки и Context?
 next: /answers/language/ | Далее &rarr; | Это настоящий язык или игрушка с дырами?
 ---
@@ -12,12 +12,10 @@ next: /answers/language/ | Далее &rarr; | Это настоящий язы�
         Через <strong>store</strong>. В Glyph нет изменяемых глобальных переменных. Привязки модуля это <code>const</code>. Общее состояние живёт в <code>std/store</code>: <code>const</code> на уровне модуля, который хранит значение; читаете его через <code>get()</code>, меняете через <code>set()</code>/<code>update()</code>. Сама привязка никогда не меняется, меняется только значение внутри неё, через вызов метода, поэтому каждая запись это буквальный <code>.set(</code> или <code>.update(</code>, который можно найти grep.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>
-          Объявите store один раз на уровне модуля. Все функции модуля пользуются им вместе. Никакого <code>let</code>, протаскиваемого через <code>main</code>, никаких захватывающих замыканий:
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">Посмотрите сами<a class="ak-anchor" href="#see-it" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Объявите store один раз на уровне модуля. Все функции модуля пользуются им вместе. Никакого <code>let</code>, протаскиваемого через <code>main</code>, никаких захватывающих замыканий:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -60,24 +58,31 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Почему store, а не изменяемая глобальная переменная</h2>
-        <p>
-          Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>. Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>. Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе.
-        </p>
-        <p>
-          Есть один острый угол, общий с TypeScript: пустая коллекция не может вывести тип элемента, поэтому задайте его явным аргументом типа: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Скалярный store (<code>create(0)</code>) выводится без проблем.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">Почему store, а не изменяемая глобальная переменная<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Это сознательное решение. Glyph ограничивает <code>mut</code> локальными присваиваниями, а привязки модуля делает <code>const</code>, потому что разбросанный набор изменяемых глобальных переменных именно то, из-за чего о состоянии трудно рассуждать и его трудно <em>найти</em>.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Привязка никогда не меняется</b>Store не требует ослаблять ни одно из правил: привязка <code>const s</code> неизменяема, а значение внутри меняется только через <code>set</code>/<code>update</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Библиотека, а не синтаксис</b>Поэтому общее состояние появляется как <strong>библиотека, а не новый синтаксис</strong> (без линейных типов, без ослабленных правил изменения), и изменения живут ровно в одном проверяемом месте, а не разбросаны по программе.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Есть один острый угол, общий с TypeScript: пустая коллекция не может вывести тип элемента, поэтому задайте его явным аргументом типа: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>. Скалярный store (<code>create(0)</code>) выводится без проблем.
+      </p></div>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p><code>std/store</code> с <code>create</code>, <code>get</code>, <code>set</code> и <code>update</code>: единственное место для общего изменяемого состояния, которое находится grep.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">В работе</h3>
-          <p>Удобства поверх того же примитива (производные и вычисляемые store, подписки), без изменений в языке.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code> с <code>create</code>, <code>get</code>, <code>set</code> и <code>update</code>: единственное место для общего изменяемого состояния, которое находится grep.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Удобства поверх того же примитива (производные и вычисляемые store, подписки), без изменений в языке.</span></span></li>
+          </ul>
+        </section>
       </div>

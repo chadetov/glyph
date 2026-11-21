@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/state/index.html",
   "locale": "ja",
-  "source_hash": "59f9695c32448ee8",
+  "source_hash": "1ed9e897f4bdcd8e",
   "segments": [
     {
       "id": "title",
@@ -65,6 +65,12 @@
       "tr": "実例"
     },
     {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
       "id": "h-3ba2ac81",
       "kind": "html",
       "en": "Declare the store once at module scope. Every function in the module shares it. No <code>let</code> threaded through <code>main</code>, no capturing closures:",
@@ -83,10 +89,22 @@
       "tr": "なぜ可変のグローバルではなくストアなのか"
     },
     {
-      "id": "h-3b512acb",
+      "id": "h-97cea261",
       "kind": "html",
-      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>. A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>. So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
-      "tr": "これは意図的な設計です。Glyph は <code>mut</code> をローカルの代入に限定し、モジュールの束縛を <code>const</code> にしています。書き込み可能なグローバルがあちこちにあることこそ、状態を推論しにくく、<em>見つけ</em>にくくする原因だからです。ストアはどちらのルールも緩めません。<code>const s</code> の束縛は不変で、中の値は <code>set</code>/<code>update</code> を通じてしか変わりません。つまり共有状態は<strong>新しい構文ではなくライブラリ</strong>として提供されます（線形型もなく、変更のルールも弱めていません）。変更はプログラム全体に散らばらず、監査済みの 1 か所に収まります。"
+      "en": "This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local assignments and module bindings <code>const</code>, because a scattered set of writable globals is exactly what makes state hard to reason about and hard to <em>find</em>.",
+      "tr": "これは意図的な設計です。Glyph は <code>mut</code> をローカルの代入に限定し、モジュールの束縛を <code>const</code> にしています。書き込み可能なグローバルがあちこちにあることこそ、状態を推論しにくく、<em>見つけ</em>にくくする原因だからです。"
+    },
+    {
+      "id": "h-b6672ed5",
+      "kind": "html",
+      "en": "<b>The binding never moves</b>A store needs neither rule loosened: the <code>const s</code> binding is immutable, and the value inside changes only through <code>set</code>/<code>update</code>.",
+      "tr": "<b>束縛は動かない</b>ストアはどちらのルールも緩めません。<code>const s</code> の束縛は不変で、中の値は <code>set</code>/<code>update</code> を通じてしか変わりません。"
+    },
+    {
+      "id": "h-6f754fc2",
+      "kind": "html",
+      "en": "<b>A library, not syntax</b>So shared state arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened mutation rules), and the mutation lives in exactly one audited place instead of spread across your program.",
+      "tr": "<b>構文ではなくライブラリ</b>つまり共有状態は<strong>新しい構文ではなくライブラリ</strong>として提供されます（線形型もなく、変更のルールも弱めていません）。変更はプログラム全体に散らばらず、監査済みの 1 か所に収まります。"
     },
     {
       "id": "h-90f9eefd",

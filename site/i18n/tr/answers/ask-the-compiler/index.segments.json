@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ask-the-compiler/index.html",
   "locale": "tr",
-  "source_hash": "49fea6335f3e735f",
+  "source_hash": "074134dc5808375e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "Tek çağrıda. <code>glyph_symbol</code>, bir diagnostic'in zaten yazdırdığı <code>module::name</code>'i ya da bir dosyadaki bir konumu alır ve şunlarla yanıt verir: bir record'un alanları ve tipleri, bir union'ın variant'ları, payload'ları <em>ve her birini oluşturan sözdizimi</em>, çağrılabilir bir yapının parametreleri ve dönüşü, bir interface'in üyeleri ve onun üzerindeki bir <code>match</code>'in kapsamının tam olması gerekip gerekmediği."
     },
     {
+      "id": "h-5a61b662",
+      "kind": "html",
+      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
+      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+    },
+    {
+      "id": "h-1b5b4b70",
+      "kind": "html",
+      "en": "<span>A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it.</span>",
+      "tr": "<span><code>OrderStatus</code>'un <code>orders.glyph</code>'te tanımlandığı üç dosyalı bir proje. Onu import etmeyen <code>main.glyph</code>'ten sorulduğunda.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden önemli</a>"
+    },
+    {
+      "id": "h-3e1b2cdf",
+      "kind": "html",
+      "en": "<a href=\"#absent\">Every null says why</a>",
+      "tr": "<a href=\"#absent\">Her null nedenini söyler</a>"
+    },
+    {
+      "id": "h-a043de17",
+      "kind": "html",
+      "en": "<a href=\"#the-second-question-an-agent-asks\">Assignable</a>",
+      "tr": "<a href=\"#the-second-question-an-agent-asks\">Atanabilirlik</a>"
+    },
+    {
+      "id": "h-df1b183a",
+      "kind": "html",
+      "en": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">Dependencies and exports</a>",
+      "tr": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">Bağımlılıklar ve export'lar</a>"
+    },
+    {
+      "id": "h-788b5b99",
+      "kind": "html",
+      "en": "<a href=\"#eleven-tools-and-no-client-required\">Eleven tools</a>",
+      "tr": "<a href=\"#eleven-tools-and-no-client-required\">On bir araç</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Neden önemli"
     },
     {
-      "id": "h-219d5bd7",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-9dd95e45",
       "kind": "html",
-      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first. Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic. The compiler had the payload the whole time. The tool dropped it one line before the reply.",
-      "tr": "Kendisinin tanımlamadığı bir union'da yeni bir durumu ele alması istenen bir ajanın variant'ların ne taşıdığını bilmesi gerekir. Tanımı okumak önce dosyayı bulmak demektir. Sembol araması eskiden ona bir isim ve bir byte aralığı veriyordu, bir variant listesi de <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code> veriyordu. Bundan yola çıkan bir ajan doğru şekil olmayan <code>Paid(\"tx_1\")</code>'i yazar ve bunu bir diagnostic'ten öğrenir. Payload baştan beri derleyicideydi. Araç onu yanıttan bir satır önce düşürüyordu."
+      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first.",
+      "tr": "Kendisinin tanımlamadığı bir union'da yeni bir durumu ele alması istenen bir ajanın variant'ların ne taşıdığını bilmesi gerekir. Tanımı okumak önce dosyayı bulmak demektir."
+    },
+    {
+      "id": "h-b71b5e03",
+      "kind": "html",
+      "en": "The compiler had the payload the whole time. The tool dropped it one line before the reply.",
+      "tr": "Payload baştan beri derleyicideydi. Araç onu yanıttan bir satır önce düşürüyordu."
+    },
+    {
+      "id": "h-80dc131b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what symbol search used to return</span>",
+      "tr": "Geçmiş <span class=\"hint\">sembol aramasının eskiden döndürdüğü şey</span>"
+    },
+    {
+      "id": "h-cd6cfed4",
+      "kind": "html",
+      "en": "Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic.",
+      "tr": "Sembol araması eskiden ona bir isim ve bir byte aralığı veriyordu, bir variant listesi de <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code> veriyordu. Bundan yola çıkan bir ajan doğru şekil olmayan <code>Paid(\"tx_1\")</code>'i yazar ve bunu bir diagnostic'ten öğrenir."
     },
     {
       "id": "h-792dfc1e",
@@ -77,28 +161,34 @@
       "tr": "Ajan yüzeyi tam da bu kalıbı ortadan kaldırmak için kuruldu: derleyicinin zaten hesapladığı ve memoize ettiği ama hiçbir aracın teslim etmediği bilgiler. Üç modüllü bir proje üzerinde yapılan bir denetim, hover'ın on dört konumdan yalnızca ikisine yanıt verdiğini ve her union'ın payload'ları olmadan geldiğini buldu."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-9dfde380",
       "kind": "html",
-      "en": "See it",
-      "tr": "Görün"
+      "en": "Every null says why",
+      "tr": "Her null nedenini söyler"
     },
     {
-      "id": "h-8933304a",
+      "id": "h-51cfd156",
       "kind": "html",
-      "en": "A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it:",
-      "tr": "<code>OrderStatus</code>'un <code>orders.glyph</code>'te tanımlandığı üç dosyalı bir proje. Onu import etmeyen <code>main.glyph</code>'ten sorulduğunda:"
+      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair.",
+      "tr": "Kısaltılmıştır: yanıt ayrıca <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> ve <code>examples</code> da taşır. Bunların her biri bir çifttir."
     },
     {
-      "id": "h-5a61b662",
+      "id": "h-2bc1e4c0",
       "kind": "html",
-      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
-      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+      "en": "A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look.",
+      "tr": "Bir anahtar yalnızca nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesiyle birlikte null olur; böylece bir ajan, eksik bir yanıtın sembolün buna sahip olmadığı mı yoksa aracın bakmadığı mı anlamına geldiğini asla tahmin etmek zorunda kalmaz."
     },
     {
-      "id": "h-02fdd57a",
+      "id": "h-9d019d94",
       "kind": "html",
-      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look. An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
-      "tr": "Kısaltılmıştır: yanıt ayrıca <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> ve <code>examples</code> da taşır. Bunların her biri bir çifttir. Bir anahtar yalnızca nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesiyle birlikte null olur; böylece bir ajan, eksik bir yanıtın sembolün buna sahip olmadığı mı yoksa aracın bakmadığı mı anlamına geldiğini asla tahmin etmek zorunda kalmaz. Annotation'sız bir <code>const</code> bu kural gereği tip raporlamaz: checker bir tanımın tipini bilerek başlatıcısından çıkarmaz; dolayısıyla başlatıcının tipini yazdırmak, çağırana ismin kullanımlarının aslında hiçbir şeyi kontrol etmeyen bir şeye karşı kontrol edildiğini söylemek olurdu."
+      "en": "Details <span class=\"hint\">an unannotated const</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">annotation'sız bir const</span>"
+    },
+    {
+      "id": "h-327f00e8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
+      "tr": "Annotation'sız bir <code>const</code> bu kural gereği tip raporlamaz: checker bir tanımın tipini bilerek başlatıcısından çıkarmaz; dolayısıyla başlatıcının tipini yazdırmak, çağırana ismin kullanımlarının aslında hiçbir şeyi kontrol etmeyen bir şeye karşı kontrol edildiğini söylemek olurdu."
     },
     {
       "id": "h-cc83e6b0",
@@ -107,10 +197,10 @@
       "tr": "Bir ajanın sorduğu ikinci soru"
     },
     {
-      "id": "h-2a8e6b09",
+      "id": "h-f8cc6140",
       "kind": "html",
-      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
-      "tr": "Şekli öğrendikten sonra bilmek istediği bir sonraki şey, elindeki değerin koymak üzere olduğu yere gidip gidemeyeceğidir. <code>glyph_assignable</code>, checker'ın kendi karşılaştırmasına sorar. Her taraf bir <code>module::name</code> ya da bir Glyph tip yazımıdır, adını verdiğiniz dosyanın kapsamında okunur ve hüküm üç şeyden hangisinin olduğunu söyler."
+      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison.",
+      "tr": "Şekli öğrendikten sonra bilmek istediği bir sonraki şey, elindeki değerin koymak üzere olduğu yere gidip gidemeyeceğidir. <code>glyph_assignable</code>, checker'ın kendi karşılaştırmasına sorar."
     },
     {
       "id": "h-e37be644",
@@ -125,6 +215,30 @@
       "tr": "--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'"
     },
     {
+      "id": "h-c17d3a79",
+      "kind": "html",
+      "en": "COMPATIBLE",
+      "tr": "COMPATIBLE"
+    },
+    {
+      "id": "h-72566458",
+      "kind": "html",
+      "en": "UNDETERMINED",
+      "tr": "UNDETERMINED"
+    },
+    {
+      "id": "h-880e6791",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the three verdicts, and why not SAFE</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">üç hüküm ve neden SAFE değil</span>"
+    },
+    {
+      "id": "h-afce8128",
+      "kind": "html",
+      "en": "Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
+      "tr": "Her taraf bir <code>module::name</code> ya da bir Glyph tip yazımıdır, adını verdiğiniz dosyanın kapsamında okunur ve hüküm üç şeyden hangisinin olduğunu söyler."
+    },
+    {
       "id": "h-0215b8b5",
       "kind": "html",
       "en": "The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed whenever no rule covers the pairing: two function types come back that way, because the relation underneath compares the returns and says nothing about the parameters. Its silence there is not an acceptance, and the tool won't report it as one.",
@@ -137,10 +251,34 @@
       "tr": "Diğer yön: bu neye bağımlı ve o modül bana ne veriyor"
     },
     {
-      "id": "h-9ebb8917",
+      "id": "h-101d2e6c",
       "kind": "html",
-      "en": "<code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature. An agent about to write an import can ask what is on the other side instead of opening the file.",
-      "tr": "<code>glyph_references</code> bir sembolü kimin kullandığını yanıtlar. <code>glyph_dependencies</code> aynı tabloların diğer uçtan okunmuş hâlidir: bir tanımın neye bağımlı olduğu, yani kendi kaynağının adlandırdığı her tanım; <code>CALLS</code>, <code>REFERENCES</code> ve <code>FIELD_ACCESS</code> olarak ayrılmış, her kenar iki ucunu ve nerede durduğunu taşır. <code>glyph_exports</code>, bir modülün import edene neyi görünür kıldığını bir taramadan değil derleyicinin kendi export sorgusundan yanıtlar: her <code>pub</code> tanım ve bir <code>pub</code> union'ın yukarı taşıdığı her variant, kimliği, türü ve imzasıyla birer girdi olarak. Bir import yazmak üzere olan bir ajan dosyayı açmak yerine karşı tarafta ne olduğunu sorabilir."
+      "en": "An agent about to write an import can ask what is on the other side instead of opening the file.",
+      "tr": "Bir import yazmak üzere olan bir ajan dosyayı açmak yerine karşı tarafta ne olduğunu sorabilir."
+    },
+    {
+      "id": "h-7e43a45c",
+      "kind": "html",
+      "en": "<b>glyph_references</b><code>glyph_references</code> answers who uses a symbol.",
+      "tr": "<b>glyph_references</b><code>glyph_references</code> bir sembolü kimin kullandığını yanıtlar."
+    },
+    {
+      "id": "h-ea895ac1",
+      "kind": "html",
+      "en": "<b>glyph_dependencies</b><code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits.",
+      "tr": "<b>glyph_dependencies</b><code>glyph_dependencies</code> aynı tabloların diğer uçtan okunmuş hâlidir: bir tanımın neye bağımlı olduğu, yani kendi kaynağının adlandırdığı her tanım; <code>CALLS</code>, <code>REFERENCES</code> ve <code>FIELD_ACCESS</code> olarak ayrılmış, her kenar iki ucunu ve nerede durduğunu taşır."
+    },
+    {
+      "id": "h-1649710e",
+      "kind": "html",
+      "en": "<b>glyph_exports</b><code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature.",
+      "tr": "<b>glyph_exports</b><code>glyph_exports</code>, bir modülün import edene neyi görünür kıldığını bir taramadan değil derleyicinin kendi export sorgusundan yanıtlar: her <code>pub</code> tanım ve bir <code>pub</code> union'ın yukarı taşıdığı her variant, kimliği, türü ve imzasıyla birer girdi olarak."
+    },
+    {
+      "id": "h-fccb5493",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the PROVED bug the mirror caught</span>",
+      "tr": "Geçmiş <span class=\"hint\">aynanın yakaladığı PROVED hatası</span>"
     },
     {
       "id": "h-09a3c3e6",
@@ -155,10 +293,28 @@
       "tr": "On bir araç ve istemci gerekmiyor"
     },
     {
-      "id": "h-20c89689",
+      "id": "h-0479f586",
       "kind": "html",
-      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
-      "tr": "<code>glyph mcp</code> on bir araç sunar: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>. Her birinin, aynı argümanları flag olarak alan ve aynı JSON'u yazdıran, bir istemcinin ulaştığı giriş noktasının aynısından geçen bir <code>glyph query</code> fiili vardır; böylece yalnızca shell komutları çalıştıran bir ajan da aynı soruları sorar. <code>glyph_diagnostics</code> bir dosyayı kendi projesi içinde kontrol eder ve <code>glyph check --json</code>'un yazdırdığı diagnostic'i aynı Rust tipinden döndürür; iki yüzeyi altı proje üzerinde çalıştırıp JSON'u anahtar anahtar karşılaştıran bir test de vardır. Tüm ayrıntılar <a href=\"/mcp/\">MCP sayfasında</a>."
+      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>.",
+      "tr": "<code>glyph mcp</code> on bir araç sunar: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>."
+    },
+    {
+      "id": "h-9abd68c7",
+      "kind": "html",
+      "en": "Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions.",
+      "tr": "Her birinin, aynı argümanları flag olarak alan ve aynı JSON'u yazdıran, bir istemcinin ulaştığı giriş noktasının aynısından geçen bir <code>glyph query</code> fiili vardır; böylece yalnızca shell komutları çalıştıran bir ajan da aynı soruları sorar."
+    },
+    {
+      "id": "h-9bf2bb9c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">diagnostics, and what comes after an edit</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">diagnostic'ler ve bir düzenlemeden sonra gelenler</span>"
+    },
+    {
+      "id": "h-5a225513",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
+      "tr": "<code>glyph_diagnostics</code> bir dosyayı kendi projesi içinde kontrol eder ve <code>glyph check --json</code>'un yazdırdığı diagnostic'i aynı Rust tipinden döndürür; iki yüzeyi altı proje üzerinde çalıştırıp JSON'u anahtar anahtar karşılaştıran bir test de vardır. Tüm ayrıntılar <a href=\"/mcp/\">MCP sayfasında</a>."
     },
     {
       "id": "h-8c970d25",
@@ -179,10 +335,70 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-ee58dc62",
+      "id": "h-a4983ea8",
       "kind": "html",
-      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
-      "tr": "MCP üzerinden, her biri bir <code>glyph query</code> fiiline sahip on bir okuma aracı. <code>glyph_symbol</code> kimliğe ya da konuma göre yanıt verir ve sahip olmadığı her bilgi, nedenini söyleyen cümlenin yanında null'dır. Kimlik stdlib'e de uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; resolver onu bu modül altında kaydeder ve emitter import'u bu modülden yazar. Böylece <code>glyph query symbol --entity std/result::Result</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>glyph query exports --module std/result</code> yüzeyi listeler ve onun üzerindeki bir <code>E0200</code> bu kimliği <code>cause</code> içinde taşır. Arkasında Glyph kaynağı olmadığından <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null'dır. Hover, bir denetimin üç modüllü bir proje üzerinde yokladığı on dört konumun hepsine yanıt veriyor; bu çalışma başlamadan önce ikiydi: başka bir modülde tanımlanmış bir isim o modülün kendi tanımından yanıtlanır; böylece import binding'i, bir çağrıdaki import edilmiş fonksiyon, değer olarak kullanılan import edilmiş bir variant ve import edilmiş bir record'dan okunan bir alanın hepsinin bir tipi vardır. <code>glyph_dependencies</code> ve <code>glyph_exports</code>, G221'in istediği kümeyi tamamlar. <code>glyph_variants</code> her payload'ı ve oluşturma sözdizimini taşır; <code>glyph_definition</code> ve <code>glyph_symbols</code> <code>module::name</code>'i taşır; böylece bir yanıt hiçbir şeyi yeniden türetmeden <code>glyph_impact</code>'e zincirlenir. <code>glyph_impact</code>'in imza tipi tablosu bir container'ı bir container'a karşı, yapısal bir record'u yapısal ya da tanımlanmış bir record'a karşı (yerel, import edilmiş, generic ya da ikinci bir isim), bir JSX elemanını dönüştüğü çağrı olarak ve iki taraftan birindeki bir string-literal union'ı <code>glyph_assignable</code>'ın yaptığı karşılaştırmanın aynısıyla karara bağlar; böylece iki araç tek bir eşleşme hakkında çelişemez. İlişkinin eşleşmesini tam olarak okuduğu bir argüman, karşılaştırma nasıl sonuçlanırsa sonuçlansın <code>WILL_FAIL</code>'dır, çünkü <code>change_signature_type</code> hiçbir yeni tip adlandırmaz ve kabul edilen bir eşleşme, bir yeni tipin reddedilebileceği bir eşleşmedir; yalnızca ilişkinin geri çevirdiği bir eşleşme <code>UNDETERMINED</code>'dir."
+      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb.",
+      "tr": "MCP üzerinden, her biri bir <code>glyph query</code> fiiline sahip on bir okuma aracı."
+    },
+    {
+      "id": "h-eaf09bfb",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why.",
+      "tr": "<code>glyph_symbol</code> kimliğe ya da konuma göre yanıt verir ve sahip olmadığı her bilgi, nedenini söyleyen cümlenin yanında null'dır."
+    },
+    {
+      "id": "h-26d3cf6c",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: <code>std/result::Result</code>",
+      "tr": "Kimlik stdlib'e de uzanır: <code>std/result::Result</code>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Ayrıntılar"
+    },
+    {
+      "id": "h-c6a79276",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "Kimlik stdlib'e de uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; resolver onu bu modül altında kaydeder ve emitter import'u bu modülden yazar. Böylece <code>glyph query symbol --entity std/result::Result</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>glyph query exports --module std/result</code> yüzeyi listeler ve onun üzerindeki bir <code>E0200</code> bu kimliği <code>cause</code> içinde taşır. Arkasında Glyph kaynağı olmadığından <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null'dır."
+    },
+    {
+      "id": "h-a239fdbd",
+      "kind": "html",
+      "en": "Hover answers fourteen of fourteen probed positions",
+      "tr": "Hover, yoklanan on dört konumun on dördüne yanıt verir"
+    },
+    {
+      "id": "h-12f1a0b3",
+      "kind": "html",
+      "en": "Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type.",
+      "tr": "Hover, bir denetimin üç modüllü bir proje üzerinde yokladığı on dört konumun hepsine yanıt veriyor; bu çalışma başlamadan önce ikiydi: başka bir modülde tanımlanmış bir isim o modülün kendi tanımından yanıtlanır; böylece import binding'i, bir çağrıdaki import edilmiş fonksiyon, değer olarak kullanılan import edilmiş bir variant ve import edilmiş bir record'dan okunan bir alanın hepsinin bir tipi vardır."
+    },
+    {
+      "id": "h-21213f2b",
+      "kind": "html",
+      "en": "<code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for.",
+      "tr": "<code>glyph_dependencies</code> ve <code>glyph_exports</code>, G221'in istediği kümeyi tamamlar."
+    },
+    {
+      "id": "h-b365fc61",
+      "kind": "html",
+      "en": "<code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.",
+      "tr": "<code>glyph_variants</code> her payload'ı ve oluşturma sözdizimini taşır; <code>glyph_definition</code> ve <code>glyph_symbols</code> <code>module::name</code>'i taşır; böylece bir yanıt hiçbir şeyi yeniden türetmeden <code>glyph_impact</code>'e zincirlenir."
+    },
+    {
+      "id": "h-02aeeb71",
+      "kind": "html",
+      "en": "<code>glyph_impact</code> and <code>glyph_assignable</code> make the same comparison",
+      "tr": "<code>glyph_impact</code> ve <code>glyph_assignable</code> aynı karşılaştırmayı yapar"
+    },
+    {
+      "id": "h-55755ba6",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
+      "tr": "<code>glyph_impact</code>'in imza tipi tablosu bir container'ı bir container'a karşı, yapısal bir record'u yapısal ya da tanımlanmış bir record'a karşı (yerel, import edilmiş, generic ya da ikinci bir isim), bir JSX elemanını dönüştüğü çağrı olarak ve iki taraftan birindeki bir string-literal union'ı <code>glyph_assignable</code>'ın yaptığı karşılaştırmanın aynısıyla karara bağlar; böylece iki araç tek bir eşleşme hakkında çelişemez. İlişkinin eşleşmesini tam olarak okuduğu bir argüman, karşılaştırma nasıl sonuçlanırsa sonuçlansın <code>WILL_FAIL</code>'dır, çünkü <code>change_signature_type</code> hiçbir yeni tip adlandırmaz ve kabul edilen bir eşleşme, bir yeni tipin reddedilebileceği bir eşleşmedir; yalnızca ilişkinin geri çevirdiği bir eşleşme <code>UNDETERMINED</code>'dir."
     },
     {
       "id": "h-c647197d",
@@ -191,10 +407,46 @@
       "tr": "Nerede duruyor"
     },
     {
-      "id": "h-10bbc9ca",
+      "id": "h-a76df265",
       "kind": "html",
-      "en": "No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
-      "tr": "Buradaki hiçbir araç yazmaz: yeniden adlandırma yok, uygulanmış düzenleme yok. Yazma tarafı komut satırındaki <code>glyph fix</code>'tir ve istediğiniz herhangi bir şeyi değil, üç şeyi onarır: kullanılmayan import'lar, checker'ın tam olarak tek bir önerisi olan bir arm başı ve tam olarak tek bir tanımlı alandan bir karakter uzaktaki bir alan adı. Derleyicinin ne tanımını ne de imzasını modellediği bir stdlib export'u, nedeniyle birlikte <code>kind: null</code> yanıtı verir: <code>std/result::all</code> ve <code>std/io::println</code>, derleyicinin hazırladığı ve hiçbir Glyph geçişinin okumadığı TypeScript'te tiplenir. <code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar: <code>tsc</code>, build'in <code>node_modules</code> görünümüne ihtiyaç duyan, hiçbir modülü adlandırmayan bir import için <code>E0104</code> kontrolü ve üretilen projenin çalıştırılmasını gerektiren, başarısız bir <code>@example</code> için <code>E0400</code>. Üçünü de yapmış gibi yanıt vermek yerine <code>not_run</code> içinde adlandırır."
+      "en": "No tool here writes: no rename, no applied edit.",
+      "tr": "Buradaki hiçbir araç yazmaz: yeniden adlandırma yok, uygulanmış düzenleme yok."
+    },
+    {
+      "id": "h-59d7723c",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code>, and it repairs three things",
+      "tr": "Yazma tarafı <code>glyph fix</code>'tir ve üç şeyi onarır"
+    },
+    {
+      "id": "h-33bb06a4",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field.",
+      "tr": "Yazma tarafı komut satırındaki <code>glyph fix</code>'tir ve istediğiniz herhangi bir şeyi değil, üç şeyi onarır: kullanılmayan import'lar, checker'ın tam olarak tek bir önerisi olan bir arm başı ve tam olarak tek bir tanımlı alandan bir karakter uzaktaki bir alan adı."
+    },
+    {
+      "id": "h-54ebfe52",
+      "kind": "html",
+      "en": "Some stdlib exports answer <code>kind: null</code>",
+      "tr": "Bazı stdlib export'ları <code>kind: null</code> yanıtı verir"
+    },
+    {
+      "id": "h-6945e06c",
+      "kind": "html",
+      "en": "A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads.",
+      "tr": "Derleyicinin ne tanımını ne de imzasını modellediği bir stdlib export'u, nedeniyle birlikte <code>kind: null</code> yanıtı verir: <code>std/result::all</code> ve <code>std/io::println</code>, derleyicinin hazırladığı ve hiçbir Glyph geçişinin okumadığı TypeScript'te tiplenir."
+    },
+    {
+      "id": "h-58622937",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes, and names them in <code>not_run</code>",
+      "tr": "<code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar ve onları <code>not_run</code> içinde adlandırır"
+    },
+    {
+      "id": "h-66a285a5",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
+      "tr": "<code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar: <code>tsc</code>, build'in <code>node_modules</code> görünümüne ihtiyaç duyan, hiçbir modülü adlandırmayan bir import için <code>E0104</code> kontrolü ve üretilen projenin çalıştırılmasını gerektiren, başarısız bir <code>@example</code> için <code>E0400</code>. Üçünü de yapmış gibi yanıt vermek yerine <code>not_run</code> içinde adlandırır."
     }
   ]
 }

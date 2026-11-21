@@ -1,7 +1,7 @@
 ---
 title: Ajan düzenlemeleri temiz mi kalacak, yoksa dosyamı yeniden mi biçimlendirecek? · Glyph
 description: Glyph'in tek bir kanonik düzeni var ve sondaki virgülleri zorunlu tutar; böylece tek satırlık bir değişiklik tek satırlık bir diff olur. Ajanlar gerçek bir değişikliği biçimlendirme gürültüsünün altına gömemez.
-source_hash: b0148f7848d7e246
+source_hash: e4dd437ddbdd1fba
 prev: /answers/verifiability/ | &larr; Önceki | Bir ajanın kodumu sessizce bozmasını ne engelliyor?
 next: /answers/greppability/ | Sonraki &rarr; | Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?
 ---
@@ -12,50 +12,61 @@ next: /answers/greppability/ | Sonraki &rarr; | Bir ajan (ya da ben) bir şeyin 
         Tek satırlık bir değişiklik her seferinde <strong>tek satırlık bir diff</strong>'tir. Glyph'in tek bir kanonik düzeni var, bu yüzden bir ajan <strong>gerçek bir değişikliği bir yığın yeniden biçimlendirmenin altına gömemez</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Bir ajan pull request açtığında incelemenin kendisi diff'<em>tir</em>. Gerçek bir tek satırlık düzeltme 200 satırlık bir yeniden biçimlendirme olarak gelirse, kimse neyin değiştiğini göremez ve bir hata tam da o gürültünün arasından sızar. Kararlı diff, diff'in değişikliği ve <strong>yalnızca değişikliği</strong> göstermesi demektir.
-        </p>
-        <p>İşin çoğunu iki kural yapar. Her biri aşağıda, inceleyeceğiniz diff olarak gösteriliyor.</p>
-
-        <h2 class="block-label">Örnek 1: sondaki virgüller, satır başına bir öğe</h2>
-        <p>Bir route ekleyin. TypeScript'in yaygın stilinde, önceki son satır yalnızca bir virgül kazanmak için değişmek zorundadır. Tek öğelik bir değişiklik için iki satır oynar:</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript: "/billing" ekle</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript: "/billing" ekle</span>
 <pre> const routes = [
    "/home",
 <span class="del">-  "/about"</span>
 <span class="add">+  "/about",</span>
 <span class="add">+  "/billing"</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">1 değişiklik için 3 satır oynadı</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph: "/billing" ekle</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">1 değişiklik için 3 satır oynadı</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph: "/billing" ekle</span>
 <pre> let routes = [
    "/home",
    "/about",
 <span class="add">+  "/billing",</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">1 satır eklendi, tam olarak değişiklik</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">1 satır eklendi, tam olarak değişiklik</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Bir route ekleyin. TypeScript'in yaygın stilinde, önceki son satır yalnızca bir virgül kazanmak için değişmek zorundadır. Tek öğelik bir değişiklik için iki satır oynar.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Sondaki virgüller <strong>zorunludur</strong> ve tek satıra sığmayan bir liste yeniden paketlenmek yerine satır başına bir öğe olacak şekilde yazılır; böylece bir öğeyi eklemek, çıkarmak ya da yeniden sıralamak hiçbir zaman komşularını etkilemez. Aynısı record alanları, parametreler, match arm'ları ve import'lar için de geçerlidir. Bu eşiğin bir bedeli var: bir çağrıyı 100 sütunun ötesine iten bir yeniden adlandırma, tüm argüman listesini satır başına bir argüman olacak şekilde açar.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#trailing-commas">Sondaki virgüller</a></li>
+          <li><a href="#example-2-one-canonical-layout">Tek bir kanonik düzen</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">Yorumlar yerinde kalır</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">fmt bir build'i bozabilir mi?</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Örnek 2: tek bir kanonik düzen</h2>
-        <p>
-          <code>glyph fmt</code>'nin ürettiği tam olarak tek bir doğru biçimlendirme vardır. Boşluklar, satır kaydırma ve hizalama bir ajanın &ldquo;toparlayabileceği&rdquo; seçimler değildir, bu yüzden anlamsal bir düzenleme beraberinde yeniden akış sürükleyemez. Bir alanın tipini değiştirin, bütün diff bu kadardır:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir ajan pull request açtığında incelemenin kendisi diff'<em>tir</em>. Gerçek bir tek satırlık düzeltme 200 satırlık bir yeniden biçimlendirme olarak gelirse, kimse neyin değiştiğini göremez ve bir hata tam da o gürültünün arasından sızar.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Kararlı diff, diff'in değişikliği ve <strong>yalnızca değişikliği</strong> göstermesi demektir.</p></div>
+      <p class="ak-lede">İşin çoğunu iki kural yapar. Her biri aşağıda, inceleyeceğiniz diff olarak gösteriliyor.</p>
 
+      <h2 class="ak-h" id="trailing-commas">Sondaki virgüller, satır başına bir öğe<a class="ak-anchor" href="#trailing-commas" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Sondaki virgüller <strong>zorunludur</strong> ve tek satıra sığmayan bir liste yeniden paketlenmek yerine satır başına bir öğe olacak şekilde yazılır; böylece bir öğeyi eklemek, çıkarmak ya da yeniden sıralamak hiçbir zaman komşularını etkilemez.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Aynısı record alanları, parametreler, match arm'ları ve import'lar için de geçerlidir.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Bu eşiğin bir bedeli var: bir çağrıyı 100 sütunun ötesine iten bir yeniden adlandırma, tüm argüman listesini satır başına bir argüman olacak şekilde açar.</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">Tek bir kanonik düzen<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code>'nin ürettiği tam olarak tek bir doğru biçimlendirme vardır. Boşluklar, satır kaydırma ve hizalama bir ajanın &ldquo;toparlayabileceği&rdquo; seçimler değildir, bu yüzden anlamsal bir düzenleme beraberinde yeniden akış sürükleyemez. Bir alanın tipini değiştirin, bütün diff bu kadardır:
+      </p>
       <div class="code">
         <span class="cap">user.glyph: bir alanı değiştir, bir satırı incele</span>
 <pre> type User = {
@@ -65,18 +76,17 @@ next: /answers/greppability/ | Sonraki &rarr; | Bir ajan (ya da ben) bir şeyin 
    email: string,
  }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Düzen sabit olduğu için, aynı dosyayı düzenleyen iki farklı ajan <strong>bayt bayt aynı</strong> biçimlendirmeyi üretir: yeniden akış gürültüsü yok, &ldquo;benim formatter'ım mı seninki mi&rdquo; gürültüsü yok ve bir satırı yeniden biçimlendiren commit'i değil, gerçekten değiştiren commit'i gösteren temiz bir <code>git blame</code>.</p></div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">Tek bir kanonik düzen var, peki formatter yorumlarımı taşıyor mu?<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Eskiden taşıyordu ve bu adını koymaya değer bir hataydı. Artık kural şu: bir yorum, üzerine yazıldığı öğenin üzerine yeniden yazılır; bir record gövdesinin, bir union variant listesinin, bir array ya da object literal'ının, bir argüman ya da parametre listesinin ve bir <code>match</code>'in içinde de.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">yorumların nasıl kaydığı ve bunu ortaya çıkaran uygulama</span></summary><div class="body">
         <p>
-          Düzen sabit olduğu için, aynı dosyayı düzenleyen iki farklı ajan <strong>bayt bayt aynı</strong> biçimlendirmeyi üretir: yeniden akış gürültüsü yok, &ldquo;benim formatter'ım mı seninki mi&rdquo; gürültüsü yok ve bir satırı yeniden biçimlendiren commit'i değil, gerçekten değiştiren commit'i gösteren temiz bir <code>git blame</code>.
+          Glyph'te blok yorumları ve doc-comment sözdizimi yok, bu yüzden bir record alanını, bir union variant'ını ya da bir <code>match</code> arm'ını açıklamanın tek yolu bir <code>//</code> satırıdır. Formatter bekleyen yorumları yalnızca tanım ve ifade sınırlarında yazıyordu; bu da bir yapının <em>içine</em> yazılan bir yorumun bir sonraki tanıma kaydığı ve nereye düştüyse onun dokümantasyonu gibi okunduğu anlamına geliyordu. Bunu ortaya çıkaran şey Glyph'te Minesweeper yazmaktı. Bu iki tanım <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">gerçek uygulamadan</a> geliyor (yorumlar sığması için kısaltıldı) ve eski ve yeni formatter'dan geçirildi.
         </p>
-
-        <h2 class="block-label">Tek bir kanonik düzen var, peki formatter yorumlarımı taşıyor mu?</h2>
-        <p>
-          Eskiden taşıyordu ve bu adını koymaya değer bir hataydı. Glyph'te blok yorumları ve doc-comment sözdizimi yok, bu yüzden bir record alanını, bir union variant'ını ya da bir <code>match</code> arm'ını açıklamanın tek yolu bir <code>//</code> satırıdır. Formatter bekleyen yorumları yalnızca tanım ve ifade sınırlarında yazıyordu; bu da bir yapının <em>içine</em> yazılan bir yorumun bir sonraki tanıma kaydığı ve nereye düştüyse onun dokümantasyonu gibi okunduğu anlamına geliyordu. Bunu ortaya çıkaran şey Glyph'te Minesweeper yazmaktı. Bu iki tanım <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">gerçek uygulamadan</a> geliyor (yorumlar sığması için kısaltıldı) ve eski ve yeni formatter'dan geçirildi.
-        </p>
-      </div>
-
+      </div></details>
       <div class="two-up">
         <div class="code">
           <span class="cap">0.1.37: tek bir fmt geçişi</span>
@@ -113,41 +123,67 @@ type Cell = {
           <div style="padding:0 16px 14px"><span class="verdict good">her yorum tarif ettiği şeyin üzerinde</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          Artık kural şu: bir yorum, üzerine yazıldığı öğenin üzerine yeniden yazılır; bir record gövdesinin, bir union variant listesinin, bir array ya da object literal'ının, bir argüman ya da parametre listesinin ve bir <code>match</code>'in içinde de. Ayrıca içinde yorum bulunan bir yapı, boyutu ne olursa olsun her zaman satır başına bir öğe biçimini alır; böylece yorumun üzerinde duracağı bir öğe olur. Yani <code>type Shape = { w: int, h: int }</code> hâlâ tek satıra iner, ama <code>h</code>'yi belgelediğiniz anda record açık kalır.
-        </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ayrıca içinde yorum bulunan bir yapı, boyutu ne olursa olsun her zaman satır başına bir öğe biçimini alır; böylece yorumun üzerinde duracağı bir öğe olur. Yani <code>type Shape = { w: int, h: int }</code> hâlâ tek satıra iner, ama <code>h</code>'yi belgelediğiniz anda record açık kalır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bunun neden bir doğruluk hatası sayıldığı</span></summary><div class="body">
         <p>
           Bunun neden kozmetik değil bir doğruluk hatası sayıldığı: hiçbir şey başarısız olmadı. Build 0 ile çıktı, <code>tsc</code> geçti ve bozulmuş çıktının kendisi bir sabit noktaydı; bu yüzden CI'daki <code>glyph fmt --check</code>, yorumları artık yanlış bir şey söyleyen bir dosyada yeşil yandı. Bu, Glyph'in ortadan kaldırmak için var olduğu hata sınıfının aynısı; yalnızca tip sistemi yerine formatter'da.
         </p>
+      </div></details>
 
-        <h2 class="block-label"><code>glyph fmt</code> build olan bir programı bozabilir mi?</h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds"><code>glyph fmt</code> build olan bir programı bozabilir mi?<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bozabiliyordu ve bir durum hâlâ açık. Programınızın atlatmak zorunda olduğu bir formatter eksik bir özellikten daha kötüdür, çünkü zaten çalışan kodu bozar.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>Arm gövdeleri</b>Yazıcı artık en soldaki token'ı blok olarak yeniden parse edilecek bir <code>{</code> olan arm gövdesini parantez içine alıyor; bu da boş object ve onun üzerine kurulan her şey demek (<code>({}).size</code>, <code>({}.size)</code> olarak geri gelir).</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Fuzzer</b>Fuzzer artık biçimlendirilmiş dosyayı parse edip ağacı orijinalinkiyle karşılaştırıyor; böylece bir dosyanın anlamını değiştiren bir düzen, birinin fark etmesini beklemeden ilk geçişte başarısız olur.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">build olmayı bırakan boş record</span></summary><div class="body">
         <p>
-          Bozabiliyordu ve bir durum hâlâ açık. Önce düzeltileni anlatalım. &ldquo;Boş record&rdquo; anlamına gelen bir arm <code>true =&gt; ({})</code> olarak yazılır. Arm gövdesi konumu, dilbilgisinde baştaki bir <code>{</code>'in belirsiz olduğu tek yerdir ve parser bunu süslü parantezin hemen ardından <code>key:</code> ya da <code>...</code> gelmesini şart koşarak çözer. Boş bir object'te ikisi de yoktur; bu yüzden formatter parantezleri atıp <code>true =&gt; {}</code> yazdırdığında arm boş bir <em>blok</em> olarak geri geldi ve dosya build olmayı bıraktı: <code>E0223</code>, arm bir değer üretmiyor. Çalışan kod üzerinde bir formatter çalıştırıyordunuz ve artık derlenmeyen bir kod elde ediyordunuz.
+          Önce düzeltileni anlatalım. &ldquo;Boş record&rdquo; anlamına gelen bir arm <code>true =&gt; ({})</code> olarak yazılır. Arm gövdesi konumu, dilbilgisinde baştaki bir <code>{</code>'in belirsiz olduğu tek yerdir ve parser bunu süslü parantezin hemen ardından <code>key:</code> ya da <code>...</code> gelmesini şart koşarak çözer. Boş bir object'te ikisi de yoktur; bu yüzden formatter parantezleri atıp <code>true =&gt; {}</code> yazdırdığında arm boş bir <em>blok</em> olarak geri geldi ve dosya build olmayı bıraktı: <code>E0223</code>, arm bir değer üretmiyor. Çalışan kod üzerinde bir formatter çalıştırıyordunuz ve artık derlenmeyen bir kod elde ediyordunuz.
         </p>
         <p>
-          Yazıcı artık en soldaki token'ı blok olarak yeniden parse edilecek bir <code>{</code> olan arm gövdesini parantez içine alıyor; bu da boş object ve onun üzerine kurulan her şey demek (<code>({}).size</code>, <code>({}.size)</code> olarak geri gelir). <code>false =&gt; { a: "x" }</code> gibi zaten belirsizlik olmadan okunan bir arm gövdesi çıplak kalır, yani başka hiçbir yerde okunacak yeni bir noktalama yoktur. <code>fmt</code> sonuç üzerinde bir sabit noktadır ve üretilen TypeScript değişmez. Programınızın atlatmak zorunda olduğu bir formatter eksik bir özellikten daha kötüdür, çünkü zaten çalışan kodu bozar.
+          <code>false =&gt; { a: "x" }</code> gibi zaten belirsizlik olmadan okunan bir arm gövdesi çıplak kalır, yani başka hiçbir yerde okunacak yeni bir noktalama yoktur. <code>fmt</code> sonuç üzerinde bir sabit noktadır ve üretilen TypeScript değişmez.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.138'de düzeltilen iki tane daha</span></summary><div class="body">
         <p>
-          0.1.138'de iki tanesi daha düzeltildi. Bir blok içinde <code>(</code> ile başlayan bir satır üstteki satırın devamıdır; 0.1.137'ye kadar formatter, <code>load()?</code> ardından gelen <code>.run()</code>'ı <code>(load()?).run()</code> olarak yazdırıyordu, bu yüzden <code>let a = 1</code>'den sonra biçimlendirilmiş dosya <code>let a = 1(…).run()</code> anlamına geliyordu. Artık <code>load()?</code>'i korur, <code>.run()</code>'ı bir sonraki satırda girintili yazar ve <code>e?(x)</code>, <code>e?[0]</code> ve <code>e? ?</code>'i parantezsiz yazar. Diğeri, bir union'ın <code>where</code> kısıtlamasıydı: formatter onu düşürüyordu ve <code>check</code>'in reddettiği bir programı kabul ettiği bir programa dönüştürüyordu. Fuzzer artık biçimlendirilmiş dosyayı parse edip ağacı orijinalinkiyle karşılaştırıyor; böylece bir dosyanın anlamını değiştiren bir düzen, birinin fark etmesini beklemeden ilk geçişte başarısız olur.
+          0.1.138'de iki tanesi daha düzeltildi. Bir blok içinde <code>(</code> ile başlayan bir satır üstteki satırın devamıdır; 0.1.137'ye kadar formatter, <code>load()?</code> ardından gelen <code>.run()</code>'ı <code>(load()?).run()</code> olarak yazdırıyordu, bu yüzden <code>let a = 1</code>'den sonra biçimlendirilmiş dosya <code>let a = 1(…).run()</code> anlamına geliyordu. Artık <code>load()?</code>'i korur, <code>.run()</code>'ı bir sonraki satırda girintili yazar ve <code>e?(x)</code>, <code>e?[0]</code> ve <code>e? ?</code>'i parantezsiz yazar. Diğeri, bir union'ın <code>where</code> kısıtlamasıydı: formatter onu düşürüyordu ve <code>check</code>'in reddettiği bir programı kabul ettiği bir programa dönüştürüyordu.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bunun arkasındaki biçimlendirme kuralları ve yaptıkları takas, <a href="/pillars/diff-stability/">kararlı diff ilkesi sayfasında</a>.</p></div>
 
-      <div class="detail">
-        <p>
-          Bunun arkasındaki biçimlendirme kuralları ve yaptıkları takas, <a href="/pillars/diff-stability/">kararlı diff ilkesi sayfasında</a>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Zorunlu sondaki virgüller, satır başına bir öğeli listeler ve <code>glyph fmt</code>'nin tek kanonik düzeni; gidiş dönüşte korunur ve idempotenttir, editörde kaydederken biçimlendirme de vardır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> bir yorumu asla ait olmadığı bir yere taşımaz.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur; bir record'un, bir literal'ın, bir argüman listesinin, bir <code>match</code>'in içinde, bir operatörün operandları arasında ve bir metot zincirinin adımları arasında da. Bu durumda zincir, nokta başta olacak şekilde satır başına bir adım olarak yazılır.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Zorunlu sondaki virgüller, satır başına bir öğeli listeler ve <code>glyph fmt</code>'nin tek kanonik düzeni; gidiş dönüşte korunur ve idempotenttir, editörde kaydederken biçimlendirme de vardır. <code>glyph fmt</code> bir yorumu asla ait olmadığı bir yere taşımaz. Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur; bir record'un, bir literal'ın, bir argüman listesinin, bir <code>match</code>'in içinde, bir operatörün operandları arasında ve bir metot zincirinin adımları arasında da. Bu durumda zincir, nokta başta olacak şekilde satır başına bir adım olarak yazılır.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Sınır ve sırada ne var</h3>
-          <p>Bir yorum her zaman kendi satırına yazılır; bu yüzden bir kod satırının sonuna yazılan bir yorum (<code>w: int, // width in cells</code>) bir sonraki öğenin üstündeki satıra taşınır. Artık bir tanım sınırını geçmez, ama yer değiştirir; satır sonunda kalması için yazıcının bir yorumun hangi satırı paylaştığını izlemesi gerekir. Düzenin koyacak yeri olmadığı bir yorum, örneğin bir index'in içinde, bir zincirin ortasında bir çağrının argümanlarından sonra ya da bir <code>!</code> veya <code>await</code> operandından önce olan bir yorum, artık taşınmaz: <code>glyph fmt</code> dosyayı reddeder, olduğu gibi bırakır ve satırı ve yorumun nereye konacağını söyler; <code>glyph check</code> de aynı şeyi E0500 uyarısı olarak bildirir. JSX attribute'ları arasındaki ya da bir object pattern'inin alanları arasındaki bir yorum da reddedilir, oysa satır başına bir öğeli bir düzen onu yerleştirebilirdi; bu düzenler listede. Yazıcının uzun bir metot ya da <code>+</code> zincirini bölmek için henüz bir kuralı yok, bu yüzden aşırı uzun bir zincir bunun yerine en içteki argüman listesini böler, ki bu yanlış yerdir. Ayrıca aynı düzenlemelerin TypeScript'teki karşılıklarına karşı bir diff boyutu benchmark'ı hazırlıyoruz; böylece bu ilke kontrol edebileceğiniz bir sayı olacak.</p>
-        </div>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Sınır ve sırada ne var</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir kod satırının sonundaki bir yorum bir sonraki öğenin üstündeki satıra taşınır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Bir yorum her zaman kendi satırına yazılır; bu yüzden bir kod satırının sonuna yazılan bir yorum (<code>w: int, // width in cells</code>) bir sonraki öğenin üstündeki satıra taşınır. Artık bir tanım sınırını geçmez, ama yer değiştirir; satır sonunda kalması için yazıcının bir yorumun hangi satırı paylaştığını izlemesi gerekir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Düzenin koyacak yeri olmadığı bir yorum taşınmaz, reddedilir</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Düzenin koyacak yeri olmadığı bir yorum, örneğin bir index'in içinde, bir zincirin ortasında bir çağrının argümanlarından sonra ya da bir <code>!</code> veya <code>await</code> operandından önce olan bir yorum, artık taşınmaz: <code>glyph fmt</code> dosyayı reddeder, olduğu gibi bırakır ve satırı ve yorumun nereye konacağını söyler; <code>glyph check</code> de aynı şeyi E0500 uyarısı olarak bildirir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">JSX attribute'ları arasındaki ya da bir object pattern'inin alanları arasındaki bir yorum da reddedilir, oysa satır başına bir öğeli bir düzen onu yerleştirebilirdi; bu düzenler listede.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Yazıcının uzun bir metot ya da <code>+</code> zincirini bölmek için henüz bir kuralı yok, bu yüzden aşırı uzun bir zincir bunun yerine en içteki argüman listesini böler, ki bu yanlış yerdir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ayrıca aynı düzenlemelerin TypeScript'teki karşılıklarına karşı bir diff boyutu benchmark'ı hazırlıyoruz; böylece bu ilke kontrol edebileceğiniz bir sayı olacak.</span></span></li>
+          </ul>
+        </section>
       </div>

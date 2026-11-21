@@ -3101,6 +3101,10 @@ impl Assigner<'_> {
                         if self.is_sql_ty(&expected) {
                             self.note_sql_call_arg(callee, args, i, p);
                         }
+                        if let Some(e) = self.async_callback_refusal(callee, a, &found, &p.ty) {
+                            self.errors.push(e);
+                            continue;
+                        }
                         if let Some(mut r) = self.value_refusal(a, &found, &expected) {
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
@@ -7309,6 +7313,76 @@ impl Assigner<'_> {
         None
     }
 
+    /// E0211 for an async function passed where a sync `fn(...) -> void` is
+    /// declared (D40, as amended for 0.1.159), with the message and help
+    /// `async_slot` computes from the program. `declared` is the parameter's
+    /// type before any type argument is substituted, so a slot is `void`
+    /// because it was written so, never because a callback's own `void`
+    /// return bound its `U` (`array.map` keeps G99's refusal).
+    fn async_callback_refusal(
+        &self,
+        callee: &Expr,
+        arg: &Expr,
+        found: &Ty,
+        declared: &Ty,
+    ) -> Option<TypeError> {
+        if !async_into_sync_void(found, declared) {
+            return None;
+        }
+        use crate::async_slot::{quotable_body, AsyncCallback};
+        let callback = match arg {
+            Expr::Lambda { params, body, .. } => AsyncCallback::Lambda {
+                params: params
+                    .iter()
+                    .map(|p| (p.name.to_string(), type_expr_source(&p.ty)))
+                    .collect(),
+                body: quotable_body(body),
+            },
+            Expr::Ident { .. } | Expr::Member { .. } => {
+                let params = match found {
+                    Ty::Fn { params, .. } => params
+                        .iter()
+                        .map(|p| {
+                            let name = p.name.as_ref()?.to_string();
+                            ty_is_decidable(&p.ty)
+                                .then(|| (name, ty_display(&self.named_params(&p.ty))))
+                        })
+                        .collect::<Option<Vec<_>>>(),
+                    _ => None,
+                };
+                AsyncCallback::Named {
+                    name: crate::pending::expr_source(arg),
+                    params,
+                }
+            }
+            _ => AsyncCallback::Other,
+        };
+        // An array's own `forEach`, named by its method alone as the
+        // message in record 129 reads; anything else as it is spelled.
+        let (name, loop_over) = match callee {
+            Expr::Member { object, field, .. }
+                if field.as_ref() == "forEach"
+                    && matches!(
+                        self.builtin_receiver_elem(self.tm.get(object.span())),
+                        Some((BuiltinReceiver::Array, _))
+                    ) =>
+            {
+                let xs = matches!(object.as_ref(), Expr::Ident { .. } | Expr::Member { .. })
+                    .then(|| crate::pending::expr_source(object));
+                (field.to_string(), xs)
+            }
+            _ => (crate::pending::expr_source(callee), None),
+        };
+        Some(TypeError::AsyncCallbackIntoSyncVoid {
+            callee: name,
+            callback,
+            loop_over,
+            can_await: self.return_stack.last().is_none_or(|r| r.is_async),
+            task: crate::pending::task_namespace(self.module),
+            span: arg.span(),
+        })
+    }
+
     /// The facts of a refusal made by the `Record` key rule (G373): both
     /// types are maps and their keys are different key domains. `None` for
     /// every other refusal, including a map refused for its value type alone.
@@ -8118,7 +8192,8 @@ impl Assigner<'_> {
             }
         }
         // G274. A function's return is compared through this relation, under
-        // the guards `definitely_incompatible` documents for its function arm,
+        // the guards `fn_types_incompatible` documents (D40 as amended for
+        // 0.1.159: two kinds of function are decided by kind alone),
         // so `fn() -> { o: { b: string } }` where `fn() -> { o: Other }` is
         // declared is refused as `tsc` refuses it (TS2345, "call signature
         // return types ... are incompatible"). The parameters are still
@@ -8137,9 +8212,9 @@ impl Assigner<'_> {
         ) = (&found, &expected)
         {
             if ty_is_decidable(&found) && ty_is_decidable(&expected) {
-                return !matches!(**fr, Ty::Prim(Primitive::Void))
-                    && !matches!(**er, Ty::Prim(Primitive::Void))
-                    && (fa != ea || self.assign_incompatible(fr, er));
+                return fn_kinds_incompatible(*fa, er, *ea).unwrap_or_else(|| {
+                    !is_void(fr) && !is_void(er) && self.assign_incompatible(fr, er)
+                });
             }
         }
         definitely_incompatible(&found, &expected)
@@ -9291,21 +9366,7 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
         // A concrete scalar is never a record or a function (or vice versa).
         (Ty::Prim(p), Ty::Record { .. } | Ty::Fn { .. })
         | (Ty::Record { .. } | Ty::Fn { .. }, Ty::Prim(p)) => is_concrete_scalar(*p),
-        // Function return types are covariant: found is not assignable when its
-        // return can't stand in for expected's, regardless of the parameters.
-        // `void` on either side is skipped: a value-returning function is
-        // assignable where a `void`-returning one is expected (callback
-        // contravariance), and an un-annotated lambda's return currently infers
-        // to the `void` stub, which must not be trusted as a real return type.
-        //
-        // `is_async` is compared under the same guards (D40). An `async fn(A) ->
-        // T` emits `(a: A) => Promise<T>`, so a sync function of the same
-        // parameters and return is a different value, and the annotation is what
-        // says which one a position wants. Without this the distinction D40
-        // introduced would be enforced only by `tsc` (TS2322), never by Glyph.
-        // The `void` guard matters here too: TypeScript lets any function stand
-        // where a `void`-returning one is expected, so an `async` mismatch is not
-        // judged when either side returns `void`.
+        // Two function types: see `fn_types_incompatible`.
         (
             Ty::Fn {
                 return_ty: fr,
@@ -9317,11 +9378,7 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
                 is_async: ea,
                 ..
             },
-        ) => {
-            !matches!(**fr, Ty::Prim(Primitive::Void))
-                && !matches!(**er, Ty::Prim(Primitive::Void))
-                && (fa != ea || definitely_incompatible(fr, er))
-        }
+        ) => fn_types_incompatible(fr, *fa, er, *ea),
         // Structural records: a shared field with incompatible types, or a
         // required field of `expected` that `found` lacks.
         (Ty::Record { fields: ff }, Ty::Record { fields: ef }) => ef.iter().any(|e| {
@@ -9332,6 +9389,71 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
         }),
         _ => false,
     }
+}
+
+/// Whether a function returning `fr` (`async` when `fa`) is provably not
+/// assignable where one returning `er` (`async` when `ea`) is expected.
+/// Parameter variance stays permissive.
+///
+/// Two functions of the same kind compare their returns covariantly, and
+/// `void` on either side is skipped: a value-returning function is assignable
+/// where a `void`-returning one is expected (callback contravariance), and an
+/// unannotated lambda's return currently infers to the `void` stub (G406),
+/// which must not be trusted as a real return type.
+///
+/// Two functions of different kinds are never the same value (D40): an
+/// `async fn(A) -> T` emits `(a: A) => Promise<T>`, so its return is a promise
+/// whatever `T` is, and the annotation is what says which one a position
+/// wants. Neither side's `void` is skipped here any more:
+///
+/// - An async function where a sync one is expected. A sync `fn(...) -> void`
+///   slot is called without being waited for, so each call runs on its own
+///   and its failure is lost (D40, as amended for 0.1.159). A sync slot that
+///   keeps a value (`array.map`'s `fn(T) -> U`) gets a promise in place of the
+///   value (G99). The async side's own return is not read: an unannotated
+///   async lambda lowers it to `void`, and that is what let it past G99
+///   (G407). Only an expected return the checker cannot read (`Unknown`, or a
+///   parameter nothing bound) is left alone, because nothing is known there
+///   about what the slot does with the result.
+/// - A sync function where an async one is expected (G408). The caller awaits
+///   the result, and a sync function hands back a plain value whatever it
+///   returns, `void` and an `Unknown` return included; `tsc` refuses both
+///   (`() => void` is not `() => Promise<void>`). A sync lambda whose pending
+///   tail E0238 already refused is exempted by the caller, by span
+///   (`value_refusal`), so that one mistake is one diagnostic.
+fn fn_types_incompatible(fr: &Ty, fa: bool, er: &Ty, ea: bool) -> bool {
+    fn_kinds_incompatible(fa, er, ea).unwrap_or_else(|| {
+        !is_void(fr) && !is_void(er) && definitely_incompatible(fr, er)
+    })
+}
+
+/// The verdict for two functions of different kinds, `None` when both are
+/// sync or both async and their returns decide. Shared by the free relation
+/// and `assign_incompatible_at`, which compares the returns of two functions
+/// of the same kind through the whole relation instead.
+fn fn_kinds_incompatible(fa: bool, er: &Ty, ea: bool) -> Option<bool> {
+    match (fa, ea) {
+        (true, false) => Some(is_void(er) || ty_is_decidable(er)),
+        (false, true) => Some(true),
+        _ => None,
+    }
+}
+
+fn is_void(t: &Ty) -> bool {
+    matches!(t, Ty::Prim(Primitive::Void))
+}
+
+/// True when `expected` is a sync `fn(...) -> void` and `found` an async
+/// function: the pairing D40's amendment refuses with its own message, which
+/// says the slot never waits (`async_callback_refusal`).
+pub(crate) fn async_into_sync_void(found: &Ty, expected: &Ty) -> bool {
+    matches!(
+        (found, expected),
+        (
+            Ty::Fn { is_async: true, .. },
+            Ty::Fn { is_async: false, return_ty, .. },
+        ) if matches!(return_ty.as_ref(), Ty::Prim(Primitive::Void))
+    )
 }
 
 /// A declaration in another module that the assignability relation can decide
@@ -15950,15 +16072,47 @@ fn label(s: Status) -> string {
             &func(num(), true),
             &func(num(), true)
         ));
-        // A `void` return on either side keeps the whole arm permissive, so an
-        // asyncness mismatch is not judged there either.
-        assert!(!definitely_incompatible(
+        // D40 as amended for 0.1.159: a `void` return on either side no
+        // longer exempts an asyncness mismatch. A sync function where an
+        // async one is expected is refused whatever it returns (G408), and an
+        // async function where a sync `void` one is expected is the dropped
+        // callback E0211 names.
+        assert!(definitely_incompatible(
             &func(void(), false),
             &func(num(), true)
         ));
-        assert!(!definitely_incompatible(
+        assert!(definitely_incompatible(
+            &func(void(), false),
+            &func(void(), true)
+        ));
+        assert!(definitely_incompatible(
+            &func(Ty::Unknown, false),
+            &func(num(), true)
+        ));
+        assert!(definitely_incompatible(
             &func(num(), true),
             &func(void(), false)
+        ));
+        // An async function's own `void` return does not let it past a sync
+        // slot that keeps a value (G407).
+        assert!(definitely_incompatible(
+            &func(void(), true),
+            &func(num(), false)
+        ));
+        // The one return still not judged: an expected return the checker
+        // cannot read, where nothing is known about what the slot does.
+        assert!(!definitely_incompatible(
+            &func(num(), true),
+            &func(Ty::Unknown, false)
+        ));
+        // Two functions of one kind keep the `void` exemption.
+        assert!(!definitely_incompatible(
+            &func(num(), false),
+            &func(void(), false)
+        ));
+        assert!(!definitely_incompatible(
+            &func(num(), true),
+            &func(void(), true)
         ));
     }
 

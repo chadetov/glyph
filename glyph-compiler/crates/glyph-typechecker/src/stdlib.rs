@@ -330,6 +330,9 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = timers_fn_ty(module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = socket_event_fn_ty(module_key, field) {
+        return Some(sig);
+    }
     if let Some(sig) = task_fn_ty(module_key, field) {
         return Some(sig);
     }
@@ -496,7 +499,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
         _ => return None,
     };
     let return_ty = result_ty(prelude, ok, err)?;
-    let params = (0..arity)
+    let mut params: Vec<FnParam> = (0..arity)
         .map(|_| FnParam {
             name: None,
             owned: false,
@@ -504,6 +507,16 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
             optional: false,
         })
         .collect();
+    // The connection handler is a sync `void` slot: each connection calls it
+    // and nothing waits for what it returns, so an `async fn` there is E0211
+    // (D40). The rest of the row keeps its `Unknown` parameters.
+    match (module_key, field) {
+        ("std/net", "listen") => {
+            params[2] = required(sync_void(vec![stdlib_named("net", "Socket")]));
+        }
+        ("std/websocket", "listen") => params[2] = required(sync_void(vec![Ty::Unknown])),
+        _ => {}
+    }
     Some(Ty::Fn {
         params,
         return_ty: Arc::new(return_ty),
@@ -784,6 +797,58 @@ pub(crate) fn task_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
             is_async: true,
             type_params: Some(Vec::new()),
         })],
+        return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+        is_async: false,
+        type_params: None,
+    })
+}
+
+/// A sync `fn(...) -> void`: a callback its caller starts and never waits
+/// for, as a socket event handler or a timer is. An `async fn` given to one
+/// is E0211 (D40, as amended for 0.1.159).
+fn sync_void(params: Vec<Ty>) -> Ty {
+    Ty::Fn {
+        params: params.into_iter().map(required).collect(),
+        return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+        is_async: false,
+        type_params: None,
+    }
+}
+
+/// The event registrations of `std/net` and `std/websocket`: each takes the
+/// socket or server and a handler, a sync `void` slot, and returns nothing.
+/// Read off `runtime/std/net.ts` and `runtime/std/websocket.ts`.
+///
+/// Modeled for the handler. An `async fn` handler was accepted here and by
+/// `tsc`, and each event then started work nothing awaited, whose failure
+/// was lost; the handler's type is what lets the checker refuse it. A
+/// `websocket.Socket` has no type in the checker, so it stays `Unknown`, as
+/// it is everywhere else.
+pub(crate) fn socket_event_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
+    let net_socket = || stdlib_named("net", "Socket");
+    let ws_socket = || Ty::Unknown;
+    let string = || Ty::Prim(Primitive::String);
+    let bytes = || stdlib_named("bytes", "Bytes");
+    let (target, handler) = match (module_key, field) {
+        ("std/net", "on_stop") => (stdlib_named("net", "Server"), vec![]),
+        ("std/net", "on_server_error") => (
+            stdlib_named("net", "Server"),
+            vec![stdlib_named("net", "ServerError")],
+        ),
+        ("std/net", "on_connect" | "on_close") => (net_socket(), vec![]),
+        ("std/net", "on_text" | "on_error") => (net_socket(), vec![string()]),
+        ("std/net", "on_data") => (net_socket(), vec![bytes()]),
+        ("std/websocket", "on_open" | "on_error") => (ws_socket(), vec![]),
+        ("std/websocket", "on_message") => (ws_socket(), vec![string()]),
+        ("std/websocket", "on_binary") => (ws_socket(), vec![bytes()]),
+        ("std/websocket", "on_close") => {
+            (ws_socket(), vec![Ty::Prim(Primitive::Number), string()])
+        }
+        ("std/websocket", "on_stop") => (stdlib_named("websocket", "Server"), vec![]),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params: vec![required(target), required(sync_void(handler))],
         return_ty: Arc::new(Ty::Prim(Primitive::Void)),
         is_async: false,
         type_params: None,

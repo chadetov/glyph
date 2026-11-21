@@ -548,7 +548,7 @@ fn returns_value(return_ty: &Option<TypeExpr>) -> bool {
 }
 
 /// The name a help writes `std/task` under in this module, if it imports it.
-fn task_namespace(module: &Module) -> Option<String> {
+pub(crate) fn task_namespace(module: &Module) -> Option<String> {
     module.items.iter().find_map(|d| match d {
         Decl::Import(i) => {
             let path: Vec<&str> = i.path.segments.iter().map(|s| s.as_ref()).collect();
@@ -568,7 +568,7 @@ fn task_namespace(module: &Module) -> Option<String> {
 /// An expression as the program writes it, for a message that quotes it back:
 /// a name, a member path, a call with its arguments, a literal. A part with no
 /// short spelling is `...`.
-fn expr_source(e: &Expr) -> String {
+pub(crate) fn expr_source(e: &Expr) -> String {
     match e {
         Expr::Ident { name, .. } => name.to_string(),
         Expr::Number { raw, .. } => raw.clone(),

@@ -516,6 +516,12 @@ connections; `"0.0.0.0"` accepts from anywhere on the network. Node's default is
 the second, and a standard library that will not ship a switch for turning off
 certificate checking should not quietly expose a port either.
 
+**Handlers are sync.** Every handler above, the connection handler `listen`
+takes included, is a `fn(...) -> void` that the socket calls without waiting.
+An `async fn` there is E0211; start async work from a sync handler with
+`task.detach(async fn() -> void { ... })`, which reports a failure instead of
+losing it. The same holds for `std/websocket`.
+
 **Pick `on_text` or `on_data`.** TCP is a stream of octets with no message
 boundaries, so a multi-byte character can be split across two packets. `on_text`
 holds a decoder per socket and emits whole characters, and reports whatever is
@@ -929,7 +935,9 @@ let _pump = timers.every(200, fn() {
 It starts the work at once and returns. Nothing joins it, so a failure cannot
 reach the caller; it is printed to stderr as `std/task: a detached task failed:
 ...` instead of becoming an unhandled rejection. Pass the work as a function:
-`task.detach(save(1))` has already started the call and is E0238 itself.
+`task.detach(save(1))` has already started the call and is E0238 itself. The
+callback around it stays sync: `timers.every(200, async fn() { ... })` is E0211,
+because the timer calls an `async fn` without waiting for it.
 
 ## std/regex
 
@@ -1345,6 +1353,11 @@ timers.sleep(delay_ms: number) -> Promise<void>            // for `await`
 
 `cancel` takes a timer from either constructor, and cancelling one that has
 already fired does nothing, so teardown paths are safe to run more than once.
+
+A handler is a sync `fn()`. The timer calls it and waits for nothing, so an
+`async fn` handler is E0211: each tick would start work nobody awaits and a
+failure would be lost. Start the work from a sync handler with `task.detach`
+(see `std/task`).
 
 ## std/websocket
 

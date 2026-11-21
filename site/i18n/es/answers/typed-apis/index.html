@@ -1,7 +1,7 @@
 ---
 title: ¿Tengo que escribir a mano un validador para cada API? · Glyph
 description: No. En Glyph un tipo es su propio validador en tiempo de ejecución, así que los cuerpos de peticiones y respuestas se comprueban sin escribir ningún validador, y los tipos pueden venir de una especificación OpenAPI o de un .d.ts.
-source_hash: e5583b6a5d857445
+source_hash: 46f9f9ea5d8ba7bb
 prev: /answers/embedding/ | &larr; Anterior | ¿Puedo adoptar Glyph dentro de mi app actual, o es todo o nada?
 next: /answers/codegen/ | Siguiente &rarr; | ¿Puedo generar un cliente y un servidor tipados a partir de la especificación de mi API?
 ---
@@ -226,7 +226,7 @@ type User = { name: string; age: number };
           El cuerpo de una petición llega ya decodificado como <code>unknown</code>, así que ahí usas <code>T.parse(value)</code>: la misma garantía, sin cast.
         </p>
         <p>
-          El resto de la frontera no fiable se tipa igual: <code>header(req, name)</code> y <code>query_param(req, name)</code> devuelven <code>Option&lt;string&gt;</code>, así que una cabecera o un parámetro de la query que falta es <code>None</code> y el <code>match</code> te <em>obliga</em> a manejarlo. Omite el brazo <code>None</code> y no compila. Una entrada ausente no se puede leer como si estuviera.
+          El resto de la frontera no fiable se tipa igual: <code>header(req, name)</code> y <code>query_param(req, name)</code> devuelven <code>Option&lt;string&gt;</code>, así que una cabecera o un parámetro de la query que falta es <code>None</code> y el <code>match</code> te <em>obliga</em> a manejarlo. Omite el brazo <code>None</code> y no compila. Una entrada ausente no se puede leer como si estuviera. Un campo del cuerpo sigue la misma regla: <code>timeout_ms?: number</code> es una clave ausente o un número, así que <code>{"timeout_ms": null}</code> es un <code>Err</code> en <code>["timeout_ms"]</code>, tanto con <code>T.parse</code> como con <code>is T</code> y <code>json.parse&lt;T&gt;</code>. Declara <code>timeout_ms?: Nullable&lt;number&gt;</code> cuando el emisor escribe <code>null</code>. Hasta la 0.1.152 ese <code>null</code> volvía dentro del <code>Ok</code>.
         </p>
       </div></details>
 
@@ -239,15 +239,15 @@ type User = { name: string; age: number };
           <thead><tr><th>Tipo de la clave</th><th>Qué comprueba <code>parse</code> en cada clave</th></tr></thead>
           <tbody>
             <tr><td>Una unión de literales de string</td><td>exactamente las claves listadas, sin que falte ni sobre ninguna</td></tr>
-            <tr><td>Un tipo refinado con <code>where</code></td><td>el predicado</td></tr>
+            <tr><td>Un <code>string</code> o un número refinado con <code>where</code></td><td>el predicado</td></tr>
             <tr><td><code>int</code></td><td>la forma simple de escribir un número entero; <code>"01"</code> y <code>"1.5"</code> fallan</td></tr>
             <tr><td><code>string</code></td><td>nada nuevo</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">claves refinadas e int, y lo que todavía queda para tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">claves refinadas e int, y lo que mantiene el checker</span></summary><div class="body">
         <p>
-          Un tipo de clave refinado con <code>where</code> ejecuta su predicado sobre cada clave, y una clave <code>int</code> tiene que ser la forma simple de escribir un número entero, así que <code>"01"</code> y <code>"1.5"</code> se rechazan. Un <code>Record&lt;string, V&gt;</code> se comprueba exactamente igual que antes. El checker propio de Glyph sigue dejando a <code>tsc</code> las claves de un valor que escribes en el código, y un record genérico cuyas claves son su propio parámetro de tipo se rechaza salvo que ese parámetro sea <code>string</code>.
+          Un tipo de clave refinado con <code>where</code> ejecuta su predicado sobre cada clave, y una clave <code>int</code> tiene que ser la forma simple de escribir un número entero, así que <code>"01"</code> y <code>"1.5"</code> se rechazan. Un <code>Record&lt;string, V&gt;</code> se comprueba exactamente igual que antes. Un <code>where</code> no puede refinar una unión de literales de string (<code>type T2 = Tier where value != "pro"</code> es <code>E0300</code> desde la 0.1.152); escribe los miembros que quieres como su propia unión, <code>type T2 = "free"</code>, y sirve de clave de un <code>Record</code> con la misma comprobación de claves exactas. Desde la 0.1.153 el checker propio de Glyph también mantiene la clave de un valor que escribes en el código: un <code>Record&lt;string, int&gt;</code> no puede ir donde se declara un <code>Record&lt;Tier, int&gt;</code>, ni al revés, así que el cruce es un <code>json.parse</code> o un brazo <code>is Record&lt;Tier, int&gt;</code>, y <code>record.set</code> conserva la clave que recibió. Un record genérico cuyas claves son su propio parámetro de tipo se rechaza salvo que ese parámetro sea <code>string</code>.
         </p>
       </div></details>
 

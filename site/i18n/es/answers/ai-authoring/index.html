@@ -1,7 +1,7 @@
 ---
 title: ¿Puede una IA escribir un lenguaje que apenas ha visto? · Glyph
 description: Glyph se lee como TypeScript pero no es un subconjunto de TypeScript. Casi todo lo que un modelo sabe de TypeScript le sirve, y el compilador señala los sitios donde no.
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; Anterior | ¿Merece la pena Glyph si no uso IA?
 next: /answers/upgrades/ | Siguiente &rarr; | ¿Una nueva versión de Glyph va a romper mi build?
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | Siguiente &rarr; | ¿Una nueva versión de Glyph va a
         En gran parte, sí. Glyph se lee como TypeScript: los mismos tipos primitivos y genéricos (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), casi las mismas expresiones y paquetes de npm importados por su nombre. No es un subconjunto de TypeScript: <code>match</code>, <code>Result</code> y <code>fn name(x: T) -&gt; R</code> son sintaxis que TypeScript no tiene, y <code>if</code>, el ternario y los casts no son Glyph. Casi todo lo que un modelo ya sabe le sirve, y el compilador señala los sitios donde no.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por qué importa</h2>
-        <p>
-          Es la pregunta razonable de un escéptico: un LLM predice el siguiente token a partir de la enorme cantidad de código existente en otros lenguajes, así que un lenguaje casi sin datos de entrenamiento debería ser difícil de escribir. La respuesta es estructural: Glyph no es algo ajeno. Se parece a TypeScript, así que el modelo ya conoce la mayor parte; las diferencias son pocas, se pueden enumerar y cada una falla <em>rápido</em> al compilar en lugar de pasar sin avisar.
-        </p>
-
-        <h2 class="block-label">Míralo</h2>
-        <p>Un agente que se equivoca al adivinar no publica lo que adivinó. Recibe un error preciso y corregible, y lo arregla en el mismo ciclo:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">el ciclo de corrección, en un paso</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">el ciclo de corrección, en un paso</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          El error nombra la construcción de Glyph y muestra la forma, así que el arreglo está a una edición: sin bucear en el código fuente, sin adivinar. Ese ciclo corto es lo que compensa la falta de datos de entrenamiento. Un solo documento, <a href="/llms.txt">llms.txt</a>, le da a un agente la forma de un programa, la librería estándar y cada diagnóstico con su arreglo, y <code>glyph llms</code> imprime la misma referencia sin conexión.
-        </p>
-      </div>
-
-      <h2 class="block-label">Dónde está</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p>Una sintaxis con forma de TypeScript, errores con un código estable que nombran el arreglo, y <code>llms.txt</code> / <code>glyph llms</code> como documento de referencia único para cualquier agente.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Por demostrar</h3>
-          <p>Un benchmark de tasa de éxito (intentos hasta acertar frente a TypeScript en la misma tarea) para convertir &ldquo;ha aguantado&rdquo; en una cifra medida.</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Un agente que se equivoca al adivinar no publica lo que adivinó. Recibe un error preciso y corregible, y lo arregla en el mismo ciclo.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Es la pregunta razonable de un escéptico: un LLM predice el siguiente token a partir de la enorme cantidad de código existente en otros lenguajes, así que un lenguaje casi sin datos de entrenamiento debería ser difícil de escribir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>La respuesta es estructural: Glyph no es algo ajeno. Se parece a TypeScript, así que el modelo ya conoce la mayor parte; las diferencias son pocas, se pueden enumerar y cada una falla <em>rápido</em> al compilar en lugar de pasar sin avisar.</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">El arreglo está a una edición<a class="ak-anchor" href="#one-edit-away" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El error nombra la construcción de Glyph y muestra la forma, así que el arreglo está a una edición: sin bucear en el código fuente, sin adivinar. Ese ciclo corto es lo que compensa la falta de datos de entrenamiento.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Un solo documento, <a href="/llms.txt">llms.txt</a>, le da a un agente la forma de un programa, la librería estándar y cada diagnóstico con su arreglo, y <code>glyph llms</code> imprime la misma referencia sin conexión.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una sintaxis con forma de TypeScript.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Errores con un código estable que nombran el arreglo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>llms.txt</code> / <code>glyph llms</code> como documento de referencia único para cualquier agente.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Por demostrar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un benchmark de tasa de éxito (intentos hasta acertar frente a TypeScript en la misma tarea) para convertir &ldquo;ha aguantado&rdquo; en una cifra medida.</span></span></li>
+          </ul>
+        </section>
       </div>

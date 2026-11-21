@@ -485,6 +485,27 @@ the fidelity of the answer rather than the speed of getting it.
 is what it is told when it is stuck, and item 5 is the yardstick for both. If
 they compete for attention, this one is cheaper and closer to the failure.
 
+### Q47. Should a call site say that it lets the callee change an argument?
+
+**New question, from G380 (decision record 150, section 3).** Since 0.1.160
+every change to an array Glyph's checker types is a `mut` statement, so
+`grep -n "^\s*mut "` finds the `mut xs.sort(cmp)` inside `fn smallest(xs:
+Array<number>)`. It does not find the call `smallest(xs)` that hands the
+caller's array over. A reader at the call site still has to open the callee to
+learn that `xs` changes.
+
+Marking the caller side would take a `mut` on the parameter in the signature
+and something at the call (`smallest(mut xs)`, say), with the checker proving
+that an unmarked parameter is never written. That is effect-annotation
+territory, close to the abandoned annotation-heavy direction, and it changes
+every signature that writes to an argument. It was left out of G380 on
+purpose. The question is whether the audit is complete enough with the write
+marked where it happens, or whether the call site needs it too, and if so in
+a TS-family spelling that does not reintroduce effect clauses.
+
+Pillars: greppability (the call site) against abstraction (signatures stay
+TypeScript's). Not a 1.0 blocker.
+
 ## Blockers for step 4 (transpiler)
 
 ### Q1. Is `infer_output<Shape>` v1 or v2?

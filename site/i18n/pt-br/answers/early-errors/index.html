@@ -1,7 +1,7 @@
 ---
 title: Por que o Glyph detecta o que o tsc detecta, só que antes? · Glyph
 description: O Glyph informa await fora de uma async fn, um braço de match que não produz valor e um mut faltando no seu fonte, com a regra e o conserto, antes do tsc.
-source_hash: 9388fb478e6fc44c
+source_hash: 39590229d161d4c3
 prev: /answers/tooling/ | &larr; Anterior | Como é a experiência de editor, depuração e erros?
 next: /answers/parse-errors/ | Próxima &rarr; | Quando um parse falha, eu descubro o motivo?
 ---
@@ -66,7 +66,7 @@ next: /answers/parse-errors/ | Próxima &rarr; | Quando um parse falha, eu descu
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>await</code> fora de uma <code>async fn</code></li>
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b>um braço de <code>match</code> que não produz valor quando o <code>match</code> é usado como valor</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>e uma atribuição escrita sem <code>mut</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>Uma atribuição escrita sem <code>mut</code></li>
       </ul>
       <p class="ak-lede">Cada um nomeia a regra, cita a decisão por trás dela e mostra o antes e o depois.</p>
 

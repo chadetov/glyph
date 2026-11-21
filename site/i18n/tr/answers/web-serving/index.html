@@ -1,7 +1,7 @@
 ---
 title: Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi? · Glyph
 description: std/http yalnızca JSON değil; HTML sayfaları, yönlendirmeler, özel yanıt header'ları ve form gönderimleri de sunar ve yanıt header'ları tip denetleyicisinde modellenmiştir.
-source_hash: 8027a10034b53500
+source_hash: d140a7206bb4ccec
 prev: /answers/finance/ | &larr; Önceki | Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?
 next: /answers/interactive-cli/ | Sonraki &rarr; | Birinin içine yazı yazdığı bir program yazabilir miyim?
 ---
@@ -90,7 +90,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
       <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Elle yapsaydınız yanlış yapacağınız iki ayrıntı<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Header değerleri</b>Node'un bir header'a yazmayı reddettiği her karakter çıkışta değerden temizlenir; böylece bir query parametresinden oluşturulan bir <code>location</code> ikinci bir header ya da ikinci bir yanıt enjekte edemez ve kısaltılmış bir URL'deki bir emoji sunucuyu çökertemez.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form gövdeleri</b>Ayrıca <code>form(req)</code>, yüzde kaçışlarıyla birlikte <code>+</code>'yı da boşluk olarak çözer; elle yazılan form parse işlemlerinin genellikle kaçırdığı ikili budur. Ham gövdeyi okur, yani <code>req.body</code>, onu kendisi parse eden handler'lar için dokunulmadan kalır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form gövdeleri</b><code>form(req)</code>, yüzde kaçışlarıyla birlikte <code>+</code>'yı da boşluk olarak çözer; elle yazılan form parse işlemlerinin genellikle kaçırdığı ikili budur. Ham gövdeyi okur, yani <code>req.body</code>, onu kendisi parse eden handler'lar için dokunulmadan kalır.</li>
       </ul>
 
       <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

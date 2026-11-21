@@ -1,7 +1,7 @@
 ---
 title: Posso servir uma página web, ou só uma API JSON? · Glyph
 description: O std/http serve páginas HTML, redirects, headers de resposta personalizados e envios de formulário, não só JSON, com os headers de resposta modelados pelo type checker.
-source_hash: 8027a10034b53500
+source_hash: d140a7206bb4ccec
 prev: /answers/finance/ | &larr; Anterior | Posso confiar nele com dinheiro, e com entrada que eu não controlo?
 next: /answers/interactive-cli/ | Próxima &rarr; | Posso escrever um programa em que alguém digita?
 ---
@@ -90,7 +90,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
       <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Dois detalhes que você erraria fazendo à mão<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Valores de header</b>Qualquer caractere que o Node se recusa a escrever num header é removido do valor na saída, então um <code>location</code> montado a partir de um parâmetro de query não consegue injetar um segundo header nem uma segunda resposta, e um emoji numa URL encurtada não derruba o servidor.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Bodies de formulário</b>E <code>form(req)</code> decodifica <code>+</code> como espaço junto com os escapes de porcentagem, a dupla que o parse de formulário feito à mão costuma esquecer; ele lê o body bruto, então <code>req.body</code> fica intacto para handlers que fazem o parse por conta própria.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Bodies de formulário</b><code>form(req)</code> decodifica <code>+</code> como espaço junto com os escapes de porcentagem, a dupla que o parse de formulário feito à mão costuma esquecer; ele lê o body bruto, então <code>req.body</code> fica intacto para handlers que fazem o parse por conta própria.</li>
       </ul>
 
       <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

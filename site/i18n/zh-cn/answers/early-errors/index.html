@@ -1,7 +1,7 @@
 ---
 title: 为什么 Glyph 能发现 tsc 能发现的问题，而且更早？ · Glyph
 description: Glyph 会针对你的源码报告 async fn 之外的 await、不产生值的 match 分支以及缺少的 mut，附上规则和修复方法，而且在 tsc 之前。
-source_hash: 9388fb478e6fc44c
+source_hash: 39590229d161d4c3
 prev: /answers/tooling/ | &larr; 上一篇 | 编辑器、调试和报错的体验如何？
 next: /answers/parse-errors/ | 下一篇 &rarr; | 解析失败时，我能知道原因吗？
 ---
@@ -66,7 +66,7 @@ next: /answers/parse-errors/ | 下一篇 &rarr; | 解析失败时，我能知道
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>async fn</code> 之外的 <code>await</code></li>
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b><code>match</code> 被当作值使用时不产生值的 <code>match</code> 分支</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>以及没有写 <code>mut</code> 的赋值</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>没有写 <code>mut</code> 的赋值</li>
       </ul>
       <p class="ak-lede">每条诊断都会说出规则，引用背后的设计决定，并给出修改前后的对比。</p>
 

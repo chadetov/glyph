@@ -1,7 +1,7 @@
 ---
 title: Можно ли отдавать веб-страницу, или только JSON API? · Glyph
 description: std/http отдаёт HTML-страницы, редиректы, собственные заголовки ответа и отправку форм, а не только JSON, и заголовки ответа моделирует проверка типов.
-source_hash: 8027a10034b53500
+source_hash: d140a7206bb4ccec
 prev: /answers/finance/ | &larr; Назад | Можно ли доверить ему деньги и ввод, который я не контролирую?
 next: /answers/interactive-cli/ | Далее &rarr; | Можно ли написать программу, в которую пользователь вводит текст?
 ---
@@ -90,7 +90,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
       <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Две детали, которые вручную легко сделать неправильно<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Значения заголовков</b>Любой символ, который Node отказывается записать в заголовок, удаляется из значения на выходе, поэтому <code>location</code>, собранный из параметра запроса, не может внедрить второй заголовок или второй ответ, а эмодзи в сокращаемом URL не уронит сервер.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Тела форм</b>Кроме того, <code>form(req)</code> декодирует <code>+</code> как пробел вместе с процентным кодированием, а именно эту пару обычно упускает самописный разбор форм; он читает сырое тело, поэтому <code>req.body</code> остаётся нетронутым для обработчиков, которые разбирают его сами.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Тела форм</b><code>form(req)</code> декодирует <code>+</code> как пробел вместе с процентным кодированием, а именно эту пару обычно упускает самописный разбор форм; он читает сырое тело, поэтому <code>req.body</code> остаётся нетронутым для обработчиков, которые разбирают его сами.</li>
       </ul>
 
       <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

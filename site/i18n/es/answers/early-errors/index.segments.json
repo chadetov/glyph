@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "es",
-  "source_hash": "9388fb478e6fc44c",
+  "source_hash": "39590229d161d4c3",
   "segments": [
     {
       "id": "title",
@@ -227,10 +227,10 @@
       "tr": "<b>E0223</b>un brazo de <code>match</code> que no produce valor cuando el <code>match</code> se usa como valor"
     },
     {
-      "id": "h-19b4e460",
+      "id": "h-5bde02c2",
       "kind": "html",
-      "en": "<b>E0008</b>and an assignment written without <code>mut</code>",
-      "tr": "<b>E0008</b>y una asignación escrita sin <code>mut</code>"
+      "en": "<b>E0008</b>An assignment written without <code>mut</code>",
+      "tr": "<b>E0008</b>Una asignación escrita sin <code>mut</code>"
     },
     {
       "id": "h-adaf46ce",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ko",
-  "source_hash": "9388fb478e6fc44c",
+  "source_hash": "39590229d161d4c3",
   "segments": [
     {
       "id": "title",
@@ -227,10 +227,10 @@
       "tr": "<b>E0223</b><code>match</code>를 값으로 쓰는데 값을 만들지 않는 <code>match</code> arm"
     },
     {
-      "id": "h-19b4e460",
+      "id": "h-5bde02c2",
       "kind": "html",
-      "en": "<b>E0008</b>and an assignment written without <code>mut</code>",
-      "tr": "<b>E0008</b>그리고 <code>mut</code> 없이 쓴 대입"
+      "en": "<b>E0008</b>An assignment written without <code>mut</code>",
+      "tr": "<b>E0008</b><code>mut</code> 없이 쓴 대입"
     },
     {
       "id": "h-adaf46ce",

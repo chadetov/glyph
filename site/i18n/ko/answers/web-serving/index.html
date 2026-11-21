@@ -1,7 +1,7 @@
 ---
 title: 웹 페이지를 서빙할 수 있나요, 아니면 JSON API만 되나요? · Glyph
 description: std/http는 JSON만이 아니라 HTML 페이지, 리다이렉트, 사용자 지정 응답 헤더, 폼 전송을 처리하며, 응답 헤더는 타입 검사기가 모델링합니다.
-source_hash: 8027a10034b53500
+source_hash: d140a7206bb4ccec
 prev: /answers/finance/ | &larr; 이전 | 돈을 다루거나, 내가 통제하지 못하는 입력을 맡겨도 되나요?
 next: /answers/interactive-cli/ | 다음 &rarr; | 사용자가 입력하는 프로그램을 작성할 수 있나요?
 ---
@@ -90,7 +90,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
       <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">직접 하면 틀리기 쉬운 두 가지<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>헤더 값</b>Node가 헤더에 쓰기를 거부하는 문자는 내보낼 때 값에서 제거되므로, 쿼리 매개변수로 만든 <code>location</code>이 두 번째 헤더나 두 번째 응답을 끼워 넣을 수 없고, 단축 URL의 이모지가 서버를 멈추게 할 수도 없습니다.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>폼 본문</b>그리고 <code>form(req)</code>는 퍼센트 이스케이프와 함께 <code>+</code>를 공백으로 디코딩합니다. 직접 만든 폼 파싱이 보통 놓치는 조합입니다. 원본 본문을 읽으므로 직접 파싱하는 핸들러를 위해 <code>req.body</code>는 그대로 둡니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>폼 본문</b><code>form(req)</code>는 퍼센트 이스케이프와 함께 <code>+</code>를 공백으로 디코딩합니다. 직접 만든 폼 파싱이 보통 놓치는 조합입니다. 원본 본문을 읽으므로 직접 파싱하는 핸들러를 위해 <code>req.body</code>는 그대로 둡니다.</li>
       </ul>
 
       <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

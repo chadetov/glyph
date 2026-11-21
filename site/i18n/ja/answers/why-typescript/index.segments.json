@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/why-typescript/index.html",
   "locale": "ja",
-  "source_hash": "9f7bf2e8baaad5d9",
+  "source_hash": "4df0de0ec8bd7ba2",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,34 @@
       "tr": "TypeScript は、エージェントがすでに最も多くのコードを書いている場所であり、あなたのエコシステム（npm、React、Node）がある場所だからです。Glyph を 1 ファイルずつ導入できるのは、<strong>ターゲットが TS だからこそ</strong>です。"
     },
     {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "同じプロジェクトに .glyph と .ts を並べて置く"
+    },
+    {
+      "id": "h-d0269c9c",
+      "kind": "html",
+      "en": "<span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span>",
+      "tr": "<span>Glyph は手元の <code>.ts</code> ファイルの隣に置けて、どちらの方向にもそのまま import できます。</span>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "なぜ重要か"
     },
     {
-      "id": "h-0a5dbd26",
-      "kind": "html",
-      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
-      "tr": "新しい言語が使われるかどうかは、ゼロから出荷までをどう進めるかで決まります。TypeScript にコンパイルされるので、今のコードベース、バンドラ、テストランナー、デプロイ環境から離れる必要がありません。Glyph は手元の <code>.ts</code> ファイルの隣に置けて、どちらの方向にもそのまま import できます。"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
     },
     {
-      "id": "h-2a66da79",
+      "id": "h-5ee1e84f",
       "kind": "html",
-      "en": "the same project: .glyph and .ts, side by side",
-      "tr": "同じプロジェクトに .glyph と .ts を並べて置く"
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy.",
+      "tr": "新しい言語が使われるかどうかは、ゼロから出荷までをどう進めるかで決まります。TypeScript にコンパイルされるので、今のコードベース、バンドラ、テストランナー、デプロイ環境から離れる必要がありません。"
     },
     {
       "id": "h-4eb97fa1",
@@ -83,10 +95,22 @@
       "tr": "Go を TypeScript のコードベースに 1 ファイルずつ入れることはできません。ランタイムもモジュールシステムもエコシステムも違うからです。ターゲットが TS である理由は、この 1 点に尽きます。"
     },
     {
-      "id": "h-b0743097",
+      "id": "h-f9a17aa4",
       "kind": "html",
-      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
-      "tr": "<strong>Go について認めるべき点：</strong>キーワードが少なく安定しているので、エージェントが間違える余地が少ないことです。これには同意します。Glyph が意図的に小さなコアを保ち、1 つのことに 1 つのやり方しか用意していないのもそのためです。Go は比較のために、記述密度の<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">ベンチマーク</a>に含めています。"
+      "en": "The fair point about Go",
+      "tr": "Go について認めるべき点"
+    },
+    {
+      "id": "h-dca0c488",
+      "kind": "html",
+      "en": "Its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing.",
+      "tr": "キーワードが少なく安定しているので、エージェントが間違える余地が少ないことです。これには同意します。Glyph が意図的に小さなコアを保ち、1 つのことに 1 つのやり方しか用意していないのもそのためです。"
+    },
+    {
+      "id": "h-bbac4976",
+      "kind": "html",
+      "en": "Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "Go は比較のために、記述密度の<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">ベンチマーク</a>に含めています。"
     },
     {
       "id": "h-b55f380c",
@@ -95,22 +119,34 @@
       "tr": "現状"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-4f2da421",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "提供中"
+      "en": "Shipping today <span class=\"count\">3</span>",
+      "tr": "提供中 <span class=\"count\">3</span>"
     },
     {
-      "id": "h-93871ba6",
+      "id": "h-12991ef7",
       "kind": "html",
-      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
-      "tr": "読みやすい TypeScript 出力、既存の <code>.ts</code> との双方向 import、そして Node やブラウザのバンドルが動く場所ならどこでも動く小さなコア。"
+      "en": "Clean TypeScript output.",
+      "tr": "読みやすい TypeScript 出力。"
     },
     {
-      "id": "h-0abde815",
+      "id": "h-a6b7a39e",
       "kind": "html",
-      "en": "Being measured",
-      "tr": "測定中"
+      "en": "Bidirectional imports with your existing <code>.ts</code>.",
+      "tr": "既存の <code>.ts</code> との双方向 import。"
+    },
+    {
+      "id": "h-4ec09cc2",
+      "kind": "html",
+      "en": "A small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Node やブラウザのバンドルが動く場所ならどこでも動く小さなコア。"
+    },
+    {
+      "id": "h-a86ec4ab",
+      "kind": "html",
+      "en": "Being measured <span class=\"count\">1</span>",
+      "tr": "測定中 <span class=\"count\">1</span>"
     },
     {
       "id": "h-5cb4379c",

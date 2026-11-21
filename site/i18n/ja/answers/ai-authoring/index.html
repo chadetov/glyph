@@ -1,7 +1,7 @@
 ---
 title: ほとんど見たことのない言語を AI は書けるのか · Glyph
 description: Glyph は TypeScript のように読めますが、そのサブセットではありません。モデルが TypeScript について知っていることの大部分はそのまま通用し、通用しない箇所はコンパイラが指摘します。
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; 前へ | AI を使っていなくても Glyph に価値はあるか
 next: /answers/upgrades/ | 次へ &rarr; | Glyph の新しいリリースでビルドが壊れることはないか？
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | 次へ &rarr; | Glyph の新しいリリースでビ�
         おおむね書けます。Glyph は TypeScript のように読めます。プリミティブ型やジェネリック型（<code>string</code>、<code>number</code>、<code>Array&lt;T&gt;</code>）は同じで、式の大部分も同じ、npm パッケージも名前で import します。ただし TypeScript のサブセットではありません。<code>match</code>、<code>Result</code>、<code>fn name(x: T) -&gt; R</code> は TypeScript にない構文で、<code>if</code>、三項演算子、キャストは Glyph にはありません。モデルがすでに知っていることの大部分はそのまま通用し、通用しない箇所はコンパイラが指摘します。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          これは懐疑的な人がもっともな理由で持つ疑問です。LLM は既存言語の膨大なコードから次のトークンを予測するので、学習データがほとんどない言語は書きにくいはずだ、というものです。答えは構造にあります。Glyph は異質な言語ではありません。TypeScript に似ているので、モデルはすでにその大部分を知っています。違いは少なく、列挙でき、どれも黙って通過するのではなくコンパイル時に<em>すぐ</em>失敗します。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>推測を誤ったエージェントは、その推測を出荷しません。正確で直しやすいエラーを受け取り、同じループの中で修正します。</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">1 ステップで終わる修正ループ</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">1 ステップで終わる修正ループ</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          エラーは Glyph の構文を名指しして形を示すので、修正は 1 回の編集で済みます。ソースを読み込む必要も、推測する必要もありません。この短いループが、学習データの不足を補います。<a href="/llms.txt">llms.txt</a> という 1 つのドキュメントで、エージェントはプログラムの形、標準ライブラリ、そしてすべての診断とその修正方法を把握できます。<code>glyph llms</code> を使えば、同じリファレンスをオフラインで表示できます。
-        </p>
-      </div>
-
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>TypeScript に似た構文、修正方法を示す安定したコード付きのエラー、そしてどのエージェントにも使える 1 つのリファレンスとしての <code>llms.txt</code> / <code>glyph llms</code>。</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">検証中</h3>
-          <p>成功率のベンチマーク（同じタスクで、修正までの試行回数を TypeScript と比較）を作り、「うまくいった」を測定された数値にします。</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>推測を誤ったエージェントは、その推測を出荷しません。正確で直しやすいエラーを受け取り、同じループの中で修正します。</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        これは懐疑的な人がもっともな理由で持つ疑問です。LLM は既存言語の膨大なコードから次のトークンを予測するので、学習データがほとんどない言語は書きにくいはずだ、というものです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>答えは構造にあります。Glyph は異質な言語ではありません。TypeScript に似ているので、モデルはすでにその大部分を知っています。違いは少なく、列挙でき、どれも黙って通過するのではなくコンパイル時に<em>すぐ</em>失敗します。</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">修正は 1 回の編集で済む<a class="ak-anchor" href="#one-edit-away" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        エラーは Glyph の構文を名指しして形を示すので、修正は 1 回の編集で済みます。ソースを読み込む必要も、推測する必要もありません。この短いループが、学習データの不足を補います。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><a href="/llms.txt">llms.txt</a> という 1 つのドキュメントで、エージェントはプログラムの形、標準ライブラリ、そしてすべての診断とその修正方法を把握できます。<code>glyph llms</code> を使えば、同じリファレンスをオフラインで表示できます。</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">TypeScript に似た構文。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">修正方法を示す、安定したコード付きのエラー。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">どのエージェントにも使える 1 つのリファレンスとしての <code>llms.txt</code> / <code>glyph llms</code>。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 検証中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">成功率のベンチマーク（同じタスクで、修正までの試行回数を TypeScript と比較）を作り、「うまくいった」を測定された数値にします。</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -1,7 +1,7 @@
 ---
 title: 既存のアプリの中で Glyph を導入できるか · Glyph
 description: 書き直しは不要です。アプリは TypeScript のまま、ドメインの中核を Glyph で書き、コンパイルされたモジュールをローカルファイルと同じように import します。素の Vite でそのまま動きます。
-source_hash: 4dc0a3c1d0f26ab3
+source_hash: 407d584aaaf4d048
 prev: /answers/imports/ | &larr; 前へ | 既存の TypeScript、JavaScript、npm のライブラリは使えますか。
 next: /answers/typed-apis/ | 次へ &rarr; | API ごとにバリデータを手書きする必要がありますか？
 ---
@@ -12,16 +12,7 @@ next: /answers/typed-apis/ | 次へ &rarr; | API ごとにバリデータを手�
         書き直しは不要です。アプリは TypeScript のままにして、間違えるわけにいかない部分（モデル、権限、状態遷移、金額計算）を Glyph で書きます。<code>glyph build</code> が出力するモジュールは、<strong>ローカルファイルと同じように</strong> アプリから import できます。バンドラの設定もパスエイリアスも要りません。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          たいていのチームはアプリケーションを書き直せませんし、アプリケーションの大部分には Glyph は必要ありません。必要なのはドメインの中核です。来月 AI エージェントが編集することになり、黙って間違っていては誰も困るルールの部分です。その中核を Glyph にしておけば、網羅的な <code>match</code>、キャストのないコード、検証された境界を、効果のある場所にだけ導入できます。React コンポーネント、スタイル、インフラはふつうの TypeScript のままです。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>Glyph のソースを 1 つのディレクトリにまとめ、アプリにコンパイルして、UI から import します。</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">ハイブリッド構成：ドメインの中核は Glyph、それ以外はすべて TypeScript</span>
 <pre>src/
@@ -34,21 +25,41 @@ import { TaskCard, can_move } from "../generated/models";
 
 const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph のソースを 1 つのディレクトリにまとめ、アプリにコンパイルして、UI から import します。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          出力されたコードが必要とするものは、すべてコードと一緒に運ばれます。import は同梱の標準ライブラリも含めてすべて相対パスなので、プロジェクトの <code>tsconfig.json</code> にもバンドラにも何も追加する必要がありません。素の Vite の雛形がそのまま出力をコンパイル・バンドルでき、同じファイルはホスト側の <code>tsc --strict</code> も通ります。アプリから import するものには <code>pub</code> を付けます。付いていない宣言はそのモジュール内に閉じます。これは仮定の話ではありません。外部のエンジニアが<a href="https://github.com/yildizadem/glyph-kanban">この方法で React のカンバンボードを作りました</a>。RBAC のマトリクス、分析用の計算式、ステータス遷移を 4 つの Glyph モジュールに置き、その上に手書きの React UI を載せています。
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          たいていのチームはアプリケーションを書き直せませんし、アプリケーションの大部分には Glyph は必要ありません。必要なのはドメインの中核です。来月 AI エージェントが編集することになり、黙って間違っていては誰も困るルールの部分です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>その中核を Glyph にしておけば、網羅的な <code>match</code>、キャストのないコード、検証された境界を、効果のある場所にだけ導入できます。React コンポーネント、スタイル、インフラはふつうの TypeScript のままです。</p></div>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>出力はそのままホストのプロジェクトに組み込めます。指定子はすべて相対パスで、prelude の型はコード自身が持ち運びます。素の Vite の雛形、ホスト側の <code>tsc --strict</code>、esbuild、<code>tsx</code> で検証済みです。ハイブリッド構成は<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイガイド</a>に記載しています。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">予定</h3>
-          <p>watch モードはまだありません。<code>.glyph</code> のソースを編集したら <code>glyph build</code> を再実行してください（<code>dev</code> スクリプトに組み込むと便利です）。<code>std/fs</code> や <code>std/net</code> を使うモジュールは、Node に触れる TypeScript と同じく、ホスト側に <code>@types/node</code> が必要です。</p>
-        </div>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">ホスト側に追加するものはない<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          出力されたコードが必要とするものは、すべてコードと一緒に運ばれます。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>相対パスの import</b>import は同梱の標準ライブラリも含めてすべて相対パスなので、プロジェクトの <code>tsconfig.json</code> にもバンドラにも何も追加する必要がありません。素の Vite の雛形がそのまま出力をコンパイル・バンドルでき、同じファイルはホスト側の <code>tsc --strict</code> も通ります。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>pub</code> による公開</b>アプリから import するものには <code>pub</code> を付けます。付いていない宣言はそのモジュール内に閉じます。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>これは仮定の話ではありません。外部のエンジニアが<a href="https://github.com/yildizadem/glyph-kanban">この方法で React のカンバンボードを作りました</a>。RBAC のマトリクス、分析用の計算式、ステータス遷移を 4 つの Glyph モジュールに置き、その上に手書きの React UI を載せています。</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">出力はそのままホストのプロジェクトに組み込めます。指定子はすべて相対パスで、prelude の型はコード自身が持ち運びます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">素の Vite の雛形、ホスト側の <code>tsc --strict</code>、esbuild、<code>tsx</code> で検証済みです。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ハイブリッド構成は<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイガイド</a>に記載しています。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">watch モードはまだありません。<code>.glyph</code> のソースを編集したら <code>glyph build</code> を再実行してください（<code>dev</code> スクリプトに組み込むと便利です）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code> や <code>std/net</code> を使うモジュールは、Node に触れる TypeScript と同じく、ホスト側に <code>@types/node</code> が必要です。</span></span></li>
+          </ul>
+        </section>
       </div>

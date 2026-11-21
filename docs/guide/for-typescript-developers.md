@@ -351,6 +351,11 @@ function, or a `let` you await later is E0238. That covers `let _ = save(1)`,
 which TypeScript lint rules often let through. Work that should run on its own,
 from a timer callback for example, is started with `task.detach(async fn() ->
 void { await save(1) })`, which prints a failure on stderr instead of losing it.
+The callback stays a plain `fn`: TypeScript lets `ids.forEach(async (id) => {
+await save(id) })` through because any function fits a `void` callback, and
+Glyph refuses it (E0211), since `forEach`, a timer and a socket handler call
+the callback without waiting for it. In an async function, `for id in ids {
+await save(id) }` runs the calls in order.
 
 ## Formatting is fixed, not configurable
 

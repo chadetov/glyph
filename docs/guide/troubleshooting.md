@@ -159,7 +159,11 @@ because it discards the pending call rather than its result; write `let _ =
 await save(1)`. In a function that cannot be async (a timer or socket callback),
 start the work on purpose with `task.detach(async fn() -> void { await save(1)
 })` from `std/task`; a failure is printed on stderr. If the call returns a
-`Result`, this is E0238 and not E0217: await it first, then `match` it.
+`Result`, this is E0238 and not E0217: await it first, then `match` it. The
+callback itself has to stay sync: an `async fn` passed where `fn(...) -> void`
+is declared is E0211, because whatever calls it drops the promise. For
+`ids.forEach(save)` in an async function, write `for id in ids { await save(id)
+}`.
 
 **TS2678, "type 'true' is not comparable to type 'false'", on a `bool` that came
 from another module.** Glyph gives a binding one type for its whole life;

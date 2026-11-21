@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-406 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-80 are open. G144, the D28 boundary cast that never reached the returns a
+407 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+81 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13803,4 +13803,20 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build: exit 1 with that E0204.*
+
+- **G407. An async lambda with no return type escapes G99's async-callback
+  refusal.** `array.map(xs, async fn(x: number) { await save(x) })` passes
+  both checkers and builds an array of promises, while the annotated
+  `async fn(x: number) -> number { return await save(x) }` is E0211 at the
+  callback (G99). An unannotated lambda lowers its return to `void`, and the
+  function-type relation skips the async comparison when either side
+  returns `void` (D40's exemption), so the async form never meets the rule
+  G99 added. E0238 used to suggest exactly this rewrite for a sync lambda in
+  `array.map`; since record 135 its help there is a loop or `task.all`
+  instead. Scheduled with the 0.1.159 void-slot release, which reworks the
+  same relation. Breaking when closed. Found by record 135.
+
+  *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
+  build by record 135's `p384/g.glyph`: `a` passes both checkers, and only
+  `b`, the annotated form, is E0211.*
 

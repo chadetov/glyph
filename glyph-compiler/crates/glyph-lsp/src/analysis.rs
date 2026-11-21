@@ -576,7 +576,7 @@ pub fn hover_at(
 /// annotation. Glyph's checker has no type for it ("not typed here"), and an
 /// empty answer would read the same as a failed query (record 134).
 pub const OMITTED_LAMBDA_PARAM_NOTE: &str =
-    "not typed here: the parameter has no annotation (contextual typing is G405)";
+    "not typed here: the parameter has no annotation (contextual typing is G414)";
 
 /// [`OMITTED_LAMBDA_PARAM_NOTE`] when `offset` is on a use of a lambda
 /// parameter whose annotation is omitted; `None` otherwise.

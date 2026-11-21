@@ -1,0 +1,20 @@
+---
+version: 0.1.156
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A lambda parameter has the type you wrote, and is arms narrow
+---
+            <p>A lambda parameter written <code>: unknown</code> used to be indistinguishable from one with no annotation at all. The parser filled in <code>unknown</code> for the omitted form, so <code>glyph fmt</code> erased an <code>unknown</code> you wrote, the emitted TypeScript dropped it, and <code>fn(p: unknown) -> number { return p + 1 }</code> compiled. Now the two are kept apart. A written <code>unknown</code> is formatted back as written, emitted as <code>(p: unknown)</code>, and full <code>check</code> refuses <code>p + 1</code>. An omitted annotation still emits <code>(p)</code>, and hovering one of its uses says it is not typed here instead of claiming <code>unknown</code>.</p>
+
+            <p>Inside a <code>match</code> arm whose pattern is <code>is T</code>, the value being matched now has type <code>T</code>, when it is a parameter, a <code>let</code> or a module <code>const</code> and <code>T</code> is a primitive or a declared type. Glyph's own checker refuses a misspelled field there without waiting for <code>tsc</code>:</p>
+
+<pre><code>match v {
+    is User => v.nmae,   // E0210: type `User` has no field `nmae`
+    else => "",
+}</code></pre>
+
+            <p>A name that any <code>mut</code> reassigns, including from inside a lambda, is not narrowed, because a call inside the arm could rebind it. That rule is one function, and the constant-query check for <code>sqlite.Sql</code> from 0.1.155 now reads the same function, so the two cannot disagree about which names are fixed. Container patterns such as <code>is Array&lt;X&gt;</code> do not narrow yet (G415), and an omitted annotation does not take its type from the call it is passed to yet (G414).</p>
+
+            <h3>Breaking</h3>
+            <p>A lambda written with <code>: unknown</code> that uses the parameter as something else now fails full <code>check</code> (0.1.155 exits 0, 0.1.156 exits 1). A misspelled field inside an <code>is</code> arm now fails <code>check --no-tsc</code> too; full <code>check</code> already refused it through <code>tsc</code>. No tracked <code>.glyph</code> file or example app is affected: all 32 apps give identical diagnostics and byte-identical TypeScript under both versions.</p>

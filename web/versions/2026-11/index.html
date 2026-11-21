@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>November 2026 releases · Glyph</title>
-    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.155, 28 releases, 24 breaking. Each one with its ship date and its notes." />
+    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.156, 29 releases, 25 breaking. Each one with its ship date and its notes." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/versions/" />
     <meta property="og:title" content="November 2026 releases" />
-    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.155, 28 releases, 24 breaking. Each one with its ship date and its notes." />
+    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.156, 29 releases, 25 breaking. Each one with its ship date and its notes." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.155</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.156</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 28 releases · 24 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 29 releases · 25 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,41 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">28 releases, 24 breaking, 0.1.128 to 0.1.155</p>
+        <p class="month-sum">29 releases, 25 breaking, 0.1.128 to 0.1.156</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.156" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.156</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.156" data-url="https://glyphlang.io/versions/2026-11/#0.1.156" aria-label="Link to 0.1.156">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A lambda parameter has the type you wrote, and is arms narrow</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>A lambda parameter written <code>: unknown</code> used to be indistinguishable from one with no annotation at all. The parser filled in <code>unknown</code> for the omitted form, so <code>glyph fmt</code> erased an <code>unknown</code> you wrote, the emitted TypeScript dropped it, and <code>fn(p: unknown) -> number { return p + 1 }</code> compiled. Now the two are kept apart. A written <code>unknown</code> is formatted back as written, emitted as <code>(p: unknown)</code>, and full <code>check</code> refuses <code>p + 1</code>. An omitted annotation still emits <code>(p)</code>, and hovering one of its uses says it is not typed here instead of claiming <code>unknown</code>.</p>
+
+            <p>Inside a <code>match</code> arm whose pattern is <code>is T</code>, the value being matched now has type <code>T</code>, when it is a parameter, a <code>let</code> or a module <code>const</code> and <code>T</code> is a primitive or a declared type. Glyph's own checker refuses a misspelled field there without waiting for <code>tsc</code>:</p>
+
+<pre><code>match v {
+    is User =&gt; v.nmae,   // <span class="e">E0210</span>: type <span class="q">`User`</span> has no field <span class="q">`nmae`</span>
+    else =&gt; "",
+}</code></pre>
+
+            <p>A name that any <code>mut</code> reassigns, including from inside a lambda, is not narrowed, because a call inside the arm could rebind it. That rule is one function, and the constant-query check for <code>sqlite.Sql</code> from 0.1.155 now reads the same function, so the two cannot disagree about which names are fixed. Container patterns such as <code>is Array&lt;X&gt;</code> do not narrow yet (G415), and an omitted annotation does not take its type from the call it is passed to yet (G414).</p>
+
+            <h4>Breaking</h4>
+            <p>A lambda written with <code>: unknown</code> that uses the parameter as something else now fails full <code>check</code> (0.1.155 exits 0, 0.1.156 exits 1). A misspelled field inside an <code>is</code> arm now fails <code>check --no-tsc</code> too; full <code>check</code> already refused it through <code>tsc</code>. No tracked <code>.glyph</code> file or example app is affected: all 32 apps give identical diagnostics and byte-identical TypeScript under both versions.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.155" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.155</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.155" data-url="https://glyphlang.io/versions/2026-11/#0.1.155" aria-label="Link to 0.1.155">Link</a>
@@ -484,7 +510,7 @@
             <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.153" data-url="https://glyphlang.io/versions/2026-11/#0.1.153" aria-label="Link to 0.1.153">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">A Record's key type has to match exactly</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>A <code>Record&lt;string, int&gt;</code> used to stand wherever a <code>Record&lt;Tier, int&gt;</code> was declared, with <code>type Tier = "a" | "b"</code>, and the reverse worked too. Either direction lets a key outside <code>Tier</code> into a map whose type promises none: <code>fn narrow(r: Record&lt;string, int&gt;) -&gt; Record&lt;Tier, int&gt; { return r }</code> compiled, and so did passing a <code>Record&lt;Tier, int&gt;</code> on as a <code>Record&lt;string, int&gt;</code> and writing <code>"zzz"</code> into it. Since 0.1.148 the run-time check refuses such a map, so the type and the check disagreed.</p>
@@ -1290,7 +1316,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-416 entries, 311 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-85 are open. G144, the D28 boundary cast that never reached the returns a
+418 entries, 312 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+86 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12688,6 +12688,11 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): unchanged for `r["value"]`, `rs[0].value`, `{ ...r }` and `o["tag"]`. `rs.map(fn(r) { r.value })` also passes, but its parameter is now an omitted annotation (not typed here, G414) rather than a typed one, so that form belongs to contextual typing.*
 
+  The `rs.map(fn(r) { r.value })` form is caught since 0.1.158: the method's
+  callback gives `r` the element type, so it is ``E0210 type `Result<Note,
+  string>` has no field `value` `` under `check --no-tsc` (G414). The index,
+  spread and `rs[0].value` forms are unchanged.
+
 - **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
   member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
   n.map(...), ... }`, which is E0210 again on the payload, and it mentions
@@ -13613,7 +13618,8 @@ and is the owner's to confirm.
   Glyph's checker types as its internal `Unknown` is not judged, and a test
   pins that edge; since Release A that includes a lambda parameter written
   without an annotation, so `array.map(users, fn(p) -> string { return
-  "${p}" })` is accepted until G414 gives it its type from context. Record
+  "${p}" })` was accepted until G414 gave it its type from context (it is
+  E0237 since 0.1.158). Record
   130 (F2): `string.from` takes a declared `unknown`, the documented way to
   read a failed task's error, while `${}` and `+` refuse one with help to
   write `${string.from(v)}` or a `match` with `is string` and `is number`
@@ -14124,7 +14130,7 @@ and is the owner's to confirm.
   `is User => v.nmae` is E0210
   without `tsc`, and hover shows `number` inside `is number =>`.
 
-- **G414. An omitted lambda annotation takes no type from its context.**
+- **G414. [FIXED] An omitted lambda annotation takes no type from its context.**
   `array.map(us, fn(p) -> string { return p.nmae })` with `us: Array<User>`
   passes `check --no-tsc`, and only `tsc` refuses it (TS2339), because an
   omitted lambda parameter is "not typed here" to Glyph's checker while
@@ -14141,6 +14147,33 @@ and is the owner's to confirm.
   *Reproduced against 0.1.153 (the published package): `check --no-tsc`
   reports no diagnostics, and full `check` reports ``[TS2339] Error: tsc:
   Property 'nmae' does not exist on type 'User'``.*
+
+  Fixed in 0.1.158 (D55; records 130, 142 and 143). An omitted lambda
+  parameter takes the type of the matching parameter of the function type
+  expected where the lambda stands: a call argument (the callee's parameter
+  type, with its type parameters bound from the arguments before the lambda
+  and from written type arguments), an annotated `let` or module `const`, a
+  `return` in a callable with a declared return type, a field of a record
+  literal in one of those positions, or an attribute of a component element
+  whose props record Glyph knows, read through `type` aliases. The built-in
+  `Array<T>` methods that take a callback (`map`, `forEach`, `filter`,
+  `find`, `reduce`, `sort` and the rest) supply its parameter types from the
+  element type, so `users.map(fn(p) ..)` gets the answer `array.map(users,
+  fn(p) ..)` does, and the E0238 help for a pending tail reads the same slot.
+  Where none is supplied (a lambda with no expected function type, a DOM
+  element's attribute), or the slot's type is one the checker does not know
+  (`Issue.path`, G405), or it names a callee type parameter nothing has
+  bound, the parameter stays not typed here. `array.map(us, fn(p) -> string
+  { return p.nmae })` is E0210 under `check --no-tsc`, and Release B's
+  pinned hole, `return "${p}"` over `Array<User>`, is E0237; its test is
+  flipped and renamed
+  (`an_omitted_lambda_annotation_typed_from_its_callee_is_judged`). Hover on
+  a use shows the contextual type, and the "not typed here" note is kept for
+  a parameter with none.
+  The corpus comparison found a loop the change moved onto an emitter bug: a
+  two-binding `for` over a declared `unknown` took the record form, so inside
+  an `is Array<unknown>` arm the index was a string; it defers to the run
+  time now.
 
 - **G415. `is Record<K, V>` and `is Array<X>` arms do not narrow; E0224
   should not fire when `V` is `unknown`, and then containers narrow.** Since
@@ -14179,3 +14212,27 @@ and is the owner's to confirm.
   on the `unknown` that `json.parse("{\"code\":7}")` returns reports no
   diagnostics under `check --no-tsc`, and `glyph run` prints `error: [object
   Object]`.*
+
+- **G417. Hover inside a template string is one column off.** In `return "a
+  ${i}"` with `i: number`, hover on the `{` of `${i}` answers `number` and
+  hover on `i` itself answers `string`, the type of the whole literal: the
+  spans of an interpolated expression are recorded one column left of where
+  the name is written. The checker's judgements are unaffected; hover, which
+  agents read through MCP, names the wrong type. Found while measuring G414
+  (records 142 and 143).
+
+  *Reproduced against 0.1.157 (the release build): with `return "a ${i}"`
+  on the fourth line of the file, indented two spaces, `glyph query hover
+  --line 3` gives `"number"` at character 13 (the `{`) and `"string"` at
+  character 14 (the `i`).*
+
+- **G418. A scrutinee whose type is not known hovers as an arm's narrowed
+  type.** In `let g = fn(q) -> string { return match q { is string => q,
+  else => "?", } }`, hover on the scrutinee `q` answers `string`, the type
+  the `is` narrowing (D53) gives `q` inside the arm, though at the scrutinee
+  `q` is not typed here. The narrowing is recorded on the scrutinee's own
+  span. A scrutinee with a known type (a declared `unknown`) hovers
+  correctly. Found while measuring G414 (records 142 and 143).
+
+  *Reproduced against 0.1.157 (the release build): `glyph query hover` on
+  the scrutinee answers `"string"`.*

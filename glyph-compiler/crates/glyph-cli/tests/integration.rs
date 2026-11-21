@@ -20994,6 +20994,45 @@ pub fn d(users: Array<User>) -> Array<string> {
     assert!(got[1].2.contains("`+` joins a `User` to a string"), "{got:#?}");
 }
 
+/// A two-binding `for` over a declared `unknown` that holds an array binds a
+/// numeric index at run time. The emitter took the record form for any typed
+/// iterand that was not an `Array`, so inside an `is Array<unknown>` arm the
+/// index was a string and `i + 1` printed `01,11`. Contextual typing (D55)
+/// gives `01_validator`'s `parse: fn(input) { .. }` the slot's declared
+/// `unknown`, which put its array loop on that path; the iterand now defers
+/// to the run time as an untyped one does.
+#[test]
+fn a_declared_unknown_array_loop_binds_a_numeric_index() {
+    if !js_toolchain_available() {
+        eprintln!("skipping the declared-unknown loop run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("d55-unknown-pairs");
+    let text = r#"module main
+
+fn last_index(input: unknown) -> string {
+  return match input {
+    is Array<unknown> => {
+      let found: Array<string> = []
+      for i, item in input {
+        mut found.push("${i + 1}")
+      }
+      found.join(",")
+    },
+    else => "none",
+  }
+}
+
+fn main() -> void {
+  print(last_index(["a", "b"]))
+}
+"#;
+    write_file(&root.join("src"), "main.glyph", text);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert_eq!(stdout.trim(), "1,2", "{stderr}");
+}
+
 /// Record 142, B2: an attribute of a component element is a field of the
 /// props object the element passes, so a lambda in it takes the field's
 /// type, as the record-literal form of the same props already did. A DOM

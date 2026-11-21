@@ -1256,6 +1256,24 @@ impl Expr {
             Expr::Jsx(e) => e.span,
         }
     }
+
+    /// Whether the expression is a place (D5): a name, or a chain of plain
+    /// (non-optional) field reads and index subscripts bottoming out at one.
+    /// A call, a literal, an operator expression and a `?.` read are not.
+    ///
+    /// It is the one definition of what a `mut` statement may write, in both
+    /// of its shapes: the parser holds `mut <target> = e` to it, and the
+    /// checker holds the receiver of a mutating call in `mut xs.push(v)` to
+    /// it (G380, E0240), so one rule decides where either kind of write may
+    /// land.
+    pub fn is_place(&self) -> bool {
+        match self {
+            Expr::Ident { .. } => true,
+            Expr::Member { object, optional, .. } => !optional && object.is_place(),
+            Expr::Index { object, .. } => object.is_place(),
+            _ => false,
+        }
+    }
 }
 
 impl TypeExpr {

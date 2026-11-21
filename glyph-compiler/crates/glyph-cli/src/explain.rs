@@ -1219,6 +1219,65 @@ pub fn explain(code: &str) -> Option<&'static str> {
             all of these programs: the rule is Glyph's checker alone. It \
             covers `std/sqlite` only; an npm driver takes a plain `string`.",
 
+        "E0240" => "E0240: a call that changes its receiver, outside a `mut` statement\n\n\
+            Every change to a value whose type Glyph knows is a `mut` \
+            statement (D5), so `grep -n \"^\\s*mut \"` lists all of them. A \
+            call that changes its receiver in place is one of those changes. \
+            On an `Array<T>` that is `push`, `pop`, `shift`, `unshift`, \
+            `splice`, `sort`, `reverse`, `fill` and `copyWithin`; no method of \
+            a `string` or a `number` changes it.\n\n\
+            Before:  xs.push(4)\n\
+            After:   mut xs.push(4)\n\n\
+            `glyph fix` writes that `mut` for you, in that one case: a call \
+            standing as a whole statement.\n\n\
+            The call may stand only as the whole call of a `mut` statement. \
+            Anywhere else its value is read, and the change hides inside an \
+            expression:\n\n\
+            return xs.sort(cmp)[0]     // sorts the caller's array\n\
+            let n = xs.pop()           // a `let` initializer\n\
+            f(xs.push(1))              // an argument\n\
+            true => xs.push(1),        // an arm of a statement `match`\n\n\
+            Each has a spelling that keeps the value apart from the change. \
+            `array.sort(xs, cmp)` and `array.reverse(xs)` return a sorted or \
+            reversed copy and leave `xs` alone. For `pop` and `shift`, read \
+            the element first with `array.get(xs, array.len(xs) - 1)` or \
+            `array.get(xs, 0)`, an `Option`, then write `mut xs.pop()`. For \
+            `splice`, read what it removes with `array.slice` first. The help \
+            writes the version for the call you have. An arm takes a block: \
+            `true => { mut xs.push(1) }`.\n\n\
+            A call under `mut` writes to a place, the same places \
+            `mut x = e` can: a name, a field, an index, with no `?.`. \
+            `mut make().push(1)` and `mut ys.filter(f).sort(cmp)` change an \
+            array nothing holds, so the change is lost; bind it with `let` \
+            first, or use `array.sort(ys.filter(f), cmp)`.\n\n\
+            Not judged: a receiver the checker cannot type (an npm value, an \
+            `extern_ts` result, a lambda parameter with no annotation whose \
+            position gives no type), and the standard library's `Set`, \
+            `Store` and `Deque`, whose receivers Glyph's checker does not \
+            type yet (G423). `tsc` accepts every one of these programs.",
+
+        "E0241" => "E0241: `mut` on a call that changes nothing\n\n\
+            `mut` marks a change (D5). Before a call Glyph knows changes \
+            nothing, it puts a line in the `grep -n \"^\\s*mut \"` audit that \
+            writes nothing, and the call's result is usually thrown away:\n\n\
+            mut xs.concat(ys)          // returns a new array; `xs` is unchanged\n\
+            mut name.toUpperCase()     // strings never change\n\
+            mut array.push(xs, 1)      // a function returning a new array\n\
+            mut io.println(s)          // a function call\n\n\
+            To keep a result, assign it: `mut xs = xs.concat(ys)`, or \
+            `mut xs = array.push(xs, 1)`. To change `xs` in place, call the \
+            method: `mut xs.push(1)`.\n\n\
+            It fires on a method of an `Array<T>`, a `string` or a `number` \
+            that does not change its receiver, and on any function read \
+            through a namespace import of a Glyph module, the standard \
+            library or your own. A function call is not written `mut`; the \
+            change it makes is a `mut` statement inside it. Which call it is \
+            depends on what the name resolves to, so a local `result` that \
+            shadows `std/result` is a value and `mut result.push(v)` is fine.\n\n\
+            Not judged: a call on a receiver the checker cannot type, and \
+            functions of an npm package. `mut` there is allowed and not \
+            required.",
+
         "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
             E0300 covers two things. One is a construct the v1 TypeScript \
             emitter does not handle yet; rewrite it using a supported form \
@@ -2339,6 +2398,18 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A SQL query built from a run-time value (G387, D52): the `sql` argument of `std/sqlite`'s `exec`, `run`, `query` or `query_one`, or any parameter, `let`, `const` or `return` declared `sqlite.Sql`, holds text that is not a constant string expression. Constant is a literal with no `${}`, a literal whose every `${}` is constant, a `+` of constants, a `match` whose every arm is constant, a module `const` or a `let` no `mut` reassigns whose initializer is constant, or a `sqlite.Sql` value; a name is followed to its initializer, so `let q = \"...${name}...\"` then `db.query(q, [])` is refused. A constant from another module counts only when declared `sqlite.Sql`. `tsc` accepts all of these: the emitted type is `string`",
         fix: "Put the value in the parameter array: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])` (the help computes this rewrite); `exec` takes no values, so use `db.run(sql, [values])`. A column or table picked at run time is a `match` whose arms are constant strings; text that no `match` can list goes through `taint.sanitize` or `taint.trust_unchecked` and `sqlite.from_trusted`",
+    },
+    CodeEntry {
+        code: "E0240",
+        phase: "typechecker",
+        meaning: "A call that changes its receiver, outside a `mut` statement (G380, D5): `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill` or `copyWithin` on an `Array<T>` anywhere but as the whole call of a `mut` statement (a bare statement, a `return`, a `let` initializer, an argument, an operand, the receiver of another call, an arm value), or under `mut` on a receiver that is not a place (`mut make().push(1)`, `mut ys.filter(f).sort(cmp)`). A receiver the checker cannot type, and the stdlib `Set`, `Store` and `Deque`, are not judged. `tsc` accepts all of these",
+        fix: "Write `mut xs.push(v)` as its own statement (`glyph fix` inserts the `mut` for a bare statement). For a value, `array.sort(xs, cmp)` or `array.reverse(xs)` return a copy; read with `array.get` before `mut xs.pop()`; the help computes the rewrite",
+    },
+    CodeEntry {
+        code: "E0241",
+        phase: "typechecker",
+        meaning: "`mut` on a call that changes nothing (G380, D5): a method of an `Array<T>`, a `string` or a `number` that leaves its receiver unchanged (`mut xs.concat(ys)`, `mut s.toUpperCase()`), or a function read through a namespace import of a Glyph module (`mut array.push(xs, 1)`, `mut io.println(s)`). Decided from what the name resolves to; an npm namespace or an untyped receiver is not judged",
+        fix: "Assign the result to keep it (`mut xs = xs.concat(ys)`), call the in-place method (`mut xs.push(1)`), or drop the `mut` from a function call",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

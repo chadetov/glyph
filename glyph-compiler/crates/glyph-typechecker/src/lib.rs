@@ -33,6 +33,7 @@ pub mod builtin_members;
 mod builtin_methods;
 pub mod concurrency;
 pub mod lower;
+pub mod mutation;
 pub mod owned;
 pub mod pending;
 pub mod reassign;
@@ -82,6 +83,7 @@ impl Accepted {
 
 use std::borrow::Cow;
 pub use builtin_members::BuiltinReceiver;
+pub use mutation::MutationSite;
 
 /// What a `Record` key is, for the note and help of a refusal made by the key
 /// invariance rule (G373). Mirrors the checker's key domains, without the
@@ -855,6 +857,35 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G380, D5: a call that changes its receiver in place, standing anywhere
+    /// but as the whole call of a `mut` statement, or under `mut` on a
+    /// receiver that is not a place. Judged for the methods the generated
+    /// rows mark `mutates` (`push`, `sort` and seven others on an `Array<T>`);
+    /// a receiver the checker types `Unknown` is never judged. `kind` is
+    /// where the call stands, which `glyph fix` reads: only a `Statement`
+    /// takes the `mut ` it inserts. Message and help are computed from the
+    /// call as written.
+    #[error("{message}")]
+    MutationOutsideMut {
+        kind: MutationSite,
+        message: String,
+        help: String,
+        span: Span,
+    },
+
+    /// G380, D5: `mut` before a call Glyph knows changes nothing: a method
+    /// the generated rows mark non-mutating on an `Array<T>`, a `string` or a
+    /// `number` (`mut xs.concat(ys)`, whose result is discarded), or a
+    /// function read through a namespace import of a Glyph module
+    /// (`mut array.push(xs, 1)`, `mut io.println(s)`), which D5's "a free
+    /// function call is not a `mut` statement" already meant.
+    #[error("{message}")]
+    MutOnNonMutatingCall {
+        message: String,
+        help: String,
+        span: Span,
+    },
+
     /// G311, record 87 (D18): `?.` on a receiver that resolves to the
     /// prelude `Option<T>` or `Result<T, E>`, through any alias. Neither is
     /// ever null at run time, so the chain never short-circuits: it reads
@@ -1485,6 +1516,8 @@ impl TypeError {
             TypeError::NullableRead { span, .. } => *span,
             TypeError::OptionalChainOnTagged { span, .. } => *span,
             TypeError::SqlFromRuntimeValue { span, .. } => *span,
+            TypeError::MutationOutsideMut { span, .. } => *span,
+            TypeError::MutOnNonMutatingCall { span, .. } => *span,
             TypeError::NoTextForm { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
@@ -1536,6 +1569,8 @@ impl TypeError {
             TypeError::NullableRead { .. } => "E0235",
             TypeError::OptionalChainOnTagged { .. } => "E0236",
             TypeError::SqlFromRuntimeValue { .. } => "E0239",
+            TypeError::MutationOutsideMut { .. } => "E0240",
+            TypeError::MutOnNonMutatingCall { .. } => "E0241",
             TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
@@ -1574,7 +1609,10 @@ impl TypeError {
                 return Some(Cow::Owned(h));
             }
         }
-        if let TypeError::SqlFromRuntimeValue { help, .. } = self {
+        if let TypeError::SqlFromRuntimeValue { help, .. }
+        | TypeError::MutationOutsideMut { help, .. }
+        | TypeError::MutOnNonMutatingCall { help, .. } = self
+        {
             return Some(Cow::Owned(help.clone()));
         }
         // A plain value where `std/taint`'s branded wrapper is declared (G387,
@@ -1882,6 +1920,8 @@ impl TypeError {
             TypeError::NoTextForm { .. } => unreachable!("answered above with the value it names"),
             TypeError::RecordRemoveFiniteKey { .. } => unreachable!("answered above with the key it names"),
             TypeError::SqlFromRuntimeValue { .. } => unreachable!("answered above with its computed help"),
+            TypeError::MutationOutsideMut { .. } => unreachable!("answered above with its computed help"),
+            TypeError::MutOnNonMutatingCall { .. } => unreachable!("answered above with its computed help"),
         }))
     }
 
@@ -1927,6 +1967,12 @@ impl TypeError {
             ),
             TypeError::OptionalChainOnTagged { .. } => Some(
                 "`Option` and `Result` are tagged values at run time and never null, so `?.` never short-circuits on one: it reads the member off the tag object. `match` is the one place either is opened, and `?` is the one way a `Result` propagates.",
+            ),
+            TypeError::MutationOutsideMut { .. } => Some(
+                "Every change to a value whose type Glyph knows is a `mut` statement (D5), so `grep -n \"^\\s*mut \"` lists all of them. A call that changes its receiver counts, and it writes to a place, the same places `mut x = e` can: a name, a field, an index.",
+            ),
+            TypeError::MutOnNonMutatingCall { .. } => Some(
+                "`mut` marks a change (D5), so `grep -n \"^\\s*mut \"` lists the program's writes. A call that changes nothing would put a line in that list that writes nothing, and the value it returns is thrown away.",
             ),
             TypeError::SqlFromRuntimeValue { .. } => Some(
                 "A query's text is fixed when the program is written (D52). Values go in the parameter array, where SQLite binds them as data and never reads them as SQL; `sqlite.from_trusted` is the one way to run text built at run time, and it takes a `taint.Trusted<string>`.",

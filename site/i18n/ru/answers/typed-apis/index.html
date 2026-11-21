@@ -1,7 +1,7 @@
 ---
 title: Нужно ли писать валидатор для каждого API вручную? · Glyph
 description: Нет. В Glyph тип сам является своим валидатором во время выполнения, поэтому тела запросов и ответов проверяются без рукописного валидатора, а сами типы можно получить из спецификации OpenAPI или из .d.ts.
-source_hash: e5583b6a5d857445
+source_hash: 46f9f9ea5d8ba7bb
 prev: /answers/embedding/ | &larr; Назад | Можно ли внедрить Glyph в моё существующее приложение, или только всё или ничего?
 next: /answers/codegen/ | Далее &rarr; | Можно ли сгенерировать типизированный клиент и сервер из спецификации API?
 ---
@@ -226,7 +226,7 @@ type User = { name: string; age: number };
           Тело запроса приходит уже декодированным как <code>unknown</code>, поэтому там используется <code>T.parse(value)</code>: та же гарантия, без приведения.
         </p>
         <p>
-          Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть.
+          Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть. Поле тела подчиняется тому же правилу: <code>timeout_ms?: number</code> это отсутствующий ключ или число, поэтому <code>{"timeout_ms": null}</code> даёт <code>Err</code> в <code>["timeout_ms"]</code>, одинаково из <code>T.parse</code>, <code>is T</code> и <code>json.parse&lt;T&gt;</code>. Объявите <code>timeout_ms?: Nullable&lt;number&gt;</code>, если отправитель пишет <code>null</code>. До 0.1.152 этот <code>null</code> возвращался внутри <code>Ok</code>.
         </p>
       </div></details>
 
@@ -239,15 +239,15 @@ type User = { name: string; age: number };
           <thead><tr><th>Тип ключа</th><th>Что <code>parse</code> проверяет для каждого ключа</th></tr></thead>
           <tbody>
             <tr><td>Union строковых литералов</td><td>ровно перечисленные ключи, без пропущенных и без лишних</td></tr>
-            <tr><td>Тип, уточнённый через <code>where</code></td><td>предикат</td></tr>
+            <tr><td><code>string</code> или число, уточнённые через <code>where</code></td><td>предикат</td></tr>
             <tr><td><code>int</code></td><td>обычную запись целого числа; <code>"01"</code> и <code>"1.5"</code> не проходят</td></tr>
             <tr><td><code>string</code></td><td>ничего нового</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробности <span class="hint">уточнённые и int-ключи и что пока остаётся за tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробности <span class="hint">уточнённые и int-ключи и что держит проверка</span></summary><div class="body">
         <p>
-          Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>"01"</code> и <code>"1.5"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. Собственная проверка Glyph по-прежнему оставляет ключи значения, написанного в коде, на <code>tsc</code>, а обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>.
+          Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>"01"</code> и <code>"1.5"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. <code>where</code> не может уточнить объединение строковых литералов (<code>type T2 = Tier where value != "pro"</code> это <code>E0300</code> начиная с 0.1.152); запишите нужные члены отдельным объединением, <code>type T2 = "free"</code>, и оно станет ключом <code>Record</code> с той же проверкой точного набора ключей. Начиная с 0.1.153 собственная проверка Glyph держит и ключ значения, написанного в коде: <code>Record&lt;string, int&gt;</code> не подставляется туда, где объявлен <code>Record&lt;Tier, int&gt;</code>, и наоборот, поэтому переход идёт через <code>json.parse</code> или ветку <code>is Record&lt;Tier, int&gt;</code>, а <code>record.set</code> сохраняет переданный ему ключ. Обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>.
         </p>
       </div></details>
 

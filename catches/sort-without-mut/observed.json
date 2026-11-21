@@ -4,7 +4,7 @@
     "output": "smallest 1 and xs[0] is now 1"
   },
   "glyph": {
-    "command": "glyph run",
-    "output": "smallest 1 and xs[0] is now 1"
+    "command": "glyph build",
+    "output": "[E0240] Error: typecheck: `xs.sort(by_value)` changes `xs` in place, and its value is used here\nHelp: `array.sort(xs, by_value)` returns a sorted copy and leaves `xs` alone (with `import std/array`)"
   }
 }

@@ -1,11 +1,6 @@
+code = "E0240"
 pillar = "greppability"
 title = "A sort that changes the caller's array without mut"
-kind = "gap"
-gap_id = "G380"
+kind = "refused"
 ts_output = "smallest 1 and xs[0] is now 1"
-glyph_output = "smallest 1 and xs[0] is now 1"
 fullconfig = "none"
-section = "gap"
-slug = "gap-g380-mutation-without-mut"
-order = 5
-summary = "<code>xs.sort(...)</code> inside a helper reorders the caller's array, and no <code>mut</code> marks it."

@@ -29,6 +29,17 @@ script writes that file; without it, it renders the file again and fails when
 the committed copy differs, so a TypeScript bump that changes a signature, or
 a hand edit to the generated file, fails here.
 
+Each row also says whether the method changes its receiver (G380, D5). That
+is the one fact the rows carry that TypeScript's library does not hold: no
+declaration in `lib.d.ts` marks a method as mutating. So the split is written
+here by hand, as `MUTATING` and `NON_MUTATING` per receiver, and kept honest
+two ways. Generation fails when a method TypeScript declares is in neither set
+or in both, so a TypeScript bump that adds a method fails CI until a person
+classifies it. And node runs every array method with sample arguments on a
+fresh array and checks the receiver changed exactly when the method is in
+`MUTATING`, so the hand split is checked against the engine that runs the
+code rather than against memory.
+
 Hard-fails (exit 1) on any difference, printing the names on each side.
 """
 
@@ -173,6 +184,104 @@ console.log(JSON.stringify(result));
 """
 
 
+# Which methods change their receiver (G380, D5). Every method TypeScript
+# declares on the receiver, `Object`'s included, is in exactly one of the two
+# sets; `classification_failures` enforces it. A mutating method may stand
+# only as the whole call of a `mut` statement (E0240), and `mut` before a
+# non-mutating one is E0241, so a row in the wrong set is either a false
+# refusal or a write the `^\s*mut ` audit misses.
+MUTATING = {
+    "array": {"copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"},
+    # A string and a number are immutable primitives: no method can change one.
+    "string": set(),
+    "number": set(),
+}
+OBJECT_METHODS = {
+    "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toString", "valueOf",
+}
+NON_MUTATING = {
+    "array": OBJECT_METHODS | {
+        "at", "concat", "entries", "every", "filter", "find", "findIndex", "findLast",
+        "findLastIndex", "flat", "flatMap", "forEach", "includes", "indexOf", "join", "keys",
+        "lastIndexOf", "map", "reduce", "reduceRight", "slice", "some", "toReversed", "toSorted",
+        "toSpliced", "values", "with",
+    },
+    "string": OBJECT_METHODS | {
+        "anchor", "at", "big", "blink", "bold", "charAt", "charCodeAt", "codePointAt", "concat",
+        "endsWith", "fixed", "fontcolor", "fontsize", "includes", "indexOf", "isWellFormed",
+        "italics", "lastIndexOf", "link", "localeCompare", "match", "matchAll", "normalize",
+        "padEnd", "padStart", "repeat", "replace", "replaceAll", "search", "slice", "small",
+        "split", "startsWith", "strike", "sub", "substr", "substring", "sup",
+        "toLocaleLowerCase", "toLocaleUpperCase", "toLowerCase", "toUpperCase", "toWellFormed",
+        "trim", "trimEnd", "trimLeft", "trimRight", "trimStart",
+    },
+    "number": OBJECT_METHODS | {"toExponential", "toFixed", "toPrecision"},
+}
+
+# The run-time oracle for the array split. Each method is called once, with
+# the sample arguments below, on a fresh `[3, 1, 2]` (unsorted, not a
+# palindrome, so `sort` and `reverse` change it), and the receiver is compared
+# before and after. A method with no sample here fails the oracle, so a new
+# method cannot slip past it unclassified at run time either.
+ARRAY_ORACLE = r"""
+const samples = {
+  at: [0], concat: [[4]], copyWithin: [0, 1], entries: [], every: [(x) => true],
+  fill: [0], filter: [(x) => true], find: [(x) => false], findIndex: [(x) => false],
+  findLast: [(x) => false], findLastIndex: [(x) => false], flat: [], flatMap: [(x) => [x]],
+  forEach: [(x) => {}], hasOwnProperty: ["0"], includes: [1], indexOf: [1],
+  isPrototypeOf: [{}], join: [","], keys: [], lastIndexOf: [1], map: [(x) => x], pop: [],
+  propertyIsEnumerable: ["0"], push: [4], reduce: [(a, b) => a + b, 0],
+  reduceRight: [(a, b) => a + b, 0], reverse: [], shift: [], slice: [1], some: [(x) => false],
+  sort: [], splice: [0, 1], toLocaleString: [], toReversed: [], toSorted: [], toSpliced: [0, 1],
+  toString: [], unshift: [0], valueOf: [], values: [], with: [0, 9],
+};
+const methods = JSON.parse(process.argv[1]);
+const out = {};
+for (const m of methods) {
+  if (!(m in samples)) { out[m] = "no-sample"; continue; }
+  const xs = [3, 1, 2];
+  const before = JSON.stringify(xs);
+  xs[m](...samples[m]);
+  out[m] = JSON.stringify(xs) !== before;
+}
+console.log(JSON.stringify(out));
+"""
+
+
+def classification_failures(got: dict) -> list[str]:
+    """Every method in exactly one of `MUTATING` and `NON_MUTATING`, and the
+    array split confirmed by running each method in node."""
+    failures = []
+    for kind in ("array", "string", "number"):
+        methods = set(got[kind])
+        mut, pure = MUTATING[kind], NON_MUTATING[kind]
+        for name in sorted(methods - mut - pure):
+            failures.append(
+                f"{kind}: `{name}` is in neither MUTATING nor NON_MUTATING; classify it "
+                "(does calling it change the receiver?)"
+            )
+        for name in sorted(mut & pure):
+            failures.append(f"{kind}: `{name}` is in both MUTATING and NON_MUTATING")
+        for name in sorted((mut | pure) - methods):
+            failures.append(f"{kind}: `{name}` is classified but TypeScript declares no such method")
+    if failures:
+        return failures
+    r = subprocess.run(
+        ["node", "-e", ARRAY_ORACLE, json.dumps(sorted(got["array"]))],
+        capture_output=True, text=True, timeout=60,
+    )
+    if r.returncode != 0:
+        return ["the array mutation oracle failed to run:\n" + r.stderr]
+    for name, changed in sorted(json.loads(r.stdout).items()):
+        if changed == "no-sample":
+            failures.append(f"array: `{name}` has no sample arguments in ARRAY_ORACLE; add one")
+        elif changed and name not in MUTATING["array"]:
+            failures.append(f"array: `{name}` changed its receiver in node and is not in MUTATING")
+        elif not changed and name in MUTATING["array"]:
+            failures.append(f"array: `{name}` is in MUTATING and left its receiver unchanged in node")
+    return failures
+
+
 def rust_ty(ty: str) -> str:
     """`ArrayOf(Elem)` as the Rust expression the row holds."""
     if ty.startswith("ArrayOf(") and ty.endswith(")"):
@@ -181,7 +290,8 @@ def rust_ty(ty: str) -> str:
 
 
 def render_methods(got: dict) -> str:
-    """The whole of `builtin_methods.rs`, from the method probe's answer."""
+    """The whole of `builtin_methods.rs`, from the method probe's answer and
+    the hand split into `MUTATING` and `NON_MUTATING`."""
     lines = [
         "// @generated by `python3 scripts/check_builtin_members.py --write`. Do not edit:",
         "// CI renders this file again and fails when the committed copy differs.",
@@ -190,7 +300,8 @@ def render_methods(got: dict) -> str:
         f"//! TypeScript {got['version']}'s library (`lib: [\"esnext\", \"dom\"]`) declares for",
         "//! each, mapped by the rules `builtin_members.rs` documents above",
         "//! `BuiltinMethod` (G312). Sorted by name: `BuiltinReceiver::method`",
-        "//! binary-searches.",
+        "//! binary-searches. `mutates` is the script's `MUTATING` set (G380), which",
+        "//! node confirms at generation by calling each array method.",
         "",
         "use crate::builtin_members::MethodSig::{Typed, Untyped};",
         "use crate::builtin_members::MethodTy as T;",
@@ -209,7 +320,8 @@ def render_methods(got: dict) -> str:
                     f"{'opt' if p['optional'] else 'req'}({rust_ty(p['ty'])})" for p in row["params"]
                 )
                 sig = f"Typed {{ params: &[{params}], ret: {rust_ty(row['ret'])} }}"
-            lines.append(f'    BuiltinMethod {{ name: "{name}", sig: {sig} }},')
+            mutates = "true" if name in MUTATING[kind] else "false"
+            lines.append(f'    BuiltinMethod {{ name: "{name}", mutates: {mutates}, sig: {sig} }},')
         lines.append("];")
     return "\n".join(lines) + "\n"
 
@@ -295,7 +407,14 @@ def main() -> int:
     if r.returncode != 0:
         print("the TypeScript method probe failed:\n" + r.stderr)
         return 1
-    rendered = render_methods(json.loads(r.stdout))
+    methods = json.loads(r.stdout)
+    classified = classification_failures(methods)
+    if classified:
+        print("builtin members: the mutation split is incomplete or wrong")
+        for f in classified:
+            print("  " + f)
+        return 1
+    rendered = render_methods(methods)
     rel = METHODS.relative_to(ROOT)
     if write:
         METHODS.write_text(rendered)
@@ -320,7 +439,8 @@ def main() -> int:
     print(
         f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string and "
         f"{len(table['number'])} number members match TypeScript {got['version']} "
-        f"(esnext + dom, with Object's), and {rel} is what it generates."
+        f"(esnext + dom, with Object's), every method is classified mutating or not and node "
+        f"agrees on the array split, and {rel} is what it generates."
     )
     return 0
 

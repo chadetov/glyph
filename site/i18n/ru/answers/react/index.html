@@ -1,7 +1,7 @@
 ---
 title: Работает ли он с React, хуками и Context? · Glyph
 description: React встроен: компонент компилируется в функциональный компонент, JSX понижается в createElement, а действия редьюсера сопоставляются исчерпывающе.
-source_hash: 7cfdf0dbb16b7eaf
+source_hash: 4d46f3d681c38c46
 prev: /answers/codegen/ | &larr; Назад | Можно ли сгенерировать типизированный клиент и сервер из спецификации API?
 next: /answers/state/ | Далее &rarr; | Как разделять изменяемое состояние между функциями?
 ---
@@ -12,18 +12,9 @@ next: /answers/state/ | Далее &rarr; | Как разделять измен
         Да. <code>component</code> компилируется в функциональный компонент React, JSX понижается в <code>createElement</code>, собственные хуки React импортируются по имени, а их пары деструктурируются, и состояние редьюсера получает исчерпывающую проверку, которой нет в обычном TypeScript. К самой странице (её заголовку, точке монтирования, сохранённому состоянию) обращаются через <code>std/dom</code> и <code>std/storage</code>. Ограничение, о котором стоит знать сразу: собственная проверка Glyph не типизирует то, что возвращает хук, поэтому эти значения проверяет <code>tsc</code>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Большая часть кода, который пишут агенты, это React. Glyph считает его полноценной целью, а не надстройкой: <code>component</code> это отдельное ключевое слово (так что <code>grep "^component "</code> проверяет весь ваш UI). Хуки React импортируются из <code>react</code> и вызываются под своими настоящими именами и с настоящими типами, а <code>tsc</code> проверяет их по собственным объявлениям React.
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>Настоящий <code>useReducer</code> из React с редьюсером над размеченным объединением. Каждое действие должно быть обработано, и компилятор это проверяет:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph, с react@18 и его типами</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph, с react@18 и его типами</span>
 <pre>import react { useReducer }
 
 type Action = Inc | Dec | Reset
@@ -41,24 +32,55 @@ pub component Counter() {
   let [count, dispatch] = useReducer(reducer, 0)
   return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Настоящий <code>useReducer</code> из React с редьюсером над размеченным объединением. Каждое действие должно быть обработано, и компилятор это проверяет.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Добавьте действие <code>Double</code>, и редьюсер перестанет компилироваться с <code>E0200</code>, где оно названо, тогда как обычный <code>switch</code> в TypeScript пропустил бы это в релиз. Пара деструктурируется через <code>let [count, dispatch]</code>, а сгенерированный TypeScript добавляет <code>satisfies readonly [unknown, unknown]</code>, так что <code>tsc</code> доказывает, что хук вернул пару, и всё равно выводит тип каждого элемента. Собственная проверка Glyph не типизирует значения, пришедшие из React, поэтому о неверном аргументе <code>dispatch</code> или сеттера состояния сообщает <code>tsc</code> при сборке, а не редактор или <code>--no-tsc</code>. <strong>Context</strong> React уже работает через <code>createContext</code> / <code>useContext</code>, а имена элементов в виде обращения к члену (<code>&lt;ThemeContext.Provider&gt;</code>) работают напрямую, без обходных путей.
-        </p>
-        <p>
-          Spread пропсов в JSX тоже работает: <code>&lt;input {...register("email")} /&gt;</code> понижается в spread объекта в props, так что идиоме react-hook-form адаптер не нужен. Типы zod, выведенные из значений, поддерживаются полноценно: <code>type FormData = z.infer&lt;typeof schema&gt;</code> работает напрямую, без лазейки. Одно отличие: компонент принимает одну запись props, а не несколько позиционных параметров. Где именно проходит эта граница, смотрите в <a href="/answers/imports/">использовании ваших библиотек</a> и на <a href="/hardening/">странице про укрепление</a>.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#reducers-and-hooks">Редьюсеры и хуки</a></li>
+          <li><a href="#context-and-libraries">Context и библиотеки</a></li>
+          <li><a href="#are-props-checked-before-tsc">Пропсы до tsc</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">&lt;match&gt; в JSX</a></li>
+          <li><a href="#how-does-a-page-start-it">Запуск страницы</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label">Проверяются ли пропсы до tsc?</h2>
-        <p>
-          Да. Glyph сам сравнивает каждый элемент с записью props его компонента, поэтому неверное значение, опечатка в имени пропса и отсутствующий обязательный пропс это ошибки Glyph, в которых пропс назван. Вы видите их в редакторе и через MCP, а не только в полной сборке. Это работает одинаково, импортирован ли компонент по имени или через свой модуль:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Большая часть кода, который пишут агенты, это React. Glyph считает его полноценной целью, а не надстройкой: <code>component</code> это отдельное ключевое слово (так что <code>grep "^component "</code> проверяет весь ваш UI).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Хуки React импортируются из <code>react</code> и вызываются под своими настоящими именами и с настоящими типами, а <code>tsc</code> проверяет их по собственным объявлениям React.</p></div>
 
+      <h2 class="ak-h" id="reducers-and-hooks">Редьюсеры и хуки<a class="ak-anchor" href="#reducers-and-hooks" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Добавьте действие <code>Double</code>, и редьюсер перестанет компилироваться с <code>E0200</code>, где оно названо, тогда как обычный <code>switch</code> в TypeScript пропустил бы это в релиз.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Собственная проверка Glyph не типизирует значения, пришедшие из React, поэтому о неверном аргументе <code>dispatch</code> или сеттера состояния сообщает <code>tsc</code> при сборке, а не редактор или <code>--no-tsc</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как деструктурируется пара хука</span></summary><div class="body">
+        <p>
+          Пара деструктурируется через <code>let [count, dispatch]</code>, а сгенерированный TypeScript добавляет <code>satisfies readonly [unknown, unknown]</code>, так что <code>tsc</code> доказывает, что хук вернул пару, и всё равно выводит тип каждого элемента.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context и библиотеки<a class="ak-anchor" href="#context-and-libraries" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <strong>Context</strong> React уже работает через <code>createContext</code> / <code>useContext</code>, а имена элементов в виде обращения к члену (<code>&lt;ThemeContext.Provider&gt;</code>) работают напрямую, без обходных путей.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>Spread пропсов</b>Spread пропсов в JSX тоже работает: <code>&lt;input {...register("email")} /&gt;</code> понижается в spread объекта в props, так что идиоме react-hook-form адаптер не нужен.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Типы zod</b>Типы zod, выведенные из значений, поддерживаются полноценно: <code>type FormData = z.infer&lt;typeof schema&gt;</code> работает напрямую, без лазейки.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Одно отличие: компонент принимает одну запись props, а не несколько позиционных параметров. Где именно проходит эта граница, смотрите в <a href="/answers/imports/">использовании ваших библиотек</a> и на <a href="/hardening/">странице про укрепление</a>.</p></div>
+
+      <h2 class="ak-h" id="are-props-checked-before-tsc">Проверяются ли пропсы до tsc?<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Да. Glyph сам сравнивает каждый элемент с записью props его компонента, поэтому неверное значение, опечатка в имени пропса и отсутствующий обязательный пропс это ошибки Glyph, в которых пропс назван. Это работает одинаково, импортирован ли компонент по имени или через свой модуль:
+      </p>
       <div class="code">
         <span class="cap">main.glyph, где <code>Card</code> объявлен в <code>ui.glyph</code></span>
 <pre>import ui
@@ -74,20 +96,21 @@ pub component App() {
 // E0210 type `CardProps` has no field `cout`; did you mean `count`?
 // E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Вы видите их в редакторе и через MCP, а не только в полной сборке.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">missing_fields в --json и одна запись props (E0229)</span></summary><div class="body">
         <p>
           <code>--json</code> передаёт отсутствующие имена списком <code>missing_fields</code>, так что агент может добавить пропсы, не разбирая сообщение. Кроме того, компонент должен принимать свои props одной записью: <code>component Greeting(name: string)</code> даёт E0229 на параметре, потому что React всегда передаёт только объект props, и такой элемент никогда не прошёл бы проверку типов. Если вы вызываете его как функцию, а не рендерите, объявите его через <code>fn</code>.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Проверяется ли &lt;match&gt; в JSX как match?</h2>
-        <p>
-          Это одно и то же. Каждый <code>&lt;case&gt;</code> принимает тот же паттерн, что и ветка <code>match</code>, и компилятор прогоняет его через тот же код, что и ветку. Имена, которые привязывает case, получают типы полезной нагрузки, поле, которого нет в записи полезной нагрузки, даёт E0210, а пропущенный вариант даёт E0200. Case, который проверяет значение, покрывает только часть своего варианта, поэтому ему нужен соседний case или <code>&lt;case else&gt;</code>, который заберёт остальное:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">Проверяется ли &lt;match&gt; в JSX как match?<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Это одно и то же. Каждый <code>&lt;case&gt;</code> принимает тот же паттерн, что и ветка <code>match</code>, и компилятор прогоняет его через тот же код, что и ветку.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Типы полезной нагрузки</b>Имена, которые привязывает case, получают типы полезной нагрузки, поле, которого нет в записи полезной нагрузки, даёт E0210, а пропущенный вариант даёт E0200.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>Частичные case</b>Case, который проверяет значение, покрывает только часть своего варианта, поэтому ему нужен соседний case или <code>&lt;case else&gt;</code>, который заберёт остальное.</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre>type Page =
@@ -106,13 +129,11 @@ component Results(props: { page: Page }) {
 <span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Как страница его запускает?</h2>
-        <p>
-          В Glyph нет операторов верхнего уровня, поэтому страница сама вызывает экспортированный <code>main</code>. Приложение состоит из двух модулей: в одном компоненты, а другой монтирует их на <code>#root</code> через <code>std/dom</code> и <code>createRoot</code> из react-dom. Атрибуты событий пишутся в snake case (<code>on_change</code> генерирует <code>onChange</code> React), обработчик это лямбда, а текст поля ввода это <code>e.currentTarget.value</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">Как страница его запускает?<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        В Glyph нет операторов верхнего уровня, поэтому страница сама вызывает экспортированный <code>main</code>. Приложение состоит из двух модулей: в одном компоненты, а другой монтирует их на <code>#root</code> через <code>std/dom</code> и <code>createRoot</code> из react-dom.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Атрибуты событий пишутся в snake case (<code>on_change</code> генерирует <code>onChange</code> React), обработчик это лямбда, а текст поля ввода это <code>e.currentTarget.value</code>.</p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react">module app
@@ -154,21 +175,41 @@ pub fn main() -&gt; void {
   main();
 &lt;/script&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="От модулей к бандлу"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">сборка, почему этот main ничего не принимает, разбор по шагам</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> проверяет модули, запускает <code>tsc --strict</code> по объявлениям React и пишет TypeScript в <code>dist/gen</code>. Затем <code>npx vite build --outDir dist/web</code> читает <code>index.html</code>, идёт по импорту и собирает бандл вместе с React. Этот <code>main</code> ничего не принимает и ничего не возвращает, потому что скрипт вызывает его без аргументов; <code>main(argv) -&gt; number</code>, который пишет <code>glyph init</code>, это тот, что вызывает <code>glyph run</code> под node. Полный разбор с <code>package.json</code> и строкой установки находится в разделе <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">запуск Glyph на странице в браузере</a> справочника, который печатает <code>glyph llms</code>. CI собирает <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> так же и отрисовывает его в headless Chromium.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Компоненты, JSX, фрагменты (<code>&lt;&gt;...&lt;/&gt;</code>), имена элементов в виде обращения к члену (<code>&lt;Ctx.Provider&gt;</code>), spread пропсов в JSX (<code>{...register()}</code>), пропсы, проверяемые по компоненту до <code>tsc</code> при любом написании импорта, собственные хуки React, импортируемые по имени (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>), с проверкой их типов в tsc и деструктуризацией пар (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> с исчерпывающими действиями на размеченном объединении, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, которые проверяются и понижаются как <code>match</code> с паттернами веток, Context через <code>createContext</code>/<code>useContext</code> и страница через <code>std/dom</code> (заголовок, точка монтирования, адрес), <code>std/storage</code> и <code>std/console</code>. Текст в JSX читается так же, как его читает TSX, поэтому <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> это обычный текст; <code>}</code>, <code>&gt;</code>, <code>//</code> и HTML-сущность вроде <code>&amp;amp;</code> в тексте отклоняются (E0012) с подсказкой, как написать вместо этого. Обращение к члену массива проверяется, поэтому <code>{items.foo}</code> на <code>Array&lt;string&gt;</code> даёт E0210. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> это целое приложение на React 18, которое собирается Vite и отрисовывается в браузере.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">В работе</h3>
-          <p>Проверка Glyph не типизирует результат хука, поэтому <code>set_count("x")</code> на числовом состоянии это ошибка <code>tsc</code> при сборке, а не ошибка Glyph в редакторе. <code>std/dom</code> ограничивается чтением страницы и установкой её заголовка: DOM, который рендерит React, принадлежит React, поэтому сеттеров элементов и обработчиков событий там нет. Эффект нужно писать как <code>fn() -&gt; void { ... }</code>, потому что лямбда возвращает своё последнее выражение, и React вызвал бы его как функцию очистки. Тип props, записанный inline, в этих сообщениях по-прежнему показывается как <code>record</code>; именованный показывает своё имя. Как встроить вывод Glyph в существующее приложение на Vite с UI на TypeScript, описано в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Компоненты, JSX, фрагменты (<code>&lt;&gt;...&lt;/&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Имена элементов в виде обращения к члену (<code>&lt;Ctx.Provider&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Spread пропсов в JSX (<code>{...register()}</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Пропсы, проверяемые по компоненту до <code>tsc</code> при любом написании импорта</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Собственные хуки React, импортируемые по имени (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>), с проверкой их типов в tsc и деструктуризацией пар (<code>let [count, set_count] = useState(0)</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>useReducer</code> с исчерпывающими действиями на размеченном объединении</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, которые проверяются и понижаются как <code>match</code> с паттернами веток</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Context через <code>createContext</code>/<code>useContext</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Страница через <code>std/dom</code> (заголовок, точка монтирования, адрес), <code>std/storage</code> и <code>std/console</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Текст в JSX читается так же, как его читает TSX, поэтому <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> это обычный текст; <code>}</code>, <code>&gt;</code>, <code>//</code> и HTML-сущность вроде <code>&amp;amp;</code> в тексте отклоняются (E0012) с подсказкой, как написать вместо этого.</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Обращение к члену массива проверяется, поэтому <code>{items.foo}</code> на <code>Array&lt;string&gt;</code> даёт E0210.</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> это целое приложение на React 18, которое собирается Vite и отрисовывается в браузере.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Проверка Glyph не типизирует результат хука, поэтому <code>set_count("x")</code> на числовом состоянии это ошибка <code>tsc</code> при сборке, а не ошибка Glyph в редакторе.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> ограничивается чтением страницы и установкой её заголовка: DOM, который рендерит React, принадлежит React, поэтому сеттеров элементов и обработчиков событий там нет.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Эффект нужно писать как <code>fn() -&gt; void { ... }</code>, потому что лямбда возвращает своё последнее выражение, и React вызвал бы его как функцию очистки.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Тип props, записанный inline, в этих сообщениях по-прежнему показывается как <code>record</code>; именованный показывает своё имя.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Как встроить вывод Glyph в существующее приложение на Vite с UI на TypeScript, описано в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</span></span></li>
+          </ul>
+        </section>
       </div>

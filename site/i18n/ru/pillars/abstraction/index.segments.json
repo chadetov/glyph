@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/abstraction/index.html",
   "locale": "ru",
-  "source_hash": "01e075d4f0eca884",
+  "source_hash": "20ee19449bc530dd",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Говорите, что имеете в виду, с помощью <strong>маленького ортогонального ядра</strong>: сопоставление с образцом вместо лестниц switch, <code>Result</code> вместо брошенных исключений, именованные записи вместо кортежей. Один хороший способ на каждое понятие, а не наслоения TypeScript."
     },
     {
-      "id": "h-394d34b1",
-      "kind": "html",
-      "en": "Too many ways to say the same thing",
-      "tr": "Слишком много способов сказать одно и то же"
-    },
-    {
-      "id": "h-350fc73d",
-      "kind": "html",
-      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
-      "tr": "TypeScript рос наслоениями и сохранил каждый слой. Фиксированный набор вариантов можно описать как <code>enum</code>, как union строковых литералов или как <code>const</code>-объект. Форму можно описать через <code>interface</code>, <code>type</code> или <code>class</code>. Есть <code>namespace</code> и модули, декораторы и функции высшего порядка, по пять идиом почти на всё, и у каждой свои пограничные случаи."
-    },
-    {
-      "id": "h-ea5d3974",
-      "kind": "html",
-      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
-      "tr": "Для человека это гибкость. Для <strong>агента</strong> это минное поле: чем больше способов выразить вещь, тем больше шансов выбрать тот, где спрятана ловушка, и тем больше идиом нужно держать в голове. Принцип абстракции в Glyph это намеренное вычитание: один острый инструмент на каждую задачу, выбранный так, чтобы очевидный способ был и безопасным."
-    },
-    {
-      "id": "h-c576eb56",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
-      "tr": "<span class=\"ex-label\">01</span> <code>match</code> единственная условная конструкция"
-    },
-    {
-      "id": "h-1a910d0c",
-      "kind": "html",
-      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
-      "tr": "Оператора <code>if</code>/<code>else</code> нет. Ветвление везде делается через <code>match</code>, а <code>match</code> это выражение: оно возвращает значение. Одна конструкция покрывает булеву проверку, диспетчеризацию по union и таблицу значений, так что не нужно решать, <em>какую</em> форму ветвления выбрать."
-    },
-    {
       "id": "h-fd1d8f8e",
       "kind": "html",
       "en": "TypeScript: statement, not a value",
@@ -101,16 +71,148 @@
       "tr": "Glyph: одно выражение"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-3642b9c1",
+      "kind": "html",
+      "en": "<a href=\"#too-many-ways-to-say-the-same-thing\">Too many ways</a>",
+      "tr": "<a href=\"#too-many-ways-to-say-the-same-thing\">Слишком много способов</a>"
+    },
+    {
+      "id": "h-18243566",
+      "kind": "html",
+      "en": "<a href=\"#match-is-the-only-conditional\"><code>match</code> as the conditional</a>",
+      "tr": "<a href=\"#match-is-the-only-conditional\"><code>match</code> как условие</a>"
+    },
+    {
+      "id": "h-9116d8af",
+      "kind": "html",
+      "en": "<a href=\"#tagged-unions-and-pattern-matching\">Tagged unions</a>",
+      "tr": "<a href=\"#tagged-unions-and-pattern-matching\">Размеченные объединения</a>"
+    },
+    {
+      "id": "h-98fab184",
+      "kind": "html",
+      "en": "<a href=\"#result-over-exceptions\"><code>Result</code> over exceptions</a>",
+      "tr": "<a href=\"#result-over-exceptions\"><code>Result</code> вместо исключений</a>"
+    },
+    {
+      "id": "h-0fc507c7",
+      "kind": "html",
+      "en": "<a href=\"#named-records-over-positional-tuples\">Named records</a>",
+      "tr": "<a href=\"#named-records-over-positional-tuples\">Именованные записи</a>"
+    },
+    {
+      "id": "h-b9e79706",
+      "kind": "html",
+      "en": "<a href=\"#one-primitive-per-job\">One primitive per job</a>",
+      "tr": "<a href=\"#one-primitive-per-job\">Один примитив на задачу</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">Бенчмарк</a>"
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "Слишком много способов сказать одно и то же"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-d1c69ff4",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer.",
+      "tr": "TypeScript рос наслоениями и сохранил каждый слой."
+    },
+    {
+      "id": "h-b846c38e",
+      "kind": "html",
+      "en": "<b>Fixed cases</b>You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object.",
+      "tr": "<b>Фиксированные варианты</b>Фиксированный набор вариантов можно описать как <code>enum</code>, как union строковых литералов или как <code>const</code>-объект."
+    },
+    {
+      "id": "h-70a900fd",
+      "kind": "html",
+      "en": "<b>Shapes</b>You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>.",
+      "tr": "<b>Формы</b>Форму можно описать через <code>interface</code>, <code>type</code> или <code>class</code>."
+    },
+    {
+      "id": "h-379dc356",
+      "kind": "html",
+      "en": "<b>Everything else</b>There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "<b>Всё остальное</b>Есть <code>namespace</code> и модули, декораторы и функции высшего порядка, по пять идиом почти на всё, и у каждой свои пограничные случаи."
+    },
+    {
+      "id": "h-ea803f83",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it.",
+      "tr": "Для человека это гибкость. Для <strong>агента</strong> это минное поле: чем больше способов выразить вещь, тем больше шансов выбрать тот, где спрятана ловушка, и тем больше идиом нужно держать в голове."
+    },
+    {
+      "id": "h-ac4cdf34",
+      "kind": "html",
+      "en": "Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "Принцип абстракции в Glyph это намеренное вычитание: один острый инструмент на каждую задачу, выбранный так, чтобы очевидный способ был и безопасным."
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> <code>match</code> единственная условная конструкция"
+    },
+    {
+      "id": "h-b108c57c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value.",
+      "tr": "Оператора <code>if</code>/<code>else</code> нет. Ветвление везде делается через <code>match</code>, а <code>match</code> это выражение: оно возвращает значение."
+    },
+    {
+      "id": "h-f880b2fd",
+      "kind": "html",
+      "en": "One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "Одна конструкция покрывает булеву проверку, диспетчеризацию по union и таблицу значений, так что не нужно решать, <em>какую</em> форму ветвления выбрать."
+    },
+    {
       "id": "h-9a3a4109",
       "kind": "html",
       "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
       "tr": "<span class=\"ex-label\">02</span> Размеченные объединения и сопоставление с образцом"
     },
     {
-      "id": "h-ad530d74",
+      "id": "h-3bd9017e",
       "kind": "html",
-      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
-      "tr": "«Одна из этих форм» моделируется размеченным объединением, а разбирается через <code>match</code>, который деструктурирует данные на том же шаге, где выбирает вариант. Не нужно вручную поддерживать поле-дискриминант, строить лестницу <code>switch</code> по строковому тегу или приводить тип в каждой ветке, чтобы восстановить форму."
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case.",
+      "tr": "«Одна из этих форм» моделируется размеченным объединением, а разбирается через <code>match</code>, который деструктурирует данные на том же шаге, где выбирает вариант."
+    },
+    {
+      "id": "h-ffa3ae4b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what you no longer write by hand</span>",
+      "tr": "Подробнее <span class=\"hint\">что больше не пишется вручную</span>"
+    },
+    {
+      "id": "h-be7c04c9",
+      "kind": "html",
+      "en": "No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "Не нужно вручную поддерживать поле-дискриминант, строить лестницу <code>switch</code> по строковому тегу или приводить тип в каждой ветке, чтобы восстановить форму."
     },
     {
       "id": "h-da9f8a38",
@@ -119,10 +221,16 @@
       "tr": "<span class=\"ex-label\">03</span> <code>Result</code> вместо исключений"
     },
     {
-      "id": "h-b227a6fe",
+      "id": "h-a6a5d5b4",
       "kind": "html",
-      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
-      "tr": "Ошибка это значение, а не скрытый переход в потоке управления. Функция, которая может завершиться ошибкой, говорит об этом в возвращаемом типе (<code>Result&lt;T, E&gt;</code>), а ошибки комбинируются оператором <code>?</code>, вместо того чтобы оборачивать места вызова в <code>try</code>/<code>catch</code> и надеяться, что нужное место бросит исключение нужного класса. Путь ошибки виден так же хорошо, как и успешный."
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class.",
+      "tr": "Ошибка это значение, а не скрытый переход в потоке управления. Функция, которая может завершиться ошибкой, говорит об этом в возвращаемом типе (<code>Result&lt;T, E&gt;</code>), а ошибки комбинируются оператором <code>?</code>, вместо того чтобы оборачивать места вызова в <code>try</code>/<code>catch</code> и надеяться, что нужное место бросит исключение нужного класса."
+    },
+    {
+      "id": "h-f4c006e2",
+      "kind": "html",
+      "en": "The error path is as visible as the happy path.",
+      "tr": "Путь ошибки виден так же хорошо, как и успешный."
     },
     {
       "id": "h-cbb161e6",
@@ -131,10 +239,10 @@
       "tr": "<span class=\"ex-label\">04</span> Именованные записи вместо позиционных кортежей"
     },
     {
-      "id": "h-c219a9fc",
+      "id": "h-c3a9cf90",
       "kind": "html",
-      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
-      "tr": "Данные всегда описываются именованными полями. Нет сокращённой записи объектных литералов и нет анонимных кортежей, где нужно помнить, что такое <code>[0]</code> и <code>[1]</code>. Форма читается одинаково в определении, при создании и при использовании."
+      "en": "Data is described with named fields, always. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "Данные всегда описываются именованными полями. Форма читается одинаково в определении, при создании и при использовании."
     },
     {
       "id": "h-acbd509b",
@@ -149,16 +257,52 @@
       "tr": "Glyph: имена путешествуют вместе со значением"
     },
     {
+      "id": "h-e7f194c4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no shorthand, no anonymous tuples</span>",
+      "tr": "Подробнее <span class=\"hint\">без сокращённой записи и анонимных кортежей</span>"
+    },
+    {
+      "id": "h-f3c15f17",
+      "kind": "html",
+      "en": "There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember.",
+      "tr": "Нет сокращённой записи объектных литералов и нет анонимных кортежей, где нужно помнить, что такое <code>[0]</code> и <code>[1]</code>."
+    },
+    {
       "id": "h-403ba4b0",
       "kind": "html",
       "en": "<span class=\"ex-label\">05</span> One primitive per job",
       "tr": "<span class=\"ex-label\">05</span> Один примитив на задачу"
     },
     {
-      "id": "h-bc427179",
+      "id": "h-d51cd5ce",
       "kind": "html",
-      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
-      "tr": "Когда понятию нужен собственный инструмент, Glyph даёт ровно один. Общее изменяемое состояние живёт в <code>std/store</code>. Дескриптор файла или сокета, который нужно закрыть ровно один раз, это ресурс <code>owned</code>. Итерация это <code>for x in xs</code>. Каждый из них это единственный именованный примитив, созданный для своей цели, а не шаблон, который вы заново собираете из набора общих деталей и незаметно делаете неправильно."
+      "en": "When a concept needs its own tool, Glyph gives it exactly one.",
+      "tr": "Когда понятию нужен собственный инструмент, Glyph даёт ровно один."
+    },
+    {
+      "id": "h-ea24c346",
+      "kind": "html",
+      "en": "<b>Shared state</b>Shared mutable state lives in a <code>std/store</code>.",
+      "tr": "<b>Общее состояние</b>Общее изменяемое состояние живёт в <code>std/store</code>."
+    },
+    {
+      "id": "h-17bdc29b",
+      "kind": "html",
+      "en": "<b>Handles</b>A file or socket handle that must be closed once is an <code>owned</code> resource.",
+      "tr": "<b>Дескрипторы</b>Дескриптор файла или сокета, который нужно закрыть ровно один раз, это ресурс <code>owned</code>."
+    },
+    {
+      "id": "h-200dc901",
+      "kind": "html",
+      "en": "<b>Iteration</b>Iteration is <code>for x in xs</code>.",
+      "tr": "<b>Итерация</b>Итерация это <code>for x in xs</code>."
+    },
+    {
+      "id": "h-7cc956aa",
+      "kind": "html",
+      "en": "Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "Каждый из них это единственный именованный примитив, созданный для своей цели, а не шаблон, который вы заново собираете из набора общих деталей и незаметно делаете неправильно."
     },
     {
       "id": "h-73dda756",
@@ -173,10 +317,16 @@
       "tr": "Бенчмарк: скоро"
     },
     {
-      "id": "h-b0f9e141",
+      "id": "h-629c87c9",
       "kind": "html",
-      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
-      "tr": "Мерить это можно площадью поверхности: сколько разных понятий читатель должен держать в голове, чтобы понять программу, и сколько кода нужно, чтобы чисто выразить типичную задачу. Glyph пока не используется в реальных проектах, поэтому график ниже это заглушка, которая заполнится настоящими измерениями, когда появится достаточно реальных программ для сравнения."
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly.",
+      "tr": "Мерить это можно площадью поверхности: сколько разных понятий читатель должен держать в голове, чтобы понять программу, и сколько кода нужно, чтобы чисто выразить типичную задачу."
+    },
+    {
+      "id": "h-5421b526",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "Glyph пока не используется в реальных проектах, поэтому график ниже это заглушка, которая заполнится настоящими измерениями, когда появится достаточно реальных программ для сравнения."
     },
     {
       "id": "h-a10f7a79",

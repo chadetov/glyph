@@ -1,7 +1,7 @@
 ---
 title: Когда разбор не удаётся, узнаю ли я почему? · Glyph
 description: Неудачный разбор называет поле, говорит, какое правило нарушило значение, цитирует нарушенный предикат where и помечает проблему кодом, по которому можно ветвиться.
-source_hash: 7f1a8b2bd45c7f9e
+source_hash: 4e3c1f0c9f2ab861
 prev: /answers/early-errors/ | &larr; Назад | Почему Glyph ловит то же, что tsc, но раньше?
 next: /answers/debugging/ | Далее &rarr; | Когда в три часа ночи всё ломается в продакшене, что видит дежурный?
 ---
@@ -12,37 +12,22 @@ next: /answers/debugging/ | Далее &rarr; | Когда в три часа н
         Да. Каждая проблема называет поле, говорит, <strong>какое правило нарушило значение</strong>, и несёт <code>code</code>, по которому можно ветвиться. Поле, ограниченное предикатом <code>where</code>, сообщает сам предикат, так что по отказу grep приводит к строке, где это ограничение задано.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Валидатор, который говорит «этот payload плохой», сделал половину работы. Обработчику всё равно нужно решить: это клиент, который забыл поле, или клиент, который прислал пароль из четырёх символов? Первое это 400, второе 422, и если валидатор этого не говорит, в итоге вы разбираете одно и то же тело дважды с двумя разными типами, чтобы восстановить информацию, которая у валидатора уже была.
-        </p>
-        <p>
-          Именно это и случилось при написании API авторизации на Glyph. Регистрация вообще без ключа <code>password</code> возвращалась как <code>weak_password</code>, потому что отсутствующее и слишком короткое значение давали одну и ту же строку.
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>Один тип, одно ограничение:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">signup.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Один тип, одно ограничение:</p>
+        <div class="code">
+          <span class="cap">signup.glyph</span>
 <pre>pub type Password = string where value.length &gt;= 8
 
 pub type Signup = {
   email: string,
   password: Password,
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Четыре плохих payload, четыре разных ответа. Каждый из них это один <code>Issue</code>, показанный как <code>code | path | message</code>:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Signup.parse(...)</span>
+        <div class="code term">
+          <span class="cap">Signup.parse(...)</span>
 <pre><span class="cm">// { "email": "user@example.com" }</span>
 missing     ["password"]  field `password` is required
 
@@ -54,27 +39,60 @@ type        ["email"]     field `email` must be string
 
 <span class="cm">// [1, 2, 3]</span>
 type        []            expected Signup (an object), got an array</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Главное здесь второй. <code>value.length &gt;= 8</code> написано один раз, в типе, и отказ цитирует его дословно.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">от тела ответа 422 обратно к объявлению</span></summary><div class="body">
+          <p>
+            Вставьте эту строку из тела ответа HTTP 422 в <code>grep</code>, и вы попадёте на объявление, которое её породило. Никому не нужно держать копию правила в слое сообщений об ошибках, а именно так эти две копии и расходятся.
+          </p>
+        </div></details>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">что раньше делал массив</span></summary><div class="body">
+          <p>
+            Четвёртый раньше был хуже, чем просто плохое сообщение. Для <code>typeof</code> массив это объект, поэтому запись без обязательных полей принимала его без вопросов, а присланный <code>[1, 2, 3]</code> возвращался как по одной непонятной проблеме на каждое объявленное поле, и ни одна не упоминала, что вы прислали список.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Главное здесь второй. <code>value.length &gt;= 8</code> написано один раз, в типе, и отказ цитирует его дословно. Вставьте эту строку из тела ответа HTTP 422 в <code>grep</code>, и вы попадёте на объявление, которое её породило. Никому не нужно держать копию правила в слое сообщений об ошибках, а именно так эти две копии и расходятся.
-        </p>
-        <p>
-          Четвёртый раньше был хуже, чем просто плохое сообщение. Для <code>typeof</code> массив это объект, поэтому запись без обязательных полей принимала его без вопросов, а присланный <code>[1, 2, 3]</code> возвращался как по одной непонятной проблеме на каждое объявленное поле, и ни одна не упоминала, что вы прислали список.
-        </p>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#nested-types-answer-for-themselves">Вложенные типы</a></li>
+          <li><a href="#the-code-not-the-string">Код, а не строка</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Вложенные типы отвечают сами за себя</h2>
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Валидатор, который говорит «этот payload плохой», сделал половину работы.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Обработчику всё равно нужно решить: это клиент, который забыл поле, или клиент, который прислал пароль из четырёх символов? Первое это 400, второе 422, и если валидатор этого не говорит, в итоге вы разбираете одно и то же тело дважды с двумя разными типами, чтобы восстановить информацию, которая у валидатора уже была.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">где это всплыло</span></summary><div class="body">
         <p>
-          Поле, у типа которого есть собственный дескриптор, проверяется <code>parse</code> этого типа, и его проблемы возвращаются с именем поля в начале пути. Так что <code>Password</code>, вложенный на два уровня, сообщает <code>["body", "password"]</code> и сохраняет своё сообщение. Место и причину вы получаете из одной и той же проблемы, ничего не перезапуская.
+          Именно это и случилось при написании API авторизации на Glyph. Регистрация вообще без ключа <code>password</code> возвращалась как <code>weak_password</code>, потому что отсутствующее и слишком короткое значение давали одну и ту же строку.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Код, а не строка</h2>
-        <p>
-          <code>Issue</code> несёт необязательный <code>code</code>: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> или <code>"unexpected"</code>. Ветвитесь по нему. Сопоставление по тексту сообщения это та хрупкость, которую Glyph и призван убрать, а сообщение предназначено для человека, читающего тело ответа.
-        </p>
-      </div>
+      <h2 class="ak-h" id="nested-types-answer-for-themselves">Вложенные типы отвечают сами за себя<a class="ak-anchor" href="#nested-types-answer-for-themselves" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Поле, у типа которого есть собственный дескриптор, проверяется <code>parse</code> этого типа, и его проблемы возвращаются с именем поля в начале пути. Так что <code>Password</code>, вложенный на два уровня, сообщает <code>["body", "password"]</code> и сохраняет своё сообщение.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="Путь, который сообщает вложенная проблема">
+          <li><span>body</span></li>
+          <li><span>password</span></li>
+          <li><span>Password</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Место и причину вы получаете из одной и той же проблемы, ничего не перезапуская.</span></figcaption>
+      </figure>
 
+      <h2 class="ak-h" id="the-code-not-the-string">Код, а не строка<a class="ak-anchor" href="#the-code-not-the-string" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Issue</code> несёт необязательный <code>code</code>: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, <code>"unexpected"</code> или <code>"depth"</code>. Ветвитесь по нему. Сопоставление по тексту сообщения это та хрупкость, которую Glyph и призван убрать, а сообщение предназначено для человека, читающего тело ответа.
+      </p>
       <div class="code">
         <span class="cap">Разделение на 400/422 без чтения сообщения</span>
 <pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
@@ -85,21 +103,44 @@ type        []            expected Signup (an object), got an array</pre>
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>code</code> необязателен, поэтому <code>Issue</code>, собранный вручную, и любой потребитель, написанный до его появления, по-прежнему компилируются без изменений.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">код <code>"depth"</code></span></summary><div class="body">
         <p>
-          <code>code</code> необязателен, поэтому <code>Issue</code>, собранный вручную, и любой потребитель, написанный до его появления, по-прежнему компилируются без изменений.
+          <code>"depth"</code> это ответ для тела, вложенного глубже 1000 объектов и массивов (<code>MAX_DEPTH</code> в <code>std/schema</code>): одна проблема на том поле, где это случилось, тогда как до 0.1.150 проверка бросала <code>RangeError: Maximum call stack size exceeded</code> и роняла вместе с собой обработчик.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле: <code>"missing"</code> для отсутствующего обязательного поля, <code>"type"</code> для неверной формы (включая не-объект или массив), <code>"refinement"</code> для значения, которое прошло базовый тип, но не прошло предикат, и <code>"unexpected"</code> для ключа, которого тип не объявляет. Уточнение цитирует свой предикат. Поле, у типа которого есть дескриптор, передаёт проверку ему, поэтому вложенные проблемы приходят с полным путём. Необязательные поля (<code>f?: T</code>) никогда не сообщаются как отсутствующие.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Становится точнее</h3>
-          <p>Два ограничения. Поле, типизированное чем-то без собственного дескриптора (неограниченным параметром типа или типом, импортированным из рукописного <code>.d.ts</code>), по-прежнему получает плоскую проверку и проблему <code>"type"</code>; компилятор не синтезирует для них дескриптор, а дать его может запуск <code>glyph gen dts</code> на объявлении. Модуль, объявляющий собственный тип с именем <code>Issue</code>, раньше перекрывал тип из прелюдии внутри сгенерированного файла и ломал все дескрипторы в этом модуле; начиная с 0.1.60 такое объявление даёт <code>E0110</code> на строке, где назван тип, так что вы узнаёте, где проблема, вместо того чтобы читать ошибку <code>tsc</code> о сгенерированном коде.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле</span><span class="chip code">missing</span><span class="chip code">type</span><span class="chip code">refinement</span><span class="chip code">unexpected</span><span class="chip code">depth</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле: <code>"missing"</code> для отсутствующего обязательного поля, <code>"type"</code> для неверной формы (включая не-объект или массив), <code>"refinement"</code> для значения, которое прошло базовый тип, но не прошло предикат, <code>"unexpected"</code> для ключа, которого тип не объявляет, и <code>"depth"</code> для значения, вложенного глубже 1000 уровней.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Уточнение цитирует свой предикат.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Поле, у типа которого есть дескриптор, передаёт проверку ему, поэтому вложенные проблемы приходят с полным путём.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Необязательные поля (<code>f?: T</code>) никогда не сообщаются как отсутствующие.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее <span class="count">2</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Поле, типизированное чем-то без собственного дескриптора, по-прежнему получает плоскую проверку и проблему <code>"type"</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Два ограничения. Поле, типизированное чем-то без собственного дескриптора (неограниченным параметром типа или типом, импортированным из рукописного <code>.d.ts</code>), по-прежнему получает плоскую проверку и проблему <code>"type"</code>; компилятор не синтезирует для них дескриптор, а дать его может запуск <code>glyph gen dts</code> на объявлении.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Собственный тип модуля с именем <code>Issue</code> отклоняется на строке, где он назван</span><span class="chip code">E0110</span><span class="chip since">с 0.1.60</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Модуль, объявляющий собственный тип с именем <code>Issue</code>, раньше перекрывал тип из прелюдии внутри сгенерированного файла и ломал все дескрипторы в этом модуле; начиная с 0.1.60 такое объявление даёт <code>E0110</code> на строке, где назван тип, так что вы узнаёте, где проблема, вместо того чтобы читать ошибку <code>tsc</code> о сгенерированном коде.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

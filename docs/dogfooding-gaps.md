@@ -7294,6 +7294,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.154 (the release build), with the same coarse proxy over `tests/negative`, the 53 `catches/` cases and all 32 `examples/apps`: 15,298 diagnostics, 9,131 of them (59.7%) on a line indented two or more spaces; errors alone, 8,522 of 11,962 (71.2%). Most of that count is the `tests/negative` directory reported once per entry; checking each entry alone gives 185 diagnostics, 130 indented (70.3%). The conclusion stands either way.*
 
+  *Reproduced against 0.1.160 (the release build), with the same coarse proxy over `tests/negative`, the 53 `catches/` cases and all 32 `examples/apps`: 15,703 diagnostics, 9,521 of them (60.6%) on a line indented two or more spaces; errors alone, 8,900 of 12,301 (72.4%). Counting only each `tests/negative` entry's own files gives 152 diagnostics, 104 indented (68.4%). Within about a point of 0.1.154; the conclusion stands.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by
@@ -7356,6 +7358,8 @@ and is the owner's to confirm.
   disagreement.*
 
   *Reproduced against 0.1.154 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
+
+  *Reproduced against 0.1.160 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
@@ -10239,6 +10243,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.154 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
 
+  *Reproduced against 0.1.160 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
+
 - **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
@@ -12537,6 +12543,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.154 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
 
+  *Reproduced against 0.1.160 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
+
 - **G337. A chain broken inside a JSX attribute value glues the closing `}`
   onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
   class="c">` keeps the brace, the next attribute and the element's `>` on
@@ -12553,6 +12561,8 @@ and is the owner's to confirm.
   on the step's line after `glyph fmt`.*
 
   *Reproduced against 0.1.154 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`.*
+
+  *Reproduced against 0.1.160 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`.*
 
 - **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
   `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
@@ -12921,6 +12931,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.154 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
 
+  *Reproduced against 0.1.160 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
+
 - **G353. An applyEdit that writes one of an E0200's missing arms is refused
   as introducing an E0200.** An E0200's identity includes its list of missing
   variants (record 88 §4b), so adding one arm of two leaves an E0200 with a
@@ -12957,6 +12969,8 @@ and is the owner's to confirm.
   `import std/array` is left in that order, and `fmt --check` exits 0.*
 
   *Reproduced against 0.1.154 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
+
+  *Reproduced against 0.1.160 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
 
 - **G359. `glyph fix` removes the imports an E0200 in the same file needs.**
   With a `match` that has only `Pending` and `import orders { OrderStatus,
@@ -13000,6 +13014,8 @@ and is the owner's to confirm.
   now, so renaming this head to `Loaded` would move that case out of it".*
 
   *Reproduced against 0.1.154 (the release build) by record 106's probe `g/g5_first`: the decline still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
+
+  *Reproduced against 0.1.160 (the release build) by record 106's probe `g/g5_first`: the decline still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -13125,6 +13141,8 @@ and is the owner's to confirm.
   `fa-twoerr`: two refused `is` patterns in two functions draw one E0304.*
 
   *Reproduced against 0.1.154 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304.*
+
+  *Reproduced against 0.1.160 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304.*
 
 - **G364. E0304 names a nested generic application instead of the field
   inside it that has no check.** With a private `Box<T> = { v: T, h: H }`
@@ -13412,6 +13430,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.154 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member.*
 
+  *Reproduced against 0.1.160 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member.*
+
 - **G377. [FIXED] A refined string-literal union key is checked by its predicate, not
   as an exact set.** With `type Tier = "a" | "b" | "c"` and `type T2 = Tier
   where value != "c"`, `json.parse<Record<T2, int>>` returns `Ok` for `{}` and
@@ -13482,6 +13502,8 @@ and is the owner's to confirm.
   `eq`): passes at 1250, throws at 1300.*
 
   *Reproduced against 0.1.154 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1240, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, a lower depth than 0.1.148 reached.*
+
+  *Reproduced against 0.1.160 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1248, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, the same depth as 0.1.154.*
 
   Scheduled after G272 is decided, in its own release (record 116).
 
@@ -14416,6 +14438,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the 0.1.159 branch build, before the version
   bump): `let cb: fn(number) -> void = save_void` gives ``[E0204] type
   mismatch: expected `function`, found `async function` `` with that help.*
+
+  *Reproduced against 0.1.160 (the release build): `let cb: fn(number) -> void = save_void`, a `return` of it and a record field holding it each give ``[E0204] type mismatch: expected `function`, found `async function` `` with the general help.*
 
 - **G422. A refused callback erases a result its argument does not decide.**
   When an argument is refused for its kind of function (E0211), the call's

@@ -1,7 +1,7 @@
 ---
 title: Posso escrever um servidor, ou o processo simplesmente termina? · Glyph
 description: Um programa Glyph pode ser um servidor de longa duração. main faz o setup e retorna; o processo continua vivo enquanto houver sockets e timers pendentes, exatamente como no Node.
-source_hash: babc2c3ac5bb52bc
+source_hash: 14f7ffe4f2542222
 prev: /answers/interactive-cli/ | &larr; Anterior | Posso escrever um programa em que alguém digita?
 next: /answers/binary/ | Próxima &rarr; | Consigo lidar com dados binários, ou tudo é string?
 ---
@@ -12,21 +12,7 @@ next: /answers/binary/ | Próxima &rarr; | Consigo lidar com dados binários, ou
         Pode escrever um servidor. <code>main</code> faz o setup e retorna, e o processo <strong>continua vivo enquanto houver sockets e timers pendentes</strong>, a mesma regra que o Node usa. Até a 0.1.63 não era assim: o runner derrubava o processo no momento em que <code>main</code> retornava, então um servidor fazia bind na porta e morria no mesmo tick.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por que isso importa</h2>
-        <p>
-          Essa é a diferença entre uma linguagem que roda um script e uma que roda um serviço. Um servidor, um file watcher, um bot segurando uma conexão com um gateway, um executor de jobs: nenhum deles termina dentro de <code>main</code>. Eles registram handlers e entregam o processo aos eventos.
-        </p>
-        <p>
-          O comportamento antigo falhava do pior jeito possível, que é em silêncio. <code>glyph run app.glyph --serve 4100</code> não imprimia nada, nem a linha dentro do callback de <code>listen</code>, e saía com 0. Nada no código parecia errado e a checagem de tipos passava. Um agente que esbarra nisso não tem erro para reportar nem motivo para achar que algo falhou.
-        </p>
-
-        <h2 class="block-label">Veja na prática</h2>
-        <p>
-          Um servidor TCP completo. <code>main</code> retorna na hora; os callbacks rodam enquanto o processo viver:
-        </p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">Um servidor, do começo ao fim</span>
 <pre>module main
@@ -52,22 +38,46 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
   return 0
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Veja na prática: um servidor TCP completo. <code>main</code> retorna na hora; os callbacks rodam enquanto o processo viver.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que isso importa</a></li>
+          <li><a href="#after-main-returns">Depois que main retorna</a></li>
+          <li><a href="#a-real-one">Um servidor de chat</a></li>
+          <li><a href="#the-other-direction-a-long-running-client">Um cliente de longa duração</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Essa é a diferença entre uma linguagem que roda um script e uma que roda um serviço. Um servidor, um file watcher, um bot segurando uma conexão com um gateway, um executor de jobs: nenhum deles termina dentro de <code>main</code>. Eles registram handlers e entregam o processo aos eventos.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">como falhava antes da 0.1.63</span></summary><div class="body">
+        <p>
+          O comportamento antigo falhava do pior jeito possível, que é em silêncio. <code>glyph run app.glyph --serve 4100</code> não imprimia nada, nem a linha dentro do callback de <code>listen</code>, e saía com 0. Nada no código parecia errado e a checagem de tipos passava. Um agente que esbarra nisso não tem erro para reportar nem motivo para achar que algo falhou.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="after-main-returns">Depois que <code>main</code> retorna<a class="ak-anchor" href="#after-main-returns" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Duas coisas que vale saber. O <code>return 0</code> roda antes de o primeiro cliente se conectar: é o código com que o processo vai sair um dia, não uma afirmação sobre quando ele sai.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>E qualquer coisa que falhe <em>depois</em> que <code>main</code> retornou precisa definir o próprio código de saída, porque o valor de retorno de <code>main</code> já foi usado. É para isso que serve o handler de <code>error</code>. Sem ele, um servidor que não consegue fazer bind na porta esvazia o event loop e sai com 0, reportando sucesso.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">tipos para o import de net</span></summary><div class="body">
         <p>
           <code>net</code> é um builtin do Node, então é um import comum, mas não está entre os seis para os quais o compilador já traz tipos ambientes (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Ou você instala <code>@types/node</code> e o build passa a preferi-lo, ou coloca uma declaração em <code>.types/net.d.ts</code> ao lado do seu código, que é o que o app de chat faz para não precisar de nenhuma dependência.
         </p>
-        <p>
-          Duas coisas que vale saber. O <code>return 0</code> roda antes de o primeiro cliente se conectar: é o código com que o processo vai sair um dia, não uma afirmação sobre quando ele sai. E qualquer coisa que falhe <em>depois</em> que <code>main</code> retornou precisa definir o próprio código de saída, porque o valor de retorno de <code>main</code> já foi usado. É para isso que serve o handler de <code>error</code>. Sem ele, um servidor que não consegue fazer bind na porta esvazia o event loop e sai com 0, reportando sucesso.
-        </p>
+      </div></details>
 
-        <h2 class="block-label">Um de verdade</h2>
-        <p>
-          <code>examples/apps/chat</code> é um servidor de chat que mantém vários clientes TCP ao mesmo tempo. As partes que não tocam a rede ficam separadas e testáveis: remontagem de linhas, roteamento e o motor das salas são funções puras verificadas por <code>@example</code>, e um arquivo conversa com os sockets.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-real-one">Um de verdade<a class="ak-anchor" href="#a-real-one" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/chat</code> é um servidor de chat que mantém vários clientes TCP ao mesmo tempo. As partes que não tocam a rede ficam separadas e testáveis: remontagem de linhas, roteamento e o motor das salas são funções puras verificadas por <code>@example</code>, e um arquivo conversa com os sockets.
+      </p>
+      <div class="code term">
         <span class="cap">Três clientes conectados ao mesmo tempo</span>
 <pre><span class="cm">alice&gt;</span> /join #general
 <span class="cm">bob&gt;</span>   /join #general
@@ -79,12 +89,10 @@ bob sees:    1  #general &lt;alice&gt; hello everyone
 carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
       </div>
 
-      <div class="detail">
-        <p>
-          O TCP não entrega mensagens, entrega bytes, então o final de um chunk normalmente é meia linha. Essa remontagem é uma função pura com os casos chatos escritos como exemplos em vez de provocados num socket:
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="framing">Remontagem de linhas<a class="ak-anchor" href="#framing" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        O TCP não entrega mensagens, entrega bytes, então o final de um chunk normalmente é meia linha. Essa remontagem é uma função pura com os casos chatos escritos como exemplos em vez de provocados num socket:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
 <pre>@example feed("", "hel").lines == []
@@ -95,16 +103,14 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Na outra direção: um cliente de longa duração</h2>
-        <p>
-          Um bot tem o mesmo formato, apontado para fora. <code>examples/apps/discord</code> é um cliente do gateway do Discord: conecta via WebSocket, se identifica, manda heartbeats no intervalo que o servidor define, acompanha um número de sequência para que uma conexão derrubada seja retomada em vez de começar do zero, percebe quando a conexão está aberta mas morta e espera um tempo crescente entre reconexões.
-        </p>
-        <p>
-          A parte que vale copiar é onde a lógica fica. Decidir o que fazer com um <code>RECONNECT</code>, um heartbeat perdido ou um token recusado é uma função pura que recebe uma sessão e um evento e devolve uma sessão nova e uma lista de ações. Um módulo executa essas ações num socket real. É por isso que a lógica de reconexão, que é a parte difícil de acertar, é verificada por <code>@example</code> em vez de desconectando um cabo de rede:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-other-direction-a-long-running-client">Na outra direção: um cliente de longa duração<a class="ak-anchor" href="#the-other-direction-a-long-running-client" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Um bot tem o mesmo formato, apontado para fora. <code>examples/apps/discord</code> é um cliente do gateway do Discord: conecta via WebSocket, se identifica, manda heartbeats no intervalo que o servidor define, acompanha um número de sequência para que uma conexão derrubada seja retomada em vez de começar do zero, percebe quando a conexão está aberta mas morta e espera um tempo crescente entre reconexões.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A parte que vale copiar é onde a lógica fica. Decidir o que fazer com um <code>RECONNECT</code>, um heartbeat perdido ou um token recusado é uma função pura que recebe uma sessão e um evento e devolve uma sessão nova e uma lista de ações. Um módulo executa essas ações num socket real.</p></div>
+      <p class="ak-lede">
+        É por isso que a lógica de reconexão, que é a parte difícil de acertar, é verificada por <code>@example</code> em vez de desconectando um cabo de rede:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
 <pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
@@ -112,21 +118,38 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
 @example a_rejected_token_stops_rather_than_retrying()
 pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">três bugs, dois mocks</span></summary><div class="body">
         <p>
           Cada um desses três exemplos é um bug que estava no código antes. Escrever um gateway mock e apontar o bot para ele pegou um deles. Os outros dois foram pegos por um segundo mock escrito a partir da documentação do Discord, e não a partir do cliente, que manda as coisas que um mock cooperativo nunca manda: um pedido de heartbeat sem aviso e um código de fechamento que significa "seu token está errado, pare de tentar". Um mock escrito pelo autor do cliente só testa as partes do protocolo que o autor leu.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Situação atual</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Retornar de <code>main</code> define o código de saída sem parar o processo, então servidores, watchers e event loops rodam. Um programa que só calcula ainda sai no momento em que <code>main</code> retorna, com o mesmo código, então nada mudou para programas curtos. Builtins do Node como <code>net</code> são imports comuns, e um programa que lança uma exceção durante o setup ainda termina, agora depois que o diagnóstico chegou a um stderr redirecionado em vez de possivelmente ser cortado pela saída. <code>std/timers</code> agenda trabalho (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) e <code>std/websocket</code> abre uma conexão, então nenhum dos dois precisa de uma declaração escrita à mão.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Ficando mais preciso</h3>
-          <p>Um listener que não consegue fazer bind depois que <code>main</code> retornou sai com 0, a menos que o programa diga o contrário: <code>process.set_exit_code(1)</code> registra a falha sem derrubar o trabalho ainda em andamento, e <code>process.exit(1)</code> para na hora. O compilador ainda não consegue avisar que você esqueceu. E ainda não há como declarar que uma função não retorna, então o <code>main</code> de um servidor carrega um <code>return 0</code> que nunca é alcançado.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Retornar de <code>main</code> define o código de saída sem parar o processo, então servidores, watchers e event loops rodam.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um programa que só calcula ainda sai no momento em que <code>main</code> retorna, com o mesmo código, então nada mudou para programas curtos.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Builtins do Node como <code>net</code> são imports comuns, e uma exceção no setup ainda encerra o programa</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Builtins do Node como <code>net</code> são imports comuns, e um programa que lança uma exceção durante o setup ainda termina, agora depois que o diagnóstico chegou a um stderr redirecionado em vez de possivelmente ser cortado pela saída.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/timers</code> agenda trabalho (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) e <code>std/websocket</code> abre uma conexão, então nenhum dos dois precisa de uma declaração escrita à mão.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ficando mais preciso</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um listener que não consegue fazer bind depois que <code>main</code> retornou sai com 0, a menos que o programa diga o contrário</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Um listener que não consegue fazer bind depois que <code>main</code> retornou sai com 0, a menos que o programa diga o contrário: <code>process.set_exit_code(1)</code> registra a falha sem derrubar o trabalho ainda em andamento, e <code>process.exit(1)</code> para na hora.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">O compilador ainda não consegue avisar que você esqueceu.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">E ainda não há como declarar que uma função não retorna, então o <code>main</code> de um servidor carrega um <code>return 0</code> que nunca é alcançado.</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -1,7 +1,7 @@
 ---
 title: Quando um parse falha, eu descubro o motivo? · Glyph
 description: Um parse que falha aponta o campo, diz qual regra o valor violou, cita o predicado where desrespeitado e marca o problema com um código que você pode usar para ramificar.
-source_hash: 7f1a8b2bd45c7f9e
+source_hash: 4e3c1f0c9f2ab861
 prev: /answers/early-errors/ | &larr; Anterior | Por que o Glyph detecta o que o tsc detecta, só que antes?
 next: /answers/debugging/ | Próxima &rarr; | Quando quebra em produção às 3 da manhã, o que o plantão vê?
 ---
@@ -12,37 +12,22 @@ next: /answers/debugging/ | Próxima &rarr; | Quando quebra em produção às 3 
         Sim. Cada issue aponta o campo, diz <strong>qual regra o valor violou</strong> e carrega um <code>code</code> que você pode usar para ramificar. Um campo restrito por um predicado <code>where</code> informa o próprio predicado, então a rejeição leva por grep à linha que impôs a regra.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por que isso importa</h2>
-        <p>
-          Um validador que diz "este payload está errado" fez metade do trabalho. O handler ainda precisa decidir: é um cliente que esqueceu um campo ou um cliente que mandou uma senha de quatro caracteres? Um caso é 400, o outro é 422, e se o validador não diz, você acaba fazendo o parse do mesmo body duas vezes, com dois tipos diferentes, para recuperar uma informação que o validador já tinha.
-        </p>
-        <p>
-          Foi exatamente isso que aconteceu ao construir uma API de autenticação em Glyph. Um cadastro sem a chave <code>password</code> voltava como <code>weak_password</code>, porque ausente e curta demais produziam a mesma string.
-        </p>
-
-        <h2 class="block-label">Veja na prática</h2>
-        <p>Um tipo, uma restrição:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">signup.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Um tipo, uma restrição:</p>
+        <div class="code">
+          <span class="cap">signup.glyph</span>
 <pre>pub type Password = string where value.length &gt;= 8
 
 pub type Signup = {
   email: string,
   password: Password,
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Quatro payloads ruins, quatro respostas diferentes. Cada um é um <code>Issue</code>, mostrado como <code>code | path | message</code>:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Signup.parse(...)</span>
+        <div class="code term">
+          <span class="cap">Signup.parse(...)</span>
 <pre><span class="cm">// { "email": "user@example.com" }</span>
 missing     ["password"]  field `password` is required
 
@@ -54,27 +39,60 @@ type        ["email"]     field `email` must be string
 
 <span class="cm">// [1, 2, 3]</span>
 type        []            expected Signup (an object), got an array</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>O segundo é o ponto. <code>value.length &gt;= 8</code> é escrito uma vez, no tipo, e a rejeição o cita literalmente.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">do body de um 422 de volta à declaração</span></summary><div class="body">
+          <p>
+            Cole essa string, tirada do body de um HTTP 422, no <code>grep</code> e você cai na declaração que a produziu. Ninguém precisa manter uma cópia da regra na camada de mensagens de erro, que é como as duas acabam divergindo.
+          </p>
+        </div></details>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">o que um array fazia antes</span></summary><div class="body">
+          <p>
+            O quarto já foi pior do que uma mensagem ruim. Para o <code>typeof</code>, um array é um objeto, então um record sem campos obrigatórios aceitava um array direto, e um <code>[1, 2, 3]</code> enviado voltava como um issue confuso por campo declarado, sem nenhum mencionar que você tinha mandado uma lista.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
-        <p>
-          O segundo é o ponto. <code>value.length &gt;= 8</code> é escrito uma vez, no tipo, e a rejeição o cita literalmente. Cole essa string, tirada do body de um HTTP 422, no <code>grep</code> e você cai na declaração que a produziu. Ninguém precisa manter uma cópia da regra na camada de mensagens de erro, que é como as duas acabam divergindo.
-        </p>
-        <p>
-          O quarto já foi pior do que uma mensagem ruim. Para o <code>typeof</code>, um array é um objeto, então um record sem campos obrigatórios aceitava um array direto, e um <code>[1, 2, 3]</code> enviado voltava como um issue confuso por campo declarado, sem nenhum mencionar que você tinha mandado uma lista.
-        </p>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que isso importa</a></li>
+          <li><a href="#nested-types-answer-for-themselves">Tipos aninhados</a></li>
+          <li><a href="#the-code-not-the-string">O código, não a string</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Tipos aninhados respondem por si mesmos</h2>
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Um validador que diz "este payload está errado" fez metade do trabalho.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        O handler ainda precisa decidir: é um cliente que esqueceu um campo ou um cliente que mandou uma senha de quatro caracteres? Um caso é 400, o outro é 422, e se o validador não diz, você acaba fazendo o parse do mesmo body duas vezes, com dois tipos diferentes, para recuperar uma informação que o validador já tinha.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">onde isso apareceu</span></summary><div class="body">
         <p>
-          Um campo cujo tipo tem seu próprio descritor é validado pelo <code>parse</code> desse tipo, e os issues voltam com o nome do campo na frente do path. Assim, um <code>Password</code> aninhado dois níveis abaixo informa <code>["body", "password"]</code> e ainda carrega a própria mensagem. Você recebe o local e o motivo no mesmo issue, sem rodar nada de novo.
+          Foi exatamente isso que aconteceu ao construir uma API de autenticação em Glyph. Um cadastro sem a chave <code>password</code> voltava como <code>weak_password</code>, porque ausente e curta demais produziam a mesma string.
         </p>
+      </div></details>
 
-        <h2 class="block-label">O código, não a string</h2>
-        <p>
-          <code>Issue</code> carrega um <code>code</code> opcional: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> ou <code>"unexpected"</code>. Ramifique por ele. Comparar texto de mensagem é a fragilidade que o Glyph existe para eliminar, e a mensagem é para a pessoa que lê o body da resposta.
-        </p>
-      </div>
+      <h2 class="ak-h" id="nested-types-answer-for-themselves">Tipos aninhados respondem por si mesmos<a class="ak-anchor" href="#nested-types-answer-for-themselves" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Um campo cujo tipo tem seu próprio descritor é validado pelo <code>parse</code> desse tipo, e os issues voltam com o nome do campo na frente do path. Assim, um <code>Password</code> aninhado dois níveis abaixo informa <code>["body", "password"]</code> e ainda carrega a própria mensagem.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="O path que um issue aninhado informa">
+          <li><span>body</span></li>
+          <li><span>password</span></li>
+          <li><span>Password</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Você recebe o local e o motivo no mesmo issue, sem rodar nada de novo.</span></figcaption>
+      </figure>
 
+      <h2 class="ak-h" id="the-code-not-the-string">O código, não a string<a class="ak-anchor" href="#the-code-not-the-string" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Issue</code> carrega um <code>code</code> opcional: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, <code>"unexpected"</code> ou <code>"depth"</code>. Ramifique por ele. Comparar texto de mensagem é a fragilidade que o Glyph existe para eliminar, e a mensagem é para a pessoa que lê o body da resposta.
+      </p>
       <div class="code">
         <span class="cap">Uma separação entre 400 e 422 que não lê a mensagem</span>
 <pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
@@ -85,21 +103,44 @@ type        []            expected Signup (an object), got an array</pre>
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>code</code> é opcional, então um <code>Issue</code> que você monta à mão, e todo consumidor escrito antes de ele existir, continuam compilando sem mudança.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o código <code>"depth"</code></span></summary><div class="body">
         <p>
-          <code>code</code> é opcional, então um <code>Issue</code> que você monta à mão, e todo consumidor escrito antes de ele existir, continuam compilando sem mudança.
+          <code>"depth"</code> é a resposta para um body aninhado com mais de 1000 níveis de objetos e arrays (<code>MAX_DEPTH</code> em <code>std/schema</code>): um issue no campo onde isso aconteceu, enquanto antes da 0.1.150 a verificação lançava <code>RangeError: Maximum call stack size exceeded</code> e derrubava o handler junto.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Situação atual</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Records e tipos <code>where</code> informam a regra que falhou, não só o campo: <code>"missing"</code> para um campo obrigatório ausente, <code>"type"</code> para o formato errado (incluindo um não objeto ou um array), <code>"refinement"</code> para um valor que passou no tipo base e falhou no predicado, e <code>"unexpected"</code> para uma chave que o tipo não declara. Um refinement cita seu predicado. Um campo cujo tipo tem descritor delega a ele, então os issues aninhados chegam com o path completo. Campos opcionais (<code>f?: T</code>) nunca são informados como ausentes.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Ficando mais preciso</h3>
-          <p>Dois limites. Um campo tipado por algo sem descritor próprio, um parâmetro de tipo sem restrição ou um tipo importado de um <code>.d.ts</code> escrito à mão, ainda recebe a verificação rasa e um issue <code>"type"</code>; o compilador não sintetiza um descritor para esses casos, e rodar <code>glyph gen dts</code> sobre a declaração é o que dá um descritor a eles. Um módulo que declarava seu próprio tipo chamado <code>Issue</code> sombreava o do prelude dentro do arquivo emitido e quebrava todos os descritores daquele módulo; desde a 0.1.60 essa declaração é <code>E0110</code> na linha que nomeia o tipo, então você descobre onde está o problema em vez de ler um erro do <code>tsc</code> sobre código gerado.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Records e tipos <code>where</code> informam a regra que falhou, não só o campo</span><span class="chip code">missing</span><span class="chip code">type</span><span class="chip code">refinement</span><span class="chip code">unexpected</span><span class="chip code">depth</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Records e tipos <code>where</code> informam a regra que falhou, não só o campo: <code>"missing"</code> para um campo obrigatório ausente, <code>"type"</code> para o formato errado (incluindo um não objeto ou um array), <code>"refinement"</code> para um valor que passou no tipo base e falhou no predicado, <code>"unexpected"</code> para uma chave que o tipo não declara, e <code>"depth"</code> para um valor aninhado com mais de 1000 níveis.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um refinement cita seu predicado.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um campo cujo tipo tem descritor delega a ele, então os issues aninhados chegam com o path completo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Campos opcionais (<code>f?: T</code>) nunca são informados como ausentes.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ficando mais preciso <span class="count">2</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um campo tipado por algo sem descritor próprio ainda recebe a verificação rasa e um issue <code>"type"</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Dois limites. Um campo tipado por algo sem descritor próprio, um parâmetro de tipo sem restrição ou um tipo importado de um <code>.d.ts</code> escrito à mão, ainda recebe a verificação rasa e um issue <code>"type"</code>; o compilador não sintetiza um descritor para esses casos, e rodar <code>glyph gen dts</code> sobre a declaração é o que dá um descritor a eles.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um tipo do próprio módulo chamado <code>Issue</code> é recusado na linha que o nomeia</span><span class="chip code">E0110</span><span class="chip since">desde a 0.1.60</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Um módulo que declarava seu próprio tipo chamado <code>Issue</code> sombreava o do prelude dentro do arquivo emitido e quebrava todos os descritores daquele módulo; desde a 0.1.60 essa declaração é <code>E0110</code> na linha que nomeia o tipo, então você descobre onde está o problema em vez de ler um erro do <code>tsc</code> sobre código gerado.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

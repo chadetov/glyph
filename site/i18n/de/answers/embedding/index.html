@@ -1,7 +1,7 @@
 ---
 title: Kann ich Glyph in meiner bestehenden App einführen? · Glyph
 description: Kein Rewrite: Die App bleibt in TypeScript, der Domänenkern wird in Glyph geschrieben, und die kompilierten Module importierst du wie jede lokale Datei. Es funktioniert mit einem normalen Vite.
-source_hash: 4dc0a3c1d0f26ab3
+source_hash: 407d584aaaf4d048
 prev: /answers/imports/ | &larr; Zurück | Kann ich meine bestehenden TypeScript-, JavaScript- und npm-Bibliotheken verwenden?
 next: /answers/typed-apis/ | Weiter &rarr; | Muss ich für jede API einen Validator von Hand schreiben?
 ---
@@ -12,16 +12,7 @@ next: /answers/typed-apis/ | Weiter &rarr; | Muss ich für jede API einen Valida
         Kein Rewrite. Die App bleibt in TypeScript, und den Teil, bei dem du dir keinen Fehler leisten kannst (Modelle, Berechtigungen, Zustandsübergänge, Geldberechnungen), schreibst du in Glyph. <code>glyph build</code> erzeugt Module, die deine App <strong>wie jede lokale Datei</strong> importiert, ohne Bundler-Konfiguration und ohne Pfad-Aliase.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Warum das wichtig ist</h2>
-        <p>
-          Die meisten Teams können eine Anwendung nicht neu schreiben, und der Großteil einer Anwendung braucht Glyph nicht. Der Teil, der es braucht, ist der Domänenkern: die Regeln, die ein KI-Agent nächsten Monat bearbeitet und bei denen niemand stille Fehler will. Wenn dieser Kern in Glyph bleibt, bekommst du erschöpfendes <code>match</code>, keine Casts und validierte Systemgrenzen genau dort, wo es sich lohnt, während React-Komponenten, Styling und Infrastruktur einfaches TypeScript bleiben.
-        </p>
-
-        <h2 class="block-label">So sieht es aus</h2>
-        <p>Ein Verzeichnis mit Glyph-Quellen, in die App kompiliert, von der UI importiert:</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">Ein hybrides Layout: Domänenkern in Glyph, alles andere in TypeScript</span>
 <pre>src/
@@ -34,21 +25,41 @@ import { TaskCard, can_move } from "../generated/models";
 
 const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Ein Verzeichnis mit Glyph-Quellen, in die App kompiliert, von der UI importiert.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Alles, was der erzeugte Code braucht, reist mit ihm. Imports sind relativ, auch die der mitgelieferten Standardbibliothek, also müssen die <code>tsconfig.json</code> und der Bundler deines Projekts nichts dazubekommen: Ein normales Vite-Grundgerüst kompiliert und bundelt die Ausgabe unverändert, und dieselben Dateien bestehen ein <code>tsc --strict</code> im Host-Projekt. Markiere, was die App importiert, mit <code>pub</code>; eine Deklaration ohne das ist privat in ihrem Modul. Das ist nicht hypothetisch: Ein externer Entwickler <a href="https://github.com/yildizadem/glyph-kanban">hat auf diese Weise ein React-Kanban-Board gebaut</a>, mit der RBAC-Matrix, den Analyse-Formeln und den Statusübergängen in vier Glyph-Modulen unter einer handgeschriebenen React-UI.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Die meisten Teams können eine Anwendung nicht neu schreiben, und der Großteil einer Anwendung braucht Glyph nicht. Der Teil, der es braucht, ist der Domänenkern: die Regeln, die ein KI-Agent nächsten Monat bearbeitet und bei denen niemand stille Fehler will.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Wenn dieser Kern in Glyph bleibt, bekommst du erschöpfendes <code>match</code>, keine Casts und validierte Systemgrenzen genau dort, wo es sich lohnt, während React-Komponenten, Styling und Infrastruktur einfaches TypeScript bleiben.</p></div>
 
-      <h2 class="block-label">Wo es steht</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Die erzeugte Ausgabe passt unverändert in ein Host-Projekt: durchgehend relative Specifier, Prelude-Typen im Code selbst mitgeliefert, geprüft mit einem normalen Vite-Grundgerüst, <code>tsc --strict</code> im Host, esbuild und <code>tsx</code>. Der <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deployment-Guide</a> dokumentiert das hybride Layout.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">In Arbeit</h3>
-          <p>Noch kein Watch-Modus: Führ <code>glyph build</code> nach dem Bearbeiten von <code>.glyph</code>-Quellen erneut aus (bind es in dein <code>dev</code>-Skript ein). Module, die <code>std/fs</code> oder <code>std/net</code> verwenden, brauchen <code>@types/node</code> im Host, wie jedes TypeScript, das Node anfasst.</p>
-        </div>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">Im Host ist nichts hinzuzufügen<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Alles, was der erzeugte Code braucht, reist mit ihm.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>Relative Imports</b>Imports sind relativ, auch die der mitgelieferten Standardbibliothek, also müssen die <code>tsconfig.json</code> und der Bundler deines Projekts nichts dazubekommen: Ein normales Vite-Grundgerüst kompiliert und bundelt die Ausgabe unverändert, und dieselben Dateien bestehen ein <code>tsc --strict</code> im Host-Projekt.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>pub</code>-Exporte</b>Markiere, was die App importiert, mit <code>pub</code>; eine Deklaration ohne das ist privat in ihrem Modul.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Das ist nicht hypothetisch: Ein externer Entwickler <a href="https://github.com/yildizadem/glyph-kanban">hat auf diese Weise ein React-Kanban-Board gebaut</a>, mit der RBAC-Matrix, den Analyse-Formeln und den Statusübergängen in vier Glyph-Modulen unter einer handgeschriebenen React-UI.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die erzeugte Ausgabe passt unverändert in ein Host-Projekt: durchgehend relative Specifier, Prelude-Typen im Code selbst mitgeliefert.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Geprüft mit einem normalen Vite-Grundgerüst, <code>tsc --strict</code> im Host, esbuild und <code>tsx</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Der <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deployment-Guide</a> dokumentiert das hybride Layout.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Noch kein Watch-Modus: Führ <code>glyph build</code> nach dem Bearbeiten von <code>.glyph</code>-Quellen erneut aus (bind es in dein <code>dev</code>-Skript ein).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Module, die <code>std/fs</code> oder <code>std/net</code> verwenden, brauchen <code>@types/node</code> im Host, wie jedes TypeScript, das Node anfasst.</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/why-typescript/index.html",
   "locale": "de",
-  "source_hash": "9f7bf2e8baaad5d9",
+  "source_hash": "4df0de0ec8bd7ba2",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,34 @@
       "tr": "Weil Agenten in TypeScript schon den meisten Code schreiben und dort dein Ökosystem (npm, React, Node) lebt. Glyph lässt sich Datei für Datei einführen, <strong>nur weil sein Ziel TS ist</strong>."
     },
     {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "dasselbe Projekt: .glyph und .ts nebeneinander"
+    },
+    {
+      "id": "h-d0269c9c",
+      "kind": "html",
+      "en": "<span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span>",
+      "tr": "<span>Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen.</span>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Warum das wichtig ist"
     },
     {
-      "id": "h-0a5dbd26",
-      "kind": "html",
-      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
-      "tr": "Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt. Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen:"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
     },
     {
-      "id": "h-2a66da79",
+      "id": "h-5ee1e84f",
       "kind": "html",
-      "en": "the same project: .glyph and .ts, side by side",
-      "tr": "dasselbe Projekt: .glyph und .ts nebeneinander"
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy.",
+      "tr": "Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt."
     },
     {
       "id": "h-4eb97fa1",
@@ -83,10 +95,22 @@
       "tr": "Go lässt sich nicht Datei für Datei in eine TypeScript-Codebasis einbauen: andere Laufzeit, anderes Modulsystem, anderes Ökosystem. Allein deshalb ist das Ziel TS."
     },
     {
-      "id": "h-b0743097",
+      "id": "h-f9a17aa4",
       "kind": "html",
-      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
-      "tr": "<strong>Der berechtigte Punkt zu Go:</strong> Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache. Go ist in unserem <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">Dichte-Benchmark</a> für einen direkten Vergleich enthalten."
+      "en": "The fair point about Go",
+      "tr": "Der berechtigte Punkt zu Go"
+    },
+    {
+      "id": "h-dca0c488",
+      "kind": "html",
+      "en": "Its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing.",
+      "tr": "Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache."
+    },
+    {
+      "id": "h-bbac4976",
+      "kind": "html",
+      "en": "Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "Go ist in unserem <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">Dichte-Benchmark</a> für einen direkten Vergleich enthalten."
     },
     {
       "id": "h-b55f380c",
@@ -95,22 +119,34 @@
       "tr": "Wo es steht"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-4f2da421",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "Heute verfügbar"
+      "en": "Shipping today <span class=\"count\">3</span>",
+      "tr": "Heute verfügbar <span class=\"count\">3</span>"
     },
     {
-      "id": "h-93871ba6",
+      "id": "h-12991ef7",
       "kind": "html",
-      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
-      "tr": "Sauberes TypeScript als Ausgabe, Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien und ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft."
+      "en": "Clean TypeScript output.",
+      "tr": "Sauberes TypeScript als Ausgabe."
     },
     {
-      "id": "h-0abde815",
+      "id": "h-a6b7a39e",
       "kind": "html",
-      "en": "Being measured",
-      "tr": "Wird gemessen"
+      "en": "Bidirectional imports with your existing <code>.ts</code>.",
+      "tr": "Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien."
+    },
+    {
+      "id": "h-4ec09cc2",
+      "kind": "html",
+      "en": "A small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft."
+    },
+    {
+      "id": "h-a86ec4ab",
+      "kind": "html",
+      "en": "Being measured <span class=\"count\">1</span>",
+      "tr": "Wird gemessen <span class=\"count\">1</span>"
     },
     {
       "id": "h-5cb4379c",

@@ -1,7 +1,7 @@
 ---
 title: Warum TypeScript und nicht Go oder eine neue Sprache? · Glyph
 description: In TypeScript schreiben Agenten schon den meisten Code, und dort leben npm, React und Node. Glyph lässt sich nur deshalb Datei für Datei einführen, weil sein Ziel TS ist.
-source_hash: 9f7bf2e8baaad5d9
+source_hash: 4df0de0ec8bd7ba2
 prev: /answers/greppability/ | &larr; Zurück | Kann ein Agent (oder ich) finden, wo etwas definiert ist?
 next: /answers/vs-tooled-ts/ | Weiter &rarr; | Warum nicht einfach striktes TypeScript + zod + eslint + ts-pattern?
 ---
@@ -12,39 +12,45 @@ next: /answers/vs-tooled-ts/ | Weiter &rarr; | Warum nicht einfach striktes Type
         Weil Agenten in TypeScript schon den meisten Code schreiben und dort dein Ökosystem (npm, React, Node) lebt. Glyph lässt sich Datei für Datei einführen, <strong>nur weil sein Ziel TS ist</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Warum das wichtig ist</h2>
-        <p>
-          Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt. Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">dasselbe Projekt: .glyph und .ts nebeneinander</span>
+      <figure class="ak-hero">
+        <div class="code">
+          <span class="cap">dasselbe Projekt: .glyph und .ts nebeneinander</span>
 <pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 import { formatPrice } from "./format.ts"
 
 <span class="cm">// checkout.ts: existing, untouched</span>
 import { total } from "./cart.glyph"</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Go lässt sich nicht Datei für Datei in eine TypeScript-Codebasis einbauen: andere Laufzeit, anderes Modulsystem, anderes Ökosystem. Allein deshalb ist das Ziel TS.
-        </p>
-        <p>
-          <strong>Der berechtigte Punkt zu Go:</strong> Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache. Go ist in unserem <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">Dichte-Benchmark</a> für einen direkten Vergleich enthalten.
-        </p>
-      </div>
-
-      <h2 class="block-label">Wo es steht</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Sauberes TypeScript als Ausgabe, Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien und ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Wird gemessen</h3>
-          <p>Der sprachübergreifende Benchmark (Glyph, TS, Go, Python, Rust) wächst mit dem Korpus, damit die Aussage &ldquo;kleiner Sprachumfang&rdquo; eine Zahl bleibt und keine Behauptung.</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph passt neben die <code>.ts</code>-Dateien, die du schon hast, und Imports funktionieren sauber in beide Richtungen.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Eine neue Sprache steht und fällt damit, wie du von null bis zur Auslieferung kommst. Zu TypeScript zu kompilieren heißt, dass du nie deine Codebasis, deinen Bundler, deinen Test-Runner oder dein Deployment verlässt.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go lässt sich nicht Datei für Datei in eine TypeScript-Codebasis einbauen: andere Laufzeit, anderes Modulsystem, anderes Ökosystem. Allein deshalb ist das Ziel TS.</p></div>
+
+      <h2 class="ak-h" id="go">Der berechtigte Punkt zu Go<a class="ak-anchor" href="#go" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Sein kleiner, stabiler Sprachumfang gibt einem Agenten weniger Möglichkeiten, falsch zu liegen. Da stimmen wir zu: Genau deshalb hält Glyph bewusst einen kleinen Kern mit einem Weg für jede Sache.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go ist in unserem <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">Dichte-Benchmark</a> für einen direkten Vergleich enthalten.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Sauberes TypeScript als Ausgabe.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Imports in beide Richtungen mit deinen bestehenden <code>.ts</code>-Dateien.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein kleiner Kern, der überall läuft, wo Node oder ein Browser-Bundle läuft.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird gemessen <span class="count">1</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Der sprachübergreifende Benchmark (Glyph, TS, Go, Python, Rust) wächst mit dem Korpus, damit die Aussage &ldquo;kleiner Sprachumfang&rdquo; eine Zahl bleibt und keine Behauptung.</span></span></li>
+          </ul>
+        </section>
       </div>

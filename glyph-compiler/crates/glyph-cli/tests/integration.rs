@@ -2288,7 +2288,9 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
 ///
 /// This program schedules a delayed write and returns from `main` immediately.
 /// The delayed write is what the assertion is about: if the process is torn
-/// down at `return`, the exit code is 0 but the write never lands.
+/// down at `return`, the exit code is 0 but the write never lands. It is
+/// started with `task.detach`, the one spelling of "start this and do not
+/// wait" since a bare un-awaited call became E0238 (D51).
 #[test]
 fn work_pending_when_main_returns_still_runs() {
     let root = unique_tmp("pending_work");
@@ -2301,13 +2303,14 @@ fn work_pending_when_main_returns_still_runs() {
         &format!(
             "module app\n\
              import std/fs\n\
+             import std/task\n\
              import std/time\n\
              async fn later() {{\n\
              \x20 await time.sleep(time.Duration.ms(50))\n\
              \x20 let _ = fs.write_text(\"{marker_lit}\", \"landed\")\n\
              }}\n\
              fn main(argv: Array<string>) -> number {{\n\
-             \x20 later()\n\
+             \x20 task.detach(async fn() -> void {{ await later() }})\n\
              \x20 return 0\n\
              }}\n"
         ),

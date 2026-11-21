@@ -634,7 +634,8 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::DestructureUnproven { .. }
         | T::PatternNotRecord { .. }
         | T::RecordRemoveFiniteKey { .. }
-        | T::CaseBind { .. } => None,
+        | T::CaseBind { .. }
+        | T::PendingNotAwaited { .. } => None,
     }
 }
 

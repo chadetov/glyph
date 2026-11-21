@@ -6324,6 +6324,10 @@ enum ArgKind {
     /// string literal (G237). The checker compares these by literal set, so
     /// the cells for them ask the relation rather than restate a rule (G234).
     StringLiteralUnion,
+    /// A pending value (D51): a call to an async callee that nothing awaits.
+    /// The checker refuses it as an argument to every parameter (E0238), so
+    /// the site fails as it stands, whatever the parameter becomes.
+    Pending,
     /// Everything else: a generic parameter, an application over a structural
     /// base or over a prelude type that is not one of the five containers,
     /// `unknown`, `never`.
@@ -6465,11 +6469,15 @@ fn imported_body(decls: &dyn DeclTyResolver, module: &str, name: &str) -> NamedB
             "an `extern_ts` or `typeof` body, which its module's export view lowers to \
              `Unknown`",
         ),
+        // No annotation lowers to a pending value (D51), so a declaration's
+        // body is never one; it is named with the other shapes the rules here
+        // do not read rather than left to a wildcard.
         Ty::Imported { .. }
         | Ty::Named { .. }
         | Ty::UnknownTop
         | Ty::Never
-        | Ty::Param { .. } => NamedBody::Other("a body that is neither a tagged union nor a record"),
+        | Ty::Param { .. }
+        | Ty::Pending(_) => NamedBody::Other("a body that is neither a tagged union nor a record"),
     }
 }
 
@@ -6557,6 +6565,7 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
         },
         Ty::Record { .. } | Ty::Fn { .. } => ArgKind::Structural,
         Ty::StringLiteralUnion(_) => ArgKind::StringLiteralUnion,
+        Ty::Pending(_) => ArgKind::Pending,
         Ty::UnknownTop | Ty::Never | Ty::Param { .. } | Ty::Union { .. } => ArgKind::Other,
     }
 }
@@ -6691,6 +6700,14 @@ fn signature_type_cell(
              nothing, and only `tsc` on a full `glyph build` would see a mismatch here"
                 .to_string(),
         ),
+        // D51. The argument is refused before any parameter is consulted, so
+        // no replacement makes the site compile and none makes it worse.
+        (A::Pending, _) => will_fail(format!(
+            "the argument is {arg_ty}: a call to an async function that is not awaited, and \
+             the checker refuses a pending value as an argument to any parameter (E0238), so \
+             this site fails as it stands, whatever `{param_ty}` is replaced with; `await` \
+             the call"
+        )),
         // G234, the third pairing decided by asking the relation. A
         // string-literal union is compared by literal set in both directions
         // and, against anything else, by the question that type asks against
@@ -9716,6 +9733,7 @@ fn signature_generics(ty: &Ty) -> Vec<String> {
                     }
                 }
             }
+            Ty::Pending(inner) => walk(inner, out),
             Ty::Unknown
             | Ty::Prim(_)
             | Ty::UnknownTop

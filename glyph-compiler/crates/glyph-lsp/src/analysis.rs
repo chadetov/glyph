@@ -2650,6 +2650,23 @@ mod tests {
         assert_eq!(a.hover(text, off), Some("number".to_string()));
     }
 
+    /// D51: an un-awaited call to an async function hovers as the pending
+    /// value it is, and the same call under `await` as the value it produces.
+    /// A binding of the pending call answers the same at its name.
+    #[test]
+    fn hover_shows_a_pending_value_and_what_await_makes_of_it() {
+        let text = "module x\n\
+            async fn load() -> number {\n  return 1\n}\n\
+            async fn f() -> number {\n  let p = load()\n  let n = await load()\n  let m = await p\n  return n + m\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let pending_call = text.find("load()\n  let n").unwrap() + "load".len();
+        assert_eq!(a.hover(text, pending_call), Some("a pending `number`".to_string()));
+        let awaited = text.find("await load()").unwrap();
+        assert_eq!(a.hover(text, awaited), Some("number".to_string()));
+        let binding = text.find("let p").unwrap() + "let ".len();
+        assert_eq!(a.hover(text, binding), Some("a pending `number`".to_string()));
+    }
+
     /// The file the agent-surface audit probed, cut down to the positions
     /// hover used to answer `null` at.
     const HOVER_SRC: &str = "module orders\n\

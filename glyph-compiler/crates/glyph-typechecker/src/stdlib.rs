@@ -301,6 +301,9 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = timers_fn_ty(module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = task_fn_ty(module_key, field) {
+        return Some(sig);
+    }
     if let Some(sig) = host_fn_ty(prelude, module_key, field) {
         return Some(sig);
     }
@@ -725,6 +728,35 @@ pub(crate) fn process_fn_ty(prelude: &Prelude, module_key: &str, field: &str) ->
 /// than anything a caller reads. The delay is milliseconds, a plain number,
 /// which is what tells `timers.sleep` apart from `time.sleep` and its
 /// `Duration`.
+/// The signature of a `std/task` export the checker models.
+///
+/// Only `detach` (D51). It is the sanctioned way to start work without
+/// waiting, so its row is what makes `task.detach(...)` a plain `void` call
+/// rather than a pending value of its own, and what holds its argument to an
+/// `async fn() -> void`: a sync function there would be started and finished
+/// before `detach` could watch it for a failure, and a pending value there
+/// (`task.detach(save(1))`) has already been started, which is E0238.
+///
+/// The joins (`all`, `race`, `pool` and the settled pair) are generic over a
+/// thunk returning `T | Promise<T>`, which Glyph cannot write yet, so they stay
+/// unmodeled and `tsc` checks them.
+pub(crate) fn task_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
+    if (module_key, field) != ("std/task", "detach") {
+        return None;
+    }
+    Some(Ty::Fn {
+        params: vec![required(Ty::Fn {
+            params: Vec::new(),
+            return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+            is_async: true,
+            type_params: Some(Vec::new()),
+        })],
+        return_ty: Arc::new(Ty::Prim(Primitive::Void)),
+        is_async: false,
+        type_params: None,
+    })
+}
+
 pub(crate) fn timers_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
     if module_key != "std/timers" {
         return None;

@@ -184,10 +184,11 @@ impl StdlibStubs {
         s.add("std/store", &["Store", "create"]);
         // Structured-concurrency helpers over Promises: `all` (fail-fast join),
         // `race` (first to settle), `all_settled` (one outcome per task), and the
-        // bounded pair `pool`/`pool_settled`.
+        // bounded pair `pool`/`pool_settled`, and `detach`, which starts work
+        // without waiting and reports its failure (D51).
         s.add(
             "std/task",
-            &["all", "race", "pool", "pool_settled", "all_settled", "Settled"],
+            &["all", "race", "pool", "pool_settled", "all_settled", "Settled", "detach"],
         );
         // Regular expressions (stateless, one `RegExp` per call).
         s.add(

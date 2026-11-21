@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.157</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.158</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -489,18 +489,18 @@
 
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">リリースの頻度と Breaking の印<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          <a href="/versions/">バージョンのページ</a>には、0.1.0 から 0.1.157 までのすべてのリリース、計 156 件の項目があり、そのうち 30 件は 2026年11月1日 から 2026年11月21日 までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は 40 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。
+          <a href="/versions/">バージョンのページ</a>には、0.1.0 から 0.1.158 までのすべてのリリース、計 157 件の項目があり、そのうち 31 件は 2026年11月1日 から 2026年11月21日 までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は 41 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。
         </p>
         <p>
           Breaking のリリースが実際にどれだけのコストになったか：最近のリリースノートにはそれぞれ、リポジトリのサンプルアプリを古いバージョンと新しいバージョンで実行したときに何が起きたかが書かれています。以下は最新の Breaking リリースのノートからの引用です。
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.158">0.1.158</a>: リリースノートには記載がありません。</li>
           <li><a href="/versions/2026-11/#0.1.157">0.1.157</a>: <span lang="en">&ldquo;Writing this rule turned up a real bug in one of the example apps.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.156">0.1.156</a>: リリースノートには記載がありません。</li>
           <li><a href="/versions/2026-11/#0.1.155">0.1.155</a>: リリースノートには記載がありません。</li>
           <li><a href="/versions/2026-11/#0.1.154">0.1.154</a>: <span lang="en">&ldquo;In the repository, two example apps did, and both were real bugs: the chat server's <code>main</code> started <code>daemon.serve(port)</code> and returned before the server bound, and the job queue's timer dropped each <code>drain</code>.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.153">0.1.153</a>: <span lang="en">&ldquo;No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code.&rdquo;</span></li>
-          <li><a href="/versions/2026-11/#0.1.152">0.1.152</a>: <span lang="en">&ldquo;No file in the repository, none of the 32 example apps and neither outside app we test against decodes a null into an optional field.&rdquo;</span></li>
         </ul>
 
         <p>

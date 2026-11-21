@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-419 entries, 312 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-86 are open. G144, the D28 boundary cast that never reached the returns a
+420 entries, 312 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+87 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12381,6 +12381,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.152 (the release build): `let x = f<a, "\q">(1)` is ``[E0003] Error: parse: unexpected token: Comma``.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, `f<a, "\q">(1)` in a function body is E0003 at the comma.*
+
 - **G330. [FIXED] A non-ASCII character in code crashes `glyph check`.**
   `let s = 1 é` exits 101 with a panic in the diagnostic renderer ("end byte
   index 13 is not a char boundary"). The lexer turned the first byte of a
@@ -12428,6 +12430,8 @@ and is the owner's to confirm.
   holds `title: "&amp;"`.*
 
   *Reproduced against 0.1.152 (the release build): `<p title="&amp;">x</p>` is `no diagnostics`, and the emitted TypeScript holds `title: "&amp;"`.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, `<p title="&amp;">x</p>` still emits the five characters `&amp;` and `check --no-tsc` exits 0.*
 
 - **G333. A `<` in JSX text is E0002 "expected JSX element or attribute name".**
   `<p>a < b</p>` reads the `<` as the start of an element. The four E0012
@@ -12841,6 +12845,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.152 (the release build): `json.parse<m.Box<int>>` through `import model as m`, every field checkable, is ``[E0304] ... `json.parse<m.Box<int>>` has no runtime check to run for it``, while `json.parse<Box<int>>` imported by name is `no diagnostics`.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, the namespace import is E0304 and the by-name import validates.*
+
 - **G355. `Page.is<U>(v)` passes Glyph's checker and fails `tsc`.** A type
   argument on a generic descriptor's `is` is accepted by the checker, and the
   emitted call is refused by `tsc` with TS2554 (wrong number of arguments).
@@ -12863,6 +12869,8 @@ and is the owner's to confirm.
   Expected 2 arguments, but got 1``.*
 
   *Reproduced against 0.1.152 (the release build): `Page.is<U>(v)` is `no diagnostics` under `--no-tsc`, and full `check` reports ``TS2554: Expected 2 arguments, but got 1``. Since 0.1.150's depth parameter, `glyph run --no-tsc` on record 105's `a12e-union-is-gen` throws `TypeError: check is not a function` in `every_at` instead of returning; full `check` still refuses the program.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, `Page.is<U>` and a `Page.parse` function value pass `--no-tsc` and are TS2554 under full `check`; record 105's probe still throws `check is not a function` under `run --no-tsc`.*
 
 - **G351. [FIXED] An expression followed by `{` on the same line is split into a
   value and an unreachable block.** `return h() { k: 2 }` parses as `return
@@ -12924,6 +12932,8 @@ and is the owner's to confirm.
   introduced; adding both answers `ok: true`.*
 
   *Reproduced against 0.1.152 (the release build) by record 104's LSP client: adding one of two missing arms answers `ok: false` with E0200 counted as introduced; adding both answers `ok: true`.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, `add-one-arm` is refused with `verification_failed` on E0200 and `add-both` is accepted.*
 
 - **G358. `glyph fmt` does not sort imports, though the manifesto said it
   did.** Two `import` lines in the wrong order are left as they are, and
@@ -13938,6 +13948,8 @@ and is the owner's to confirm.
   diagnostics, and full `check` reports `[TS2345] Error: tsc: Argument of
   type 'string' is not assignable to parameter of type 'number'`.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, `record.set(r, "gold", "oops")` passes `--no-tsc` and is TS2345 with `tsc`.*
+
 - **G403. E0217 skips the final statement of a block.** `fn tail(s: string)
   -> void { parse(s) }`, where `parse` returns a `Result`, drops it with no
   diagnostic: the warning is raised only for a non-final statement, on the
@@ -13952,6 +13964,8 @@ and is the owner's to confirm.
   build by record 129's `p384/e.glyph`: `1 module(s) checked, no
   diagnostics`, exit 0.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, record 128's `e.glyph` exits 0 under both modes.*
+
 - **G404. A dropped promise from an npm package or a host builtin is silent.**
   `import dns/promises { lookup }` then a bare `lookup("localhost")` gets no
   diagnostic from Glyph's checker and none from `tsc`, and `let n: number =
@@ -13964,6 +13978,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build by record 129's `p384/c.glyph`: no E0238 and no `tsc` error on the
   bare call; the branch build reports only E0107 on the unused `n`.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, record 128's `c.glyph` draws nothing on the bare call from either checker; `tsc` refuses the annotated `let` with TS2322.*
 
 - **G405. The prelude `Issue`'s fields are untyped to Glyph's checker.** A
   value read from an `Issue` (the issue type `json.parse` and `T.parse`
@@ -13987,6 +14003,8 @@ and is the owner's to confirm.
   i.message ... }` (one statement per line) checks with no diagnostics, exit
   0.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, `Issue.path` is untyped to Glyph's checker (full `check` is TS2322), and `string.from(i.path)` is not judged by E0237.*
+
 - **G406. An unannotated sync lambda is typed as returning `void` whatever
   its tail is.** `let f = fn() { 5 }` then `let n: number = f()` is
   ``E0204: type mismatch: expected `number`, found `void` ``, while the
@@ -14003,6 +14021,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build: exit 1 with that E0204.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, `let n: number = f()` on an unannotated lambda is E0204 `expected number, found void`; contextual typing (0.1.158) covers parameters, not the return.*
+
 - **G407. An async lambda with no return type escapes G99's async-callback
   refusal.** `array.map(xs, async fn(x: number) { await save(x) })` passes
   both checkers and builds an array of promises, while the annotated
@@ -14018,6 +14038,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build by record 135's `p384/g.glyph`: `a` passes both checkers, and only
   `b`, the annotated form, is E0211.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, record 128's `g.glyph` reports E0211 only on the annotated form.*
 
 - **G408. A sync function given to an async `void` parameter passes Glyph's
   checker.** `task.detach(tick)` with `fn tick() { io.println("x") }` is no
@@ -14053,6 +14075,8 @@ and is the owner's to confirm.
   `tsc --strict` passes; `glyph run` prints `matches true` for
   `regex.matches("a.c", "abc")`.*
 
+  *Reproduced against 0.1.158 (the release build): unchanged, the probe passes full `check` and `run` prints `matches true`.*
+
 - **G410. `http.html` sends its body unescaped.** `http.html(200, "<p>Hello,
   ${name}</p>")` with `name` from a request is an XSS: the body goes out as
   `text/html` exactly as built. A constant rule is wrong here, because an
@@ -14066,6 +14090,8 @@ and is the owner's to confirm.
   `tsc --strict` passes; the response body for
   `name = "<script>alert(1)</script>"` is
   `"<p>Hello, <script>alert(1)</script></p>"`.*
+
+  *Reproduced against 0.1.158 (the release build): unchanged, the response body carries the unescaped `<script>` under full `check` and `run`.*
 
 - **G411. E0239 gives prose, not a rewrite, for a quoted literal holding more
   than a value.** `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])`
@@ -14254,3 +14280,15 @@ and is the owner's to confirm.
   extern_ts("[10, 20] as number[]")` then `for i, x in v { let s: string = i
   io.println(s.toUpperCase()) }` passes `check` with `tsc --strict passed`,
   and `glyph run` throws `TypeError: s.toUpperCase is not a function`.*
+
+- **G420. Hover on a `for` binding inside a `match` arm answers the arm's
+  type.** In `match v { is Array<unknown> => { for i, x in v { .. } } }`,
+  hover anywhere from the `for` keyword's binding names to the iterand's
+  start returns the type of the arm block (`string`), while hover on `v` and
+  on any use of `i` returns the binding's real type (`unknown`). An agent
+  asking through MCP for the type of `i` at its declaration reads the wrong
+  answer. Found by record 147, beside G417 and G418.
+
+  *Reproduced against 0.1.158 (the release build) with record 146's probe
+  `t/b.glyph`: hover on `i` at the `for` line is `string`, hover on the use in
+  `let n: number = i` is `unknown`.*

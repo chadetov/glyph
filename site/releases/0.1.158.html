@@ -1,0 +1,19 @@
+---
+version: 0.1.158
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A lambda parameter without an annotation takes its type from where the lambda is passed
+---
+            <p>Before this release, a lambda parameter written without a type was not checked by Glyph at all. In <code>users.map(fn(p) -> string { return p.nmae })</code>, nothing knew <code>p</code> was a <code>User</code>, so the typo passed <code>check --no-tsc</code>, and <code>"${p}"</code> printed <code>[object Object]</code> past the rule 0.1.157 added. Now the parameter takes the type of the slot the lambda is passed into:</p>
+
+<pre><code>[E0210] type `User` has no field `nmae`; did you mean `name`?</code></pre>
+
+            <p>A lambda gets its parameter types from a call argument (the callee's parameter, with its type parameters bound from the earlier arguments), an annotated <code>let</code> or <code>const</code>, a <code>return</code> in a function with a declared return type, a field of a typed record literal, or an attribute of a component whose props Glyph knows. The built-in array methods that take a callback (<code>map</code>, <code>forEach</code>, <code>filter</code>, <code>find</code>, <code>reduce</code>, <code>sort</code> and the rest) type it from the array's element type. Hover shows the inferred type, and the E0238 help for a missed <code>await</code> inside <code>forEach</code> or <code>map</code> now names the right fix for each.</p>
+
+            <p>A lambda with nothing around it to supply a type, such as <code>let k = fn(p) { ... }</code>, still is not checked, and hover says so. A DOM event handler on a plain element keeps React's type.</p>
+
+            <p>Testing this turned up a run-time bug that 0.1.157 shipped. A two-name <code>for i, x in v</code> over a value typed <code>unknown</code> always used the record form, so on an array the index came out as a string and <code>i + 1</code> printed <code>01</code>. The loop now decides array or record at run time, and both names are typed <code>unknown</code> for Glyph and for <code>tsc</code>, so using the index as a number or a string needs a check first.</p>
+
+            <h3>Breaking</h3>
+            <p>A field typo or a record converted to text inside a lambda passed to a typed slot now fails <code>check --no-tsc</code> (0.1.157 exits 0, 0.1.158 exits 1), and under full <code>check</code> when <code>tsc</code> did not already catch it. A loop over an <code>unknown</code> value that used its index as a string or a number fails full <code>check</code> until the index is narrowed. No tracked program or example app is newly refused.</p>

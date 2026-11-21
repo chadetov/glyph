@@ -1,7 +1,7 @@
 ---
 title: Birinin içine yazı yazdığı bir program yazabilir miyim? · Glyph
 description: io.read_line, stdin'in kapanmasını beklemek yerine bir satır gelir gelmez döner; böylece bir REPL, bir oyun döngüsü ya da bir sohbet istemcisi siz yazarken yanıt verir.
-source_hash: a2332eec4a663662
+source_hash: e06954a40c0a760a
 prev: /answers/web-serving/ | &larr; Önceki | Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?
 next: /answers/long-running/ | Sonraki &rarr; | Bir sunucu yazabilir miyim, yoksa süreç hemen çıkıyor mu?
 ---
@@ -12,21 +12,10 @@ next: /answers/long-running/ | Sonraki &rarr; | Bir sunucu yazabilir miyim, yoks
         Evet. <code>io.read_line</code>, <strong>tam bir satır gelir gelmez</strong> döner ve stdin'in kapanmasını beklemez; böylece bir REPL, bir oyun döngüsü ya da bir sohbet istemcisi, bir sonraki satırı okumadan önce her satıra yanıt verir. 0.1.62'ye kadar bekliyordu ve bunu açıkça söylemek gerekir, çünkü bu her etkileşimli programı imkânsız kılıyordu.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Yalnızca girdinin sonunda dönen bir satır okuyucu, satır okuyucu adını taşıyan bir dosya okuyucudur. Bir dosyayı pipe ile ondan geçirmek mükemmel çalışır; hiçbir şeyin bunu yakalamamasının nedeni de bu: repoda stdin okuyan her uygulama bir pipe okuyordu. Sonra biri bir sohbet istemcisi yazdı ve istemci, kişi yazarken sessiz kaldı, Ctrl-D'den sonra tüm yanıtları bir anda yazdırdı.
-        </p>
-        <p>
-          O uygulama, kaynak kodunda nedenini açıklayan bir yorumla, kaydedilmiş bir JSON dosyası üzerinde çalışan bir oturum tekrar oynatıcısı olarak yayımlandı. Diğer üç uygulama da kimse adını koymadan aynı soruna göre şekillenmişti: mayın tarlası hamleler arasında ekranı yeniden çizemiyordu, metin macerası <code>look</code>'a yanıt veremiyordu ve bir REPL siz bağlantıyı kapatana kadar hiçbir şey hesaplamıyordu.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>Sohbet uygulamasının tüm canlı oturum döngüsü. Oku, uygula, yazdır, tekrarla:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Sohbet uygulamasının tüm canlı oturum döngüsü. Oku, uygula, yazdır, tekrarla:</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
   let state = server.empty()
   io.println(LIVE_BANNER)
@@ -46,16 +35,12 @@ next: /answers/long-running/ | Sonraki &rarr; | Bir sunucu yazabilir miyim, yoks
   }
   return state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Gerçek bir terminalde, her satır yaklaşık 0,6 saniye arayla yazılarak ve stdin açık bırakılarak çalıştırıldı. Sol sütun, süreç başladığından beri geçen milisaniyedir:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -64,36 +49,77 @@ next: /answers/long-running/ | Sonraki &rarr; | Bir sunucu yazabilir miyim, yoks
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Yazılan satırdan yanıta bir ila iki milisaniye.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">düzeltmeden önce ve ilk 1,6 saniyenin nereye gittiği</span></summary><div class="body">
+          <p>
+            Düzeltmeden önce, stdin'in kapandığı an olan 6460ms'ye kadar hiçbir şey yazdırılmıyordu. Tam bir çalıştırmada ilk yanıt yaklaşık 1,6 saniyede gelir ve bu okuma gecikmesi değil, <code>tsx</code>'in başlama süresidir.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Yalnızca girdinin sonunda dönen bir satır okuyucu, satır okuyucu adını taşıyan bir dosya okuyucudur.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Bir dosyayı pipe ile ondan geçirmek mükemmel çalışır; hiçbir şeyin bunu yakalamamasının nedeni de bu: repoda stdin okuyan her uygulama bir pipe okuyordu. Sonra biri bir sohbet istemcisi yazdı ve istemci, kişi yazarken sessiz kaldı, Ctrl-D'den sonra tüm yanıtları bir anda yazdırdı.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">buna göre şekillenen uygulamalar</span></summary><div class="body">
         <p>
-          Yazılan satırdan yanıta bir ila iki milisaniye. Düzeltmeden önce, stdin'in kapandığı an olan 6460ms'ye kadar hiçbir şey yazdırılmıyordu. Tam bir çalıştırmada ilk yanıt yaklaşık 1,6 saniyede gelir ve bu okuma gecikmesi değil, <code>tsx</code>'in başlama süresidir.
+          O uygulama, kaynak kodunda nedenini açıklayan bir yorumla, kaydedilmiş bir JSON dosyası üzerinde çalışan bir oturum tekrar oynatıcısı olarak yayımlandı. Diğer üç uygulama da kimse adını koymadan aynı soruna göre şekillenmişti: mayın tarlası hamleler arasında ekranı yeniden çizemiyordu, metin macerası <code>look</code>'a yanıt veremiyordu ve bir REPL siz bağlantıyı kapatana kadar hiçbir şey hesaplamıyordu.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Pratikte can sıkan kısımlar</h2>
-        <p>
-          Sondaki <code>\r</code> kaldırılır; böylece CRLF ve LF dosyaları size aynı satırları verir ve Windows girdisinde görünmez bir karakterle uğraşmazsınız. Son satır sonu olmadan biten girdi, <code>None</code>'dan önce o son satırı bir kez döndürür; böylece sonunda satır sonu olmayan bir dosyanın son satırı sessizce kaybolmaz. Bir okuma sınırında bölünen çok baytlı UTF-8, yerine koyma karakterlerine dönüşmek yerine bekletilir ve tamamlanır.
-        </p>
-        <p>
-          <code>read_to_string</code> aynı tamponu boşaltır, yani ikisi birlikte kullanılabilir: başlık için <code>read_line</code> ve ardından gövde için <code>read_to_string</code>, size ikinci bir kopya ya da boş bir string değil, geri kalanını verir. Önce çağrılırsa yine stdin'in tamamını döndürür. Pipe ile gelen 200.000 satır yaklaşık 20ms'de sayılır; yani satır satır okumak bir verim kaybı değildir.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">Pratikte can sıkan kısımlar<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b>Sondaki <code>\r</code> kaldırılır; böylece CRLF ve LF dosyaları size aynı satırları verir ve Windows girdisinde görünmez bir karakterle uğraşmazsınız.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Son satır sonu yok</b>Son satır sonu olmadan biten girdi, <code>None</code>'dan önce o son satırı bir kez döndürür; böylece sonunda satır sonu olmayan bir dosyanın son satırı sessizce kaybolmaz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Bölünmüş UTF-8</b>Bir okuma sınırında bölünen çok baytlı UTF-8, yerine koyma karakterlerine dönüşmek yerine bekletilir ve tamamlanır.</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer">Önce <code>read_line</code>, sonra <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> aynı tamponu boşaltır, yani ikisi birlikte kullanılabilir: başlık için <code>read_line</code> ve ardından gövde için <code>read_to_string</code>, size ikinci bir kopya ya da boş bir string değil, geri kalanını verir. Önce çağrılırsa yine stdin'in tamamını döndürür.
+      </p>
       <div class="code">
         <span class="cap">Bir başlık satırı, ardından gövde</span>
 <pre>let header = io.read_line()
 let body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Pipe ile gelen 200.000 satır yaklaşık 20ms'de sayılır; yani satır satır okumak bir verim kaybı değildir.
+      </p></div>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p><code>io.read_line</code>, akış kapandığında değil bir satır geldiğinde döner; böylece sor/oku/yanıtla döngüleri terminalde de pipe üzerinden de çalışır. CRLF normalleştirilir, sonlandırılmamış son satır bir kez teslim edilir, çok baytlı karakterler parça sınırlarını atlatır ve <code>read_to_string</code> aynı tamponun geri kalanını alır. Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler, çünkü bir dosyayı pipe ile geçiren bir test bozuk gerçeklemeye karşı da geçer. <code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar; böylece bir REPL'in <code>&gt; </code> istemi, yanıtın yazıldığı satırda durur. <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> ise bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler; böylece sohbet uygulamasının <code>--stdin</code>'i gibi bir flag artık bunu sormanın tek yolu değil.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Hâlâ pürüzlü</h3>
-          <p>Ekranı yeniden çizmek isteyen bir programın imleç kontrolü yok: <code>std/io</code>'da imleç ya da ekran fonksiyonu yok ve başka hiçbir stdlib modülü bunları eklemiyor; bu yüzden tam ekran bir terminal arayüzü hâlâ escape kodlarını kendiniz yazmak demek.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code>, akış kapandığında değil bir satır geldiğinde döner; böylece sor/oku/yanıtla döngüleri terminalde de pipe üzerinden de çalışır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF normalleştirilir, sonlandırılmamış son satır bir kez teslim edilir, çok baytlı karakterler parça sınırlarını atlatır ve <code>read_to_string</code> aynı tamponun geri kalanını alır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler, çünkü bir dosyayı pipe ile geçiren bir test bozuk gerçeklemeye karşı da geçer.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar; böylece bir REPL'in <code>&gt; </code> istemi, yanıtın yazıldığı satırda durur. <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> ise bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler; böylece sohbet uygulamasının <code>--stdin</code>'i gibi bir flag artık bunu sormanın tek yolu değil.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Hâlâ pürüzlü</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ekranı yeniden çizmek isteyen bir programın imleç kontrolü yok</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Ekranı yeniden çizmek isteyen bir programın imleç kontrolü yok: <code>std/io</code>'da imleç ya da ekran fonksiyonu yok ve başka hiçbir stdlib modülü bunları eklemiyor; bu yüzden tam ekran bir terminal arayüzü hâlâ escape kodlarını kendiniz yazmak demek.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

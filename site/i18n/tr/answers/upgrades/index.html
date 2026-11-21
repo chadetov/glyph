@@ -1,7 +1,7 @@
 ---
 title: Yeni bir Glyph sürümü build'imi bozar mı? · Glyph
 description: Bir Glyph projesi derleyicisini tam sürüme sabitler, bu yüzden bir sürüm size asla kazara ulaşmaz. glyph doctor yeni bir sürüm olduğunu söyler, glyph upgrade sizi ona taşır.
-source_hash: b4d1d08012358fef
+source_hash: d07b464c988f9441
 prev: /answers/ai-authoring/ | &larr; Önceki | Bir yapay zekâ neredeyse hiç görmediği bir dili güvenilir şekilde yazabilir mi?
 next: /answers/imports/ | Sonraki &rarr; | Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?
 ---
@@ -12,16 +12,7 @@ next: /answers/imports/ | Sonraki &rarr; | Mevcut TypeScript, JavaScript ve npm 
         Siz istemediğiniz sürece hayır. Bir Glyph projesi derleyicisini <strong>tam bir sürüme</strong> sabitler, bu yüzden bu sabah yayımlanan bir sürüm bu öğleden sonra build'inize ulaşmaz. 1.0'dan önce bir sürümün dün derlenen kodu reddeden bir diagnostic eklemesine izin verilir ve sürümün amacı genellikle de budur; bu yüzden bir sürümü alma kararı sizindir ve tek bir komuttur.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Çoğu aracı bir caret ile sabitlersiniz, çünkü bir patch sürümü bir hata düzeltmesidir. 1.0 öncesi bir derleyici öyle değildir. Glyph'in bütün işi programları reddetmektir ve bunda daha iyi olmak yeni hatalar demektir: bir import üzerinde daha sıkı bir kontrol, eskiden gözden kaçan bir kapsam açığı, checker'ın modellemediği bir arity. İyi sürümler bunlardır. Aynı zamanda bir tarih kütüphanesi eklemek için çalıştırdığınız bir <code>npm install</code> üzerinden gelmesini kesinlikle istemediğiniz sürümler de bunlardır.
-        </p>
-        <p>
-          Bu yüzden <code>glyph init</code> hiç <code>^</code> yazmaz. Bir <code>0.x</code> sürümünde caret yine de patch'i serbest bırakır ve tuzak budur: <code>^0.1.9</code>, sonraki her 0.1.x'i sessizce kabul eder.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">package.json, iskelet hâliyle</span>
 <pre>"devDependencies": {
@@ -31,19 +22,46 @@ next: /answers/imports/ | Sonraki &rarr; | Mevcut TypeScript, JavaScript ve npm 
   "tsx": "^4.19.0"
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Sabitleme neden tam sürüm</a></li>
+          <li><a href="#the-other-half">Bir sürümün çıktığını öğrenmek</a></li>
+          <li><a href="#taking-the-upgrade">Yükseltmeyi almak</a></li>
+          <li><a href="#moving-the-tool-not-the-project">Derleyicinin kendisini taşımak</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Çoğu aracı bir caret ile sabitlersiniz, çünkü bir patch sürümü bir hata düzeltmesidir. 1.0 öncesi bir derleyici öyle değildir.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">yeni hataların neden iyi sürümler olduğu</span></summary><div class="body">
         <p>
-          Yanındaki <code>package-lock.json</code>'u commit edin; temiz bir clone, o zamandan beri yayımlanan herhangi bir sürümle değil, test ettiğiniz araç zinciriyle build olur.
+          Glyph'in bütün işi programları reddetmektir ve bunda daha iyi olmak yeni hatalar demektir: bir import üzerinde daha sıkı bir kontrol, eskiden gözden kaçan bir kapsam açığı, checker'ın modellemediği bir arity. İyi sürümler bunlardır. Aynı zamanda bir tarih kütüphanesi eklemek için çalıştırdığınız bir <code>npm install</code> üzerinden gelmesini kesinlikle istemediğiniz sürümler de bunlardır.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Bu yüzden <code>glyph init</code> hiç <code>^</code> yazmaz. Bir <code>0.x</code> sürümünde caret yine de patch'i serbest bırakır ve tuzak budur: <code>^0.1.9</code>, sonraki her 0.1.x'i sessizce kabul eder.
+      </p></div>
+      <p>
+        Yanındaki <code>package-lock.json</code>'u commit edin; temiz bir clone, o zamandan beri yayımlanan herhangi bir sürümle değil, test ettiğiniz araç zinciriyle build olur.
+      </p>
 
-        <h2 class="block-label">Diğer yarısı</h2>
+      <h2 class="ak-h" id="the-other-half">Diğer yarısı<a class="ak-anchor" href="#the-other-half" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Sabitlemenin bariz bir başarısızlık biçimi var: eski bir derleyicide bir yıl kalırsınız ve hiç haberiniz olmaz. Bu yüzden kurulumunuz hakkında ona herhangi bir şey sorduğunuzda derleyici size söyler:
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kanalın neden derleyici olduğu</span></summary><div class="body">
         <p>
-          Sabitlemenin bariz bir başarısızlık biçimi var: eski bir derleyicide bir yıl kalırsınız ve hiç haberiniz olmaz. Makinenizdeki hiçbir şey size bunu söylemez ve ziyaret etmeyi hatırlamanız gereken bir web sitesi bir iletişim kanalı değildir. Bu yüzden kurulumunuz hakkında ona herhangi bir şey sorduğunuzda derleyici size söyler:
+          Makinenizdeki hiçbir şey size bunu söylemez ve ziyaret etmeyi hatırlamanız gereken bir web sitesi bir iletişim kanalı değildir.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre>glyph &mdash; 0.1.72
   [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
@@ -56,18 +74,24 @@ glyph doctor &mdash; JavaScript toolchain
 All good. `glyph run` and `glyph build --check` are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Daha yeni bir sürüm bulmak çıkış kodunu <em>asla</em> değiştirmez, bu yüzden bunu CI'da çalıştırmak güvenlidir.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">CI, çevrimdışı çalışma ve ağa hiç dokunmayan şey</span></summary><div class="body">
         <p>
-          Daha yeni bir sürüm bulmak çıkış kodunu <em>asla</em> değiştirmez, bu yüzden bunu CI'da çalıştırmak güvenlidir. Yayımlanmış bir sürüm bozuk bir araç zinciri değildir ve yeşil bir pipeline, biri on dakika önce bir sürüm yayımladı diye kırmızıya dönmemelidir. Makine çevrimdışıysa kontrol bunu söyler ve devam eder; <code>--offline</code> onu tamamen atlar ve hiç ağ çağrısı yapmaz.
+          Yayımlanmış bir sürüm bozuk bir araç zinciri değildir ve yeşil bir pipeline, biri on dakika önce bir sürüm yayımladı diye kırmızıya dönmemelidir. Makine çevrimdışıysa kontrol bunu söyler ve devam eder; <code>--offline</code> onu tamamen atlar ve hiç ağ çağrısı yapmaz.
         </p>
         <p>
           Registry'ye başka hiçbir şey ulaşmaz. <code>build</code>, <code>run</code> ve <code>check</code> asla ulaşmaz. Her build'de dışarıya haber veren bir derleyici farklı bir üründür.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Yükseltmeyi almak</h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">Yükseltmeyi almak<a class="ak-anchor" href="#taking-the-upgrade" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Tek bir satırı yeniden yazar ve <code>npm install</code> çalıştırır. Kaynak kodunuza dokunmaz ve yükseltmenin bittiğini iddia etmez: sonrasında build etmek işin özüdür, çünkü az önce aldığınız sürümün kodunuzun henüz karşılaşmadığı görüşleri olabilir.
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">Tek satır değişir ve ne zaman olacağına siz karar verirsiniz</span>
 <pre>$ glyph upgrade --dry-run
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -79,20 +103,26 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bir sürüm seçmek, kurulumu atlamak</span></summary><div class="body">
         <p>
-          Tek bir satırı yeniden yazar ve <code>npm install</code> çalıştırır. Kaynak kodunuza dokunmaz ve yükseltmenin bittiğini iddia etmez: sonrasında build etmek işin özüdür, çünkü az önce aldığınız sürümün kodunuzun henüz karşılaşmadığı görüşleri olabilir. <code>--to &lt;version&gt;</code> belirli bir sürümü adlandırır, geri dönmek istediğinizde daha eski bir sürüm dahil; <code>--no-install</code> ise kurulumu size bırakır.
+          <code>--to &lt;version&gt;</code> belirli bir sürümü adlandırır, geri dönmek istediğinizde daha eski bir sürüm dahil; <code>--no-install</code> ise kurulumu size bırakır.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Projeyi değil, aracı taşımak</h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">Projeyi değil, aracı taşımak<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code>, bir <code>package.json</code> içindeki sabitlemeyi taşır. <code>glyph --update</code> diğer yarısıdır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Bu ayrım artık bir tesadüf değil, bir kural: flag'ler <code>--version</code>, <code>--help</code> ve <code>--explain</code> gibi araç üzerinde çalışır, alt komutlar ise kodunuz üzerinde.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">doctor'ın eskiden yazdırdığı şey</span></summary><div class="body">
         <p>
-          <code>upgrade</code>, bir <code>package.json</code> içindeki sabitlemeyi taşır. Geride kalan şey <code>PATH</code>'inizdeki derleyici olduğunda bu yanlış komuttur ve bir süre <code>doctor</code> yine de onu yazdırıyordu; global bir kurulumu sahip olmayabileceği bir manifest'e yönlendiriyordu. <code>glyph --update</code> diğer yarısıdır. Bu ayrım artık bir tesadüf değil, bir kural: flag'ler <code>--version</code>, <code>--help</code> ve <code>--explain</code> gibi araç üzerinde çalışır, alt komutlar ise kodunuz üzerinde. <code>--update-dry-run</code>, çalıştıracağı <code>npm</code> komutunu yazdırdıktan sonra durur.
+          Geride kalan şey <code>PATH</code>'inizdeki derleyici olduğunda bu yanlış komuttur ve bir süre <code>doctor</code> yine de onu yazdırıyordu; global bir kurulumu sahip olmayabileceği bir manifest'e yönlendiriyordu.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre>$ glyph --update
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -106,20 +136,33 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          Yalnızca tanımlayabildiği bir kurulumu taşır. <code>npx</code> üzerinden ulaşılan, bir Glyph kaynak ağacından build edilmiş ya da tanımadığı bir yolda duran bir derleyici için komut yazdırılır ve hiçbir şeyin üzerine yazılmaz; çünkü bir Homebrew binary'sini ya da birinin <code>cargo build</code>'ini tahmine dayanarak değiştirmek, <code>PATH</code>'i kimsenin seçmediği bir şeye yönlendirilmiş bırakır. Ayrıca güncellemenin gerçekleştiğini iddia etmekten kaçınır: npm, indiremediği bir <code>optionalDependency</code>'yi atlamış olarak sıfır ile çıkabilir (bir Glyph sürümü bir keresinde bu şekilde platform binary'si olmadan yayımlandı), bu yüzden son satır başarıyı ilan etmek yerine kontrol olarak <code>glyph --version</code>'ı gösterir.
-        </p>
-      </div>
+      <p>
+        <code>--update-dry-run</code>, çalıştıracağı <code>npm</code> komutunu yazdırdıktan sonra durur.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Yalnızca tanımlayabildiği bir kurulum</b>Yalnızca tanımlayabildiği bir kurulumu taşır. <code>npx</code> üzerinden ulaşılan, bir Glyph kaynak ağacından build edilmiş ya da tanımadığı bir yolda duran bir derleyici için komut yazdırılır ve hiçbir şeyin üzerine yazılmaz; çünkü bir Homebrew binary'sini ya da birinin <code>cargo build</code>'ini tahmine dayanarak değiştirmek, <code>PATH</code>'i kimsenin seçmediği bir şeye yönlendirilmiş bırakır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>Gerçekleştiği iddiası yok</b>Ayrıca güncellemenin gerçekleştiğini iddia etmekten kaçınır: npm, indiremediği bir <code>optionalDependency</code>'yi atlamış olarak sıfır ile çıkabilir (bir Glyph sürümü bir keresinde bu şekilde platform binary'si olmadan yayımlandı), bu yüzden son satır başarıyı ilan etmek yerine kontrol olarak <code>glyph --version</code>'ı gösterir.</li>
+      </ul>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>İskeleti oluşturulan projeler tam sürüme sabitlenir, bu yüzden hiçbir sürüm bir build'e kazara ulaşmaz. <code>glyph doctor</code>, derleyicinizi registry'ye göre raporlar ve sürüm notlarına bağlantı verir; bunu yaparken çıkış kodunu asla etkilemez ve <code>build</code>/<code>run</code>/<code>check</code> üzerinden erişilemez. <code>glyph upgrade</code> sabitlemeyi taşır, kurar ve eski bir projedeki caret'i okur; böylece önceden var olan projeler de tam bir sabitlemeye taşınabilir. <code>glyph --update</code>, global bir npm kurulumu için derleyicinin kendisini taşır ve oraya ulaşmış olabileceği diğer her yol için tahmin etmek yerine durumu raporlar.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Daha da keskinleşiyor</h3>
-          <p>Sürüm notları tüm sürüm serisi için tek bir sayfadır, bu yüzden <code>glyph upgrade</code> taşındığınız sürümün kaydına değil sayfaya bağlantı verir. Yeni sürümün diagnostic'lerinden hangilerine kodunuzun takılacağını henüz hiçbir şey söylemez: bunu öğrenmek build etmeyi gerektirir, komutun bunu söylemesinin nedeni de budur. Ayrıca birkaç sürümü aynı anda atlayarak yükseltmek, tek sürümle aynı tek adımdır ve arada biriken değişikliklerin bir özeti yoktur. <code>glyph --update</code>, npm'i çağırır ve çıkış kodunu okur; bu yüzden npm'in bittiğini söyleyebilir ama <code>PATH</code>'teki binary'nin istediğiniz sürüm olduğunu söyleyemez. Bu yüzden çalıştığını söylemek yerine <code>glyph --version</code>'ı gösterir.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İskeleti oluşturulan projeler tam sürüme sabitlenir, bu yüzden hiçbir sürüm bir build'e kazara ulaşmaz.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code>, derleyicinizi registry'ye göre raporlar ve sürüm notlarına bağlantı verir; bunu yaparken çıkış kodunu asla etkilemez ve <code>build</code>/<code>run</code>/<code>check</code> üzerinden erişilemez.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> sabitlemeyi taşır, kurar ve eski bir projedeki caret'i okur; böylece önceden var olan projeler de tam bir sabitlemeye taşınabilir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code>, global bir npm kurulumu için derleyicinin kendisini taşır ve oraya ulaşmış olabileceği diğer her yol için tahmin etmek yerine durumu raporlar.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Daha da keskinleşiyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Sürüm notları tüm sürüm serisi için tek bir sayfadır, bu yüzden <code>glyph upgrade</code> taşındığınız sürümün kaydına değil sayfaya bağlantı verir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Yeni sürümün diagnostic'lerinden hangilerine kodunuzun takılacağını henüz hiçbir şey söylemez: bunu öğrenmek build etmeyi gerektirir, komutun bunu söylemesinin nedeni de budur.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ayrıca birkaç sürümü aynı anda atlayarak yükseltmek, tek sürümle aynı tek adımdır ve arada biriken değişikliklerin bir özeti yoktur.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code>, npm'i çağırır ve çıkış kodunu okur; bu yüzden npm'in bittiğini söyleyebilir ama <code>PATH</code>'teki binary'nin istediğiniz sürüm olduğunu söyleyemez. Bu yüzden çalıştığını söylemek yerine <code>glyph --version</code>'ı gösterir.</span></span></li>
+          </ul>
+        </section>
       </div>

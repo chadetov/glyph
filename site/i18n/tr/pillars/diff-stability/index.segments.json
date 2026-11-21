@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/diff-stability/index.html",
   "locale": "tr",
-  "source_hash": "dda01800844f43a2",
+  "source_hash": "efcaa38e3c37f640",
   "segments": [
     {
       "id": "title",
@@ -59,42 +59,6 @@
       "tr": "Tek satırlık bir değişiklik <strong>tek satırlık bir diff'tir</strong>. Tek bir kanonik biçim, sondaki virgüller ve ya tamamen tek satırda ya da tamamen satır başına bir eleman olan, asla yeniden paketlenmeyen listeler; böylece bir review çevresindeki gereksiz değişiklikleri değil, yapılan değişikliği gösterir."
     },
     {
-      "id": "h-d88b5884",
-      "kind": "html",
-      "en": "Review is reading diffs",
-      "tr": "Review, diff okumaktır"
-    },
-    {
-      "id": "h-199ca7e9",
-      "kind": "html",
-      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency. In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
-      "tr": "Bir değişiklik hakkında güvendiğimiz neredeyse her şey (review, blame, revert, bisect) diff üzerine kuruludur. Bu yüzden asıl değerli olan diff'in sinyal/gürültü oranıdır. Çoğu kod tabanında bu oran berbattır: bir formatter sarılmış bir satırı yeniden akıtır, bir import sıralayıcı bir bloğu karıştırır, bir yeniden adlandırma her çağrı yerinin boşluklarına dokunur ve <em>önemli olan</em> tek satır, önemsiz elli satırın arasına gömülür."
-    },
-    {
-      "id": "h-f039c970",
-      "kind": "html",
-      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout gives the model nothing to churn.",
-      "tr": "Ajanlar bunu ciddi şekilde kötüleştirir. Küçük bir görev verildiğinde bir model tek bir şeyi değiştirmek için seve seve bütün bir fonksiyonu ya da bütün bir dosyayı yeniden yazar, çünkü yeniden üretmek onun için cerrahi bir düzenlemeden daha kolaydır. Review yapan kişiye, yeniden yazılmış hali orijinalle karşılaştırmak ve tek gerçek değişikliğin amaçlanan değişiklik olmasını <em>ummak</em> kalır. Glyph, düzenin modele karıştıracak hiçbir şey bırakmayacağı şekilde tasarlanmıştır."
-    },
-    {
-      "id": "h-afcfd1de",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
-      "tr": "<span class=\"ex-label\">01</span> Tek bir kanonik düzen, seçenek yok"
-    },
-    {
-      "id": "h-f8a89d48",
-      "kind": "html",
-      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing. The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
-      "tr": "<code>glyph fmt</code> her dosyayı tek ve sabit bir düzende yeniden yazar: iki boşluklu girinti, çok satırlı her listede sondaki virgül ve 100 sütuna sığdığı sürece tek satırda kalan, sığmadığında satır başına bir eleman olan bir liste. Seçim ya hep ya hiçtir. Formatter bir satırı doldurmak için elemanlarınızı asla yeniden paketlemez; böylece bir liste asla kısmen bir satırda, kısmen sonraki satırda olmaz ve bir alan eklemek tek bir eklenen satırdır. Geçerli tam olarak tek bir biçim olduğu için tartışılacak bir şey ve bir aracın yan tarafta \"düzelteceği\" bir şey yoktur."
-    },
-    {
-      "id": "h-d74094e1",
-      "kind": "html",
-      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
-      "tr": "Bunun bedeli genişlik eşiğidir. Bir çağrı 100 sütunu aşacak şekilde bir bağlamayı yeniden adlandırın, çağrı satır başına bir argümana açılır: tek token'lık bir düzenleme, dört satırlık bir diff. Karşılığında düzen yalnızca koda ve başladığı sütuna bağlıdır, başka hiçbir şeye değil; bu yüzden aynı dosyayı düzenleyen iki ajan aynı byte'larda buluşur."
-    },
-    {
       "id": "h-79570668",
       "kind": "html",
       "en": "Reflowed style: one change, three touched lines",
@@ -119,6 +83,132 @@
       "tr": "git diff (kanonik)"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-397463bb",
+      "kind": "html",
+      "en": "<a href=\"#review-is-reading-diffs\">Review is reading diffs</a>",
+      "tr": "<a href=\"#review-is-reading-diffs\">Review, diff okumaktır</a>"
+    },
+    {
+      "id": "h-ce58ab88",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-no-choices\">One canonical layout</a>",
+      "tr": "<a href=\"#one-canonical-layout-no-choices\">Tek kanonik düzen</a>"
+    },
+    {
+      "id": "h-5642172f",
+      "kind": "html",
+      "en": "<a href=\"#order-is-stable-so-history-is-legible\">Stable order</a>",
+      "tr": "<a href=\"#order-is-stable-so-history-is-legible\">Kararlı sıra</a>"
+    },
+    {
+      "id": "h-93c2a791",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-no-import-churn\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-no-import-churn\">Barrel dosyası yok</a>"
+    },
+    {
+      "id": "h-903080aa",
+      "kind": "html",
+      "en": "<a href=\"#generation-is-idempotent-not-a-blob\">Idempotent generation</a>",
+      "tr": "<a href=\"#generation-is-idempotent-not-a-blob\">Idempotent üretim</a>"
+    },
+    {
+      "id": "h-65de8b4a",
+      "kind": "html",
+      "en": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>",
+      "tr": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">Benchmark</a>"
+    },
+    {
+      "id": "h-d88b5884",
+      "kind": "html",
+      "en": "Review is reading diffs",
+      "tr": "Review, diff okumaktır"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-d0dd6080",
+      "kind": "html",
+      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency.",
+      "tr": "Bir değişiklik hakkında güvendiğimiz neredeyse her şey (review, blame, revert, bisect) diff üzerine kuruludur. Bu yüzden asıl değerli olan diff'in sinyal/gürültü oranıdır."
+    },
+    {
+      "id": "h-f342f678",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the noise comes from</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">gürültünün nereden geldiği</span>"
+    },
+    {
+      "id": "h-89489cc0",
+      "kind": "html",
+      "en": "In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
+      "tr": "Çoğu kod tabanında bu oran berbattır: bir formatter sarılmış bir satırı yeniden akıtır, bir import sıralayıcı bir bloğu karıştırır, bir yeniden adlandırma her çağrı yerinin boşluklarına dokunur ve <em>önemli olan</em> tek satır, önemsiz elli satırın arasına gömülür."
+    },
+    {
+      "id": "h-e3147d32",
+      "kind": "html",
+      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one.",
+      "tr": "Ajanlar bunu ciddi şekilde kötüleştirir. Küçük bir görev verildiğinde bir model tek bir şeyi değiştirmek için seve seve bütün bir fonksiyonu ya da bütün bir dosyayı yeniden yazar, çünkü yeniden üretmek onun için cerrahi bir düzenlemeden daha kolaydır. Review yapan kişiye, yeniden yazılmış hali orijinalle karşılaştırmak ve tek gerçek değişikliğin amaçlanan değişiklik olmasını <em>ummak</em> kalır."
+    },
+    {
+      "id": "h-408937d1",
+      "kind": "html",
+      "en": "Glyph is built so that the layout gives the model nothing to churn.",
+      "tr": "Glyph, düzenin modele karıştıracak hiçbir şey bırakmayacağı şekilde tasarlanmıştır."
+    },
+    {
+      "id": "h-afcfd1de",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
+      "tr": "<span class=\"ex-label\">01</span> Tek bir kanonik düzen, seçenek yok"
+    },
+    {
+      "id": "h-b77fb19e",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing.",
+      "tr": "<code>glyph fmt</code> her dosyayı tek ve sabit bir düzende yeniden yazar: iki boşluklu girinti, çok satırlı her listede sondaki virgül ve 100 sütuna sığdığı sürece tek satırda kalan, sığmadığında satır başına bir eleman olan bir liste. Seçim ya hep ya hiçtir."
+    },
+    {
+      "id": "h-7b7a954c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no repacking, one legal shape</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">yeniden paketleme yok, tek geçerli biçim</span>"
+    },
+    {
+      "id": "h-138c6b00",
+      "kind": "html",
+      "en": "The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
+      "tr": "Formatter bir satırı doldurmak için elemanlarınızı asla yeniden paketlemez; böylece bir liste asla kısmen bir satırda, kısmen sonraki satırda olmaz ve bir alan eklemek tek bir eklenen satırdır. Geçerli tam olarak tek bir biçim olduğu için tartışılacak bir şey ve bir aracın yan tarafta \"düzelteceği\" bir şey yoktur."
+    },
+    {
+      "id": "h-d74094e1",
+      "kind": "html",
+      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
+      "tr": "Bunun bedeli genişlik eşiğidir. Bir çağrı 100 sütunu aşacak şekilde bir bağlamayı yeniden adlandırın, çağrı satır başına bir argümana açılır: tek token'lık bir düzenleme, dört satırlık bir diff. Karşılığında düzen yalnızca koda ve başladığı sütuna bağlıdır, başka hiçbir şeye değil; bu yüzden aynı dosyayı düzenleyen iki ajan aynı byte'larda buluşur."
+    },
+    {
       "id": "h-90e0d667",
       "kind": "html",
       "en": "The trailing comma is doing quiet work: because the last element already ends in a comma, adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.",
@@ -131,10 +221,16 @@
       "tr": "<span class=\"ex-label\">02</span> Sıra kararlıdır, bu yüzden geçmiş okunaklıdır"
     },
     {
-      "id": "h-caf8f67b",
+      "id": "h-71cbcedc",
       "kind": "html",
-      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours. <code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
-      "tr": "Satır başına bir eleman, bir öğeyi yeniden sıralamanın, eklemenin ya da çıkarmanın yalnızca o öğenin satırlarına dokunması, komşularına asla dokunmaması demektir. <code>git blame</code> anlamlı kalır: her satırın en son dokunulduğu commit, paylaştığı satırı tesadüfen yeniden paketleyen biçimlendirme geçişi değil, <em>o</em> elemanı gerçekten değiştiren commit'tir."
+      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours.",
+      "tr": "Satır başına bir eleman, bir öğeyi yeniden sıralamanın, eklemenin ya da çıkarmanın yalnızca o öğenin satırlarına dokunması, komşularına asla dokunmaması demektir."
+    },
+    {
+      "id": "h-59fb6fdf",
+      "kind": "html",
+      "en": "<code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
+      "tr": "<code>git blame</code> anlamlı kalır: her satırın en son dokunulduğu commit, paylaştığı satırı tesadüfen yeniden paketleyen biçimlendirme geçişi değil, <em>o</em> elemanı gerçekten değiştiren commit'tir."
     },
     {
       "id": "h-bfb2f0bd",
@@ -155,16 +251,22 @@
       "tr": "<span class=\"ex-label\">04</span> Kod üretimi idempotenttir, bir yığın değil"
     },
     {
-      "id": "h-c4bbd5c2",
+      "id": "h-6837705f",
       "kind": "html",
-      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file. And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
-      "tr": "Aynı disiplin üretilen koda da uzanır. <code>glyph gen</code> ve <code>glyph regen</code> çıktılarını kanonik formatter'dan geçirerek yazar; bu yüzden bir spesifikasyon değişikliğinden sonra yeniden üretmek, makinenin yazdığı bir dosyanın toptan değiştirilmesi değil, gerçekten review edebileceğiniz <em>minimal</em> bir diff, birkaç değişen satır üretir. Ayrıca üretilen her <code>.ts</code> bir source map ile gelir; böylece derlenmiş çıktı bile değiştirdiğiniz satıra temiz şekilde geri izlenir."
+      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file.",
+      "tr": "Aynı disiplin üretilen koda da uzanır. <code>glyph gen</code> ve <code>glyph regen</code> çıktılarını kanonik formatter'dan geçirerek yazar; bu yüzden bir spesifikasyon değişikliğinden sonra yeniden üretmek, makinenin yazdığı bir dosyanın toptan değiştirilmesi değil, gerçekten review edebileceğiniz <em>minimal</em> bir diff, birkaç değişen satır üretir."
     },
     {
       "id": "h-e4efdc9c",
       "kind": "html",
       "en": "a field added to the spec &rarr; the regenerated diff",
       "tr": "spesifikasyona eklenen bir alan &rarr; yeniden üretilen diff"
+    },
+    {
+      "id": "h-8d821d14",
+      "kind": "html",
+      "en": "And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
+      "tr": "Ayrıca üretilen her <code>.ts</code> bir source map ile gelir; böylece derlenmiş çıktı bile değiştirdiğiniz satıra temiz şekilde geri izlenir."
     },
     {
       "id": "h-91e761f8",
@@ -179,22 +281,22 @@
       "tr": "Biçimlendirmenin büyük kısmı için evet. <code>trailingComma: \"all\"</code> ayarlı Prettier son elemana virgül koyar ve uzun listeleri satır başına bir eleman olarak yazar; bu, 01. bölümün çoğunu sağlar. Farklar üç yerde."
     },
     {
-      "id": "h-abb494fb",
+      "id": "h-d78411aa",
       "kind": "html",
-      "en": "<strong>The layout depends only on the code.</strong> Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
-      "tr": "<strong>Düzen yalnızca koda bağlıdır.</strong> Prettier, yazarı <code>{</code>'den sonra satır sonu koyduysa bir nesne literal'ini açık tutar, koymadıysa daraltır; bu yüzden aynı nesne, ilk nasıl yazıldığına bağlı olarak iki farklı şekilde yazdırılabilir. Aynı şeyi yazan iki ajan iki farklı düzen üretir ve bunlardan birine yapılan bir sonraki düzenleme yeniden akıtma olarak görünür. <code>glyph fmt</code>, girdi nasıl sarılmış olursa olsun <code>{ a: 1, b: 2 }</code>'yi aynı şekilde yazdırır."
+      "en": "<b>The layout depends only on the code.</b>Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
+      "tr": "<b>Düzen yalnızca koda bağlıdır.</b>Prettier, yazarı <code>{</code>'den sonra satır sonu koyduysa bir nesne literal'ini açık tutar, koymadıysa daraltır; bu yüzden aynı nesne, ilk nasıl yazıldığına bağlı olarak iki farklı şekilde yazdırılabilir. Aynı şeyi yazan iki ajan iki farklı düzen üretir ve bunlardan birine yapılan bir sonraki düzenleme yeniden akıtma olarak görünür. <code>glyph fmt</code>, girdi nasıl sarılmış olursa olsun <code>{ a: 1, b: 2 }</code>'yi aynı şekilde yazdırır."
     },
     {
-      "id": "h-2b89c0b6",
+      "id": "h-cadbc396",
       "kind": "html",
-      "en": "<strong>There is nothing to configure.</strong> Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
-      "tr": "<strong>Yapılandırılacak bir şey yoktur.</strong> Prettier'ın çıktısı, deponun yapılandırma dosyası ne diyorsa odur ve bazı depoların böyle bir dosyası yoktur. TypeScript projeleri arasında dolaşan bir ajan her birinde farklı bir düzenle karşılaşır. Bir Glyph dosyası her projede aynı düzene sahiptir, çünkü formatter'ın hiçbir seçeneği yoktur."
+      "en": "<b>There is nothing to configure.</b>Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
+      "tr": "<b>Yapılandırılacak bir şey yoktur.</b>Prettier'ın çıktısı, deponun yapılandırma dosyası ne diyorsa odur ve bazı depoların böyle bir dosyası yoktur. TypeScript projeleri arasında dolaşan bir ajan her birinde farklı bir düzenle karşılaşır. Bir Glyph dosyası her projede aynı düzene sahiptir, çünkü formatter'ın hiçbir seçeneği yoktur."
     },
     {
-      "id": "h-68832179",
+      "id": "h-45adf37f",
       "kind": "html",
-      "en": "<strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
-      "tr": "<strong>Formatter bir dosyanın ne söylediğini değiştiremez.</strong> <code>glyph fmt</code>, depodaki her örnekte ve bir fuzzer altında, kendi çıktısını parse edip sözdizimi ağacını girdininkiyle karşılaştırarak test edilir. Bir yorum, düzende satırı olmayan bir yerde durduğunda, yorumu tarif etmediği kodun yanına taşımak yerine dosyayı reddeder (<code>E0500</code>)."
+      "en": "<b>The formatter can't change what a file says.</b><code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
+      "tr": "<b>Formatter bir dosyanın ne söylediğini değiştiremez.</b><code>glyph fmt</code>, depodaki her örnekte ve bir fuzzer altında, kendi çıktısını parse edip sözdizimi ağacını girdininkiyle karşılaştırarak test edilir. Bir yorum, düzende satırı olmayan bir yerde durduğunda, yorumu tarif etmediği kodun yanına taşımak yerine dosyayı reddeder (<code>E0500</code>)."
     },
     {
       "id": "h-759bd893",
@@ -215,10 +317,16 @@
       "tr": "Benchmark: yakında"
     },
     {
-      "id": "h-2ef42aea",
+      "id": "h-6219861d",
       "kind": "html",
-      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
-      "tr": "Bunu yakalayan rakam, mantıksal değişiklik başına diff boyutudur: amaçlanan tek bir düzenleme yaptığınızda, Glyph'te ve tipik bir formatter'dan geçirilmiş eşdeğer bir TypeScript değişikliğinde kaç satır yer değiştirir. Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, yararlanılacak gerçek bir geçmiş olduğunda gerçek ölçümlerle dolacak bir yer tutucudur."
+      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter.",
+      "tr": "Bunu yakalayan rakam, mantıksal değişiklik başına diff boyutudur: amaçlanan tek bir düzenleme yaptığınızda, Glyph'te ve tipik bir formatter'dan geçirilmiş eşdeğer bir TypeScript değişikliğinde kaç satır yer değiştirir."
+    },
+    {
+      "id": "h-4f7ab29f",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
+      "tr": "Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, yararlanılacak gerçek bir geçmiş olduğunda gerçek ölçümlerle dolacak bir yer tutucudur."
     },
     {
       "id": "h-2f2e8c1d",

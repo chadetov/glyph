@@ -1,7 +1,7 @@
 ---
 title: Gece 3'te bozulduğunda nöbetçi ne görüyor? · Glyph
 description: Glyph, her .glyph dosyasına geri götüren bir v3 source map ile okunabilir TypeScript'e derlenir; böylece stack trace'ler ve tsc hataları yazdığınız Glyph kodunu gösterir.
-source_hash: 23c0350a6befa9fd
+source_hash: 4049ecaf7d564dbf
 prev: /answers/parse-errors/ | &larr; Önceki | Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?
 next: /playground/ | Gördünüz &rarr; | Şimdi playground'da biraz Glyph yazın
 ---
@@ -12,35 +12,51 @@ next: /playground/ | Gördünüz &rarr; | Şimdi playground'da biraz Glyph yazı
         Sahibi olduğunuz okunabilir TypeScript ve üretilen her dosyanın yanında <strong><code>.glyph</code> dosyanıza geri götüren bir source map</strong>. Bir debugger, bir bundler ya da bir hata takip aracı çalışan kodu kaynağınıza kadar izler ve Glyph'i hiç görmemiş biri bile üretilen TS'i okuyabilir. Bunların hepsinden önce, <code>glyph build</code> ve <code>glyph run</code> aynı ağaç üzerinde aynı diagnostic'leri bildirir; böylece hızlı döngü, build'in yakalayacağı bir şeyi gizleyemez. İkisi de <code>glyph run</code> yolunda olan iki sınırlama aşağıda belirtiliyor.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">1 &middot; Üretilen TypeScript'i okumak sizin elinizde</h2>
-        <p>
-          Glyph opak bir çalışma zamanı ile gelmez. Diğer TS'ler gibi commit edip deploy ettiğiniz sıradan, biçimlendirilmiş TypeScript üretir. Yani en kötü durumda bile (Glyph bilmeyen bir nöbetçi mühendis, gece 3'te) okunan şey bir lehçe değil, düz TypeScript'tir. Kaynağınızla production arasında bir kara kutu yoktur.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#1-the-generated-typescript-is-yours-to-read">Okunabilir TypeScript</a></li>
+          <li><a href="#2-source-maps-back-to-glyph">Source map'ler</a></li>
+          <li><a href="#3-build-and-type-errors-already-point-at-glyph">Build ve tip hataları</a></li>
+          <li><a href="#4-glyph-run-tells-you-the-same-things">glyph run diagnostic'leri</a></li>
+          <li><a href="#two-current-limitations">İki sınırlama</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">2 &middot; <code>.glyph</code>'e geri götüren source map'ler</h2>
-        <p>
-          Üretilen her <code>.ts</code>, yanında standart bir v3 source map (<code>.ts.map</code>) ile gelir; bir <code>sourceMappingURL</code> yorumu içerir ve Glyph kaynağınız gömülüdür (<code>sourcesContent</code>). Source map kullanan her şey (Chrome DevTools, bir Node debugger'ı, Sentry gibi bir hata takip aracı, bundler'ınız) zinciri takip edip size üretilen satırı değil, <code>.glyph</code> satırını gösterebilir.
-        </p>
-      </div>
+      <h2 class="ak-h" id="1-the-generated-typescript-is-yours-to-read">1 &middot; Üretilen TypeScript'i okumak sizin elinizde<a class="ak-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph opak bir çalışma zamanı ile gelmez. Diğer TS'ler gibi commit edip deploy ettiğiniz sıradan, biçimlendirilmiş TypeScript üretir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yani en kötü durumda bile (Glyph bilmeyen bir nöbetçi mühendis, gece 3'te) okunan şey bir lehçe değil, düz TypeScript'tir. Kaynağınızla production arasında bir kara kutu yoktur.</p></div>
+
+      <h2 class="ak-h" id="2-source-maps-back-to-glyph">2 &middot; <code>.glyph</code>'e geri götüren source map'ler<a class="ak-anchor" href="#2-source-maps-back-to-glyph" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Üretilen her <code>.ts</code>, yanında standart bir v3 source map (<code>.ts.map</code>) ile gelir; bir <code>sourceMappingURL</code> yorumu içerir ve Glyph kaynağınız gömülüdür (<code>sourcesContent</code>).
+      </p>
       <div class="code">
         <span class="cap">dist/main.ts (son kısım)</span>
 <pre>// ...emitted TypeScript...
 //# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Source map kullanan her şey (Chrome DevTools, bir Node debugger'ı, Sentry gibi bir hata takip aracı, bundler'ınız) zinciri takip edip size üretilen satırı değil, <code>.glyph</code> satırını gösterebilir.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">3 &middot; Build ve tip hataları zaten Glyph'i gösteriyor</h2>
+      <h2 class="ak-h" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; Build ve tip hataları zaten Glyph'i gösteriyor<a class="ak-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Production'a bir tip hatasıyla nadiren ulaşırsınız, çünkü <code>glyph build</code>, <code>tsc --strict</code> çalıştırır ve her <code>tsc</code> hatasını <code>.glyph</code> kaynağınıza geri eşler (aynı işaretçi, TypeScript hata kodu korunur).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build --json</code> ise CI'ınızın ya da araçlarınızın kullanması için her diagnostic'i yapılandırılmış JSON olarak (kod, önem derecesi, dosya, 1 tabanlı satır/sütun, yardım) üretir.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">işaretçinin nereye konduğu</span></summary><div class="body">
         <p>
-          Production'a bir tip hatasıyla nadiren ulaşırsınız, çünkü <code>glyph build</code>, <code>tsc --strict</code> çalıştırır ve <strong>her <code>tsc</code> hatasını <code>.glyph</code> kaynağınıza geri eşler</strong> (aynı işaretçi, TypeScript hata kodu korunur). İşaretçi, kodunu <code>tsc</code>'nin reddettiği en küçük Glyph ifadesinin altına konur: yanlış bir argüman o argümanın, bir JSX event handler'ı içindeki yanlış yazılmış bir alan ise etrafındaki tüm <code>return</code>'ün değil, o üye erişiminin altını çizer. <code>glyph build --json</code> ise CI'ınızın ya da araçlarınızın kullanması için her diagnostic'i yapılandırılmış JSON olarak (kod, önem derecesi, dosya, 1 tabanlı satır/sütun, yardım) üretir.
+          İşaretçi, kodunu <code>tsc</code>'nin reddettiği en küçük Glyph ifadesinin altına konur: yanlış bir argüman o argümanın, bir JSX event handler'ı içindeki yanlış yazılmış bir alan ise etrafındaki tüm <code>return</code>'ün değil, o üye erişiminin altını çizer.
         </p>
+      </div></details>
 
-        <h2 class="block-label">4 &middot; <code>glyph run</code> size aynı şeyleri söyler</h2>
-        <p>
-          Gün boyu yazdığınız komut <code>glyph run</code>'dır ve 0.1.40'a kadar build'den daha sessizdi. Tüm dizini derliyor, rapordan üretilen dosyaların listesini alıyor ve diagnostic'leri atıyordu. <code>glyph build</code>'in hata bildirdiği bir ağaç temiz çalışıp 0 ile çıkıyordu. Artık aynı kümeyi bildiriyor: uyarılar dahil, adını verdiğiniz dosyada ve kardeş dosyalarında, programın çıktısından sonra, tek satırlık bir sayımla. Çalıştırma önbelleği bunları taşır; böylece değişmemiş kaynakların ikinci çalıştırması susmak yerine ilkinin söylediğini söyler ve diagnostic'leri eksik olan bir önbellek girdisi ıskalama sayılıp yeniden build edilir.
-        </p>
-      </div>
-      <div class="code">
+      <h2 class="ak-h" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> size aynı şeyleri söyler<a class="ak-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Gün boyu yazdığınız komut <code>glyph run</code>'dır ve 0.1.40'a kadar build'den daha sessizdi. Artık aynı kümeyi bildiriyor: uyarılar dahil, adını verdiğiniz dosyada ve kardeş dosyalarında, programın çıktısından sonra, tek satırlık bir sayımla.
+      </p>
+      <div class="code term">
         <span class="cap">kullanılmayan bir import, onu kullanacak koddan bir adım önce eklenmiş</span>
 <pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
@@ -54,25 +70,51 @@ next: /playground/ | Gördünüz &rarr; | Şimdi playground'da biraz Glyph yazı
 
 glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">Mevcut iki sınırlama</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">çalıştırma önbelleği</span></summary><div class="body">
         <p>
-          <strong><code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satır numaralarını gösteriyor.</strong> <code>glyph run</code>, <code>tsx</code> üzerinden çalışır ve <code>tsx</code>, source map'i kendi <code>.ts</code>&rarr;<code>.js</code> dönüşümü boyunca zincirlemez; bu yüzden <code>glyph run</code> sırasında yakalanmayan bir exception üretilen satırı bildirir. Bu stack'i yeniden eşlemek sonraki bir iş. Yerel <code>run</code> döngüsü için önemli; gerçek bir deploy'da ise <code>.ts</code>'e <code>glyph build</code> yapar, normal araç zincirinizle paketlersiniz ve <code>.ts.map</code> her zamanki gibi zincirlenir; yani gerçekten alarm aldığınız production stack'i <code>.glyph</code>'e geri eşlenir.
+          Çalıştırma önbelleği bunları taşır; böylece değişmemiş kaynakların ikinci çalıştırması susmak yerine ilkinin söylediğini söyler ve diagnostic'leri eksik olan bir önbellek girdisi ıskalama sayılıp yeniden build edilir.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.40 öncesi</span></summary><div class="body">
+        <p>
+          Tüm dizini derliyor, rapordan üretilen dosyaların listesini alıyor ve diagnostic'leri atıyordu. <code>glyph build</code>'in hata bildirdiği bir ağaç temiz çalışıp 0 ile çıkıyordu.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="two-current-limitations">Mevcut iki sınırlama<a class="ak-anchor" href="#two-current-limitations" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b><code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satır numaralarını gösteriyor.</b><code>glyph run</code>, <code>tsx</code> üzerinden çalışır ve <code>tsx</code>, source map'i kendi <code>.ts</code>&rarr;<code>.js</code> dönüşümü boyunca zincirlemez; bu yüzden <code>glyph run</code> sırasında yakalanmayan bir exception üretilen satırı bildirir. Bu stack'i yeniden eşlemek sonraki bir iş.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Kardeş bir modüldeki hata <code>glyph run</code>'ın çıkış kodunu değiştirmiyor.</b>Derlenemeyen bir modül import edilemez ve onu hiç import etmeyen bir program yine de çalışır. Artık hatayı görüyorsunuz, ama süreç yine <code>main</code>'in döndürdüğü değerle çıkıyor.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">production stack'leri ve çıkış kodunun neden aynı kaldığı</span></summary><div class="body">
+        <p>
+          Yerel <code>run</code> döngüsü için önemli; gerçek bir deploy'da ise <code>.ts</code>'e <code>glyph build</code> yapar, normal araç zincirinizle paketlersiniz ve <code>.ts.map</code> her zamanki gibi zincirlenir; yani gerçekten alarm aldığınız production stack'i <code>.glyph</code>'e geri eşlenir.
         </p>
         <p>
-          <strong>Kardeş bir modüldeki hata <code>glyph run</code>'ın çıkış kodunu değiştirmiyor.</strong> Derlenemeyen bir modül import edilemez ve onu hiç import etmeyen bir program yine de çalışır. Artık hatayı görüyorsunuz, ama süreç yine <code>main</code>'in döndürdüğü değerle çıkıyor. Sıfırdan farklı bir kodla çıkmasını sağlamak bugün sorunsuz çalışan ağaçları başarısız kılar; bu yüzden bu bir gözden kaçırma değil, açık bir karar. Çıkış kodunu ağacın sağlığının belirlemesini istiyorsanız, bunun yolu <code>glyph build</code>.
+          Sıfırdan farklı bir kodla çıkmasını sağlamak bugün sorunsuz çalışan ağaçları başarısız kılar; bu yüzden bu bir gözden kaçırma değil, açık bir karar. Çıkış kodunu ağacın sağlığının belirlemesini istiyorsanız, bunun yolu <code>glyph build</code>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Commit edilen okunabilir TS, dosya başına bir v3 <code>.ts.map</code>, <code>.glyph</code>'e yeniden eşlenen <code>tsc</code> hataları ve <code>--json</code> diagnostic'leri. <code>glyph run</code>, sıcak önbellek dahil, <code>glyph build</code>'in bildirdiklerini bildirir. Deploy araç zincirinizin source map zinciri <code>.glyph</code>'e ulaşır.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p><code>glyph run</code> çökme stack'inin kendisini yeniden eşlemek (böylece yerel çalıştırma döngüsü de <code>.glyph</code> frame'lerini gösterir), kardeş bir modülün hatasının <code>glyph run</code>'ın sıfırdan farklı bir kodla çıkmasına yol açıp açmaması gerektiğine dair bir karar ve LSP üzerinden daha zengin editör debug desteği.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Commit edilen okunabilir TS.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Dosya başına bir v3 <code>.ts.map</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.glyph</code>'e yeniden eşlenen <code>tsc</code> hataları.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>--json</code> diagnostic'leri.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph run</code>, sıcak önbellek dahil, <code>glyph build</code>'in bildirdiklerini bildirir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Deploy araç zincirinizin source map zinciri <code>.glyph</code>'e ulaşır.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph run</code> çökme stack'inin kendisini yeniden eşlemek (böylece yerel çalıştırma döngüsü de <code>.glyph</code> frame'lerini gösterir).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Kardeş bir modülün hatasının <code>glyph run</code>'ın sıfırdan farklı bir kodla çıkmasına yol açıp açmaması gerektiğine dair bir karar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">LSP üzerinden daha zengin editör debug desteği.</span></span></li>
+          </ul>
+        </section>
       </div>

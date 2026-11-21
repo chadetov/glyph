@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/interactive-cli/index.html",
   "locale": "tr",
-  "source_hash": "a2332eec4a663662",
+  "source_hash": "e06954a40c0a760a",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "Evet. <code>io.read_line</code>, <strong>tam bir satır gelir gelmez</strong> döner ve stdin'in kapanmasını beklemez; böylece bir REPL, bir oyun döngüsü ya da bir sohbet istemcisi, bir sonraki satırı okumadan önce her satıra yanıt verir. 0.1.62'ye kadar bekliyordu ve bunu açıkça söylemek gerekir, çünkü bu her etkileşimli programı imkânsız kılıyordu."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Neden önemli"
-    },
-    {
-      "id": "h-4473016d",
-      "kind": "html",
-      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
-      "tr": "Yalnızca girdinin sonunda dönen bir satır okuyucu, satır okuyucu adını taşıyan bir dosya okuyucudur. Bir dosyayı pipe ile ondan geçirmek mükemmel çalışır; hiçbir şeyin bunu yakalamamasının nedeni de bu: repoda stdin okuyan her uygulama bir pipe okuyordu. Sonra biri bir sohbet istemcisi yazdı ve istemci, kişi yazarken sessiz kaldı, Ctrl-D'den sonra tüm yanıtları bir anda yazdırdı."
-    },
-    {
-      "id": "h-02cdf3c6",
-      "kind": "html",
-      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
-      "tr": "O uygulama, kaynak kodunda nedenini açıklayan bir yorumla, kaydedilmiş bir JSON dosyası üzerinde çalışan bir oturum tekrar oynatıcısı olarak yayımlandı. Diğer üç uygulama da kimse adını koymadan aynı soruna göre şekillenmişti: mayın tarlası hamleler arasında ekranı yeniden çizemiyordu, metin macerası <code>look</code>'a yanıt veremiyordu ve bir REPL siz bağlantıyı kapatana kadar hiçbir şey hesaplamıyordu."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Görün"
-    },
-    {
       "id": "h-b3adfa1a",
       "kind": "html",
       "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
@@ -101,10 +77,58 @@
       "tr": "glyph run examples/apps/chat/main.glyph --stdin"
     },
     {
-      "id": "h-c4443d66",
+      "id": "h-2109b4f0",
       "kind": "html",
-      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
-      "tr": "Yazılan satırdan yanıta bir ila iki milisaniye. Düzeltmeden önce, stdin'in kapandığı an olan 6460ms'ye kadar hiçbir şey yazdırılmıyordu. Tam bir çalıştırmada ilk yanıt yaklaşık 1,6 saniyede gelir ve bu okuma gecikmesi değil, <code>tsx</code>'in başlama süresidir."
+      "en": "<span>One to two milliseconds from typed line to answer.</span>",
+      "tr": "<span>Yazılan satırdan yanıta bir ila iki milisaniye.</span>"
+    },
+    {
+      "id": "h-31a4afbb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">before the fix, and where the first 1.6 seconds go</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">düzeltmeden önce ve ilk 1,6 saniyenin nereye gittiği</span>"
+    },
+    {
+      "id": "h-5e15f281",
+      "kind": "html",
+      "en": "Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "Düzeltmeden önce, stdin'in kapandığı an olan 6460ms'ye kadar hiçbir şey yazdırılmıyordu. Tam bir çalıştırmada ilk yanıt yaklaşık 1,6 saniyede gelir ve bu okuma gecikmesi değil, <code>tsx</code>'in başlama süresidir."
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-b79b0674",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name.",
+      "tr": "Yalnızca girdinin sonunda dönen bir satır okuyucu, satır okuyucu adını taşıyan bir dosya okuyucudur."
+    },
+    {
+      "id": "h-880c0447",
+      "kind": "html",
+      "en": "Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "Bir dosyayı pipe ile ondan geçirmek mükemmel çalışır; hiçbir şeyin bunu yakalamamasının nedeni de bu: repoda stdin okuyan her uygulama bir pipe okuyordu. Sonra biri bir sohbet istemcisi yazdı ve istemci, kişi yazarken sessiz kaldı, Ctrl-D'den sonra tüm yanıtları bir anda yazdırdı."
+    },
+    {
+      "id": "h-665ff28b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the apps shaped around it</span>",
+      "tr": "Geçmiş <span class=\"hint\">buna göre şekillenen uygulamalar</span>"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "O uygulama, kaynak kodunda nedenini açıklayan bir yorumla, kaydedilmiş bir JSON dosyası üzerinde çalışan bir oturum tekrar oynatıcısı olarak yayımlandı. Diğer üç uygulama da kimse adını koymadan aynı soruna göre şekillenmişti: mayın tarlası hamleler arasında ekranı yeniden çizemiyordu, metin macerası <code>look</code>'a yanıt veremiyordu ve bir REPL siz bağlantıyı kapatana kadar hiçbir şey hesaplamıyordu."
     },
     {
       "id": "h-a2b1ea84",
@@ -113,22 +137,46 @@
       "tr": "Pratikte can sıkan kısımlar"
     },
     {
-      "id": "h-92f12884",
+      "id": "h-b12d0301",
       "kind": "html",
-      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
-      "tr": "Sondaki <code>\\r</code> kaldırılır; böylece CRLF ve LF dosyaları size aynı satırları verir ve Windows girdisinde görünmez bir karakterle uğraşmazsınız. Son satır sonu olmadan biten girdi, <code>None</code>'dan önce o son satırı bir kez döndürür; böylece sonunda satır sonu olmayan bir dosyanın son satırı sessizce kaybolmaz. Bir okuma sınırında bölünen çok baytlı UTF-8, yerine koyma karakterlerine dönüşmek yerine bekletilir ve tamamlanır."
+      "en": "<b>CRLF</b>A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input.",
+      "tr": "<b>CRLF</b>Sondaki <code>\\r</code> kaldırılır; böylece CRLF ve LF dosyaları size aynı satırları verir ve Windows girdisinde görünmez bir karakterle uğraşmazsınız."
     },
     {
-      "id": "h-734ae2bb",
+      "id": "h-61bc0f0f",
       "kind": "html",
-      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
-      "tr": "<code>read_to_string</code> aynı tamponu boşaltır, yani ikisi birlikte kullanılabilir: başlık için <code>read_line</code> ve ardından gövde için <code>read_to_string</code>, size ikinci bir kopya ya da boş bir string değil, geri kalanını verir. Önce çağrılırsa yine stdin'in tamamını döndürür. Pipe ile gelen 200.000 satır yaklaşık 20ms'de sayılır; yani satır satır okumak bir verim kaybı değildir."
+      "en": "<b>No final newline</b>Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped.",
+      "tr": "<b>Son satır sonu yok</b>Son satır sonu olmadan biten girdi, <code>None</code>'dan önce o son satırı bir kez döndürür; böylece sonunda satır sonu olmayan bir dosyanın son satırı sessizce kaybolmaz."
+    },
+    {
+      "id": "h-19f6ad49",
+      "kind": "html",
+      "en": "<b>Split UTF-8</b>Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "<b>Bölünmüş UTF-8</b>Bir okuma sınırında bölünen çok baytlı UTF-8, yerine koyma karakterlerine dönüşmek yerine bekletilir ve tamamlanır."
+    },
+    {
+      "id": "h-223ab389",
+      "kind": "html",
+      "en": "<code>read_line</code>, then <code>read_to_string</code>",
+      "tr": "Önce <code>read_line</code>, sonra <code>read_to_string</code>"
+    },
+    {
+      "id": "h-e058bf0b",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin.",
+      "tr": "<code>read_to_string</code> aynı tamponu boşaltır, yani ikisi birlikte kullanılabilir: başlık için <code>read_line</code> ve ardından gövde için <code>read_to_string</code>, size ikinci bir kopya ya da boş bir string değil, geri kalanını verir. Önce çağrılırsa yine stdin'in tamamını döndürür."
     },
     {
       "id": "h-dbb27136",
       "kind": "html",
       "en": "A header line, then the body",
       "tr": "Bir başlık satırı, ardından gövde"
+    },
+    {
+      "id": "h-e4472dc4",
+      "kind": "html",
+      "en": "200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "Pipe ile gelen 200.000 satır yaklaşık 20ms'de sayılır; yani satır satır okumak bir verim kaybı değildir."
     },
     {
       "id": "h-b55f380c",
@@ -143,16 +191,64 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-d2b638c8",
+      "id": "h-a2c1f233",
       "kind": "html",
-      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
-      "tr": "<code>io.read_line</code>, akış kapandığında değil bir satır geldiğinde döner; böylece sor/oku/yanıtla döngüleri terminalde de pipe üzerinden de çalışır. CRLF normalleştirilir, sonlandırılmamış son satır bir kez teslim edilir, çok baytlı karakterler parça sınırlarını atlatır ve <code>read_to_string</code> aynı tamponun geri kalanını alır. Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler, çünkü bir dosyayı pipe ile geçiren bir test bozuk gerçeklemeye karşı da geçer. <code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar; böylece bir REPL'in <code>&gt; </code> istemi, yanıtın yazıldığı satırda durur. <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> ise bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler; böylece sohbet uygulamasının <code>--stdin</code>'i gibi bir flag artık bunu sormanın tek yolu değil."
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike.",
+      "tr": "<code>io.read_line</code>, akış kapandığında değil bir satır geldiğinde döner; böylece sor/oku/yanıtla döngüleri terminalde de pipe üzerinden de çalışır."
+    },
+    {
+      "id": "h-94947ad8",
+      "kind": "html",
+      "en": "CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer.",
+      "tr": "CRLF normalleştirilir, sonlandırılmamış son satır bir kez teslim edilir, çok baytlı karakterler parça sınırlarını atlatır ve <code>read_to_string</code> aynı tamponun geri kalanını alır."
+    },
+    {
+      "id": "h-8618bd0c",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back",
+      "tr": "Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Ayrıntılar"
+    },
+    {
+      "id": "h-9436a961",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.",
+      "tr": "Bir regresyon testi stdin'i açık tutar ve yankının geri gelmesini bekler, çünkü bir dosyayı pipe ile geçiren bir test bozuk gerçeklemeye karşı da geçer."
+    },
+    {
+      "id": "h-18b0c175",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline",
+      "tr": "<code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar"
+    },
+    {
+      "id": "h-800433b7",
+      "kind": "html",
+      "en": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe",
+      "tr": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler"
+    },
+    {
+      "id": "h-3842dbc3",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.print</code> ve <code>io.eprint</code> satır sonu olmadan yazar; böylece bir REPL'in <code>&gt; </code> istemi, yanıtın yazıldığı satırda durur. <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> ise bir programa bir insanla mı yoksa bir pipe ile mi konuştuğunu söyler; böylece sohbet uygulamasının <code>--stdin</code>'i gibi bir flag artık bunu sormanın tek yolu değil."
     },
     {
       "id": "h-43278834",
       "kind": "html",
       "en": "Still rough",
       "tr": "Hâlâ pürüzlü"
+    },
+    {
+      "id": "h-88dfc50f",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control",
+      "tr": "Ekranı yeniden çizmek isteyen bir programın imleç kontrolü yok"
     },
     {
       "id": "h-ec1da8e1",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/upgrades/index.html",
   "locale": "tr",
-  "source_hash": "b4d1d08012358fef",
+  "source_hash": "d07b464c988f9441",
   "segments": [
     {
       "id": "title",
@@ -59,28 +59,88 @@
       "tr": "Siz istemediğiniz sürece hayır. Bir Glyph projesi derleyicisini <strong>tam bir sürüme</strong> sabitler, bu yüzden bu sabah yayımlanan bir sürüm bu öğleden sonra build'inize ulaşmaz. 1.0'dan önce bir sürümün dün derlenen kodu reddeden bir diagnostic eklemesine izin verilir ve sürümün amacı genellikle de budur; bu yüzden bir sürümü alma kararı sizindir ve tek bir komuttur."
     },
     {
+      "id": "h-5339eb44",
+      "kind": "html",
+      "en": "package.json, as scaffolded",
+      "tr": "package.json, iskelet hâliyle"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-5dbf31d8",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why the pin is exact</a>",
+      "tr": "<a href=\"#why-it-matters\">Sabitleme neden tam sürüm</a>"
+    },
+    {
+      "id": "h-999ea30a",
+      "kind": "html",
+      "en": "<a href=\"#the-other-half\">Finding out a release exists</a>",
+      "tr": "<a href=\"#the-other-half\">Bir sürümün çıktığını öğrenmek</a>"
+    },
+    {
+      "id": "h-5d8d2f96",
+      "kind": "html",
+      "en": "<a href=\"#taking-the-upgrade\">Taking the upgrade</a>",
+      "tr": "<a href=\"#taking-the-upgrade\">Yükseltmeyi almak</a>"
+    },
+    {
+      "id": "h-719bfc45",
+      "kind": "html",
+      "en": "<a href=\"#moving-the-tool-not-the-project\">Moving the compiler itself</a>",
+      "tr": "<a href=\"#moving-the-tool-not-the-project\">Derleyicinin kendisini taşımak</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Neden önemli"
     },
     {
-      "id": "h-47c7a582",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-755f2752",
       "kind": "html",
-      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
-      "tr": "Çoğu aracı bir caret ile sabitlersiniz, çünkü bir patch sürümü bir hata düzeltmesidir. 1.0 öncesi bir derleyici öyle değildir. Glyph'in bütün işi programları reddetmektir ve bunda daha iyi olmak yeni hatalar demektir: bir import üzerinde daha sıkı bir kontrol, eskiden gözden kaçan bir kapsam açığı, checker'ın modellemediği bir arity. İyi sürümler bunlardır. Aynı zamanda bir tarih kütüphanesi eklemek için çalıştırdığınız bir <code>npm install</code> üzerinden gelmesini kesinlikle istemediğiniz sürümler de bunlardır."
+      "en": "Most tools you pin with a caret, because a patch release is a bug fix. A compiler before 1.0 is not that.",
+      "tr": "Çoğu aracı bir caret ile sabitlersiniz, çünkü bir patch sürümü bir hata düzeltmesidir. 1.0 öncesi bir derleyici öyle değildir."
+    },
+    {
+      "id": "h-55a1b2ff",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why new errors are the good releases</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">yeni hataların neden iyi sürümler olduğu</span>"
+    },
+    {
+      "id": "h-557b7c97",
+      "kind": "html",
+      "en": "Glyph's whole job is to reject programs, and getting better at it means new errors: a stricter check on an import, an exhaustiveness hole that used to slip through, an arity the checker had not modeled. Those releases are the good ones. They are also exactly the ones you do not want arriving through an <code>npm install</code> you ran to add a date library.",
+      "tr": "Glyph'in bütün işi programları reddetmektir ve bunda daha iyi olmak yeni hatalar demektir: bir import üzerinde daha sıkı bir kontrol, eskiden gözden kaçan bir kapsam açığı, checker'ın modellemediği bir arity. İyi sürümler bunlardır. Aynı zamanda bir tarih kütüphanesi eklemek için çalıştırdığınız bir <code>npm install</code> üzerinden gelmesini kesinlikle istemediğiniz sürümler de bunlardır."
     },
     {
       "id": "h-d1c65588",
       "kind": "html",
       "en": "So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, which is the trap: <code>^0.1.9</code> quietly accepts every later 0.1.x.",
       "tr": "Bu yüzden <code>glyph init</code> hiç <code>^</code> yazmaz. Bir <code>0.x</code> sürümünde caret yine de patch'i serbest bırakır ve tuzak budur: <code>^0.1.9</code>, sonraki her 0.1.x'i sessizce kabul eder."
-    },
-    {
-      "id": "h-5339eb44",
-      "kind": "html",
-      "en": "package.json, as scaffolded",
-      "tr": "package.json, iskelet hâliyle"
     },
     {
       "id": "h-9b0cc8ae",
@@ -95,10 +155,22 @@
       "tr": "Diğer yarısı"
     },
     {
-      "id": "h-9f122561",
+      "id": "h-c960b1a4",
       "kind": "html",
-      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. Nothing on your machine would tell you, and a website you have to remember to visit is not a channel. So the compiler tells you, when you ask it anything about your setup:",
-      "tr": "Sabitlemenin bariz bir başarısızlık biçimi var: eski bir derleyicide bir yıl kalırsınız ve hiç haberiniz olmaz. Makinenizdeki hiçbir şey size bunu söylemez ve ziyaret etmeyi hatırlamanız gereken bir web sitesi bir iletişim kanalı değildir. Bu yüzden kurulumunuz hakkında ona herhangi bir şey sorduğunuzda derleyici size söyler:"
+      "en": "A pin has one obvious failure mode: you sit on an old compiler for a year and never find out. So the compiler tells you, when you ask it anything about your setup:",
+      "tr": "Sabitlemenin bariz bir başarısızlık biçimi var: eski bir derleyicide bir yıl kalırsınız ve hiç haberiniz olmaz. Bu yüzden kurulumunuz hakkında ona herhangi bir şey sorduğunuzda derleyici size söyler:"
+    },
+    {
+      "id": "h-5d3e3c8b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the compiler is the channel</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">kanalın neden derleyici olduğu</span>"
+    },
+    {
+      "id": "h-d24ed7e6",
+      "kind": "html",
+      "en": "Nothing on your machine would tell you, and a website you have to remember to visit is not a channel.",
+      "tr": "Makinenizdeki hiçbir şey size bunu söylemez ve ziyaret etmeyi hatırlamanız gereken bir web sitesi bir iletişim kanalı değildir."
     },
     {
       "id": "h-42b52e59",
@@ -107,10 +179,22 @@
       "tr": "glyph doctor"
     },
     {
-      "id": "h-2a126797",
+      "id": "h-2068db28",
       "kind": "html",
-      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI. A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
-      "tr": "Daha yeni bir sürüm bulmak çıkış kodunu <em>asla</em> değiştirmez, bu yüzden bunu CI'da çalıştırmak güvenlidir. Yayımlanmış bir sürüm bozuk bir araç zinciri değildir ve yeşil bir pipeline, biri on dakika önce bir sürüm yayımladı diye kırmızıya dönmemelidir. Makine çevrimdışıysa kontrol bunu söyler ve devam eder; <code>--offline</code> onu tamamen atlar ve hiç ağ çağrısı yapmaz."
+      "en": "Finding a newer release <em>never</em> changes the exit code, so this is safe to run in CI.",
+      "tr": "Daha yeni bir sürüm bulmak çıkış kodunu <em>asla</em> değiştirmez, bu yüzden bunu CI'da çalıştırmak güvenlidir."
+    },
+    {
+      "id": "h-47f612a5",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">CI, offline, and what never touches the network</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">CI, çevrimdışı çalışma ve ağa hiç dokunmayan şey</span>"
+    },
+    {
+      "id": "h-d2ec5403",
+      "kind": "html",
+      "en": "A published release is not a broken toolchain, and a green pipeline should not go red because somebody shipped ten minutes ago. If the machine is offline the check says so and moves on; <code>--offline</code> skips it entirely and makes no network call at all.",
+      "tr": "Yayımlanmış bir sürüm bozuk bir araç zinciri değildir ve yeşil bir pipeline, biri on dakika önce bir sürüm yayımladı diye kırmızıya dönmemelidir. Makine çevrimdışıysa kontrol bunu söyler ve devam eder; <code>--offline</code> onu tamamen atlar ve hiç ağ çağrısı yapmaz."
     },
     {
       "id": "h-193447d0",
@@ -125,16 +209,28 @@
       "tr": "Yükseltmeyi almak"
     },
     {
+      "id": "h-af615b1b",
+      "kind": "html",
+      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet.",
+      "tr": "Tek bir satırı yeniden yazar ve <code>npm install</code> çalıştırır. Kaynak kodunuza dokunmaz ve yükseltmenin bittiğini iddia etmez: sonrasında build etmek işin özüdür, çünkü az önce aldığınız sürümün kodunuzun henüz karşılaşmadığı görüşleri olabilir."
+    },
+    {
       "id": "h-3b711bf0",
       "kind": "html",
       "en": "One line changes, and you decide when",
       "tr": "Tek satır değişir ve ne zaman olacağına siz karar verirsiniz"
     },
     {
-      "id": "h-03df523e",
+      "id": "h-ef8eb5b9",
       "kind": "html",
-      "en": "It rewrites one line and runs <code>npm install</code>. It does not touch your source, and it does not pretend the upgrade is finished: building afterwards is the point, because the release you just took is allowed to have opinions your code has not met yet. <code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
-      "tr": "Tek bir satırı yeniden yazar ve <code>npm install</code> çalıştırır. Kaynak kodunuza dokunmaz ve yükseltmenin bittiğini iddia etmez: sonrasında build etmek işin özüdür, çünkü az önce aldığınız sürümün kodunuzun henüz karşılaşmadığı görüşleri olabilir. <code>--to &lt;version&gt;</code> belirli bir sürümü adlandırır, geri dönmek istediğinizde daha eski bir sürüm dahil; <code>--no-install</code> ise kurulumu size bırakır."
+      "en": "Details <span class=\"hint\">picking a version, skipping the install</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">bir sürüm seçmek, kurulumu atlamak</span>"
+    },
+    {
+      "id": "h-724f3b65",
+      "kind": "html",
+      "en": "<code>--to &lt;version&gt;</code> names a specific one, including an older one when you want to go back, and <code>--no-install</code> leaves the install to you.",
+      "tr": "<code>--to &lt;version&gt;</code> belirli bir sürümü adlandırır, geri dönmek istediğinizde daha eski bir sürüm dahil; <code>--no-install</code> ise kurulumu size bırakır."
     },
     {
       "id": "h-acd610d7",
@@ -143,10 +239,28 @@
       "tr": "Projeyi değil, aracı taşımak"
     },
     {
-      "id": "h-6a0faca9",
+      "id": "h-b75cc745",
       "kind": "html",
-      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have. <code>glyph --update</code> is the other half. The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code. <code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
-      "tr": "<code>upgrade</code>, bir <code>package.json</code> içindeki sabitlemeyi taşır. Geride kalan şey <code>PATH</code>'inizdeki derleyici olduğunda bu yanlış komuttur ve bir süre <code>doctor</code> yine de onu yazdırıyordu; global bir kurulumu sahip olmayabileceği bir manifest'e yönlendiriyordu. <code>glyph --update</code> diğer yarısıdır. Bu ayrım artık bir tesadüf değil, bir kural: flag'ler <code>--version</code>, <code>--help</code> ve <code>--explain</code> gibi araç üzerinde çalışır, alt komutlar ise kodunuz üzerinde. <code>--update-dry-run</code>, çalıştıracağı <code>npm</code> komutunu yazdırdıktan sonra durur."
+      "en": "<code>upgrade</code> moves a pin in a <code>package.json</code>. <code>glyph --update</code> is the other half.",
+      "tr": "<code>upgrade</code>, bir <code>package.json</code> içindeki sabitlemeyi taşır. <code>glyph --update</code> diğer yarısıdır."
+    },
+    {
+      "id": "h-e7c180e3",
+      "kind": "html",
+      "en": "The split is a rule now rather than a coincidence: flags act on the tool, the way <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and subcommands act on your code.",
+      "tr": "Bu ayrım artık bir tesadüf değil, bir kural: flag'ler <code>--version</code>, <code>--help</code> ve <code>--explain</code> gibi araç üzerinde çalışır, alt komutlar ise kodunuz üzerinde."
+    },
+    {
+      "id": "h-a371bfac",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what doctor used to print</span>",
+      "tr": "Geçmiş <span class=\"hint\">doctor'ın eskiden yazdırdığı şey</span>"
+    },
+    {
+      "id": "h-154952dd",
+      "kind": "html",
+      "en": "That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
+      "tr": "Geride kalan şey <code>PATH</code>'inizdeki derleyici olduğunda bu yanlış komuttur ve bir süre <code>doctor</code> yine de onu yazdırıyordu; global bir kurulumu sahip olmayabileceği bir manifest'e yönlendiriyordu."
     },
     {
       "id": "h-c1acb4b2",
@@ -155,10 +269,22 @@
       "tr": "glyph --update"
     },
     {
-      "id": "h-e478c4dc",
+      "id": "h-bd7bf040",
       "kind": "html",
-      "en": "It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose. It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
-      "tr": "Yalnızca tanımlayabildiği bir kurulumu taşır. <code>npx</code> üzerinden ulaşılan, bir Glyph kaynak ağacından build edilmiş ya da tanımadığı bir yolda duran bir derleyici için komut yazdırılır ve hiçbir şeyin üzerine yazılmaz; çünkü bir Homebrew binary'sini ya da birinin <code>cargo build</code>'ini tahmine dayanarak değiştirmek, <code>PATH</code>'i kimsenin seçmediği bir şeye yönlendirilmiş bırakır. Ayrıca güncellemenin gerçekleştiğini iddia etmekten kaçınır: npm, indiremediği bir <code>optionalDependency</code>'yi atlamış olarak sıfır ile çıkabilir (bir Glyph sürümü bir keresinde bu şekilde platform binary'si olmadan yayımlandı), bu yüzden son satır başarıyı ilan etmek yerine kontrol olarak <code>glyph --version</code>'ı gösterir."
+      "en": "<code>--update-dry-run</code> stops after printing the <code>npm</code> command it would have run.",
+      "tr": "<code>--update-dry-run</code>, çalıştıracağı <code>npm</code> komutunu yazdırdıktan sonra durur."
+    },
+    {
+      "id": "h-f7e1ce18",
+      "kind": "html",
+      "en": "<b>Only an install it can identify</b>It only moves an install it can identify. A compiler reached through <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does not recognise gets the command printed and nothing overwritten, because replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess leaves <code>PATH</code> pointing at something nobody chose.",
+      "tr": "<b>Yalnızca tanımlayabildiği bir kurulum</b>Yalnızca tanımlayabildiği bir kurulumu taşır. <code>npx</code> üzerinden ulaşılan, bir Glyph kaynak ağacından build edilmiş ya da tanımadığı bir yolda duran bir derleyici için komut yazdırılır ve hiçbir şeyin üzerine yazılmaz; çünkü bir Homebrew binary'sini ya da birinin <code>cargo build</code>'ini tahmine dayanarak değiştirmek, <code>PATH</code>'i kimsenin seçmediği bir şeye yönlendirilmiş bırakır."
+    },
+    {
+      "id": "h-3004f6d0",
+      "kind": "html",
+      "en": "<b>No claim that it landed</b>It also stops short of claiming the update landed: npm can exit zero having skipped an <code>optionalDependency</code> it could not fetch, which is how a Glyph release once shipped with no platform binary, so the last line names <code>glyph --version</code> as the check rather than asserting success.",
+      "tr": "<b>Gerçekleştiği iddiası yok</b>Ayrıca güncellemenin gerçekleştiğini iddia etmekten kaçınır: npm, indiremediği bir <code>optionalDependency</code>'yi atlamış olarak sıfır ile çıkabilir (bir Glyph sürümü bir keresinde bu şekilde platform binary'si olmadan yayımlandı), bu yüzden son satır başarıyı ilan etmek yerine kontrol olarak <code>glyph --version</code>'ı gösterir."
     },
     {
       "id": "h-b55f380c",
@@ -173,10 +299,28 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-b2838e1c",
+      "id": "h-d89e2e36",
       "kind": "html",
-      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
-      "tr": "İskeleti oluşturulan projeler tam sürüme sabitlenir, bu yüzden hiçbir sürüm bir build'e kazara ulaşmaz. <code>glyph doctor</code>, derleyicinizi registry'ye göre raporlar ve sürüm notlarına bağlantı verir; bunu yaparken çıkış kodunu asla etkilemez ve <code>build</code>/<code>run</code>/<code>check</code> üzerinden erişilemez. <code>glyph upgrade</code> sabitlemeyi taşır, kurar ve eski bir projedeki caret'i okur; böylece önceden var olan projeler de tam bir sabitlemeye taşınabilir. <code>glyph --update</code>, global bir npm kurulumu için derleyicinin kendisini taşır ve oraya ulaşmış olabileceği diğer her yol için tahmin etmek yerine durumu raporlar."
+      "en": "Scaffolded projects pin exactly, so no release reaches a build by accident.",
+      "tr": "İskeleti oluşturulan projeler tam sürüme sabitlenir, bu yüzden hiçbir sürüm bir build'e kazara ulaşmaz."
+    },
+    {
+      "id": "h-fafd7e50",
+      "kind": "html",
+      "en": "<code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>.",
+      "tr": "<code>glyph doctor</code>, derleyicinizi registry'ye göre raporlar ve sürüm notlarına bağlantı verir; bunu yaparken çıkış kodunu asla etkilemez ve <code>build</code>/<code>run</code>/<code>check</code> üzerinden erişilemez."
+    },
+    {
+      "id": "h-399500a6",
+      "kind": "html",
+      "en": "<code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too.",
+      "tr": "<code>glyph upgrade</code> sabitlemeyi taşır, kurar ve eski bir projedeki caret'i okur; böylece önceden var olan projeler de tam bir sabitlemeye taşınabilir."
+    },
+    {
+      "id": "h-c71d1b04",
+      "kind": "html",
+      "en": "<code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.",
+      "tr": "<code>glyph --update</code>, global bir npm kurulumu için derleyicinin kendisini taşır ve oraya ulaşmış olabileceği diğer her yol için tahmin etmek yerine durumu raporlar."
     },
     {
       "id": "h-5db269e9",
@@ -185,10 +329,28 @@
       "tr": "Daha da keskinleşiyor"
     },
     {
-      "id": "h-72347421",
+      "id": "h-2a7485a4",
       "kind": "html",
-      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
-      "tr": "Sürüm notları tüm sürüm serisi için tek bir sayfadır, bu yüzden <code>glyph upgrade</code> taşındığınız sürümün kaydına değil sayfaya bağlantı verir. Yeni sürümün diagnostic'lerinden hangilerine kodunuzun takılacağını henüz hiçbir şey söylemez: bunu öğrenmek build etmeyi gerektirir, komutun bunu söylemesinin nedeni de budur. Ayrıca birkaç sürümü aynı anda atlayarak yükseltmek, tek sürümle aynı tek adımdır ve arada biriken değişikliklerin bir özeti yoktur. <code>glyph --update</code>, npm'i çağırır ve çıkış kodunu okur; bu yüzden npm'in bittiğini söyleyebilir ama <code>PATH</code>'teki binary'nin istediğiniz sürüm olduğunu söyleyemez. Bu yüzden çalıştığını söylemek yerine <code>glyph --version</code>'ı gösterir."
+      "en": "The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to.",
+      "tr": "Sürüm notları tüm sürüm serisi için tek bir sayfadır, bu yüzden <code>glyph upgrade</code> taşındığınız sürümün kaydına değil sayfaya bağlantı verir."
+    },
+    {
+      "id": "h-1ac89c3e",
+      "kind": "html",
+      "en": "Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to.",
+      "tr": "Yeni sürümün diagnostic'lerinden hangilerine kodunuzun takılacağını henüz hiçbir şey söylemez: bunu öğrenmek build etmeyi gerektirir, komutun bunu söylemesinin nedeni de budur."
+    },
+    {
+      "id": "h-0837eb77",
+      "kind": "html",
+      "en": "And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.",
+      "tr": "Ayrıca birkaç sürümü aynı anda atlayarak yükseltmek, tek sürümle aynı tek adımdır ve arada biriken değişikliklerin bir özeti yoktur."
+    },
+    {
+      "id": "h-4b5f7417",
+      "kind": "html",
+      "en": "<code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.",
+      "tr": "<code>glyph --update</code>, npm'i çağırır ve çıkış kodunu okur; bu yüzden npm'in bittiğini söyleyebilir ama <code>PATH</code>'teki binary'nin istediğiniz sürüm olduğunu söyleyemez. Bu yüzden çalıştığını söylemek yerine <code>glyph --version</code>'ı gösterir."
     }
   ]
 }

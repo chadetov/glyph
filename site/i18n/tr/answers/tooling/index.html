@@ -1,7 +1,7 @@
 ---
 title: Editör, debug ve hata deneyimi nasıl? · Glyph
 description: Her editör için bir dil sunucusu, bir VS Code eklentisi, kararlı kodlu hata mesajları ve glyph --explain. Debug işlemini Glyph'in ürettiği okunabilir TypeScript üzerinde yaparsınız.
-source_hash: d0791fdb41f61a1e
+source_hash: 6673445690cb5116
 prev: /answers/generated-docs/ | &larr; Önceki | Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?
 next: /answers/early-errors/ | Sonraki &rarr; | Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?
 ---
@@ -12,67 +12,153 @@ next: /answers/early-errors/ | Sonraki &rarr; | Glyph neden tsc'nin yakaladıkla
         <code>glyph lsp</code>, stdio üzerinden Language Server Protocol konuşur; böylece LSP istemcisi olan her editör diagnostic'leri, hover tiplerini, tanıma gitmeyi, tamamlamayı ve kaydederken biçimlendirmeyi alır. Depoda bir VS Code eklentisi var; henüz Marketplace'te değil, bu yüzden onu kaynaktan build edersiniz. Her hata kararlı bir kod, düzeltmeyi ve nedenini taşır.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Editörünüzün anlamadığı bir dilde kod düzenlemek geri adım gibi hissettirir ve başlarda bu haklı bir şikâyetti. Artık değil: editörünüz size modern kolaylıkları sunar ve hatalar yalnızca reddetmek için değil, öğretmek için yazılmıştır.
-        </p>
-
-        <h2 class="block-label">Gerçek bir LSP mi, yoksa sadece bir VS Code eklentisi mi?</h2>
-        <p>
-          Gerçek bir LSP. Derleyici, <code>glyph lsp</code> olarak başlattığınız bir dil sunucusuyla gelir; bu sunucu stdio üzerinden Language Server Protocol konuşur (her LSP istemcisinin anladığı standart JSON-RPC taşıması). Paketle gelen VS Code eklentisi onun etrafında ince bir istemcidir, ama hiçbir şey VS Code'a özgü değildir: LSP destekleyen <strong>herhangi bir</strong> editörü (Neovim, Helix, Zed, Emacs (eglot)) <code>glyph lsp</code>'ye yönlendirin, aynı şekilde davranır. Zaten kurduğunuz binary ile aynıdır (<code>npx @glyphlang/glyph lsp</code>), yani ayrıca indirilecek bir sunucu yoktur.
-        </p>
-        <p>
-          Sunucu bir editörün ihtiyaç duyduklarını uygular: aşağıdaki kararlı kodlarla canlı diagnostic'ler, hover tipleri, tanıma gitme (adlandırılmış bir import üzerinden modüller arasında; bir namespace üzerinden ise <code>ui.Button</code> hâlâ yanıt vermez), tamamlama, ana hat ve sembol araması için doküman ve workspace sembolleri, workspace genelinde referans bulma, yeniden adlandırma ve kaydederken biçimlendirme için kanonik <code>glyph fmt</code> düzeninde formatlama. Yeniden adlandırma eksiksizdir: modül seviyesindeki bir tanımı yeniden adlandırmak, workspace genelinde tanımını, her referansını ve onu import eden her modülün <code>import</code> bağlamasını düzenler ve herhangi bir şeye dokunmadan önce yeni adı kontrol eder (anahtar kelime değil, geçerli bir tanımlayıcı olmalı). Bilinmesi gereken iki sınır var: dosyalar arası indeks önbelleğe alınmak yerine her istekte yeniden oluşturulur (normal bir proje için sorun değil, ileride hızlandırmaya değer) ve şu anda parse edilemeyen bir dosya atlanır, yani yeniden adlandırma kendisi bozuk olan bir dosyanın içindeki referanslara ulaşmaz.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>Her diagnostic kararlı bir kod, tek satırlık bir düzeltme ve çoğu zaman tasarım gerekçesini taşır. <code>glyph --explain</code> bunların herhangi birinin uzun hâlini yazdırır:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre><span class="del">[E0203]</span> the `?` operator propagates error type `HttpError`,
         but this function returns `Result&lt;_, string&gt;`
    ╰─ <span class="cm">Help: map the error first, e.g. `.map_err(...)`,</span>
       <span class="cm">so its `E` matches the function's.</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Mesajları tam olarak ajanların ve yeni başlayanların en çok takıldığı yerlerde sıkılaştırdık: <code>if</code> yazmak artık genel bir &ldquo;beklenmeyen token&rdquo; yerine sizi <code>match</code>'e yönlendirir; yanlış argüman sayısı, kapsamı eksik bir <code>match</code> ya da yanlış yazılmış bir variant'ın her biri kendi kodlu, düzeltilebilir hatasını alır.
-        </p>
-        <p>
-          Yalnızca TypeScript back-end'inin yakalayabildiği tip hataları eskiden üretilen <code>.ts</code> dosyasını gösterirdi. Artık <strong><code>.glyph</code> dosyanıza geri eşleniyorlar</strong> (aynı ariadne işareti, aynı kararlı kod), böylece bir <code>tsc</code> hatası yerel bir Glyph hatası gibi okunur.
-        </p>
-        <p>
-          <strong>Debug:</strong> üretilen TypeScript'i zaten kullandığınız araçlarla debug edersiniz: Node'un inspector'ı, tarayıcı devtools'u ya da IDE'nizin JS/TS debugger'ı gibi. Her build, her <code>.ts</code> dosyasının yanında standart bir <strong>v3 source map</strong> üretir (Glyph kaynağı gömülü olarak); böylece bir debugger ya da map'leri zincirleyen bir bundler, <code>.glyph</code> satır numaralarınıza geri adımlar. Henüz kapsamadığı bir şey var: <code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satırlarını yazdırır, çünkü <code>tsx</code> map'i kendi dönüşümü boyunca zincirlemez. O stack'i yeniden eşlemek sıradaki iş.
-        </p>
-        <p>
-          <strong>Çalıştırmadan &ldquo;bu derleniyor mu?&rdquo; diye sormak:</strong> <code>glyph check path.glyph</code> tek bir dosyanın ya da bütün bir dizinin tip kontrolünü yapar ve çıkar. Ağacınıza hiçbir şey yazmaz; bunu <code>glyph run</code> garanti edemezdi, <code>glyph build</code> ise hiç yapmazdı (dizin olmayan her şeyi reddediyordu). Bir build'in çalıştırdığı pipeline'ın aynısını, üretilen TypeScript üzerinde <code>tsc --strict</code> dahil, çıkarken sildiği geçici bir dizine çalıştırır. Hızlı yanıt istediğinizde <code>--no-tsc</code> Glyph aşamalarından sonra durur; <code>--json</code> bir ajana <code>glyph build --json</code>'un verdiği diagnostic yapısının aynısını verir. Bir dosya kendi dizininin bağlamında kontrol edilir, yani bozuk bir kardeş dosya da kontrolü başarısız kılar. <code>@example</code> ve <code>@doc @run</code> testleriniz de burada çalışır, <code>glyph build</code>'in kullandığı kontrolün aynısı; böylece bir check, build'in başarısız olacağı bir ağacı temiz olarak bildiremez. Hiçbir şey çalıştırmayan bir yanıt istediğinizde <code>--no-test</code> bunları atlar.
-        </p>
-        <p>
-          <strong>Çıktı da size yalan söylemez.</strong> Başarısız bir build eskiden &ldquo;no diagnostics&rdquo; ile açılıp altına <code>tsc</code> hatalarını yazdırırdı, çünkü Glyph aşamasının özeti TypeScript aşaması çalışmadan önce yazılıyordu. Özet artık build'i kırmızıya çevirebilecek her aşamadan sonra yazdırılır, böylece kırmızı bir build hiçbir zaman yeşil bir satır göstermez. Aynı geçişte <code>glyph run app.glyph --min -12.50</code> çalışmaya başladı: baştaki bir tire, argümanı <code>main</code>'iniz görmeden önce clap'in reddetmesine yol açıyordu. Glyph'in sahip olduğu flag'ler hâlâ glyph'e bağlanır, bu yüzden bunlardan biriyle çakışan bir program flag'inin önüne <code>--</code> koyun.
-        </p>
-        <p>
-          <strong>Döngüdeki ajan için de:</strong> <code>glyph build --json</code> her diagnostic'i yapılandırılmış JSON olarak üretir: kararlı bir kod, önem derecesi, mesaj, dosya ve 1 tabanlı satır/sütun aralığı, artı help ve note; Glyph kaynağınıza eşlenmiş <code>tsc</code> hataları dahil. Bir ajan terminal metnini kazımak yerine bunları doğrudan okur ve uygular.
-        </p>
-        <p>
-          Etkileşimli ajanlar için toplu diagnostic'lerden fazlası var: <a href="/mcp/"><code>glyph mcp</code></a>, stdio üzerinden bir <strong>Model Context Protocol sunucusu</strong> çalıştırır (aynı binary, editörün kullandığı analizin aynısı) ve dil sunucusunun sorgularını MCP araçları olarak sunar. Bir ajan tam bir build çalıştırmadan ya da her dosyayı okumadan bir dosyanın <strong>diagnostic'lerini</strong>, bir konumdaki <strong>tipi</strong>, bir ismin nerede <strong>tanımlandığını</strong> (import'ları takip ederek), bir sembolün tüm projedeki her <strong>referansını</strong> ya da bir <strong>sembol araması</strong> isteyebilir. Aynı saf analiz katmanının üzerinde ince bir adaptördür, ikinci bir gerçekleştirim değildir; bu yüzden derleyicinin ve editörün gördüğünden sapamaz.
-        </p>
-        <p>
-          <strong>Her şey kesin hata değildir.</strong> Glyph'in build'i başarısız kılmadan ölü yükü işaretleyen bir uyarı seviyesi var: <em>kullanılmayan import</em> (<code>E0106</code>), <em>kullanılmayan</em> <code>let</code> (<code>E0107</code>, <code>_</code> ile başlayan isimler hariç) ve bir <code>return</code>/<code>break</code>/<code>continue</code> sonrasındaki <em>erişilemeyen kod</em> (<code>E0108</code>). Bunlar bir modülü dürüst tutar: ölü bir import, okuyucuyu kodun aslında sahip olmadığı bir bağımlılığı aramaya iten türden bir aranabilirlik gürültüsüdür. Uyarılar aynı işlenmiş çıktıda ve <code>--json</code> çıktısında, önem derecesiyle işaretlenmiş olarak görünür ve TypeScript yine de üretilir.
-        </p>
-      </div>
-
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Vurgulama, diagnostic'ler, hover, tanıma gitme, tamamlama, semboller, workspace genelinde referans bulma ve yeniden adlandırma ile kaydederken biçimlendirme sunan bir dil sunucusu (stdio üzerinden <code>glyph lsp</code>, her editör; VS Code eklentisi paketle birlikte). 0.1.124'ten beri modül sınırları arasında da yanıt verir: sunucu proje başına bir veritabanı tutar ve açık buffer'larınızı diskteki dosyaların üzerine katmanlar; böylece import edilmiş bir fonksiyonun ya da import edilmiş bir record'un bir alanının üzerine gelmek <code>glyph query hover</code>'ın verdiği yanıtı verir, bir dosyadaki kaydedilmemiş bir düzenleme başka bir dosyadan görülür ve bir tuş vuruşu tek dosyalı hâline göre yüzde bir ile dokuz arasında daha fazla maliyet getirir. On bir araçlı bir <code>glyph mcp</code> Model Context Protocol sunucusu: editörün sorguları artı <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>; her birinin, MCP istemcisi olmayan bir ajan için aynı JSON'u yazdıran bir <code>glyph query</code> fiili var. Kararlı hata kodları, <code>glyph --explain</code>, <code>.glyph</code> kaynağına eşlenen <code>tsc</code> back-end hataları, bir uyarı seviyesi (kullanılmayan import/bağlama, erişilemeyen kod) ve <code>--json</code> yapılandırılmış diagnostic'ler. <code>glyph check [path]</code>, tek bir dosyanın ya da bir ağacın tip kontrolünü onu çalıştırmadan ya da çıktı yazmadan yapar. <code>glyph fmt --check</code>, CI'da biçimlendirmeyi denetler: hiçbir şey yazmaz ve bir dosya zaten tek kanonik düzende değilse sıfır olmayan bir kodla çıkar.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p>Dosyalar arası indeksi her istekte yeniden oluşturmak yerine önbelleğe almak (büyük ağaçlarda hız kazancı) ve <code>glyph run</code>'ın kendi çökme stack'ini yeniden eşlemek; <code>tsx</code> üretilen map'i kendi dönüşümü boyunca zincirlemediği için o stack hâlâ <code>.glyph</code> dosyanız yerine üretilen <code>.ts</code> dosyasını gösteriyor.</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Görün: her diagnostic kararlı bir kod, tek satırlık bir düzeltme ve çoğu zaman tasarım gerekçesini taşır. <code>glyph --explain</code> bunların herhangi birinin uzun hâlini yazdırır.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#is-it-a-real-lsp-or-just-a-vs-code-plugin">Dil sunucusu</a></li>
+          <li><a href="#error-messages">Hata mesajları</a></li>
+          <li><a href="#debugging">Debug</a></li>
+          <li><a href="#checking-without-running">Çalıştırmadan kontrol</a></li>
+          <li><a href="#an-honest-transcript">Build çıktısı</a></li>
+          <li><a href="#for-the-agent-in-the-loop">Ajanlar için</a></li>
+          <li><a href="#warnings">Uyarılar</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Editörünüzün anlamadığı bir dilde kod düzenlemek geri adım gibi hissettirir ve başlarda bu haklı bir şikâyetti. Artık değil: editörünüz size modern kolaylıkları sunar ve hatalar yalnızca reddetmek için değil, öğretmek için yazılmıştır.
+      </p>
+
+      <h2 class="ak-h" id="is-it-a-real-lsp-or-just-a-vs-code-plugin">Gerçek bir LSP mi, yoksa sadece bir VS Code eklentisi mi?<a class="ak-anchor" href="#is-it-a-real-lsp-or-just-a-vs-code-plugin" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Gerçek bir LSP. Derleyici, <code>glyph lsp</code> olarak başlattığınız bir dil sunucusuyla gelir; bu sunucu stdio üzerinden Language Server Protocol konuşur (her LSP istemcisinin anladığı standart JSON-RPC taşıması).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Paketle gelen VS Code eklentisi onun etrafında ince bir istemcidir, ama hiçbir şey VS Code'a özgü değildir: LSP destekleyen <strong>herhangi bir</strong> editörü (Neovim, Helix, Zed, Emacs (eglot)) <code>glyph lsp</code>'ye yönlendirin, aynı şekilde davranır.
+      </p></div>
+      <p>
+        Zaten kurduğunuz binary ile aynıdır (<code>npx @glyphlang/glyph lsp</code>), yani ayrıca indirilecek bir sunucu yoktur.
+      </p>
+
+      <h3 class="ak-h3" id="what-the-server-implements">Sunucunun uyguladıkları<a class="ak-anchor" href="#what-the-server-implements" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        Sunucu bir editörün ihtiyaç duyduklarını uygular: aşağıdaki kararlı kodlarla canlı diagnostic'ler, hover tipleri, tanıma gitme (adlandırılmış bir import üzerinden modüller arasında; bir namespace üzerinden ise <code>ui.Button</code> hâlâ yanıt vermez), tamamlama, ana hat ve sembol araması için doküman ve workspace sembolleri, workspace genelinde referans bulma, yeniden adlandırma ve kaydederken biçimlendirme için kanonik <code>glyph fmt</code> düzeninde formatlama.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Yeniden adlandırma eksiksizdir: modül seviyesindeki bir tanımı yeniden adlandırmak, workspace genelinde tanımını, her referansını ve onu import eden her modülün <code>import</code> bağlamasını düzenler ve herhangi bir şeye dokunmadan önce yeni adı kontrol eder (anahtar kelime değil, geçerli bir tanımlayıcı olmalı).
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Bilinmesi gereken iki sınır var: dosyalar arası indeks önbelleğe alınmak yerine her istekte yeniden oluşturulur (normal bir proje için sorun değil, ileride hızlandırmaya değer) ve şu anda parse edilemeyen bir dosya atlanır, yani yeniden adlandırma kendisi bozuk olan bir dosyanın içindeki referanslara ulaşmaz.
+      </p></div>
+
+      <h2 class="ak-h" id="error-messages">Hata mesajları<a class="ak-anchor" href="#error-messages" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Mesajları tam olarak ajanların ve yeni başlayanların en çok takıldığı yerlerde sıkılaştırdık: <code>if</code> yazmak artık genel bir &ldquo;beklenmeyen token&rdquo; yerine sizi <code>match</code>'e yönlendirir; yanlış argüman sayısı, kapsamı eksik bir <code>match</code> ya da yanlış yazılmış bir variant'ın her biri kendi kodlu, düzeltilebilir hatasını alır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Yalnızca TypeScript back-end'inin yakalayabildiği tip hataları eskiden üretilen <code>.ts</code> dosyasını gösterirdi. Artık <code>.glyph</code> dosyanıza geri eşleniyorlar (aynı ariadne işareti, aynı kararlı kod), böylece bir <code>tsc</code> hatası yerel bir Glyph hatası gibi okunur.
+      </p></div>
+
+      <h2 class="ak-h" id="debugging">Debug<a class="ak-anchor" href="#debugging" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Üretilen TypeScript'i zaten kullandığınız araçlarla debug edersiniz: Node'un inspector'ı, tarayıcı devtools'u ya da IDE'nizin JS/TS debugger'ı gibi.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Her build, her <code>.ts</code> dosyasının yanında standart bir v3 source map üretir (Glyph kaynağı gömülü olarak); böylece bir debugger ya da map'leri zincirleyen bir bundler, <code>.glyph</code> satır numaralarınıza geri adımlar.
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Henüz kapsamadığı bir şey var: <code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satırlarını yazdırır, çünkü <code>tsx</code> map'i kendi dönüşümü boyunca zincirlemez. O stack'i yeniden eşlemek sıradaki iş.
+      </p></div>
+
+      <h2 class="ak-h" id="checking-without-running">Çalıştırmadan &ldquo;bu derleniyor mu?&rdquo; diye sormak<a class="ak-anchor" href="#checking-without-running" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph check path.glyph</code> tek bir dosyanın ya da bütün bir dizinin tip kontrolünü yapar ve çıkar. Ağacınıza hiçbir şey yazmaz; bunu <code>glyph run</code> garanti edemezdi, <code>glyph build</code> ise hiç yapmazdı (dizin olmayan her şeyi reddediyordu).
+      </p>
+      <div class="ak-chips"><span class="chip code">--no-tsc</span><span class="chip code">--json</span><span class="chip code">--no-test</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">ne çalıştırdığı ve flag'ler</span></summary><div class="body">
+        <p>
+          Bir build'in çalıştırdığı pipeline'ın aynısını, üretilen TypeScript üzerinde <code>tsc --strict</code> dahil, çıkarken sildiği geçici bir dizine çalıştırır. Hızlı yanıt istediğinizde <code>--no-tsc</code> Glyph aşamalarından sonra durur; <code>--json</code> bir ajana <code>glyph build --json</code>'un verdiği diagnostic yapısının aynısını verir. Bir dosya kendi dizininin bağlamında kontrol edilir, yani bozuk bir kardeş dosya da kontrolü başarısız kılar. <code>@example</code> ve <code>@doc @run</code> testleriniz de burada çalışır, <code>glyph build</code>'in kullandığı kontrolün aynısı; böylece bir check, build'in başarısız olacağı bir ağacı temiz olarak bildiremez. Hiçbir şey çalıştırmayan bir yanıt istediğinizde <code>--no-test</code> bunları atlar.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="an-honest-transcript">Çıktı da size yalan söylemez<a class="ak-anchor" href="#an-honest-transcript" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Özet artık build'i kırmızıya çevirebilecek her aşamadan sonra yazdırılır, böylece kırmızı bir build hiçbir zaman yeşil bir satır göstermez.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">çok erken gelen özet</span></summary><div class="body">
+        <p>
+          Başarısız bir build eskiden &ldquo;no diagnostics&rdquo; ile açılıp altına <code>tsc</code> hatalarını yazdırırdı, çünkü Glyph aşamasının özeti TypeScript aşaması çalışmadan önce yazılıyordu.
+        </p>
+      </div></details>
+      <p>
+        Aynı geçişte <code>glyph run app.glyph --min -12.50</code> çalışmaya başladı: baştaki bir tire, argümanı <code>main</code>'iniz görmeden önce clap'in reddetmesine yol açıyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Glyph'in sahip olduğu flag'ler hâlâ glyph'e bağlanır, bu yüzden bunlardan biriyle çakışan bir program flag'inin önüne <code>--</code> koyun.
+      </p></div>
+
+      <h2 class="ak-h" id="for-the-agent-in-the-loop">Döngüdeki ajan için de<a class="ak-anchor" href="#for-the-agent-in-the-loop" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph build --json</code> her diagnostic'i yapılandırılmış JSON olarak üretir: kararlı bir kod, önem derecesi, mesaj, dosya ve 1 tabanlı satır/sütun aralığı, artı help ve note; Glyph kaynağınıza eşlenmiş <code>tsc</code> hataları dahil. Bir ajan terminal metnini kazımak yerine bunları doğrudan okur ve uygular.
+      </p>
+
+      <h3 class="ak-h3" id="glyph-mcp">Etkileşimli ajanlar için <code>glyph mcp</code><a class="ak-anchor" href="#glyph-mcp" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        Etkileşimli ajanlar için toplu diagnostic'lerden fazlası var: <a href="/mcp/"><code>glyph mcp</code></a>, stdio üzerinden bir Model Context Protocol sunucusu çalıştırır (aynı binary, editörün kullandığı analizin aynısı) ve dil sunucusunun sorgularını MCP araçları olarak sunar. Bir ajan tam bir build çalıştırmadan ya da her dosyayı okumadan bir dosyanın diagnostic'lerini, bir konumdaki tipi, bir ismin nerede tanımlandığını (import'ları takip ederek), bir sembolün tüm projedeki her referansını ya da bir sembol araması isteyebilir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Aynı saf analiz katmanının üzerinde ince bir adaptördür, ikinci bir gerçekleştirim değildir; bu yüzden derleyicinin ve editörün gördüğünden sapamaz.
+      </p></div>
+
+      <h2 class="ak-h" id="warnings">Her şey kesin hata değildir<a class="ak-anchor" href="#warnings" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph'in build'i başarısız kılmadan ölü yükü işaretleyen bir uyarı seviyesi var: <em>kullanılmayan import</em> (<code>E0106</code>), <em>kullanılmayan</em> <code>let</code> (<code>E0107</code>, <code>_</code> ile başlayan isimler hariç) ve bir <code>return</code>/<code>break</code>/<code>continue</code> sonrasındaki <em>erişilemeyen kod</em> (<code>E0108</code>).
+      </p>
+      <div class="ak-chips"><span class="chip code">E0106</span><span class="chip code">E0107</span><span class="chip code">E0108</span></div>
+      <p>
+        Bunlar bir modülü dürüst tutar: ölü bir import, okuyucuyu kodun aslında sahip olmadığı bir bağımlılığı aramaya iten türden bir aranabilirlik gürültüsüdür. Uyarılar aynı işlenmiş çıktıda ve <code>--json</code> çıktısında, önem derecesiyle işaretlenmiş olarak görünür ve TypeScript yine de üretilir.
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her editör için, modül sınırları arasında da yanıt veren bir dil sunucusu<span class="chip since">0.1.124'ten beri</span></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Vurgulama, diagnostic'ler, hover, tanıma gitme, tamamlama, semboller, workspace genelinde referans bulma ve yeniden adlandırma ile kaydederken biçimlendirme sunan bir dil sunucusu (stdio üzerinden <code>glyph lsp</code>, her editör; VS Code eklentisi paketle birlikte). 0.1.124'ten beri modül sınırları arasında da yanıt verir: sunucu proje başına bir veritabanı tutar ve açık buffer'larınızı diskteki dosyaların üzerine katmanlar; böylece import edilmiş bir fonksiyonun ya da import edilmiş bir record'un bir alanının üzerine gelmek <code>glyph query hover</code>'ın verdiği yanıtı verir, bir dosyadaki kaydedilmemiş bir düzenleme başka bir dosyadan görülür ve bir tuş vuruşu tek dosyalı hâline göre yüzde bir ile dokuz arasında daha fazla maliyet getirir;</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">On bir araçlı bir <code>glyph mcp</code> Model Context Protocol sunucusu</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>on bir araçlı bir <code>glyph mcp</code> Model Context Protocol sunucusu: editörün sorguları artı <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>; her birinin, MCP istemcisi olmayan bir ajan için aynı JSON'u yazdıran bir <code>glyph query</code> fiili var;</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kararlı hata kodları, <code>glyph --explain</code>, <code>.glyph</code> kaynağına eşlenen <code>tsc</code> back-end hataları, bir uyarı seviyesi (kullanılmayan import/bağlama, erişilemeyen kod) ve <code>--json</code> yapılandırılmış diagnostic'ler.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check [path]</code>, tek bir dosyanın ya da bir ağacın tip kontrolünü onu çalıştırmadan ya da çıktı yazmadan yapar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt --check</code>, CI'da biçimlendirmeyi denetler: hiçbir şey yazmaz ve bir dosya zaten tek kanonik düzende değilse sıfır olmayan bir kodla çıkar.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dosyalar arası indeksi her istekte yeniden oluşturmak yerine önbelleğe almak (büyük ağaçlarda hız kazancı).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph run</code>'ın kendi çökme stack'ini yeniden eşlemek; <code>tsx</code> üretilen map'i kendi dönüşümü boyunca zincirlemediği için o stack hâlâ <code>.glyph</code> dosyanız yerine üretilen <code>.ts</code> dosyasını gösteriyor.</span></span></li>
+          </ul>
+        </section>
       </div>

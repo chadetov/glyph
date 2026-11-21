@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-418 entries, 312 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+419 entries, 312 are fixed, 10 are partly fixed, 11 are decided or resolved, and
 86 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12671,7 +12671,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): unchanged; `r.value` after `let r = Ok(x)`, `Ok(x).value` and `Some(x).tag` all pass `--no-tsc`, and the inline forms pass full `check` too.*
 
-- **G345. An `Option` or a `Result` read through an index, a spread, an array
+- **G345. [HALF FIXED] An `Option` or a `Result` read through an index, a spread, an array
   element or an untyped lambda parameter is not checked.** `r["value"]`,
   `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
   `Array<Result<..>>` and `fn(r) { r.value }` pass `--no-tsc`. 0.1.139
@@ -12688,10 +12688,11 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): unchanged for `r["value"]`, `rs[0].value`, `{ ...r }` and `o["tag"]`. `rs.map(fn(r) { r.value })` also passes, but its parameter is now an omitted annotation (not typed here, G414) rather than a typed one, so that form belongs to contextual typing.*
 
-  The `rs.map(fn(r) { r.value })` form is caught since 0.1.158: the method's
-  callback gives `r` the element type, so it is ``E0210 type `Result<Note,
-  string>` has no field `value` `` under `check --no-tsc` (G414). The index,
-  spread and `rs[0].value` forms are unchanged.
+  Half fixed in 0.1.158 (lambda parameter in a typed slot, G414): the
+  `rs.map(fn(r) { r.value })` form is caught, since the method's callback
+  gives `r` the element type, so it is ``E0210 type `Result<Note, string>`
+  has no field `value` `` under `check --no-tsc`. The index, spread and
+  `rs[0].value` forms stay open.
 
 - **G346. E0210's help on an `Option` and its catalogue fix are wrong for the
   member set.** For `o.map(f)` the help suggests `match o { Some(n) =>
@@ -14172,8 +14173,10 @@ and is the owner's to confirm.
   a parameter with none.
   The corpus comparison found a loop the change moved onto an emitter bug: a
   two-binding `for` over a declared `unknown` took the record form, so inside
-  an `is Array<unknown>` arm the index was a string; it defers to the run
-  time now.
+  an `is Array<unknown>` arm the index was a string. It defers to the run
+  time now, and both bindings are `unknown` to Glyph's checker and to `tsc`
+  (the emitted pair is typed `[unknown, unknown]`, record 146), so a use must
+  narrow first.
 
 - **G415. `is Record<K, V>` and `is Array<X>` arms do not narrow; E0224
   should not fire when `V` is `unknown`, and then containers narrow.** Since
@@ -14236,3 +14239,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): `glyph query hover` on
   the scrutinee answers `"string"`.*
+
+- **G419. `__glyph_pairs` hands `tsc` `any` bindings for an untyped iterand.**
+  A two-binding `for` over a value Glyph's checker does not type (an
+  `extern_ts` value, an npm value with no materialized types) emits
+  `__glyph_pairs(v)`, which the prelude declares `Iterable<[any, any]>`. Both
+  bindings are then `any` to `tsc` and not typed to Glyph's checker, so
+  nothing checks a use: `let s: string = i` passes, and `s.toUpperCase()`
+  throws. A declared `unknown` iterand gets `[unknown, unknown]` since 0.1.158
+  (record 146); the untyped case is left as it was and filed here. Found by
+  record 146.
+
+  *Reproduced against 0.1.157 (the release build): `let v =
+  extern_ts("[10, 20] as number[]")` then `for i, x in v { let s: string = i
+  io.println(s.toUpperCase()) }` passes `check` with `tsc --strict passed`,
+  and `glyph run` throws `TypeError: s.toUpperCase is not a function`.*

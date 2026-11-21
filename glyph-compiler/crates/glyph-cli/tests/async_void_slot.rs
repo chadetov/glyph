@@ -558,3 +558,43 @@ fn a_refused_async_callback_is_reported_once() {
     let v = check(&project("once", &src), true);
     assert_eq!(codes(&v), vec!["E0211".to_string(); 3], "{v:#}");
 }
+
+/// Record 148: a kind refusal erases only the part of the call's result the
+/// refused argument decides. `apply` and `apply2` return a `number` whatever
+/// their callback is, so the `string` it is bound to is still E0204, beside
+/// the E0211 at the callback, on both lines.
+#[test]
+fn a_kind_refusal_keeps_a_result_the_argument_does_not_decide() {
+    let src = "module main\n\
+        async fn save(x: number) -> number {\n  return x\n}\n\
+        fn apply<T>(f: fn(T) -> void) -> number {\n  return 1\n}\n\
+        fn apply2<T>(f: fn(T) -> T) -> number {\n  return 1\n}\n\
+        pub async fn g() -> void {\n  \
+        let s: string = apply(async fn(n) { await save(1) })\n  \
+        let s2: string = apply2(async fn(n) { await save(1) })\n  \
+        print(s)\n  print(s2)\n  return void\n}\n";
+    let v = check(&project("keeps_result", src), true);
+    let found: Vec<(String, u64)> = errors(&v)
+        .iter()
+        .map(|d| (d["code"].as_str().unwrap().to_string(), d["range"]["start"]["line"].as_u64().unwrap()))
+        .collect();
+    for line in [12, 13] {
+        for code in ["E0211", "E0204"] {
+            assert!(found.contains(&(code.to_string(), line)), "{code} on line {line}: {found:?}");
+        }
+    }
+    assert_eq!(found.len(), 4, "{found:?}");
+}
+
+/// The pin on the other side of record 148: a sync `array.map` callback
+/// refused for nothing keeps `map`'s result, so binding it to a `string` is
+/// the E0204 it always was.
+#[test]
+fn a_sync_map_result_bound_to_a_string_stays_e0204() {
+    let src = "module main\nimport std/array\n\
+        pub fn g(ids: Array<number>) -> void {\n  \
+        let bad: string = array.map(ids, fn(x: number) -> number { return x })\n  \
+        print(bad)\n  return void\n}\n";
+    let v = check(&project("map_pin", src), true);
+    assert_eq!(codes(&v), vec!["E0204".to_string()], "{v:#}");
+}

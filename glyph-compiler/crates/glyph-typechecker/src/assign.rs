@@ -2713,6 +2713,9 @@ impl Assigner<'_> {
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
                             let accepted = self.accepted_values(&r.expected);
+                            let sql_escape = self.stdlib_callee(callee).is_some_and(|(m, f)| {
+                                m == "std/sqlite" && f == "from_trusted"
+                            });
                             self.errors.push(TypeError::ArgumentTypeMismatch {
                                 expected: ty_display(&r.expected),
                                 found: r.found,
@@ -2720,6 +2723,7 @@ impl Assigner<'_> {
                                 missing_fields: r.missing_fields,
                                 no_common_field: r.no_common_field,
                                 children_between_tags: false,
+                                sql_escape,
                                 record_key: r.record_key,
                                 span: r.span,
                             });
@@ -3323,6 +3327,7 @@ impl Assigner<'_> {
                     missing_fields: r.missing_fields,
                     no_common_field: r.no_common_field,
                     children_between_tags: false,
+                    sql_escape: false,
                     record_key: r.record_key,
                     span: r.span,
                 });
@@ -3372,6 +3377,7 @@ impl Assigner<'_> {
             missing_fields,
             no_common_field: false,
             children_between_tags,
+            sql_escape: false,
             record_key: None,
             span: j.name_span,
         });

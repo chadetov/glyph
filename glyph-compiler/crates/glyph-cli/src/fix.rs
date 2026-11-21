@@ -22,6 +22,13 @@
 //!   receiver that is a place. A call whose value is used, or an arm of a
 //!   statement `match`, has a repair that depends on what was meant.
 //!
+//! * **E0242**, a built-in method that answers absence with `undefined`,
+//!   takes the rewrite the checker attached: `xs.find(f)` becomes
+//!   `array.find(xs, f)`, `xs.at(2)` becomes `array.get(xs, 2)`, and a `??`
+//!   default becomes the `match` that handles the `None` (G392, D56). When
+//!   the module has no `import std/array`, one is added (`ensure_import`),
+//!   unless another binding already has that name.
+//!
 //! Neither guesses. Where the compiler does not hold the answer the rule
 //! declines and says why, and the reason reaches the command's output beside
 //! what it did apply.
@@ -262,12 +269,12 @@ fn collect_glyph_files(path: &Path, out: &mut Vec<PathBuf>) {
 
 /// The codes this pass reads. A diagnostic with any other code is left alone.
 ///
-/// `E0210`, `E0220` and `E0240` are repaired when the compiler determines the
-/// repair.
+/// `E0210`, `E0220`, `E0240` and `E0242` are repaired when the compiler
+/// determines the repair.
 /// `E0200` is read and never repaired: each one is reported as declined, and
 /// its `missing_variants` is what the `E0220` rule asks to learn whether the
 /// variant it would rename a head to is still free.
-const RULE_CODES: [&str; 4] = ["E0200", "E0210", "E0220", "E0240"];
+const RULE_CODES: [&str; 5] = ["E0200", "E0210", "E0220", "E0240", "E0242"];
 
 /// Check the tree, then apply every rule that the resulting diagnostics fully
 /// determine.
@@ -371,6 +378,8 @@ fn fix_one_file(
 
     let mut edits: Vec<(u32, u32, String)> = Vec::new();
     let mut applied: Vec<Applied> = Vec::new();
+    // Imports a rule added, one per module path however many rewrites need it.
+    let mut imports: Vec<(u32, u32, String)> = Vec::new();
 
     for d in diags {
         match d.code.as_str() {
@@ -419,6 +428,24 @@ fn fix_one_file(
                     why,
                 }),
             },
+            "E0242" => match plan_e0242(&source, d, &edits, &imports) {
+                Ok((rewrite, import)) => {
+                    let what = match &import {
+                        Some(i) => format!("wrote the `Option` form of the call, and `{}`", i.2.trim()),
+                        None => "wrote the `Option` form of the call".to_string(),
+                    };
+                    applied.push(Applied { code: d.code.clone(), file: path.to_path_buf(), what });
+                    edits.extend(rewrite);
+                    if let Some(i) = import {
+                        imports.push(i);
+                    }
+                }
+                Err(why) => report.declined.push(Declined {
+                    code: d.code.clone(),
+                    file: path.to_path_buf(),
+                    why,
+                }),
+            },
             "E0200" => report.declined.push(Declined {
                 code: d.code.clone(),
                 file: path.to_path_buf(),
@@ -431,6 +458,7 @@ fn fix_one_file(
     if edits.is_empty() {
         return Ok(());
     }
+    edits.extend(imports);
 
     let new_source = apply_edits(&source, edits);
     // Same bar the import rule is held to: re-parse what is about to be written
@@ -503,6 +531,126 @@ fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
                 .to_string(),
         ),
     }
+}
+
+// ---------------------------------------------------------------------------
+// E0242: the `Option` form of a call that answers absence with `undefined`
+// ---------------------------------------------------------------------------
+
+/// A byte-range replacement in a file: `(start, end, text)`.
+type Edit = (u32, u32, String);
+
+/// The rewrite the checker attached to an E0242, plus the import it needs
+/// (G392, D56).
+///
+/// The checker decided the edits from the call as written, and decided where
+/// none is determined (a string accessor, a computed `at` index, a `?.` call),
+/// with the reason; this applies that decision. What it adds is the import:
+/// `ensure_import` writes `import std/array` when the module needs it, and
+/// declines when a binding of that name is already in the file. An edit that
+/// would overlap one already planned in this file is declined too, so two
+/// rewrites never splice into each other.
+fn plan_e0242(
+    source: &str,
+    d: &Diagnostic,
+    planned: &[(u32, u32, String)],
+    imports: &[(u32, u32, String)],
+) -> Result<(Vec<Edit>, Option<Edit>), String> {
+    let (edits, binding, import) = match &d.repair {
+        Some(glyph_typechecker::AbsentRepair::Rewrite { edits, binding, import }) => (edits, binding, *import),
+        Some(glyph_typechecker::AbsentRepair::Decline(why)) => return Err(why.clone()),
+        None => return Err("the checker attached no rewrite to this diagnostic".to_string()),
+    };
+    for (s, e, _) in edits {
+        if *e as usize > source.len() || s > e {
+            return Err("the rewrite's range is not a byte range of this file".to_string());
+        }
+        let overlaps = planned.iter().any(|(ps, pe, _)| s < pe && ps < e && !(s == e && ps == pe));
+        if overlaps {
+            return Err("another repair in this file rewrites the same text; run `glyph fix` again".to_string());
+        }
+    }
+    let import = match import {
+        None => None,
+        Some(path) => {
+            let line = format!("import {path}");
+            match imports.iter().find(|i| i.2.trim() == line) {
+                Some(_) => None,
+                None => Some(ensure_import(source, path, binding)?),
+            }
+        }
+    };
+    let edits = edits
+        .iter()
+        .map(|(s, e, text)| {
+            let line_start = source[..*s as usize].rfind('\n').map(|i| i + 1).unwrap_or(0);
+            let indent: String =
+                source[line_start..].chars().take_while(|c| *c == ' ' || *c == '\t').collect();
+            (*s, *e, text.replace('\n', &format!("\n{indent}")))
+        })
+        .collect();
+    Ok((edits, import))
+}
+
+/// The edit that adds `import <path>` to a module, binding `binding`, or why
+/// it cannot be added.
+///
+/// A general helper: a rule whose rewrite calls through a `std/*` namespace
+/// the module does not import asks for it here. The line goes after the last
+/// `import`, or after the `module` line when there is none. It declines when
+/// the name is already bound in the file: the import would collide with a
+/// declaration, or a local of that name would shadow it at the call. Bindings
+/// are found from the tokens, conservatively: any `binding` that is not
+/// followed by `.` and does not end an import path counts, so a record field
+/// of that name declines too.
+fn ensure_import(source: &str, path: &str, binding: &str) -> Result<(u32, u32, String), String> {
+    let Ok(tokens) = glyph_lexer::tokenize(source) else {
+        return Err(format!("the file does not lex, so where `import {path}` goes is not determined"));
+    };
+    use glyph_lexer::Token;
+    for (i, t) in tokens.iter().enumerate() {
+        let Token::Identifier(name) = &t.token else { continue };
+        if name.as_ref() != binding {
+            continue;
+        }
+        let next_is_dot = matches!(tokens.get(i + 1).map(|n| &n.token), Some(Token::Dot | Token::QDot));
+        let after_slash = i > 0 && matches!(tokens[i - 1].token, Token::Slash);
+        if !next_is_dot && !after_slash {
+            return Err(format!(
+                "the rewrite calls `{binding}.…` from `{path}`, which this file does not import, and the name \
+                 `{binding}` is already bound here; import `{path}` under another name and write the help's call"
+            ));
+        }
+    }
+    let Ok(module) = glyph_parser::parse(source) else {
+        return Err(format!("the file does not parse, so where `import {path}` goes is not determined"));
+    };
+    let last_import = module.items.iter().filter_map(|d| match d {
+        Decl::Import(i) => Some(full_line_span(source, i.span.start, i.span.end).1),
+        _ => None,
+    }).max();
+    let at = match last_import {
+        Some(end) => end,
+        None => {
+            let mut offset = 0usize;
+            let mut found = None;
+            for line in source.split_inclusive('\n') {
+                if line.trim_start().starts_with("module ") {
+                    found = Some(offset + line.len());
+                    break;
+                }
+                offset += line.len();
+            }
+            found.unwrap_or(0) as u32
+        }
+    };
+    // A module line with no import under it gets a blank line before the
+    // first import, the layout `glyph fmt` keeps.
+    let text = match last_import {
+        Some(_) => format!("import {path}\n"),
+        None => format!("\nimport {path}\n"),
+    };
+    Ok((at, at, text))
 }
 
 // ---------------------------------------------------------------------------

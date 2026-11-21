@@ -27,6 +27,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod absent;
 pub mod assign;
 pub mod async_slot;
 pub mod builtin_members;
@@ -83,6 +84,7 @@ impl Accepted {
 
 use std::borrow::Cow;
 pub use builtin_members::BuiltinReceiver;
+pub use absent::AbsentRepair;
 pub use mutation::MutationSite;
 
 /// What a `Record` key is, for the note and help of a refusal made by the key
@@ -886,6 +888,20 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G392, D56: a call to a built-in method whose TypeScript return can
+    /// be `undefined` or `null` (`users.find(f)`, `xs.at(-1)`,
+    /// `s.codePointAt(0)`, `s.match(p)`), on a receiver Glyph types as an
+    /// `Array<T>` or a `string`. Glyph writes a value that may be missing as
+    /// an `Option`, and the help names the `std/*` function that returns one.
+    /// `repair` is what `glyph fix` writes, or why it writes nothing.
+    #[error("{message}")]
+    AbsentBuiltinResult {
+        message: String,
+        help: String,
+        repair: AbsentRepair,
+        span: Span,
+    },
+
     /// G311, record 87 (D18): `?.` on a receiver that resolves to the
     /// prelude `Option<T>` or `Result<T, E>`, through any alias. Neither is
     /// ever null at run time, so the chain never short-circuits: it reads
@@ -1518,6 +1534,7 @@ impl TypeError {
             TypeError::SqlFromRuntimeValue { span, .. } => *span,
             TypeError::MutationOutsideMut { span, .. } => *span,
             TypeError::MutOnNonMutatingCall { span, .. } => *span,
+            TypeError::AbsentBuiltinResult { span, .. } => *span,
             TypeError::NoTextForm { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
@@ -1571,6 +1588,7 @@ impl TypeError {
             TypeError::SqlFromRuntimeValue { .. } => "E0239",
             TypeError::MutationOutsideMut { .. } => "E0240",
             TypeError::MutOnNonMutatingCall { .. } => "E0241",
+            TypeError::AbsentBuiltinResult { .. } => "E0242",
             TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
@@ -1611,7 +1629,8 @@ impl TypeError {
         }
         if let TypeError::SqlFromRuntimeValue { help, .. }
         | TypeError::MutationOutsideMut { help, .. }
-        | TypeError::MutOnNonMutatingCall { help, .. } = self
+        | TypeError::MutOnNonMutatingCall { help, .. }
+        | TypeError::AbsentBuiltinResult { help, .. } = self
         {
             return Some(Cow::Owned(help.clone()));
         }
@@ -1922,6 +1941,7 @@ impl TypeError {
             TypeError::SqlFromRuntimeValue { .. } => unreachable!("answered above with its computed help"),
             TypeError::MutationOutsideMut { .. } => unreachable!("answered above with its computed help"),
             TypeError::MutOnNonMutatingCall { .. } => unreachable!("answered above with its computed help"),
+            TypeError::AbsentBuiltinResult { .. } => unreachable!("answered above with its computed help"),
         }))
     }
 
@@ -1973,6 +1993,9 @@ impl TypeError {
             ),
             TypeError::MutOnNonMutatingCall { .. } => Some(
                 "`mut` marks a change (D5), so `grep -n \"^\\s*mut \"` lists the program's writes. A call that changes nothing would put a line in that list that writes nothing, and the value it returns is thrown away.",
+            ),
+            TypeError::AbsentBuiltinResult { .. } => Some(
+                "A missing value in Glyph is an `Option`, which `match` opens and the checker holds to a `None` arm (D56). These methods hand back JavaScript's `undefined` instead, a value Glyph's checker cannot see, so a read off it passes `glyph check` and fails at run time; the `std/*` functions are the same lookups with the absence in the type.",
             ),
             TypeError::SqlFromRuntimeValue { .. } => Some(
                 "A query's text is fixed when the program is written (D52). Values go in the parameter array, where SQLite binds them as data and never reads them as SQL; `sqlite.from_trusted` is the one way to run text built at run time, and it takes a `taint.Trusted<string>`.",

@@ -189,6 +189,14 @@ pub struct Diagnostic {
     /// Never serialized, like `subject`: it is read in-process by the fix.
     #[serde(skip)]
     pub insert_before: Option<String>,
+    /// The rewrite the checker decided repairs this diagnostic, or why none
+    /// is determined: an E0242 call moved into its `std/*` form, with the
+    /// module to import (G392, D56). `glyph fix` applies it as given, like
+    /// `insert_before`, so the checker and the fix decide it once.
+    ///
+    /// Never serialized: it is read in-process by the fix.
+    #[serde(skip)]
+    pub repair: Option<glyph_typechecker::AbsentRepair>,
 }
 
 /// Where to read a diagnostic code's explanation.
@@ -321,6 +329,7 @@ impl Diagnostic {
             explain: explain_pointer(code),
             subject: None,
             insert_before: None,
+            repair: None,
         }
     }
 
@@ -342,6 +351,12 @@ impl Diagnostic {
     /// Attach the insertion the checker decided is the whole repair.
     fn with_insertion(mut self, text: Option<&str>) -> Self {
         self.insert_before = text.map(str::to_string);
+        self
+    }
+
+    /// Attach the rewrite the checker decided repairs this diagnostic.
+    fn with_repair(mut self, repair: Option<glyph_typechecker::AbsentRepair>) -> Self {
+        self.repair = repair;
         self
     }
 
@@ -553,6 +568,10 @@ pub fn from_type_error(
         TypeError::MutationOutsideMut { kind: glyph_typechecker::MutationSite::Statement, .. } => Some("mut "),
         _ => None,
     })
+    .with_repair(match err {
+        TypeError::AbsentBuiltinResult { repair, .. } => Some(repair.clone()),
+        _ => None,
+    })
 }
 
 /// The resolver errors whose message carries a suggestion: a field the
@@ -645,6 +664,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::SqlFromRuntimeValue { .. }
         | T::MutationOutsideMut { .. }
         | T::MutOnNonMutatingCall { .. }
+        | T::AbsentBuiltinResult { .. }
         | T::NoTextForm { .. }
         | T::TypeNameAsValue { .. }
         | T::RedactUnknownField { .. }

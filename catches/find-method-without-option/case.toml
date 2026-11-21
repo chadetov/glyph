@@ -1,0 +1,6 @@
+code = "E0242"
+pillar = "verifiability"
+title = "The find method read as if it always finds"
+kind = "refused"
+ts_output = "Cannot read properties of undefined (reading 'name')"
+fullconfig = "lint:no-non-null-assertion"

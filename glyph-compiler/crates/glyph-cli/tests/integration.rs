@@ -20684,13 +20684,13 @@ fn untyped(a: number, c: number) -> string {
 
 /// Record 130, F2: `string.from` takes a declared `unknown`, the documented
 /// way to read a failed task's error, while `${}` and `+` still refuse one.
-/// An omitted lambda annotation takes its type from its position (D5z): over
+/// An omitted lambda annotation takes its type from its position (D55): over
 /// an `Array<number>` the parameter is a `number`, which has a text form.
 /// Over the `Issue.path` idiom the checker has no element type to give
 /// (`Issue.path` is not typed), so `p` stays not typed here and E0237 leaves
 /// it alone. An `is` arm narrows, so interpolating inside one is accepted.
 ///
-/// The pinned hole this test held until D5z, `array.map(users, fn(p) ..)`
+/// The pinned hole this test held until D55, `array.map(users, fn(p) ..)`
 /// over `Array<User>`, is refused now, in
 /// `an_omitted_lambda_annotation_typed_from_its_callee_is_judged`.
 #[test]
@@ -20724,11 +20724,11 @@ fn narrowed(v: unknown) -> string {
     assert!(got.is_empty(), "accepted forms are refused: {got:#?}");
 }
 
-/// D5z, flipping the hole Release B pinned as G405: an omitted lambda
+/// D55, flipping the hole Release B pinned as G414: an omitted lambda
 /// annotation takes the callee's parameter type with its type arguments
 /// bound from the arguments before it, so `p` is the `User` that `users`
 /// holds and `${p}` is E0237, as a written `fn(p: User)` already was. Before
-/// D5z `p` was not typed here and this program printed `[object Object]`
+/// D55 `p` was not typed here and this program printed `[object Object]`
 /// with no diagnostic from Glyph or `tsc`.
 #[test]
 fn an_omitted_lambda_annotation_typed_from_its_callee_is_judged() {
@@ -20742,7 +20742,7 @@ fn contextual_record(users: Array<User>) -> Array<string> {
   return array.map(users, fn(p) -> string { return "${p}" })
 }
 "#;
-    let got = no_text_form_diagnostics("d5z-pinned-hole", text);
+    let got = no_text_form_diagnostics("d55-pinned-hole", text);
     assert_eq!(got.len(), 1, "{got:#?}");
     assert_eq!(got[0].0, r#"return array.map(users, fn(p) -> string { return "${p}" })"#);
     assert!(got[0].1.contains("`${p}` turns a `User` into text"), "{got:#?}");
@@ -20774,7 +20774,7 @@ fn no_tsc_diagnostics(label: &str, text: &str) -> Vec<(String, String, String)> 
         .collect()
 }
 
-/// D5z: every position that expects a function type gives an omitted
+/// D55: every position that expects a function type gives an omitted
 /// parameter its type, so a field typo is E0210 under `--no-tsc` in each,
 /// where Release B left every one of them to `tsc`: a stdlib callee (with a
 /// second parameter bound by an earlier argument), a generic Glyph callee,
@@ -20813,7 +20813,7 @@ pub fn ret() -> Show {
   return fn(u) -> string { return u.nmae }
 }
 "#;
-    let got = no_tsc_diagnostics("d5z-slots", text);
+    let got = no_tsc_diagnostics("d55-slots", text);
     let e0210: Vec<&str> = got.iter().filter(|d| d.0 == "E0210").map(|d| d.1.as_str()).collect();
     assert_eq!(
         e0210,
@@ -20860,7 +20860,7 @@ pub fn both(users: Array<User>) -> number {
   return a1.length + a2.length + d
 }
 "#;
-    let got = no_tsc_diagnostics("d5z-methods", text);
+    let got = no_tsc_diagnostics("d55-methods", text);
     let errors: Vec<(&str, &str)> =
         got.iter().filter(|d| d.0.starts_with("E0")).filter(|d| d.0 != "E0107").map(|d| (d.0.as_str(), d.1.as_str())).collect();
     assert_eq!(
@@ -20878,6 +20878,120 @@ pub fn both(users: Array<User>) -> number {
         ],
         "{got:#?}"
     );
+}
+
+/// Every diagnostic `check --no-tsc` reports for `text` except unused-name
+/// lints, as (code, 1-based line, message, help).
+fn no_tsc_diagnostics_with_help(label: &str, text: &str) -> Vec<(String, usize, String, String)> {
+    let root = unique_tmp(label);
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let (_, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--no-test", "--json", "{src}"]);
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("{label}: check --json prints JSON ({e}):\n{stdout}\n{stderr}"));
+    v["diagnostics"]
+        .as_array()
+        .expect("a diagnostics array")
+        .iter()
+        .filter(|d| d["code"] != "E0107")
+        .map(|d| {
+            (
+                d["code"].as_str().unwrap_or_default().to_string(),
+                d["range"]["start"]["line"].as_u64().expect("a line") as usize,
+                d["message"].as_str().unwrap_or_default().to_string(),
+                d["help"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect()
+}
+
+/// Record 143, item 1: the E0238 help for a pending tail reads the callback
+/// slot the checker typed the lambda from, so a built-in method's slot
+/// chooses the rewrite its function spelling would. `forEach` drops what its
+/// callback returns, so the help is the `task.detach` form; `map` keeps it,
+/// so the help is the loop over the receiver. Before the method slots were
+/// recorded both got the generic "write `async fn(p)`" help, which turns a
+/// `forEach` into one that starts every save at once and a `map` into an
+/// array of pending values.
+#[test]
+fn a_method_callback_pending_tail_gets_the_help_for_its_slot() {
+    let text = r#"module main
+
+type User = { id: number, name: string, }
+
+async fn save(id: number) -> number {
+  return id
+}
+
+pub fn each(users: Array<User>) -> void {
+  users.forEach(fn(p) { save(p.id) })
+}
+
+pub fn mapped(users: Array<User>) -> number {
+  let xs = users.map(fn(p) { save(p.id) })
+  return xs.length
+}
+"#;
+    let got = no_tsc_diagnostics_with_help("d55-pending-slot", text);
+    let e0238: Vec<(usize, &str)> =
+        got.iter().filter(|d| d.0 == "E0238").map(|d| (d.1, d.3.as_str())).collect();
+    assert_eq!(
+        e0238,
+        vec![
+            (
+                10,
+                "This callback is called without being awaited, so it cannot wait. Start the work on \
+                 purpose: `fn(p) { task.detach(async fn() -> void { await save(p.id) }) }` (with \
+                 `import std/task`)."
+            ),
+            (
+                14,
+                "`users.map` does not wait for its callback. Await each call in a loop, `for p in \
+                 users { ... await save(p.id) ... }`, or run them together with `task.all`."
+            ),
+        ],
+        "{got:#?}"
+    );
+}
+
+/// Record 143, items 2 and 3: a contextually typed parameter that has no
+/// text form, or a pending call made with it, draws exactly one diagnostic
+/// in a `${}` and in a `+` chain, in both spellings of the call: E0237 for
+/// the record, E0238 for the pending value, never both. The E0237 message
+/// names the type the parameter took from its position.
+#[test]
+fn a_contextual_parameter_draws_one_text_or_pending_diagnostic() {
+    let text = r#"module main
+
+import std/array
+
+type User = { id: number, name: string, }
+
+async fn load(u: User) -> string {
+  return u.name
+}
+
+pub fn a(users: Array<User>) -> Array<string> {
+  return array.map(users, fn(p) -> string { return "${p}" })
+}
+
+pub fn b(users: Array<User>) -> Array<string> {
+  return users.map(fn(p) -> string { return "x " + p + "!" })
+}
+
+pub fn c(users: Array<User>) -> Array<string> {
+  return array.map(users, fn(p) -> string { return "${load(p)}" })
+}
+
+pub fn d(users: Array<User>) -> Array<string> {
+  return users.map(fn(p) -> string { return "x " + load(p) })
+}
+"#;
+    let got = no_tsc_diagnostics_with_help("d55-one-diagnostic", text);
+    let codes: Vec<(&str, usize)> = got.iter().map(|d| (d.0.as_str(), d.1)).collect();
+    assert_eq!(codes, vec![("E0237", 12), ("E0237", 16), ("E0238", 20), ("E0238", 24)], "{got:#?}");
+    assert!(got[0].2.contains("`${p}` turns a `User` into text"), "{got:#?}");
+    assert!(got[1].2.contains("`+` joins a `User` to a string"), "{got:#?}");
 }
 
 /// Record 142, B2: an attribute of a component element is a field of the
@@ -20907,7 +21021,7 @@ pub component Dom(props: { users: Array<User>, }) -> Component {
   return <button onClick={fn(e) { let _s = e.nmae7 }}>x</button>
 }
 "#;
-    let got = no_tsc_diagnostics("d5z-jsx", text);
+    let got = no_tsc_diagnostics("d55-jsx", text);
     let e0210: Vec<&str> = got.iter().filter(|d| d.0 == "E0210").map(|d| d.1.as_str()).collect();
     assert_eq!(
         e0210,
@@ -20920,7 +21034,7 @@ pub component Dom(props: { users: Array<User>, }) -> Component {
     assert!(!got.iter().any(|d| d.1.contains("nmae7")), "{got:#?}");
 }
 
-/// D5z refuses nothing `tsc` accepts in the common callback shapes, and the
+/// D55 refuses nothing `tsc` accepts in the common callback shapes, and the
 /// types it gives are the ones `tsc` infers: a string literal seed widens to
 /// `string` (`acc == ""` compares strings, not two literals), a literal-union
 /// element stays the union, a written type argument binds, a second
@@ -20975,9 +21089,9 @@ pub fn run(users: Array<User>, tiers: Array<Tier>) -> string {
   return string.join(names, sep) + joined
 }
 "#;
-    let got = no_tsc_diagnostics("d5z-accepted", text);
+    let got = no_tsc_diagnostics("d55-accepted", text);
     assert!(got.is_empty(), "contextually typed callbacks are refused: {got:#?}");
-    let root = unique_tmp("d5z-accepted-tsc");
+    let root = unique_tmp("d55-accepted-tsc");
     let src = root.join("src");
     write_file(&src, "main.glyph", text);
     let main = src.join("main.glyph");
@@ -20989,7 +21103,7 @@ pub fn run(users: Array<User>, tiers: Array<Tier>) -> string {
     }
 }
 
-/// D5z leaves a written annotation alone: `fn(p: unknown)` over an
+/// D55 leaves a written annotation alone: `fn(p: unknown)` over an
 /// `Array<number>` is the declared `unknown`, so `${p}` is refused, where the
 /// position alone would have typed `p` a `number`. A callback slot whose
 /// type the checker does not know gives no type: `Issue.path` is not typed
@@ -21012,7 +21126,7 @@ pub fn unmodeled(issue: Issue) -> void {
   issue.path.forEach(fn(p) { io.println(p.nmae) })
 }
 "#;
-    let got = no_tsc_diagnostics("d5z-written", text);
+    let got = no_tsc_diagnostics("d55-written", text);
     let codes: Vec<(&str, &str)> = got.iter().map(|d| (d.0.as_str(), d.1.as_str())).collect();
     assert_eq!(
         codes,

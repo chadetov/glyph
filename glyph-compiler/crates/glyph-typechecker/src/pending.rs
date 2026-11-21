@@ -106,7 +106,7 @@ pub enum WaitContext {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CallbackSlot {
     /// Not an argument, or a parameter the checker holds no function type
-    /// for (`task.all`, which is unmodeled, or a builtin method's callback).
+    /// for (`task.all`, which is unmodeled).
     Unknown,
     /// `async fn(...) -> void`, as `task.detach` takes.
     AsyncVoid,
@@ -122,8 +122,9 @@ pub enum CallbackSlot {
 }
 
 /// The slot the parameter `param` of a call to `callee` makes for a lambda
-/// passed there.
-fn callback_slot(param: &Ty, callee: &Expr, args: &[Expr]) -> CallbackSlot {
+/// passed there. `receiver` is the array a method is called on, which is
+/// what a loop iterates; a function's first argument is otherwise.
+fn callback_slot(param: &Ty, callee: &Expr, receiver: Option<&Expr>, args: &[Expr]) -> CallbackSlot {
     let Ty::Fn {
         return_ty,
         is_async,
@@ -139,7 +140,7 @@ fn callback_slot(param: &Ty, callee: &Expr, args: &[Expr]) -> CallbackSlot {
         (false, true) => CallbackSlot::SyncVoid,
         (false, false) => CallbackSlot::SyncValue {
             callee: expr_source(callee),
-            iterable: match args.first() {
+            iterable: match receiver.or(args.first()) {
                 Some(a @ (Expr::Ident { .. } | Expr::Member { .. })) => expr_source(a),
                 _ => "xs".to_string(),
             },
@@ -378,9 +379,21 @@ impl Pass<'_> {
                 };
                 for (i, a) in args.iter().enumerate() {
                     if matches!(a, Expr::Lambda { .. }) {
-                        self.lambda_slot = Some(match params.get(i) {
-                            Some(p) => callback_slot(&p.ty, callee, args),
-                            None => CallbackSlot::Unknown,
+                        // A built-in array method's callback is modeled for
+                        // context only (D55); the checker recorded the slot it
+                        // typed the lambda from, and the method's receiver is
+                        // what a loop would iterate.
+                        let builtin = self.tm.callback_slot(a.span()).map(|slot| {
+                            let receiver = match callee.as_ref() {
+                                Expr::Member { object, .. } => Some(object.as_ref()),
+                                _ => None,
+                            };
+                            callback_slot(slot, callee, receiver, args)
+                        });
+                        self.lambda_slot = Some(match (builtin, params.get(i)) {
+                            (Some(slot), _) => slot,
+                            (None, Some(p)) => callback_slot(&p.ty, callee, None, args),
+                            (None, None) => CallbackSlot::Unknown,
                         });
                     }
                     self.expr(a, arg_slot.clone());

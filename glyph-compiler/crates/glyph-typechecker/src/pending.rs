@@ -1251,6 +1251,17 @@ mod tests {
             "import std/task\nfn kick() -> void {\n  task.detach(fn() { save(5) })\n}\n",
         );
         assert_eq!(c, vec!["E0238"], "{c:?}");
+        // The exemption is marked on that lambda's span, not read off its
+        // return type (record 138): a sync function given to the same async
+        // parameter is still compared, and is E0211.
+        let c = codes(
+            "async fn run(f: async fn() -> number) -> number {\n  return await f()\n}\n\
+             async fn main(argv: Array<string>) -> number {\n\
+             \x20 let a = await run(fn() -> number { 1 })\n\
+             \x20 let b = await run(fn() { save(1) })\n\
+             \x20 return a + b\n}\n",
+        );
+        assert_eq!(c, vec!["E0211", "E0238"], "{c:?}");
         // Against a parameter whose async function returns a value too.
         let c = codes(
             "async fn run(f: async fn() -> number) -> number {\n  return await f()\n}\n\

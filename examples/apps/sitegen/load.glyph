@@ -18,10 +18,16 @@ pub fn slug_of(filename: string) -> string {
 }
 
 fn describe(issues: Array<Issue>) -> string {
-  let lines = array.map(issues, fn(i: Issue) -> string {
-    let at = string.join(array.map(i.path, fn(p: string | number) -> string { return "${p}" }), ".")
-    return "${at}: ${i.message}"
-  })
+  let lines = array.map(
+    issues,
+    fn(i: Issue) -> string {
+      let at = string.join(
+        array.map(i.path, fn(p: string | number) -> string { return "${p}" }),
+        ".",
+      )
+      return "${at}: ${i.message}"
+    },
+  )
   return string.join(lines, "; ")
 }
 

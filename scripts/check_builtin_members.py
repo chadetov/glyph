@@ -40,6 +40,12 @@ fresh array and checks the receiver changed exactly when the method is in
 `MUTATING`, so the hand split is checked against the engine that runs the
 code rather than against memory.
 
+Each row also says whether the method can answer `undefined` or `null`
+(G392, D56): `absent`, true when any overload's return type holds either.
+Unlike `mutates` this is read off the declarations, not written by hand. What
+is written by hand is `ABSENT_REPLACEMENT`, the `std/*` function E0242 sends
+a reader to, and generation fails on an absent row without an entry.
+
 Hard-fails (exit 1) on any difference, printing the names on each side.
 """
 
@@ -149,13 +155,19 @@ function methods(name) {
     if (n.startsWith("__@") || !(p.flags & ts.SymbolFlags.Method)) continue;
     const sigs = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), ts.SignatureKind.Call);
     const sig = sigs[0];
+    // Whether any overload can answer `undefined` or `null` (G392, D56): the
+    // call hands back a value Glyph's checker cannot see is missing.
+    const absent = sigs.some((s) => {
+      const r = checker.getReturnTypeOfSignature(s);
+      return (r.isUnion() ? r.types : [r]).some((u) => u.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null));
+    });
     const decl = sig.declaration;
     let untyped = null;
     if (sigs.length > 1) untyped = "Overloads";
     else if (sig.thisParameter || hasThisType(decl)) untyped = "ThisType";
     else if (checker.getTypePredicateOfSignature(sig)) untyped = "Predicate";
     else if (decl.parameters.some((q) => q.dotDotDotToken)) untyped = "RestParameter";
-    if (untyped) { out[n] = { untyped }; continue; }
+    if (untyped) { out[n] = { untyped, absent }; continue; }
     const params = sig.getParameters().map((q, i) => {
       const pd = decl.parameters[i];
       const optional = !!(pd.questionToken || pd.initializer);
@@ -171,7 +183,7 @@ function methods(name) {
       }
       return { ty: map(t), optional };
     });
-    out[n] = { params, ret: map(checker.getReturnTypeOfSignature(sig)) };
+    out[n] = { params, ret: map(checker.getReturnTypeOfSignature(sig)), absent };
   }
   return out;
 }
@@ -217,6 +229,54 @@ NON_MUTATING = {
     },
     "number": OBJECT_METHODS | {"toExponential", "toFixed", "toPrecision"},
 }
+
+# The `Option` spelling of every method whose call can answer `undefined` or
+# `null` (G392, D56). The `absent` column is read off `lib.d.ts`, so it is not
+# kept by hand; what is kept by hand is where E0242 sends a reader, and
+# `absent_failures` refuses an absent row with no entry here. A TypeScript
+# that adds such a method then fails CI until someone names its replacement.
+# `pop` and `shift` are "E0240": they change the array, E0240 already refuses
+# their value, and nothing judges them a second time.
+ABSENT_REPLACEMENT = {
+    "array": {
+        "at": "array.get",
+        "find": "array.find",
+        "findLast": "array.find_last",
+        "pop": "E0240",
+        "shift": "E0240",
+    },
+    "string": {
+        "at": "string.char_at",
+        "codePointAt": "string.code_point_at",
+        "match": "regex.matches, or regex.captures for the groups",
+    },
+    "number": {},
+}
+
+
+def absent_failures(got: dict) -> list[str]:
+    """Every absent row has a replacement, every replacement an absent row,
+    and only a mutating method is left to E0240."""
+    failures = []
+    for kind in ("array", "string", "number"):
+        absent = {name for name, row in got[kind].items() if row["absent"]}
+        table = ABSENT_REPLACEMENT[kind]
+        for name in sorted(absent - set(table)):
+            failures.append(
+                f"{kind}: `{name}` can return `undefined` or `null` and has no entry in "
+                "ABSENT_REPLACEMENT; name the std function that returns its `Option` (E0242)"
+            )
+        for name in sorted(set(table) - absent):
+            failures.append(f"{kind}: `{name}` is in ABSENT_REPLACEMENT and TypeScript declares no absent return for it")
+        for name, repl in sorted(table.items()):
+            if (repl == "E0240") != (name in MUTATING[kind]):
+                failures.append(
+                    f"{kind}: `{name}` is left to E0240 in ABSENT_REPLACEMENT, and only a mutating method can be"
+                    if repl == "E0240"
+                    else f"{kind}: `{name}` changes its receiver, so its replacement is E0240's"
+                )
+    return failures
+
 
 # The run-time oracle for the array split. Each method is called once, with
 # the sample arguments below, on a fresh `[3, 1, 2]` (unsorted, not a
@@ -301,7 +361,10 @@ def render_methods(got: dict) -> str:
         "//! each, mapped by the rules `builtin_members.rs` documents above",
         "//! `BuiltinMethod` (G312). Sorted by name: `BuiltinReceiver::method`",
         "//! binary-searches. `mutates` is the script's `MUTATING` set (G380), which",
-        "//! node confirms at generation by calling each array method.",
+        "//! node confirms at generation by calling each array method. `absent` is",
+        "//! read off the declarations: some overload's return holds `undefined` or",
+        "//! `null` (G392, D56), and the script's `ABSENT_REPLACEMENT` names the",
+        "//! `Option` spelling for every such row.",
         "",
         "use crate::builtin_members::MethodSig::{Typed, Untyped};",
         "use crate::builtin_members::MethodTy as T;",
@@ -321,7 +384,10 @@ def render_methods(got: dict) -> str:
                 )
                 sig = f"Typed {{ params: &[{params}], ret: {rust_ty(row['ret'])} }}"
             mutates = "true" if name in MUTATING[kind] else "false"
-            lines.append(f'    BuiltinMethod {{ name: "{name}", mutates: {mutates}, sig: {sig} }},')
+            absent = "true" if row["absent"] else "false"
+            lines.append(
+                f'    BuiltinMethod {{ name: "{name}", mutates: {mutates}, absent: {absent}, sig: {sig} }},'
+            )
         lines.append("];")
     return "\n".join(lines) + "\n"
 
@@ -414,6 +480,12 @@ def main() -> int:
         for f in classified:
             print("  " + f)
         return 1
+    missing = absent_failures(methods)
+    if missing:
+        print("builtin members: a method that can return `undefined` or `null` has no `Option` spelling")
+        for f in missing:
+            print("  " + f)
+        return 1
     rendered = render_methods(methods)
     rel = METHODS.relative_to(ROOT)
     if write:
@@ -440,7 +512,8 @@ def main() -> int:
         f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string and "
         f"{len(table['number'])} number members match TypeScript {got['version']} "
         f"(esnext + dom, with Object's), every method is classified mutating or not and node "
-        f"agrees on the array split, and {rel} is what it generates."
+        f"agrees on the array split, every absent-returning method has an `Option` spelling, "
+        f"and {rel} is what it generates."
     )
     return 0
 

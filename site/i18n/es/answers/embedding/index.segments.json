@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/embedding/index.html",
   "locale": "es",
-  "source_hash": "4dc0a3c1d0f26ab3",
+  "source_hash": "407d584aaaf4d048",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,70 @@
       "tr": "Sin reescribir. Mantén la app en TypeScript y escribe en Glyph la parte en la que no te puedes permitir equivocarte (modelos, permisos, transiciones de estado, cálculos con dinero). <code>glyph build</code> genera módulos que tu app importa <strong>como cualquier archivo local</strong>, sin configurar el bundler y sin alias de rutas."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Por qué importa"
-    },
-    {
-      "id": "h-c70d97da",
-      "kind": "html",
-      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
-      "tr": "La mayoría de los equipos no pueden reescribir una aplicación, y la mayor parte de una aplicación no necesita Glyph. La parte que sí lo necesita es el núcleo del dominio: las reglas que un agente de IA editará el mes que viene y que nadie quiere que estén mal sin que se note. Mantener ese núcleo en Glyph te da <code>match</code> exhaustivo, ningún cast y fronteras validadas justo donde compensa, mientras los componentes de React, los estilos y la infraestructura siguen siendo TypeScript normal."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Míralo"
-    },
-    {
-      "id": "h-33682851",
-      "kind": "html",
-      "en": "One directory of Glyph sources, compiled into the app, imported by the UI:",
-      "tr": "Un directorio de código Glyph, compilado dentro de la app e importado por la UI:"
-    },
-    {
       "id": "h-a3eaf0cf",
       "kind": "html",
       "en": "A hybrid layout: Glyph domain core, TypeScript everything else",
       "tr": "Una estructura híbrida: núcleo del dominio en Glyph, todo lo demás en TypeScript"
     },
     {
-      "id": "h-abc250a1",
+      "id": "h-38a88b92",
       "kind": "html",
-      "en": "Everything the emitted code needs travels with it. Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>. Mark what the app imports with <code>pub</code>; a declaration without it is private to its module. This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
-      "tr": "Todo lo que necesita el código generado viaja con él. Los imports son relativos, incluida la librería estándar empaquetada, así que no hay que añadir nada al <code>tsconfig.json</code> ni al bundler de tu proyecto: un proyecto Vite estándar compila y empaqueta la salida tal cual, y los mismos archivos pasan el <code>tsc --strict</code> del proyecto anfitrión. Marca con <code>pub</code> lo que importa la app; una declaración sin él es privada de su módulo. No es una hipótesis: un ingeniero de fuera <a href=\"https://github.com/yildizadem/glyph-kanban\">construyó así un tablero Kanban en React</a>, con la matriz RBAC, las fórmulas de analítica y las transiciones de estado en cuatro módulos de Glyph bajo una UI de React escrita a mano."
+      "en": "<span>One directory of Glyph sources, compiled into the app, imported by the UI.</span>",
+      "tr": "<span>Un directorio de código Glyph, compilado dentro de la app e importado por la UI.</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Enlace a esta sección"
+    },
+    {
+      "id": "h-60a2bbb8",
+      "kind": "html",
+      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong.",
+      "tr": "La mayoría de los equipos no pueden reescribir una aplicación, y la mayor parte de una aplicación no necesita Glyph. La parte que sí lo necesita es el núcleo del dominio: las reglas que un agente de IA editará el mes que viene y que nadie quiere que estén mal sin que se note."
+    },
+    {
+      "id": "h-a693ed56",
+      "kind": "html",
+      "en": "Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
+      "tr": "Mantener ese núcleo en Glyph te da <code>match</code> exhaustivo, ningún cast y fronteras validadas justo donde compensa, mientras los componentes de React, los estilos y la infraestructura siguen siendo TypeScript normal."
+    },
+    {
+      "id": "h-50f65031",
+      "kind": "html",
+      "en": "Nothing to add in the host",
+      "tr": "Nada que añadir en el proyecto anfitrión"
+    },
+    {
+      "id": "h-88352f57",
+      "kind": "html",
+      "en": "Everything the emitted code needs travels with it.",
+      "tr": "Todo lo que necesita el código generado viaja con él."
+    },
+    {
+      "id": "h-fd57dd45",
+      "kind": "html",
+      "en": "<b>Relative imports</b>Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>.",
+      "tr": "<b>Imports relativos</b>Los imports son relativos, incluida la librería estándar empaquetada, así que no hay que añadir nada al <code>tsconfig.json</code> ni al bundler de tu proyecto: un proyecto Vite estándar compila y empaqueta la salida tal cual, y los mismos archivos pasan el <code>tsc --strict</code> del proyecto anfitrión."
+    },
+    {
+      "id": "h-7b57dcdc",
+      "kind": "html",
+      "en": "<b><code>pub</code> exports</b>Mark what the app imports with <code>pub</code>; a declaration without it is private to its module.",
+      "tr": "<b>Exports con <code>pub</code></b>Marca con <code>pub</code> lo que importa la app; una declaración sin él es privada de su módulo."
+    },
+    {
+      "id": "h-cdeb6b7e",
+      "kind": "html",
+      "en": "This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
+      "tr": "No es una hipótesis: un ingeniero de fuera <a href=\"https://github.com/yildizadem/glyph-kanban\">construyó así un tablero Kanban en React</a>, con la matriz RBAC, las fórmulas de analítica y las transiciones de estado en cuatro módulos de Glyph bajo una UI de React escrita a mano."
     },
     {
       "id": "h-b55f380c",
@@ -107,10 +137,22 @@
       "tr": "Disponible hoy"
     },
     {
-      "id": "h-a33b093e",
+      "id": "h-86f74990",
       "kind": "html",
-      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
-      "tr": "La salida generada encaja sin cambios en un proyecto anfitrión: especificadores relativos en todas partes, tipos del preludio incluidos en el propio código, verificado con un proyecto Vite estándar, <code>tsc --strict</code> del anfitrión, esbuild y <code>tsx</code>. La <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">guía de despliegue</a> documenta la estructura híbrida."
+      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself.",
+      "tr": "La salida generada encaja sin cambios en un proyecto anfitrión: especificadores relativos en todas partes, tipos del preludio incluidos en el propio código."
+    },
+    {
+      "id": "h-2eb72527",
+      "kind": "html",
+      "en": "Verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>.",
+      "tr": "Verificado con un proyecto Vite estándar, <code>tsc --strict</code> del anfitrión, esbuild y <code>tsx</code>."
+    },
+    {
+      "id": "h-11ad5abe",
+      "kind": "html",
+      "en": "The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
+      "tr": "La <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">guía de despliegue</a> documenta la estructura híbrida."
     },
     {
       "id": "h-b63a305d",
@@ -119,10 +161,16 @@
       "tr": "En camino"
     },
     {
-      "id": "h-6f1c79e2",
+      "id": "h-94f9623f",
       "kind": "html",
-      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
-      "tr": "Todavía no hay modo watch: vuelve a ejecutar <code>glyph build</code> después de editar el código <code>.glyph</code> (conéctalo a tu script <code>dev</code>). Los módulos que usan <code>std/fs</code> o <code>std/net</code> necesitan <code>@types/node</code> en el proyecto anfitrión, como cualquier TypeScript que toque Node."
+      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).",
+      "tr": "Todavía no hay modo watch: vuelve a ejecutar <code>glyph build</code> después de editar el código <code>.glyph</code> (conéctalo a tu script <code>dev</code>)."
+    },
+    {
+      "id": "h-19a4b124",
+      "kind": "html",
+      "en": "Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
+      "tr": "Los módulos que usan <code>std/fs</code> o <code>std/net</code> necesitan <code>@types/node</code> en el proyecto anfitrión, como cualquier TypeScript que toque Node."
     }
   ]
 }

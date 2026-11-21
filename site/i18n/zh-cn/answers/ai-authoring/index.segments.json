@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ai-authoring/index.html",
   "locale": "zh-cn",
-  "source_hash": "dc044819d67c5db7",
+  "source_hash": "7b8c6d4dac416f54",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,58 @@
       "tr": "大体上可以。Glyph 读起来像 TypeScript：同样的基本类型和泛型类型（<code>string</code>、<code>number</code>、<code>Array&lt;T&gt;</code>），大部分相同的表达式，npm 包也按名字导入。它不是 TypeScript 的子集：<code>match</code>、<code>Result</code> 和 <code>fn name(x: T) -&gt; R</code> 是 TypeScript 没有的语法，而 <code>if</code>、三元表达式和类型断言不属于 Glyph。模型已有的知识大多能直接沿用，编译器会指出那些不能沿用的地方。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "为什么重要"
-    },
-    {
-      "id": "h-2eedace6",
-      "kind": "html",
-      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write. The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
-      "tr": "这是一个合理的质疑：LLM 根据大量现有语言的代码预测下一个 token，所以一门几乎没有训练数据的语言应该很难写。答案在于结构：Glyph 并不陌生。它看起来像 TypeScript，所以模型已经懂得其中大部分；差异很少，可以逐一列出，而且每一处都会在编译时<em>立即</em>失败，而不是悄悄通过。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
-    },
-    {
-      "id": "h-6a89d489",
-      "kind": "html",
-      "en": "An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop:",
-      "tr": "猜错的智能体不会把猜测发布出去。它会得到一个精确、可修复的错误，并在同一轮循环中改正："
-    },
-    {
       "id": "h-ae716631",
       "kind": "html",
       "en": "the correction loop, in one step",
       "tr": "一步完成的修正循环"
     },
     {
-      "id": "h-b8bb97f4",
+      "id": "h-91359c50",
       "kind": "html",
-      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
-      "tr": "错误信息指出对应的 Glyph 结构并给出写法，所以修复只差一次编辑：不用翻源码，也不用猜。正是这个紧凑的循环弥补了训练数据的不足。一份文档 <a href=\"/llms.txt\">llms.txt</a> 就能给智能体提供程序结构、标准库，以及每条诊断及其修复方法，<code>glyph llms</code> 也能离线打印同样的参考内容。"
+      "en": "<span>An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop.</span>",
+      "tr": "<span>猜错的智能体不会把猜测发布出去。它会得到一个精确、可修复的错误，并在同一轮循环中改正。</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-7b90c2b8",
+      "kind": "html",
+      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write.",
+      "tr": "这是一个合理的质疑：LLM 根据大量现有语言的代码预测下一个 token，所以一门几乎没有训练数据的语言应该很难写。"
+    },
+    {
+      "id": "h-d9715266",
+      "kind": "html",
+      "en": "The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
+      "tr": "答案在于结构：Glyph 并不陌生。它看起来像 TypeScript，所以模型已经懂得其中大部分；差异很少，可以逐一列出，而且每一处都会在编译时<em>立即</em>失败，而不是悄悄通过。"
+    },
+    {
+      "id": "h-2f7de78a",
+      "kind": "html",
+      "en": "The fix is one edit away",
+      "tr": "修复只差一次编辑"
+    },
+    {
+      "id": "h-40153cf8",
+      "kind": "html",
+      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data.",
+      "tr": "错误信息指出对应的 Glyph 结构并给出写法，所以修复只差一次编辑：不用翻源码，也不用猜。正是这个紧凑的循环弥补了训练数据的不足。"
+    },
+    {
+      "id": "h-28c79279",
+      "kind": "html",
+      "en": "One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
+      "tr": "一份文档 <a href=\"/llms.txt\">llms.txt</a> 就能给智能体提供程序结构、标准库，以及每条诊断及其修复方法，<code>glyph llms</code> 也能离线打印同样的参考内容。"
     },
     {
       "id": "h-b55f380c",
@@ -107,10 +125,22 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-b8156a2d",
+      "id": "h-6e984118",
       "kind": "html",
-      "en": "A TypeScript-shaped syntax, errors with a stable code that name the fix, and <code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
-      "tr": "TypeScript 风格的语法，带稳定错误码并指出修复方法的报错，以及作为任何智能体统一参考文档的 <code>llms.txt</code> / <code>glyph llms</code>。"
+      "en": "A TypeScript-shaped syntax.",
+      "tr": "TypeScript 风格的语法。"
+    },
+    {
+      "id": "h-f92a0285",
+      "kind": "html",
+      "en": "Errors with a stable code that name the fix.",
+      "tr": "带稳定错误码并指出修复方法的报错。"
+    },
+    {
+      "id": "h-76133996",
+      "kind": "html",
+      "en": "<code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
+      "tr": "作为任何智能体统一参考文档的 <code>llms.txt</code> / <code>glyph llms</code>。"
     },
     {
       "id": "h-37be0e88",

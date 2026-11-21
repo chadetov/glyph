@@ -1,7 +1,7 @@
 ---
 title: 每个 API 都要手写校验器吗？ · Glyph
 description: 不用。在 Glyph 中，类型本身就是它的运行时校验器，所以请求体和响应体无需编写校验器就会被检查，而且类型可以来自 OpenAPI 规范或 .d.ts 文件。
-source_hash: e5583b6a5d857445
+source_hash: 46f9f9ea5d8ba7bb
 prev: /answers/embedding/ | &larr; 上一篇 | 能在现有应用里引入 Glyph 吗，还是必须全部改写？
 next: /answers/codegen/ | 下一篇 &rarr; | 能根据 API 规范生成类型化的客户端和服务端吗？
 ---
@@ -226,7 +226,7 @@ type User = { name: string; age: number };
           请求体到达时已经解码为 <code>unknown</code>，所以这时你要用 <code>T.parse(value)</code>：同样的保证，不需要类型断言。
         </p>
         <p>
-          不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。
+          不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。请求体字段遵循同样的规则：<code>timeout_ms?: number</code> 要么是不存在的键，要么是数字，所以 <code>{"timeout_ms": null}</code> 在 <code>["timeout_ms"]</code> 处得到 <code>Err</code>，无论来自 <code>T.parse</code>、<code>is T</code> 还是 <code>json.parse&lt;T&gt;</code>。如果发送方会写 <code>null</code>，就声明 <code>timeout_ms?: Nullable&lt;number&gt;</code>。在 0.1.152 之前，这个 <code>null</code> 会出现在 <code>Ok</code> 里返回。
         </p>
       </div></details>
 
@@ -239,15 +239,15 @@ type User = { name: string; age: number };
           <thead><tr><th>键类型</th><th><code>parse</code> 对每个键检查什么</th></tr></thead>
           <tbody>
             <tr><td>字符串字面量联合类型</td><td>恰好是列出的键，不缺也不多</td></tr>
-            <tr><td>用 <code>where</code> 细化的类型</td><td>谓词</td></tr>
+            <tr><td>用 <code>where</code> 细化的 <code>string</code> 或数字</td><td>谓词</td></tr>
             <tr><td><code>int</code></td><td>整数的普通写法；<code>"01"</code> 和 <code>"1.5"</code> 不通过</td></tr>
             <tr><td><code>string</code></td><td>没有新变化</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">细化类型和 int 类型的键，以及仍然交给 tsc 的部分</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">细化类型和 int 类型的键，以及检查器把关的部分</span></summary><div class="body">
         <p>
-          用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>"01"</code> 和 <code>"1.5"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。对于你在代码中写出的值，Glyph 自己的检查器仍然把键交给 <code>tsc</code> 检查；以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。
+          用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>"01"</code> 和 <code>"1.5"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。<code>where</code> 不能细化字符串字面量联合类型（自 0.1.152 起，<code>type T2 = Tier where value != "pro"</code> 是 <code>E0300</code>）；把你想要的成员写成单独的联合类型 <code>type T2 = "free"</code>，它作为 <code>Record</code> 的键时会得到同样的精确键检查。自 0.1.153 起，对于你在代码中写出的值，Glyph 自己的检查器也会检查它的键：<code>Record&lt;string, int&gt;</code> 不能用在声明为 <code>Record&lt;Tier, int&gt;</code> 的位置，反过来也一样，所以跨越这条界线要通过 <code>json.parse</code> 或一个 <code>is Record&lt;Tier, int&gt;</code> 分支，而 <code>record.set</code> 会保留传给它的键类型。以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。
         </p>
       </div></details>
 

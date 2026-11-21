@@ -118,6 +118,20 @@ pub enum Ty {
     /// (`DeclTyResolver::imported_type_decl`) at the one place that needs it,
     /// so nothing here expands and a self-referential type terminates.
     Imported { module: ModuleKey, name: Ident },
+
+    /// A pending `T` (D51): the value of a call to a callee the checker knows
+    /// is async (an `async fn` declaration, an async lambda, a value of type
+    /// `async fn(...) -> T`, or a stdlib function modeled async) that is not
+    /// the direct operand of `await`. It is the `Promise<T>` the emitted
+    /// TypeScript holds, and `await` unwraps it to the `T`.
+    ///
+    /// Before this the call typed as its result, so `let n: number = load()`
+    /// passed the checker and only `tsc` refused it, and `match try_save(2)`
+    /// was checked against a `Result` the program never held (G384). A
+    /// pending value may stand only where something waits for it; every other
+    /// position is E0238. It is never assignable to anything, including the
+    /// `T` it resolves to, so no relation below accepts one by accident.
+    Pending(Arc<Ty>),
 }
 
 /// The key a module is known by inside one project: its path segments joined
@@ -586,6 +600,11 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
             format!("{}<{}>", ty_display(base), rendered)
         }
         Ty::App { base, .. } => ty_display(base),
+        // Spelled with the type it resolves to, since the reader's question
+        // is what `await` would hand back. E0238 is the diagnostic that names
+        // a pending value; this rendering is for any other message that
+        // quotes one.
+        Ty::Pending(inner) => format!("pending {}", ty_display(inner)),
         _ => "?".to_string(),
     }
 }

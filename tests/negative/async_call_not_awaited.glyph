@@ -1,0 +1,10 @@
+module neg
+
+async fn save(x: number) -> number {
+  return x
+}
+
+async fn store_all() -> number {
+  save(1)
+  return 0
+}

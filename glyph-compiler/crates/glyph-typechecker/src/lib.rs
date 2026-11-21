@@ -33,6 +33,7 @@ mod builtin_methods;
 pub mod concurrency;
 pub mod lower;
 pub mod owned;
+pub mod pending;
 pub mod stdlib;
 pub mod ty;
 pub mod type_map;
@@ -297,6 +298,10 @@ pub fn display_ty(ty: &Ty) -> String {
         // The bare name: the same declaration hovers identically whether it is
         // read locally or through any of the three import spellings.
         Ty::Imported { name, .. } => name.to_string(),
+        // D51. The words, not an invented `Promise<T>` or `Pending<T>`: no
+        // such type can be written in Glyph, and a hover that showed one
+        // would teach a spelling that does not compile.
+        Ty::Pending(inner) => format!("a pending `{}`", display_ty(inner)),
     }
 }
 
@@ -995,9 +1000,10 @@ pub enum TypeError {
         span: Span,
     },
 
-    /// `await` written outside an `async fn`. Glyph has no user-visible
-    /// `Promise`, so `await` is only meaningful inside a callable declared
-    /// `async`; anywhere else the emitted TypeScript is rejected by `tsc`
+    /// `await` written outside an `async fn`. A call to an async function is
+    /// a pending value (D51) that only an async callable can wait for, so
+    /// `await` is only meaningful inside one; anywhere else the emitted
+    /// TypeScript is rejected by `tsc`
     /// (TS1308) with no Glyph-level explanation. The innermost enclosing
     /// callable decides: a synchronous lambda nested inside an `async fn` is
     /// its own context, matching TypeScript.
@@ -1068,6 +1074,31 @@ pub enum TypeError {
         variant: String,
         name: String,
         shape: CaseBindShape,
+        span: Span,
+    },
+
+    /// G384, D51: a pending value nothing waits for. A call to a callee the
+    /// checker knows is async types as a pending `T`, and `await` unwraps it;
+    /// anywhere else but the positions `pending::check_pending` lists, the
+    /// call starts, the program moves on, and a failure is lost.
+    ///
+    /// One code for every position, so it always means a forgotten `await`.
+    /// It is not E0217: that is a warning about a dropped `Result`, fixed with
+    /// a `match`, and this is an error about ordering, fixed with `await`. A
+    /// pending `Result` is this error and not that warning.
+    ///
+    /// `subject` is the expression as written, `callee` the function called
+    /// when it is a call, `resolves_to` the `T` (`None` for `void`), and
+    /// `task` the name this module imports `std/task` under, for the help.
+    #[error("{}", pending::pending_message(.position, .subject, .callee.as_deref(), .resolves_to.as_deref(), .context))]
+    PendingNotAwaited {
+        position: pending::PendingPosition,
+        subject: String,
+        callee: Option<String>,
+        resolves_to: Option<String>,
+        settles_to_result: bool,
+        context: pending::WaitContext,
+        task: Option<String>,
         span: Span,
     },
 }
@@ -1412,6 +1443,7 @@ impl TypeError {
             TypeError::PatternNotRecord { span, .. } => *span,
             TypeError::RecordRemoveFiniteKey { span, .. } => *span,
             TypeError::CaseBind { span, .. } => *span,
+            TypeError::PendingNotAwaited { span, .. } => *span,
         }
     }
 
@@ -1459,6 +1491,7 @@ impl TypeError {
             TypeError::PatternNotRecord { .. } => "E0204",
             TypeError::RecordRemoveFiniteKey { .. } => "E0211",
             TypeError::CaseBind { .. } => "E0231",
+            TypeError::PendingNotAwaited { .. } => "E0238",
         }
     }
 
@@ -1488,6 +1521,23 @@ impl TypeError {
         } = self
         {
             return Some(Cow::Owned(case_bind_help(variant, name, *shape)));
+        }
+        if let TypeError::PendingNotAwaited {
+            position,
+            subject,
+            settles_to_result,
+            context,
+            task,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(pending::pending_help(
+                position,
+                subject,
+                *settles_to_result,
+                context,
+                task.as_deref(),
+            )));
         }
         if let TypeError::UnknownField { tagged: Some(t), field, .. } = self {
             return Some(Cow::Owned(tagged_member_help(field, t)));
@@ -1702,6 +1752,7 @@ impl TypeError {
                 "Bind the value to one name and read from it, `Loaded(items)`. An object pattern names the fields of a record."
             }
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
+            TypeError::PendingNotAwaited { .. } => unreachable!("answered above with the call it names"),
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
@@ -1768,7 +1819,10 @@ impl TypeError {
                 "A string-literal union is a closed set of values (D30), so a value outside it never reaches the match and the arm is dead code.",
             ),
             TypeError::AwaitOutsideAsyncFn { .. } => Some(
-                "Glyph has no user-visible `Promise`: an `async fn -> T` is awaited to a `T`, and `await` only appears inside one.",
+                "A call to an `async fn -> T` is a pending `T` until it is awaited (D51), and `await` only appears inside an async callable.",
+            ),
+            TypeError::PendingNotAwaited { .. } => Some(
+                "Calling an async function starts it and hands back a pending value (D51). Only `await` waits for it and sees its failure; a pending value may also be returned from an async callable or bound to a name that is awaited later.",
             ),
             TypeError::MatchArmProducesNoValue { .. } => Some(
                 "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",

@@ -120,6 +120,7 @@ use glyph_ast::{
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
+use glyph_typechecker::pending::{await_wraps_whole_chain, spine_has_call};
 use glyph_typechecker::ty::SymbolRef;
 use glyph_typechecker::{
     alias_target, direct_type_decl, prelude_app, resolve_alias_chain, split_type_app,
@@ -9629,18 +9630,7 @@ impl<'a> Emitter<'a> {
     /// namespaced function call (`http.get(...)`) from a value method call
     /// (`cursor.to_array(...)`) when placing an `await`.
     fn namespace_bindings(&self) -> Vec<&str> {
-        self.module
-            .items
-            .iter()
-            .filter_map(|d| {
-                let Decl::Import(im) = d else { return None };
-                match &im.kind {
-                    ImportKind::Namespace => im.path.segments.last().map(|s| s.as_ref()),
-                    ImportKind::Aliased(alias) => Some(alias.as_ref()),
-                    ImportKind::Named(_) | ImportKind::Default(_) => None,
-                }
-            })
-            .collect()
+        glyph_typechecker::pending::namespace_bindings(self.module)
     }
 
     /// Whether `name` is the local binding of a `std/json` namespace import
@@ -11036,63 +11026,6 @@ fn lvalue_mentions_match_binding(arms: &[MatchArm], lvalue: &str) -> bool {
         .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$'))
         .filter(|s| !s.is_empty())
         .any(|ident| match_binds_name(arms, ident))
-}
-
-/// Whether an `await` over `e` should apply to the *whole chain* (JavaScript
-/// semantics) rather than to the innermost call of its receiver spine.
-///
-/// The default (await the innermost call) is right for the Result idiom, where
-/// the async call heads the chain and the rest are synchronous combinators:
-/// `await load(p).map_err(f)` means `(await load(p)).map_err(f)`. It is wrong for
-/// a *fluent* API, where a synchronous call precedes the async terminal:
-/// `await cursor.find({}).to_array()` must await `to_array()`, not `find()`.
-///
-/// The distinguishing signal, with no type information (colorless async erases
-/// which call is async): the innermost call is a **value method**
-/// (`recv.method(...)` where `recv` is a plain value, not a namespace and not a
-/// bare function). A bare function call (`load(...)`) or a namespaced function
-/// call (`http.get(...)`) keeps the innermost-await behavior; only a value-method
-/// head switches to awaiting the whole chain.
-fn await_wraps_whole_chain(e: &Expr, namespaces: &[&str]) -> bool {
-    // Descend the receiver spine to the innermost call.
-    let mut cur = e;
-    let innermost = loop {
-        match cur {
-            Expr::Call { callee, .. } => {
-                if spine_has_call(callee) {
-                    cur = callee;
-                } else {
-                    break cur;
-                }
-            }
-            Expr::Member { object, .. } | Expr::Index { object, .. } => cur = object,
-            _ => return false,
-        }
-    };
-    let Expr::Call { callee, .. } = innermost else {
-        return false;
-    };
-    match callee.as_ref() {
-        // A method call: fluent unless the receiver is a namespace (`http.get`).
-        Expr::Member { object, .. } => match object.as_ref() {
-            Expr::Ident { name, .. } => !namespaces.iter().any(|n| *n == name.as_ref()),
-            // A deeper receiver chain (`a.b.c(...)`) is a value method.
-            _ => true,
-        },
-        // A bare function call (`load(...)`): the Result-idiom head.
-        _ => false,
-    }
-}
-
-/// Whether the receiver spine of `e` (a call's callee, a member/index's
-/// object, a `?`'s operand) bottoms out at a call.
-fn spine_has_call(e: &Expr) -> bool {
-    match e {
-        Expr::Call { .. } => true,
-        Expr::Member { object, .. } | Expr::Index { object, .. } => spine_has_call(object),
-        Expr::Postfix { operand, .. } => spine_has_call(operand),
-        _ => false,
-    }
 }
 
 /// Wrap the head call of `e`'s receiver spine in an `await`, descending through

@@ -363,6 +363,7 @@ pub fn assign_types_with_relations(
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             local_type_exprs: HashMap::new(),
+            awaited_calls: HashSet::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -376,6 +377,10 @@ pub fn assign_types_with_relations(
     // per-parameter `owned` flags), so it must run after assignment fills the
     // map rather than interleaved with it.
     errors.extend(crate::owned::check_owned(module, resolved, prelude, &tm));
+    // D51: also over the completed map, because whether a pending value is
+    // waited for depends on where it stands and, for a `let`, on whether its
+    // name is read anywhere later in the body.
+    errors.extend(crate::pending::check_pending(module, resolved, &tm));
     errors.extend(crate::concurrency::check_await_straddle(module));
     (tm, errors, coverage, field_uses)
 }
@@ -462,6 +467,7 @@ pub fn assignability(
         null_chains: NullChains::default(),
         key_generics: Vec::new(),
         local_type_exprs: HashMap::new(),
+        awaited_calls: HashSet::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -513,6 +519,7 @@ pub fn declared_record_fields(
         null_chains: NullChains::default(),
         key_generics: Vec::new(),
         local_type_exprs: HashMap::new(),
+        awaited_calls: HashSet::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1277,6 +1284,9 @@ struct Assigner<'a> {
     /// `int` to `number`, and a suggestion built from it would not say what
     /// the author wrote.
     local_type_exprs: HashMap<u32, TypeExpr>,
+    /// The calls an enclosing `await` applies to, by span (D51). A call to an
+    /// async callee is a pending value everywhere except here.
+    awaited_calls: HashSet<Span>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -2377,13 +2387,28 @@ impl Assigner<'_> {
                 self.tm.insert(*span, member_ty);
             }
             Expr::Await { expr, span } => {
-                // A Glyph `async fn -> T` is awaited to a `T` (the declared
-                // return type is the awaited type; there is no user-visible
-                // `Promise<T>` wrapper). So `await e` synthesizes the same
-                // type as `e`. This lets `match await fetch() { .. }` see
-                // through to the callee's return type for exhaustiveness.
+                // A call to an `async fn -> T` is a pending `T` (D51), and
+                // `await` is what unwraps it: `await e` is the `T`. This is
+                // what lets `match await fetch() { .. }` see through to the
+                // callee's return type for exhaustiveness. Awaiting anything
+                // else (an npm promise the checker types `Unknown`, or a
+                // plain value, which JavaScript allows) leaves its type as it
+                // is.
+                // The call the emitted `await` applies to is the one waited
+                // for, so it is typed as what it produces rather than as a
+                // pending value: the bare call in `await save(1)`, and the head
+                // of the chain in `await load(p).map_err(f)`, where `map_err`
+                // runs on the awaited `Result`. One rule for both sides, read
+                // off the emitter's own (`pending::awaited_call_span`).
+                let namespaces = crate::pending::namespace_bindings(self.module);
+                if let Some(head) = crate::pending::awaited_call_span(expr, &namespaces) {
+                    self.awaited_calls.insert(head);
+                }
                 self.walk_expr(expr);
-                let ty = self.tm.get(expr.span()).clone();
+                let ty = match self.tm.get(expr.span()) {
+                    Ty::Pending(inner) => inner.as_ref().clone(),
+                    other => other.clone(),
+                };
                 self.tm.insert(*span, ty);
                 // E0222: `await` needs an `async` enclosing callable. The
                 // innermost one decides, so a synchronous lambda inside an
@@ -2500,7 +2525,7 @@ impl Assigner<'_> {
                     params,
                     return_ty,
                     type_params,
-                    ..
+                    is_async,
                 } = &callee_ty
                 {
                     // Arity check. A Glyph `fn`/`component` has no optional or
@@ -2649,7 +2674,17 @@ impl Assigner<'_> {
                             });
                         }
                     }
-                    return_override.unwrap_or_else(|| substitute_type_params(return_ty, &subst))
+                    let returned = return_override
+                        .unwrap_or_else(|| substitute_type_params(return_ty, &subst));
+                    // D51: calling an async callee starts it and hands back a
+                    // pending value, which is what the emitted `Promise<T>`
+                    // is. Typing the call as `T` claimed a value the program
+                    // does not hold until something awaits it (G384).
+                    if *is_async && !self.awaited_calls.contains(span) {
+                        Ty::Pending(Arc::new(returned))
+                    } else {
+                        returned
+                    }
                 } else {
                     Ty::Unknown
                 };
@@ -3387,7 +3422,14 @@ impl Assigner<'_> {
         }
         match ty {
             Ty::Record { .. } => return PropsParam::Record,
-            Ty::Prim(_) | Ty::StringLiteralUnion(_) | Ty::Union { .. } | Ty::Fn { .. } => {
+            // A pending value (D51) is a promise, never the props object. No
+            // annotation lowers to one, so this is the honest answer for a
+            // case that cannot be written rather than a reachable path.
+            Ty::Prim(_)
+            | Ty::StringLiteralUnion(_)
+            | Ty::Union { .. }
+            | Ty::Fn { .. }
+            | Ty::Pending(_) => {
                 return PropsParam::NotRecord(PropsRefusal::NotAnObject);
             }
             Ty::UnknownTop => return PropsParam::NotRecord(PropsRefusal::Unknown),
@@ -4414,7 +4456,10 @@ impl Assigner<'_> {
                 ok_ty
             }
             None => {
-                if ty_is_decidable(operand_ty) {
+                // A pending value is not a `Result`, but `try_save(1)?` is a
+                // missing `await` and E0238 says so; E0202's "drop the `?`"
+                // would be advice to throw the error path away (D51).
+                if ty_is_decidable(operand_ty) && !matches!(operand_ty, Ty::Pending(_)) {
                     self.errors.push(TypeError::QuestionOnNonResult {
                         found: ty_display(operand_ty),
                         span,
@@ -4453,6 +4498,16 @@ impl Assigner<'_> {
             return;
         };
         let found = self.tm.get(value.span()).clone();
+        // `return save(1)` in an async callable is how it hands its own
+        // result on (D51): the value it settles with is the pending call's,
+        // so that is what the declared type is compared against. In a sync
+        // callable a returned pending value is E0238 and is not compared.
+        let found = match found {
+            Ty::Pending(inner) if self.return_stack.last().is_some_and(|er| er.is_async) => {
+                inner.as_ref().clone()
+            }
+            other => other,
+        };
         if let Some(mut r) = self.value_refusal(value, &found, &expected) {
             self.spell_declared(&mut r, written.as_ref());
             let accepted = self.accepted_values(&r.expected);
@@ -6709,6 +6764,13 @@ impl Assigner<'_> {
     /// [`assignability`] answers for a surface holding two `Ty` values and no
     /// program text.
     fn value_refusal(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<Refusal> {
+        // A pending value (D51) in a value position is E0238 wherever it
+        // stands (`pending::check_pending`). A second refusal here would name
+        // the wrong mistake: `let a: string = load()` is a missing `await`,
+        // not a `number` where a `string` belongs.
+        if matches!(found, Ty::Pending(_)) {
+            return None;
+        }
         // A written array or object literal is checked element by element and
         // field by field first, so the refusal names the one that is wrong and
         // underlines it rather than the whole literal (G237).
@@ -8673,6 +8735,13 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if !ty_is_decidable(found) || !ty_is_decidable(expected) {
         return false;
     }
+    // A pending value (D51) is judged by where it stands, as E0238, never by
+    // this relation: the mistake is the missing `await`, and a refusal here
+    // would report it as a type mismatch on top of that. No annotation lowers
+    // to one, so only a value's side can hold it.
+    if matches!(found, Ty::Pending(_)) || matches!(expected, Ty::Pending(_)) {
+        return false;
+    }
     match (found, expected) {
         (Ty::Prim(a), Ty::Prim(b)) => a != b,
         (Ty::Named { path: a, .. }, Ty::Named { path: b, .. }) => {
@@ -9341,6 +9410,7 @@ fn ty_has_param(ty: &Ty) -> bool {
         Ty::Union { variants } => variants
             .iter()
             .any(|v| v.payload.as_ref().is_some_and(ty_has_param)),
+        Ty::Pending(inner) => ty_has_param(inner),
         _ => false,
     }
 }
@@ -9471,6 +9541,10 @@ fn join_ty(a: &Ty, b: &Ty) -> Ty {
 /// program `tsc --strict` accepts.
 fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty>) {
     match (param, arg) {
+        // A pending argument is E0238 where it is passed (D51), and it binds
+        // nothing: `id(save(1))` would otherwise return a pending value and
+        // refuse every later use of the result for the same mistake.
+        (_, Ty::Pending(_)) => {}
         (Ty::Param { name, .. }, concrete) if !concrete.is_unknown() => {
             let bound = out.entry(name.clone()).or_insert_with(|| concrete.clone());
             if matches!(bound, Ty::StringLiteralUnion(_))
@@ -9702,6 +9776,9 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 })
                 .collect(),
         },
+        // A pending value of a generic async callee's result: the call site
+        // wraps after substituting, but a binding of one carries it on.
+        Ty::Pending(inner) => Ty::Pending(Arc::new(substitute_type_params(inner, subst))),
         other => other.clone(),
     }
 }
@@ -16474,6 +16551,7 @@ component View(props: { s: Status }) -> Component {
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             local_type_exprs: HashMap::new(),
+            awaited_calls: HashSet::new(),
         };
         f(&assigner)
     }

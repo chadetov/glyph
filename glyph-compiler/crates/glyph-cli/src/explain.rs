@@ -619,7 +619,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   write_text(path, body)?          // propagate\n\
             or:      let _ = write_text(path, body)   // deliberately ignore\n\
             or:      match write_text(path, body) { ... }\n\n\
-            This is a warning — it does not fail the build.",
+            This is a warning — it does not fail the build.\n\n\
+            A `Result` an async call has not produced yet is not this warning. \
+            `try_save(2)` without `await` is a pending `Result` (D51), and \
+            binding it with `let _ =` would leave the call running with \
+            nothing waiting for it; that is E0238, and its fix is `await`.",
         "E0218" => "E0218: non-exhaustive number/string match\n\n\
             `number` and `string` are unbounded, so a `match` with only literal \
             arms can never cover every value. Since `match` is the only conditional \
@@ -687,9 +691,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `@pure`, and `@public`.\n\n\
             Fix the spelling, or delete the annotation.",
         "E0222" => "E0222: `await` outside an `async fn`\n\n\
-            Glyph has no user-visible `Promise`: an `async fn -> T` is awaited \
-            to a `T`, and `await` only appears inside one. Written anywhere \
-            else it has nothing to suspend.\n\n\
+            A call to an `async fn -> T` is a pending `T` (D51) until it is \
+            awaited, and `await` only appears inside an async callable. Written \
+            anywhere else it has nothing to suspend.\n\n\
             Before:  fn total() -> number { return await fetch_count() }\n\
             After:   async fn total() -> number { return await fetch_count() }\n\n\
             The innermost enclosing callable decides, so a synchronous lambda \
@@ -1046,6 +1050,50 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `Option`, or on a `Result` naming anything but `map` or `map_err`, \
             is E0210.",
 
+        "E0238" => "E0238: a pending value nothing waits for\n\n\
+            Calling an async function starts it and gives back a pending value \
+            (D51): the `Promise<T>` the emitted TypeScript holds. Only `await` \
+            waits for it, and only `await` sees it fail. Used anywhere else, \
+            the program moves on before the work is done and a failure is \
+            lost.\n\n\
+            Before:  save(1)\n\
+            After:   await save(1)\n\n\
+            A pending value may stand in four places: the operand of `await`; \
+            `return`, or the tail value, of an async function or lambda that \
+            returns a value; the initializer of a named, unannotated `let` \
+            whose name is read later (`let p = save(1)` then `await p`); and an \
+            argument to a function Glyph's checker has no signature for.\n\n\
+            Everywhere else is this error:\n\n\
+            save(1)                    // a statement, the last one in a block too\n\
+            let _ = try_save(3)        // discards the call, not its result\n\
+            let p = save(7)            // and `p` is never read\n\
+            let n: number = load()     // a pending number is not a number\n\
+            match try_save(2) { ... }  // a scrutinee\n\
+            \"x ${load()}\"             // an interpolation: `${await load()}`\n\
+            load() + 1                 // an operand, a field, an element\n\
+            takes(load())              // an argument to a Glyph-typed parameter\n\n\
+            A pending `Result` is this error and not E0217: `let _ =` is the \
+            fix E0217 suggests, and it would silence the only diagnostic while \
+            the call kept running. Wait for it first, then decide: \
+            `let _ = await try_save(3)`, or `match await try_save(3) { ... }`.\n\n\
+            A function that is not async cannot wait. Make it `async fn` and \
+            `await` the call, or, when the work really should run on its own \
+            (a timer callback, a socket event), start it on purpose:\n\n\
+            task.detach(async fn() -> void { await save(10) })\n\n\
+            `task.detach` comes from `std/task`. It starts the work, returns \
+            at once, and reports a failure through `console.error` as a failed \
+            detached task rather than losing it. Pass it the work as a \
+            function; `task.detach(save(10))` has already started the call and \
+            is this error too.\n\n\
+            Glyph knows a call is async when it has the callee's signature: an \
+            `async fn` declaration, an async lambda, a value of type \
+            `async fn(...) -> T`, or a stdlib function modeled as async \
+            (`http.get`, `time.sleep`, `net.listen`). A function from an npm \
+            package or a node builtin without a modeled signature is typed \
+            `Unknown`, and dropping its promise is not judged here. An async \
+            callback handed to `forEach` or a timer is not this error either; \
+            that rule needs the callback slots modeled and is planned \
+            separately.",
         "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
             E0300 covers two things. One is a construct the v1 TypeScript \
             emitter does not handle yet; rewrite it using a supported form \
@@ -2032,7 +2080,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0217",
         phase: "typechecker",
-        meaning: "Discarded `Result`. A warning rather than an error: its `Err` is silently ignored",
+        meaning: "Discarded `Result`. A warning rather than an error: its `Err` is silently ignored. A `Result` an async call has not produced yet (a pending one) is E0238 instead",
         fix: "`match`/`?` it, or `let _ = ...` to say it's intentional",
     },
     CodeEntry {
@@ -2148,6 +2196,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "`?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)`",
         fix: "On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>`",
+    },
+    CodeEntry {
+        code: "E0238",
+        phase: "typechecker",
+        meaning: "A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` from a sync function are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these",
+        fix: "Write `await` before the call. In a function that cannot wait, make it `async fn`, or start the work on purpose with `task.detach(async fn() -> void { await f() })` from `std/task`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/language/index.html",
   "locale": "ja",
-  "source_hash": "9a4735d3e9bad608",
+  "source_hash": "747d0d2b7d4d7b01",
   "segments": [
     {
       "id": "title",
@@ -59,34 +59,166 @@
       "tr": "実際のコードベースで必要になるものは揃っています。<strong>モジュールの可視性</strong>、ジェネリクスを制約する<strong>インターフェース</strong>、後始末のための <strong>defer</strong>、そして<strong>並行処理</strong>のヘルパーです。JavaScript に頼っている部分は、そうでないふりをせずにそう明記しています。"
     },
     {
+      "id": "h-45b4debe",
+      "kind": "html",
+      "en": "visibility: private by default",
+      "tr": "可視性：デフォルトで非公開"
+    },
+    {
+      "id": "h-d9ffde4b",
+      "kind": "html",
+      "en": "<span>Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident.</span>",
+      "tr": "<span>宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">なぜ重要か</a>"
+    },
+    {
+      "id": "h-20d291c1",
+      "kind": "html",
+      "en": "<a href=\"#interfaces\">Interfaces</a>",
+      "tr": "<a href=\"#interfaces\">インターフェース</a>"
+    },
+    {
+      "id": "h-4ef30214",
+      "kind": "html",
+      "en": "<a href=\"#defer\">defer and tasks</a>",
+      "tr": "<a href=\"#defer\">defer とタスク</a>"
+    },
+    {
+      "id": "h-b4c29c90",
+      "kind": "html",
+      "en": "<a href=\"#javascript\">What it inherits</a>",
+      "tr": "<a href=\"#javascript\">受け継ぐもの</a>"
+    },
+    {
+      "id": "h-8e955574",
+      "kind": "html",
+      "en": "<a href=\"#there-s-no-if-so-match-has-to-carry-everything\">match as a value</a>",
+      "tr": "<a href=\"#there-s-no-if-so-match-has-to-carry-everything\">値としての match</a>"
+    },
+    {
+      "id": "h-ecb37167",
+      "kind": "html",
+      "en": "<a href=\"#a-pattern-can-name-a-shape-more-than-one-level-down\">Nested patterns</a>",
+      "tr": "<a href=\"#a-pattern-can-name-a-shape-more-than-one-level-down\">入れ子のパターン</a>"
+    },
+    {
+      "id": "h-b5ed724c",
+      "kind": "html",
+      "en": "<a href=\"#and-the-compiler-knows-what-the-match-produced\">Typed match results</a>",
+      "tr": "<a href=\"#and-the-compiler-knows-what-the-match-produced\">match の結果の型</a>"
+    },
+    {
+      "id": "h-9923c20e",
+      "kind": "html",
+      "en": "<a href=\"#do-i-have-to-write-pad-start-myself\">String and array helpers</a>",
+      "tr": "<a href=\"#do-i-have-to-write-pad-start-myself\">文字列と配列のヘルパー</a>"
+    },
+    {
+      "id": "h-8de8ba26",
+      "kind": "html",
+      "en": "<a href=\"#can-i-walk-a-directory-and-tell-what-broke\">Directories and fs errors</a>",
+      "tr": "<a href=\"#can-i-walk-a-directory-and-tell-what-broke\">ディレクトリと fs のエラー</a>"
+    },
+    {
+      "id": "h-5628fc58",
+      "kind": "html",
+      "en": "<a href=\"#how-do-you-know-the-functions-are-the-right-ones\">How the functions were checked</a>",
+      "tr": "<a href=\"#how-do-you-know-the-functions-are-the-right-ones\">関数をどう確かめたか</a>"
+    },
+    {
+      "id": "h-b56b83ef",
+      "kind": "html",
+      "en": "<a href=\"#money-doesn-t-run-on-floats\">Money</a>",
+      "tr": "<a href=\"#money-doesn-t-run-on-floats\">お金</a>"
+    },
+    {
+      "id": "h-df75179f",
+      "kind": "html",
+      "en": "<a href=\"#an-async-callback-finally-has-a-type\">Async function types</a>",
+      "tr": "<a href=\"#an-async-callback-finally-has-a-type\">非同期関数の型</a>"
+    },
+    {
+      "id": "h-23bd4e35",
+      "kind": "html",
+      "en": "<a href=\"#a-recursive-type-matched-all-the-way-down\">Recursive types</a>",
+      "tr": "<a href=\"#a-recursive-type-matched-all-the-way-down\">再帰的な型</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "なぜ重要か"
     },
     {
-      "id": "h-7139f60a",
-      "kind": "html",
-      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic: can I hide a helper, can a generic require a capability, can I release a file handle on every exit path, can I run two things at once and wait for both. Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
-      "tr": "1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。ヘルパーを隠せるか、ジェネリクスにある能力を要求できるか、どの終了経路でもファイルハンドルを解放できるか、2 つの処理を同時に走らせて両方を待てるか。Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-b9d98b80",
       "kind": "html",
-      "en": "See it",
-      "tr": "実例"
+      "en": "A language you can write one file in but not structure a project in isn't one you'll bet a codebase on. The gaps that matter aren't exotic:",
+      "tr": "1 ファイルは書けてもプロジェクトを構成できない言語に、コードベースを賭ける人はいません。問題になる穴は特殊なものではありません。"
     },
     {
-      "id": "h-eaa34178",
+      "id": "h-1f3e74ba",
       "kind": "html",
-      "en": "Declarations are private to their module until you mark them <code>pub</code>, so the public surface is one search (<code>grep '^pub'</code>) and a helper never leaks by accident:",
-      "tr": "宣言は <code>pub</code> を付けるまでモジュール内で非公開です。そのため公開されている面は一度の検索（<code>grep '^pub'</code>）でわかり、ヘルパーがうっかり漏れることはありません。"
+      "en": "<b>Visibility</b>Can I hide a helper?",
+      "tr": "<b>可視性</b>ヘルパーを隠せるか。"
     },
     {
-      "id": "h-45b4debe",
+      "id": "h-bda2622a",
       "kind": "html",
-      "en": "visibility: private by default",
-      "tr": "可視性：デフォルトで非公開"
+      "en": "<b>Generic bounds</b>Can a generic require a capability?",
+      "tr": "<b>ジェネリクスの境界</b>ジェネリクスにある能力を要求できるか。"
+    },
+    {
+      "id": "h-2e7779cb",
+      "kind": "html",
+      "en": "<b>Cleanup</b>Can I release a file handle on every exit path?",
+      "tr": "<b>後始末</b>どの終了経路でもファイルハンドルを解放できるか。"
+    },
+    {
+      "id": "h-3febb67a",
+      "kind": "html",
+      "en": "<b>Concurrency</b>Can I run two things at once and wait for both?",
+      "tr": "<b>並行性</b>2 つの処理を同時に走らせて両方を待てるか。"
+    },
+    {
+      "id": "h-7cb808fd",
+      "kind": "html",
+      "en": "Glyph answers those four, and it does it without reopening the annotation-heavy direction it deliberately dropped.",
+      "tr": "Glyph はこの 4 つに答えています。しかも、意図的に捨てたアノテーション中心の方向を蒸し返すことなく答えています。"
+    },
+    {
+      "id": "h-5e5d43b8",
+      "kind": "html",
+      "en": "Interfaces constrain generics",
+      "tr": "インターフェースでジェネリクスを制約する"
     },
     {
       "id": "h-a581c329",
@@ -101,10 +233,16 @@
       "tr": "インターフェースでジェネリクスを制約する"
     },
     {
-      "id": "h-1bf73ee3",
+      "id": "h-1697711e",
       "kind": "html",
-      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
-      "tr": "<code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。"
+      "en": "<code>defer</code> and structured concurrency",
+      "tr": "<code>defer</code> と構造化並行性"
+    },
+    {
+      "id": "h-5a4c259b",
+      "kind": "html",
+      "en": "<code>defer</code> runs cleanup when the block exits, on every path, including an early return or a thrown error. And <code>std/task</code> joins concurrent work with one lifetime instead of leaving detached promises.",
+      "tr": "<code>defer</code> は、ブロックを抜けるときにどの経路でも後始末を実行します。早期 return でも、エラーが投げられた場合でもです。また <code>std/task</code> は、切り離された Promise を放置するのではなく、並行処理を 1 つのライフタイムにまとめて待ち合わせます。"
     },
     {
       "id": "h-4e202025",
@@ -113,10 +251,40 @@
       "tr": "defer と構造化並行性"
     },
     {
-      "id": "h-d460c21d",
+      "id": "h-c1dc51d2",
       "kind": "html",
-      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references. The spec states these as guarantees rather than leaving you to find out. Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
-      "tr": "Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。仕様はこれらを、あとで気づくものではなく保証として明記しています。手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。"
+      "en": "Details <span class=\"hint\">ordering, and owned handles</span>",
+      "tr": "詳細 <span class=\"hint\">実行順序と owned ハンドル</span>"
+    },
+    {
+      "id": "h-a990ad2d",
+      "kind": "html",
+      "en": "Multiple defers run last-in-first-out, and it composes with <code>owned</code> handles.",
+      "tr": "複数の defer は後入れ先出しで実行され、<code>owned</code> ハンドルとも組み合わせられます。"
+    },
+    {
+      "id": "h-85cd3bf9",
+      "kind": "html",
+      "en": "What it inherits from JavaScript",
+      "tr": "JavaScript から受け継ぐもの"
+    },
+    {
+      "id": "h-f5618d09",
+      "kind": "html",
+      "en": "Glyph compiles to TypeScript and runs on a JavaScript engine, so it inherits evaluation order, reference semantics for mutation, and the single-threaded garbage-collected model. The spec states these as guarantees rather than leaving you to find out.",
+      "tr": "Glyph は TypeScript にコンパイルされ JavaScript エンジンで動くため、評価順序、ミューテーションにおける参照のセマンティクス、シングルスレッドでガベージコレクションのあるモデルを引き継ぎます。仕様はこれらを、あとで気づくものではなく保証として明記しています。"
+    },
+    {
+      "id": "h-d95a28f4",
+      "kind": "html",
+      "en": "Equality is where it differs: <code>==</code> compares values, records field by field, where JavaScript's <code>===</code> compares references.",
+      "tr": "違うのは等価性です。<code>==</code> は値を比較し、レコードはフィールドごとに比べます。一方 JavaScript の <code>===</code> は参照を比較します。"
+    },
+    {
+      "id": "h-1be90318",
+      "kind": "html",
+      "en": "Manual memory and a non-GC model aren't on a roadmap; they're outside what a transpile-to-TypeScript language is.",
+      "tr": "手動メモリ管理や GC のないモデルはロードマップにありません。TypeScript にトランスパイルする言語の範囲外です。"
     },
     {
       "id": "h-173a357c",
@@ -125,10 +293,16 @@
       "tr": "<code>if</code> がないので、<code>match</code> がすべてを担う"
     },
     {
-      "id": "h-6de61157",
+      "id": "h-da25fdda",
       "kind": "html",
-      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment. A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
-      "tr": "網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。<code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。"
+      "en": "The first thing a TypeScript developer asks after the exhaustiveness pitch is whether <code>match</code> is really a general-purpose conditional or just a nice way to destructure a union. It's the former, and the place that proves it is assignment.",
+      "tr": "網羅性の話を聞いた TypeScript 開発者が最初に聞くのは、<code>match</code> が本当に汎用の条件分岐なのか、それともユニオンを分解する便利な書き方にすぎないのか、ということです。答えは前者で、それを示すのが代入です。"
+    },
+    {
+      "id": "h-37b84d7b",
+      "kind": "html",
+      "en": "A <code>match</code> that is the whole value of a <code>let</code> or a <code>mut</code> takes anything a statement takes: an arm can be a block, an arm can <code>await</code>, an arm can <code>break</code> out of the surrounding loop, and an arm can read the binding it is assigning, which is how you fold state through a loop without an <code>if</code>.",
+      "tr": "<code>let</code> や <code>mut</code> の値全体になっている <code>match</code> は、文が受け取れるものなら何でも受け取れます。アームはブロックにでき、<code>await</code> でき、外側のループから <code>break</code> でき、代入先の束縛を読むこともできます。最後のものを使えば、<code>if</code> なしでループを通して状態を畳み込めます。"
     },
     {
       "id": "h-9f6b1d3a",
@@ -137,10 +311,22 @@
       "tr": "リンクチェッカーより：コードブロックの追跡と、await するアーム"
     },
     {
-      "id": "h-037b924c",
+      "id": "h-efbe0ccb",
       "kind": "html",
-      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
-      "tr": "どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。どちらのスニペットも <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。"
+      "en": "Details <span class=\"hint\">what it compiles to, and where the snippets come from</span>",
+      "tr": "詳細 <span class=\"hint\">何にコンパイルされるか、スニペットの出どころ</span>"
+    },
+    {
+      "id": "h-ec2e00a3",
+      "kind": "html",
+      "en": "Both compile to a plain <code>switch</code> that assigns the binding per arm, so the <code>await</code> sits in the enclosing async function and the accumulator is a normal variable TypeScript can infer. Both snippets are from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a>, a Markdown link checker written to find exactly this kind of thing.",
+      "tr": "どちらもアームごとに束縛へ代入する素朴な <code>switch</code> にコンパイルされるので、<code>await</code> は外側の async 関数の中に置かれ、累積値は TypeScript が推論できる普通の変数になります。どちらのスニペットも <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph\"><code>examples/apps/linkcheck/main.glyph</code></a> からのもので、これはまさにこの種の問題を見つけるために書かれた Markdown のリンクチェッカーです。"
+    },
+    {
+      "id": "h-d4dfd6ca",
+      "kind": "html",
+      "en": "A <code>match</code> used <em>inside</em> a larger expression, as an argument or an operand, still becomes a closure, which means its arms have to be single expressions. Hoisting it to its own <code>let</code> lifts that.",
+      "tr": "大きな式の<em>中</em>、たとえば引数やオペランドとして使われた <code>match</code> は今もクロージャになるので、そのアームは単一の式でなければなりません。それ自身の <code>let</code> に持ち上げれば、この制限はなくなります。"
     },
     {
       "id": "h-bc837f41",
@@ -149,10 +335,10 @@
       "tr": "パターンで 2 段以上深い形を指定できる"
     },
     {
-      "id": "h-a4d66d53",
+      "id": "h-46a2e119",
       "kind": "html",
-      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
-      "tr": "複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。"
+      "en": "A variant with several fields carries a record, so an arm that wants to recognise a shape has to reach through the record's fields. A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern.",
+      "tr": "複数のフィールドを持つバリアントはレコードを運ぶので、形を認識したいアームはレコードのフィールドの中まで入り込む必要があります。今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。"
     },
     {
       "id": "h-98315c48",
@@ -161,10 +347,34 @@
       "tr": "赤黒木のリバランスの回転ケース 1 つを、1 つのアームで"
     },
     {
-      "id": "h-c9876574",
+      "id": "h-e8f9c5ba",
       "kind": "html",
-      "en": "A field takes any pattern now: a variant tag, a nested constructor, a nested destructure, a literal, an array pattern. There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest. The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
-      "tr": "今はフィールドにどんなパターンでも書けます。バリアントのタグ、入れ子のコンストラクタ、入れ子の分解、リテラル、配列パターンです。書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。"
+      "en": "History <span class=\"hint\">the workaround before 0.1.90</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.90 より前の回避策</span>"
+    },
+    {
+      "id": "h-8e445856",
+      "kind": "html",
+      "en": "Until 0.1.90 the field position took a name and nothing else: you could rename it, and that was all. Matching a tag there was a compile error, and a nested constructor fell off the parser. The workaround was to bind every field and write a nested <code>match</code> per level, which for anything like a red-black tree rebalance is a different program: the arms stop lining up with the cases and each level re-threads the bindings above it.",
+      "tr": "0.1.90 までは、フィールドの位置には名前しか書けませんでした。名前を変えることはできても、それだけでした。そこでタグをマッチさせるとコンパイルエラーになり、入れ子のコンストラクタはパーサーが扱えませんでした。回避策はすべてのフィールドを束縛して、階層ごとに入れ子の <code>match</code> を書くことで、赤黒木のリバランスのようなものでは別のプログラムになってしまいます。アームがケースと対応しなくなり、各階層で上の束縛を引き回すことになります。"
+    },
+    {
+      "id": "h-9a95a32a",
+      "kind": "html",
+      "en": "There is a consequence worth knowing before you write one. A field that tests a value can fail, so the arm no longer counts as covering its variant, and a match whose only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is reported non-exhaustive until a sibling arm or an <code>else</code> takes the rest.",
+      "tr": "書く前に知っておくべき帰結が 1 つあります。値を検査するフィールドは失敗しうるので、そのアームはもうバリアントを網羅したとは数えられません。<code>Node</code> のアームが <code>Node({ color: Red, ... })</code> だけの match は、兄弟のアームか <code>else</code> が残りを引き受けるまで、網羅的でないと報告されます。"
+    },
+    {
+      "id": "h-e5577899",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why it asks for the catch-all, and the array position</span>",
+      "tr": "詳細 <span class=\"hint\">なぜ catch-all を求めるのか、そして配列の位置</span>"
+    },
+    {
+      "id": "h-ce4839d0",
+      "kind": "html",
+      "en": "The checker proves coverage over a set of tags, not over a product of fields, so it will not work out that a <code>Red</code> arm and a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the catch-all is the reading that cannot let a match fall off its end at run time. The same applies where there are no variants to count at all: a match on a plain record whose every arm tests a field needs an <code>else</code> behind it.",
+      "tr": "チェッカーが網羅性を証明するのはタグの集合についてであって、フィールドの直積についてではないので、<code>Red</code> のアームと <code>Black</code> のアームを合わせれば <code>Node</code> を網羅する、とは判断しません。catch-all を求めるのは、実行時に match が末尾から抜け落ちることを許さない解釈です。数えるバリアントがまったくない場合も同じです。どのアームもフィールドを検査する、素のレコードに対する match には、後ろに <code>else</code> が必要です。"
     },
     {
       "id": "h-c4fa5941",
@@ -179,10 +389,10 @@
       "tr": "そしてコンパイラは <code>match</code> が何を生んだかを知っている"
     },
     {
-      "id": "h-cffe8865",
+      "id": "h-ab070dca",
       "kind": "html",
-      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on. A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
-      "tr": "次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。"
+      "en": "The follow-up question is the one that decides whether any of this is load-bearing: once you bind a value out of a branch, does Glyph know its type, or does it shrug and let <code>tsc</code> sort it out later? A <code>match</code> now takes its arms' type when they agree, and <code>T.parse</code> is known to return <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most real code branches on.",
+      "tr": "次の質問が、これが本当に役に立つかどうかを決めます。分岐から値を束縛したとき、Glyph はその型を知っているのか、それとも肩をすくめて後で <code>tsc</code> に任せるのか。今は <code>match</code> はアームの型が一致すればその型を取り、<code>T.parse</code> は <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code> を返すと分かっています。これは実際のコードの多くが分岐する形です。"
     },
     {
       "id": "h-b03ef1aa",
@@ -191,10 +401,46 @@
       "tr": "割り勘アプリより：アノテーションなしで、<code>i</code> は number"
     },
     {
-      "id": "h-9a162c5e",
+      "id": "h-937a3ed3",
       "kind": "html",
-      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript. The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
-      "tr": "どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>\"0\"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。"
+      "en": "History <span class=\"hint\">before 0.1.45</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.45 より前</span>"
+    },
+    {
+      "id": "h-47d92dce",
+      "kind": "html",
+      "en": "Until 0.1.45 it shrugged. Every <code>match</code> expression typed as unknown, so a value that came out of the only branching construct in the language was untyped from that point on.",
+      "tr": "0.1.45 までは任せていました。<code>match</code> 式はすべて unknown と型付けされていたので、言語で唯一の分岐構文から出てきた値は、そこから先は型がありませんでした。"
+    },
+    {
+      "id": "h-99bedb77",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what went wrong quietly, and how the join works</span>",
+      "tr": "詳細 <span class=\"hint\">気づかれずにおかしくなっていたことと、型の合流の仕組み</span>"
+    },
+    {
+      "id": "h-7155a6f8",
+      "kind": "html",
+      "en": "Both halves of that are things that used to go wrong quietly. The loop emits <code>wire.expenses.entries()</code>; when the iterand's type is unknown it emits <code>Object.entries(...)</code> instead and <code>i</code> is the <em>string</em> <code>\"0\"</code>, which is legal TypeScript, so the build was clean and the program printed <code>01:a</code> where it meant <code>1:a</code>. And <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no field expensez</code> from Glyph, on the <code>.glyph</code> line, rather than a <code>TS2339</code> on generated TypeScript.",
+      "tr": "どちらの半分も、以前は気づかれずにおかしくなっていたものです。このループは <code>wire.expenses.entries()</code> を出力します。反復対象の型が unknown のときは代わりに <code>Object.entries(...)</code> を出力し、<code>i</code> は<em>文字列</em> <code>\"0\"</code> になります。これは正しい TypeScript なのでビルドはきれいに通り、プログラムは <code>1:a</code> のつもりで <code>01:a</code> と出力していました。また <code>wire.expensez</code> は今、生成された TypeScript 上の <code>TS2339</code> ではなく、<code>.glyph</code> の行で Glyph から <code>[E0210] type WireLedger has no field expensez</code> として報告されます。"
+    },
+    {
+      "id": "h-51614607",
+      "kind": "html",
+      "en": "The join is equality at the head: an arm that ends in <code>return</code> doesn't vote, and arms whose types disagree leave the result unknown the way it was before. It looks one level deeper only at a type argument, so <code>None =&gt; []</code> agrees with an <code>Array&lt;string&gt;</code> arm instead of sinking the whole <code>match</code>, and the loop after it still binds a number. The same chain over <code>record.get</code> works for the same reason: all six <code>std/record</code> functions carry the value type off the record you pass. The snippet is from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a>, which carried the annotation this deleted.",
+      "tr": "型の合流は先頭での等価性です。<code>return</code> で終わるアームは投票せず、型が食い違うアームがあれば結果は以前と同じく unknown のままです。1 段深く見るのは型引数だけなので、<code>None =&gt; []</code> は <code>match</code> 全体を台無しにせず <code>Array&lt;string&gt;</code> のアームと一致し、その後のループも number を束縛します。<code>record.get</code> に対する同じ連鎖も同じ理由で動きます。<code>std/record</code> の 6 つの関数はすべて、渡したレコードから値の型を引き継ぎます。このスニペットは <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph\"><code>examples/apps/settle/main.glyph</code></a> からのもので、この変更で不要になったアノテーションが付いていました。"
+    },
+    {
+      "id": "h-4ab859b1",
+      "kind": "html",
+      "en": "A lookup with an empty fallback",
+      "tr": "空のフォールバック付きの検索"
+    },
+    {
+      "id": "h-4a68ca34",
+      "kind": "html",
+      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one.",
+      "tr": "これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。"
     },
     {
       "id": "h-3d9615c4",
@@ -203,10 +449,16 @@
       "tr": "依存関係リゾルバより：検索、空のフォールバック、インデックス付きの走査"
     },
     {
-      "id": "h-360bca16",
+      "id": "h-3b89a537",
       "kind": "html",
-      "en": "That is the shape this cost the most. <code>record.get</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>[]</code> is an array of nothing in particular, so the two arms agree on <code>Array</code> and the element type comes from the arm that has one. Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
-      "tr": "これが最もコストの大きかった形です。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>[]</code> は要素の型が特に決まっていない配列です。そのため 2 つのアームは <code>Array</code> で一致し、要素の型は型を持っている方のアームから取られます。0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。"
+      "en": "History <span class=\"hint\">before 0.1.55</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.55 より前</span>"
+    },
+    {
+      "id": "h-95917e30",
+      "kind": "html",
+      "en": "Until 0.1.55 they were compared for equality, <code>[]</code> counted as a disagreement, and the loop below printed <code>01:x</code> on a build with no diagnostics that <code>tsc --strict</code> passed. The code is <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a>, where it used to open with <code>let path: Array&lt;string&gt;</code> under a three-line comment explaining that the annotation was load-bearing.",
+      "tr": "0.1.55 までは等価性で比較されていて、<code>[]</code> は不一致とみなされ、下のループは診断が 1 つもなく <code>tsc --strict</code> も通るビルドで <code>01:x</code> と出力していました。コードは <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph\"><code>examples/apps/depsolve/main.glyph</code></a> で、以前は冒頭に <code>let path: Array&lt;string&gt;</code> があり、このアノテーションが外せない理由を説明する 3 行のコメントが付いていました。"
     },
     {
       "id": "h-2a137295",
@@ -215,10 +467,10 @@
       "tr": "<code>pad_start</code> は自分で書く必要があるか"
     },
     {
-      "id": "h-7e935433",
+      "id": "h-f64a88c3",
       "kind": "html",
-      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there. Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged. Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
-      "tr": "実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。"
+      "en": "The gap you hit first in a real program isn't a type-system feature. It's reaching for <code>string.slice</code> and finding nothing there.",
+      "tr": "実際のプログラムで最初にぶつかる穴は、型システムの機能ではありません。<code>string.slice</code> を使おうとしたら何もない、というものです。"
     },
     {
       "id": "h-c1723870",
@@ -227,16 +479,82 @@
       "tr": "追加されたもの"
     },
     {
-      "id": "h-7b497297",
+      "id": "h-e7e931e1",
       "kind": "html",
-      "en": "Three of them part ways with their TypeScript namesakes on purpose. <code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long. Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call. Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
-      "tr": "そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。<code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>\"\"</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。"
+      "en": "Those eleven names ship now, and the copies are deleted from all seven apps that had them.",
+      "tr": "この 11 個の名前は今は提供されていて、それを持っていた 7 つのアプリすべてからコピーが削除されています。"
     },
     {
-      "id": "h-93945406",
+      "id": "h-a1c6bb96",
       "kind": "html",
-      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about. Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161. The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
-      "tr": "<code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。"
+      "en": "History <span class=\"hint\">the copies the apps carried before 0.1.47</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.47 より前にアプリが持っていたコピー</span>"
+    },
+    {
+      "id": "h-f1ac1a9b",
+      "kind": "html",
+      "en": "Five dogfooding trips in a row filed the same list, and until 0.1.47 six apps in this repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and all of them had a loop where a fold belonged.",
+      "tr": "ドッグフーディングを 5 回続けて同じ一覧が報告され、0.1.47 までは、このリポジトリの 6 つのアプリが自前の <code>repeat</code> を、5 つが自前の <code>pad_start</code> を持ち、どれも fold を使うべき場所にループを書いていました。"
+    },
+    {
+      "id": "h-7a8a6c98",
+      "kind": "html",
+      "en": "Where they differ from TypeScript",
+      "tr": "TypeScript と違うところ"
+    },
+    {
+      "id": "h-905088b2",
+      "kind": "html",
+      "en": "Three of them part ways with their TypeScript namesakes on purpose.",
+      "tr": "そのうち 3 つは、意図的に TypeScript の同名の関数と違う動きをします。"
+    },
+    {
+      "id": "h-18efe920",
+      "kind": "html",
+      "en": "<b><code>repeat</code></b><code>repeat</code> returns <code>\"\"</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe on a string that's already too long.",
+      "tr": "<b><code>repeat</code></b><code>repeat</code> は負の回数に対して、TS のように例外を投げるのではなく <code>\"\"</code> を返します。そのおかげで、すでに長すぎる文字列に対しても <code>repeat(pad, width - len(s))</code> が安全です。"
+    },
+    {
+      "id": "h-765b9fd0",
+      "kind": "html",
+      "en": "<b><code>index_of</code></b>Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of <code>-1</code>, because <code>-1</code> is a number that type-checks everywhere a real index does and fails a long way from the call.",
+      "tr": "<b><code>index_of</code></b>2 つの <code>index_of</code> はどちらも <code>-1</code> ではなく <code>Option&lt;number&gt;</code> を返します。<code>-1</code> は本物のインデックスが通る場所ならどこでも型チェックを通ってしまい、呼び出し位置から遠く離れた場所で失敗する数値だからです。"
+    },
+    {
+      "id": "h-8995b060",
+      "kind": "html",
+      "en": "<b><code>replace_all</code></b>Replacement ships only as <code>replace_all</code>, so there's no first-only form to confuse with <code>String.prototype.replace</code>, which quietly does one occurrence.",
+      "tr": "<b><code>replace_all</code></b>置換は <code>replace_all</code> としてのみ提供されるので、1 か所だけをこっそり置き換える <code>String.prototype.replace</code> と混同する、最初の 1 つだけの形はありません。"
+    },
+    {
+      "id": "h-6380f582",
+      "kind": "html",
+      "en": "Why <code>fold</code> matters",
+      "tr": "<code>fold</code> が重要な理由"
+    },
+    {
+      "id": "h-bfd57f01",
+      "kind": "html",
+      "en": "<code>fold</code> is the one that buys a pillar rather than saving typing. <code>mut</code> is the greppable record of every place state changes, and with no fold, <code>grep mut</code> comes back full of counting loops that mutate nothing a reviewer cares about.",
+      "tr": "<code>fold</code> は、タイプ量を減らすのではなく柱の 1 つを支えるものです。<code>mut</code> は状態が変わるすべての場所を grep できる形で記録したものですが、fold がないと、<code>grep mut</code> はレビュアーが気にするものを何も変更しない数え上げのループだらけになります。"
+    },
+    {
+      "id": "h-f3bca6ea",
+      "kind": "html",
+      "en": "Deleting the hand-rolled versions took <code>examples/apps/</code> from 192 mutation sites to 161.",
+      "tr": "手書きの実装を削除したことで、<code>examples/apps/</code> の変更箇所は 192 から 161 になりました。"
+    },
+    {
+      "id": "h-61ef869c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the rewrite was checked</span>",
+      "tr": "詳細 <span class=\"hint\">書き換えをどう確認したか</span>"
+    },
+    {
+      "id": "h-ced8b922",
+      "kind": "html",
+      "en": "The rewrite was checked by output, not by review: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.",
+      "tr": "この書き換えはレビューではなく出力で確認しました。7 つのアプリすべてを固定の入力で書き換えの前後に実行し、標準出力、終了コード、HTTP レスポンスの 26 ファイルがすべてバイト単位で一致しました。"
     },
     {
       "id": "h-0e58d55a",
@@ -245,22 +563,64 @@
       "tr": "ディレクトリを走査して、何が壊れたかを判別できるか"
     },
     {
-      "id": "h-37004ae4",
+      "id": "h-42184b87",
       "kind": "html",
-      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory. The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed. <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly. There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
-      "tr": "<code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。<code>fs.read_dir</code> は 1 階層下のエントリ名を返し、<code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。<code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。"
+      "en": "<code>std/fs</code> shipped six functions and none of them listed a directory.",
+      "tr": "<code>std/fs</code> は 6 つの関数を提供していましたが、ディレクトリを一覧するものはありませんでした。"
     },
     {
-      "id": "h-a937d20c",
+      "id": "h-ceab8c99",
       "kind": "html",
-      "en": "The failure side changed more. <code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
-      "tr": "失敗の側はもっと大きく変わりました。<code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。"
+      "en": "<b><code>fs.read_dir</code></b><code>fs.read_dir</code> returns the entry names one level down.",
+      "tr": "<b><code>fs.read_dir</code></b><code>fs.read_dir</code> は 1 階層下のエントリ名を返します。"
     },
     {
-      "id": "h-f6e4f77c",
+      "id": "h-634334d6",
       "kind": "html",
-      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>. <code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
-      "tr": "チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。<code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。"
+      "en": "<b><code>fs.is_dir</code></b><code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does.",
+      "tr": "<b><code>fs.is_dir</code></b><code>fs.is_dir</code> は <code>fs.exists</code> と同じく <code>bool</code> で答えます。"
+    },
+    {
+      "id": "h-b5462a01",
+      "kind": "html",
+      "en": "<b><code>fs.stat</code></b><code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds, which <code>time.format_iso</code> renders directly.",
+      "tr": "<b><code>fs.stat</code></b><code>fs.stat</code> は <code>is_dir</code>、<code>is_file</code>、バイト単位の <code>size</code>、エポックミリ秒の <code>modified</code> からなる <code>FileInfo</code> を返し、この時刻は <code>time.format_iso</code> でそのまま表示できます。"
+    },
+    {
+      "id": "h-2ad4753e",
+      "kind": "html",
+      "en": "There is no recursive <code>walk</code> and no glob; a walk is those three plus <code>path.join</code> in about ten lines.",
+      "tr": "再帰的な <code>walk</code> や glob はありません。走査はこの 3 つと <code>path.join</code> で 10 行ほどで書けます。"
+    },
+    {
+      "id": "h-b400ed9e",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the workaround these replaced</span>",
+      "tr": "経緯 <span class=\"hint\">これらが置き換えた回避策</span>"
+    },
+    {
+      "id": "h-3ec6b3b7",
+      "kind": "html",
+      "en": "The link checker in this repo reached past the stdlib into node's <code>readdirSync</code>, and worked out which paths were directories by trying to read them and inspecting the <code>errno</code> that came back. Both halves of that are fixed.",
+      "tr": "このリポジトリのリンクチェッカーは stdlib を飛び越えて node の <code>readdirSync</code> を使い、どのパスがディレクトリかは、読もうとして返ってきた <code>errno</code> を調べて判断していました。どちらも修正済みです。"
+    },
+    {
+      "id": "h-784cb57b",
+      "kind": "html",
+      "en": "Failures have names",
+      "tr": "失敗には名前がある"
+    },
+    {
+      "id": "h-e62ea3d0",
+      "kind": "html",
+      "en": "The failure side changed more. Now the five kinds a program actually recovers from have names, and an errno with no name arrives intact on the <code>Other</code> tail.",
+      "tr": "失敗の側はもっと大きく変わりました。今は、プログラムが実際に回復処理を行う 5 種類に名前があり、名前のない errno は <code>Other</code> の末尾にそのまま入ります。"
+    },
+    {
+      "id": "h-ed4359a8",
+      "kind": "html",
+      "en": "The checker knows that taxonomy is closed, so a <code>match</code> on <code>err.kind</code> is held to the same bar as a union you declared yourself: cover the six and you need no <code>else</code>, leave one out and the build fails with <code>E0200</code> naming <code>fs.ErrorKind</code>.",
+      "tr": "チェッカーはこの分類が閉じていることを知っているので、<code>err.kind</code> に対する <code>match</code> は、自分で宣言したユニオンと同じ基準で検査されます。6 つすべてを扱えば <code>else</code> は要らず、1 つ漏らせば <code>fs.ErrorKind</code> を名指しした <code>E0200</code> でビルドが失敗します。"
     },
     {
       "id": "h-3202b4ab",
@@ -269,10 +629,22 @@
       "tr": "ツリーを走査し、何がおかしかったかを名前で示す"
     },
     {
-      "id": "h-43fd3e55",
+      "id": "h-0c55afc8",
       "kind": "html",
-      "en": "Two smaller ones landed with it, both from the same app. <code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop. And <code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
-      "tr": "同じアプリから出た小さなものが 2 つ、一緒に入りました。<code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。また <code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。"
+      "en": "Details <span class=\"hint\">the old taxonomy, checked fields, and trying the check yourself</span>",
+      "tr": "詳細 <span class=\"hint\">以前の分類、検査されるフィールド、検査を自分で試す方法</span>"
+    },
+    {
+      "id": "h-30fc81e1",
+      "kind": "html",
+      "en": "<code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the whole taxonomy, so telling &ldquo;that path is a directory&rdquo; from &ldquo;that path is missing&rdquo; meant comparing an errno string.",
+      "tr": "<code>FsError.kind</code> は <code>{ tag: string }</code> で、分類は <code>NotFound</code> だけでした。そのため「そのパスはディレクトリだ」と「そのパスが存在しない」を区別するには errno の文字列を比較する必要がありました。"
+    },
+    {
+      "id": "h-81174ee6",
+      "kind": "html",
+      "en": "<code>fs.FsError</code> and <code>fs.FileInfo</code> have checked fields too, so <code>err.mesage</code> is <code>E0210</code> against your Glyph source rather than a <code>tsc</code> error against generated TypeScript.",
+      "tr": "<code>fs.FsError</code> と <code>fs.FileInfo</code> のフィールドも検査されるので、<code>err.mesage</code> は生成された TypeScript に対する <code>tsc</code> のエラーではなく、Glyph のソースに対する <code>E0210</code> になります。"
     },
     {
       "id": "h-c44fd9b3",
@@ -281,22 +653,76 @@
       "tr": "この検査は実際に動いています。上の <code>match</code> から <code>PermissionDenied</code> のアームを消すと、<code>glyph check --no-tsc</code> は <code>E0200</code> で止まります。<code>fs.ErrorKind</code> に対する網羅的でない match で、欠けているバリアントは <code>PermissionDenied</code> です。stdlib のモデルを最初に書いたときは戻り値の型しか扱っていなかったので、このような match はきれいにコンパイルされ、実行時に例外を投げていました。今は <code>fs.FsError</code>、<code>fs.FileInfo</code>、<code>fs.ErrorKind</code> のフィールドとバリアントの形もモデル化されています。"
     },
     {
+      "id": "h-20ae59d9",
+      "kind": "html",
+      "en": "Two smaller additions",
+      "tr": "小さな追加が 2 つ"
+    },
+    {
+      "id": "h-2dbfa744",
+      "kind": "html",
+      "en": "Two smaller ones landed with it, both from the same app.",
+      "tr": "同じアプリから出た小さなものが 2 つ、一緒に入りました。"
+    },
+    {
+      "id": "h-f6f4b1a0",
+      "kind": "html",
+      "en": "<b><code>regex.captures_all</code></b><code>regex.captures_all</code> gives you the capture groups of every match instead of just the matched text, so a flat <code>key=value</code> scan stops being a hand-rolled loop.",
+      "tr": "<b><code>regex.captures_all</code></b><code>regex.captures_all</code> は、マッチしたテキストだけでなく、すべてのマッチのキャプチャグループを返します。これでフラットな <code>key=value</code> の走査が手書きのループでなくなります。"
+    },
+    {
+      "id": "h-cae64880",
+      "kind": "html",
+      "en": "<b><code>task.pool_settled</code></b><code>task.pool_settled</code> is <code>task.pool</code> with <code>all_settled</code>&rsquo;s failure behaviour: bounded concurrency, one outcome per task, and one dead host costs you that host's result rather than every result the pool had collected.",
+      "tr": "<b><code>task.pool_settled</code></b><code>task.pool_settled</code> は、<code>all_settled</code> の失敗時の振る舞いを持った <code>task.pool</code> です。並行数に上限があり、タスクごとに 1 つの結果が返り、ホストが 1 つ落ちても失うのはそのホストの結果だけで、プールがそれまでに集めた結果をすべて失うことはありません。"
+    },
+    {
       "id": "h-9250d380",
       "kind": "html",
       "en": "How do you know the functions are the right ones?",
       "tr": "それが正しい関数だと、どうしてわかるのか"
     },
     {
-      "id": "h-86ed6abf",
+      "id": "h-90870c3e",
       "kind": "html",
-      "en": "Because the app that asked for them had to stop working around them before the release counted as done. A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
-      "tr": "それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。"
+      "en": "Because the app that asked for them had to stop working around them before the release counted as done.",
+      "tr": "それを求めたアプリが回避策をやめるまで、リリースを完了とみなさなかったからです。"
     },
     {
-      "id": "h-23121e09",
+      "id": "h-4f734753",
       "kind": "html",
-      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued. Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely. Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
-      "tr": "そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。"
+      "en": "A library function that ships and a workaround that outlives it are different claims, so the same change that added these four deleted the link checker's copies: the <code>readdirSync</code> import, both <code>errno</code> string comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool. 122 lines came out.",
+      "tr": "ライブラリ関数を提供することと、回避策がそれより長生きすることは別の話です。そこで、この 4 つを追加した変更で、リンクチェッカーにあったコピーも削除しました。<code>readdirSync</code> の import、2 つの <code>errno</code> 文字列の比較、97 行の手書きスキャナ、そして最初の失敗で止まるプールです。合計 122 行が消えました。"
+    },
+    {
+      "id": "h-1a4be1e1",
+      "kind": "html",
+      "en": "Two behaviour changes, measured",
+      "tr": "測定した 2 つの動作の変化"
+    },
+    {
+      "id": "h-33ca5bf2",
+      "kind": "html",
+      "en": "Two of those deletions changed what the program does, and the difference was measured rather than argued.",
+      "tr": "そのうち 2 つの削除はプログラムの動作を変えたので、その違いは議論ではなく測定で確かめました。"
+    },
+    {
+      "id": "h-4e30cf34",
+      "kind": "html",
+      "en": "<b>An unreadable directory</b>Point the old and new versions at a tree containing a directory you cannot read: the new one prints <code>permission denied</code> and counts the path as unreadable, and the old one, which could only ask whether the errno was <code>EISDIR</code>, left it out of the report entirely.",
+      "tr": "<b>読み取れないディレクトリ</b>読み取れないディレクトリを含むツリーに旧版と新版を向けると、新版は <code>permission denied</code> と出力してそのパスを読めないものとして数えます。旧版は errno が <code>EISDIR</code> かどうかしか聞けなかったので、そのパスをレポートからまるごと落としていました。"
+    },
+    {
+      "id": "h-d5712f1d",
+      "kind": "html",
+      "en": "<b>A failing URL</b>Make one of three URLs throw: <code>pool_settled</code> printed all three rows and named the failure, and <code>pool</code> printed nothing and died on an unhandled rejection, taking the two good results with it.",
+      "tr": "<b>失敗する URL</b>3 つの URL のうち 1 つで例外を投げさせると、<code>pool_settled</code> は 3 行すべてを出力して失敗を名指ししましたが、<code>pool</code> は何も出力せずに未処理の reject で終了し、成功した 2 つの結果も道連れにしました。"
+    },
+    {
+      "id": "h-ba8eb205",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the scanner rewrite and the alternation worry</span>",
+      "tr": "詳細 <span class=\"hint\">スキャナの書き換えと、選択（alternation）の懸念</span>"
     },
     {
       "id": "h-28994342",
@@ -311,10 +737,22 @@
       "tr": "お金の計算に浮動小数点数は使わない"
     },
     {
-      "id": "h-859647ed",
+      "id": "h-6ff60a37",
       "kind": "html",
-      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
-      "tr": "フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。<code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。"
+      "en": "The gap that would end a fintech evaluation on the spot is doing money on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision.",
+      "tr": "フィンテックの評価をその場で打ち切らせる穴は、IEEE-754 の <code>number</code> でお金を扱うことです。そこでは <code>0.1 + 0.2</code> は <code>0.3</code> にならず、2<sup>53</sup> を超える値は気づかないうちに精度を失います。"
+    },
+    {
+      "id": "h-c12616d4",
+      "kind": "html",
+      "en": "<code>std/decimal</code> is exact base-10 fixed-point over BigInt: an arbitrary-precision integer with a fixed number of fractional digits, so addition, subtraction, and multiplication are exact and division takes an explicit scale and rounding. A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "<code>std/decimal</code> は BigInt の上に作った正確な 10 進固定小数点です。任意精度の整数に固定桁数の小数部を持たせたもので、加算、減算、乗算は正確で、除算にはスケールと丸め方を明示します。不正な金額はパースすると <code>Err</code> になり、黙って <code>NaN</code> になることはありません。"
+    },
+    {
+      "id": "h-7351d8ec",
+      "kind": "html",
+      "en": "Large whole numbers",
+      "tr": "大きな整数"
     },
     {
       "id": "h-e374ef99",
@@ -329,16 +767,16 @@
       "tr": "非同期コールバックにようやく型ができた"
     },
     {
-      "id": "h-886579ed",
+      "id": "h-64488ad2",
       "kind": "html",
-      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking. <code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
-      "tr": "関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。<code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。"
+      "en": "A function type was <code>fn(A) -&gt; T</code> and nothing else, which emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a function returning a deferred task, or a record of async handlers, had to go unannotated and the checker stopped looking.",
+      "tr": "関数型は <code>fn(A) -&gt; T</code> しかなく、これは <code>(a: A) =&gt; T</code> として出力されます。非同期の本体はこれに合わないので、遅延タスクを返す関数や非同期ハンドラのレコードはアノテーションなしにするしかなく、チェッカーはそこで検査をやめていました。"
     },
     {
-      "id": "h-f88409c6",
+      "id": "h-a5b827c6",
       "kind": "html",
-      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides. The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
-      "tr": "Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。"
+      "en": "<code>async fn(A) -&gt; T</code> is that missing type. It emits <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits <code>() =&gt; Promise&lt;void&gt;</code>.",
+      "tr": "<code>async fn(A) -&gt; T</code> がその欠けていた型です。<code>(a0: A) =&gt; Promise&lt;T&gt;</code> として出力され、戻り値のない <code>async fn()</code> は <code>() =&gt; Promise&lt;void&gt;</code> になります。"
     },
     {
       "id": "h-c1b08369",
@@ -347,16 +785,34 @@
       "tr": "遅延タスクと、ハンドラのマップ"
     },
     {
+      "id": "h-0cdbdac5",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how Glyph tells plain and async functions apart</span>",
+      "tr": "詳細 <span class=\"hint\">Glyph が普通の関数と非同期関数をどう区別するか</span>"
+    },
+    {
+      "id": "h-a3b56b1d",
+      "kind": "html",
+      "en": "Glyph holds the two apart itself rather than leaving it to <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument, and the message names both sides.",
+      "tr": "Glyph は <code>tsc</code> に任せず、自分で両者を区別します。非同期関数が期待される場所に普通の関数を渡すと、return では <code>E0204</code>、呼び出しの引数では <code>E0211</code> になり、メッセージには両方の側が示されます。"
+    },
+    {
+      "id": "h-158734ef",
+      "kind": "html",
+      "en": "The one case it doesn't judge is a <code>void</code> return, where TypeScript lets any function stand.",
+      "tr": "判定しないのは戻り値が <code>void</code> の場合だけで、TypeScript ではそこにどんな関数でも置けます。"
+    },
+    {
       "id": "h-9348ac56",
       "kind": "html",
       "en": "A recursive type, matched all the way down",
       "tr": "再帰的な型を、最後までマッチする"
     },
     {
-      "id": "h-0f62e9c9",
+      "id": "h-bd980c81",
       "kind": "html",
-      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it. <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
-      "tr": "ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。<code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。"
+      "en": "A union can name itself inside its own payload, with its type parameters, and a match arm can nest a constructor pattern inside another constructor pattern&rsquo;s field. Put those together and the balancing rules of a red-black tree are four arms: each one names the exact shape it rewrites, and the compiler is the thing checking the shape rather than a comment above it claiming it.",
+      "tr": "ユニオンは自身のペイロードの中で、型パラメータ付きで自分自身を指定でき、match のアームはコンストラクタパターンのフィールドの中に別のコンストラクタパターンを入れ子にできます。この 2 つを組み合わせると、赤黒木のバランス規則は 4 つのアームになります。各アームが書き換える形を正確に示し、その形を検査するのは、上に書かれたコメントではなくコンパイラです。"
     },
     {
       "id": "h-f43b9a36",
@@ -365,34 +821,340 @@
       "tr": "4 つの回転ケースのうちの 1 つ"
     },
     {
+      "id": "h-ccd82523",
+      "kind": "html",
+      "en": "<code>examples/apps/leaderboard/main.glyph</code> is the whole program, a leaderboard that keeps every score in the tree and answers rank, top-N and range queries by walking it instead of re-sorting a log.",
+      "tr": "<code>examples/apps/leaderboard/main.glyph</code> がプログラム全体で、すべてのスコアを木に保持し、ログを並べ直すのではなく木を走査して順位、上位 N 件、範囲のクエリに答えるリーダーボードです。"
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
       "tr": "現状"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "提供中"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "提供中 <span class=\"count\">19</span>"
     },
     {
-      "id": "h-1a261fdc",
+      "id": "h-62f78e53",
       "kind": "html",
-      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
-      "tr": "兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性、構造的な <code>interface</code> による境界、<code>defer</code>、<code>std/task</code>（<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>）、型として書ける <code>async fn(A) -&gt; T</code>、自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム、アームにブロック・<code>await</code>・ループ制御を書ける <code>let</code> や <code>mut</code> の値としての <code>match</code>、アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code>、型付きの <code>T.parse</code>、正確なお金の計算のための <code>std/decimal</code>、大きな整数を正確に扱う <code>bigint</code>、数値の桁区切り、JS から受け継ぐセマンティクスを定める仕様書の節、そして <code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code>、さらに <code>fs.read_dir</code>、<code>fs.is_dir</code>、<code>fs.stat</code>、チェッカーが網羅を求める <code>FsError.kind</code> の分類、<code>regex.captures_all</code> を備えた標準ライブラリです。<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。"
+      "en": "Modules and types",
+      "tr": "モジュールと型"
     },
     {
-      "id": "h-c647197d",
+      "id": "h-34f59bc7",
       "kind": "html",
-      "en": "Where it stops",
-      "tr": "限界"
+      "en": "<code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation)",
+      "tr": "兄弟モジュールの型を指定する 2 つの方法（名前付き import と <code>lib.Secret</code> のアノテーション）の両方で強制される <code>pub</code> の可視性"
     },
     {
-      "id": "h-02415819",
+      "id": "h-782a2882",
       "kind": "html",
-      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible. A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union. The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>. Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time. One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics. Binding a field, or matching a tag with no payload in one, works in every case.",
-      "tr": "非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。<code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。"
+      "en": "Structural <code>interface</code> bounds",
+      "tr": "構造的な <code>interface</code> による境界"
+    },
+    {
+      "id": "h-6d391e18",
+      "kind": "html",
+      "en": "<code>async fn(A) -&gt; T</code> as a written type",
+      "tr": "型として書ける <code>async fn(A) -&gt; T</code>"
+    },
+    {
+      "id": "h-66930960",
+      "kind": "html",
+      "en": "A union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field",
+      "tr": "自身のペイロードで自分を指定するユニオンと、コンストラクタパターンのフィールドに別のコンストラクタパターンを入れ子にしてそれにマッチするアーム"
+    },
+    {
+      "id": "h-5fa70fba",
+      "kind": "html",
+      "en": "Control flow and <code>match</code>",
+      "tr": "制御フローと <code>match</code>"
+    },
+    {
+      "id": "h-1514da8c",
+      "kind": "html",
+      "en": "<code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms",
+      "tr": "アームにブロック・<code>await</code>・ループ制御を書ける、<code>let</code> や <code>mut</code> の値としての <code>match</code>"
+    },
+    {
+      "id": "h-7d54270d",
+      "kind": "html",
+      "en": "A <code>match</code> whose arms agree carrying their type into the rest of the program",
+      "tr": "アームの型が一致すればその型をプログラムの残りへ持ち越す <code>match</code>"
+    },
+    {
+      "id": "h-75896c3f",
+      "kind": "html",
+      "en": "A typed <code>T.parse</code>",
+      "tr": "型付きの <code>T.parse</code>"
+    },
+    {
+      "id": "h-630676b5",
+      "kind": "html",
+      "en": "Numbers and semantics",
+      "tr": "数値とセマンティクス"
+    },
+    {
+      "id": "h-e3d23e3f",
+      "kind": "html",
+      "en": "<code>std/decimal</code> for exact money math",
+      "tr": "正確なお金の計算のための <code>std/decimal</code>"
+    },
+    {
+      "id": "h-668f24ca",
+      "kind": "html",
+      "en": "<code>bigint</code> for exact large integers",
+      "tr": "大きな整数を正確に扱う <code>bigint</code>"
+    },
+    {
+      "id": "h-b242c80c",
+      "kind": "html",
+      "en": "Digit separators",
+      "tr": "数値の桁区切り"
+    },
+    {
+      "id": "h-ebf9b679",
+      "kind": "html",
+      "en": "A spec section owning the JS-inherited semantics",
+      "tr": "JS から受け継ぐセマンティクスを定める仕様書の節"
+    },
+    {
+      "id": "h-bf5bc533",
+      "kind": "html",
+      "en": "Standard library",
+      "tr": "標準ライブラリ"
+    },
+    {
+      "id": "h-931615ed",
+      "kind": "html",
+      "en": "A standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>",
+      "tr": "<code>string.slice</code>、<code>index_of</code>、<code>repeat</code>、<code>pad_start</code>、<code>pad_end</code>、<code>replace_all</code>、<code>trim_start</code>、<code>trim_end</code> と <code>array.fold</code>、<code>index_of</code>、<code>flat_map</code> を備えた標準ライブラリ"
+    },
+    {
+      "id": "h-ae74f82f",
+      "kind": "html",
+      "en": "An <code>FsError.kind</code> taxonomy the checker holds you to",
+      "tr": "チェッカーが網羅を求める <code>FsError.kind</code> の分類"
+    },
+    {
+      "id": "h-5e84da65",
+      "kind": "html",
+      "en": "Most of <code>std/string</code> and <code>std/array</code> carry their return type into your program",
+      "tr": "<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込む"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-1a4c5f16",
+      "kind": "html",
+      "en": "Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index.",
+      "tr": "<code>std/string</code> と <code>std/array</code> の大半は戻り値の型をプログラムに持ち込むようになったので、<code>string.split</code> は <code>Array&lt;string&gt;</code> になり、それを回すループは数値のインデックスを束縛します。"
+    },
+    {
+      "id": "h-cdc2638a",
+      "kind": "html",
+      "en": "<code>std/record</code> is modeled, with the value type read off the record you pass",
+      "tr": "<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られる"
+    },
+    {
+      "id": "h-ed833ad3",
+      "kind": "html",
+      "en": "<code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.",
+      "tr": "<code>std/record</code> もモデル化されていて、値の型は渡したレコードから読み取られます。<code>Record&lt;string, Array&lt;string&gt;&gt;</code> に対する <code>record.get(t, k)</code> は <code>Option&lt;Array&lt;string&gt;&gt;</code> で、<code>record.keys(t)</code> は <code>Array&lt;string&gt;</code> なので、<code>array.sort(record.keys(t), cmp)</code> は要素の型を保ちます。"
+    },
+    {
+      "id": "h-5bd1ae17",
+      "kind": "html",
+      "en": "Where it stops <span class=\"count\">11</span>",
+      "tr": "限界 <span class=\"count\">11</span>"
+    },
+    {
+      "id": "h-7448611d",
+      "kind": "html",
+      "en": "Visibility",
+      "tr": "可視性"
+    },
+    {
+      "id": "h-fec6c3ae",
+      "kind": "html",
+      "en": "A private import reports the same message as a missing name",
+      "tr": "非公開のものを import すると、存在しない名前と同じメッセージが出る"
+    },
+    {
+      "id": "h-34826c3d",
+      "kind": "html",
+      "en": "A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement.",
+      "tr": "非公開のものを import すると、存在しない名前と同じ「not exported by M」というメッセージが出ます。「非公開なので <code>pub</code> を付ける」と「そんな名前はない」を区別するのは、予定済みの改善です。"
+    },
+    {
+      "id": "h-48517aba",
+      "kind": "html",
+      "en": "A private value read through a namespace is a <code>tsc</code> error, not a Glyph one",
+      "tr": "名前空間を通して読む非公開の値は、Glyph ではなく <code>tsc</code> のエラーになる"
+    },
+    {
+      "id": "h-2c6dd0a4",
+      "kind": "html",
+      "en": "Visibility is checked on type annotations, not on values read through a namespace: <code>lib.helper()</code> where <code>helper</code> is private is still a <code>tsc</code> error rather than a Glyph one.",
+      "tr": "可視性が検査されるのは型アノテーションで、名前空間を通して読む値ではありません。<code>helper</code> が非公開のときの <code>lib.helper()</code> は、今も Glyph ではなく <code>tsc</code> のエラーです。"
+    },
+    {
+      "id": "h-88f22a6c",
+      "kind": "html",
+      "en": "Async",
+      "tr": "非同期"
+    },
+    {
+      "id": "h-fd228dc5",
+      "kind": "html",
+      "en": "A top-level <code>await</code> in a module-level <code>const</code> initializer is allowed",
+      "tr": "モジュールレベルの <code>const</code> の初期化式では、トップレベルの <code>await</code> が許される"
+    },
+    {
+      "id": "h-a0cb339a",
+      "kind": "html",
+      "en": "Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it.",
+      "tr": "非同期コンテキストは今は検査されます（<code>E0222</code>）が、1 か所だけ例外があります。モジュールレベルの <code>const</code> の初期化式には外側の呼び出し可能なものがないので、そこではトップレベルの <code>await</code> が許され、出力された ESM がそれを実行します。"
+    },
+    {
+      "id": "h-c8ce89b2",
+      "kind": "html",
+      "en": "Inferred types",
+      "tr": "推論される型"
+    },
+    {
+      "id": "h-989045cb",
+      "kind": "html",
+      "en": "Arms that disagree on the type's head leave the result unknown to Glyph",
+      "tr": "型の先頭が食い違うアームがあると、結果は Glyph にとって unknown になる"
+    },
+    {
+      "id": "h-ebd9bc44",
+      "kind": "html",
+      "en": "The arm join still needs the arms to agree on the type's head: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it.",
+      "tr": "アームの型の合流には、今も型の先頭が一致している必要があります。アームが異なる型を生むと、結果は Glyph にとって unknown になり、それをどう使うかは <code>tsc</code> だけが検査します。"
+    },
+    {
+      "id": "h-efaecc5d",
+      "kind": "html",
+      "en": "Nine stdlib functions are in the same position",
+      "tr": "stdlib の 9 つの関数も同じ状況"
+    },
+    {
+      "id": "h-4120e283",
+      "kind": "html",
+      "en": "Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into.",
+      "tr": "stdlib の 9 つの関数も同じ状況です。6 つは省略可能な末尾の引数を取り（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）、引数の個数の検査は 1 つの数値と 1 つの数値を比べるだけなので、これらをモデル化すると最後の引数を省略したすべての呼び出しで誤ったエラーが出てしまいます。<code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、チェッカーが中まで見ないコールバックから要素の型を取ります。"
+    },
+    {
+      "id": "h-c9d2a9c8",
+      "kind": "html",
+      "en": "A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>.",
+      "tr": "この 9 つから直接得た値をインデックス付きで反復するにはアノテーションが必要で、<code>None</code> のアームがない <code>string.index_of</code> への <code>match</code> は、今もきれいにビルドされて実行時に例外を投げます。<code>array.index_of</code> はモデル化されていて、ちゃんと <code>E0200</code> を報告します。"
+    },
+    {
+      "id": "h-d6e3fa7e",
+      "kind": "html",
+      "en": "Members and call arity against a value the checker couldn't type are unchecked",
+      "tr": "チェッカーが型付けできなかった値に対するメンバーや引数の個数は検査されない"
+    },
+    {
+      "id": "h-e9c1f31d",
+      "kind": "html",
+      "en": "Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error.",
+      "tr": "チェッカーが型付けできなかった値に対するメンバーや呼び出しの引数の個数は、その境界ではまだエラーにならず検査されません。"
+    },
+    {
+      "id": "h-dc20b3d5",
+      "kind": "html",
+      "en": "Library",
+      "tr": "ライブラリ"
+    },
+    {
+      "id": "h-0c73dd1c",
+      "kind": "html",
+      "en": "<code>string</code> indexes UTF-16 code units, and no <code>chars</code> or <code>char_at</code> is planned",
+      "tr": "<code>string</code> は UTF-16 のコード単位でインデックスし、<code>chars</code> や <code>char_at</code> の予定はない"
+    },
+    {
+      "id": "h-556b463a",
+      "kind": "html",
+      "en": "On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time.",
+      "tr": "ライブラリの側では、<code>string</code> は <code>len</code> や <code>split</code> が以前からそうであるように UTF-16 のコード単位でインデックスします。これは確定事項です。<code>chars</code> や <code>char_at</code> はなく、追加の予定もありません。返されたサロゲートペアの片割れは、書き出されるその瞬間まで文字のように見えるからです。<code>encoding.hex_encode</code> でエンコードし、16 進数を 2 桁ずつ読んでください。"
+    },
+    {
+      "id": "h-fc1dae74",
+      "kind": "html",
+      "en": "<code>captures_all</code> gives no offsets; <code>fs.read_dir</code> keeps the OS's order",
+      "tr": "<code>captures_all</code> はオフセットを返さず、<code>fs.read_dir</code> は OS の順序のまま"
+    },
+    {
+      "id": "h-fab0be26",
+      "kind": "html",
+      "en": "<code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.",
+      "tr": "<code>captures_all</code> はグループを返しますがオフセットは返さないので、行のどこでマッチが始まったかを知る必要のあるスキャナは今もループを自分で書きます。<code>fs.read_dir</code> は OS の順序でエントリを返すので、出力を再現可能にする必要があるときはソートしてください。"
+    },
+    {
+      "id": "h-160a13d9",
+      "kind": "html",
+      "en": "Patterns",
+      "tr": "パターン"
+    },
+    {
+      "id": "h-debcfe79",
+      "kind": "html",
+      "en": "A payload constructor in a field fails on a union reached through a namespace import",
+      "tr": "名前空間 import を通して参照するユニオンでは、フィールドに置いたペイロード付きのコンストラクタが失敗する"
+    },
+    {
+      "id": "h-09ad547b",
+      "kind": "html",
+      "en": "A nested field pattern has one edge left: a constructor that carries a payload, sitting in a field, on a union reached through a namespace import. <code>import tree { Node }</code> then <code>Node({ left: Node({ key: k }) })</code> compiles, and <code>import tree</code> then <code>tree.Node({ left: tree.Node({ key: k }) })</code> is <code>E0300</code> on the same union.",
+      "tr": "入れ子のフィールドパターンには 1 つだけ限界が残っています。名前空間 import を通して参照するユニオンの、フィールドに置いたペイロード付きのコンストラクタです。<code>import tree { Node }</code> の後の <code>Node({ left: Node({ key: k }) })</code> はコンパイルされますが、<code>import tree</code> の後の <code>tree.Node({ left: tree.Node({ key: k }) })</code> は、同じユニオンなのに <code>E0300</code> になります。"
+    },
+    {
+      "id": "h-fcc7235c",
+      "kind": "html",
+      "en": "A union generic over its own parameter takes the nested arm and is checked for missing variants",
+      "tr": "自身のパラメータについてジェネリックなユニオンも、入れ子のアームを受け入れ、欠けたバリアントが検査される"
+    },
+    {
+      "id": "h-e43f615f",
+      "kind": "html",
+      "en": "The other edge is gone: a union generic over its own parameter (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) used to refuse the nested arm that the same union without the parameter accepts, and now takes it, at an open type parameter and at a concrete instantiation alike. The same lookup was deciding whether the match got checked for missing variants at all, so until this release a <code>match</code> on <code>Tree&lt;K&gt;</code> could omit <code>Leaf</code>, build clean, pass <code>tsc --strict</code>, and throw at run time where the non-generic spelling was <code>E0200</code>.",
+      "tr": "もう 1 つの限界は解消しました。自身のパラメータについてジェネリックなユニオン（<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>）は、パラメータのない同じユニオンなら受け入れる入れ子のアームを以前は拒否していましたが、今は開いた型パラメータでも具体的なインスタンス化でも受け入れます。同じ検索処理が、そもそも match の欠けたバリアントを検査するかどうかも決めていたので、このリリースまでは <code>Tree&lt;K&gt;</code> への <code>match</code> は <code>Leaf</code> を省いてもきれいにビルドされ、<code>tsc --strict</code> も通り、実行時に例外を投げていました。非ジェネリックな書き方なら <code>E0200</code> になっていたのにです。"
+    },
+    {
+      "id": "h-3c5dd4bb",
+      "kind": "html",
+      "en": "Both spellings report it, and moving the union one import away no longer changes the answer: a <code>match</code> on an imported <code>Tree&lt;string&gt;</code> that omits <code>Leaf</code> is <code>E0200</code> naming <code>Leaf</code>, the same as the imported non-generic <code>Tree</code>. That was a different code path, checked separately, and it went the other way until this release, building clean and throwing at run time.",
+      "tr": "今はどちらの書き方でも報告され、ユニオンを別のモジュールから import しても答えは変わりません。import した <code>Tree&lt;string&gt;</code> への <code>Leaf</code> を省いた <code>match</code> は、import した非ジェネリックな <code>Tree</code> と同じく、<code>Leaf</code> を名指しした <code>E0200</code> になります。これは別々に検査される別のコードパスで、このリリースまでは逆の結果、つまりきれいにビルドされて実行時に例外を投げていました。"
+    },
+    {
+      "id": "h-8b2847e4",
+      "kind": "html",
+      "en": "Coverage of an imported union never checks its variant payloads",
+      "tr": "import したユニオンの網羅性検査は、バリアントのペイロードを検査しない"
+    },
+    {
+      "id": "h-62c74bba",
+      "kind": "html",
+      "en": "One thing about an imported union's coverage is still worth knowing before you lean on it: its variant payloads are never checked either, so <code>B(X)</code> where <code>X</code> is a variant of the payload's own union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and that one has nothing to do with generics.",
+      "tr": "import したユニオンの網羅性について、頼る前に知っておくべきことがもう 1 つあります。そのバリアントのペイロードも検査されないので、<code>X</code> がペイロード自身のユニオンのバリアントであるとき、<code>B(X)</code> は欠けている <code>Y</code> を報告せずにすべての <code>B</code> にマッチします。これはジェネリクスとは関係ありません。"
+    },
+    {
+      "id": "h-347d0c0b",
+      "kind": "html",
+      "en": "Binding a field, or matching a tag with no payload in one, works in every case.",
+      "tr": "フィールドを束縛すること、あるいはペイロードのないタグをフィールドでマッチすることは、どの場合でも動きます。"
     }
   ]
 }

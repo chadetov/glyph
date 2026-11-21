@@ -8,6 +8,13 @@
   <updated>2026-11-21T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.155 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.155" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.155</id>
+    <updated>2026-11-21T00:00:00Z</updated>
+    <summary>A SQL query's text has to be fixed when the program is written</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.154 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.154" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.154</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-10/#0.1.126</id>
     <updated>2026-10-17T00:00:00Z</updated>
     <summary>This release finishes what 0.1.125 started on React components: the type a component returns now means something to tsc, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.125 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.125" />
-    <id>https://glyphlang.io/versions/2026-10/#0.1.125</id>
-    <updated>2026-10-11T00:00:00Z</updated>
-    <summary>This release is about React components.</summary>
   </entry>
 </feed>

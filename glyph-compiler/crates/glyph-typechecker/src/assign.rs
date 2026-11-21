@@ -1827,6 +1827,74 @@ impl Assigner<'_> {
         }
     }
 
+    /// F3: inside an arm whose pattern is `is T`, a scrutinee that is a local
+    /// name has type `T` in that arm's body, as the emitted `typeof` or
+    /// descriptor check establishes it and as `tsc` reads it. Rebinds the
+    /// local's type and returns the binding with its previous type, which the
+    /// caller restores once the body is walked, so the name keeps its own type
+    /// outside the arm.
+    ///
+    /// `T` narrows when it lowers to a primitive or a declared type (or an
+    /// application of a declared generic), as record 130 rules. Anything
+    /// this checker cannot read (`Unknown`) leaves the name as it was rather
+    /// than erasing what is known about it. A prelude container (`is
+    /// Record<K, V>`, `is Array<X>`) is neither, and does not narrow: doing
+    /// so exposes E0224 on index reads `tsc` accepts, in tracked programs
+    /// (`examples/01_validator.glyph`), which is a separate decision. An arm
+    /// that rebinds the name with `mut` is not narrowed: after the assignment
+    /// the name holds whatever was assigned, and claiming `T` for the rest of
+    /// the arm would be a guess.
+    fn narrow_is_arm(&mut self, scrutinee: &Expr, arm: &MatchArm) -> Option<(u32, Option<Ty>)> {
+        let Pattern::IsType { ty, .. } = &arm.pattern else { return None };
+        let Expr::Ident { span, .. } = scrutinee else { return None };
+        let Some(ResolvedRef::Local(def)) = self.resolved.resolutions.get(*span) else {
+            return None;
+        };
+        let narrowed = self.lowerer.lower(ty);
+        if !matches!(
+            narrowed,
+            Ty::Prim(_) | Ty::Named { .. } | Ty::Imported { .. } | Ty::App { .. }
+        ) || self.prelude_container(&narrowed).is_some()
+        {
+            return None;
+        }
+        if self.arm_rebinds(def, &arm.body) {
+            return None;
+        }
+        let before = self.local_tys.insert(def, narrowed);
+        Some((def, before))
+    }
+
+    /// Whether an arm body contains a `mut name = ..` that rebinds the local
+    /// defined at `def`, at any depth (a nested block, a lambda body).
+    fn arm_rebinds(&self, def: u32, body: &MatchArmBody) -> bool {
+        fn in_expr(c: &Assigner<'_>, def: u32, e: &Expr) -> bool {
+            let mut hit = false;
+            glyph_ast::visit::child_exprs(e, &mut |x| hit = hit || in_expr(c, def, x));
+            glyph_ast::visit::child_blocks(e, &mut |b| hit = hit || in_block(c, def, b));
+            hit
+        }
+        fn in_block(c: &Assigner<'_>, def: u32, b: &Block) -> bool {
+            b.stmts.iter().any(|s| {
+                if let Stmt::Mut(m) = s {
+                    if let glyph_ast::MutKind::Assign { target: Expr::Ident { span, .. }, .. } = &m.kind {
+                        if c.resolved.resolutions.get(*span) == Some(ResolvedRef::Local(def)) {
+                            return true;
+                        }
+                    }
+                }
+                let mut hit = false;
+                glyph_ast::visit::stmt_exprs(s, &mut |x| hit = hit || in_expr(c, def, x));
+                glyph_ast::visit::stmt_blocks(s, &mut |b| hit = hit || in_block(c, def, b));
+                hit
+            })
+        }
+        match body {
+            MatchArmBody::Expr(e) => in_expr(self, def, e),
+            MatchArmBody::Block(b) => in_block(self, def, b),
+        }
+    }
+
     /// A lambda's parameters. A written annotation lowers like a
     /// declaration's (a written `unknown` is the judged `unknown`); an omitted
     /// one is `Ty::Unknown`, "not typed here", which no rule judges, and it
@@ -2851,9 +2919,16 @@ impl Assigner<'_> {
                     // variant before walking the body, so refs to it inside
                     // the body resolve to the payload type.
                     self.bind_arm_payloads(&scrutinee_ty, &arm.pattern);
+                    let narrowed = self.narrow_is_arm(scrutinee, arm);
                     match &arm.body {
                         MatchArmBody::Expr(e) => self.walk_expr(e),
                         MatchArmBody::Block(b) => self.walk_block(b),
+                    }
+                    if let Some((def, before)) = narrowed {
+                        match before {
+                            Some(ty) => self.local_tys.insert(def, ty),
+                            None => self.local_tys.remove(&def),
+                        };
                     }
                 }
                 // `match` is Glyph's only branching construct (D: no `if`), so
@@ -10408,6 +10483,65 @@ mod tests {
         assert_eq!(
             assignability_of(UNION, "{ r: { a?: string } }", "{ r: { a: string } }"),
             Assignability::Incompatible
+        );
+    }
+
+    /// F3 (record 130): inside an `is User` arm the scrutinee is a `User`, so
+    /// a field typo there is E0210, as `tsc` refuses it on the emitted
+    /// `typeof`/descriptor check. Outside the arm the name keeps its declared
+    /// `unknown`, which this release does not judge.
+    #[test]
+    fn an_is_arm_narrows_an_identifier_scrutinee() {
+        let errs = errors_of(
+            "module m\ntype User = { name: string, }\nfn a(v: unknown) -> string {\n  return match v { is User => v.nmae, else => \"?\", }\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "nmae" && type_name == "User")),
+            "{errs:?}"
+        );
+        let errs = errors_of(
+            "module m\ntype User = { name: string, }\nfn a(v: unknown) -> string {\n  return match v { is User => v.name, is string => v, else => \"?\", }\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A prelude container arm (`is Record<K, V>`, `is Array<X>`) does not
+    /// narrow: record 130 rules for a primitive or a declared type, and
+    /// narrowing a container exposes E0224 on an index read `tsc` accepts, in
+    /// `examples/01_validator.glyph`. Whether it should is a separate decision;
+    /// this pins today's behaviour so the decision is made on purpose.
+    #[test]
+    fn a_prelude_container_is_arm_does_not_narrow() {
+        let errs = errors_of(
+            "module m\nfn a(v: unknown, k: string) -> unknown {\n  return match v { is Record<string, unknown> => v[k], else => v, }\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// The narrowing ends with the arm: after the `match`, and in a sibling
+    /// arm, the name has its own type again.
+    #[test]
+    fn an_is_arm_narrowing_does_not_leak_out_of_the_arm() {
+        let errs = errors_of(
+            "module m\ntype User = { name: string, }\nfn a(v: User) -> string {\n  let s = match v { is string => v, else => \"?\", }\n  return v.nmae\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "nmae" && type_name == "User")),
+            "{errs:?}"
+        );
+    }
+
+    /// An arm that rebinds the name with `mut` is not narrowed: after the
+    /// assignment the name holds what was assigned, and claiming `T` for the
+    /// rest of the arm would be a guess.
+    #[test]
+    fn an_is_arm_that_rebinds_the_scrutinee_is_not_narrowed() {
+        let errs = errors_of(
+            "module m\ntype User = { name: string, }\nfn a(v: unknown) -> number {\n  return match v {\n    is User => {\n      mut v = 3\n      v.nmae\n    },\n    else => 0,\n  }\n}\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "{errs:?}"
         );
     }
 

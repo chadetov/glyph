@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/debugging/index.html",
   "locale": "de",
-  "source_hash": "23c0350a6befa9fd",
+  "source_hash": "4049ecaf7d564dbf",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,76 @@
       "tr": "Lesbares TypeScript, das dir gehört, mit einer <strong>Source Map zurück zu deiner <code>.glyph</code></strong> neben jeder erzeugten Datei. Ein Debugger, ein Bundler oder ein Error-Tracker verfolgt den laufenden Code bis zu deinem Quellcode zurück, und selbst jemand, der Glyph nie gesehen hat, kann das erzeugte TS lesen. Vor all dem melden <code>glyph build</code> und <code>glyph run</code> dieselben Diagnosen für denselben Baum, also kann die schnelle Schleife nichts verstecken, was der Build gefunden hätte. Zwei Einschränkungen, beide auf dem Weg über <code>glyph run</code>, werden unten genannt."
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-6cd9ee03",
+      "kind": "html",
+      "en": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Readable TypeScript</a>",
+      "tr": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Lesbares TypeScript</a>"
+    },
+    {
+      "id": "h-646a3fde",
+      "kind": "html",
+      "en": "<a href=\"#2-source-maps-back-to-glyph\">Source maps</a>",
+      "tr": "<a href=\"#2-source-maps-back-to-glyph\">Source Maps</a>"
+    },
+    {
+      "id": "h-7efdc0b7",
+      "kind": "html",
+      "en": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build and type errors</a>",
+      "tr": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build- und Typfehler</a>"
+    },
+    {
+      "id": "h-0e83535a",
+      "kind": "html",
+      "en": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run diagnostics</a>",
+      "tr": "<a href=\"#4-glyph-run-tells-you-the-same-things\">Diagnosen von glyph run</a>"
+    },
+    {
+      "id": "h-1d802df0",
+      "kind": "html",
+      "en": "<a href=\"#two-current-limitations\">Two limitations</a>",
+      "tr": "<a href=\"#two-current-limitations\">Zwei Einschränkungen</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Wo es steht</a>"
+    },
+    {
       "id": "h-ddc2261b",
       "kind": "html",
       "en": "1 &middot; The generated TypeScript is yours to read",
       "tr": "1 &middot; Das erzeugte TypeScript kannst du lesen"
     },
     {
-      "id": "h-d332c631",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-14b544d0",
       "kind": "html",
-      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS. So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
-      "tr": "Glyph liefert keine undurchsichtige Laufzeit aus. Es erzeugt gewöhnliches, formatiertes TypeScript, das du committest und deployst wie jedes andere TS. Der schlimmste Fall (eine Person in Rufbereitschaft, die Glyph nicht kennt, um 3 Uhr nachts) liest also immer noch einfaches TypeScript, keinen Dialekt. Zwischen deinem Quellcode und der Produktion gibt es keine Blackbox."
+      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS.",
+      "tr": "Glyph liefert keine undurchsichtige Laufzeit aus. Es erzeugt gewöhnliches, formatiertes TypeScript, das du committest und deployst wie jedes andere TS."
+    },
+    {
+      "id": "h-5e597c9e",
+      "kind": "html",
+      "en": "So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
+      "tr": "Der schlimmste Fall (eine Person in Rufbereitschaft, die Glyph nicht kennt, um 3 Uhr nachts) liest also immer noch einfaches TypeScript, keinen Dialekt. Zwischen deinem Quellcode und der Produktion gibt es keine Blackbox."
     },
     {
       "id": "h-a717c0e5",
@@ -77,10 +137,10 @@
       "tr": "2 &middot; Source Maps zurück zu <code>.glyph</code>"
     },
     {
-      "id": "h-8bb7e6b3",
+      "id": "h-4d19e462",
       "kind": "html",
-      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
-      "tr": "Jede erzeugte <code>.ts</code> bringt eine Standard-v3-Source-Map (<code>.ts.map</code>) daneben mit, mit einem <code>sourceMappingURL</code>-Kommentar und deinem eingebetteten Glyph-Quellcode (<code>sourcesContent</code>). Alles, was Source Maps verarbeitet (Chrome DevTools, ein Node-Debugger, ein Error-Tracker wie Sentry, dein Bundler), kann sie verketten und dir die <code>.glyph</code>-Zeile zeigen statt der erzeugten."
+      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>).",
+      "tr": "Jede erzeugte <code>.ts</code> bringt eine Standard-v3-Source-Map (<code>.ts.map</code>) daneben mit, mit einem <code>sourceMappingURL</code>-Kommentar und deinem eingebetteten Glyph-Quellcode (<code>sourcesContent</code>)."
     },
     {
       "id": "h-8723e53b",
@@ -89,16 +149,40 @@
       "tr": "dist/main.ts (Ende)"
     },
     {
+      "id": "h-bbc36693",
+      "kind": "html",
+      "en": "Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
+      "tr": "Alles, was Source Maps verarbeitet (Chrome DevTools, ein Node-Debugger, ein Error-Tracker wie Sentry, dein Bundler), kann sie verketten und dir die <code>.glyph</code>-Zeile zeigen statt der erzeugten."
+    },
+    {
       "id": "h-00ec273b",
       "kind": "html",
       "en": "3 &middot; Build and type errors already point at Glyph",
       "tr": "3 &middot; Build- und Typfehler zeigen schon auf Glyph"
     },
     {
-      "id": "h-a164aaf9",
+      "id": "h-094ec3e0",
       "kind": "html",
-      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved). The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it. And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
-      "tr": "Mit einem Typfehler kommst du selten bis in die Produktion, weil <code>glyph build</code> <code>tsc --strict</code> ausführt und <strong>jeden <code>tsc</code>-Fehler zurück auf deine <code>.glyph</code>-Quelle abbildet</strong> (derselbe Caret, der TypeScript-Fehlercode bleibt erhalten). Der Caret steht auf dem kleinsten Glyph-Ausdruck, dessen Code <code>tsc</code> abgelehnt hat: Ein falsches Argument unterstreicht dieses Argument, ein falsch geschriebenes Feld in einem JSX-Event-Handler unterstreicht diesen Member-Zugriff, nicht das ganze <code>return</code> drumherum. Und <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus (Code, Schweregrad, Datei, 1-basierte Zeile/Spalte, Hilfe), damit deine CI oder dein Tooling darauf reagieren kann."
+      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and maps every <code>tsc</code> error back onto your <code>.glyph</code> source (same caret, the TypeScript error code preserved).",
+      "tr": "Mit einem Typfehler kommst du selten bis in die Produktion, weil <code>glyph build</code> <code>tsc --strict</code> ausführt und jeden <code>tsc</code>-Fehler zurück auf deine <code>.glyph</code>-Quelle abbildet (derselbe Caret, der TypeScript-Fehlercode bleibt erhalten)."
+    },
+    {
+      "id": "h-e0892f4d",
+      "kind": "html",
+      "en": "And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
+      "tr": "Und <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus (Code, Schweregrad, Datei, 1-basierte Zeile/Spalte, Hilfe), damit deine CI oder dein Tooling darauf reagieren kann."
+    },
+    {
+      "id": "h-d5fb5419",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the caret lands</span>",
+      "tr": "Details <span class=\"hint\">wo der Caret landet</span>"
+    },
+    {
+      "id": "h-82bd0b54",
+      "kind": "html",
+      "en": "The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it.",
+      "tr": "Der Caret steht auf dem kleinsten Glyph-Ausdruck, dessen Code <code>tsc</code> abgelehnt hat: Ein falsches Argument unterstreicht dieses Argument, ein falsch geschriebenes Feld in einem JSX-Event-Handler unterstreicht diesen Member-Zugriff, nicht das ganze <code>return</code> drumherum."
     },
     {
       "id": "h-e0bf31b5",
@@ -107,10 +191,10 @@
       "tr": "4 &middot; <code>glyph run</code> sagt dir dasselbe"
     },
     {
-      "id": "h-52859b2b",
+      "id": "h-205f9330",
       "kind": "html",
-      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count. The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
-      "tr": "Der Befehl, den du den ganzen Tag tippst, ist <code>glyph run</code>, und bis 0.1.40 war er stiller als der Build. Er kompilierte das ganze Verzeichnis, nahm die Liste der erzeugten Dateien aus dem Bericht und warf die Diagnosen weg. Ein Baum, den <code>glyph build</code> bemängelte, lief sauber und endete mit 0. Jetzt meldet er dieselbe Menge: Warnungen eingeschlossen, für die Datei, die du genannt hast, und für ihre Geschwister, nach der Ausgabe des Programms, mit einer einzeiligen Zählung. Der Run-Cache speichert sie, also sagt ein zweiter Lauf über unveränderte Quellen dasselbe wie der erste, statt zu verstummen, und ein Cache-Eintrag ohne Diagnosen zählt als Fehltreffer und wird neu gebaut."
+      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count.",
+      "tr": "Der Befehl, den du den ganzen Tag tippst, ist <code>glyph run</code>, und bis 0.1.40 war er stiller als der Build. Jetzt meldet er dieselbe Menge: Warnungen eingeschlossen, für die Datei, die du genannt hast, und für ihre Geschwister, nach der Ausgabe des Programms, mit einer einzeiligen Zählung."
     },
     {
       "id": "h-136e8e91",
@@ -119,22 +203,64 @@
       "tr": "ein unbenutzter Import, einen Schritt vor dem Code hinzugefügt, der ihn verwendet hätte"
     },
     {
+      "id": "h-6172ffe9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the run cache</span>",
+      "tr": "Details <span class=\"hint\">der Run-Cache</span>"
+    },
+    {
+      "id": "h-f83bcf81",
+      "kind": "html",
+      "en": "The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
+      "tr": "Der Run-Cache speichert sie, also sagt ein zweiter Lauf über unveränderte Quellen dasselbe wie der erste, statt zu verstummen, und ein Cache-Eintrag ohne Diagnosen zählt als Fehltreffer und wird neu gebaut."
+    },
+    {
+      "id": "h-c498308c",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.40</span>",
+      "tr": "Geschichte <span class=\"hint\">vor 0.1.40</span>"
+    },
+    {
+      "id": "h-8906eaf7",
+      "kind": "html",
+      "en": "It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0.",
+      "tr": "Er kompilierte das ganze Verzeichnis, nahm die Liste der erzeugten Dateien aus dem Bericht und warf die Diagnosen weg. Ein Baum, den <code>glyph build</code> bemängelte, lief sauber und endete mit 0."
+    },
+    {
       "id": "h-4ffc5345",
       "kind": "html",
       "en": "Two current limitations",
       "tr": "Zwei aktuelle Einschränkungen"
     },
     {
-      "id": "h-2e9a04df",
+      "id": "h-afa28129",
       "kind": "html",
-      "en": "<strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
-      "tr": "<strong>Der eigene Absturz-Stack von <code>glyph run</code> zeigt noch <code>.ts</code>-Zeilennummern.</strong> <code>glyph run</code> führt über <code>tsx</code> aus, und <code>tsx</code> verkettet die Source Map nicht durch seine eigene Transformation <code>.ts</code>&rarr;<code>.js</code>, also meldet ein nicht abgefangener Throw während <code>glyph run</code> die erzeugte Zeile. Diesen Stack umzurechnen ist ein Folgeschritt. Es betrifft die lokale <code>run</code>-Schleife; in einem echten Deployment machst du <code>glyph build</code> zu <code>.ts</code>, bundelst es mit deiner normalen Toolchain, und die <code>.ts.map</code> wird wie üblich verkettet, also zeigt der Produktions-Stack, wegen dem du tatsächlich alarmiert wirst, zurück auf <code>.glyph</code>."
+      "en": "<b><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</b><code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up.",
+      "tr": "<b>Der eigene Absturz-Stack von <code>glyph run</code> zeigt noch <code>.ts</code>-Zeilennummern.</b><code>glyph run</code> führt über <code>tsx</code> aus, und <code>tsx</code> verkettet die Source Map nicht durch seine eigene Transformation <code>.ts</code>&rarr;<code>.js</code>, also meldet ein nicht abgefangener Throw während <code>glyph run</code> die erzeugte Zeile. Diesen Stack umzurechnen ist ein Folgeschritt."
     },
     {
-      "id": "h-853b7c0e",
+      "id": "h-d5a381c9",
       "kind": "html",
-      "en": "<strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</strong> A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
-      "tr": "<strong>Ein Fehler in einem Geschwistermodul ändert den Exit-Code von <code>glyph run</code> nicht.</strong> Ein Modul, das nicht kompiliert werden konnte, lässt sich nicht importieren, und ein Programm, das es nie importiert hat, läuft trotzdem. Du siehst den Fehler jetzt, aber der Prozess endet weiterhin mit dem, was <code>main</code> zurückgegeben hat. Ihn mit einem Wert ungleich null enden zu lassen, würde Bäume scheitern lassen, die heute problemlos laufen, also ist das eine offene Entscheidung und kein Versehen. Wenn der Zustand des Baums über den Exit-Code entscheiden soll, ist das <code>glyph build</code>."
+      "en": "<b>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</b>A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned.",
+      "tr": "<b>Ein Fehler in einem Geschwistermodul ändert den Exit-Code von <code>glyph run</code> nicht.</b>Ein Modul, das nicht kompiliert werden konnte, lässt sich nicht importieren, und ein Programm, das es nie importiert hat, läuft trotzdem. Du siehst den Fehler jetzt, aber der Prozess endet weiterhin mit dem, was <code>main</code> zurückgegeben hat."
+    },
+    {
+      "id": "h-4320ed23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">production stacks, and why the exit code stays</span>",
+      "tr": "Details <span class=\"hint\">Produktions-Stacks, und warum der Exit-Code bleibt</span>"
+    },
+    {
+      "id": "h-b248d268",
+      "kind": "html",
+      "en": "It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
+      "tr": "Es betrifft die lokale <code>run</code>-Schleife; in einem echten Deployment machst du <code>glyph build</code> zu <code>.ts</code>, bundelst es mit deiner normalen Toolchain, und die <code>.ts.map</code> wird wie üblich verkettet, also zeigt der Produktions-Stack, wegen dem du tatsächlich alarmiert wirst, zurück auf <code>.glyph</code>."
+    },
+    {
+      "id": "h-f778d0a9",
+      "kind": "html",
+      "en": "Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
+      "tr": "Ihn mit einem Wert ungleich null enden zu lassen, würde Bäume scheitern lassen, die heute problemlos laufen, also ist das eine offene Entscheidung und kein Versehen. Wenn der Zustand des Baums über den Exit-Code entscheiden soll, ist das <code>glyph build</code>."
     },
     {
       "id": "h-b55f380c",
@@ -149,10 +275,40 @@
       "tr": "Heute verfügbar"
     },
     {
-      "id": "h-5da7231a",
+      "id": "h-35d5883f",
       "kind": "html",
-      "en": "Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
-      "tr": "Lesbares, committetes TS, eine v3-<code>.ts.map</code> pro Datei, <code>tsc</code>-Fehler auf <code>.glyph</code> zurückgebildet und Diagnosen per <code>--json</code>. <code>glyph run</code> meldet, was <code>glyph build</code> meldet, auch mit warmem Cache. Die Source-Map-Kette deiner Deployment-Toolchain reicht bis <code>.glyph</code>."
+      "en": "Readable committed TS.",
+      "tr": "Lesbares, committetes TS."
+    },
+    {
+      "id": "h-a999d756",
+      "kind": "html",
+      "en": "A v3 <code>.ts.map</code> per file.",
+      "tr": "Eine v3-<code>.ts.map</code> pro Datei."
+    },
+    {
+      "id": "h-b02dde54",
+      "kind": "html",
+      "en": "<code>tsc</code> errors remapped onto <code>.glyph</code>.",
+      "tr": "<code>tsc</code>-Fehler auf <code>.glyph</code> zurückgebildet."
+    },
+    {
+      "id": "h-73412889",
+      "kind": "html",
+      "en": "<code>--json</code> diagnostics.",
+      "tr": "Diagnosen per <code>--json</code>."
+    },
+    {
+      "id": "h-957cf9ca",
+      "kind": "html",
+      "en": "<code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included.",
+      "tr": "<code>glyph run</code> meldet, was <code>glyph build</code> meldet, auch mit warmem Cache."
+    },
+    {
+      "id": "h-f523a3fc",
+      "kind": "html",
+      "en": "Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
+      "tr": "Die Source-Map-Kette deiner Deployment-Toolchain reicht bis <code>.glyph</code>."
     },
     {
       "id": "h-b63a305d",
@@ -161,10 +317,22 @@
       "tr": "In Arbeit"
     },
     {
-      "id": "h-bd6c0e1c",
+      "id": "h-d493c944",
       "kind": "html",
-      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.",
-      "tr": "Den Absturz-Stack von <code>glyph run</code> selbst umzurechnen (damit auch die lokale Run-Schleife <code>.glyph</code>-Frames zeigt), eine Entscheidung, ob der Fehler eines Geschwistermoduls <code>glyph run</code> mit einem Wert ungleich null enden lassen soll, und besseres Debugging im Editor über den LSP."
+      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too).",
+      "tr": "Den Absturz-Stack von <code>glyph run</code> selbst umrechnen (damit auch die lokale Run-Schleife <code>.glyph</code>-Frames zeigt)."
+    },
+    {
+      "id": "h-eb0e2b45",
+      "kind": "html",
+      "en": "A decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero.",
+      "tr": "Eine Entscheidung, ob der Fehler eines Geschwistermoduls <code>glyph run</code> mit einem Wert ungleich null enden lassen soll."
+    },
+    {
+      "id": "h-b5b5ebde",
+      "kind": "html",
+      "en": "Richer editor debugging via the LSP.",
+      "tr": "Besseres Debugging im Editor über den LSP."
     }
   ]
 }

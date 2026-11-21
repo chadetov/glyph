@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/human-value/index.html",
   "locale": "es",
-  "source_hash": "353b3dea2a444a3f",
+  "source_hash": "afc93229f6bea704",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,64 @@
       "tr": "Sí. El enfoque en los agentes de IA es el titular porque los agentes rompen estas cosas constantemente, pero cada garantía que hay debajo es una <strong>mejora de ingeniería normal que una persona aprovecha directamente</strong>. Menos sorpresas en tiempo de ejecución, diffs más pequeños, código en el que grep funciona. Nada de eso necesita un LLM."
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-6b42c22f",
+      "kind": "html",
+      "en": "<a href=\"#these-are-language-features-not-ai-features\">Language features</a>",
+      "tr": "<a href=\"#these-are-language-features-not-ai-features\">Características del lenguaje</a>"
+    },
+    {
+      "id": "h-a6a62204",
+      "kind": "html",
+      "en": "<a href=\"#what-you-get-solo\">What you get, solo</a>",
+      "tr": "<a href=\"#what-you-get-solo\">Lo que ganas trabajando solo</a>"
+    },
+    {
+      "id": "h-81243956",
+      "kind": "html",
+      "en": "<a href=\"#so-why-lead-with-agents\">Why lead with agents</a>",
+      "tr": "<a href=\"#so-why-lead-with-agents\">Por qué los agentes van por delante</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Dónde está</a>"
+    },
+    {
       "id": "h-883d013e",
       "kind": "html",
       "en": "These are language features, not AI features",
       "tr": "Son características del lenguaje, no de IA"
     },
     {
-      "id": "h-377ab84f",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Enlace a esta sección"
+    },
+    {
+      "id": "h-6a786dfe",
       "kind": "html",
-      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
-      "tr": "Quita la palabra \"agente\" y lee la lista: sin <code>any</code>, <code>match</code> exhaustivo, errores como valores, tipos que se comprueban en tiempo de ejecución, una forma de declaración por nombre, un formato canónico y estable en los diffs. Cualquiera que haya escrito Rust, Elm u OCaml las reconoce como las cosas que hacen agradable mantener un código. Eran buenas ideas mucho antes de que la IA escribiera código. Glyph simplemente las lleva a un lenguaje con forma de TypeScript que puedes adoptar archivo a archivo."
+      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format.",
+      "tr": "Quita la palabra \"agente\" y lee la lista: sin <code>any</code>, <code>match</code> exhaustivo, errores como valores, tipos que se comprueban en tiempo de ejecución, una forma de declaración por nombre, un formato canónico y estable en los diffs."
+    },
+    {
+      "id": "h-307d3d43",
+      "kind": "html",
+      "en": "Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
+      "tr": "Cualquiera que haya escrito Rust, Elm u OCaml las reconoce como las cosas que hacen agradable mantener un código. Eran buenas ideas mucho antes de que la IA escribiera código. Glyph simplemente las lleva a un lenguaje con forma de TypeScript que puedes adoptar archivo a archivo."
     },
     {
       "id": "h-bad10559",
@@ -77,28 +125,28 @@
       "tr": "Lo que ganas trabajando solo"
     },
     {
-      "id": "h-4f15d4ac",
+      "id": "h-6ff118c8",
       "kind": "html",
-      "en": "<strong>Fewer 3am pages.</strong> Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
-      "tr": "<strong>Menos avisos a las 3 de la mañana.</strong> Los datos de la frontera se validan por construcción (<code>User.parse</code>), y un caso que falta es un error de compilación, no un <code>undefined</code> que aparece en producción."
+      "en": "<b>Fewer 3am pages.</b>Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
+      "tr": "<b>Menos avisos a las 3 de la mañana.</b>Los datos de la frontera se validan por construcción (<code>User.parse</code>), y un caso que falta es un error de compilación, no un <code>undefined</code> que aparece en producción."
     },
     {
-      "id": "h-3212661c",
+      "id": "h-579891e9",
       "kind": "html",
-      "en": "<strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
-      "tr": "<strong>Revisiones más rápidas.</strong> Un cambio de una línea es un diff de una línea, así que quien revisa lee el cambio, no el ruido de reformateo que lo rodea."
+      "en": "<b>Faster review.</b>A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
+      "tr": "<b>Revisiones más rápidas.</b>Un cambio de una línea es un diff de una línea, así que quien revisa lee el cambio, no el ruido de reformateo que lo rodea."
     },
     {
-      "id": "h-bde8ceea",
+      "id": "h-10c51631",
       "kind": "html",
-      "en": "<strong>You can find anything.</strong> <code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
-      "tr": "<strong>Encuentras cualquier cosa.</strong> <code>grep \"fn parseUser\"</code> da con la definición: no hay sobrecargas, barrels ni decoradores que la dispersen."
+      "en": "<b>You can find anything.</b><code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
+      "tr": "<b>Encuentras cualquier cosa.</b><code>grep \"fn parseUser\"</code> da con la definición: no hay sobrecargas, barrels ni decoradores que la dispersen."
     },
     {
-      "id": "h-2d7f721c",
+      "id": "h-ce2cade1",
       "kind": "html",
-      "en": "<strong>Easier onboarding.</strong> A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
-      "tr": "<strong>Incorporación más fácil.</strong> Un núcleo pequeño con una sola forma de hacer cada cosa significa menos conocimiento tribal que tenga que aprender la siguiente persona."
+      "en": "<b>Easier onboarding.</b>A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
+      "tr": "<b>Incorporación más fácil.</b>Un núcleo pequeño con una sola forma de hacer cada cosa significa menos conocimiento tribal que tenga que aprender la siguiente persona."
     },
     {
       "id": "h-a45cacac",
@@ -107,10 +155,22 @@
       "tr": "Entonces, ¿por qué poner a los agentes por delante?"
     },
     {
-      "id": "h-0cf505e4",
+      "id": "h-41bfa897",
       "kind": "html",
-      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on. The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
-      "tr": "Porque ahí el beneficio es <em>mayor</em>. Una persona acaba aprendiendo a ejecutar el linter y a manejar el caso; un agente recurre a <code>any</code>, olvida el brazo y lo integra en verde, y no se puede confiar en que mantenga activadas las herramientas opcionales. El valor de que el rigor <em>no sea opcional</em> se multiplica cuando es una máquina la que escribe el código. Pero el suelo (las mejoras de arriba) está ahí uses un agente o no."
+      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on.",
+      "tr": "Porque ahí el beneficio es <em>mayor</em>. Una persona acaba aprendiendo a ejecutar el linter y a manejar el caso; un agente recurre a <code>any</code>, olvida el brazo y lo integra en verde, y no se puede confiar en que mantenga activadas las herramientas opcionales."
+    },
+    {
+      "id": "h-4173ea23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the floor is there either way</span>",
+      "tr": "Detalles <span class=\"hint\">el suelo está ahí en cualquier caso</span>"
+    },
+    {
+      "id": "h-18feeddc",
+      "kind": "html",
+      "en": "The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
+      "tr": "El valor de que el rigor <em>no sea opcional</em> se multiplica cuando es una máquina la que escribe el código. Pero el suelo (las mejoras de arriba) está ahí uses un agente o no."
     },
     {
       "id": "h-f388e69f",
@@ -131,10 +191,16 @@
       "tr": "El compromiso"
     },
     {
-      "id": "h-4370ff74",
+      "id": "h-0231228b",
       "kind": "html",
-      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
-      "tr": "Si empiezas algo nuevo, o tu equipo ya valora la disciplina de la familia ML, las mejoras llegan de inmediato. Si trabajas solo sobre un stack de TS maduro y con buenas herramientas, la decisión está más ajustada: Glyph es una versión preliminar, y ese es un coste real que hay que sopesar."
+      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately.",
+      "tr": "Si empiezas algo nuevo, o tu equipo ya valora la disciplina de la familia ML, las mejoras llegan de inmediato."
+    },
+    {
+      "id": "h-8dd4f5ff",
+      "kind": "html",
+      "en": "If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
+      "tr": "Si trabajas solo sobre un stack de TS maduro y con buenas herramientas, la decisión está más ajustada: Glyph es una versión preliminar, y ese es un coste real que hay que sopesar."
     },
     {
       "id": "h-e15e4388",

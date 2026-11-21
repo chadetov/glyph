@@ -1,7 +1,7 @@
 ---
 title: ¿Merece la pena Glyph si no uso IA? · Glyph
 description: Sí. Los agentes de IA son el titular, pero cada garantía (match exhaustivo, sin any, tipos comprobados en tiempo de ejecución, código que se puede buscar con grep, diffs estables) también ayuda a las personas.
-source_hash: 353b3dea2a444a3f
+source_hash: afc93229f6bea704
 prev: /answers/vs-tooled-ts/ | &larr; Anterior | ¿Por qué no simplemente TypeScript estricto + zod + eslint + ts-pattern?
 next: /answers/ai-authoring/ | Siguiente &rarr; | ¿Puede una IA escribir con fiabilidad un lenguaje que apenas ha visto?
 ---
@@ -12,38 +12,55 @@ next: /answers/ai-authoring/ | Siguiente &rarr; | ¿Puede una IA escribir con fi
         Sí. El enfoque en los agentes de IA es el titular porque los agentes rompen estas cosas constantemente, pero cada garantía que hay debajo es una <strong>mejora de ingeniería normal que una persona aprovecha directamente</strong>. Menos sorpresas en tiempo de ejecución, diffs más pequeños, código en el que grep funciona. Nada de eso necesita un LLM.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Son características del lenguaje, no de IA</h2>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#these-are-language-features-not-ai-features">Características del lenguaje</a></li>
+          <li><a href="#what-you-get-solo">Lo que ganas trabajando solo</a></li>
+          <li><a href="#so-why-lead-with-agents">Por qué los agentes van por delante</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="these-are-language-features-not-ai-features">Son características del lenguaje, no de IA<a class="ak-anchor" href="#these-are-language-features-not-ai-features" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Quita la palabra "agente" y lee la lista: sin <code>any</code>, <code>match</code> exhaustivo, errores como valores, tipos que se comprueban en tiempo de ejecución, una forma de declaración por nombre, un formato canónico y estable en los diffs.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Cualquiera que haya escrito Rust, Elm u OCaml las reconoce como las cosas que hacen agradable mantener un código. Eran buenas ideas mucho antes de que la IA escribiera código. Glyph simplemente las lleva a un lenguaje con forma de TypeScript que puedes adoptar archivo a archivo.</p></div>
+
+      <h2 class="ak-h" id="what-you-get-solo">Lo que ganas trabajando solo<a class="ak-anchor" href="#what-you-get-solo" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Menos avisos a las 3 de la mañana.</b>Los datos de la frontera se validan por construcción (<code>User.parse</code>), y un caso que falta es un error de compilación, no un <code>undefined</code> que aparece en producción.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>Revisiones más rápidas.</b>Un cambio de una línea es un diff de una línea, así que quien revisa lee el cambio, no el ruido de reformateo que lo rodea.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4l3.6 3.6"/></svg></span><b>Encuentras cualquier cosa.</b><code>grep "fn parseUser"</code> da con la definición: no hay sobrecargas, barrels ni decoradores que la dispersen.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5c0-2.3 1.8-4 4-4s4 1.7 4 4"/><path d="M10.5 3.4a2.3 2.3 0 010 4.4M12 9.8c1.2.6 2 1.9 2 3.7"/></svg></span><b>Incorporación más fácil.</b>Un núcleo pequeño con una sola forma de hacer cada cosa significa menos conocimiento tribal que tenga que aprender la siguiente persona.</li>
+      </ul>
+
+      <h2 class="ak-h" id="so-why-lead-with-agents">Entonces, ¿por qué poner a los agentes por delante?<a class="ak-anchor" href="#so-why-lead-with-agents" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Porque ahí el beneficio es <em>mayor</em>. Una persona acaba aprendiendo a ejecutar el linter y a manejar el caso; un agente recurre a <code>any</code>, olvida el brazo y lo integra en verde, y no se puede confiar en que mantenga activadas las herramientas opcionales.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">el suelo está ahí en cualquier caso</span></summary><div class="body">
         <p>
-          Quita la palabra "agente" y lee la lista: sin <code>any</code>, <code>match</code> exhaustivo, errores como valores, tipos que se comprueban en tiempo de ejecución, una forma de declaración por nombre, un formato canónico y estable en los diffs. Cualquiera que haya escrito Rust, Elm u OCaml las reconoce como las cosas que hacen agradable mantener un código. Eran buenas ideas mucho antes de que la IA escribiera código. Glyph simplemente las lleva a un lenguaje con forma de TypeScript que puedes adoptar archivo a archivo.
+          El valor de que el rigor <em>no sea opcional</em> se multiplica cuando es una máquina la que escribe el código. Pero el suelo (las mejoras de arriba) está ahí uses un agente o no.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Piénsalo como un TypeScript más estricto que resulta ser muy bueno para agentes, no como una herramienta para agentes que solo se justifica si usas uno.</p></div>
 
-        <h2 class="block-label">Lo que ganas trabajando solo</h2>
-        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Menos avisos a las 3 de la mañana.</strong> Los datos de la frontera se validan por construcción (<code>User.parse</code>), y un caso que falta es un error de compilación, no un <code>undefined</code> que aparece en producción.</li>
-          <li><strong>Revisiones más rápidas.</strong> Un cambio de una línea es un diff de una línea, así que quien revisa lee el cambio, no el ruido de reformateo que lo rodea.</li>
-          <li><strong>Encuentras cualquier cosa.</strong> <code>grep "fn parseUser"</code> da con la definición: no hay sobrecargas, barrels ni decoradores que la dispersen.</li>
-          <li><strong>Incorporación más fácil.</strong> Un núcleo pequeño con una sola forma de hacer cada cosa significa menos conocimiento tribal que tenga que aprender la siguiente persona.</li>
-        </ul>
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> El compromiso</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Si empiezas algo nuevo, o tu equipo ya valora la disciplina de la familia ML, las mejoras llegan de inmediato.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Si trabajas solo sobre un stack de TS maduro y con buenas herramientas, la decisión está más ajustada: Glyph es una versión preliminar, y ese es un coste real que hay que sopesar.</span></span></li>
+          </ul>
+        </section>
 
-        <h2 class="block-label">Entonces, ¿por qué poner a los agentes por delante?</h2>
-        <p>
-          Porque ahí el beneficio es <em>mayor</em>. Una persona acaba aprendiendo a ejecutar el linter y a manejar el caso; un agente recurre a <code>any</code>, olvida el brazo y lo integra en verde, y no se puede confiar en que mantenga activadas las herramientas opcionales. El valor de que el rigor <em>no sea opcional</em> se multiplica cuando es una máquina la que escribe el código. Pero el suelo (las mejoras de arriba) está ahí uses un agente o no.
-        </p>
-
-        <p class="callout">
-          Piénsalo como un TypeScript más estricto que resulta ser muy bueno para agentes, no como una herramienta para agentes que solo se justifica si usas uno.
-        </p>
-      </div>
-
-      <h2 class="block-label">Dónde está</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">El compromiso</h3>
-          <p>Si empiezas algo nuevo, o tu equipo ya valora la disciplina de la familia ML, las mejoras llegan de inmediato. Si trabajas solo sobre un stack de TS maduro y con buenas herramientas, la decisión está más ajustada: Glyph es una versión preliminar, y ese es un coste real que hay que sopesar.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">En cualquier caso</h3>
-          <p>La vía de salida es permanente: compila a TypeScript legible que es tuyo, así que probarlo en un módulo es barato y reversible.</p>
-        </div>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> En cualquier caso</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">La vía de salida es permanente: compila a TypeScript legible que es tuyo, así que probarlo en un módulo es barato y reversible.</span></span></li>
+          </ul>
+        </section>
       </div>

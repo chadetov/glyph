@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/imports/index.html",
   "locale": "es",
-  "source_hash": "5a2ca99ba7fdb55b",
+  "source_hash": "23b2b45b7b2aff03",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,124 @@
       "tr": "Sí. Glyph compila a <strong>TypeScript normal</strong> y se apoya en npm: un módulo <code>.glyph</code> importa de cualquier paquete y a su vez se puede importar desde tu <code>.ts</code> existente. Lo adoptas <strong>archivo a archivo</strong>."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Por qué importa"
-    },
-    {
-      "id": "h-a0424c1d",
-      "kind": "html",
-      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it. That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
-      "tr": "Nadie reescribe un código para probar un lenguaje. Como la salida de Glyph <em>es</em> TypeScript, un archivo <code>.glyph</code> encaja en un rincón de un proyecto TS/React/Node existente, importa los mismos paquetes y exporta de vuelta al <code>.ts</code> que lo rodea. Ese camino gradual es justo el motivo de compilar a TypeScript en lugar de publicar un runtime nuevo."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Míralo"
-    },
-    {
-      "id": "h-14807471",
-      "kind": "html",
-      "en": "You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect:",
-      "tr": "Importas los paquetes por su nombre (incluidos los que llevan guiones y los que tienen scope de npm) y Glyph genera el import que esperarías:"
-    },
-    {
       "id": "h-9ddeefdb",
       "kind": "html",
       "en": "form.ts: emitted",
       "tr": "form.ts: generado"
     },
     {
-      "id": "h-6805488a",
+      "id": "h-6cf5fdbe",
       "kind": "html",
-      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file. <code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error. Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked. Here is zod used inline, with nothing hand-written:",
-      "tr": "Si el paquete está instalado y trae sus propios tipos (o tiene un <code>@types/...</code>), no tienes que hacer nada más. Ni stub, ni archivo adaptador. <code>glyph build</code> encuentra el <code>node_modules</code> de tu proyecto y apunta el comprobador de tipos hacia él, así que los tipos reales del paquete comprueban tu código y una llamada incorrecta es un error real. Los imports de subrutas (<code>pkg/sub</code>) también se resuelven a través del mapa <code>exports</code> del paquete, así que se comprueban los tipos propios de cada subruta. Aquí está zod usado directamente, sin nada escrito a mano:"
+      "en": "<span>You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect.</span>",
+      "tr": "<span>Importas los paquetes por su nombre (incluidos los que llevan guiones y los que tienen scope de npm) y Glyph genera el import que esperarías.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Por qué importa</a>"
+    },
+    {
+      "id": "h-dcec54ee",
+      "kind": "html",
+      "en": "<a href=\"#installed-packages\">Installed packages</a>",
+      "tr": "<a href=\"#installed-packages\">Paquetes instalados</a>"
+    },
+    {
+      "id": "h-21998576",
+      "kind": "html",
+      "en": "<a href=\"#value-derived-types\">Value-derived types</a>",
+      "tr": "<a href=\"#value-derived-types\">Tipos derivados de valores</a>"
+    },
+    {
+      "id": "h-95007da9",
+      "kind": "html",
+      "en": "<a href=\"#when-you-need-whole-hand-written-typescript\">Hand-written TypeScript</a>",
+      "tr": "<a href=\"#when-you-need-whole-hand-written-typescript\">TypeScript escrito a mano</a>"
+    },
+    {
+      "id": "h-d94cab8b",
+      "kind": "html",
+      "en": "<a href=\"#watching-a-subprocess-with-nothing-installed\">Subprocesses</a>",
+      "tr": "<a href=\"#watching-a-subprocess-with-nothing-installed\">Subprocesos</a>"
+    },
+    {
+      "id": "h-481c1f41",
+      "kind": "html",
+      "en": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">Editing a shim</a>",
+      "tr": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">Editar un shim</a>"
+    },
+    {
+      "id": "h-6f151525",
+      "kind": "html",
+      "en": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">Class-based clients</a>",
+      "tr": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">Clientes basados en clases</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Dónde está</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por qué importa"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Enlace a esta sección"
+    },
+    {
+      "id": "h-7a9c8785",
+      "kind": "html",
+      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it.",
+      "tr": "Nadie reescribe un código para probar un lenguaje. Como la salida de Glyph <em>es</em> TypeScript, un archivo <code>.glyph</code> encaja en un rincón de un proyecto TS/React/Node existente, importa los mismos paquetes y exporta de vuelta al <code>.ts</code> que lo rodea."
+    },
+    {
+      "id": "h-8f945607",
+      "kind": "html",
+      "en": "That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
+      "tr": "Ese camino gradual es justo el motivo de compilar a TypeScript en lugar de publicar un runtime nuevo."
+    },
+    {
+      "id": "h-17e331ce",
+      "kind": "html",
+      "en": "Installed packages bring their own types",
+      "tr": "Los paquetes instalados traen sus propios tipos"
+    },
+    {
+      "id": "h-f2f27da3",
+      "kind": "html",
+      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file.",
+      "tr": "Si el paquete está instalado y trae sus propios tipos (o tiene un <code>@types/...</code>), no tienes que hacer nada más. Ni stub, ni archivo adaptador."
+    },
+    {
+      "id": "h-5785d33d",
+      "kind": "html",
+      "en": "<code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error.",
+      "tr": "<code>glyph build</code> encuentra el <code>node_modules</code> de tu proyecto y apunta el comprobador de tipos hacia él, así que los tipos reales del paquete comprueban tu código y una llamada incorrecta es un error real."
+    },
+    {
+      "id": "h-d3a4379a",
+      "kind": "html",
+      "en": "Here is zod used inline, with nothing hand-written:",
+      "tr": "Aquí está zod usado directamente, sin nada escrito a mano:"
     },
     {
       "id": "h-dc9d8579",
@@ -101,16 +185,70 @@
       "tr": "una llamada que zod no define"
     },
     {
-      "id": "h-21f4ad4e",
+      "id": "h-d053ec00",
       "kind": "html",
-      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too. A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses). And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
-      "tr": "<code>glyph run</code> ejecuta el mismo programa con el zod instalado, así que no es solo una comprobación de tipos: la única entrada de configuración que resuelve el paquete para el comprobador de tipos lo resuelve también para el runtime. Un paquete que <em>no</em> trae tipos y no tiene <code>@types/...</code> sigue necesitando una declaración escrita por ti, y para eso está la carpeta <code>.types/</code> (el mismo mecanismo de <code>.d.ts</code> que ya usa TypeScript). Y cuando quieres la forma de una librería como un tipo de Glyph de primera clase y <em>validado</em>, en lugar de un import solo de tipos, <code>glyph gen dts</code> materializa un <code>.d.ts</code> en tipos reales con descriptores: consulta <a href=\"/answers/typed-apis/\">¿tengo que escribir a mano un validador para cada API?</a>"
+      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too.",
+      "tr": "<code>glyph run</code> ejecuta el mismo programa con el zod instalado, así que no es solo una comprobación de tipos: la única entrada de configuración que resuelve el paquete para el comprobador de tipos lo resuelve también para el runtime."
     },
     {
-      "id": "h-b452280f",
+      "id": "h-6c15d6d3",
       "kind": "html",
-      "en": "Value-derived types are first-class. <code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too. For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow). So a library never forces a hand-written adapter file.",
-      "tr": "Los tipos derivados de valores son de primera clase. <code>type User = z.infer&lt;typeof user_schema&gt;</code> funciona directamente: <code>typeof user_schema</code> es una consulta de tipo sobre una referencia real a un valor (una errata es un error de nombre sin resolver), y <code>z.infer&lt;...&gt;</code> es un tipo genérico miembro normal. Se genera tal cual y <code>tsc</code> lo reduce, así que <code>u.name</code> es un <code>string</code>; la validación viene del propio <code>parse</code> del schema, que es como ya funciona zod. El spread de props en JSX (<code>&lt;input {...register()} /&gt;</code>) también es de primera clase. Para el raro idioma de TypeScript que Glyph todavía no sabe escribir, <code>extern_ts(\"...\")</code> es la vía de escape acotada y que se puede buscar con grep: <code>tsc</code> lo comprueba, pero seamos precisos, es una frontera de confianza, no una validada en tiempo de ejecución (opaca para Glyph, el valor vuelve como <code>unknown</code> para estrecharlo). Así que una librería nunca te obliga a escribir a mano un archivo adaptador."
+      "en": "A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses).",
+      "tr": "Un paquete que <em>no</em> trae tipos y no tiene <code>@types/...</code> sigue necesitando una declaración escrita por ti, y para eso está la carpeta <code>.types/</code> (el mismo mecanismo de <code>.d.ts</code> que ya usa TypeScript)."
+    },
+    {
+      "id": "h-faf2dbc6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">subpath imports, and validated types from a <code>.d.ts</code></span>",
+      "tr": "Detalles <span class=\"hint\">imports de subrutas, y tipos validados a partir de un <code>.d.ts</code></span>"
+    },
+    {
+      "id": "h-522447b0",
+      "kind": "html",
+      "en": "Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked.",
+      "tr": "Los imports de subrutas (<code>pkg/sub</code>) también se resuelven a través del mapa <code>exports</code> del paquete, así que se comprueban los tipos propios de cada subruta."
+    },
+    {
+      "id": "h-1007fe54",
+      "kind": "html",
+      "en": "And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
+      "tr": "Y cuando quieres la forma de una librería como un tipo de Glyph de primera clase y <em>validado</em>, en lugar de un import solo de tipos, <code>glyph gen dts</code> materializa un <code>.d.ts</code> en tipos reales con descriptores: consulta <a href=\"/answers/typed-apis/\">¿tengo que escribir a mano un validador para cada API?</a>"
+    },
+    {
+      "id": "h-2db57ff2",
+      "kind": "html",
+      "en": "Value-derived types, JSX spread, and the escape hatch",
+      "tr": "Tipos derivados de valores, spread en JSX y la vía de escape"
+    },
+    {
+      "id": "h-1e132a69",
+      "kind": "html",
+      "en": "Value-derived types are first-class. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too.",
+      "tr": "Los tipos derivados de valores son de primera clase. El spread de props en JSX (<code>&lt;input {...register()} /&gt;</code>) también es de primera clase."
+    },
+    {
+      "id": "h-6f2bd6e2",
+      "kind": "html",
+      "en": "So a library never forces a hand-written adapter file.",
+      "tr": "Así que una librería nunca te obliga a escribir a mano un archivo adaptador."
+    },
+    {
+      "id": "h-a6d90976",
+      "kind": "html",
+      "en": "For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow).",
+      "tr": "Para el raro idioma de TypeScript que Glyph todavía no sabe escribir, <code>extern_ts(\"...\")</code> es la vía de escape acotada y que se puede buscar con grep: <code>tsc</code> lo comprueba, pero seamos precisos, es una frontera de confianza, no una validada en tiempo de ejecución (opaca para Glyph, el valor vuelve como <code>unknown</code> para estrecharlo)."
+    },
+    {
+      "id": "h-c137232f",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how <code>z.infer&lt;typeof s&gt;</code> resolves</span>",
+      "tr": "Detalles <span class=\"hint\">cómo se resuelve <code>z.infer&lt;typeof s&gt;</code></span>"
+    },
+    {
+      "id": "h-12585308",
+      "kind": "html",
+      "en": "<code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works.",
+      "tr": "<code>type User = z.infer&lt;typeof user_schema&gt;</code> funciona directamente: <code>typeof user_schema</code> es una consulta de tipo sobre una referencia real a un valor (una errata es un error de nombre sin resolver), y <code>z.infer&lt;...&gt;</code> es un tipo genérico miembro normal. Se genera tal cual y <code>tsc</code> lo reduce, así que <code>u.name</code> es un <code>string</code>; la validación viene del propio <code>parse</code> del schema, que es como ya funciona zod."
     },
     {
       "id": "h-933fdf8a",
@@ -125,10 +263,28 @@
       "tr": "A veces la vía de escape no es un tipo ni una expresión, sino código de runtime de verdad: un bucle sobre un stream de node, un <code>new Promise</code>, un worker thread. Pon el <code>.ts</code> en <code>&lt;src&gt;/extern/</code> y llega a él con <code>import extern/&lt;name&gt;</code>."
     },
     {
-      "id": "h-be412622",
+      "id": "h-fa79d5b6",
       "kind": "html",
-      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it. Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language. It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
-      "tr": "El build copia <code>&lt;src&gt;/extern/**</code> a la salida y genera un especificador relativo, así que <code>tsc</code> comprueba los tipos del extern junto con tu código Glyph y una recompilación nunca lo elimina. Los imports relativos siguen sin estar permitidos en el código Glyph (una regla de buscabilidad), así que <code>extern/*</code> es la única ruta reservada, y <code>grep -rn 'import extern/'</code> encuentra cada sitio donde saliste del lenguaje. Es lo contrario de la dirección fácil, un archivo <code>.ts</code> que importa tu Glyph compilado, que no necesita nada. Un extern habitual (un servidor http, <code>fs</code>) se comprueba contra el shim de node incluido sin instalar nada."
+      "en": "Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language.",
+      "tr": "Los imports relativos siguen sin estar permitidos en el código Glyph (una regla de buscabilidad), así que <code>extern/*</code> es la única ruta reservada, y <code>grep -rn 'import extern/'</code> encuentra cada sitio donde saliste del lenguaje."
+    },
+    {
+      "id": "h-1f1e7e4e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">staging, the other direction, and the node shim</span>",
+      "tr": "Detalles <span class=\"hint\">la copia al build, la otra dirección y el shim de node</span>"
+    },
+    {
+      "id": "h-5604c230",
+      "kind": "html",
+      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it.",
+      "tr": "El build copia <code>&lt;src&gt;/extern/**</code> a la salida y genera un especificador relativo, así que <code>tsc</code> comprueba los tipos del extern junto con tu código Glyph y una recompilación nunca lo elimina."
+    },
+    {
+      "id": "h-34852d03",
+      "kind": "html",
+      "en": "It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
+      "tr": "Es lo contrario de la dirección fácil, un archivo <code>.ts</code> que importa tu Glyph compilado, que no necesita nada. Un extern habitual (un servidor http, <code>fs</code>) se comprueba contra el shim de node incluido sin instalar nada."
     },
     {
       "id": "h-71b270de",
@@ -143,10 +299,16 @@
       "tr": "Las declaraciones de node incluidas cubren la mitad asíncrona de <code>child_process</code>, no solo la bloqueante, así que una herramienta que muestra la salida de un comando largo mientras se ejecuta es Glyph y no un extern:"
     },
     {
-      "id": "h-1b963ba3",
+      "id": "h-dd6cd86b",
       "kind": "html",
-      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them. The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
-      "tr": "<code>io.print</code> y no <code>io.println</code>: un chunk es un trozo del stream, no una línea, y una línea puede llegar repartida en dos. Las sobrecargas siguen a <code>@types/node</code>, así que las pipes vuelven no nulas con un <code>spawn(command, args)</code> simple y anulables en cuanto pasas <code>stdio</code>. Leer <code>child.stdout</code> después de <code>stdio: \"inherit\"</code> da <code>TS18047</code> aquí y <code>TS18047</code> con los tipos reales, en lugar de dos versiones distintas sobre el mismo valor:"
+      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them.",
+      "tr": "<code>io.print</code> y no <code>io.println</code>: un chunk es un trozo del stream, no una línea, y una línea puede llegar repartida en dos."
+    },
+    {
+      "id": "h-a7ca9a52",
+      "kind": "html",
+      "en": "The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
+      "tr": "Las sobrecargas siguen a <code>@types/node</code>, así que las pipes vuelven no nulas con un <code>spawn(command, args)</code> simple y anulables en cuanto pasas <code>stdio</code>. Leer <code>child.stdout</code> después de <code>stdio: \"inherit\"</code> da <code>TS18047</code> aquí y <code>TS18047</code> con los tipos reales, en lugar de dos versiones distintas sobre el mismo valor:"
     },
     {
       "id": "h-9dde8adf",
@@ -155,10 +317,28 @@
       "tr": "Editas el shim, y la siguiente ejecución usa el shim que editaste"
     },
     {
-      "id": "h-452ef7e8",
+      "id": "h-d10f8be9",
       "kind": "html",
-      "en": "A shim is a file you iterate on, so it has to count as a source. <code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents. Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
-      "tr": "Un shim es un archivo sobre el que iteras, así que tiene que contar como código fuente. <code>glyph run</code> guarda en caché un build bajo una huella de tus fuentes, y esa huella cubre cada <code>.ts</code> y <code>.tsx</code> bajo <code>extern/</code>, tanto por ruta como por contenido. Edita uno, renombra uno, añade uno, borra uno, y la siguiente ejecución recompila y vuelve a ejecutar <code>tsc</code>. Un shim enlazado con un symlink se sigue, así que un <code>.ts</code> guardado fuera del árbol de fuentes se hashea por lo que contiene de verdad."
+      "en": "A shim is a file you iterate on, so it has to count as a source.",
+      "tr": "Un shim es un archivo sobre el que iteras, así que tiene que contar como código fuente."
+    },
+    {
+      "id": "h-b99f20ec",
+      "kind": "html",
+      "en": "<code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents.",
+      "tr": "<code>glyph run</code> guarda en caché un build bajo una huella de tus fuentes, y esa huella cubre cada <code>.ts</code> y <code>.tsx</code> bajo <code>extern/</code>, tanto por ruta como por contenido."
+    },
+    {
+      "id": "h-9f85f72e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what triggers a rebuild</span>",
+      "tr": "Detalles <span class=\"hint\">qué provoca una recompilación</span>"
+    },
+    {
+      "id": "h-c636c43d",
+      "kind": "html",
+      "en": "Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
+      "tr": "Edita uno, renombra uno, añade uno, borra uno, y la siguiente ejecución recompila y vuelve a ejecutar <code>tsc</code>. Un shim enlazado con un symlink se sigue, así que un <code>.ts</code> guardado fuera del árbol de fuentes se hashea por lo que contiene de verdad."
     },
     {
       "id": "h-f9bad1f5",
@@ -173,6 +353,12 @@
       "tr": "el shim renombró un campo, y el build lo dice"
     },
     {
+      "id": "h-4c3ff3eb",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.44, and the files that do not count</span>",
+      "tr": "Historia <span class=\"hint\">antes de la 0.1.44, y los archivos que no cuentan</span>"
+    },
+    {
       "id": "h-82a5c1d0",
       "kind": "html",
       "en": "Until 0.1.44 the fingerprint skipped <code>extern/</code> entirely, so that rename produced a clean, type-checked build running the previous copy of the shim. Files under <code>extern/</code> that are not <code>.ts</code> or <code>.tsx</code> still do not affect the cache, which is deliberate: a <code>README.md</code> next to your shim is copied into the output along with it, but nothing type-checks or runs it, so there is nothing to rebuild.",
@@ -185,10 +371,10 @@
       "tr": "Clientes basados en clases: los de bases de datos y mensajería"
     },
     {
-      "id": "h-c7898520",
+      "id": "h-42055f0b",
       "kind": "html",
-      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this. It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name. It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
-      "tr": "La mayoría de los clientes de bases de datos y de mensajería se basan en clases: escribes <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph tiene <code>new</code> justo para esto. Genera un <code>new</code> de TypeScript tal cual y <code>tsc</code> lo comprueba contra el constructor real del paquete, así que un argumento incorrecto es un error real y un callee no definido se detecta por su nombre. Se limita a la interoperabilidad: Glyph no tiene <code>class</code> propio, y <code>new</code> solo construye un tipo que viene de un paquete, de una declaración en <code>.types</code> o de <code>extern_ts</code>."
+      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this.",
+      "tr": "La mayoría de los clientes de bases de datos y de mensajería se basan en clases: escribes <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph tiene <code>new</code> justo para esto."
     },
     {
       "id": "h-89f59f10",
@@ -203,6 +389,18 @@
       "tr": "un cliente con factory no necesita <code>new</code>"
     },
     {
+      "id": "h-e340cea4",
+      "kind": "html",
+      "en": "It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name.",
+      "tr": "Genera un <code>new</code> de TypeScript tal cual y <code>tsc</code> lo comprueba contra el constructor real del paquete, así que un argumento incorrecto es un error real y un callee no definido se detecta por su nombre."
+    },
+    {
+      "id": "h-bdcee871",
+      "kind": "html",
+      "en": "It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
+      "tr": "Se limita a la interoperabilidad: Glyph no tiene <code>class</code> propio, y <code>new</code> solo construye un tipo que viene de un paquete, de una declaración en <code>.types</code> o de <code>extern_ts</code>."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -215,10 +413,76 @@
       "tr": "Disponible hoy"
     },
     {
-      "id": "h-112846a9",
+      "id": "h-27cbdd05",
       "kind": "html",
-      "en": "Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly. Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one. A declaration only your code reaches is not covered by that check yet, and a few are still wider than node. <code>.types/</code> ambient declarations for anything else, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back. When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
-      "tr": "Importar cualquier paquete de npm (incluidos los nombres con guiones y con scope). Un paquete instalado que trae sus propios tipos (o tiene <code>@types/...</code>) se comprueba y se ejecuta sin stub. Los clientes basados en clases se construyen con <code>new</code>, que <code>tsc</code> comprueba contra el constructor real; los clientes con factory se importan y se llaman directamente. Los builtins de node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> incluido el <code>spawn</code> con streaming, y el resto) se comprueban de serie, con <code>@types/node</code> cargado automáticamente cuando lo instalas, y el CI compila el propio runtime del compilador contra ese paquete en <code>latest</code>, así que una declaración de la que depende la librería estándar no puede desviarse de la real de node. Una declaración a la que solo llega tu código todavía no está cubierta por esa comprobación, y unas pocas siguen siendo más amplias que las de node. Declaraciones ambientales en <code>.types/</code> para todo lo demás, <code>glyph gen dts</code> para materializar un <code>.d.ts</code> en tipos de Glyph validados, y una salida <code>.ts</code> limpia que tu TypeScript existente importa de vuelta. Cuando necesitas TypeScript entero escrito a mano, <code>import extern/&lt;name&gt;</code> llega a un <code>.ts</code> en <code>&lt;src&gt;/extern/</code>, que se copia y se comprueba junto con tu código, y que la caché de <code>glyph run</code> sigue, así que editarlo provoca una recompilación."
+      "en": "Import any npm package (hyphenated and scoped names included).",
+      "tr": "Importar cualquier paquete de npm (incluidos los nombres con guiones y con scope)."
+    },
+    {
+      "id": "h-714073e7",
+      "kind": "html",
+      "en": "An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub.",
+      "tr": "Un paquete instalado que trae sus propios tipos (o tiene <code>@types/...</code>) se comprueba y se ejecuta sin stub."
+    },
+    {
+      "id": "h-06eb4461",
+      "kind": "html",
+      "en": "Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly.",
+      "tr": "Los clientes basados en clases se construyen con <code>new</code>, que <code>tsc</code> comprueba contra el constructor real; los clientes con factory se importan y se llaman directamente."
+    },
+    {
+      "id": "h-b96f67b7",
+      "kind": "html",
+      "en": "Node builtins type-check out of the box",
+      "tr": "Los builtins de node se comprueban de serie"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Detalles"
+    },
+    {
+      "id": "h-e6bb6cae",
+      "kind": "html",
+      "en": "Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one.",
+      "tr": "Los builtins de node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> incluido el <code>spawn</code> con streaming, y el resto) se comprueban de serie, con <code>@types/node</code> cargado automáticamente cuando lo instalas, y el CI compila el propio runtime del compilador contra ese paquete en <code>latest</code>, así que una declaración de la que depende la librería estándar no puede desviarse de la real de node."
+    },
+    {
+      "id": "h-0b661b92",
+      "kind": "html",
+      "en": "A declaration only your code reaches is not covered by that check yet, and a few are still wider than node.",
+      "tr": "Una declaración a la que solo llega tu código todavía no está cubierta por esa comprobación, y unas pocas siguen siendo más amplias que las de node."
+    },
+    {
+      "id": "h-9c2289ad",
+      "kind": "html",
+      "en": "<code>.types/</code> ambient declarations for anything else.",
+      "tr": "Declaraciones ambientales en <code>.types/</code> para todo lo demás."
+    },
+    {
+      "id": "h-7a450622",
+      "kind": "html",
+      "en": "<code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types.",
+      "tr": "<code>glyph gen dts</code> para materializar un <code>.d.ts</code> en tipos de Glyph validados."
+    },
+    {
+      "id": "h-d10db82c",
+      "kind": "html",
+      "en": "Clean <code>.ts</code> output your existing TypeScript imports back.",
+      "tr": "Una salida <code>.ts</code> limpia que tu TypeScript existente importa de vuelta."
+    },
+    {
+      "id": "h-4fcbcf88",
+      "kind": "html",
+      "en": "<code>import extern/&lt;name&gt;</code> reaches hand-written TypeScript under <code>&lt;src&gt;/extern/</code>",
+      "tr": "<code>import extern/&lt;name&gt;</code> llega a TypeScript escrito a mano en <code>&lt;src&gt;/extern/</code>"
+    },
+    {
+      "id": "h-679e99f1",
+      "kind": "html",
+      "en": "When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
+      "tr": "Cuando necesitas TypeScript entero escrito a mano, <code>import extern/&lt;name&gt;</code> llega a un <code>.ts</code> en <code>&lt;src&gt;/extern/</code>, que se copia y se comprueba junto con tu código, y que la caché de <code>glyph run</code> sigue, así que editarlo provoca una recompilación."
     },
     {
       "id": "h-b63a305d",
@@ -227,10 +491,34 @@
       "tr": "En camino"
     },
     {
-      "id": "h-8fc5ce45",
+      "id": "h-8062c0af",
       "kind": "html",
-      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them. On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
-      "tr": "La materialización ya maneja las formas que traen los SDK reales (namespaces, re-exports entre archivos y con alias o namespace, <code>exports</code> de subrutas y genéricos de primera clase), y los tipos derivados de valores (<code>z.infer&lt;typeof s&gt;</code>) son de primera clase. El principal hueco que queda es que las salidas de un paquete sin materializar se comprueban contra su <code>.d.ts</code> pero no se validan en tiempo de ejecución salvo que las materialices. En el lado de <code>extern/</code>, la raíz de las fuentes es distinta entre los dos comandos: <code>glyph run app.glyph</code> toma como raíz el directorio del propio archivo, <code>glyph build src/</code> toma el directorio que indicas. Por eso, un programa en un subdirectorio busca su shim en dos sitios distintos, y hasta que elijamos una sola raíz, un proyecto organizado así necesita que el shim sea accesible desde los dos. Si no lo es, falla de forma visible."
+      "en": "Materialization handles the shapes real SDKs ship, and value-derived types are first-class",
+      "tr": "La materialización maneja las formas que traen los SDK reales, y los tipos derivados de valores son de primera clase"
+    },
+    {
+      "id": "h-0b1af177",
+      "kind": "html",
+      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class.",
+      "tr": "La materialización ya maneja las formas que traen los SDK reales (namespaces, re-exports entre archivos y con alias o namespace, <code>exports</code> de subrutas y genéricos de primera clase), y los tipos derivados de valores (<code>z.infer&lt;typeof s&gt;</code>) son de primera clase."
+    },
+    {
+      "id": "h-4deb95e3",
+      "kind": "html",
+      "en": "The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.",
+      "tr": "El principal hueco que queda es que las salidas de un paquete sin materializar se comprueban contra su <code>.d.ts</code> pero no se validan en tiempo de ejecución salvo que las materialices."
+    },
+    {
+      "id": "h-edd85884",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between <code>glyph run</code> and <code>glyph build</code>",
+      "tr": "En el lado de <code>extern/</code>, la raíz de las fuentes es distinta entre <code>glyph run</code> y <code>glyph build</code>"
+    },
+    {
+      "id": "h-2b7829a4",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
+      "tr": "En el lado de <code>extern/</code>, la raíz de las fuentes es distinta entre los dos comandos: <code>glyph run app.glyph</code> toma como raíz el directorio del propio archivo, <code>glyph build src/</code> toma el directorio que indicas. Por eso, un programa en un subdirectorio busca su shim en dos sitios distintos, y hasta que elijamos una sola raíz, un proyecto organizado así necesita que el shim sea accesible desde los dos. Si no lo es, falla de forma visible."
     }
   ]
 }

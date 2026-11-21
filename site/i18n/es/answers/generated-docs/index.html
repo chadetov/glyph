@@ -1,7 +1,7 @@
 ---
 title: ¿La documentación que lee mi agente se genera? · Glyph
 description: glyph llms --json emite los diagnósticos, el preludio, las firmas de la librería estándar y las decisiones del lenguaje a partir de las propias tablas del compilador, así que no pueden desfasarse.
-source_hash: 31b76a81a51f0211
+source_hash: cfa565ac48a19111
 prev: /answers/repair-protocol/ | &larr; Anterior | Cuando el build falla, ¿el compilador le dice a mi agente cómo arreglarlo?
 next: /answers/tooling/ | Siguiente &rarr; | ¿Cómo es la experiencia con el editor, la depuración y los errores?
 ---
@@ -12,22 +12,8 @@ next: /answers/tooling/ | Siguiente &rarr; | ¿Cómo es la experiencia con el ed
         Se genera. <code>glyph llms --json</code> emite el catálogo de diagnósticos, el preludio, las firmas de la librería estándar, las decisiones del lenguaje y el manual de herramientas a partir de las propias tablas del compilador, y una comprobación hace fallar el build cuando una copia escrita a mano no coincide. Cada ejemplo de Glyph del documento con el que arranca un agente se compila, incluidos los incorrectos.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por qué importa</h2>
-        <p>
-          La pregunta no es retórica, porque la respuesta sincera antes era "escrita a mano, y sí". El documento de arranque del agente decía que el servidor MCP "expone cinco herramientas" y listaba cinco. El servidor servía siete. Las dos que las propias instrucciones del servidor le dicen a un agente que use primero aparecían cero veces. Los 58 códigos de error vivían en tres copias mantenidas a mano, comprobadas solo en cuanto a si aparecía el string del código. De los 19 ejemplos de Glyph de ese documento, 2 se compilaban y 17 se saltaban como fragmentos.
-        </p>
-        <p>
-          Todos son el mismo defecto. Un documento sobre un compilador, mantenido junto al compilador, por gente con buena intención. Un agente que lo lee no puede saber qué frases siguen siendo ciertas, y nosotros tampoco.
-        </p>
-
-        <h2 class="block-label">Míralo</h2>
-        <p>
-          Siete secciones, cada una leída de una tabla que el compilador ya tiene. Una entrada de diagnóstico lleva la frase del catálogo, el arreglo en una línea, la explicación larga, y la ayuda y la nota tomadas de un diagnóstico que el compilador generó. 51 de los 77 códigos llevan además un programa incorrecto que genera el código, compilado en el momento en que lo pides; los otros 26 dicen que el corpus no tiene ningún caso para ellos.
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
         <span class="cap">glyph llms --json, la entrada de E0200 (recortada)</span>
 <pre>{
   "code": "E0200",
@@ -52,19 +38,49 @@ next: /answers/tooling/ | Siguiente &rarr; | ¿Cómo es la experiencia con el ed
       invented here would compile nowhere and be checked by nothing."
   }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Siete secciones, cada una leída de una tabla que el compilador ya tiene.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por qué importa</a></li>
+          <li><a href="#diagnostics">Diagnósticos</a></li>
+          <li><a href="#the-prelude-the-stdlib-and-the-decisions">Preludio, librería estándar, decisiones</a></li>
+          <li><a href="#the-wrong-programs-are-readable-too">Programas incorrectos</a></li>
+          <li><a href="#every-example-compiles-including-the-wrong-ones">Ejemplos compilados</a></li>
+          <li><a href="#what-it-costs-to-hand-over-and-what-it-stopped-costing">Lo que cuesta</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        La pregunta no es retórica, porque la respuesta sincera antes era "escrita a mano, y sí".
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>La lista de herramientas</b>El documento de arranque del agente decía que el servidor MCP "expone cinco herramientas" y listaba cinco. El servidor servía siete. Las dos que las propias instrucciones del servidor le dicen a un agente que use primero aparecían cero veces.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Los códigos de error</b>Los 58 códigos de error vivían en tres copias mantenidas a mano, comprobadas solo en cuanto a si aparecía el string del código.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Los ejemplos</b>De los 19 ejemplos de Glyph de ese documento, 2 se compilaban y 17 se saltaban como fragmentos.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Todos son el mismo defecto. Un documento sobre un compilador, mantenido junto al compilador, por gente con buena intención. Un agente que lo lee no puede saber qué frases siguen siendo ciertas, y nosotros tampoco.</p></div>
+
+      <h2 class="ak-h" id="diagnostics">Una sola tabla para los diagnósticos<a class="ak-anchor" href="#diagnostics" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Una entrada de diagnóstico lleva la frase del catálogo, el arreglo en una línea, la explicación larga, y la ayuda y la nota tomadas de un diagnóstico que el compilador generó.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>51 de los 77 códigos llevan además un programa incorrecto que genera el código, compilado en el momento en que lo pides; los otros 26 dicen que el corpus no tiene ningún caso para ellos.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">tres copias fusionadas en una</span></summary><div class="body">
         <p>
           77 códigos salen de una sola tabla del compilador, y <code>docs/error-codes.md</code> y la tabla del catálogo del documento de arranque del agente se escriben a partir de ella con un script que falla si se desfasan. Unir las tres copias que existían sacó a la luz un código con explicación y sin sitio en la lista, y una fila cuya barra vertical escapada había roto sin avisar la tabla en la que estaba.
         </p>
+      </div></details>
 
-        <h2 class="block-label">El preludio, la librería estándar y las decisiones</h2>
-        <p>
-          El preludio son los 24 nombres contra los que resuelve el resolver, con lo que es cada uno. La librería estándar son 40 módulos y 340 exports, y cada firma se lee de las propias tablas del checker y la imprime el mismo printer de tipos que usa un diagnóstico, así que la firma del documento es la firma que el checker te va a exigir. Los exports se dividen en tres grupos y nunca en dos: 129 firmas están modeladas en todas las posiciones, 46 llevan un <code>?</code> donde va el tipo de un parámetro y se cuentan como <code>partially_modeled</code> con una línea que dice cuántas posiciones faltan, y 165 no tienen firma. Un <code>?</code> es un <code>unknown</code> impreso, así que nunca se publica como una firma completa.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-prelude-the-stdlib-and-the-decisions">El preludio, la librería estándar y las decisiones<a class="ak-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El preludio son los 24 nombres contra los que resuelve el resolver, con lo que es cada uno. La librería estándar son 40 módulos y 340 exports, y cada firma se lee de las propias tablas del checker y la imprime el mismo printer de tipos que usa un diagnóstico, así que la firma del documento es la firma que el checker te va a exigir.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">"stdlib"</span>
@@ -99,18 +115,22 @@ next: /answers/tooling/ | Siguiente &rarr; | ¿Cómo es la experiencia con el ed
         head is a variant reference ..." }, ... ] }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">cómo se dividen los exports</span></summary><div class="body">
+        <p>
+          Los exports se dividen en tres grupos y nunca en dos: 129 firmas están modeladas en todas las posiciones, 46 llevan un <code>?</code> donde va el tipo de un parámetro y se cuentan como <code>partially_modeled</code> con una línea que dice cuántas posiciones faltan, y 165 no tienen firma. Un <code>?</code> es un <code>unknown</code> impreso, así que nunca se publica como una firma completa.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">por qué existe <code>duplicate_numbers</code></span></summary><div class="body">
         <p>
           <code>duplicate_numbers</code> está ahí porque el generador lee la propia lista de la especificación, y la primera vez que se ejecutó encontró dos decisiones distintas numeradas como D43 e imprimió <code>"duplicate_numbers": [43]</code>. Informa de una colisión en lugar de eliminar el duplicado, y así es como alguien se enteró. Nada en el compilador depende de un número D, así que ningún programa se vio afectado; quien seguía una cita, sí. Ese ya está corregido: D43 es la regla de <code>mut</code> a través de <code>await</code> y <code>never</code> es D47, así que la lista vuelve vacía. Hoy hay 49 decisiones, de D1 a D49.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Los programas incorrectos también se pueden leer</h2>
-        <p>
-          El corpus negativo del compilador es un conjunto de programas que tienen que fallar, con el código que tiene que generar cada uno. Antes solo lo veía <code>cargo test</code>. Un agente que aprende qué rechaza una regla es justo el lector para el que se escribió, así que ahora responde, y cada caso se compila cuando lo pides, de modo que el diagnóstico que lo acompaña es el de este compilador.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-wrong-programs-are-readable-too">Los programas incorrectos también se pueden leer<a class="ak-anchor" href="#the-wrong-programs-are-readable-too" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El corpus negativo del compilador es un conjunto de programas que tienen que fallar, con el código que tiene que generar cada uno. Antes solo lo veía <code>cargo test</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Un agente que aprende qué rechaza una regla es justo el lector para el que se escribió, así que ahora responde, y cada caso se compila cuando lo pides, de modo que el diagnóstico que lo acompaña es el de este compilador.</p></div>
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
@@ -133,40 +153,88 @@ next: /answers/tooling/ | Siguiente &rarr; | ¿Cómo es la experiencia con el ed
   "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">cobertura, y el corpus de <code>catches/</code></span></summary><div class="body">
         <p>
           Sin código, lista 117 casos sobre 53 de los 77 códigos en la 0.1.149, y nombra los 24 que no tienen ninguno en lugar de dejar que deduzcas la cobertura a partir de lo que vuelve. Un segundo corpus, <code>catches/</code>, empareja un programa que <code>tsc --strict</code> acepta con el Glyph que lo rechaza, y esos vuelven en la misma respuesta cuando existen. Los dos se incrustan directamente desde los directorios, así que un caso añadido a cualquiera de ellos aparece en la respuesta sin una segunda edición que recordar.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Cada ejemplo compila, incluidos los incorrectos</h2>
-        <p>
-          Generar la referencia es la mitad. La otra mitad es la prosa con la que arranca un agente, donde los ejemplos son lo que copia. Cada bloque de código de Glyph de ese documento es o un programa completo que compila, o está marcado como fragmento de un ejemplo completo con nombre en cuyas líneas tiene que aparecer. Eran 19 bloques con 2 compilados; son 24 con 20 compilados y 4 marcados, y ninguno saltado. La referencia de la librería estándar pasó de 4 de 8 a 8 de 8.
-        </p>
-        <p>
-          Un bloque también se puede marcar como un programa que tiene que fallar, nombrando el código que genera, y así es como el documento lleva las cinco formas incorrectas sobre las que te avisa: la que genera <code>E0228</code>, la que genera <code>E0008</code> y tres más. Un aviso emparejado con el diagnóstico se puede comprobar. Un aviso escrito en prosa es una promesa.
-        </p>
+      <h2 class="ak-h" id="every-example-compiles-including-the-wrong-ones">Cada ejemplo compila, incluidos los incorrectos<a class="ak-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Generar la referencia es la mitad. La otra mitad es la prosa con la que arranca un agente, donde los ejemplos son lo que copia.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Cada bloque de código de Glyph de ese documento es o un programa completo que compila, o está marcado como fragmento de un ejemplo completo con nombre en cuyas líneas tiene que aparecer.</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>El documento de arranque</b>Eran 19 bloques con 2 compilados; son 24 con 20 compilados y 4 marcados, y ninguno saltado.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>La referencia de la librería estándar</b>La referencia de la librería estándar pasó de 4 de 8 a 8 de 8.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>Las formas incorrectas</b>Un bloque también se puede marcar como un programa que tiene que fallar, nombrando el código que genera, y así es como el documento lleva las cinco formas incorrectas sobre las que te avisa: la que genera <code>E0228</code>, la que genera <code>E0008</code> y tres más. Un aviso emparejado con el diagnóstico se puede comprobar. Un aviso escrito en prosa es una promesa.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">dos cosas que encontró compilar los documentos</span></summary><div class="body">
         <p>
           Compilar los documentos encontró dos cosas que leerlos nunca habría encontrado. Un triple acento grave en línea se había leído como la apertura de un bloque, así que 250 líneas contaban como un solo fragmento y no se comprobaba nada de lo que había dentro. Y un servidor de ejemplo en la referencia de la librería estándar llamaba a <code>http.serve</code>, que <code>std/http</code> no exporta. La función es <code>listen</code>.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Lo que cuesta entregarlo, y lo que dejó de costar</h2>
+      <h2 class="ak-h" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">Lo que cuesta entregarlo, y lo que dejó de costar<a class="ak-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Las once herramientas MCP llevaban antes su manual entero en la respuesta de <code>tools/list</code>, que cada sesión paga al conectarse: 31,446 bytes de descripción en una respuesta de 45,509 bytes. Las mismas once herramientas llevan ahora 8,627 en una respuesta de 20,386 bytes.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>No se borró nada. El texto anterior se conserva literalmente, indexado por nombre de herramienta, y se publica dentro de <code>glyph llms --json</code>, así que el contrato que necesitas en el momento de la llamada está en la descripción y el resto está a un comando de distancia en lugar de en la primera respuesta de cada sesión.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">el test que mantiene el recuento</span></summary><div class="body">
         <p>
-          Las once herramientas MCP llevaban antes su manual entero en la respuesta de <code>tools/list</code>, que cada sesión paga al conectarse: 31,446 bytes de descripción en una respuesta de 45,509 bytes. Las mismas once herramientas llevan ahora 8,627 en una respuesta de 20,386 bytes. No se borró nada. El texto anterior se conserva literalmente, indexado por nombre de herramienta, y se publica dentro de <code>glyph llms --json</code>, así que el contrato que necesitas en el momento de la llamada está en la descripción y el resto está a un comando de distancia en lugar de en la primera respuesta de cada sesión. Un test lee juntos la lista de herramientas y el documento, así que un documento que nombra una herramienta que el servidor no sirve, o un recuento que no coincide con la lista, hace fallar el build. Esa es la comprobación que necesitaba "expone cinco herramientas".
+          Un test lee juntos la lista de herramientas y el documento, así que un documento que nombra una herramienta que el servidor no sirve, o un recuento que no coincide con la lista, hace fallar el build. Esa es la comprobación que necesitaba "expone cinco herramientas".
         </p>
-        <p>
-          Todo esto funciona sin conexión y en local. <code>glyph llms</code> imprime la prosa, <code>glyph llms --json</code> los datos, <code>glyph llms --negative</code> los programas incorrectos. La misma prosa se sirve en <a href="/llms.txt">llms.txt</a> para un agente con red y sin el binario. Lo que un agente pregunta sobre <em>tu</em> código, y no sobre el lenguaje, son las <a href="/answers/ask-the-compiler/">herramientas de consulta</a>.
-        </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Dónde está</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p><code>glyph llms --json</code> emite siete secciones a partir del compilador: 77 códigos de diagnóstico, 51 de ellos con un contraejemplo compilado, las 32 palabras reservadas, los 24 nombres del preludio, 40 módulos de la librería estándar con 340 exports, 49 decisiones del lenguaje extraídas de la especificación y las once herramientas con sus verbos de <code>glyph query</code> y sus manuales completos. <code>docs/error-codes.md</code> y la tabla de diagnósticos del documento de arranque se escriben a partir de la propia tabla de códigos del compilador con un script que falla si se desfasan y que vuelve a reflejar <code>llms.txt</code> con ella. Un test obliga a que el catálogo de herramientas coincida con lo que sirve el servidor. Cada bloque de Glyph del documento de arranque y de la referencia de la librería estándar compila o es un fragmento marcado de uno que compila, y cinco formas incorrectas son programas emparejados con el código que genera cada uno. <code>glyph llms --negative</code> responde a partir de los mismos corpus que ejecuta <code>cargo test</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Dónde se detiene</h3>
-          <p>En este documento aparecen dos recuentos de programas incorrectos y cuentan cosas distintas: 51 de los 77 códigos llevan un contraejemplo de <code>tests/negative/</code>, y <code>glyph llms --negative</code> lista 117 casos sobre 53 códigos en la 0.1.149 porque también lee los rechazos de <code>catches/</code>; la próxima versión añade los 22 rechazos añadidos a <code>catches/</code> desde entonces, para un total de 139 casos sobre 55 códigos. En la 0.1.149, 24 códigos no tienen ningún programa incorrecto en ninguno de los dos corpus, y la respuesta los nombra en lugar de inventarse uno. 165 de los 340 exports de la librería estándar vuelven sin firma: la implementación es TypeScript que comprueba <code>tsc</code> y las propias tablas del compilador no modelan nada para ella, así que <code>glyph_symbol</code> sobre <code>std/result::all</code> o <code>std/io::println</code> informa <code>kind: null</code> con ese motivo. De los 175 que sí la tienen, 46 todavía llevan un <code>?</code> donde va el tipo de un parámetro. Y el documento es una instantánea que descargas, no un servicio: no hay capa de recuperación, ni embeddings, ni una interfaz de chat por encima.</p>
-        </div>
+      <h3 class="ak-h3" id="offline-and-local">Sin conexión y en local<a class="ak-anchor" href="#offline-and-local" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Todo esto funciona sin conexión y en local. <code>glyph llms</code> imprime la prosa, <code>glyph llms --json</code> los datos, <code>glyph llms --negative</code> los programas incorrectos.
+      </p>
+      <p>
+        La misma prosa se sirve en <a href="/llms.txt">llms.txt</a> para un agente con red y sin el binario. Lo que un agente pregunta sobre <em>tu</em> código, y no sobre el lenguaje, son las <a href="/answers/ask-the-compiler/">herramientas de consulta</a>.
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --json</code> emite siete secciones a partir del compilador</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p><code>glyph llms --json</code> emite siete secciones a partir del compilador: 77 códigos de diagnóstico, 51 de ellos con un contraejemplo compilado, las 32 palabras reservadas, los 24 nombres del preludio, 40 módulos de la librería estándar con 340 exports, 49 decisiones del lenguaje extraídas de la especificación y las once herramientas con sus verbos de <code>glyph query</code> y sus manuales completos.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>docs/error-codes.md</code> y la tabla de diagnósticos del documento de arranque se escriben a partir de la propia tabla de códigos del compilador</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p><code>docs/error-codes.md</code> y la tabla de diagnósticos del documento de arranque se escriben a partir de la propia tabla de códigos del compilador con un script que falla si se desfasan y que vuelve a reflejar <code>llms.txt</code> con ella.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un test obliga a que el catálogo de herramientas coincida con lo que sirve el servidor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cada bloque de Glyph del documento de arranque y de la referencia de la librería estándar compila o es un fragmento marcado de uno que compila</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Cada bloque de Glyph del documento de arranque y de la referencia de la librería estándar compila o es un fragmento marcado de uno que compila, y cinco formas incorrectas son programas emparejados con el código que genera cada uno.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --negative</code> responde a partir de los mismos corpus que ejecuta <code>cargo test</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Dónde se detiene</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">En este documento aparecen dos recuentos de programas incorrectos y cuentan cosas distintas</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>En este documento aparecen dos recuentos de programas incorrectos y cuentan cosas distintas: 51 de los 77 códigos llevan un contraejemplo de <code>tests/negative/</code>, y <code>glyph llms --negative</code> lista 117 casos sobre 53 códigos en la 0.1.149 porque también lee los rechazos de <code>catches/</code>; la próxima versión añade los 22 rechazos añadidos a <code>catches/</code> desde entonces, para un total de 139 casos sobre 55 códigos.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">En la 0.1.149, 24 códigos no tienen ningún programa incorrecto en ninguno de los dos corpus, y la respuesta los nombra en lugar de inventarse uno.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">165 de los 340 exports de la librería estándar vuelven sin firma</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>165 de los 340 exports de la librería estándar vuelven sin firma: la implementación es TypeScript que comprueba <code>tsc</code> y las propias tablas del compilador no modelan nada para ella, así que <code>glyph_symbol</code> sobre <code>std/result::all</code> o <code>std/io::println</code> informa <code>kind: null</code> con ese motivo.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">De los 175 que sí la tienen, 46 todavía llevan un <code>?</code> donde va el tipo de un parámetro.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Y el documento es una instantánea que descargas, no un servicio: no hay capa de recuperación, ni embeddings, ni una interfaz de chat por encima.</span></span></li>
+          </ul>
+        </section>
       </div>

@@ -489,13 +489,13 @@ Every code
 
   **Details**
 
-  `E0238` only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An `async` callback passed to `forEach` or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.
+  `E0238` only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An `async` callback passed to a timer, a socket handler or any `fn(...) -> void` parameter is refused with `E0211`, since nothing waits for it; an array's own `forEach` joins them once the built-in array methods' callbacks have types.
 
-- `array.map`, `flat_map` and `zip` still take an `async` callback without complaint
+- Mixing up `fn` and `async fn` is refused, but most of those messages are still generic
 
   **Details**
 
-  `array.map`, `flat_map` and `zip` still take an `async` callback without complaint and hand back an array of pending values, which prints as `[object Promise]`; the five predicate-taking array functions do stop it, with `E0211` at the callback. Modeling the other three the same way also rejects `par.all(array.map(items, async fn ...))`, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.
+  An `async` callback given to `array.map`, a sync function given to `task.detach`, or an `async fn` bound to a `fn(...) -> void` is refused, as it should be. Only the async callback in a `void` argument gets a message that names the callee and a help you can paste; the others say  expected `async function`, found `function`  and leave the fix to you.
 
 - A top-level `await` is allowed
 

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "pt-br",
-  "source_hash": "0f97abca4b650947",
+  "source_hash": "9388fb478e6fc44c",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Porque um erro no TypeScript gerado é um erro sobre código que você não escreveu. O Glyph informa esses erros no seu fonte, com a regra que você violou e a edição que conserta."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Por que isso importa"
-    },
-    {
-      "id": "h-94c346e3",
-      "kind": "html",
-      "en": "Glyph compiles to TypeScript and then type-checks the output with <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes back one stage later, phrased in terms of the emitted file: a <code>TS1308</code> pointing at an <code>await</code> in a function you never spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write. The line is mapped back to your <code>.glyph</code>, but the explanation isn't.",
-      "tr": "O Glyph compila para TypeScript e depois verifica os tipos da saída com <code>tsc --strict</code>, então um erro que o Glyph não modela não se perde. Ele volta uma etapa depois, descrito em termos do arquivo emitido: um <code>TS1308</code> apontando para um <code>await</code> numa função que você nunca escreveu daquele jeito, ou um <code>TS2366</code> sobre um <code>switch</code> que não é seu. A linha é mapeada de volta para o seu <code>.glyph</code>, mas a explicação não."
-    },
-    {
-      "id": "h-2c890731",
-      "kind": "html",
-      "en": "That gap is where the compiler stops teaching. So each rule Glyph can decide for itself moves up: <code>await</code> outside an <code>async fn</code> (<code>E0222</code>), a <code>match</code> arm that produces no value while the <code>match</code> is used as a value (<code>E0223</code>), and an assignment written without <code>mut</code> (<code>E0008</code>). Each names the rule, cites the decision behind it, and shows the before and after.",
-      "tr": "Essa distância é onde o compilador para de ensinar. Por isso cada regra que o Glyph consegue decidir sozinho sobe de etapa: <code>await</code> fora de uma <code>async fn</code> (<code>E0222</code>), um braço de <code>match</code> que não produz valor quando o <code>match</code> é usado como valor (<code>E0223</code>) e uma atribuição escrita sem <code>mut</code> (<code>E0008</code>). Cada um nomeia a regra, cita a decisão por trás dela e mostra o antes e o depois."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Veja na prática"
-    },
-    {
-      "id": "h-d61df8a3",
-      "kind": "html",
-      "en": "The arm case is the one that used to escape entirely. <code>{}</code> in arm position is an empty <em>block</em>, not an empty record, so the arm ran and produced nothing:",
-      "tr": "O caso do braço é o que antes escapava por completo. <code>{}</code> na posição de braço é um <em>bloco</em> vazio, não um record vazio, então o braço rodava e não produzia nada:"
-    },
-    {
       "id": "h-88f1df33",
       "kind": "html",
       "en": "status.glyph: an arm that yields nothing, in a position that needs a value",
@@ -101,16 +71,202 @@
       "tr": "glyph build"
     },
     {
-      "id": "h-e6d4c412",
+      "id": "h-cbeb2235",
       "kind": "html",
-      "en": "Before this, the emitted <code>switch</code> fell out of its own cases and <code>text</code> held <code>undefined</code> while its type said <code>string</code>. <code>tsc</code> catches some shapes of that and misses others. Glyph now decides it wherever the position is decidable: a <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a function that declares a return type. A statement <code>match</code> keeps <code>X =&gt; {}</code> as the deliberate no-op it is.",
-      "tr": "Antes disso, o <code>switch</code> emitido saía dos próprios casos e <code>text</code> ficava com <code>undefined</code> enquanto o tipo dizia <code>string</code>. O <code>tsc</code> pega algumas formas disso e deixa passar outras. Agora o Glyph decide sempre que a posição é decidível: um <code>let</code>, um <code>mut</code>, um <code>return</code> ou o final de uma função que declara tipo de retorno. Um <code>match</code> usado como statement mantém <code>X =&gt; {}</code> como o no-op deliberado que é."
+      "en": "<span>The arm case is the one that used to escape entirely. <code>{}</code> in arm position is an empty <em>block</em>, not an empty record, so the arm ran and produced nothing.</span>",
+      "tr": "<span>O caso do braço é o que antes escapava por completo. <code>{}</code> na posição de braço é um <em>bloco</em> vazio, não um record vazio, então o braço rodava e não produzia nada.</span>"
     },
     {
-      "id": "h-c79dd30b",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "<code>await</code> is the same move. Glyph has no user-visible <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a <code>T</code>, so <code>await</code> anywhere else has nothing to suspend. That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
-      "tr": "<code>await</code> segue a mesma lógica. O Glyph não tem <code>Promise</code> visível para o usuário: uma <code>async fn -&gt; T</code> é aguardada até um <code>T</code>, então <code>await</code> em qualquer outro lugar não tem o que suspender. Antes isso era o <code>TS1308</code> do <code>tsc</code> no arquivo gerado. Agora é <code>E0222</code>, e quem decide é o callable mais interno que o envolve, então uma lambda síncrona dentro de uma <code>async fn</code> é um contexto à parte, a mesma regra que o TypeScript usa."
+      "en": "On this page",
+      "tr": "Nesta página"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Por que isso importa</a>"
+    },
+    {
+      "id": "h-6399186d",
+      "kind": "html",
+      "en": "<a href=\"#value-arm\">An arm with no value</a>",
+      "tr": "<a href=\"#value-arm\">Um braço sem valor</a>"
+    },
+    {
+      "id": "h-2aa3283b",
+      "kind": "html",
+      "en": "<a href=\"#await\">await outside async</a>",
+      "tr": "<a href=\"#await\">await fora de async</a>"
+    },
+    {
+      "id": "h-50039569",
+      "kind": "html",
+      "en": "<a href=\"#missing-mut\">A missing mut</a>",
+      "tr": "<a href=\"#missing-mut\">Um mut faltando</a>"
+    },
+    {
+      "id": "h-3e12fcdf",
+      "kind": "html",
+      "en": "<a href=\"#the-worse-case-when-tsc-is-happy-too\">When tsc is happy too</a>",
+      "tr": "<a href=\"#the-worse-case-when-tsc-is-happy-too\">Quando o tsc também fica satisfeito</a>"
+    },
+    {
+      "id": "h-3ec842f2",
+      "kind": "html",
+      "en": "<a href=\"#a-wrong-message-is-worse-than-no-message\">A wrong message</a>",
+      "tr": "<a href=\"#a-wrong-message-is-worse-than-no-message\">Uma mensagem errada</a>"
+    },
+    {
+      "id": "h-fcf80c88",
+      "kind": "html",
+      "en": "<a href=\"#naming-the-rule-not-the-token\">The rule, not the token</a>",
+      "tr": "<a href=\"#naming-the-rule-not-the-token\">A regra, não o token</a>"
+    },
+    {
+      "id": "h-98fb9855",
+      "kind": "html",
+      "en": "<a href=\"#two-more-the-checker-took-over-in-0-1-121\">Taken over in 0.1.121</a>",
+      "tr": "<a href=\"#two-more-the-checker-took-over-in-0-1-121\">Assumidos na 0.1.121</a>"
+    },
+    {
+      "id": "h-24499b7c",
+      "kind": "html",
+      "en": "<a href=\"#and-three-more-since-0-1-133\">Since 0.1.133</a>",
+      "tr": "<a href=\"#and-three-more-since-0-1-133\">Desde a 0.1.133</a>"
+    },
+    {
+      "id": "h-b7f5fd4a",
+      "kind": "html",
+      "en": "<a href=\"#and-two-more-in-0-1-122\">In 0.1.122</a>",
+      "tr": "<a href=\"#and-two-more-in-0-1-122\">Na 0.1.122</a>"
+    },
+    {
+      "id": "h-34ea2e30",
+      "kind": "html",
+      "en": "<a href=\"#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to\">Literal types, 0.1.123</a>",
+      "tr": "<a href=\"#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to\">Tipos literais, 0.1.123</a>"
+    },
+    {
+      "id": "h-841dd940",
+      "kind": "html",
+      "en": "<a href=\"#a-module-under-std-was-dead-code-with-no-diagnostic\">A module under std/</a>",
+      "tr": "<a href=\"#a-module-under-std-was-dead-code-with-no-diagnostic\">Um módulo sob std/</a>"
+    },
+    {
+      "id": "h-a7006e44",
+      "kind": "html",
+      "en": "<a href=\"#nesting-limit\">The nesting limit</a>",
+      "tr": "<a href=\"#nesting-limit\">O limite de aninhamento</a>"
+    },
+    {
+      "id": "h-4392cfa2",
+      "kind": "html",
+      "en": "<a href=\"#when-neither-compiler-is-wrong\">When neither is wrong</a>",
+      "tr": "<a href=\"#when-neither-compiler-is-wrong\">Quando nenhum está errado</a>"
+    },
+    {
+      "id": "h-26db1e0a",
+      "kind": "html",
+      "en": "<a href=\"#the-same-typo-two-answers\">The same typo</a>",
+      "tr": "<a href=\"#the-same-typo-two-answers\">O mesmo erro de digitação</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Situação atual</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Por que isso importa"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link para esta seção"
+    },
+    {
+      "id": "h-c5195044",
+      "kind": "html",
+      "en": "Glyph compiles to TypeScript and then type-checks the output with <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes back one stage later, phrased in terms of the emitted file: a <code>TS1308</code> pointing at an <code>await</code> in a function you never spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write.",
+      "tr": "O Glyph compila para TypeScript e depois verifica os tipos da saída com <code>tsc --strict</code>, então um erro que o Glyph não modela não se perde. Ele volta uma etapa depois, descrito em termos do arquivo emitido: um <code>TS1308</code> apontando para um <code>await</code> numa função que você nunca escreveu daquele jeito, ou um <code>TS2366</code> sobre um <code>switch</code> que não é seu."
+    },
+    {
+      "id": "h-7d16edff",
+      "kind": "html",
+      "en": "The line is mapped back to your <code>.glyph</code>, but the explanation isn't. That gap is where the compiler stops teaching.",
+      "tr": "A linha é mapeada de volta para o seu <code>.glyph</code>, mas a explicação não. Essa distância é onde o compilador para de ensinar."
+    },
+    {
+      "id": "h-7950586a",
+      "kind": "html",
+      "en": "So each rule Glyph can decide for itself moves up:",
+      "tr": "Por isso cada regra que o Glyph consegue decidir sozinho sobe de etapa:"
+    },
+    {
+      "id": "h-19475fed",
+      "kind": "html",
+      "en": "<b>E0222</b><code>await</code> outside an <code>async fn</code>",
+      "tr": "<b>E0222</b><code>await</code> fora de uma <code>async fn</code>"
+    },
+    {
+      "id": "h-7335938d",
+      "kind": "html",
+      "en": "<b>E0223</b>a <code>match</code> arm that produces no value while the <code>match</code> is used as a value",
+      "tr": "<b>E0223</b>um braço de <code>match</code> que não produz valor quando o <code>match</code> é usado como valor"
+    },
+    {
+      "id": "h-19b4e460",
+      "kind": "html",
+      "en": "<b>E0008</b>and an assignment written without <code>mut</code>",
+      "tr": "<b>E0008</b>e uma atribuição escrita sem <code>mut</code>"
+    },
+    {
+      "id": "h-adaf46ce",
+      "kind": "html",
+      "en": "Each names the rule, cites the decision behind it, and shows the before and after.",
+      "tr": "Cada um nomeia a regra, cita a decisão por trás dela e mostra o antes e o depois."
+    },
+    {
+      "id": "h-ec7c6c9f",
+      "kind": "html",
+      "en": "An arm that produces no value",
+      "tr": "Um braço que não produz valor"
+    },
+    {
+      "id": "h-dad1e6db",
+      "kind": "html",
+      "en": "Before this, the emitted <code>switch</code> fell out of its own cases and <code>text</code> held <code>undefined</code> while its type said <code>string</code>. <code>tsc</code> catches some shapes of that and misses others.",
+      "tr": "Antes disso, o <code>switch</code> emitido saía dos próprios casos e <code>text</code> ficava com <code>undefined</code> enquanto o tipo dizia <code>string</code>. O <code>tsc</code> pega algumas formas disso e deixa passar outras."
+    },
+    {
+      "id": "h-65c7f5f3",
+      "kind": "html",
+      "en": "Glyph now decides it wherever the position is decidable: a <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a function that declares a return type. A statement <code>match</code> keeps <code>X =&gt; {}</code> as the deliberate no-op it is.",
+      "tr": "Agora o Glyph decide sempre que a posição é decidível: um <code>let</code>, um <code>mut</code>, um <code>return</code> ou o final de uma função que declara tipo de retorno. Um <code>match</code> usado como statement mantém <code>X =&gt; {}</code> como o no-op deliberado que é."
+    },
+    {
+      "id": "h-aa3735ed",
+      "kind": "html",
+      "en": "await outside an async fn",
+      "tr": "await fora de uma async fn"
+    },
+    {
+      "id": "h-2b29640b",
+      "kind": "html",
+      "en": "<code>await</code> is the same move. Glyph has no user-visible <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a <code>T</code>, so <code>await</code> anywhere else has nothing to suspend.",
+      "tr": "<code>await</code> segue a mesma lógica. O Glyph não tem <code>Promise</code> visível para o usuário: uma <code>async fn -&gt; T</code> é aguardada até um <code>T</code>, então <code>await</code> em qualquer outro lugar não tem o que suspender."
     },
     {
       "id": "h-f0ba95e3",
@@ -119,10 +275,40 @@
       "tr": "glyph build, em `fn total() -&gt; number { return await fetch_count() }`"
     },
     {
-      "id": "h-d464ff82",
+      "id": "h-896288ad",
       "kind": "html",
-      "en": "The third one is about a rule people break on day one. Glyph marks every mutation, so reassigning a binding is <code>mut x = e</code> and introducing one is <code>let x = e</code>. A bare <code>x = e</code> used to report \"unexpected token: Equals\", which names a character rather than the rule. It is <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the mark exists: every place a value changes starts with <code>mut</code>, so <code>grep \"mut total\"</code> finds all of them.",
-      "tr": "O terceiro é sobre uma regra que as pessoas quebram no primeiro dia. O Glyph marca toda mutação, então reatribuir um binding é <code>mut x = e</code> e criar um é <code>let x = e</code>. Um <code>x = e</code> sozinho informava \"unexpected token: Equals\", que nomeia um caractere em vez da regra. Agora é <code>E0008</code>, e <code>glyph --explain E0008</code> explica por que a marca existe: todo lugar onde um valor muda começa com <code>mut</code>, então <code>grep \"mut total\"</code> encontra todos."
+      "en": "Details <span class=\"hint\">which callable decides</span>",
+      "tr": "Detalhes <span class=\"hint\">qual callable decide</span>"
+    },
+    {
+      "id": "h-bd0de091",
+      "kind": "html",
+      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
+      "tr": "Antes isso era o <code>TS1308</code> do <code>tsc</code> no arquivo gerado. Agora é <code>E0222</code>, e quem decide é o callable mais interno que o envolve, então uma lambda síncrona dentro de uma <code>async fn</code> é um contexto à parte, a mesma regra que o TypeScript usa."
+    },
+    {
+      "id": "h-868a3ae0",
+      "kind": "html",
+      "en": "An assignment without mut",
+      "tr": "Uma atribuição sem mut"
+    },
+    {
+      "id": "h-381f5f2a",
+      "kind": "html",
+      "en": "The third one is about a rule people break on day one. Glyph marks every mutation, so reassigning a binding is <code>mut x = e</code> and introducing one is <code>let x = e</code>.",
+      "tr": "O terceiro é sobre uma regra que as pessoas quebram no primeiro dia. O Glyph marca toda mutação, então reatribuir um binding é <code>mut x = e</code> e criar um é <code>let x = e</code>."
+    },
+    {
+      "id": "h-fad2aaa0",
+      "kind": "html",
+      "en": "A bare <code>x = e</code> used to report \"unexpected token: Equals\", which names a character rather than the rule. It is <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the mark exists: every place a value changes starts with <code>mut</code>, so <code>grep \"mut total\"</code> finds all of them.",
+      "tr": "Um <code>x = e</code> sozinho informava \"unexpected token: Equals\", que nomeia um caractere em vez da regra. Agora é <code>E0008</code>, e <code>glyph --explain E0008</code> explica por que a marca existe: todo lugar onde um valor muda começa com <code>mut</code>, então <code>grep \"mut total\"</code> encontra todos."
+    },
+    {
+      "id": "h-9e9b83ac",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the <code>?</code> operator, E0302 and E0303</span>",
+      "tr": "Detalhes <span class=\"hint\">o operador <code>?</code>, E0302 e E0303</span>"
     },
     {
       "id": "h-ebed40e0",
@@ -137,22 +323,34 @@
       "tr": "O caso pior: quando o tsc também fica satisfeito"
     },
     {
-      "id": "h-885c1851",
+      "id": "h-66eed0c1",
       "kind": "html",
-      "en": "A <code>tsc</code> error in the wrong place is annoying. A clean build on a program that means something else is the real problem, and Glyph had one. Every top-level name you declare goes into the emitted module verbatim, including a tagged union's variant constructors, so a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level. The <code>new Error(...)</code> the compiler writes below it then calls your variant.",
-      "tr": "Um erro do <code>tsc</code> no lugar errado incomoda. Um build limpo num programa que significa outra coisa é o problema de verdade, e o Glyph tinha um. Todo nome de nível superior que você declara vai literalmente para o módulo emitido, inclusive os construtores das variantes de uma union etiquetada, então uma variante chamada <code>Error</code> emite <code>export function Error(...)</code> no nível superior do módulo. O <code>new Error(...)</code> que o compilador escreve abaixo dela então chama a sua variante."
+      "en": "A <code>tsc</code> error in the wrong place is annoying. A clean build on a program that means something else is the real problem, and Glyph had one.",
+      "tr": "Um erro do <code>tsc</code> no lugar errado incomoda. Um build limpo num programa que significa outra coisa é o problema de verdade, e o Glyph tinha um."
     },
     {
-      "id": "h-75ff57e8",
+      "id": "h-c0b26b8d",
       "kind": "html",
-      "en": "<code>type Key = string | number</code> is the same defect with a friendlier face. In Glyph <code>A | B</code> declares a tagged union whose members are variant <em>constructors</em>, so that line declares variants called <code>string</code> and <code>number</code>. It compiled, passed <code>tsc --strict</code>, and emitted an <code>export const number</code> that shadowed the prelude <code>number</code> namespace. Nothing failed until a later <code>number.to_string</code> call did.",
-      "tr": "<code>type Key = string | number</code> é o mesmo defeito com uma cara mais simpática. Em Glyph, <code>A | B</code> declara uma union etiquetada cujos membros são <em>construtores</em> de variantes, então essa linha declara variantes chamadas <code>string</code> e <code>number</code>. Compilava, passava no <code>tsc --strict</code> e emitia um <code>export const number</code> que sombreava o namespace <code>number</code> do prelude. Nada falhava até uma chamada <code>number.to_string</code> mais adiante falhar."
+      "en": "Every top-level name you declare goes into the emitted module verbatim, including a tagged union's variant constructors, so a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level. The <code>new Error(...)</code> the compiler writes below it then calls your variant.",
+      "tr": "Todo nome de nível superior que você declara vai literalmente para o módulo emitido, inclusive os construtores das variantes de uma union etiquetada, então uma variante chamada <code>Error</code> emite <code>export function Error(...)</code> no nível superior do módulo. O <code>new Error(...)</code> que o compilador escreve abaixo dela então chama a sua variante."
     },
     {
       "id": "h-a21321a8",
       "kind": "html",
       "en": "glyph build, on a union with an `Error` variant",
       "tr": "glyph build, numa union com uma variante `Error`"
+    },
+    {
+      "id": "h-45a46c38",
+      "kind": "html",
+      "en": "Details <span class=\"hint\"><code>type Key = string | number</code>, the guarded list, E0111</span>",
+      "tr": "Detalhes <span class=\"hint\"><code>type Key = string | number</code>, a lista protegida, E0111</span>"
+    },
+    {
+      "id": "h-75ff57e8",
+      "kind": "html",
+      "en": "<code>type Key = string | number</code> is the same defect with a friendlier face. In Glyph <code>A | B</code> declares a tagged union whose members are variant <em>constructors</em>, so that line declares variants called <code>string</code> and <code>number</code>. It compiled, passed <code>tsc --strict</code>, and emitted an <code>export const number</code> that shadowed the prelude <code>number</code> namespace. Nothing failed until a later <code>number.to_string</code> call did.",
+      "tr": "<code>type Key = string | number</code> é o mesmo defeito com uma cara mais simpática. Em Glyph, <code>A | B</code> declara uma union etiquetada cujos membros são <em>construtores</em> de variantes, então essa linha declara variantes chamadas <code>string</code> e <code>number</code>. Compilava, passava no <code>tsc --strict</code> e emitia um <code>export const number</code> que sombreava o namespace <code>number</code> do prelude. Nada falhava até uma chamada <code>number.to_string</code> mais adiante falhar."
     },
     {
       "id": "h-31b46547",
@@ -167,10 +365,22 @@
       "tr": "O caso da union de primitivos ganha um código próprio, <code>E0111</code>, porque rejeitar sem explicar não ensina nada. Ele diz como a linha foi de fato interpretada, aponta para variantes nomeadas e indica <code>extern_ts(\"string | number\")</code> para a fronteira em que você quer a union crua do TypeScript. Todo nome que o Glyph não deixa você usar está tabelado em <code>docs/reference/reserved-words.md</code>: as 32 palavras-chave, as 33 palavras reservadas do TypeScript por trás do <code>E0109</code> e a lista de sombreamento, cada uma com o motivo de o nome estar ocupado."
     },
     {
-      "id": "h-f9bb4040",
+      "id": "h-26cb1870",
       "kind": "html",
-      "en": "Worth being clear about what this does not do. You still cannot name a type or a variant <code>Error</code>, and the spreadsheet that turned this up ships a variant called <code>Cellerr</code> because of it. The program it wanted to be is still not writable; what changed is that the compiler now says so at the declaration instead of letting the build go green and mean something else. Making the name usable means mangling Glyph names on the way into TypeScript, which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and a hand-written <code>extern/</code> shim see, so it is not a patch we can make quietly.",
-      "tr": "Vale deixar claro o que isso não faz. Você ainda não pode chamar um tipo ou uma variante de <code>Error</code>, e a planilha que revelou isso tem uma variante chamada <code>Cellerr</code> por causa disso. O programa que ela queria ser ainda não pode ser escrito; o que mudou é que o compilador agora diz isso na declaração, em vez de deixar o build ficar verde e significar outra coisa. Tornar o nome utilizável exige alterar os nomes do Glyph na passagem para TypeScript, o que muda o que um stack trace, um <code>grep</code> em <code>dist/</code> e um shim <code>extern/</code> escrito à mão enxergam, então não é um patch que dá para fazer em silêncio."
+      "en": "Worth being clear about what this does not do. You still cannot name a type or a variant <code>Error</code>, and the spreadsheet that turned this up ships a variant called <code>Cellerr</code> because of it. The program it wanted to be is still not writable; what changed is that the compiler now says so at the declaration instead of letting the build go green and mean something else.",
+      "tr": "Vale deixar claro o que isso não faz. Você ainda não pode chamar um tipo ou uma variante de <code>Error</code>, e a planilha que revelou isso tem uma variante chamada <code>Cellerr</code> por causa disso. O programa que ela queria ser ainda não pode ser escrito; o que mudou é que o compilador agora diz isso na declaração, em vez de deixar o build ficar verde e significar outra coisa."
+    },
+    {
+      "id": "h-087673d9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the name is not simply made usable</span>",
+      "tr": "Detalhes <span class=\"hint\">por que o nome não passa simplesmente a ser utilizável</span>"
+    },
+    {
+      "id": "h-3da3e72d",
+      "kind": "html",
+      "en": "Making the name usable means mangling Glyph names on the way into TypeScript, which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and a hand-written <code>extern/</code> shim see, so it is not a patch we can make quietly.",
+      "tr": "Tornar o nome utilizável exige alterar os nomes do Glyph na passagem para TypeScript, o que muda o que um stack trace, um <code>grep</code> em <code>dist/</code> e um shim <code>extern/</code> escrito à mão enxergam, então não é um patch que dá para fazer em silêncio."
     },
     {
       "id": "h-8afaf9f5",
@@ -179,10 +389,10 @@
       "tr": "Uma mensagem errada é pior do que nenhuma mensagem"
     },
     {
-      "id": "h-9130ed23",
+      "id": "h-fa4795df",
       "kind": "html",
-      "en": "The shadow list started with names the emitter writes as <em>values</em>. It was missing the ones it writes as <em>types</em>, and that produced the sharpest version of this whole problem. Every descriptor's <code>parse</code> returns <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes <code>Issue</code> whether or not you did. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own module and yours wins, the emitted <code>Issue</code> objects carry a <code>code</code> field yours has never heard of, and the build fails with a <code>tsc</code> error about generated code, at a span pointing somewhere else.",
-      "tr": "A lista de sombreamento começou com os nomes que o emissor escreve como <em>valores</em>. Faltavam os que ele escreve como <em>tipos</em>, e isso produziu a versão mais aguda de todo esse problema. O <code>parse</code> de todo descritor retorna <code>Result&lt;T, Issue[]&gt;</code>, então o módulo emitido escreve <code>Issue</code> quer você tenha escrito ou não. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> no seu módulo e o seu vence, os objetos <code>Issue</code> emitidos carregam um campo <code>code</code> que o seu nunca viu, e o build falha com um erro do <code>tsc</code> sobre código gerado, num trecho que aponta para outro lugar."
+      "en": "The shadow list started with names the emitter writes as <em>values</em>. It was missing the ones it writes as <em>types</em>, and that produced the sharpest version of this whole problem.",
+      "tr": "A lista de sombreamento começou com os nomes que o emissor escreve como <em>valores</em>. Faltavam os que ele escreve como <em>tipos</em>, e isso produziu a versão mais aguda de todo esse problema."
     },
     {
       "id": "h-a6744752",
@@ -197,22 +407,52 @@
       "tr": "glyph build, agora"
     },
     {
+      "id": "h-aef907f7",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why <code>Issue</code> collides, and <code>Record</code></span>",
+      "tr": "Detalhes <span class=\"hint\">por que <code>Issue</code> colide, e <code>Record</code></span>"
+    },
+    {
+      "id": "h-0ce64210",
+      "kind": "html",
+      "en": "Every descriptor's <code>parse</code> returns <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes <code>Issue</code> whether or not you did. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own module and yours wins, the emitted <code>Issue</code> objects carry a <code>code</code> field yours has never heard of, and the build fails with a <code>tsc</code> error about generated code, at a span pointing somewhere else.",
+      "tr": "O <code>parse</code> de todo descritor retorna <code>Result&lt;T, Issue[]&gt;</code>, então o módulo emitido escreve <code>Issue</code> quer você tenha escrito ou não. Declare <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> no seu módulo e o seu vence, os objetos <code>Issue</code> emitidos carregam um campo <code>code</code> que o seu nunca viu, e o build falha com um erro do <code>tsc</code> sobre código gerado, num trecho que aponta para outro lugar."
+    },
+    {
       "id": "h-5a49991d",
       "kind": "html",
       "en": "<code>Record</code> joined the list at the same time, filed with the JavaScript globals rather than the prelude names because it is a TypeScript built-in and claiming otherwise would make the message wrong about where the name comes from. The drift test that greps the emitter now covers ambient types too, and it had to learn to see <code>Issue[]</code> in a type position, which is the reason this reached a release. <code>Schema</code>, <code>Component</code> and <code>Option</code> stay legal on the same rule that keeps <code>Date</code> free: the emitter writes them only because you wrote them in an annotation, so declaring one shadows nothing.",
       "tr": "<code>Record</code> entrou na lista ao mesmo tempo, registrado junto com os globais do JavaScript e não com os nomes do prelude, porque é um built-in do TypeScript e dizer o contrário deixaria a mensagem errada sobre a origem do nome. O teste de divergência que faz grep no emissor agora cobre também os tipos ambientes, e precisou aprender a ver <code>Issue[]</code> numa posição de tipo, que é o motivo de isso ter chegado a uma release. <code>Schema</code>, <code>Component</code> e <code>Option</code> continuam permitidos pela mesma regra que mantém <code>Date</code> livre: o emissor só os escreve porque você os escreveu numa anotação, então declarar um deles não sombreia nada."
     },
     {
-      "id": "h-fbf610e9",
+      "id": "h-486a5e61",
       "kind": "html",
-      "en": "The other one in this class was an import. A local import path resolves from the build root, the directory you hand to <code>glyph build</code>, not from the directory of the file doing the importing. Build an enclosing tree and <code>import catalog</code> finds nothing, and until now nothing said so. The type degraded to unknown, a <code>match</code> over it lost the variants it was matching, and what you got was <code>E0218</code>, non-exhaustive match, on a <code>match</code> that covered every case. Doing what that message asked would have added a dead <code>else</code> arm to correct code.",
-      "tr": "O outro caso dessa classe era um import. Um caminho de import local é resolvido a partir da raiz do build, o diretório que você passa para o <code>glyph build</code>, e não do diretório do arquivo que faz o import. Faça o build de uma árvore que o contém e <code>import catalog</code> não encontra nada, e até agora nada dizia isso. O tipo se degradava para desconhecido, um <code>match</code> sobre ele perdia as variantes que estava casando, e o que você recebia era <code>E0218</code>, match não exaustivo, num <code>match</code> que cobria todos os casos. Fazer o que essa mensagem pedia teria adicionado um braço <code>else</code> morto a um código correto."
+      "en": "An import that blamed a match",
+      "tr": "Um import que culpava um match"
+    },
+    {
+      "id": "h-a81ef186",
+      "kind": "html",
+      "en": "The other one in this class was an import. A local import path resolves from the build root, the directory you hand to <code>glyph build</code>, not from the directory of the file doing the importing.",
+      "tr": "O outro caso dessa classe era um import. Um caminho de import local é resolvido a partir da raiz do build, o diretório que você passa para o <code>glyph build</code>, e não do diretório do arquivo que faz o import."
     },
     {
       "id": "h-dee2dcd5",
       "kind": "html",
       "en": "glyph build examples/apps, on `import catalog` inside csvql/",
       "tr": "glyph build examples/apps, em `import catalog` dentro de csvql/"
+    },
+    {
+      "id": "h-03ae0093",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what it used to report, and how it avoids false positives</span>",
+      "tr": "Detalhes <span class=\"hint\">o que ele informava antes, e como evita falsos positivos</span>"
+    },
+    {
+      "id": "h-7034a362",
+      "kind": "html",
+      "en": "Build an enclosing tree and <code>import catalog</code> finds nothing, and until now nothing said so. The type degraded to unknown, a <code>match</code> over it lost the variants it was matching, and what you got was <code>E0218</code>, non-exhaustive match, on a <code>match</code> that covered every case. Doing what that message asked would have added a dead <code>else</code> arm to correct code.",
+      "tr": "Faça o build de uma árvore que o contém e <code>import catalog</code> não encontra nada, e até agora nada dizia isso. O tipo se degradava para desconhecido, um <code>match</code> sobre ele perdia as variantes que estava casando, e o que você recebia era <code>E0218</code>, match não exaustivo, num <code>match</code> que cobria todos os casos. Fazer o que essa mensagem pedia teria adicionado um braço <code>else</code> morto a um código correto."
     },
     {
       "id": "h-a61f2874",
@@ -233,16 +473,28 @@
       "tr": "Nomear a regra, não o token"
     },
     {
-      "id": "h-f713d300",
+      "id": "h-18a4da53",
       "kind": "html",
-      "en": "The quieter version of the same problem is an error that is correct and still tells you nothing. An agent writing a red-black tree reached for the positional constructor every ML-family language has, and the parser stopped on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces a different program, not a working one. A Glyph variant carries one payload, and a payload with several fields is a record. Neither of those sentences was anywhere in the output.",
-      "tr": "A versão mais discreta do mesmo problema é um erro que está correto e mesmo assim não diz nada. Um agente escrevendo uma árvore rubro-negra usou o construtor posicional que toda linguagem da família ML tem, e o parser parou na primeira vírgula com &ldquo;expected <code>)</code>&rdquo; e o conselho &ldquo;add the expected token&rdquo;. Colocar um <code>)</code> ali produz outro programa, não um que funcione. Uma variante do Glyph carrega um payload, e um payload com vários campos é um record. Nenhuma dessas duas frases aparecia em lugar nenhum da saída."
+      "en": "The quieter version of the same problem is an error that is correct and still tells you nothing.",
+      "tr": "A versão mais discreta do mesmo problema é um erro que está correto e mesmo assim não diz nada."
     },
     {
       "id": "h-2a5b1304",
       "kind": "html",
       "en": "glyph check, before and now",
       "tr": "glyph check, antes e agora"
+    },
+    {
+      "id": "h-834f1713",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the red-black tree, and how the fix names your program</span>",
+      "tr": "Detalhes <span class=\"hint\">a árvore rubro-negra, e como o conserto nomeia o seu programa</span>"
+    },
+    {
+      "id": "h-c14bc23a",
+      "kind": "html",
+      "en": "An agent writing a red-black tree reached for the positional constructor every ML-family language has, and the parser stopped on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces a different program, not a working one. A Glyph variant carries one payload, and a payload with several fields is a record. Neither of those sentences was anywhere in the output.",
+      "tr": "Um agente escrevendo uma árvore rubro-negra usou o construtor posicional que toda linguagem da família ML tem, e o parser parou na primeira vírgula com &ldquo;expected <code>)</code>&rdquo; e o conselho &ldquo;add the expected token&rdquo;. Colocar um <code>)</code> ali produz outro programa, não um que funcione. Uma variante do Glyph carrega um payload, e um payload com vários campos é um record. Nenhuma dessas duas frases aparecia em lugar nenhum da saída."
     },
     {
       "id": "h-3db49ffc",
@@ -263,16 +515,10 @@
       "tr": "Mais dois que o verificador assumiu na 0.1.121"
     },
     {
-      "id": "h-e177bf8c",
+      "id": "h-b099e1ee",
       "kind": "html",
-      "en": "<code>Order { id: \"a\", total: 1 }</code> is what someone coming from TypeScript writes to build a record, and Glyph has no such form: a value is written on its own and the type goes on the annotation. What the compiler used to say about that line was <code>E0108</code>, unreachable code, on a build that exited 0, because the name resolved to the type and the braces parsed as a block after the <code>return</code>. A type's name written as a value is <code>E0228</code>, and the message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the receiver of a type's own descriptor is the one expression position a type name belongs in.",
-      "tr": "<code>Order { id: \"a\", total: 1 }</code> é o que quem vem do TypeScript escreve para montar um record, e o Glyph não tem essa forma: um valor é escrito sozinho e o tipo vai na anotação. O que o compilador dizia sobre essa linha era <code>E0108</code>, código inalcançável, num build que saía com 0, porque o nome era resolvido para o tipo e as chaves eram lidas como um bloco depois do <code>return</code>. O nome de um tipo escrito como valor é <code>E0228</code>, e a mensagem é tirada da declaração, então um record lista seus campos, uma union etiquetada lista suas variantes com o formato dos payloads e uma union de string literals lista seus literais. <code>Order.parse(raw)</code> e <code>Order.is(v)</code> continuam válidos, já que o receptor do próprio descritor de um tipo é a única posição de expressão onde cabe um nome de tipo."
-    },
-    {
-      "id": "h-f06c8bfb",
-      "kind": "html",
-      "en": "That fixed the case where the name was a type and left the parse alone, so <code>return h() { k: 2 }</code> still returned <code>h()</code> and dropped the braces with a warning. Since 0.1.146 a <code>{</code> on the line where a statement ended is <code>E0013</code> at parse, whatever the name before it is, and its help gives the same rewrite. Since 0.1.149 the rule covers every statement, not only one opening with a brace: <code>let s = \"a\" \"b\"</code> used to bind <code>\"a\"</code> and drop <code>\"b\"</code>, and <code>return x as User</code> was three statements, since Glyph has no cast. Each statement in a block starts its own line.",
-      "tr": "Isso consertou o caso em que o nome era um tipo e deixou o parse como estava, então <code>return h() { k: 2 }</code> ainda retornava <code>h()</code> e descartava as chaves com um aviso. Desde a 0.1.146, um <code>{</code> na linha em que um statement terminou é <code>E0013</code> no parse, seja qual for o nome antes dele, e a ajuda dá a mesma reescrita. Desde a 0.1.149 a regra cobre todo statement, não só um que abre com chave: <code>let s = \"a\" \"b\"</code> fazia bind de <code>\"a\"</code> e descartava <code>\"b\"</code>, e <code>return x as User</code> eram três statements, já que o Glyph não tem cast. Cada statement de um bloco começa na sua própria linha."
+      "en": "<code>Order { id: \"a\", total: 1 }</code> is what someone coming from TypeScript writes to build a record, and Glyph has no such form: a value is written on its own and the type goes on the annotation.",
+      "tr": "<code>Order { id: \"a\", total: 1 }</code> é o que quem vem do TypeScript escreve para montar um record, e o Glyph não tem essa forma: um valor é escrito sozinho e o tipo vai na anotação."
     },
     {
       "id": "h-8ed13b42",
@@ -281,10 +527,64 @@
       "tr": "glyph check, num record montado do jeito do TypeScript"
     },
     {
-      "id": "h-c496e232",
+      "id": "h-795f339b",
       "kind": "html",
-      "en": "The other one is a prelude container assigned to a primitive. <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code> to a parameter declared <code>int</code>. Five containers are covered in both directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a <code>number</code> or a <code>bool</code>, whatever their arguments, and <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and <code>let v: Nullable&lt;int&gt; = \"three\"</code> is <code>E0204</code>. The <code>Nullable</code> case belongs on this page more than the others, because it is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so a boundary type that exists to make <code>null</code> visible was passing silently where an <code>int</code> was declared, and the Glyph checker was the only place it could have been caught.",
-      "tr": "O outro é um contêiner do prelude atribuído a um primitivo. <code>let x: string = o</code> com <code>o: Option&lt;int&gt;</code> não gerava nada no verificador do Glyph, e passar um <code>Nullable&lt;int&gt;</code> para um parâmetro declarado <code>int</code> também não. Cinco contêineres agora são cobertos nas duas direções: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> e <code>Nullable</code> nunca são <code>string</code>, <code>number</code> ou <code>bool</code>, sejam quais forem seus argumentos, e <code>Nullable&lt;T&gt;</code> contra um escalar é decidido um nível abaixo, contra <code>T</code>, então <code>let v: Nullable&lt;int&gt; = 3</code> continua correto e <code>let v: Nullable&lt;int&gt; = \"three\"</code> é <code>E0204</code>. O caso do <code>Nullable</code> pertence a esta página mais do que os outros, porque é um que o <code>tsc</code> não consegue pegar: o <code>const v: number | null = 3</code> emitido é estreitado de volta para <code>number</code> antes de a chamada ser verificada, então um tipo de fronteira que existe para tornar o <code>null</code> visível passava em silêncio onde um <code>int</code> estava declarado, e o verificador do Glyph era o único lugar onde isso poderia ser pego."
+      "en": "since 0.1.146",
+      "tr": "desde a 0.1.146"
+    },
+    {
+      "id": "h-7d320b1d",
+      "kind": "html",
+      "en": "History <span class=\"hint\">from E0108 to E0228 to E0013</span>",
+      "tr": "Histórico <span class=\"hint\">de E0108 para E0228 e depois E0013</span>"
+    },
+    {
+      "id": "h-b3a61f5d",
+      "kind": "html",
+      "en": "What the compiler used to say about that line was <code>E0108</code>, unreachable code, on a build that exited 0, because the name resolved to the type and the braces parsed as a block after the <code>return</code>. A type's name written as a value is <code>E0228</code>, and the message is read off the declaration, so a record lists its fields, a tagged union lists its variants with their payload shapes, and a string-literal union lists its literals. <code>Order.parse(raw)</code> and <code>Order.is(v)</code> stay legal, since the receiver of a type's own descriptor is the one expression position a type name belongs in.",
+      "tr": "O que o compilador dizia sobre essa linha era <code>E0108</code>, código inalcançável, num build que saía com 0, porque o nome era resolvido para o tipo e as chaves eram lidas como um bloco depois do <code>return</code>. O nome de um tipo escrito como valor é <code>E0228</code>, e a mensagem é tirada da declaração, então um record lista seus campos, uma union etiquetada lista suas variantes com o formato dos payloads e uma union de string literals lista seus literais. <code>Order.parse(raw)</code> e <code>Order.is(v)</code> continuam válidos, já que o receptor do próprio descritor de um tipo é a única posição de expressão onde cabe um nome de tipo."
+    },
+    {
+      "id": "h-30e89967",
+      "kind": "html",
+      "en": "That fixed the case where the name was a type and left the parse alone, so <code>return h() { k: 2 }</code> still returned <code>h()</code> and dropped the braces with a warning. Since 0.1.146 a <code>{</code> on the line where a statement ended is <code>E0013</code> at parse, whatever the name before it is, and its help gives the same rewrite. Since 0.1.149 the rule covers every statement, not only one opening with a brace: <code>let s = \"a\" \"b\"</code> used to bind <code>\"a\"</code> and drop <code>\"b\"</code>, and <code>return x as User</code> was three statements, since Glyph has no cast.",
+      "tr": "Isso consertou o caso em que o nome era um tipo e deixou o parse como estava, então <code>return h() { k: 2 }</code> ainda retornava <code>h()</code> e descartava as chaves com um aviso. Desde a 0.1.146, um <code>{</code> na linha em que um statement terminou é <code>E0013</code> no parse, seja qual for o nome antes dele, e a ajuda dá a mesma reescrita. Desde a 0.1.149 a regra cobre todo statement, não só um que abre com chave: <code>let s = \"a\" \"b\"</code> fazia bind de <code>\"a\"</code> e descartava <code>\"b\"</code>, e <code>return x as User</code> eram três statements, já que o Glyph não tem cast."
+    },
+    {
+      "id": "h-9da1097f",
+      "kind": "html",
+      "en": "Each statement in a block starts its own line.",
+      "tr": "Cada statement de um bloco começa na sua própria linha."
+    },
+    {
+      "id": "h-bd40afa6",
+      "kind": "html",
+      "en": "A container where a primitive is declared",
+      "tr": "Um contêiner onde um primitivo está declarado"
+    },
+    {
+      "id": "h-fc9c087d",
+      "kind": "html",
+      "en": "The other one is a prelude container assigned to a primitive. <code>let x: string = o</code> where <code>o: Option&lt;int&gt;</code> drew nothing from the Glyph checker, and neither did passing a <code>Nullable&lt;int&gt;</code> to a parameter declared <code>int</code>.",
+      "tr": "O outro é um contêiner do prelude atribuído a um primitivo. <code>let x: string = o</code> com <code>o: Option&lt;int&gt;</code> não gerava nada no verificador do Glyph, e passar um <code>Nullable&lt;int&gt;</code> para um parâmetro declarado <code>int</code> também não."
+    },
+    {
+      "id": "h-9e10fd71",
+      "kind": "html",
+      "en": "Five containers are covered in both directions now: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> and <code>Nullable</code> are never a <code>string</code>, a <code>number</code> or a <code>bool</code>, whatever their arguments, and <code>Nullable&lt;T&gt;</code> against a scalar is decided one level in against <code>T</code>, so <code>let v: Nullable&lt;int&gt; = 3</code> stays correct and <code>let v: Nullable&lt;int&gt; = \"three\"</code> is <code>E0204</code>.",
+      "tr": "Cinco contêineres agora são cobertos nas duas direções: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> e <code>Nullable</code> nunca são <code>string</code>, <code>number</code> ou <code>bool</code>, sejam quais forem seus argumentos, e <code>Nullable&lt;T&gt;</code> contra um escalar é decidido um nível abaixo, contra <code>T</code>, então <code>let v: Nullable&lt;int&gt; = 3</code> continua correto e <code>let v: Nullable&lt;int&gt; = \"three\"</code> é <code>E0204</code>."
+    },
+    {
+      "id": "h-06255fa0",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the case only Glyph can catch, and records since 0.1.130</span>",
+      "tr": "Detalhes <span class=\"hint\">o caso que só o Glyph pega, e records desde a 0.1.130</span>"
+    },
+    {
+      "id": "h-5eb4ae4a",
+      "kind": "html",
+      "en": "The <code>Nullable</code> case belongs on this page more than the others, because it is one <code>tsc</code> cannot make: the emitted <code>const v: number | null = 3</code> narrows back to <code>number</code> before the call is checked, so a boundary type that exists to make <code>null</code> visible was passing silently where an <code>int</code> was declared, and the Glyph checker was the only place it could have been caught.",
+      "tr": "O caso do <code>Nullable</code> pertence a esta página mais do que os outros, porque é um que o <code>tsc</code> não consegue pegar: o <code>const v: number | null = 3</code> emitido é estreitado de volta para <code>number</code> antes de a chamada ser verificada, então um tipo de fronteira que existe para tornar o <code>null</code> visível passava em silêncio onde um <code>int</code> estava declarado, e o verificador do Glyph era o único lugar onde isso poderia ser pego."
     },
     {
       "id": "h-4d3a0a1d",
@@ -293,10 +593,22 @@
       "tr": "Os mesmos contêineres contra um record ou uma union declarados vieram em seguida. Desde a 0.1.130, <code>let user: User = json.parse(body)</code> é <code>E0204</code>, esperado <code>User</code>, encontrado <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Antes, só o <code>tsc</code> dizia isso, o que significava que <code>glyph check --no-tsc</code>, o editor e o playground mostravam um arquivo limpo justamente na linha que uma fronteira existe para acertar."
     },
     {
-      "id": "h-98c8eb1d",
+      "id": "h-774e76f8",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. <code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "Um membro com erro de digitação num array ou numa string é o outro caso que antes esperava o <code>tsc</code>. <code>xs.lenght</code> é <code>E0210</code> com \"did you mean <code>length</code>\", verificado contra os membros que a biblioteca do TypeScript declara para arrays e strings, do mesmo jeito que a leitura de um campo de record é verificada contra os campos dele. O <code>tsc</code> teria recusado os dois, então um build que o rodava já ficava vermelho; a mudança é que o verificador, e tudo o que é construído sobre ele, os vê primeiro."
+      "en": "A misspelled member on an array or a string",
+      "tr": "Um membro com erro de digitação num array ou numa string"
+    },
+    {
+      "id": "h-6a0adcec",
+      "kind": "html",
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
+      "tr": "Um membro com erro de digitação num array ou numa string é o outro caso que antes esperava o <code>tsc</code>. <code>xs.lenght</code> é <code>E0210</code> com \"did you mean <code>length</code>\", verificado contra os membros que a biblioteca do TypeScript declara para arrays e strings, do mesmo jeito que a leitura de um campo de record é verificada contra os campos dele."
+    },
+    {
+      "id": "h-f84d5e4f",
+      "kind": "html",
+      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "O <code>tsc</code> teria recusado os dois, então um build que o rodava já ficava vermelho; a mudança é que o verificador, e tudo o que é construído sobre ele, os vê primeiro."
     },
     {
       "id": "h-3d087635",
@@ -305,22 +617,70 @@
       "tr": "E mais três, desde a 0.1.133"
     },
     {
-      "id": "h-06826d1c",
+      "id": "h-31093b27",
       "kind": "html",
-      "en": "<code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a lambda instead. The checker now knows what each array and string method returns, from a table generated out of TypeScript's own declarations.",
-      "tr": "<code>let up = s.toUpperCase</code> passa na verificação de tipos do TypeScript e lança erro quando <code>up()</code> roda, porque a leitura perde a string a que o método pertence. O Glyph recusa isso como <code>E0234</code>, e recusa também <code>.bind(s)</code> nele: envolva a chamada numa lambda. O verificador agora sabe o que cada método de array e de string retorna, a partir de uma tabela gerada das próprias declarações do TypeScript."
+      "en": "A method read off its string",
+      "tr": "Um método lido da sua string"
     },
     {
-      "id": "h-10186d4d",
+      "id": "h-01f38d35",
       "kind": "html",
-      "en": "<code>r?.label</code> on a <code>Result</code> reads like \"propagate the error, then read the field\". It is optional chaining, and a <code>Result</code> is never null, so it reads the field off the <code>Result</code> object and propagates nothing. An agent wrote exactly that while building a CSV query tool. It is <code>E0236</code> now, on an <code>Option</code> as well, and the help says to bind with <code>?</code> first.",
-      "tr": "<code>r?.label</code> num <code>Result</code> parece dizer \"propague o erro e depois leia o campo\". É optional chaining, e um <code>Result</code> nunca é null, então lê o campo do objeto <code>Result</code> e não propaga nada. Um agente escreveu exatamente isso ao construir uma ferramenta de consulta em CSV. Agora é <code>E0236</code>, num <code>Option</code> também, e a ajuda diz para fazer bind com <code>?</code> primeiro."
+      "en": "<code>let up = s.toUpperCase</code> type-checks in TypeScript and throws when <code>up()</code> runs, because the read drops the string it belongs to. Glyph refuses it as <code>E0234</code>, and refuses <code>.bind(s)</code> on it too: wrap the call in a lambda instead.",
+      "tr": "<code>let up = s.toUpperCase</code> passa na verificação de tipos do TypeScript e lança erro quando <code>up()</code> roda, porque a leitura perde a string a que o método pertence. O Glyph recusa isso como <code>E0234</code>, e recusa também <code>.bind(s)</code> nele: envolva a chamada numa lambda."
     },
     {
-      "id": "h-2b56a26c",
+      "id": "h-72a50bd7",
       "kind": "html",
-      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read. The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>. Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is planned as G325, on the <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">release roadmap</a>.",
-      "tr": "<code>json.parse(body)</code> sem argumento de tipo é a leitura não verificada, um <code>Result&lt;unknown, ...&gt;</code>. Escrito onde um <code>Result&lt;User, ...&gt;</code> estava declarado, o <code>tsc</code> inferia <code>User</code> a partir da declaração e o programa quebrava na primeira leitura de campo. Agora o emissor escreve o <code>unknown</code> explicitamente, então <code>glyph check</code> o recusa via <code>tsc</code>. O próprio verificador do Glyph ainda não pega um <code>unknown</code> que cai dentro de um tipo declarado, então <code>--no-tsc</code> e o editor ainda deixam passar <code>Result&lt;unknown, ...&gt;</code> escrito onde <code>Result&lt;User, ...&gt;</code> está declarado. (Um <code>let user: User = json.parse(body)</code> simples é <code>E0204</code> pelo próprio verificador do Glyph, porque o tipo externo já está errado.) Recusar <code>unknown</code> em qualquer profundidade está planejado como G325, no <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">roadmap de releases</a>."
+      "en": "Details <span class=\"hint\">where the method types come from</span>",
+      "tr": "Detalhes <span class=\"hint\">de onde vêm os tipos dos métodos</span>"
+    },
+    {
+      "id": "h-54772e68",
+      "kind": "html",
+      "en": "The checker now knows what each array and string method returns, from a table generated out of TypeScript's own declarations.",
+      "tr": "O verificador agora sabe o que cada método de array e de string retorna, a partir de uma tabela gerada das próprias declarações do TypeScript."
+    },
+    {
+      "id": "h-b43e3379",
+      "kind": "html",
+      "en": "Optional chaining on a Result",
+      "tr": "Optional chaining num Result"
+    },
+    {
+      "id": "h-d9c27192",
+      "kind": "html",
+      "en": "<code>r?.label</code> on a <code>Result</code> reads like \"propagate the error, then read the field\". It is optional chaining, and a <code>Result</code> is never null, so it reads the field off the <code>Result</code> object and propagates nothing.",
+      "tr": "<code>r?.label</code> num <code>Result</code> parece dizer \"propague o erro e depois leia o campo\". É optional chaining, e um <code>Result</code> nunca é null, então lê o campo do objeto <code>Result</code> e não propaga nada."
+    },
+    {
+      "id": "h-5887ba3d",
+      "kind": "html",
+      "en": "An agent wrote exactly that while building a CSV query tool. It is <code>E0236</code> now, on an <code>Option</code> as well, and the help says to bind with <code>?</code> first.",
+      "tr": "Um agente escreveu exatamente isso ao construir uma ferramenta de consulta em CSV. Agora é <code>E0236</code>, num <code>Option</code> também, e a ajuda diz para fazer bind com <code>?</code> primeiro."
+    },
+    {
+      "id": "h-1e362246",
+      "kind": "html",
+      "en": "An unchecked json.parse",
+      "tr": "Um json.parse não verificado"
+    },
+    {
+      "id": "h-19fe19ee",
+      "kind": "html",
+      "en": "<code>json.parse(body)</code> with no type argument is the unchecked read, a <code>Result&lt;unknown, ...&gt;</code>. Written where a <code>Result&lt;User, ...&gt;</code> was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and the program crashed on its first field read.",
+      "tr": "<code>json.parse(body)</code> sem argumento de tipo é a leitura não verificada, um <code>Result&lt;unknown, ...&gt;</code>. Escrito onde um <code>Result&lt;User, ...&gt;</code> estava declarado, o <code>tsc</code> inferia <code>User</code> a partir da declaração e o programa quebrava na primeira leitura de campo."
+    },
+    {
+      "id": "h-119aab05",
+      "kind": "html",
+      "en": "The emitter now writes the <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>.",
+      "tr": "Agora o emissor escreve o <code>unknown</code> explicitamente, então <code>glyph check</code> o recusa via <code>tsc</code>."
+    },
+    {
+      "id": "h-885e0e32",
+      "kind": "html",
+      "en": "Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared type, so <code>--no-tsc</code> and the editor still miss <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code> at every depth is planned as G325, on the <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">release roadmap</a>.",
+      "tr": "O próprio verificador do Glyph ainda não pega um <code>unknown</code> que cai dentro de um tipo declarado, então <code>--no-tsc</code> e o editor ainda deixam passar <code>Result&lt;unknown, ...&gt;</code> escrito onde <code>Result&lt;User, ...&gt;</code> está declarado. (Um <code>let user: User = json.parse(body)</code> simples é <code>E0204</code> pelo próprio verificador do Glyph, porque o tipo externo já está errado.) Recusar <code>unknown</code> em qualquer profundidade está planejado como G325, no <a href=\"https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md\">roadmap de releases</a>."
     },
     {
       "id": "h-41090fb8",
@@ -329,16 +689,28 @@
       "tr": "E mais dois na 0.1.122"
     },
     {
-      "id": "h-199da0a9",
+      "id": "h-d4155462",
       "kind": "html",
-      "en": "<code>type Mode = \"read\" | \"write\"</code> declares a finite set of strings, and the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record and a string outside the set all passed <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while <code>tsc</code> refused every one of them on the emitted TypeScript. So a full <code>glyph build</code> was never wrong about this, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.",
-      "tr": "<code>type Mode = \"read\" | \"write\"</code> declara um conjunto finito de strings, e o verificador do Glyph não comparava um valor com ele por critério nenhum. Um número, um <code>bool</code>, um record e uma string fora do conjunto passavam todos no <code>glyph check --no-tsc</code> só com avisos de variável não usada, enquanto o <code>tsc</code> recusava cada um deles no TypeScript emitido. Então um <code>glyph build</code> completo nunca errou nisso, mas as quatro superfícies que não têm <code>tsc</code> no ciclo erravam: <code>--no-tsc</code>, o language server, as ferramentas MCP e o playground."
+      "en": "<code>type Mode = \"read\" | \"write\"</code> declares a finite set of strings, and the Glyph checker compared a value against it by nothing at all. A number, a <code>bool</code>, a record and a string outside the set all passed <code>glyph check --no-tsc</code> with nothing but unused-variable warnings, while <code>tsc</code> refused every one of them on the emitted TypeScript.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code> declara um conjunto finito de strings, e o verificador do Glyph não comparava um valor com ele por critério nenhum. Um número, um <code>bool</code>, um record e uma string fora do conjunto passavam todos no <code>glyph check --no-tsc</code> só com avisos de variável não usada, enquanto o <code>tsc</code> recusava cada um deles no TypeScript emitido."
+    },
+    {
+      "id": "h-9fc313c1",
+      "kind": "html",
+      "en": "So a full <code>glyph build</code> was never wrong about this, but the four surfaces that have no <code>tsc</code> in the loop were: <code>--no-tsc</code>, the language server, the MCP tools and the playground.",
+      "tr": "Então um <code>glyph build</code> completo nunca errou nisso, mas as quatro superfícies que não têm <code>tsc</code> no ciclo erravam: <code>--no-tsc</code>, o language server, as ferramentas MCP e o playground."
     },
     {
       "id": "h-8ccbda80",
       "kind": "html",
       "en": "glyph check --no-tsc, on a type that lists its legal strings",
       "tr": "glyph check --no-tsc, num tipo que lista suas strings válidas"
+    },
+    {
+      "id": "h-b89fca87",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the union is compared</span>",
+      "tr": "Detalhes <span class=\"hint\">como a union é comparada</span>"
     },
     {
       "id": "h-d0bde6bb",
@@ -353,22 +725,28 @@
       "tr": "Uma union aninhada num campo de record ou num argumento genérico ficava a cargo do <code>tsc</code> na 0.1.122 e é decidida na 0.1.123. Veja abaixo."
     },
     {
-      "id": "h-06af8498",
-      "kind": "html",
-      "en": "The second one is not a <code>tsc</code> story at all. The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted with exit 134. That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took the server down for the whole workspace. It is <code>E0011</code> now, raised at the token that would have opened level 65.",
-      "tr": "O segundo não é uma história de <code>tsc</code>. O parser é descendente recursivo sem limite de profundidade, então uma expressão aninhada em dois mil níveis estourava a pilha do processo e abortava com exit 134. Isso é ruim no <code>glyph check</code> e pior no <code>glyph lsp</code> e no <code>glyph mcp</code>, que leem todo arquivo sob a raiz: um único arquivo patológico derrubava o servidor para o workspace inteiro. Agora é <code>E0011</code>, levantado no token que abriria o nível 65."
-    },
-    {
       "id": "h-4667bbfa",
       "kind": "html",
       "en": "0.1.123: the literal a value is, not the <code>string</code> it emits to",
       "tr": "0.1.123: o literal que um valor é, não a <code>string</code> para a qual ele é emitido"
     },
     {
-      "id": "h-c893efbc",
+      "id": "h-75b65698",
       "kind": "html",
-      "en": "<code>type Mode = \"read\" | \"write\"</code> put the set on the declaration and nothing on the value, so <code>\"read\"</code> was a <code>string</code> and <code>[\"read\", \"write\"]</code> an <code>Array&lt;string&gt;</code>. That made two programs indistinguishable: <code>return [\"read\", \"write\"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and that bought the right program by giving up the wrong one: <code>{ mode: \"nope\" }</code> against a <code>{ mode: Mode }</code> drew nothing.",
-      "tr": "<code>type Mode = \"read\" | \"write\"</code> colocava o conjunto na declaração e nada no valor, então <code>\"read\"</code> era uma <code>string</code> e <code>[\"read\", \"write\"]</code> um <code>Array&lt;string&gt;</code>. Isso tornava dois programas indistinguíveis: <code>return [\"read\", \"write\"]</code> onde um <code>Array&lt;Mode&gt;</code> está declarado, que o <code>tsc</code> compila, e <code>return xs</code> para um <code>xs: Array&lt;string&gt;</code>, que ele recusa. A 0.1.122 preferiu não decidir esse par a decidir errado, e isso garantiu o programa certo abrindo mão de pegar o errado: <code>{ mode: \"nope\" }</code> contra um <code>{ mode: Mode }</code> não gerava nada."
+      "en": "<code>type Mode = \"read\" | \"write\"</code> put the set on the declaration and nothing on the value, so <code>\"read\"</code> was a <code>string</code> and <code>[\"read\", \"write\"]</code> an <code>Array&lt;string&gt;</code>.",
+      "tr": "<code>type Mode = \"read\" | \"write\"</code> colocava o conjunto na declaração e nada no valor, então <code>\"read\"</code> era uma <code>string</code> e <code>[\"read\", \"write\"]</code> um <code>Array&lt;string&gt;</code>."
+    },
+    {
+      "id": "h-261b3205",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what 0.1.122 gave up</span>",
+      "tr": "Histórico <span class=\"hint\">do que a 0.1.122 abriu mão</span>"
+    },
+    {
+      "id": "h-3d0aa059",
+      "kind": "html",
+      "en": "That made two programs indistinguishable: <code>return [\"read\", \"write\"]</code> where an <code>Array&lt;Mode&gt;</code> is declared, which <code>tsc</code> compiles, and <code>return xs</code> for an <code>xs: Array&lt;string&gt;</code>, which it refuses. 0.1.122 declined the pairing rather than get it wrong, and that bought the right program by giving up the wrong one: <code>{ mode: \"nope\" }</code> against a <code>{ mode: Mode }</code> drew nothing.",
+      "tr": "Isso tornava dois programas indistinguíveis: <code>return [\"read\", \"write\"]</code> onde um <code>Array&lt;Mode&gt;</code> está declarado, que o <code>tsc</code> compila, e <code>return xs</code> para um <code>xs: Array&lt;string&gt;</code>, que ele recusa. A 0.1.122 preferiu não decidir esse par a decidir errado, e isso garantiu o programa certo abrindo mão de pegar o errado: <code>{ mode: \"nope\" }</code> contra um <code>{ mode: Mode }</code> não gerava nada."
     },
     {
       "id": "h-c0066fa2",
@@ -383,16 +761,28 @@
       "tr": "glyph check --no-tsc, num literal um nível dentro de um contêiner"
     },
     {
+      "id": "h-4ae02a68",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the literal widens, and <code>Record</code> keys since 0.1.153</span>",
+      "tr": "Detalhes <span class=\"hint\">onde o literal é alargado, e chaves de <code>Record</code> desde a 0.1.153</span>"
+    },
+    {
       "id": "h-1582f0d1",
       "kind": "html",
       "en": "The literal widens back to <code>string</code> where TypeScript widens it: at a <code>let</code> with no annotation, whose emitted TypeScript <code>let</code> widens the same way, and at the element binding of a <code>for</code> over a written array. So <code>let l = \"read\"</code> followed by <code>takes_mode(l)</code> is refused here and <code>TS2345</code> there. A <code>const</code> emits a TypeScript <code>const</code> and keeps its literal, so <code>takes_mode(CM)</code> compiles under both. A literal type that arrived through a name is not widened, which is TypeScript's own freshness rule. Every row of that was settled by running <code>tsc --strict</code> on the equivalent TypeScript rather than reasoned about.",
       "tr": "O literal volta a ser <code>string</code> onde o TypeScript o alarga: num <code>let</code> sem anotação, cujo <code>let</code> emitido em TypeScript alarga do mesmo jeito, e no binding de elemento de um <code>for</code> sobre um array escrito. Então <code>let l = \"read\"</code> seguido de <code>takes_mode(l)</code> é recusado aqui e é <code>TS2345</code> lá. Um <code>const</code> emite um <code>const</code> do TypeScript e mantém o literal, então <code>takes_mode(CM)</code> compila nos dois. Um tipo literal que chegou por meio de um nome não é alargado, que é a própria regra de freshness do TypeScript. Cada linha disso foi decidida rodando <code>tsc --strict</code> no TypeScript equivalente, não por dedução."
     },
     {
-      "id": "h-bf8e8b89",
+      "id": "h-46e3c3df",
       "kind": "html",
-      "en": "One pairing is still declined: the key argument of a <code>Record</code> against another <code>Record</code>'s. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature covering every key a <code>Record&lt;Mode, V&gt;</code> declares and accepts it in both directions, so refusing it would refuse a program that compiles. Two more shapes the checker still says nothing about: a literal inside <code>Some(...)</code>, because a prelude constructor has no type here yet, and a record literal bound to an unannotated <code>let</code>, because no record type is synthesized for an object literal.",
-      "tr": "Um par ainda fica sem decisão: o argumento de chave de um <code>Record</code> contra o de outro <code>Record</code>. O TypeScript escreve <code>Record&lt;string, V&gt;</code> como uma index signature que cobre toda chave que um <code>Record&lt;Mode, V&gt;</code> declara e o aceita nas duas direções, então recusá-lo recusaria um programa que compila. Mais dois formatos sobre os quais o verificador ainda não diz nada: um literal dentro de <code>Some(...)</code>, porque um construtor do prelude ainda não tem tipo aqui, e um record literal ligado a um <code>let</code> sem anotação, porque nenhum tipo record é sintetizado para um objeto literal."
+      "en": "The key argument of a <code>Record</code> is held more strictly than <code>tsc</code> holds it, since 0.1.153. TypeScript writes <code>Record&lt;string, V&gt;</code> as an index signature and accepts it against a <code>Record&lt;Mode, V&gt;</code> in both directions. Glyph refuses both: the open map may hold keys outside <code>Mode</code> or miss one, and a <code>Record&lt;Mode, V&gt;</code> passed on as the open one can be written a stray key. Going from one to the other is an <code>is</code> arm or a <code>json.parse</code>.",
+      "tr": "Desde a 0.1.153, o argumento de chave de um <code>Record</code> é tratado com mais rigor do que o <code>tsc</code> trata. O TypeScript escreve <code>Record&lt;string, V&gt;</code> como uma index signature e o aceita contra um <code>Record&lt;Mode, V&gt;</code> nas duas direções. O Glyph recusa as duas: o mapa aberto pode ter chaves fora de <code>Mode</code> ou não ter alguma, e um <code>Record&lt;Mode, V&gt;</code> repassado como o aberto pode receber uma chave avulsa. Passar de um para o outro é um braço <code>is</code> ou um <code>json.parse</code>."
+    },
+    {
+      "id": "h-a95b91d5",
+      "kind": "html",
+      "en": "Two shapes the checker still says nothing about: a literal inside <code>Some(...)</code>, because a prelude constructor has no type here yet, and a record literal bound to an unannotated <code>let</code>, because no record type is synthesized for an object literal.",
+      "tr": "Dois formatos sobre os quais o verificador ainda não diz nada: um literal dentro de <code>Some(...)</code>, porque um construtor do prelude ainda não tem tipo aqui, e um record literal ligado a um <code>let</code> sem anotação, porque nenhum tipo record é sintetizado para um objeto literal."
     },
     {
       "id": "h-02d8ec8f",
@@ -401,10 +791,10 @@
       "tr": "Um módulo sob <code>std/</code> era código morto sem diagnóstico"
     },
     {
-      "id": "h-4742bc61",
+      "id": "h-dce51fe3",
       "kind": "html",
-      "en": "<code>std/</code> and <code>extern/</code> name modules the compiler carries, and the resolver reserved them for imports. Nothing stopped a project file from <em>declaring</em> one. <code>module std/io</code> in your own <code>src/io.glyph</code> compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and reported that <code>shout</code> is not exported: your file was never read. A file that draws no diagnostic and runs no code is the worst shape a compiler can leave you in, because nothing about it looks wrong.",
-      "tr": "<code>std/</code> e <code>extern/</code> nomeiam módulos que o compilador traz consigo, e o resolvedor os reservava para imports. Nada impedia um arquivo do projeto de <em>declarar</em> um deles. <code>module std/io</code> no seu próprio <code>src/io.glyph</code> compilava limpo, e então <code>import std/io { shout }</code> era resolvido para o stub e informava que <code>shout</code> não é exportado: o seu arquivo nunca era lido. Um arquivo que não gera diagnóstico nenhum e não roda código nenhum é a pior situação em que um compilador pode deixar você, porque nada nele parece errado."
+      "en": "<code>std/</code> and <code>extern/</code> name modules the compiler carries, and the resolver reserved them for imports. Nothing stopped a project file from <em>declaring</em> one.",
+      "tr": "<code>std/</code> e <code>extern/</code> nomeiam módulos que o compilador traz consigo, e o resolvedor os reservava para imports. Nada impedia um arquivo do projeto de <em>declarar</em> um deles."
     },
     {
       "id": "h-6169c8f2",
@@ -413,10 +803,46 @@
       "tr": "glyph check --no-tsc, em src/io.glyph declarando `module std/io`"
     },
     {
+      "id": "h-748b7a91",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what used to happen, and which paths are reserved</span>",
+      "tr": "Detalhes <span class=\"hint\">o que acontecia antes, e quais caminhos são reservados</span>"
+    },
+    {
+      "id": "h-4726ea44",
+      "kind": "html",
+      "en": "<code>module std/io</code> in your own <code>src/io.glyph</code> compiled clean, and then <code>import std/io { shout }</code> resolved to the stub and reported that <code>shout</code> is not exported: your file was never read.",
+      "tr": "<code>module std/io</code> no seu próprio <code>src/io.glyph</code> compilava limpo, e então <code>import std/io { shout }</code> era resolvido para o stub e informava que <code>shout</code> não é exportado: o seu arquivo nunca era lido."
+    },
+    {
       "id": "h-fffab50d",
       "kind": "html",
       "en": "The prefix is matched as a whole first segment, so <code>standard</code>, <code>externals/io</code>, <code>app/std</code> and <code>app/extern/helper</code> are untouched, and importing under either prefix still works the way it always did.",
       "tr": "O prefixo é comparado como um primeiro segmento inteiro, então <code>standard</code>, <code>externals/io</code>, <code>app/std</code> e <code>app/extern/helper</code> não são afetados, e importar com qualquer um dos prefixos continua funcionando como sempre."
+    },
+    {
+      "id": "h-098cc82a",
+      "kind": "html",
+      "en": "A file that draws no diagnostic and runs no code is the worst shape a compiler can leave you in, because nothing about it looks wrong.",
+      "tr": "Um arquivo que não gera diagnóstico nenhum e não roda código nenhum é a pior situação em que um compilador pode deixar você, porque nada nele parece errado."
+    },
+    {
+      "id": "h-57ad320a",
+      "kind": "html",
+      "en": "The second one in 0.1.122",
+      "tr": "O segundo na 0.1.122"
+    },
+    {
+      "id": "h-0e96bb38",
+      "kind": "html",
+      "en": "A parser depth limit",
+      "tr": "Um limite de profundidade no parser"
+    },
+    {
+      "id": "h-0027efe6",
+      "kind": "html",
+      "en": "The second one is not a <code>tsc</code> story at all. The parser is recursive descent with no depth guard, so an expression nested two thousand levels deep ran the process out of stack and aborted with exit 134.",
+      "tr": "O segundo não é uma história de <code>tsc</code>. O parser é descendente recursivo sem limite de profundidade, então uma expressão aninhada em dois mil níveis estourava a pilha do processo e abortava com exit 134."
     },
     {
       "id": "h-15f6ae51",
@@ -425,10 +851,34 @@
       "tr": "glyph check, em `const x = ` seguido de 2.000 colchetes aninhados"
     },
     {
-      "id": "h-bdfdd02f",
+      "id": "h-bd3a9c54",
       "kind": "html",
-      "en": "The limit is 64 and it was measured rather than picked. One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. The deepest nesting across the 343 <code>.glyph</code> files in this repository is 16. The limit covers expressions, types, patterns, blocks and JSX children alike, and a thousand sibling arrays still parse, because depth is per-construct nesting and not a budget spent over the file.",
-      "tr": "O limite é 64, e foi medido, não escolhido. Um nível da construção mais cara, um array literal aninhado, custa 7.792 bytes de pilha no build de release e 8.810 no de debug, valores encontrados por busca binária da menor pilha de thread em que uma dada profundidade consegue passar pelo parse. A pilha mais fina em que o parser roda é a de 2 MiB de uma thread criada, que é o que os workers do language server recebem, e 64 níveis gastam menos de um terço dela no build mais caro. O aninhamento mais profundo entre os 343 arquivos <code>.glyph</code> deste repositório é 16. O limite cobre igualmente expressões, tipos, padrões, blocos e filhos JSX, e mil arrays irmãos continuam passando pelo parse, porque a profundidade é o aninhamento por construção, não um orçamento gasto ao longo do arquivo."
+      "en": "Details <span class=\"hint\">why it mattered for the language server</span>",
+      "tr": "Detalhes <span class=\"hint\">por que isso importava para o language server</span>"
+    },
+    {
+      "id": "h-1746c75b",
+      "kind": "html",
+      "en": "That is bad on <code>glyph check</code> and worse on <code>glyph lsp</code> and <code>glyph mcp</code>, which read every file under the root: one pathological file took the server down for the whole workspace. It is <code>E0011</code> now, raised at the token that would have opened level 65.",
+      "tr": "Isso é ruim no <code>glyph check</code> e pior no <code>glyph lsp</code> e no <code>glyph mcp</code>, que leem todo arquivo sob a raiz: um único arquivo patológico derrubava o servidor para o workspace inteiro. Agora é <code>E0011</code>, levantado no token que abriria o nível 65."
+    },
+    {
+      "id": "h-7b505e9c",
+      "kind": "html",
+      "en": "The limit is 64 and it was measured rather than picked.",
+      "tr": "O limite é 64, e foi medido, não escolhido."
+    },
+    {
+      "id": "h-f9c461cc",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how 64 was measured</span>",
+      "tr": "Detalhes <span class=\"hint\">como o 64 foi medido</span>"
+    },
+    {
+      "id": "h-e45041ca",
+      "kind": "html",
+      "en": "One level of the costliest construct, a nested array literal, costs 7,792 bytes of stack in the release build and 8,810 in the debug one, found by binary-searching the smallest thread stack a given depth will parse in. The thinnest stack the parser runs on is a spawned thread's 2 MiB, which is what the language server's workers get, and 64 levels spend under a third of it in the costlier build. The deepest nesting across the 343 <code>.glyph</code> files in this repository is 16. The limit covers expressions, types, patterns, blocks and JSX children alike, and a thousand sibling arrays still parse, because depth is per-construct nesting and not a budget spent over the file.",
+      "tr": "Um nível da construção mais cara, um array literal aninhado, custa 7.792 bytes de pilha no build de release e 8.810 no de debug, valores encontrados por busca binária da menor pilha de thread em que uma dada profundidade consegue passar pelo parse. A pilha mais fina em que o parser roda é a de 2 MiB de uma thread criada, que é o que os workers do language server recebem, e 64 níveis gastam menos de um terço dela no build mais caro. O aninhamento mais profundo entre os 343 arquivos <code>.glyph</code> deste repositório é 16. O limite cobre igualmente expressões, tipos, padrões, blocos e filhos JSX, e mil arrays irmãos continuam passando pelo parse, porque a profundidade é o aninhamento por construção, não um orçamento gasto ao longo do arquivo."
     },
     {
       "id": "h-e9d87086",
@@ -437,16 +887,16 @@
       "tr": "Quando nenhum dos compiladores está errado"
     },
     {
-      "id": "h-12780416",
+      "id": "h-bd4bfe07",
       "kind": "html",
-      "en": "There is a third shape, and it is the one that reads worst. Glyph reports nothing, <code>tsc</code> reports something true, and the program you wrote was fine. What failed is the translation between them.",
-      "tr": "Existe um terceiro formato, e é o que pior se lê. O Glyph não informa nada, o <code>tsc</code> informa algo verdadeiro, e o programa que você escreveu estava certo. O que falhou foi a tradução entre os dois."
+      "en": "There is a third shape, and it is the one that reads worst. Glyph reports nothing, <code>tsc</code> reports something true, and the program you wrote was fine.",
+      "tr": "Existe um terceiro formato, e é o que pior se lê. O Glyph não informa nada, o <code>tsc</code> informa algo verdadeiro, e o programa que você escreveu estava certo."
     },
     {
-      "id": "h-a7c4f666",
+      "id": "h-933a7dee",
       "kind": "html",
-      "en": "A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> reached <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the emitted <code>switch</code> had nothing to match.",
-      "tr": "Um binding em Glyph tem um único tipo durante toda a vida. O TypeScript estreita um binding para o que viu atribuído por último, e o <code>boolean</code> dele é a union <code>true | false</code>, então <code>let done = false</code> chegava ao <code>tsc</code> com tipo <code>false</code>, e o braço <code>true</code> do <code>switch</code> emitido não tinha o que casar."
+      "en": "What failed is the translation between them.",
+      "tr": "O que falhou foi a tradução entre os dois."
     },
     {
       "id": "h-af7bd67d",
@@ -455,16 +905,40 @@
       "tr": "poll.glyph, e o que o tsc dizia sobre ele antes da 0.1.89"
     },
     {
+      "id": "h-a22ba3d4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why <code>tsc</code> saw <code>false</code>, and the app that hit it</span>",
+      "tr": "Detalhes <span class=\"hint\">por que o <code>tsc</code> via <code>false</code>, e o app que esbarrou nisso</span>"
+    },
+    {
+      "id": "h-a7c4f666",
+      "kind": "html",
+      "en": "A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> reached <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the emitted <code>switch</code> had nothing to match.",
+      "tr": "Um binding em Glyph tem um único tipo durante toda a vida. O TypeScript estreita um binding para o que viu atribuído por último, e o <code>boolean</code> dele é a union <code>true | false</code>, então <code>let done = false</code> chegava ao <code>tsc</code> com tipo <code>false</code>, e o braço <code>true</code> do <code>switch</code> emitido não tinha o que casar."
+    },
+    {
       "id": "h-bd3065af",
       "kind": "html",
       "en": "A type declared as a set of string literals failed the same way, and so did <code>==</code>, which came back as <code>TS2367</code> instead: two messages, two codes, one cause. The app that hit it was polling a flag a timer callback sets, which is how you turn an event-based API into a value while Glyph has no <code>Promise</code> you can construct by hand. The callback turned out to be beside the point: four lines with no callback do it.",
       "tr": "Um tipo declarado como um conjunto de string literals falhava do mesmo jeito, e o <code>==</code> também, que voltava como <code>TS2367</code>: duas mensagens, dois códigos, uma causa. O app que esbarrou nisso fazia polling de uma flag que um callback de timer define, que é como se transforma uma API baseada em eventos num valor enquanto o Glyph não tem uma <code>Promise</code> que você possa construir à mão. O callback acabou sendo irrelevante: quatro linhas sem callback já reproduzem."
     },
     {
-      "id": "h-a0a47a8e",
+      "id": "h-72764c6a",
       "kind": "html",
-      "en": "The fix is not a new diagnostic, because there is nothing to diagnose. The emitter now restates the type the checker already decided, at the two places that discriminate over a value: the <code>match</code> scrutinee and either side of a <code>==</code> or <code>!=</code>. Each side is decided by its own type and ignores what sits next to it, so a comparison between two bindings is covered the same way a comparison against a literal is.",
-      "tr": "O conserto não é um diagnóstico novo, porque não há nada a diagnosticar. Agora o emissor reafirma o tipo que o verificador já decidiu, nos dois lugares que discriminam sobre um valor: o scrutinee do <code>match</code> e cada lado de um <code>==</code> ou <code>!=</code>. Cada lado é decidido pelo seu próprio tipo e ignora o que está ao lado, então uma comparação entre dois bindings é coberta do mesmo jeito que uma comparação com um literal."
+      "en": "The fix is not a new diagnostic, because there is nothing to diagnose. The emitter now restates the type the checker already decided, at the two places that discriminate over a value: the <code>match</code> scrutinee and either side of a <code>==</code> or <code>!=</code>.",
+      "tr": "O conserto não é um diagnóstico novo, porque não há nada a diagnosticar. Agora o emissor reafirma o tipo que o verificador já decidiu, nos dois lugares que discriminam sobre um valor: o scrutinee do <code>match</code> e cada lado de um <code>==</code> ou <code>!=</code>."
+    },
+    {
+      "id": "h-38649622",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the checks that still fire, and what it costs</span>",
+      "tr": "Detalhes <span class=\"hint\">as verificações que continuam disparando, e o custo</span>"
+    },
+    {
+      "id": "h-09137626",
+      "kind": "html",
+      "en": "Each side is decided by its own type and ignores what sits next to it, so a comparison between two bindings is covered the same way a comparison against a literal is.",
+      "tr": "Cada lado é decidido pelo seu próprio tipo e ignora o que está ao lado, então uma comparação entre dois bindings é coberta do mesmo jeito que uma comparação com um literal."
     },
     {
       "id": "h-0bd7cc54",
@@ -503,10 +977,22 @@
       "tr": "a leitura pelo namespace, antes da 0.1.72"
     },
     {
-      "id": "h-18ff7042",
+      "id": "h-ca62d3ec",
       "kind": "html",
-      "en": "The first spelling was checked against the module's export list during resolution. The second was not checked at all, so it fell through to <code>tsc</code>, which saw a property access on an object and answered in those terms. Both spellings go through the export list now, and both say <code>E0105</code>, naming the member and the module it is missing from.",
-      "tr": "A primeira grafia era verificada contra a lista de exports do módulo durante a resolução. A segunda não era verificada em nada, então caía para o <code>tsc</code>, que via um acesso a propriedade num objeto e respondia nesses termos. As duas grafias agora passam pela lista de exports, e as duas dizem <code>E0105</code>, nomeando o membro e o módulo em que ele falta."
+      "en": "Both spellings go through the export list now, and both say <code>E0105</code>, naming the member and the module it is missing from.",
+      "tr": "As duas grafias agora passam pela lista de exports, e as duas dizem <code>E0105</code>, nomeando o membro e o módulo em que ele falta."
+    },
+    {
+      "id": "h-dd91c670",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the two spellings differed, and what switching it on found</span>",
+      "tr": "Detalhes <span class=\"hint\">por que as duas grafias divergiam, e o que ligar a verificação encontrou</span>"
+    },
+    {
+      "id": "h-a72c5979",
+      "kind": "html",
+      "en": "The first spelling was checked against the module's export list during resolution. The second was not checked at all, so it fell through to <code>tsc</code>, which saw a property access on an object and answered in those terms.",
+      "tr": "A primeira grafia era verificada contra a lista de exports do módulo durante a resolução. A segunda não era verificada em nada, então caía para o <code>tsc</code>, que via um acesso a propriedade num objeto e respondia nesses termos."
     },
     {
       "id": "h-c8c0f51d",
@@ -527,10 +1013,136 @@
       "tr": "Disponível hoje"
     },
     {
-      "id": "h-fd12ee55",
+      "id": "h-aa3e9416",
       "kind": "html",
-      "en": "<code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace, <code>E0228</code> for a type's name written where a value is expected, <code>E0013</code> for a statement that begins on the line where another ended, which used to drop the value after it, <code>E0204</code>/<code>E0211</code> for a prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away, <code>E0210</code> for a member an array or a string does not have, the same two codes for a value that is not in a string-literal union's declared set, <code>E0011</code> for a construct nested past 64 levels, <code>E0101</code> for a relative import path, which used to stop in the parser as a generic \"expected module path segment\", and <code>E0113</code> for a project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.",
-      "tr": "<code>E0222</code> para <code>await</code> fora de uma <code>async fn</code>, <code>E0223</code> para um braço de <code>match</code> em posição de valor que não produz valor, <code>E0008</code> para uma atribuição sem <code>mut</code>, <code>E0010</code> para uma variante com vários campos posicionais no payload quando a forma que existe é a de record, <code>E0302</code>/<code>E0303</code> para um <code>?</code> numa posição de onde ele não pode propagar, <code>E0110</code>/<code>E0111</code> para uma declaração que sombrearia um nome do qual o módulo emitido já depende, <code>E0104</code> para um import local que não nomeia nenhum módulo sob a raiz do build, <code>E0105</code> para um nome que um módulo não exporta, tanto por import nomeado quanto por namespace, <code>E0228</code> para o nome de um tipo escrito onde se espera um valor, <code>E0013</code> para um statement que começa na linha em que outro terminou, o que antes descartava o valor depois dele, <code>E0204</code>/<code>E0211</code> para um contêiner do prelude atribuído ou passado como primitivo ou como record ou union declarados, incluindo o caso do <code>Nullable&lt;T&gt;</code> que o <code>tsc</code> elimina ao estreitar, <code>E0210</code> para um membro que um array ou uma string não tem, os mesmos dois códigos para um valor que não está no conjunto declarado de uma union de string literals, <code>E0011</code> para uma construção aninhada além de 64 níveis, <code>E0101</code> para um caminho de import relativo, que antes parava no parser como um genérico \"expected module path segment\", e <code>E0113</code> para um módulo do projeto declarado sob <code>std/</code> ou <code>extern/</code>, que antes compilava limpo e ficava inalcançável. A lista de sombreamento cobre os tipos que o emissor escreve por conta própria, então <code>Issue</code> e <code>Record</code> são pegos na declaração. Todo código tem um conserto de uma linha, uma nota explicando a regra e um texto longo no <code>glyph --explain</code>; <code>docs/error-codes.md</code> lista o catálogo e um teste mantém os dois alinhados."
+      "en": "Statements and syntax",
+      "tr": "Statements e sintaxe"
+    },
+    {
+      "id": "h-36f5fd2a",
+      "kind": "html",
+      "en": "<code>await</code> outside an <code>async fn</code>",
+      "tr": "<code>await</code> fora de uma <code>async fn</code>"
+    },
+    {
+      "id": "h-46773e34",
+      "kind": "html",
+      "en": "A value-position <code>match</code> arm that produces no value",
+      "tr": "Um braço de <code>match</code> em posição de valor que não produz valor"
+    },
+    {
+      "id": "h-bea011df",
+      "kind": "html",
+      "en": "An assignment missing <code>mut</code>",
+      "tr": "Uma atribuição sem <code>mut</code>"
+    },
+    {
+      "id": "h-ee82a841",
+      "kind": "html",
+      "en": "A variant given several positional payload fields where the record form is the one that exists",
+      "tr": "Uma variante com vários campos posicionais no payload quando a forma que existe é a de record"
+    },
+    {
+      "id": "h-ffdbe732",
+      "kind": "html",
+      "en": "A <code>?</code> in a position it cannot propagate from",
+      "tr": "Um <code>?</code> numa posição de onde ele não pode propagar"
+    },
+    {
+      "id": "h-326c0c2d",
+      "kind": "html",
+      "en": "A type's name written where a value is expected",
+      "tr": "O nome de um tipo escrito onde se espera um valor"
+    },
+    {
+      "id": "h-5672887b",
+      "kind": "html",
+      "en": "A statement that begins on the line where another ended, which used to drop the value after it",
+      "tr": "Um statement que começa na linha em que outro terminou, o que antes descartava o valor depois dele"
+    },
+    {
+      "id": "h-05fd52f6",
+      "kind": "html",
+      "en": "A construct nested past 64 levels",
+      "tr": "Uma construção aninhada além de 64 níveis"
+    },
+    {
+      "id": "h-4788d2a0",
+      "kind": "html",
+      "en": "Names and modules",
+      "tr": "Nomes e módulos"
+    },
+    {
+      "id": "h-ccf5029b",
+      "kind": "html",
+      "en": "A declaration that would shadow a name the emitted module already depends on",
+      "tr": "Uma declaração que sombrearia um nome do qual o módulo emitido já depende"
+    },
+    {
+      "id": "h-b8481b73",
+      "kind": "html",
+      "en": "The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration.",
+      "tr": "A lista de sombreamento cobre os tipos que o emissor escreve por conta própria, então <code>Issue</code> e <code>Record</code> são pegos na declaração."
+    },
+    {
+      "id": "h-dd41c2e6",
+      "kind": "html",
+      "en": "A local import that names no module under the build root",
+      "tr": "Um import local que não nomeia nenhum módulo sob a raiz do build"
+    },
+    {
+      "id": "h-86c009ff",
+      "kind": "html",
+      "en": "A name a module does not export, whether you reached it through a named import or off a namespace",
+      "tr": "Um nome que um módulo não exporta, tanto por import nomeado quanto por namespace"
+    },
+    {
+      "id": "h-ff179185",
+      "kind": "html",
+      "en": "A relative import path, which used to stop in the parser as a generic \"expected module path segment\"",
+      "tr": "Um caminho de import relativo, que antes parava no parser como um genérico \"expected module path segment\""
+    },
+    {
+      "id": "h-8b319c1f",
+      "kind": "html",
+      "en": "A project module declared under <code>std/</code> or <code>extern/</code>, which used to compile clean and be unreachable",
+      "tr": "Um módulo do projeto declarado sob <code>std/</code> ou <code>extern/</code>, que antes compilava limpo e ficava inalcançável"
+    },
+    {
+      "id": "h-a5fc9186",
+      "kind": "html",
+      "en": "Types",
+      "tr": "Tipos"
+    },
+    {
+      "id": "h-c92f00dc",
+      "kind": "html",
+      "en": "A prelude container assigned to or passed as a primitive or a declared record or union, including the <code>Nullable&lt;T&gt;</code> case <code>tsc</code> narrows away",
+      "tr": "Um contêiner do prelude atribuído ou passado como primitivo ou como record ou union declarados, incluindo o caso do <code>Nullable&lt;T&gt;</code> que o <code>tsc</code> elimina ao estreitar"
+    },
+    {
+      "id": "h-a141e474",
+      "kind": "html",
+      "en": "A member an array or a string does not have",
+      "tr": "Um membro que um array ou uma string não tem"
+    },
+    {
+      "id": "h-7ab6fe54",
+      "kind": "html",
+      "en": "The same two codes for a value that is not in a string-literal union's declared set",
+      "tr": "Os mesmos dois códigos para um valor que não está no conjunto declarado de uma union de string literals"
+    },
+    {
+      "id": "h-8edad6d9",
+      "kind": "html",
+      "en": "Every code",
+      "tr": "Todo código"
+    },
+    {
+      "id": "h-115770bd",
+      "kind": "html",
+      "en": "Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.",
+      "tr": "Todo código tem um conserto de uma linha, uma nota explicando a regra e um texto longo no <code>glyph --explain</code>; <code>docs/error-codes.md</code> lista o catálogo e um teste mantém os dois alinhados."
     },
     {
       "id": "h-5db269e9",
@@ -539,10 +1151,94 @@
       "tr": "Ficando mais preciso"
     },
     {
-      "id": "h-b38f0d7d",
+      "id": "h-c6868905",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.",
-      "tr": "<code>array.map</code>, <code>flat_map</code> e <code>zip</code> ainda aceitam um callback <code>async</code> sem reclamar e devolvem um array de valores pendentes, que é impresso como <code>[object Promise]</code>; as cinco funções de array que recebem predicado barram isso, com <code>E0211</code> no callback. Modelar as outras três do mesmo jeito também rejeitaria <code>par.all(array.map(items, async fn ...))</code>, que é como o Glyph executa trabalho concorrente, porque um array de valores pendentes não tem como ser escrito na linguagem. Isso é uma decisão de sistema de tipos, não uma entrada faltando, então está em aberto. O inicializador de um <code>const</code> no nível do módulo não tem callable que o envolva, então um <code>await</code> no nível superior é permitido e o ESM emitido o executa; se o Glyph quer inicialização assíncrona implícita de módulos ainda é uma questão em aberto na especificação. <code>E0223</code> só consegue julgar um <code>match</code> final quando a função declara tipo de retorno, então um braço dentro de uma lambda sem anotação ainda chega ao <code>tsc</code>. No lado do sombreamento, duas coisas estão só pela metade. <code>E0110</code> manda renomear em vez de deixar você manter o nome, então <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> e <code>Promise</code> continuam proibidos para um tipo ou uma variante. E <code>E0111</code> impede que <code>type Key = string | number</code> signifique a coisa errada sem dar a você um jeito de dizê-la: uma union de dois tipos primitivos não tem como ser escrita em Glyph a não ser com <code>extern_ts</code>, cujo conteúdo o próprio verificador trata como opaco. Unions sem etiqueta mexem com exaustividade, descritores em tempo de execução e <code>is</code>, então isso é uma decisão de sistema de tipos e não está agendado. <code>E0104</code> chega ao <code>glyph build</code> e ao <code>glyph check</code>, mas não ao editor: o LSP analisa o texto de um documento sem raiz de build, e a pasta do workspace também não é uma, então adivinhar produziria os falsos positivos que a verificação foi feita para evitar. E um parâmetro com palavra reservada ainda fica escondido atrás de um erro não relacionado no mesmo arquivo, porque uma falha na etapa de coleta pula a etapa de resolução que o teria encontrado. À parte disso, a fixação no local de leitura que mantém casável um binding <code>bool</code> ou de union de string literals só segue um alias de tipo dentro do módulo que está sendo emitido, então <code>pub type Ready = bool</code> num módulo e <code>let r: catalog.Ready = false</code> em outro ainda chegam ao <code>tsc</code> como <code>TS2678</code>. Unions de string literals são cobertas entre módulos nas três grafias de import, e desde a 0.1.123 o diagnóstico nomeia a declaração (esperado <code>Mode</code>) em todas as grafias, em vez de imprimir o conjunto de literais em uma delas."
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
+      "tr": "<code>array.map</code>, <code>flat_map</code> e <code>zip</code> ainda aceitam um callback <code>async</code> sem reclamar"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Detalhes"
+    },
+    {
+      "id": "h-ef5ceb2e",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
+      "tr": "<code>array.map</code>, <code>flat_map</code> e <code>zip</code> ainda aceitam um callback <code>async</code> sem reclamar e devolvem um array de valores pendentes, que é impresso como <code>[object Promise]</code>; as cinco funções de array que recebem predicado barram isso, com <code>E0211</code> no callback. Modelar as outras três do mesmo jeito também rejeitaria <code>par.all(array.map(items, async fn ...))</code>, que é como o Glyph executa trabalho concorrente, porque um array de valores pendentes não tem como ser escrito na linguagem. Isso é uma decisão de sistema de tipos, não uma entrada faltando, então está em aberto."
+    },
+    {
+      "id": "h-3873e42e",
+      "kind": "html",
+      "en": "A top-level <code>await</code> is allowed",
+      "tr": "Um <code>await</code> no nível superior é permitido"
+    },
+    {
+      "id": "h-92ed057d",
+      "kind": "html",
+      "en": "A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question.",
+      "tr": "O inicializador de um <code>const</code> no nível do módulo não tem callable que o envolva, então um <code>await</code> no nível superior é permitido e o ESM emitido o executa; se o Glyph quer inicialização assíncrona implícita de módulos ainda é uma questão em aberto na especificação."
+    },
+    {
+      "id": "h-2ffe2ebf",
+      "kind": "html",
+      "en": "<code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>.",
+      "tr": "<code>E0223</code> só consegue julgar um <code>match</code> final quando a função declara tipo de retorno, então um braço dentro de uma lambda sem anotação ainda chega ao <code>tsc</code>."
+    },
+    {
+      "id": "h-a5ab31d7",
+      "kind": "html",
+      "en": "<code>E0110</code> tells you to rename rather than letting you keep the name",
+      "tr": "<code>E0110</code> manda renomear em vez de deixar você manter o nome"
+    },
+    {
+      "id": "h-af660347",
+      "kind": "html",
+      "en": "On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant.",
+      "tr": "No lado do sombreamento, duas coisas estão só pela metade. <code>E0110</code> manda renomear em vez de deixar você manter o nome, então <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> e <code>Promise</code> continuam proibidos para um tipo ou uma variante."
+    },
+    {
+      "id": "h-02eb5136",
+      "kind": "html",
+      "en": "<code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it",
+      "tr": "<code>E0111</code> impede que <code>type Key = string | number</code> signifique a coisa errada sem dar a você um jeito de dizê-la"
+    },
+    {
+      "id": "h-efdaca46",
+      "kind": "html",
+      "en": "And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled.",
+      "tr": "E <code>E0111</code> impede que <code>type Key = string | number</code> signifique a coisa errada sem dar a você um jeito de dizê-la: uma union de dois tipos primitivos não tem como ser escrita em Glyph a não ser com <code>extern_ts</code>, cujo conteúdo o próprio verificador trata como opaco. Unions sem etiqueta mexem com exaustividade, descritores em tempo de execução e <code>is</code>, então isso é uma decisão de sistema de tipos e não está agendado."
+    },
+    {
+      "id": "h-7b26d5ca",
+      "kind": "html",
+      "en": "<code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor",
+      "tr": "<code>E0104</code> chega ao <code>glyph build</code> e ao <code>glyph check</code>, mas não ao editor"
+    },
+    {
+      "id": "h-ac74a705",
+      "kind": "html",
+      "en": "<code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid.",
+      "tr": "<code>E0104</code> chega ao <code>glyph build</code> e ao <code>glyph check</code>, mas não ao editor: o LSP analisa o texto de um documento sem raiz de build, e a pasta do workspace também não é uma, então adivinhar produziria os falsos positivos que a verificação foi feita para evitar."
+    },
+    {
+      "id": "h-9ad252ec",
+      "kind": "html",
+      "en": "A reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.",
+      "tr": "Um parâmetro com palavra reservada ainda fica escondido atrás de um erro não relacionado no mesmo arquivo, porque uma falha na etapa de coleta pula a etapa de resolução que o teria encontrado."
+    },
+    {
+      "id": "h-d77b630b",
+      "kind": "html",
+      "en": "The read-site pin follows a type alias only inside the module being emitted",
+      "tr": "A fixação no local de leitura só segue um alias de tipo dentro do módulo que está sendo emitido"
+    },
+    {
+      "id": "h-8102cb84",
+      "kind": "html",
+      "en": "Separately, the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected <code>Mode</code>) under every spelling instead of printing its literal set under one of them.",
+      "tr": "À parte disso, a fixação no local de leitura que mantém casável um binding <code>bool</code> ou de union de string literals só segue um alias de tipo dentro do módulo que está sendo emitido, então <code>pub type Ready = bool</code> num módulo e <code>let r: catalog.Ready = false</code> em outro ainda chegam ao <code>tsc</code> como <code>TS2678</code>. Unions de string literals são cobertas entre módulos nas três grafias de import, e desde a 0.1.123 o diagnóstico nomeia a declaração (esperado <code>Mode</code>) em todas as grafias, em vez de imprimir o conjunto de literais em uma delas."
     }
   ]
 }

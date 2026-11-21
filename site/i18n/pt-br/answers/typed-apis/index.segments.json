@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "pt-br",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "Um body de requisição chega já decodificado como <code>unknown</code>, então ali você usa <code>T.parse(value)</code>: mesma garantia, sem cast."
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "O resto da fronteira não confiável é tipado do mesmo jeito: <code>header(req, name)</code> e <code>query_param(req, name)</code> retornam <code>Option&lt;string&gt;</code>, então um header ou parâmetro de query ausente é <code>None</code> e o <code>match</code> <em>obriga</em> você a tratar o caso. Omita o braço <code>None</code> e não compila. Uma entrada ausente não pode ser lida como se estivesse presente."
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "O resto da fronteira não confiável é tipado do mesmo jeito: <code>header(req, name)</code> e <code>query_param(req, name)</code> retornam <code>Option&lt;string&gt;</code>, então um header ou parâmetro de query ausente é <code>None</code> e o <code>match</code> <em>obriga</em> você a tratar o caso. Omita o braço <code>None</code> e não compila. Uma entrada ausente não pode ser lida como se estivesse presente. Um campo do body segue a mesma regra: <code>timeout_ms?: number</code> é uma chave ausente ou um número, então <code>{\"timeout_ms\": null}</code> é um <code>Err</code> em <code>[\"timeout_ms\"]</code>, vindo de <code>T.parse</code>, de <code>is T</code> e de <code>json.parse&lt;T&gt;</code> igualmente. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> quando quem envia escreve <code>null</code>. Até a 0.1.152 esse <code>null</code> voltava dentro do <code>Ok</code>."
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "exatamente as chaves listadas, nenhuma faltando, nenhuma sobrando"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "Um tipo refinado com <code>where</code>"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "Uma <code>string</code> ou um número refinados com <code>where</code>"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "nada de novo"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "Detalhes <span class=\"hint\">chaves refinadas e int, e o que ainda fica para o tsc</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "Detalhes <span class=\"hint\">chaves refinadas e int, e o que o verificador garante</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "Um tipo de chave refinado com <code>where</code> roda o predicado em cada chave, e uma chave <code>int</code> precisa ser a escrita simples de um número inteiro, então <code>\"01\"</code> e <code>\"1.5\"</code> são recusados. Um <code>Record&lt;string, V&gt;</code> é verificado exatamente como antes. O verificador do próprio Glyph ainda deixa para o <code>tsc</code> as chaves de um valor que você escreve no código, e um record genérico com chaves do seu próprio parâmetro de tipo é recusado, a menos que esse parâmetro seja <code>string</code>."
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "Um tipo de chave refinado com <code>where</code> roda o predicado em cada chave, e uma chave <code>int</code> precisa ser a escrita simples de um número inteiro, então <code>\"01\"</code> e <code>\"1.5\"</code> são recusados. Um <code>Record&lt;string, V&gt;</code> é verificado exatamente como antes. Um <code>where</code> não pode refinar uma union de string literals (<code>type T2 = Tier where value != \"pro\"</code> é <code>E0300</code> desde a 0.1.152); escreva os membros que você quer como uma union própria, <code>type T2 = \"free\"</code>, e ela serve de chave para um <code>Record</code> com a mesma verificação de chaves exatas. Desde a 0.1.153 o verificador do próprio Glyph também cobra a chave de um valor que você escreve no código: um <code>Record&lt;string, int&gt;</code> não serve onde um <code>Record&lt;Tier, int&gt;</code> está declarado, nem o contrário, então a passagem é um <code>json.parse</code> ou um braço <code>is Record&lt;Tier, int&gt;</code>, e <code>record.set</code> mantém a chave que recebeu. Um record genérico com chaves do seu próprio parâmetro de tipo é recusado, a menos que esse parâmetro seja <code>string</code>."
     },
     {
       "id": "h-efd6b0f9",

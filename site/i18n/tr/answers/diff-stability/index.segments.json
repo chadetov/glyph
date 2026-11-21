@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/diff-stability/index.html",
   "locale": "tr",
-  "source_hash": "b0148f7848d7e246",
+  "source_hash": "e4dd437ddbdd1fba",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Tek satırlık bir değişiklik her seferinde <strong>tek satırlık bir diff</strong>'tir. Glyph'in tek bir kanonik düzeni var, bu yüzden bir ajan <strong>gerçek bir değişikliği bir yığın yeniden biçimlendirmenin altına gömemez</strong>."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Neden önemli"
-    },
-    {
-      "id": "h-303f30da",
-      "kind": "html",
-      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
-      "tr": "Bir ajan pull request açtığında incelemenin kendisi diff'<em>tir</em>. Gerçek bir tek satırlık düzeltme 200 satırlık bir yeniden biçimlendirme olarak gelirse, kimse neyin değiştiğini göremez ve bir hata tam da o gürültünün arasından sızar. Kararlı diff, diff'in değişikliği ve <strong>yalnızca değişikliği</strong> göstermesi demektir."
-    },
-    {
-      "id": "h-0959c450",
-      "kind": "html",
-      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
-      "tr": "İşin çoğunu iki kural yapar. Her biri aşağıda, inceleyeceğiniz diff olarak gösteriliyor."
-    },
-    {
-      "id": "h-b49f3730",
-      "kind": "html",
-      "en": "Example 1: trailing commas, one item per line",
-      "tr": "Örnek 1: sondaki virgüller, satır başına bir öğe"
-    },
-    {
-      "id": "h-58d68c63",
-      "kind": "html",
-      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
-      "tr": "Bir route ekleyin. TypeScript'in yaygın stilinde, önceki son satır yalnızca bir virgül kazanmak için değişmek zorundadır. Tek öğelik bir değişiklik için iki satır oynar:"
-    },
-    {
       "id": "h-708ed18b",
       "kind": "html",
       "en": "TypeScript: add \"/billing\"",
@@ -113,16 +83,118 @@
       "tr": "1 satır eklendi, tam olarak değişiklik"
     },
     {
-      "id": "h-d8c012cf",
+      "id": "h-d9d74afd",
       "kind": "html",
-      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
-      "tr": "Sondaki virgüller <strong>zorunludur</strong> ve tek satıra sığmayan bir liste yeniden paketlenmek yerine satır başına bir öğe olacak şekilde yazılır; böylece bir öğeyi eklemek, çıkarmak ya da yeniden sıralamak hiçbir zaman komşularını etkilemez. Aynısı record alanları, parametreler, match arm'ları ve import'lar için de geçerlidir. Bu eşiğin bir bedeli var: bir çağrıyı 100 sütunun ötesine iten bir yeniden adlandırma, tüm argüman listesini satır başına bir argüman olacak şekilde açar."
+      "en": "<span>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change.</span>",
+      "tr": "<span>Bir route ekleyin. TypeScript'in yaygın stilinde, önceki son satır yalnızca bir virgül kazanmak için değişmek zorundadır. Tek öğelik bir değişiklik için iki satır oynar.</span>"
     },
     {
-      "id": "h-e48b5266",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Example 2: one canonical layout",
-      "tr": "Örnek 2: tek bir kanonik düzen"
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden önemli</a>"
+    },
+    {
+      "id": "h-f2352172",
+      "kind": "html",
+      "en": "<a href=\"#trailing-commas\">Trailing commas</a>",
+      "tr": "<a href=\"#trailing-commas\">Sondaki virgüller</a>"
+    },
+    {
+      "id": "h-11cefec2",
+      "kind": "html",
+      "en": "<a href=\"#example-2-one-canonical-layout\">One canonical layout</a>",
+      "tr": "<a href=\"#example-2-one-canonical-layout\">Tek bir kanonik düzen</a>"
+    },
+    {
+      "id": "h-29f8dc27",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Comments stay put</a>",
+      "tr": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Yorumlar yerinde kalır</a>"
+    },
+    {
+      "id": "h-fdeb81e5",
+      "kind": "html",
+      "en": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">Can fmt break a build?</a>",
+      "tr": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">fmt bir build'i bozabilir mi?</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-58e45c66",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through.",
+      "tr": "Bir ajan pull request açtığında incelemenin kendisi diff'<em>tir</em>. Gerçek bir tek satırlık düzeltme 200 satırlık bir yeniden biçimlendirme olarak gelirse, kimse neyin değiştiğini göremez ve bir hata tam da o gürültünün arasından sızar."
+    },
+    {
+      "id": "h-eaf4f5b7",
+      "kind": "html",
+      "en": "Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "Kararlı diff, diff'in değişikliği ve <strong>yalnızca değişikliği</strong> göstermesi demektir."
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "İşin çoğunu iki kural yapar. Her biri aşağıda, inceleyeceğiniz diff olarak gösteriliyor."
+    },
+    {
+      "id": "h-199b8427",
+      "kind": "html",
+      "en": "Trailing commas, one item per line",
+      "tr": "Sondaki virgüller, satır başına bir öğe"
+    },
+    {
+      "id": "h-215bfd18",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors.",
+      "tr": "Sondaki virgüller <strong>zorunludur</strong> ve tek satıra sığmayan bir liste yeniden paketlenmek yerine satır başına bir öğe olacak şekilde yazılır; böylece bir öğeyi eklemek, çıkarmak ya da yeniden sıralamak hiçbir zaman komşularını etkilemez."
+    },
+    {
+      "id": "h-1b9fb93d",
+      "kind": "html",
+      "en": "The same holds for record fields, parameters, match arms, and imports.",
+      "tr": "Aynısı record alanları, parametreler, match arm'ları ve import'lar için de geçerlidir."
+    },
+    {
+      "id": "h-78bcb0ef",
+      "kind": "html",
+      "en": "The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "Bu eşiğin bir bedeli var: bir çağrıyı 100 sütunun ötesine iten bir yeniden adlandırma, tüm argüman listesini satır başına bir argüman olacak şekilde açar."
+    },
+    {
+      "id": "h-34f561c3",
+      "kind": "html",
+      "en": "One canonical layout",
+      "tr": "Tek bir kanonik düzen"
     },
     {
       "id": "h-57d9d6f8",
@@ -149,10 +221,22 @@
       "tr": "Tek bir kanonik düzen var, peki formatter yorumlarımı taşıyor mu?"
     },
     {
-      "id": "h-84c044a6",
+      "id": "h-c6f55fae",
       "kind": "html",
-      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
-      "tr": "Eskiden taşıyordu ve bu adını koymaya değer bir hataydı. Glyph'te blok yorumları ve doc-comment sözdizimi yok, bu yüzden bir record alanını, bir union variant'ını ya da bir <code>match</code> arm'ını açıklamanın tek yolu bir <code>//</code> satırıdır. Formatter bekleyen yorumları yalnızca tanım ve ifade sınırlarında yazıyordu; bu da bir yapının <em>içine</em> yazılan bir yorumun bir sonraki tanıma kaydığı ve nereye düştüyse onun dokümantasyonu gibi okunduğu anlamına geliyordu. Bunu ortaya çıkaran şey Glyph'te Minesweeper yazmaktı. Bu iki tanım <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">gerçek uygulamadan</a> geliyor (yorumlar sığması için kısaltıldı) ve eski ve yeni formatter'dan geçirildi."
+      "en": "It used to, and that was a bug worth naming. The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>.",
+      "tr": "Eskiden taşıyordu ve bu adını koymaya değer bir hataydı. Artık kural şu: bir yorum, üzerine yazıldığı öğenin üzerine yeniden yazılır; bir record gövdesinin, bir union variant listesinin, bir array ya da object literal'ının, bir argüman ya da parametre listesinin ve bir <code>match</code>'in içinde de."
+    },
+    {
+      "id": "h-32c20cca",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how comments drifted, and the app that surfaced it</span>",
+      "tr": "Geçmiş <span class=\"hint\">yorumların nasıl kaydığı ve bunu ortaya çıkaran uygulama</span>"
+    },
+    {
+      "id": "h-05d7c406",
+      "kind": "html",
+      "en": "Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "Glyph'te blok yorumları ve doc-comment sözdizimi yok, bu yüzden bir record alanını, bir union variant'ını ya da bir <code>match</code> arm'ını açıklamanın tek yolu bir <code>//</code> satırıdır. Formatter bekleyen yorumları yalnızca tanım ve ifade sınırlarında yazıyordu; bu da bir yapının <em>içine</em> yazılan bir yorumun bir sonraki tanıma kaydığı ve nereye düştüyse onun dokümantasyonu gibi okunduğu anlamına geliyordu. Bunu ortaya çıkaran şey Glyph'te Minesweeper yazmaktı. Bu iki tanım <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">gerçek uygulamadan</a> geliyor (yorumlar sığması için kısaltıldı) ve eski ve yeni formatter'dan geçirildi."
     },
     {
       "id": "h-28875641",
@@ -179,10 +263,16 @@
       "tr": "her yorum tarif ettiği şeyin üzerinde"
     },
     {
-      "id": "h-9347eb4d",
+      "id": "h-91bcd89f",
       "kind": "html",
-      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
-      "tr": "Artık kural şu: bir yorum, üzerine yazıldığı öğenin üzerine yeniden yazılır; bir record gövdesinin, bir union variant listesinin, bir array ya da object literal'ının, bir argüman ya da parametre listesinin ve bir <code>match</code>'in içinde de. Ayrıca içinde yorum bulunan bir yapı, boyutu ne olursa olsun her zaman satır başına bir öğe biçimini alır; böylece yorumun üzerinde duracağı bir öğe olur. Yani <code>type Shape = { w: int, h: int }</code> hâlâ tek satıra iner, ama <code>h</code>'yi belgelediğiniz anda record açık kalır."
+      "en": "And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "Ayrıca içinde yorum bulunan bir yapı, boyutu ne olursa olsun her zaman satır başına bir öğe biçimini alır; böylece yorumun üzerinde duracağı bir öğe olur. Yani <code>type Shape = { w: int, h: int }</code> hâlâ tek satıra iner, ama <code>h</code>'yi belgelediğiniz anda record açık kalır."
+    },
+    {
+      "id": "h-43c73b15",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why this counts as a correctness bug</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">bunun neden bir doğruluk hatası sayıldığı</span>"
     },
     {
       "id": "h-21ca8ea0",
@@ -197,22 +287,52 @@
       "tr": "<code>glyph fmt</code> build olan bir programı bozabilir mi?"
     },
     {
-      "id": "h-6c81998d",
+      "id": "h-43f18884",
       "kind": "html",
-      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
-      "tr": "Bozabiliyordu ve bir durum hâlâ açık. Önce düzeltileni anlatalım. &ldquo;Boş record&rdquo; anlamına gelen bir arm <code>true =&gt; ({})</code> olarak yazılır. Arm gövdesi konumu, dilbilgisinde baştaki bir <code>{</code>'in belirsiz olduğu tek yerdir ve parser bunu süslü parantezin hemen ardından <code>key:</code> ya da <code>...</code> gelmesini şart koşarak çözer. Boş bir object'te ikisi de yoktur; bu yüzden formatter parantezleri atıp <code>true =&gt; {}</code> yazdırdığında arm boş bir <em>blok</em> olarak geri geldi ve dosya build olmayı bıraktı: <code>E0223</code>, arm bir değer üretmiyor. Çalışan kod üzerinde bir formatter çalıştırıyordunuz ve artık derlenmeyen bir kod elde ediyordunuz."
+      "en": "It could, and one case is still open. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "Bozabiliyordu ve bir durum hâlâ açık. Programınızın atlatmak zorunda olduğu bir formatter eksik bir özellikten daha kötüdür, çünkü zaten çalışan kodu bozar."
     },
     {
-      "id": "h-e1bb9580",
+      "id": "h-67c48992",
       "kind": "html",
-      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
-      "tr": "Yazıcı artık en soldaki token'ı blok olarak yeniden parse edilecek bir <code>{</code> olan arm gövdesini parantez içine alıyor; bu da boş object ve onun üzerine kurulan her şey demek (<code>({}).size</code>, <code>({}.size)</code> olarak geri gelir). <code>false =&gt; { a: \"x\" }</code> gibi zaten belirsizlik olmadan okunan bir arm gövdesi çıplak kalır, yani başka hiçbir yerde okunacak yeni bir noktalama yoktur. <code>fmt</code> sonuç üzerinde bir sabit noktadır ve üretilen TypeScript değişmez. Programınızın atlatmak zorunda olduğu bir formatter eksik bir özellikten daha kötüdür, çünkü zaten çalışan kodu bozar."
+      "en": "<b>Arm bodies</b>The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>).",
+      "tr": "<b>Arm gövdeleri</b>Yazıcı artık en soldaki token'ı blok olarak yeniden parse edilecek bir <code>{</code> olan arm gövdesini parantez içine alıyor; bu da boş object ve onun üzerine kurulan her şey demek (<code>({}).size</code>, <code>({}.size)</code> olarak geri gelir)."
     },
     {
-      "id": "h-8647fc74",
+      "id": "h-13cac55d",
       "kind": "html",
-      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
-      "tr": "0.1.138'de iki tanesi daha düzeltildi. Bir blok içinde <code>(</code> ile başlayan bir satır üstteki satırın devamıdır; 0.1.137'ye kadar formatter, <code>load()?</code> ardından gelen <code>.run()</code>'ı <code>(load()?).run()</code> olarak yazdırıyordu, bu yüzden <code>let a = 1</code>'den sonra biçimlendirilmiş dosya <code>let a = 1(…).run()</code> anlamına geliyordu. Artık <code>load()?</code>'i korur, <code>.run()</code>'ı bir sonraki satırda girintili yazar ve <code>e?(x)</code>, <code>e?[0]</code> ve <code>e? ?</code>'i parantezsiz yazar. Diğeri, bir union'ın <code>where</code> kısıtlamasıydı: formatter onu düşürüyordu ve <code>check</code>'in reddettiği bir programı kabul ettiği bir programa dönüştürüyordu. Fuzzer artık biçimlendirilmiş dosyayı parse edip ağacı orijinalinkiyle karşılaştırıyor; böylece bir dosyanın anlamını değiştiren bir düzen, birinin fark etmesini beklemeden ilk geçişte başarısız olur."
+      "en": "<b>The fuzzer</b>The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "<b>Fuzzer</b>Fuzzer artık biçimlendirilmiş dosyayı parse edip ağacı orijinalinkiyle karşılaştırıyor; böylece bir dosyanın anlamını değiştiren bir düzen, birinin fark etmesini beklemeden ilk geçişte başarısız olur."
+    },
+    {
+      "id": "h-1fb024a7",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the empty record that stopped building</span>",
+      "tr": "Geçmiş <span class=\"hint\">build olmayı bırakan boş record</span>"
+    },
+    {
+      "id": "h-496451d5",
+      "kind": "html",
+      "en": "The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "Önce düzeltileni anlatalım. &ldquo;Boş record&rdquo; anlamına gelen bir arm <code>true =&gt; ({})</code> olarak yazılır. Arm gövdesi konumu, dilbilgisinde baştaki bir <code>{</code>'in belirsiz olduğu tek yerdir ve parser bunu süslü parantezin hemen ardından <code>key:</code> ya da <code>...</code> gelmesini şart koşarak çözer. Boş bir object'te ikisi de yoktur; bu yüzden formatter parantezleri atıp <code>true =&gt; {}</code> yazdırdığında arm boş bir <em>blok</em> olarak geri geldi ve dosya build olmayı bıraktı: <code>E0223</code>, arm bir değer üretmiyor. Çalışan kod üzerinde bir formatter çalıştırıyordunuz ve artık derlenmeyen bir kod elde ediyordunuz."
+    },
+    {
+      "id": "h-1b3833f9",
+      "kind": "html",
+      "en": "An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged.",
+      "tr": "<code>false =&gt; { a: \"x\" }</code> gibi zaten belirsizlik olmadan okunan bir arm gövdesi çıplak kalır, yani başka hiçbir yerde okunacak yeni bir noktalama yoktur. <code>fmt</code> sonuç üzerinde bir sabit noktadır ve üretilen TypeScript değişmez."
+    },
+    {
+      "id": "h-72aac669",
+      "kind": "html",
+      "en": "History <span class=\"hint\">two more fixed in 0.1.138</span>",
+      "tr": "Geçmiş <span class=\"hint\">0.1.138'de düzeltilen iki tane daha</span>"
+    },
+    {
+      "id": "h-8f6ab028",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted.",
+      "tr": "0.1.138'de iki tanesi daha düzeltildi. Bir blok içinde <code>(</code> ile başlayan bir satır üstteki satırın devamıdır; 0.1.137'ye kadar formatter, <code>load()?</code> ardından gelen <code>.run()</code>'ı <code>(load()?).run()</code> olarak yazdırıyordu, bu yüzden <code>let a = 1</code>'den sonra biçimlendirilmiş dosya <code>let a = 1(…).run()</code> anlamına geliyordu. Artık <code>load()?</code>'i korur, <code>.run()</code>'ı bir sonraki satırda girintili yazar ve <code>e?(x)</code>, <code>e?[0]</code> ve <code>e? ?</code>'i parantezsiz yazar. Diğeri, bir union'ın <code>where</code> kısıtlamasıydı: formatter onu düşürüyordu ve <code>check</code>'in reddettiği bir programı kabul ettiği bir programa dönüştürüyordu."
     },
     {
       "id": "h-a2de6c0a",
@@ -233,10 +353,34 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-d4cd9ceb",
+      "id": "h-5a22f6e3",
       "kind": "html",
-      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
-      "tr": "Zorunlu sondaki virgüller, satır başına bir öğeli listeler ve <code>glyph fmt</code>'nin tek kanonik düzeni; gidiş dönüşte korunur ve idempotenttir, editörde kaydederken biçimlendirme de vardır. <code>glyph fmt</code> bir yorumu asla ait olmadığı bir yere taşımaz. Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur; bir record'un, bir literal'ın, bir argüman listesinin, bir <code>match</code>'in içinde, bir operatörün operandları arasında ve bir metot zincirinin adımları arasında da. Bu durumda zincir, nokta başta olacak şekilde satır başına bir adım olarak yazılır."
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.",
+      "tr": "Zorunlu sondaki virgüller, satır başına bir öğeli listeler ve <code>glyph fmt</code>'nin tek kanonik düzeni; gidiş dönüşte korunur ve idempotenttir, editörde kaydederken biçimlendirme de vardır."
+    },
+    {
+      "id": "h-85557a13",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> never moves a comment to somewhere it does not belong.",
+      "tr": "<code>glyph fmt</code> bir yorumu asla ait olmadığı bir yere taşımaz."
+    },
+    {
+      "id": "h-89c8a999",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above",
+      "tr": "Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Ayrıntılar"
+    },
+    {
+      "id": "h-279ea3ea",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "Yorumlar üzerine yazıldıkları öğenin üzerinde tutulur; bir record'un, bir literal'ın, bir argüman listesinin, bir <code>match</code>'in içinde, bir operatörün operandları arasında ve bir metot zincirinin adımları arasında da. Bu durumda zincir, nokta başta olacak şekilde satır başına bir adım olarak yazılır."
     },
     {
       "id": "h-6c3b3842",
@@ -245,10 +389,46 @@
       "tr": "Sınır ve sırada ne var"
     },
     {
-      "id": "h-c064e43b",
+      "id": "h-33221162",
       "kind": "html",
-      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
-      "tr": "Bir yorum her zaman kendi satırına yazılır; bu yüzden bir kod satırının sonuna yazılan bir yorum (<code>w: int, // width in cells</code>) bir sonraki öğenin üstündeki satıra taşınır. Artık bir tanım sınırını geçmez, ama yer değiştirir; satır sonunda kalması için yazıcının bir yorumun hangi satırı paylaştığını izlemesi gerekir. Düzenin koyacak yeri olmadığı bir yorum, örneğin bir index'in içinde, bir zincirin ortasında bir çağrının argümanlarından sonra ya da bir <code>!</code> veya <code>await</code> operandından önce olan bir yorum, artık taşınmaz: <code>glyph fmt</code> dosyayı reddeder, olduğu gibi bırakır ve satırı ve yorumun nereye konacağını söyler; <code>glyph check</code> de aynı şeyi E0500 uyarısı olarak bildirir. JSX attribute'ları arasındaki ya da bir object pattern'inin alanları arasındaki bir yorum da reddedilir, oysa satır başına bir öğeli bir düzen onu yerleştirebilirdi; bu düzenler listede. Yazıcının uzun bir metot ya da <code>+</code> zincirini bölmek için henüz bir kuralı yok, bu yüzden aşırı uzun bir zincir bunun yerine en içteki argüman listesini böler, ki bu yanlış yerdir. Ayrıca aynı düzenlemelerin TypeScript'teki karşılıklarına karşı bir diff boyutu benchmark'ı hazırlıyoruz; böylece bu ilke kontrol edebileceğiniz bir sayı olacak."
+      "en": "A comment at the end of a code line moves to the line above the next item",
+      "tr": "Bir kod satırının sonundaki bir yorum bir sonraki öğenin üstündeki satıra taşınır"
+    },
+    {
+      "id": "h-d6cba539",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares.",
+      "tr": "Bir yorum her zaman kendi satırına yazılır; bu yüzden bir kod satırının sonuna yazılan bir yorum (<code>w: int, // width in cells</code>) bir sonraki öğenin üstündeki satıra taşınır. Artık bir tanım sınırını geçmez, ama yer değiştirir; satır sonunda kalması için yazıcının bir yorumun hangi satırı paylaştığını izlemesi gerekir."
+    },
+    {
+      "id": "h-0401bf48",
+      "kind": "html",
+      "en": "A comment the layout has nowhere to put is refused, not moved",
+      "tr": "Düzenin koyacak yeri olmadığı bir yorum taşınmaz, reddedilir"
+    },
+    {
+      "id": "h-5b543c13",
+      "kind": "html",
+      "en": "A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500.",
+      "tr": "Düzenin koyacak yeri olmadığı bir yorum, örneğin bir index'in içinde, bir zincirin ortasında bir çağrının argümanlarından sonra ya da bir <code>!</code> veya <code>await</code> operandından önce olan bir yorum, artık taşınmaz: <code>glyph fmt</code> dosyayı reddeder, olduğu gibi bırakır ve satırı ve yorumun nereye konacağını söyler; <code>glyph check</code> de aynı şeyi E0500 uyarısı olarak bildirir."
+    },
+    {
+      "id": "h-80d7deb5",
+      "kind": "html",
+      "en": "A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list.",
+      "tr": "JSX attribute'ları arasındaki ya da bir object pattern'inin alanları arasındaki bir yorum da reddedilir, oysa satır başına bir öğeli bir düzen onu yerleştirebilirdi; bu düzenler listede."
+    },
+    {
+      "id": "h-cdce7594",
+      "kind": "html",
+      "en": "The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.",
+      "tr": "Yazıcının uzun bir metot ya da <code>+</code> zincirini bölmek için henüz bir kuralı yok, bu yüzden aşırı uzun bir zincir bunun yerine en içteki argüman listesini böler, ki bu yanlış yerdir."
+    },
+    {
+      "id": "h-e182e34e",
+      "kind": "html",
+      "en": "We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "Ayrıca aynı düzenlemelerin TypeScript'teki karşılıklarına karşı bir diff boyutu benchmark'ı hazırlıyoruz; böylece bu ilke kontrol edebileceğiniz bir sayı olacak."
     }
   ]
 }

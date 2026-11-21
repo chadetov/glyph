@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-423 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-87 are open. G144, the D28 boundary cast that never reached the returns a
+425 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+89 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13543,6 +13543,11 @@ and is the owner's to confirm.
   G423. `return xs.sort(cmp)[0]` exits 0 on the published 0.1.159 and 1 on
   this build; across the 394 corpus units the only new diagnostic is the
   catch case, now the refused `sort-without-mut`.
+  Record 151's review tightened it before release: a block's returned tail
+  is a value site and `glyph fix` no longer writes `mut` before one, an
+  index of an `Array<E>` is judged as an `E`, `mut s.opt?.push(1)` is the
+  spelling for a write through an optional field, a `defer` gets a help
+  that keeps it deferred, and no help quotes `...` or an invented `cmp`.
 
 - **G381. A member read on an `unknown` value passes Glyph's own checker.**
   `match json.parse(text) { Ok(data) => data.usr.name, ... }` is `no
@@ -13852,6 +13857,14 @@ and is the owner's to confirm.
   `b/n4`: `--no-tsc` clean, full `check` TS18048.*
 
   *Reproduced against 0.1.155 (the release build) by record 119's probe `b/n4`: `--no-tsc` clean apart from the E0112 reachability lint, full `check` TS18048.*
+
+  Since 0.1.160 any help that names an optional-field receiver inherits the
+  missing optionality (record 151, S3). E0240 on `s.opt?.push(1)` quotes the
+  `?.` and its help writes `mut s.opt?.push(1)`, which compiles; but a help
+  computed from the field's type (an `array.sort(s.opt, ...)` copy, a `let`
+  binding of it) treats `s.opt` as an `Array<number>`, and `tsc` refuses the
+  result with TS18048. Narrowing first with `match` does not work either
+  until this is fixed (E0208 on record 151's probe `x05`).
 
 - **G394. A widened container alias admits writes the original's type
   refuses.** An `Array<Tier>` bound as `let wide: Array<string> = xs`, then
@@ -14439,4 +14452,32 @@ and is the owner's to confirm.
   diagnostics. On the 0.1.160 branch build, `seen.add("a")` and
   `mut seen.add("a")` on a `set.create<string>()` are both accepted, pinned by
   `a_stdlib_set_receiver_is_not_judged_until_g423`.*
+
+- **G424. A function declared non-`void` whose body ends in a `mut`
+  statement passes Glyph's checker.** `fn f(ys: Array<number>) -> number {
+  mut ys.push(4) }` has no returned value, and only `tsc` refuses it
+  (TS2355, "A function whose declared type is neither 'undefined', 'void',
+  nor 'any' must return a value"). The editor, MCP and the applyEdit gate
+  run without `tsc`, so they accept it. G380 made the shape easier to reach,
+  since the old reading of a returned tail as a statement wrote exactly this
+  (record 151, F1, fixed in 0.1.160), and an author following a `mut` rule
+  by hand can still write it. The checker should refuse a non-`void` body
+  whose last statement is a `mut`, `let`, `for` or `loop` with no `return`
+  on that path. Found by record 151 (S1).
+
+  *Reproduced against 0.1.159 (the release build) with record 151's probe
+  `y01`: `check --no-tsc` exits 0 with only an unused-import warning.*
+
+- **G425. A method read by index is detached, and the call throws.**
+  `xs["push"](1)` passes `check` and `tsc --strict`, then throws
+  `TypeError: Cannot convert undefined or null to object` at run time: the
+  index read hands on the bare method, as G312's `let f = xs.push` did
+  before E0234 refused it, and the emitted call has no receiver. It is not a
+  silent write, so it is not a hole in D5's audit, but it is a crash both
+  checkers accept. Refuse a string-literal index that names a method of a
+  built-in receiver, with E0234's help. Found by record 151 (S2).
+
+  *Reproduced against 0.1.159 (the release build): `check --no-tsc` reports
+  no diagnostics and `glyph run` throws `TypeError: Cannot convert undefined
+  or null to object`.*
 

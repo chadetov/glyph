@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "de",
-  "source_hash": "cb5e3e02dc597369",
+  "source_hash": "15511937ba2844d1",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,64 @@
       "tr": "Jedes Konstrukt hat <strong>genau eine Form</strong>, nach der man sucht. Ein einfaches <code>grep</code> (so navigieren Agenten tatsächlich) landet auf der einen Definition, <strong>nicht auf fünfzig Beinahe-Treffern</strong>."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Warum das wichtig ist"
-    },
-    {
-      "id": "h-5ddea4d2",
-      "kind": "html",
-      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
-      "tr": "Ein Agent hat nicht dein ganzes Repo im Kopf; er <strong>sucht</strong>. Wenn sich ein Konzept auf fünf verschiedene Arten schreiben lässt, übersieht die Suche Fälle, und ein selbstsicherer Agent, der die bestehende Definition nicht findet, erfindet eine zweite. Eine Form pro Konzept heißt, die Suche ist vollständig, also bearbeitet der Agent, was da ist, statt es zu duplizieren."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "So sieht es aus"
-    },
-    {
-      "id": "h-534265e6",
-      "kind": "html",
-      "en": "Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:",
-      "tr": "Glyph beschränkt Mutation auf zwei Formen (<code>mut x = &hellip;</code> und <code>mut x.method(&hellip;)</code>), also beantwortet eine einzige Suche <em>jede</em> Stelle, an der sich Zustand ändert:"
-    },
-    {
       "id": "h-f3493d94",
       "kind": "html",
       "en": "grep -rn \"mut \" src/ (every mutation in the codebase)",
       "tr": "grep -rn \"mut \" src/ (jede Mutation in der Codebasis)"
     },
     {
-      "id": "h-92a8e9f7",
+      "id": "h-d26f2e3b",
       "kind": "html",
-      "en": "Three mutations, all of them, in one search. In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer. The same one-shape rule makes whole categories auditable:",
-      "tr": "Drei Mutationen, alle davon, in einer Suche. In TypeScript kann sich eine Mutation hinter <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, einem Setter oder einem Spread verstecken. Es gibt kein einzelnes Token zum Greppen, also hat &ldquo;ändert irgendetwas das hier?&rdquo; keine verlässliche Antwort. Dieselbe Regel einer einzigen Form macht ganze Kategorien prüfbar:"
+      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span>",
+      "tr": "<span>Glyph beschränkt Mutation auf zwei Formen (<code>mut x = &hellip;</code> und <code>mut x.method(&hellip;)</code>), also beantwortet eine einzige Suche <em>jede</em> Stelle, an der sich Zustand ändert. Drei Mutationen, alle davon, in einer Suche.</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-5a6848f0",
+      "kind": "html",
+      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
+      "tr": "Ein Agent hat nicht dein ganzes Repo im Kopf; er <strong>sucht</strong>. Eine Form pro Konzept heißt, die Suche ist vollständig, also bearbeitet der Agent, was da ist, statt es zu duplizieren."
+    },
+    {
+      "id": "h-ff06c89c",
+      "kind": "html",
+      "en": "If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one.",
+      "tr": "Wenn sich ein Konzept auf fünf verschiedene Arten schreiben lässt, übersieht die Suche Fälle, und ein selbstsicherer Agent, der die bestehende Definition nicht findet, erfindet eine zweite."
+    },
+    {
+      "id": "h-9dd2c6c9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the same question has no answer in TypeScript</span>",
+      "tr": "Details <span class=\"hint\">warum dieselbe Frage in TypeScript keine Antwort hat</span>"
+    },
+    {
+      "id": "h-f95da33e",
+      "kind": "html",
+      "en": "In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer.",
+      "tr": "In TypeScript kann sich eine Mutation hinter <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, einem Setter oder einem Spread verstecken. Es gibt kein einzelnes Token zum Greppen, also hat &ldquo;ändert irgendetwas das hier?&rdquo; keine verlässliche Antwort."
+    },
+    {
+      "id": "h-b5acb878",
+      "kind": "html",
+      "en": "Whole categories in one search",
+      "tr": "Ganze Kategorien in einer Suche"
+    },
+    {
+      "id": "h-6c669be5",
+      "kind": "html",
+      "en": "The same one-shape rule makes whole categories auditable:",
+      "tr": "Dieselbe Regel einer einzigen Form macht ganze Kategorien prüfbar:"
     },
     {
       "id": "h-62e795f5",
@@ -125,10 +149,22 @@
       "tr": "Heute verfügbar"
     },
     {
-      "id": "h-b95960cf",
+      "id": "h-9582ca37",
       "kind": "html",
-      "en": "One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
-      "tr": "Eine kanonische Form pro Konstrukt, Mutation auf zwei durchsuchbare Formen beschränkt (<code>mut</code>), und Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)."
+      "en": "One canonical form per construct.",
+      "tr": "Eine kanonische Form pro Konstrukt."
+    },
+    {
+      "id": "h-69c725a8",
+      "kind": "html",
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>).",
+      "tr": "Mutation auf zwei durchsuchbare Formen beschränkt (<code>mut</code>)."
+    },
+    {
+      "id": "h-2e001a35",
+      "kind": "html",
+      "en": "Single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
+      "tr": "Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)."
     },
     {
       "id": "h-b19d96e0",

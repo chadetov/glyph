@@ -1,7 +1,7 @@
 ---
 title: Überprüfbarkeit · kein any, erschöpfendes match · Glyph
 description: Glyphs erste Säule: kein any oder as, erschöpfendes match und Laufzeitvalidatoren für die Typen, die du deklarierst: eine strikte Schicht über tsc, mit offen benannten Grenzen.
-source_hash: b8ae04a4b3228182
+source_hash: 27017c2e0eebfe6d
 prev: / | &larr; Startseite | Warum Glyph gewinnt
 next: /pillars/greppability/ | Nächste Säule &rarr; | Durchsuchbarkeit: ein Name, eine Stelle
 ---
@@ -12,54 +12,71 @@ next: /pillars/greppability/ | Nächste Säule &rarr; | Durchsuchbarkeit: ein Na
         Glyph schließt die Löcher, durch die ein Agent fällt: Es gibt <strong>kein <code>any</code> und kein <code>as</code>, das du schreiben könntest</strong>, <code>match</code> ist <strong>nachweislich erschöpfend</strong>, und die Typen, die du deklarierst, bekommen <strong>strikte Laufzeitvalidatoren</strong>, alles durchgesetzt als strikte Schicht über <code>tsc</code>. Es verifiziert nicht alles selbst, und unten steht offen, wo genau die Garantie aufhört.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Die Lüge, die ein Typ erzählen kann</h2>
-        <p class="lede">
-          In TypeScript ist ein Typ ein Versprechen zur Compile-Zeit, das sich verflüchtigt, bevor dein Code läuft. Eine <code>User</code>-Annotation wird zu nichts gelöscht; das Objekt, das du tatsächlich aus einem Netzwerkaufruf, einem JSON-Parse oder einem Formularfeld bekommst, kann jede beliebige Form haben. Schlimmer noch, die Sprache gibt dir drei legale Wege, den Checker darüber anzulügen: <code>any</code>, einen <code>as</code>-Cast und ein Non-Null-<code>!</code>. Ein Agent, der schnell arbeitet, greift zu allen dreien, und <code>tsc --strict</code> bleibt grün, während der Bug ausgeliefert wird.
-        </p>
-        <p class="lede">
-          Glyphs erste Aufgabe ist es, diese Löcher zu schließen. Nicht mit mehr Annotationen, sondern indem die Hintertüren entfernt werden und jeder Typ seinen Beweis bis zur Laufzeit mitträgt. Hier ist, was das heißt, eine Garantie nach der anderen.
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> Es gibt kein <code>any</code></h2>
-        <p>
-          <code>any</code> ist das teuerste Schlüsselwort in TypeScript: Es schaltet das Typsystem für einen Wert ab <em>und für alles, was dieser Wert berührt</em>. Ein einziges <code>any</code> an einer Systemgrenze vergiftet still den Aufrufgraphen dahinter. Glyph hat es nicht. Der oberste Typ ist <code>unknown</code>, und <code>unknown</code> ist träge: Du kannst ihn nicht aufrufen, nicht indizieren und nirgendwohin übergeben, wo etwas typisiert ist, bis du <em>bewiesen</em> hast, was er ist.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript: kompiliert, stürzt dann ab</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript: kompiliert, stürzt dann ab</span>
+            <span class="cap">handler.ts</span>
 <pre>function handle(body: any) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   return body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: Das Einengen ist der Beweis</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: Das Einengen ist der Beweis</span>
+            <span class="cap">handler.glyph</span>
 <pre>fn handle(body: unknown) -&gt; string {
   return match User.parse(body) {
     Ok(u) =&gt; string.upper(u.name),
     Err(_) =&gt; "unknown",
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Du bekommst keinen typisierten Wert aus <code>unknown</code> ohne eine Prüfung, die der Compiler sehen kann. In Glyph <strong>ist</strong> das Einengen der Beweis zur Laufzeit. Es gibt keine Syntax, um es zu überspringen.
-        </p>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">Die Lüge, die ein Typ erzählen kann</a></li>
+          <li><a href="#there-is-no-any">Kein any</a></li>
+          <li><a href="#types-are-real-at-runtime">Typen zur Laufzeit</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">Jeder Fall</a></li>
+          <li><a href="#errors-are-values-not-surprises">Fehler als Werte</a></li>
+          <li><a href="#even-pii-is-type-level">Personenbezogene Daten</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">Wo die Garantie aufhört</a></li>
+          <li><a href="#the-benchmark-coming">Der Benchmark</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">Striktes TS und Lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label"><span class="ex-label">02</span> Typen sind zur Laufzeit echt</h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">Die Lüge, die ein Typ erzählen kann<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        In TypeScript ist ein Typ ein Versprechen zur Compile-Zeit, das sich verflüchtigt, bevor dein Code läuft. Eine <code>User</code>-Annotation wird zu nichts gelöscht; das Objekt, das du tatsächlich aus einem Netzwerkaufruf, einem JSON-Parse oder einem Formularfeld bekommst, kann jede beliebige Form haben.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Schlimmer noch, die Sprache gibt dir drei legale Wege, den Checker darüber anzulügen: <code>any</code>, einen <code>as</code>-Cast und ein Non-Null-<code>!</code>. Ein Agent, der schnell arbeitet, greift zu allen dreien, und <code>tsc --strict</code> bleibt grün, während der Bug ausgeliefert wird.</p></div>
+      <p class="ak-lede">
+        Glyphs erste Aufgabe ist es, diese Löcher zu schließen. Nicht mit mehr Annotationen, sondern indem die Hintertüren entfernt werden und jeder Typ seinen Beweis bis zur Laufzeit mitträgt. Hier ist, was das heißt, eine Garantie nach der anderen.
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> Es gibt kein <code>any</code><a class="ak-anchor" href="#there-is-no-any" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph hat es nicht. Der oberste Typ ist <code>unknown</code>, und <code>unknown</code> ist träge: Du kannst ihn nicht aufrufen, nicht indizieren und nirgendwohin übergeben, wo etwas typisiert ist, bis du <em>bewiesen</em> hast, was er ist.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum ein einziges any so viel kostet</span></summary><div class="body">
         <p>
-          Wie kann es <code>User.parse</code> geben? Weil jeder Record-Typ und jede nicht generische Tagged Union einen <strong>Laufzeit-Deskriptor</strong> daneben erzeugt: einen <code>is</code>-Guard, ein <code>parse</code>, das ein <code>unknown</code> in ein <code>Result</code> validiert, und ein zusammensetzbares <code>schema</code>. Die Form des Records wird zur Laufzeit tatsächlich untersucht statt angenommen, also ist eine Prüfung <code>is User</code> eine echte Prüfung und kein gelöschter No-op.
+          <code>any</code> ist das teuerste Schlüsselwort in TypeScript: Es schaltet das Typsystem für einen Wert ab <em>und für alles, was dieser Wert berührt</em>. Ein einziges <code>any</code> an einer Systemgrenze vergiftet still den Aufrufgraphen dahinter.
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        Du bekommst keinen typisierten Wert aus <code>unknown</code> ohne eine Prüfung, die der Compiler sehen kann. In Glyph <strong>ist</strong> das Einengen der Beweis zur Laufzeit. Es gibt keine Syntax, um es zu überspringen.
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> Typen sind zur Laufzeit echt<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Wie kann es <code>User.parse</code> geben? Weil jeder Record-Typ und jede nicht generische Tagged Union einen <strong>Laufzeit-Deskriptor</strong> daneben erzeugt: einen <code>is</code>-Guard, ein <code>parse</code>, das ein <code>unknown</code> in ein <code>Result</code> validiert, und ein zusammensetzbares <code>schema</code>.
+      </p>
       <div class="code">
         <span class="cap">der Typ, den du schreibst, und der daraus erzeugte Deskriptor</span>
 <pre>type User = {
@@ -77,21 +94,24 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Das ist die Antwort auf "jede API braucht einen handgeschriebenen Validator". Der Typ ist der Validator.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was der Deskriptor prüft</span></summary><div class="body">
         <p>
-          Das ist die Antwort auf "jede API braucht einen handgeschriebenen Validator". Der Typ ist der Validator. Eine Systemgrenze (ein Request-Body, eine Konfigurationsdatei, eine Antwort eines Drittanbieters) wird nur typisiert, indem sie durch eine Prüfung geht, die fehlerhafte Daten tatsächlich ablehnen kann.
+          Die Form des Records wird zur Laufzeit tatsächlich untersucht statt angenommen, also ist eine Prüfung <code>is User</code> eine echte Prüfung und kein gelöschter No-op.
         </p>
         <p>
-          Wo das aufhört: Der Deskriptor eines Records ist standardmäßig strikt. Er bestätigt die deklarierten Felder und lehnt einen Wert mit nicht deklarierten Schlüsseln ab (setz <code>@open</code> an den Typ, um zusätzliche zu erlauben). Record-Typen bekommen einen Deskriptor, generische eingeschlossen, also prüft <code>Paginated&lt;User&gt;</code> jedes Element als <code>User</code>, und der Deskriptor einer Tagged Union prüft den Tag und dann die Payload-Felder dieser Variante. Keinen bekommt weiterhin eine generische Tagged Union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> hat kein <code>Box.parse</code>) oder ein Typ, der aus einer <code>.d.ts</code> importiert und nur referenziert wird. Wo eine Prüfung nur einen Teil einer Form beweisen kann, sagt der Compiler das, statt eine Garantie anzudeuten, die er nicht geben kann.
+          Eine Systemgrenze (ein Request-Body, eine Konfigurationsdatei, eine Antwort eines Drittanbieters) wird nur typisiert, indem sie durch eine Prüfung geht, die fehlerhafte Daten tatsächlich ablehnen kann.
         </p>
-
-        <h2 class="block-label"><span class="ex-label">03</span> Jeder Fall, oder es kompiliert nicht</h2>
         <p>
-          Ein <code>match</code> über einer abgeschlossenen Union muss jede Variante behandeln. Füg später eine Variante hinzu, und <em>jedes</em> match, das sie nicht berücksichtigt hat, kompiliert nicht mehr (<code>E0200</code>). Der neue Fall kann nicht still zu <code>undefined</code> durchfallen, wie es ein vergessener <code>switch</code>-Zweig tut. Und es geht nicht nur um Unions: Ein match über einer <code>number</code> oder einem <code>string</code> mit Literalwerten verlangt ein <code>else</code> (<code>E0218</code>), weil diese Wertebereiche unbegrenzt sind und eine Menge von Literalen nie vollständig sein kann.
+          Wo das aufhört: Der Deskriptor eines Records ist standardmäßig strikt. Er bestätigt die deklarierten Felder und lehnt einen Wert mit nicht deklarierten Schlüsseln ab (setz <code>@open</code> an den Typ, um zusätzliche zu erlauben). Record-Typen bekommen einen Deskriptor, generische eingeschlossen, also prüft <code>Paginated&lt;User&gt;</code> jedes Element als <code>User</code>, und der Deskriptor einer Tagged Union prüft den Tag und dann die Payload-Felder dieser Variante.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Keinen bekommt weiterhin eine generische Tagged Union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> hat kein <code>Box.parse</code>) oder ein Typ, der aus einer <code>.d.ts</code> importiert und nur referenziert wird. Wo eine Prüfung nur einen Teil einer Form beweisen kann, sagt der Compiler das, statt eine Garantie anzudeuten, die er nicht geben kann.</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> Jeder Fall, oder es kompiliert nicht<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein <code>match</code> über einer abgeschlossenen Union muss jede Variante behandeln. Füg später eine Variante hinzu, und <em>jedes</em> match, das sie nicht berücksichtigt hat, kompiliert nicht mehr (<code>E0200</code>).
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -105,7 +125,7 @@ fn label(s: Status) -&gt; string {
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">Compile-Fehler, kein undefined zur Laufzeit</span>
           <span class="cap">$ glyph build</span>
 <pre><span class="del">[E0200] non-exhaustive match on
@@ -116,14 +136,17 @@ fn label(s: Status) -&gt; string {
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">04</span> Fehler sind Werte, keine Überraschungen</h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">matches über number und string</span></summary><div class="body">
         <p>
-          Eine Funktion, die fehlschlagen kann, gibt <code>Result&lt;T, E&gt;</code> zurück. Du behandelst es mit <code>match</code> oder reichst es mit dem Operator <code>?</code> weiter, und der Fehlertyp muss passen (es gibt keine implizite Umwandlung, die einen Unterschied versteckt). Ignorier ein <code>Result</code> ganz (ruf es wegen seiner Wirkung auf und verwirf, was es zurückgegeben hat), und Glyph warnt dich (<code>E0217</code>), weil ein verworfener Fehler ein verschluckter Fehlschlag ist. Du bringst die Warnung bewusst mit <code>let _ = ...</code> zum Schweigen, nie versehentlich.
+          Der neue Fall kann nicht still zu <code>undefined</code> durchfallen, wie es ein vergessener <code>switch</code>-Zweig tut. Und es geht nicht nur um Unions: Ein match über einer <code>number</code> oder einem <code>string</code> mit Literalwerten verlangt ein <code>else</code> (<code>E0218</code>), weil diese Wertebereiche unbegrenzt sind und eine Menge von Literalen nie vollständig sein kann.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> Fehler sind Werte, keine Überraschungen<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Eine Funktion, die fehlschlagen kann, gibt <code>Result&lt;T, E&gt;</code> zurück. Du behandelst es mit <code>match</code> oder reichst es mit dem Operator <code>?</code> weiter, und der Fehlertyp muss passen (es gibt keine implizite Umwandlung, die einen Unterschied versteckt).
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
@@ -137,14 +160,12 @@ fn main() -&gt; number {
   return 0
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ignorier ein <code>Result</code> ganz (ruf es wegen seiner Wirkung auf und verwirf, was es zurückgegeben hat), und Glyph warnt dich (<code>E0217</code>), weil ein verworfener Fehler ein verschluckter Fehlschlag ist. Du bringst die Warnung bewusst mit <code>let _ = ...</code> zum Schweigen, nie versehentlich.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> Sogar personenbezogene Daten sind eine Typfrage</h2>
-        <p>
-          Derselbe Instinkt, "mach es zur Aufgabe des Compilers, nicht zu einer Konvention", reicht bis zu sensiblen Daten. Setz <code>@redact</code> an einen Typ, und sein Deskriptor bekommt ein <code>redact()</code>, das diese Felder maskiert, also kann ein verirrtes <code>json.stringify(User.redact(u))</code> sie nicht preisgeben. Nenn ein Feld, das der Typ nicht hat, und es ist ein Compile-Fehler (<code>E0219</code>), keine Schwärzung, die still nichts schützt.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> Sogar personenbezogene Daten sind eine Typfrage<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Derselbe Instinkt, "mach es zur Aufgabe des Compilers, nicht zu einer Konvention", reicht bis zu sensiblen Daten. Setz <code>@redact</code> an einen Typ, und sein Deskriptor bekommt ein <code>redact()</code>, das diese Felder maskiert, also kann ein verirrtes <code>json.stringify(User.redact(u))</code> sie nicht preisgeben.
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre>@redact fields: [diagnosis, notes]
@@ -157,28 +178,35 @@ type Patient = {
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Nenn ein Feld, das der Typ nicht hat, und es ist ein Compile-Fehler (<code>E0219</code>), keine Schwärzung, die still nichts schützt.</p></div>
+      <p class="pull-quote">
+        Fünf verschiedene Fehlermodi (ungeprüfte Eingabe, ein übersehener Fall, ein verworfener Fehler, ein geleaktes Geheimnis, ein nicht validierter Schlüssel), und bei jedem hat der Fix dieselbe Form: <strong>Der Compiler weigert sich, so zu tun als ob.</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Fünf verschiedene Fehlermodi (ungeprüfte Eingabe, ein übersehener Fall, ein verworfener Fehler, ein geleaktes Geheimnis, ein nicht validierter Schlüssel), und bei jedem hat der Fix dieselbe Form: <strong>Der Compiler weigert sich, so zu tun als ob.</strong>
-        </p>
-
-        <h2 class="block-label">Wie es durchgesetzt wird und wo die Garantie aufhört</h2>
-        <p>
-          Genau genommen, weil der Unterschied wichtig ist: Glyph ist ein <strong>strikter, durchgesetzter Dialekt über <code>tsc</code></strong>, kein unabhängiger Verifizierer. Manches beweist es selbst: Erschöpfendheit, den Fehlertyp von <code>?</code>, das Fehlen von <code>any</code>/<code>as</code> in deinem Quellcode, die Validierung strikter Schlüssel. Den Rest der Typkompatibilität setzt es durch, indem es TypeScript erzeugt und <code>tsc --strict</code> ausführt, was den Build fehlschlagen lässt. Der Kern ist, dass diese Prüfungen die <em>Sprache</em> sind, kein Opt-in-Lint, das der Agent abschalten kann, nicht, dass Glyph einen Typchecker neu implementiert.
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">Wie es durchgesetzt wird und wo die Garantie aufhört<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Genau genommen, weil der Unterschied wichtig ist: Glyph ist ein <strong>strikter, durchgesetzter Dialekt über <code>tsc</code></strong>, kein unabhängiger Verifizierer.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Von Glyph bewiesen</b>Manches beweist es selbst: Erschöpfendheit, den Fehlertyp von <code>?</code>, das Fehlen von <code>any</code>/<code>as</code> in deinem Quellcode, die Validierung strikter Schlüssel.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>Über tsc durchgesetzt</b>Den Rest der Typkompatibilität setzt es durch, indem es TypeScript erzeugt und <code>tsc --strict</code> ausführt, was den Build fehlschlagen lässt.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Der Kern ist, dass diese Prüfungen die <em>Sprache</em> sind, kein Opt-in-Lint, das der Agent abschalten kann, nicht, dass Glyph einen Typchecker neu implementiert.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">in 0.1.10 geschlossene Grenzen, tiefe generische Validierung</span></summary><div class="body">
         <p>
           Zwei frühere Grenzen hier wurden in 0.1.10 geschlossen. Der Emitter fügte früher in <em>jede</em> generische Funktion einen Rückgabe-Cast ein, der von Glyph und nicht von <code>tsc</code> geprüft wurde; jetzt passiert das nur noch dort, wo ein Validator-Kombinator einen Wert eines aus einer Form abgeleiteten Typs zusammensetzt (<code>infer_output&lt;Shape&gt;</code>), und jedes ehrliche Generic wird ganz ohne Cast ausgegeben. Und dem Ausgabetyp eines Validators wird nicht mehr blind vertraut: <code>infer_output</code> leitet ihn aus der Form ab, die du übergibst, und <code>tsc</code> prüft deine Annotation dagegen: Eine Form, der ein Feld des behaupteten Typs fehlt, kompiliert jetzt nicht mehr.
         </p>
         <p>
-          Generische Typen werden jetzt auch tief validiert: Ein Deskriptor für <code>Paginated&lt;User&gt;</code> prüft jedes Element <em>als <code>User</code></em>, nicht nur auf Vorhandensein. Eine Grenze bleibt, klar benannt: Ein <em>importierter</em> Typ aus einer externen <code>.d.ts</code>, den du nur referenzierst, hat keinen Deskriptor, bis du ihn mit <code>glyph gen dts</code> materialisierst, also wird ein Feld dieses Typs auf Vorhandensein geprüft, nicht auf seine Form. Diese Grenze ist Absicht (ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen), und das Materialisieren schließt sie.
+          Generische Typen werden jetzt auch tief validiert: Ein Deskriptor für <code>Paginated&lt;User&gt;</code> prüft jedes Element <em>als <code>User</code></em>, nicht nur auf Vorhandensein.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Eine Grenze bleibt, klar benannt: Ein <em>importierter</em> Typ aus einer externen <code>.d.ts</code>, den du nur referenzierst, hat keinen Deskriptor, bis du ihn mit <code>glyph gen dts</code> materialisierst, also wird ein Feld dieses Typs auf Vorhandensein geprüft, nicht auf seine Form. Diese Grenze ist Absicht (ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen), und das Materialisieren schließt sie.</p></div>
 
-        <h2 class="block-label">Der Benchmark: kommt noch</h2>
-        <p>
-          Diese Aussage ist empirisch, also wollen wir sie messen: einen Korpus echter Änderungen von Agenten nehmen, jede durch <code>tsc --strict</code> und durch Glyph laufen lassen und zählen, was jedes tatsächlich findet. Glyph ist noch nicht im echten Einsatz, also gibt es keine Zahlen zu berichten. Das Diagramm unten ist ein Platzhalter und füllt sich mit echten Daten, sobald es echte Nutzung gibt.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">Der Benchmark: kommt noch<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Diese Aussage ist empirisch, also wollen wir sie messen: einen Korpus echter Änderungen von Agenten nehmen, jede durch <code>tsc --strict</code> und durch Glyph laufen lassen und zählen, was jedes tatsächlich findet.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ist noch nicht im echten Einsatz, also gibt es keine Zahlen zu berichten. Das Diagramm unten ist ein Platzhalter und füllt sich mit echten Daten, sobald es echte Nutzung gibt.</p></div>
 
       <div class="chart">
         <span class="label">Gefundene Bugs, die Agenten ausgeliefert hätten &middot; höher ist besser</span>
@@ -196,24 +224,19 @@ type Patient = {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Nichts davon wird mit Zeremonie erkauft. Es gibt keine Beweis-Annotationen, keine Verträge, keinen Verifizierer, den man zufriedenstellen muss. Der Code oben ist einfach gewöhnliches Glyph. Überprüfbarkeit ist kein Feature, das du einschaltest; sie ist das, was übrig bleibt, wenn die Wege zu lügen weg sind.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Nichts davon wird mit Zeremonie erkauft. Es gibt keine Beweis-Annotationen, keine Verträge, keinen Verifizierer, den man zufriedenstellen muss. Der Code oben ist einfach gewöhnliches Glyph. Überprüfbarkeit ist kein Feature, das du einschaltest; sie ist das, was übrig bleibt, wenn die Wege zu lügen weg sind.
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label">"Striktes TypeScript und eine Lint-Konfiguration können das auch"</h2>
-        <p>
-          Innerhalb eines Programms kommen sie nah heran. <code>strict</code>, <code>noUncheckedIndexedAccess</code> und eine Regel gegen explizites <code>any</code> fangen das meiste ab, was ein Agent sonst durchrutschen ließe. An den Rändern hören sie auf. <code>JSON.parse(body) as User</code> kompiliert unter jeder denkbaren Einstellung, und der übliche Fix, ein zod-Schema, ist eine zweite Beschreibung von <code>User</code>, die von Hand mit der ersten synchron gehalten werden muss. In Glyph ist der Typ der Validator: <code>json.parse&lt;User&gt;(body)</code> wird gegen <code>User</code> selbst geprüft, und ein Typ, den Glyph zur Laufzeit nicht prüfen kann, wird abgelehnt statt blind akzeptiert.
-        </p>
-        <p>
-          Der andere Unterschied ist, wer sich darauf verlassen kann. Eine Lint-Konfiguration ist eine Entscheidung, die ein Repository getroffen hat. Ein Agent, der eine unbekannte TypeScript-Codebasis öffnet, kann nicht annehmen, dass <code>any</code> dort verboten ist; in Glyph lässt es sich nirgends schreiben.
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">"Striktes TypeScript und eine Lint-Konfiguration können das auch"<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Innerhalb eines Programms kommen sie nah heran. <code>strict</code>, <code>noUncheckedIndexedAccess</code> und eine Regel gegen explizites <code>any</code> fangen das meiste ab, was ein Agent sonst durchrutschen ließe. An den Rändern hören sie auf.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>An der Systemgrenze</b><code>JSON.parse(body) as User</code> kompiliert unter jeder denkbaren Einstellung, und der übliche Fix, ein zod-Schema, ist eine zweite Beschreibung von <code>User</code>, die von Hand mit der ersten synchron gehalten werden muss. In Glyph ist der Typ der Validator: <code>json.parse&lt;User&gt;(body)</code> wird gegen <code>User</code> selbst geprüft, und ein Typ, den Glyph zur Laufzeit nicht prüfen kann, wird abgelehnt statt blind akzeptiert.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Über Repositorys hinweg</b>Der andere Unterschied ist, wer sich darauf verlassen kann. Eine Lint-Konfiguration ist eine Entscheidung, die ein Repository getroffen hat. Ein Agent, der eine unbekannte TypeScript-Codebasis öffnet, kann nicht annehmen, dass <code>any</code> dort verboten ist; in Glyph lässt es sich nirgends schreiben.</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          Dieselbe Garantie, als die Fehler, die ein Agent macht, und die Fehlermeldungen, die ihn stoppen, beantwortet <a href="/answers/verifiability/">Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        Dieselbe Garantie, als die Fehler, die ein Agent macht, und die Fehlermeldungen, die ihn stoppen, beantwortet <a href="/answers/verifiability/">Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen?</a>
+      </p>

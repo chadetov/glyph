@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/finance/index.html",
   "locale": "de",
-  "source_hash": "890e758a8ba38ece",
+  "source_hash": "ea0cf18a5e027680",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,94 @@
       "tr": "Ja. Geld ist <strong>exakt</strong>, eine Invariante wie nicht negativ ist ein <strong>Typ, den die Systemgrenze durchsetzt</strong>, und nicht vertrauenswürdige Eingaben <strong>können ein SQL- oder Shell-Ziel nicht erreichen</strong>, ohne bereinigt zu werden. Jedes davon ist ein Compile- oder Parse-Fehler, wenn du es falsch machst, keine Konvention, an die sich jemand drei Funktionen weiter erinnern muss."
     },
     {
+      "id": "h-73ae9568",
+      "kind": "html",
+      "en": "the bug it removes",
+      "tr": "der Bug, den es beseitigt"
+    },
+    {
+      "id": "h-c00b70e9",
+      "kind": "html",
+      "en": "<span>A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision.</span>",
+      "tr": "<span>Ein Finanzsystem auf IEEE-754-<code>number</code> ist ein Bug, der darauf wartet, gemeldet zu werden: <code>0.1 + 0.2</code> ist nicht <code>0.3</code>, und Werte jenseits von 2<sup>53</sup> verlieren stillschweigend an Genauigkeit.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-171d5570",
+      "kind": "html",
+      "en": "<a href=\"#money-is-not-a-float\">Money is not a float</a>",
+      "tr": "<a href=\"#money-is-not-a-float\">Geld ist kein Float</a>"
+    },
+    {
+      "id": "h-9260e943",
+      "kind": "html",
+      "en": "<a href=\"#ids-and-counters-stay-exact-past-253\">Ids and counters</a>",
+      "tr": "<a href=\"#ids-and-counters-stay-exact-past-253\">IDs und Zähler</a>"
+    },
+    {
+      "id": "h-52648752",
+      "kind": "html",
+      "en": "<a href=\"#an-invariant-is-a-type-not-a-comment\">Invariants as types</a>",
+      "tr": "<a href=\"#an-invariant-is-a-type-not-a-comment\">Invarianten als Typen</a>"
+    },
+    {
+      "id": "h-847fb1bc",
+      "kind": "html",
+      "en": "<a href=\"#injection-is-a-compile-error\">Injection</a>",
+      "tr": "<a href=\"#injection-is-a-compile-error\">Injection</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Wo es steht</a>"
+    },
+    {
       "id": "h-f57cd228",
       "kind": "html",
       "en": "Money is not a float",
       "tr": "Geld ist kein Float"
     },
     {
-      "id": "h-318aa8fb",
-      "kind": "html",
-      "en": "A financial system on IEEE-754 <code>number</code> is a bug waiting to be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value past 2<sup>53</sup> silently loses precision. <code>std/decimal</code> is exact base-10 fixed-point over BigInt. Add, subtract, and multiply are exact; division takes an explicit scale and rounds half away from zero; a malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
-      "tr": "Ein Finanzsystem auf IEEE-754-<code>number</code> ist ein Bug, der darauf wartet, gemeldet zu werden: <code>0.1 + 0.2</code> ist nicht <code>0.3</code>, und Werte jenseits von 2<sup>53</sup> verlieren stillschweigend an Genauigkeit. <code>std/decimal</code> ist exakter Festkomma-Wert zur Basis 10 über BigInt. Addition, Subtraktion und Multiplikation sind exakt; Division nimmt eine explizite Skala und rundet kaufmännisch (die Hälfte von null weg); ein fehlerhafter Betrag wird zu einem <code>Err</code> geparst, nie zu einem stillen <code>NaN</code>."
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
     },
     {
-      "id": "h-73ae9568",
+      "id": "h-815af3b2",
       "kind": "html",
-      "en": "the bug it removes",
-      "tr": "der Bug, den es beseitigt"
+      "en": "<code>std/decimal</code> is exact base-10 fixed-point over BigInt.",
+      "tr": "<code>std/decimal</code> ist exakter Festkomma-Wert zur Basis 10 über BigInt."
+    },
+    {
+      "id": "h-7ae6391e",
+      "kind": "html",
+      "en": "<b>Exact arithmetic</b>Add, subtract, and multiply are exact.",
+      "tr": "<b>Exakte Arithmetik</b>Addition, Subtraktion und Multiplikation sind exakt."
+    },
+    {
+      "id": "h-af0c6772",
+      "kind": "html",
+      "en": "<b>Division</b>Division takes an explicit scale and rounds half away from zero.",
+      "tr": "<b>Division</b>Division nimmt eine explizite Skala und rundet kaufmännisch (die Hälfte von null weg)."
+    },
+    {
+      "id": "h-5daa298d",
+      "kind": "html",
+      "en": "<b>Bad input</b>A malformed amount parses to an <code>Err</code>, never a silent <code>NaN</code>.",
+      "tr": "<b>Ungültige Eingabe</b>Ein fehlerhafter Betrag wird zu einem <code>Err</code> geparst, nie zu einem stillen <code>NaN</code>."
     },
     {
       "id": "h-24b27366",
@@ -83,10 +155,16 @@
       "tr": "IDs und Zähler bleiben jenseits von 2<sup>53</sup> exakt"
     },
     {
-      "id": "h-3a0b55f8",
+      "id": "h-8a4050be",
       "kind": "html",
-      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe. <code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
-      "tr": "Eine Konto-ID oder ein Buchungszähler, der den Float-Bereich überschreitet und gerundet wird, ist eine andere Art von Katastrophe. <code>bigint</code> ist eine exakte Ganzzahl beliebiger Genauigkeit mit Literalen wie <code>123n</code>, und ein Record-Feld vom Typ <code>bigint</code> validiert <code>typeof === \"bigint\"</code> an der Systemgrenze, also wird eine ID, die als JSON-<code>number</code> ankommt, abgelehnt statt stillschweigend abgeschnitten."
+      "en": "An account id or a ledger counter that overflows the float range and rounds is a different kind of catastrophe.",
+      "tr": "Eine Konto-ID oder ein Buchungszähler, der den Float-Bereich überschreitet und gerundet wird, ist eine andere Art von Katastrophe."
+    },
+    {
+      "id": "h-9119a893",
+      "kind": "html",
+      "en": "<code>bigint</code> is an exact arbitrary-precision integer with <code>123n</code> literals, and a record field typed <code>bigint</code> validates <code>typeof === \"bigint\"</code> at the boundary, so an id arriving as a JSON <code>number</code> is rejected rather than quietly truncated.",
+      "tr": "<code>bigint</code> ist eine exakte Ganzzahl beliebiger Genauigkeit mit Literalen wie <code>123n</code>, und ein Record-Feld vom Typ <code>bigint</code> validiert <code>typeof === \"bigint\"</code> an der Systemgrenze, also wird eine ID, die als JSON-<code>number</code> ankommt, abgelehnt statt stillschweigend abgeschnitten."
     },
     {
       "id": "h-66804ead",
@@ -95,10 +173,16 @@
       "tr": "Eine Invariante ist ein Typ, kein Kommentar"
     },
     {
-      "id": "h-a4555080",
+      "id": "h-0a0cbba0",
       "kind": "html",
-      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary. A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
-      "tr": "\"Der Betrag ist nicht negativ\" und \"die Bewertung liegt zwischen 1 und 5\" sind die Prüfungen, die einmal geschrieben und später vergessen werden. Eine <code>where</code>-Verfeinerung legt die Invariante in den Typ, und der Deskriptor setzt sie an der Systemgrenze durch. Ein Wert, der das Prädikat nicht erfüllt, wird gar nicht erst zu einem <code>Amount</code>."
+      "en": "\"The amount is non-negative\" and \"the rating is 1 to 5\" are the checks that get written once and forgotten later. A <code>where</code> refinement puts the invariant in the type, and the descriptor enforces it at the boundary.",
+      "tr": "\"Der Betrag ist nicht negativ\" und \"die Bewertung liegt zwischen 1 und 5\" sind die Prüfungen, die einmal geschrieben und später vergessen werden. Eine <code>where</code>-Verfeinerung legt die Invariante in den Typ, und der Deskriptor setzt sie an der Systemgrenze durch."
+    },
+    {
+      "id": "h-0fd039a5",
+      "kind": "html",
+      "en": "A value that fails the predicate never becomes an <code>Amount</code> in the first place.",
+      "tr": "Ein Wert, der das Prädikat nicht erfüllt, wird gar nicht erst zu einem <code>Amount</code>."
     },
     {
       "id": "h-791f6228",
@@ -107,10 +191,22 @@
       "tr": "Injection ist ein Compile-Fehler"
     },
     {
-      "id": "h-0f83c921",
+      "id": "h-8673680c",
       "kind": "html",
-      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error. A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>. The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>. Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
-      "tr": "Der klassische Weg zur Remote-Code-Ausführung ist eine nicht vertrauenswürdige Eingabe, die eine SQL-Abfrage, einen Shell-Befehl oder ein HTML-Template erreicht. <code>std/taint</code> macht daraus einen Typfehler. Ein Wert von außen ist <code>Tainted</code>; ein Ziel, das du schützen willst, nimmt <code>Trusted</code>. Die beiden sind strukturell verschieden, also führt der einzige Weg vom einen zum anderen über ein explizites <code>sanitize</code>. Gib einem Ziel den unbereinigten Wert direkt, und <code>tsc</code> weigert sich, es zu kompilieren."
+      "en": "The classic remote-code path is untrusted input reaching a SQL query, a shell command, or an HTML template. <code>std/taint</code> makes that a type error.",
+      "tr": "Der klassische Weg zur Remote-Code-Ausführung ist eine nicht vertrauenswürdige Eingabe, die eine SQL-Abfrage, einen Shell-Befehl oder ein HTML-Template erreicht. <code>std/taint</code> macht daraus einen Typfehler."
+    },
+    {
+      "id": "h-f7a00fee",
+      "kind": "html",
+      "en": "<b>Two types</b>A value from outside is <code>Tainted</code>; a sink you want to protect takes <code>Trusted</code>.",
+      "tr": "<b>Zwei Typen</b>Ein Wert von außen ist <code>Tainted</code>; ein Ziel, das du schützen willst, nimmt <code>Trusted</code>."
+    },
+    {
+      "id": "h-7e5b4979",
+      "kind": "html",
+      "en": "<b>One way across</b>The two are structurally distinct, so the only way from one to the other is an explicit <code>sanitize</code>.",
+      "tr": "<b>Ein Weg hinüber</b>Die beiden sind strukturell verschieden, also führt der einzige Weg vom einen zum anderen über ein explizites <code>sanitize</code>."
     },
     {
       "id": "h-8aff8559",
@@ -125,6 +221,12 @@
       "tr": "der Injection-Weg nicht"
     },
     {
+      "id": "h-2f6fe04a",
+      "kind": "html",
+      "en": "Hand a sink the tainted value directly and <code>tsc</code> refuses to compile it.",
+      "tr": "Gib einem Ziel den unbereinigten Wert direkt, und <code>tsc</code> weigert sich, es zu kompilieren."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -137,10 +239,34 @@
       "tr": "Heute verfügbar"
     },
     {
-      "id": "h-0571eb2f",
+      "id": "h-56a9e27c",
       "kind": "html",
-      "en": "<code>std/decimal</code> for exact money, <code>bigint</code> for exact large integers, <code>where</code> refinements so an invariant is validated at the boundary, and <code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>. Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
-      "tr": "<code>std/decimal</code> für exaktes Geld, <code>bigint</code> für exakte große Ganzzahlen, <code>where</code>-Verfeinerungen, damit eine Invariante an der Systemgrenze validiert wird, und <code>std/taint</code>, damit nicht vertrauenswürdige Eingaben ein geschütztes Ziel nicht ohne explizites <code>sanitize</code> erreichen. Jedes davon wird geprüft: Ein ungültiger Betrag oder eine ungültige ID scheitert an <code>parse</code>, eine verletzte Invariante scheitert an <code>parse</code>, und ein unbereinigter Wert scheitert an <code>tsc</code>."
+      "en": "<code>std/decimal</code> for exact money",
+      "tr": "<code>std/decimal</code> für exaktes Geld"
+    },
+    {
+      "id": "h-668f24ca",
+      "kind": "html",
+      "en": "<code>bigint</code> for exact large integers",
+      "tr": "<code>bigint</code> für exakte große Ganzzahlen"
+    },
+    {
+      "id": "h-45474544",
+      "kind": "html",
+      "en": "<code>where</code> refinements so an invariant is validated at the boundary",
+      "tr": "<code>where</code>-Verfeinerungen, damit eine Invariante an der Systemgrenze validiert wird"
+    },
+    {
+      "id": "h-d278b134",
+      "kind": "html",
+      "en": "<code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>",
+      "tr": "<code>std/taint</code>, damit nicht vertrauenswürdige Eingaben ein geschütztes Ziel nicht ohne explizites <code>sanitize</code> erreichen"
+    },
+    {
+      "id": "h-3177afa4",
+      "kind": "html",
+      "en": "Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.",
+      "tr": "Jedes davon wird geprüft: Ein ungültiger Betrag oder eine ungültige ID scheitert an <code>parse</code>, eine verletzte Invariante scheitert an <code>parse</code>, und ein unbereinigter Wert scheitert an <code>tsc</code>."
     },
     {
       "id": "h-c647197d",
@@ -149,10 +275,28 @@
       "tr": "Wo es aufhört"
     },
     {
-      "id": "h-b6c3fdb9",
+      "id": "h-d50c7542",
       "kind": "html",
-      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension. Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
-      "tr": "Eine <code>where</code>-Verfeinerung deckt heute primitive Basistypen ab; Invarianten über Records und mehrere Felder (<code>where value.paid &lt;= value.total</code>) sind als Erweiterung geplant. Taint ist eine Disziplin, für die du dich entscheidest, indem du ein Ziel als <code>Trusted</code> typisierst, keine automatische Flussanalyse: Der Compiler setzt die Grenze durch, die du deklarierst, er leitet Taint nicht für dich über das ganze Programm ab."
+      "en": "A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension.",
+      "tr": "Eine <code>where</code>-Verfeinerung deckt heute primitive Basistypen ab; Invarianten über Records und mehrere Felder (<code>where value.paid &lt;= value.total</code>) sind als Erweiterung geplant."
+    },
+    {
+      "id": "h-6c9965e0",
+      "kind": "html",
+      "en": "Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis",
+      "tr": "Taint ist eine Disziplin, für die du dich entscheidest, indem du ein Ziel als <code>Trusted</code> typisierst, keine automatische Flussanalyse"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Details"
+    },
+    {
+      "id": "h-312bf81b",
+      "kind": "html",
+      "en": "Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.",
+      "tr": "Taint ist eine Disziplin, für die du dich entscheidest, indem du ein Ziel als <code>Trusted</code> typisierst, keine automatische Flussanalyse: Der Compiler setzt die Grenze durch, die du deklarierst, er leitet Taint nicht für dich über das ganze Programm ab."
     }
   ]
 }

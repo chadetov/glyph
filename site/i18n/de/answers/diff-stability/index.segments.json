@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/diff-stability/index.html",
   "locale": "de",
-  "source_hash": "b0148f7848d7e246",
+  "source_hash": "e4dd437ddbdd1fba",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Eine einzeilige Änderung ist ein <strong>einzeiliger Diff</strong>, jedes Mal. Glyph hat ein einziges kanonisches Layout, also <strong>kann ein Agent eine echte Änderung nicht unter einer Wand aus Umformatierung begraben</strong>."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Warum das wichtig ist"
-    },
-    {
-      "id": "h-303f30da",
-      "kind": "html",
-      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
-      "tr": "Wenn ein Agent einen Pull Request öffnet, <em>ist</em> der Diff das Review. Wenn ein echter einzeiliger Fix als Umformatierung über 200 Zeilen ankommt, kann niemand sehen, was sich tatsächlich geändert hat, und genau in diesem Rauschen schlüpft ein Bug durch. Stabile Diffs heißt, der Diff zeigt die Änderung und <strong>nichts als die Änderung</strong>."
-    },
-    {
-      "id": "h-0959c450",
-      "kind": "html",
-      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
-      "tr": "Zwei Regeln erledigen den Großteil der Arbeit. Hier ist jede, gezeigt als der Diff, den du reviewen würdest."
-    },
-    {
-      "id": "h-b49f3730",
-      "kind": "html",
-      "en": "Example 1: trailing commas, one item per line",
-      "tr": "Beispiel 1: Trailing Commas, ein Eintrag pro Zeile"
-    },
-    {
-      "id": "h-58d68c63",
-      "kind": "html",
-      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
-      "tr": "Eine Route hinzufügen. Im üblichen TypeScript-Stil muss sich die bisher letzte Zeile ändern, nur um ein Komma zu bekommen. Zwei Zeilen bewegen sich für eine Änderung an einem Eintrag:"
-    },
-    {
       "id": "h-708ed18b",
       "kind": "html",
       "en": "TypeScript: add \"/billing\"",
@@ -113,16 +83,118 @@
       "tr": "1 Zeile hinzugefügt, genau die Änderung"
     },
     {
-      "id": "h-d8c012cf",
+      "id": "h-d9d74afd",
       "kind": "html",
-      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
-      "tr": "Trailing Commas sind <strong>Pflicht</strong>, und eine Liste, die nicht in eine Zeile passt, bekommt ein Element pro Zeile, statt neu gepackt zu werden, also stört Einfügen, Entfernen oder Umordnen eines Eintrags nie seine Nachbarn. Dasselbe gilt für Record-Felder, Parameter, match-Arme und Imports. Die Schwelle hat ihren Preis: Eine Umbenennung, die einen Aufruf über 100 Spalten schiebt, klappt die ganze Argumentliste auf ein Argument pro Zeile auf."
+      "en": "<span>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change.</span>",
+      "tr": "<span>Eine Route hinzufügen. Im üblichen TypeScript-Stil muss sich die bisher letzte Zeile ändern, nur um ein Komma zu bekommen. Zwei Zeilen bewegen sich für eine Änderung an einem Eintrag.</span>"
     },
     {
-      "id": "h-e48b5266",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Example 2: one canonical layout",
-      "tr": "Beispiel 2: ein kanonisches Layout"
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Warum das wichtig ist</a>"
+    },
+    {
+      "id": "h-f2352172",
+      "kind": "html",
+      "en": "<a href=\"#trailing-commas\">Trailing commas</a>",
+      "tr": "<a href=\"#trailing-commas\">Trailing Commas</a>"
+    },
+    {
+      "id": "h-11cefec2",
+      "kind": "html",
+      "en": "<a href=\"#example-2-one-canonical-layout\">One canonical layout</a>",
+      "tr": "<a href=\"#example-2-one-canonical-layout\">Ein kanonisches Layout</a>"
+    },
+    {
+      "id": "h-29f8dc27",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Comments stay put</a>",
+      "tr": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Kommentare bleiben, wo sie sind</a>"
+    },
+    {
+      "id": "h-fdeb81e5",
+      "kind": "html",
+      "en": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">Can fmt break a build?</a>",
+      "tr": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">Kann fmt einen Build kaputtmachen?</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Wo es steht</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Warum das wichtig ist"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-58e45c66",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through.",
+      "tr": "Wenn ein Agent einen Pull Request öffnet, <em>ist</em> der Diff das Review. Wenn ein echter einzeiliger Fix als Umformatierung über 200 Zeilen ankommt, kann niemand sehen, was sich tatsächlich geändert hat, und genau in diesem Rauschen schlüpft ein Bug durch."
+    },
+    {
+      "id": "h-eaf4f5b7",
+      "kind": "html",
+      "en": "Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "Stabile Diffs heißt, der Diff zeigt die Änderung und <strong>nichts als die Änderung</strong>."
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "Zwei Regeln erledigen den Großteil der Arbeit. Hier ist jede, gezeigt als der Diff, den du reviewen würdest."
+    },
+    {
+      "id": "h-199b8427",
+      "kind": "html",
+      "en": "Trailing commas, one item per line",
+      "tr": "Trailing Commas, ein Eintrag pro Zeile"
+    },
+    {
+      "id": "h-215bfd18",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors.",
+      "tr": "Trailing Commas sind <strong>Pflicht</strong>, und eine Liste, die nicht in eine Zeile passt, bekommt ein Element pro Zeile, statt neu gepackt zu werden, also stört Einfügen, Entfernen oder Umordnen eines Eintrags nie seine Nachbarn."
+    },
+    {
+      "id": "h-1b9fb93d",
+      "kind": "html",
+      "en": "The same holds for record fields, parameters, match arms, and imports.",
+      "tr": "Dasselbe gilt für Record-Felder, Parameter, match-Arme und Imports."
+    },
+    {
+      "id": "h-78bcb0ef",
+      "kind": "html",
+      "en": "The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "Die Schwelle hat ihren Preis: Eine Umbenennung, die einen Aufruf über 100 Spalten schiebt, klappt die ganze Argumentliste auf ein Argument pro Zeile auf."
+    },
+    {
+      "id": "h-34f561c3",
+      "kind": "html",
+      "en": "One canonical layout",
+      "tr": "Ein kanonisches Layout"
     },
     {
       "id": "h-57d9d6f8",
@@ -149,10 +221,22 @@
       "tr": "Ein kanonisches Layout, verschiebt der Formatter also meine Kommentare?"
     },
     {
-      "id": "h-84c044a6",
+      "id": "h-c6f55fae",
       "kind": "html",
-      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
-      "tr": "Früher ja, und das war ein Bug, den man beim Namen nennen sollte. Glyph hat keine Blockkommentare und keine Doc-Comment-Syntax, also ist eine <code>//</code>-Zeile der einzige Weg, ein Record-Feld, eine Union-Variante oder einen <code>match</code>-Arm zu erklären. Der Formatter gab ausstehende Kommentare nur an Grenzen von Deklarationen und Anweisungen aus, was hieß, dass ein Kommentar, der <em>innerhalb</em> eines Konstrukts geschrieben wurde, zur nächsten Deklaration hinunterwanderte und sich als Dokumentation für das las, wo er gelandet war. Aufgefallen ist es beim Schreiben von Minesweeper in Glyph. Diese beiden Deklarationen stammen aus <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">der echten App</a> (Kommentare passend gekürzt), einmal durch den alten Formatter und einmal durch den neuen gelaufen."
+      "en": "It used to, and that was a bug worth naming. The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>.",
+      "tr": "Früher ja, und das war ein Bug, den man beim Namen nennen sollte. Die Regel jetzt: Ein Kommentar wird über dem Element neu ausgegeben, über dem er geschrieben wurde, innerhalb eines Record-Rumpfs, einer Liste von Union-Varianten, eines Array- oder Objektliterals, einer Argument- oder Parameterliste und eines <code>match</code>."
+    },
+    {
+      "id": "h-32c20cca",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how comments drifted, and the app that surfaced it</span>",
+      "tr": "Geschichte <span class=\"hint\">wie Kommentare wanderten, und die App, bei der es auffiel</span>"
+    },
+    {
+      "id": "h-05d7c406",
+      "kind": "html",
+      "en": "Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "Glyph hat keine Blockkommentare und keine Doc-Comment-Syntax, also ist eine <code>//</code>-Zeile der einzige Weg, ein Record-Feld, eine Union-Variante oder einen <code>match</code>-Arm zu erklären. Der Formatter gab ausstehende Kommentare nur an Grenzen von Deklarationen und Anweisungen aus, was hieß, dass ein Kommentar, der <em>innerhalb</em> eines Konstrukts geschrieben wurde, zur nächsten Deklaration hinunterwanderte und sich als Dokumentation für das las, wo er gelandet war. Aufgefallen ist es beim Schreiben von Minesweeper in Glyph. Diese beiden Deklarationen stammen aus <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">der echten App</a> (Kommentare passend gekürzt), einmal durch den alten Formatter und einmal durch den neuen gelaufen."
     },
     {
       "id": "h-28875641",
@@ -179,10 +263,16 @@
       "tr": "jeder Kommentar an dem, was er beschreibt"
     },
     {
-      "id": "h-9347eb4d",
+      "id": "h-91bcd89f",
       "kind": "html",
-      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
-      "tr": "Die Regel jetzt: Ein Kommentar wird über dem Element neu ausgegeben, über dem er geschrieben wurde, innerhalb eines Record-Rumpfs, einer Liste von Union-Varianten, eines Array- oder Objektliterals, einer Argument- oder Parameterliste und eines <code>match</code>. Und ein Konstrukt mit einem Kommentar im Inneren nimmt immer die Form mit einem Element pro Zeile an, in jeder Größe, damit der Kommentar ein Element hat, über dem er stehen kann. <code>type Shape = { w: int, h: int }</code> wird also weiterhin auf eine Zeile zusammengezogen, und sobald du <code>h</code> dokumentierst, bleibt der Record aufgeklappt."
+      "en": "And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "Und ein Konstrukt mit einem Kommentar im Inneren nimmt immer die Form mit einem Element pro Zeile an, in jeder Größe, damit der Kommentar ein Element hat, über dem er stehen kann. <code>type Shape = { w: int, h: int }</code> wird also weiterhin auf eine Zeile zusammengezogen, und sobald du <code>h</code> dokumentierst, bleibt der Record aufgeklappt."
+    },
+    {
+      "id": "h-43c73b15",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why this counts as a correctness bug</span>",
+      "tr": "Details <span class=\"hint\">warum das als Korrektheitsbug zählt</span>"
     },
     {
       "id": "h-21ca8ea0",
@@ -197,22 +287,52 @@
       "tr": "Kann <code>glyph fmt</code> ein Programm kaputtmachen, das baut?"
     },
     {
-      "id": "h-6c81998d",
+      "id": "h-43f18884",
       "kind": "html",
-      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
-      "tr": "Es konnte, und ein Fall ist noch offen. Zuerst der behobene. Ein Arm, der &ldquo;der leere Record&rdquo; bedeutet, wird <code>true =&gt; ({})</code> geschrieben. Die Position des Arm-Rumpfs ist die einzige Stelle in der Grammatik, an der eine führende <code>{</code> mehrdeutig ist, und der Parser löst das, indem er direkt nach der Klammer <code>key:</code> oder <code>...</code> verlangt. Ein leeres Objekt hat keins von beidem, also kam der Arm, als der Formatter die Klammern wegließ und <code>true =&gt; {}</code> neu ausgab, als leerer <em>Block</em> zurück, und die Datei baute nicht mehr: <code>E0223</code>, der Arm erzeugt keinen Wert. Du hast einen Formatter über funktionierenden Code laufen lassen und Code bekommen, der nicht mehr kompilierte."
+      "en": "It could, and one case is still open. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "Es konnte, und ein Fall ist noch offen. Ein Formatter, den dein Programm überleben muss, ist schlimmer als ein fehlendes Feature, weil er Code beschädigt, der schon funktioniert hat."
     },
     {
-      "id": "h-e1bb9580",
+      "id": "h-67c48992",
       "kind": "html",
-      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
-      "tr": "Der Printer klammert jetzt einen Arm-Rumpf ein, dessen erstes Token eine <code>{</code> ist, die als Block neu geparst würde, also das leere Objekt und alles, was darauf aufbaut (<code>({}).size</code> kommt als <code>({}.size)</code> zurück). Ein Arm-Rumpf, der sich schon eindeutig liest, wie <code>false =&gt; { a: \"x\" }</code>, bleibt ohne Klammern, also gibt es nirgendwo sonst neue Satzzeichen zu lesen. <code>fmt</code> ist auf dem Ergebnis ein Fixpunkt, und das erzeugte TypeScript ist unverändert. Ein Formatter, den dein Programm überleben muss, ist schlimmer als ein fehlendes Feature, weil er Code beschädigt, der schon funktioniert hat."
+      "en": "<b>Arm bodies</b>The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>).",
+      "tr": "<b>Arm-Rümpfe</b>Der Printer klammert jetzt einen Arm-Rumpf ein, dessen erstes Token eine <code>{</code> ist, die als Block neu geparst würde, also das leere Objekt und alles, was darauf aufbaut (<code>({}).size</code> kommt als <code>({}.size)</code> zurück)."
     },
     {
-      "id": "h-8647fc74",
+      "id": "h-13cac55d",
       "kind": "html",
-      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
-      "tr": "Zwei weitere wurden in 0.1.138 behoben. Innerhalb eines Blocks setzt eine Zeile, die mit <code>(</code> beginnt, die Zeile darüber fort, und bis 0.1.137 gab der Formatter <code>load()?</code> gefolgt von <code>.run()</code> als <code>(load()?).run()</code> aus, also bedeutete die formatierte Datei nach <code>let a = 1</code> <code>let a = 1(…).run()</code>. Jetzt behält er <code>load()?</code> mit <code>.run()</code> eingerückt in der nächsten Zeile bei und schreibt <code>e?(x)</code>, <code>e?[0]</code> und <code>e? ?</code> ohne Klammern. Der andere war die <code>where</code>-Verfeinerung einer Union, die der Formatter wegließ, wodurch aus einem Programm, das <code>check</code> ablehnte, eins wurde, das es akzeptierte. Der Fuzzer parst jetzt die formatierte Datei und vergleicht den Baum mit dem des Originals, also scheitert ein Layout, das die Bedeutung einer Datei ändert, beim ersten Durchlauf, statt darauf zu warten, dass es jemand bemerkt."
+      "en": "<b>The fuzzer</b>The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "<b>Der Fuzzer</b>Der Fuzzer parst jetzt die formatierte Datei und vergleicht den Baum mit dem des Originals, also scheitert ein Layout, das die Bedeutung einer Datei ändert, beim ersten Durchlauf, statt darauf zu warten, dass es jemand bemerkt."
+    },
+    {
+      "id": "h-1fb024a7",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the empty record that stopped building</span>",
+      "tr": "Geschichte <span class=\"hint\">der leere Record, der nicht mehr baute</span>"
+    },
+    {
+      "id": "h-496451d5",
+      "kind": "html",
+      "en": "The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "Zuerst der behobene. Ein Arm, der &ldquo;der leere Record&rdquo; bedeutet, wird <code>true =&gt; ({})</code> geschrieben. Die Position des Arm-Rumpfs ist die einzige Stelle in der Grammatik, an der eine führende <code>{</code> mehrdeutig ist, und der Parser löst das, indem er direkt nach der Klammer <code>key:</code> oder <code>...</code> verlangt. Ein leeres Objekt hat keins von beidem, also kam der Arm, als der Formatter die Klammern wegließ und <code>true =&gt; {}</code> neu ausgab, als leerer <em>Block</em> zurück, und die Datei baute nicht mehr: <code>E0223</code>, der Arm erzeugt keinen Wert. Du hast einen Formatter über funktionierenden Code laufen lassen und Code bekommen, der nicht mehr kompilierte."
+    },
+    {
+      "id": "h-1b3833f9",
+      "kind": "html",
+      "en": "An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged.",
+      "tr": "Ein Arm-Rumpf, der sich schon eindeutig liest, wie <code>false =&gt; { a: \"x\" }</code>, bleibt ohne Klammern, also gibt es nirgendwo sonst neue Satzzeichen zu lesen. <code>fmt</code> ist auf dem Ergebnis ein Fixpunkt, und das erzeugte TypeScript ist unverändert."
+    },
+    {
+      "id": "h-72aac669",
+      "kind": "html",
+      "en": "History <span class=\"hint\">two more fixed in 0.1.138</span>",
+      "tr": "Geschichte <span class=\"hint\">zwei weitere, behoben in 0.1.138</span>"
+    },
+    {
+      "id": "h-8f6ab028",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted.",
+      "tr": "Zwei weitere wurden in 0.1.138 behoben. Innerhalb eines Blocks setzt eine Zeile, die mit <code>(</code> beginnt, die Zeile darüber fort, und bis 0.1.137 gab der Formatter <code>load()?</code> gefolgt von <code>.run()</code> als <code>(load()?).run()</code> aus, also bedeutete die formatierte Datei nach <code>let a = 1</code> <code>let a = 1(…).run()</code>. Jetzt behält er <code>load()?</code> mit <code>.run()</code> eingerückt in der nächsten Zeile bei und schreibt <code>e?(x)</code>, <code>e?[0]</code> und <code>e? ?</code> ohne Klammern. Der andere war die <code>where</code>-Verfeinerung einer Union, die der Formatter wegließ, wodurch aus einem Programm, das <code>check</code> ablehnte, eins wurde, das es akzeptierte."
     },
     {
       "id": "h-a2de6c0a",
@@ -233,10 +353,34 @@
       "tr": "Heute verfügbar"
     },
     {
-      "id": "h-d4cd9ceb",
+      "id": "h-5a22f6e3",
       "kind": "html",
-      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
-      "tr": "Pflicht-Trailing-Commas, Listen mit einem Eintrag pro Zeile und das eine kanonische Layout von <code>glyph fmt</code>, verlustfrei hin und zurück und idempotent, mit Formatieren beim Speichern im Editor. <code>glyph fmt</code> verschiebt einen Kommentar nie dorthin, wo er nicht hingehört. Kommentare bleiben über dem Element, über dem sie geschrieben wurden, auch innerhalb eines Records, eines Literals, einer Argumentliste, eines <code>match</code>, zwischen den Operanden eines Operators und zwischen den Schritten einer Methodenkette, die dann einen Schritt pro Zeile mit führendem Punkt bekommt."
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.",
+      "tr": "Pflicht-Trailing-Commas, Listen mit einem Eintrag pro Zeile und das eine kanonische Layout von <code>glyph fmt</code>, verlustfrei hin und zurück und idempotent, mit Formatieren beim Speichern im Editor."
+    },
+    {
+      "id": "h-85557a13",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> never moves a comment to somewhere it does not belong.",
+      "tr": "<code>glyph fmt</code> verschiebt einen Kommentar nie dorthin, wo er nicht hingehört."
+    },
+    {
+      "id": "h-89c8a999",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above",
+      "tr": "Kommentare bleiben über dem Element, über dem sie geschrieben wurden"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Details"
+    },
+    {
+      "id": "h-279ea3ea",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "Kommentare bleiben über dem Element, über dem sie geschrieben wurden, auch innerhalb eines Records, eines Literals, einer Argumentliste, eines <code>match</code>, zwischen den Operanden eines Operators und zwischen den Schritten einer Methodenkette, die dann einen Schritt pro Zeile mit führendem Punkt bekommt."
     },
     {
       "id": "h-6c3b3842",
@@ -245,10 +389,46 @@
       "tr": "Die Grenze, und was als Nächstes kommt"
     },
     {
-      "id": "h-c064e43b",
+      "id": "h-33221162",
       "kind": "html",
-      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
-      "tr": "Ein Kommentar wird immer in einer eigenen Zeile ausgegeben, also wandert einer, der am Ende einer Codezeile steht (<code>w: int, // width in cells</code>), in die Zeile über dem nächsten Element. Er überschreitet keine Deklarationsgrenze mehr, aber er bewegt sich; ihn am Zeilenende zu halten, verlangt, dass der Printer verfolgt, welche Zeile ein Kommentar sich teilt. Ein Kommentar, für den das Layout keinen Platz hat, etwa in einem Index, nach den Argumenten eines Aufrufs mitten in einer Kette oder vor einem Operanden von <code>!</code> oder <code>await</code>, wird nicht mehr verschoben: <code>glyph fmt</code> lehnt die Datei ab, lässt sie, wie sie war, und nennt die Zeile und wohin der Kommentar gehört, und <code>glyph check</code> meldet dasselbe als Warnung E0500. Ein Kommentar zwischen JSX-Attributen oder zwischen den Feldern eines Objekt-Patterns wird ebenfalls abgelehnt, wo ein Layout mit einem Element pro Zeile ihn unterbringen könnte; diese Layouts stehen auf der Liste. Der Printer hat auch noch keine Regel, um eine lange Methoden- oder <code>+</code>-Kette umzubrechen, also bricht eine zu lange Kette stattdessen die innerste Argumentliste um, was die falsche Stelle ist. Wir bauen außerdem einen Benchmark zur Diff-Größe gegen dieselben Änderungen in TypeScript, damit diese Säule eine Zahl wird, die du prüfen kannst."
+      "en": "A comment at the end of a code line moves to the line above the next item",
+      "tr": "Ein Kommentar am Ende einer Codezeile wandert in die Zeile über dem nächsten Element"
+    },
+    {
+      "id": "h-d6cba539",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares.",
+      "tr": "Ein Kommentar wird immer in einer eigenen Zeile ausgegeben, also wandert einer, der am Ende einer Codezeile steht (<code>w: int, // width in cells</code>), in die Zeile über dem nächsten Element. Er überschreitet keine Deklarationsgrenze mehr, aber er bewegt sich; ihn am Zeilenende zu halten, verlangt, dass der Printer verfolgt, welche Zeile ein Kommentar sich teilt."
+    },
+    {
+      "id": "h-0401bf48",
+      "kind": "html",
+      "en": "A comment the layout has nowhere to put is refused, not moved",
+      "tr": "Ein Kommentar, für den das Layout keinen Platz hat, wird abgelehnt, nicht verschoben"
+    },
+    {
+      "id": "h-5b543c13",
+      "kind": "html",
+      "en": "A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500.",
+      "tr": "Ein Kommentar, für den das Layout keinen Platz hat, etwa in einem Index, nach den Argumenten eines Aufrufs mitten in einer Kette oder vor einem Operanden von <code>!</code> oder <code>await</code>, wird nicht mehr verschoben: <code>glyph fmt</code> lehnt die Datei ab, lässt sie, wie sie war, und nennt die Zeile und wohin der Kommentar gehört, und <code>glyph check</code> meldet dasselbe als Warnung E0500."
+    },
+    {
+      "id": "h-80d7deb5",
+      "kind": "html",
+      "en": "A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list.",
+      "tr": "Ein Kommentar zwischen JSX-Attributen oder zwischen den Feldern eines Objekt-Patterns wird ebenfalls abgelehnt, wo ein Layout mit einem Element pro Zeile ihn unterbringen könnte; diese Layouts stehen auf der Liste."
+    },
+    {
+      "id": "h-cdce7594",
+      "kind": "html",
+      "en": "The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.",
+      "tr": "Der Printer hat auch noch keine Regel, um eine lange Methoden- oder <code>+</code>-Kette umzubrechen, also bricht eine zu lange Kette stattdessen die innerste Argumentliste um, was die falsche Stelle ist."
+    },
+    {
+      "id": "h-e182e34e",
+      "kind": "html",
+      "en": "We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "Wir bauen außerdem einen Benchmark zur Diff-Größe gegen dieselben Änderungen in TypeScript, damit diese Säule eine Zahl wird, die du prüfen kannst."
     }
   ]
 }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "tr",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "Bir istek gövdesi zaten çözülmüş bir <code>unknown</code> olarak gelir; orada bunun yerine <code>T.parse(value)</code> kullanırsınız: aynı garanti, cast yok."
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "Güvenilmeyen sınırın geri kalanı da aynı şekilde tiplenir: <code>header(req, name)</code> ve <code>query_param(req, name)</code> <code>Option&lt;string&gt;</code> döndürür; böylece eksik bir header ya da query parametresi <code>None</code> olur ve <code>match</code> sizi onu ele almaya <em>zorlar</em>. <code>None</code> arm'ını atlarsanız derlenmez. Olmayan bir girdi varmış gibi okunamaz."
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "Güvenilmeyen sınırın geri kalanı da aynı şekilde tiplenir: <code>header(req, name)</code> ve <code>query_param(req, name)</code> <code>Option&lt;string&gt;</code> döndürür; böylece eksik bir header ya da query parametresi <code>None</code> olur ve <code>match</code> sizi onu ele almaya <em>zorlar</em>. <code>None</code> arm'ını atlarsanız derlenmez. Olmayan bir girdi varmış gibi okunamaz. Bir gövde alanı da aynı kurala uyar: <code>timeout_ms?: number</code> ya olmayan bir anahtardır ya da bir sayıdır; bu yüzden <code>{\"timeout_ms\": null}</code>, <code>T.parse</code>, <code>is T</code> ve <code>json.parse&lt;T&gt;</code> için aynı şekilde <code>[\"timeout_ms\"]</code> konumunda bir <code>Err</code> olur. Gönderen taraf <code>null</code> yazıyorsa <code>timeout_ms?: Nullable&lt;number&gt;</code> bildirin. 0.1.152'ye kadar o <code>null</code>, <code>Ok</code>'un içinde geri dönüyordu."
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "tam olarak listelenen anahtarlar, eksiği yok, fazlası yok"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "<code>where</code> ile daraltılmış bir tip"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "<code>where</code> ile daraltılmış bir <code>string</code> ya da sayı"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "yeni bir şey yok"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "Ayrıntılar <span class=\"hint\">daraltılmış ve int anahtarlar, hâlâ tsc'ye kalanlar</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">daraltılmış ve int anahtarlar, checker'ın neyi tuttuğu</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "<code>where</code> ile daraltılmış bir anahtar tipi koşulunu her anahtarda çalıştırır ve bir <code>int</code> anahtarın bir tam sayının düz yazımı olması gerekir; bu yüzden <code>\"01\"</code> ve <code>\"1.5\"</code> reddedilir. Bir <code>Record&lt;string, V&gt;</code> tam olarak eskisi gibi kontrol edilir. Glyph'in kendi checker'ı, kodda yazdığınız bir değerin anahtarlarını hâlâ <code>tsc</code>'ye bırakır ve kendi tip parametresiyle anahtarlanmış generic bir record, o parametre <code>string</code> olmadığı sürece reddedilir."
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "<code>where</code> ile daraltılmış bir anahtar tipi koşulunu her anahtarda çalıştırır ve bir <code>int</code> anahtarın bir tam sayının düz yazımı olması gerekir; bu yüzden <code>\"01\"</code> ve <code>\"1.5\"</code> reddedilir. Bir <code>Record&lt;string, V&gt;</code> tam olarak eskisi gibi kontrol edilir. Bir <code>where</code>, bir string-literal union'ı daraltamaz (<code>type T2 = Tier where value != \"pro\"</code> 0.1.152'den beri <code>E0300</code>); kastettiğiniz üyeleri kendi union'ları olarak yazın, <code>type T2 = \"free\"</code>, ve bu tip bir <code>Record</code>'u aynı birebir anahtar kontrolüyle anahtarlar. 0.1.153'ten beri Glyph'in kendi checker'ı kodda yazdığınız bir değerin anahtarını da tutar: bir <code>Record&lt;string, int&gt;</code>, bir <code>Record&lt;Tier, int&gt;</code> bildirilen yerde duramaz, tersi de geçerli; bu yüzden geçiş noktası bir <code>json.parse</code> ya da bir <code>is Record&lt;Tier, int&gt;</code> arm'ıdır ve <code>record.set</code> kendisine verilen anahtarı korur. Kendi tip parametresiyle anahtarlanmış generic bir record, o parametre <code>string</code> olmadığı sürece reddedilir."
     },
     {
       "id": "h-efd6b0f9",

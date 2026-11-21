@@ -1,7 +1,7 @@
 ---
 title: Bir yapay zekâ neredeyse hiç görmediği bir dili yazabilir mi? · Glyph
 description: Glyph TypeScript gibi okunur ama onun bir alt kümesi değildir. Bir modelin TypeScript hakkında bildiklerinin çoğu aynen geçerlidir; geçerli olmadığı yerleri derleyici adıyla söyler.
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; Önceki | Yapay zekâ kullanmıyorsam Glyph'e değer mi?
 next: /answers/upgrades/ | Sonraki &rarr; | Yeni bir Glyph sürümü build'imi bozar mı?
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | Sonraki &rarr; | Yeni bir Glyph sürümü build'imi b
         Çoğunlukla evet. Glyph TypeScript gibi okunur: aynı temel ve generic tipler (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), ifadelerin çoğu aynı ve npm paketleri adıyla import edilir. TypeScript'in bir alt kümesi değildir: <code>match</code>, <code>Result</code> ve <code>fn name(x: T) -&gt; R</code> TypeScript'te olmayan sözdizimleridir; <code>if</code>, ternary ve cast'ler ise Glyph'te yoktur. Bir modelin zaten bildiklerinin çoğu aynen geçerlidir ve geçerli olmadığı yerleri derleyici adıyla söyler.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Bu, makul bir şüphecinin sorusu: bir LLM sonraki token'ı mevcut dillerdeki devasa kod yığınından tahmin eder, bu yüzden neredeyse hiç eğitim verisi olmayan bir dili yazmak zor olmalı. Yanıt yapısal: Glyph yabancı değil. TypeScript'e benziyor, yani model onun çoğunu zaten biliyor; farklar az, sayılabilir ve her biri sessizce geçmek yerine derleme sırasında <em>hemen</em> başarısız oluyor.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>Yanlış tahmin eden bir ajan o tahmini yayına çıkarmaz. Kesin, düzeltilebilir bir hata alır ve aynı döngüde düzeltir:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">düzeltme döngüsü, tek adımda</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">düzeltme döngüsü, tek adımda</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Hata Glyph yapısını adıyla belirtir ve biçimini gösterir; düzeltme tek bir düzenleme uzağındadır: kaynak kodu karıştırmak da tahmin yürütmek de gerekmez. Eksik eğitim verisini telafi eden bu sıkı döngüdür. Tek bir belge, <a href="/llms.txt">llms.txt</a>, bir ajana program yapısını, standart kütüphaneyi ve düzeltmesiyle birlikte her diagnostic'i verir; <code>glyph llms</code> aynı referansı çevrimdışı yazdırır.
-        </p>
-      </div>
-
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>TypeScript'e benzeyen bir sözdizimi, düzeltmeyi adıyla söyleyen kararlı kodlu hatalar ve her ajan için tek referans belge olarak <code>llms.txt</code> / <code>glyph llms</code>.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Kanıtlanıyor</h3>
-          <p>&ldquo;dayandı&rdquo; ifadesini ölçülmüş bir rakama dönüştürmek için bir başarı oranı benchmark'ı (aynı görevde TypeScript'e karşı düzeltmeye kadar geçen deneme sayısı).</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Yanlış tahmin eden bir ajan o tahmini yayına çıkarmaz. Kesin, düzeltilebilir bir hata alır ve aynı döngüde düzeltir.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bu, makul bir şüphecinin sorusu: bir LLM sonraki token'ı mevcut dillerdeki devasa kod yığınından tahmin eder, bu yüzden neredeyse hiç eğitim verisi olmayan bir dili yazmak zor olmalı.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yanıt yapısal: Glyph yabancı değil. TypeScript'e benziyor, yani model onun çoğunu zaten biliyor; farklar az, sayılabilir ve her biri sessizce geçmek yerine derleme sırasında <em>hemen</em> başarısız oluyor.</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">Düzeltme tek bir düzenleme uzağında<a class="ak-anchor" href="#one-edit-away" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Hata Glyph yapısını adıyla belirtir ve biçimini gösterir; düzeltme tek bir düzenleme uzağındadır: kaynak kodu karıştırmak da tahmin yürütmek de gerekmez. Eksik eğitim verisini telafi eden bu sıkı döngüdür.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Tek bir belge, <a href="/llms.txt">llms.txt</a>, bir ajana program yapısını, standart kütüphaneyi ve düzeltmesiyle birlikte her diagnostic'i verir; <code>glyph llms</code> aynı referansı çevrimdışı yazdırır.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">TypeScript'e benzeyen bir sözdizimi.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Düzeltmeyi adıyla söyleyen kararlı kodlu hatalar.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her ajan için tek referans belge olarak <code>llms.txt</code> / <code>glyph llms</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Kanıtlanıyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">&ldquo;dayandı&rdquo; ifadesini ölçülmüş bir rakama dönüştürmek için bir başarı oranı benchmark'ı (aynı görevde TypeScript'e karşı düzeltmeye kadar geçen deneme sayısı).</span></span></li>
+          </ul>
+        </section>
       </div>

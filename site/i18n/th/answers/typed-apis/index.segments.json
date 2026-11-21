@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "th",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "request body มาถึงในรูปที่ decode แล้วเป็น <code>unknown</code> ตรงนั้นจึงใช้ <code>T.parse(value)</code> แทน: การรับประกันเดียวกัน ไม่มี cast"
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจมี type แบบเดียวกัน: <code>header(req, name)</code> และ <code>query_param(req, name)</code> คืน <code>Option&lt;string&gt;</code> header หรือ query parameter ที่ไม่มีจึงเป็น <code>None</code> และ <code>match</code> <em>บังคับ</em>ให้คุณจัดการ ละ arm <code>None</code> แล้วจะคอมไพล์ไม่ผ่าน input ที่ไม่มีจึงถูกอ่านราวกับว่ามีอยู่ไม่ได้"
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจมี type แบบเดียวกัน: <code>header(req, name)</code> และ <code>query_param(req, name)</code> คืน <code>Option&lt;string&gt;</code> header หรือ query parameter ที่ไม่มีจึงเป็น <code>None</code> และ <code>match</code> <em>บังคับ</em>ให้คุณจัดการ ละ arm <code>None</code> แล้วจะคอมไพล์ไม่ผ่าน input ที่ไม่มีจึงถูกอ่านราวกับว่ามีอยู่ไม่ได้ field ใน body ก็ใช้กฎเดียวกัน: <code>timeout_ms?: number</code> คือ key ที่ไม่มีหรือเป็นตัวเลข <code>{\"timeout_ms\": null}</code> จึงเป็น <code>Err</code> ที่ <code>[\"timeout_ms\"]</code> ไม่ว่าจะมาจาก <code>T.parse</code>, <code>is T</code> หรือ <code>json.parse&lt;T&gt;</code> ประกาศ <code>timeout_ms?: Nullable&lt;number&gt;</code> เมื่อฝั่งส่งเขียน <code>null</code> มา ก่อน 0.1.152 ค่า <code>null</code> นั้นกลับมาอยู่ใน <code>Ok</code>"
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "key ตามรายการพอดี ไม่ขาด ไม่เกิน"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "type ที่ refine ด้วย <code>where</code>"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "<code>string</code> หรือตัวเลขที่ refine ด้วย <code>where</code>"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "ไม่มีอะไรใหม่"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "รายละเอียด <span class=\"hint\">key แบบ refine และแบบ int และสิ่งที่ยังปล่อยให้ tsc</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "รายละเอียด <span class=\"hint\">key แบบ refine และแบบ int และสิ่งที่ตัวตรวจยึดไว้</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "type ของ key ที่ refine ด้วย <code>where</code> รัน predicate กับทุก key และ key แบบ <code>int</code> ต้องเป็นการเขียนจำนวนเต็มแบบธรรมดา <code>\"01\"</code> และ <code>\"1.5\"</code> จึงถูกปฏิเสธ <code>Record&lt;string, V&gt;</code> ถูกตรวจเหมือนเดิมทุกประการ ตัวตรวจของ Glyph เองยังปล่อย key ของค่าที่คุณเขียนในโค้ดให้ <code>tsc</code> และ record แบบ generic ที่ใช้ type parameter ของตัวเองเป็น key จะถูกปฏิเสธ เว้นแต่ parameter นั้นเป็น <code>string</code>"
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "type ของ key ที่ refine ด้วย <code>where</code> รัน predicate กับทุก key และ key แบบ <code>int</code> ต้องเป็นการเขียนจำนวนเต็มแบบธรรมดา <code>\"01\"</code> และ <code>\"1.5\"</code> จึงถูกปฏิเสธ <code>Record&lt;string, V&gt;</code> ถูกตรวจเหมือนเดิมทุกประการ <code>where</code> refine union ของ string literal ไม่ได้ (<code>type T2 = Tier where value != \"pro\"</code> เป็น <code>E0300</code> ตั้งแต่ 0.1.152) ให้เขียนสมาชิกที่คุณต้องการเป็น union ของมันเอง <code>type T2 = \"free\"</code> แล้วมันจะเป็น key ของ <code>Record</code> พร้อมการตรวจ key ให้ตรงเป๊ะแบบเดียวกัน ตั้งแต่ 0.1.153 ตัวตรวจของ Glyph เองก็ยึด key ของค่าที่คุณเขียนในโค้ดด้วย: <code>Record&lt;string, int&gt;</code> ใช้แทนที่ที่ประกาศเป็น <code>Record&lt;Tier, int&gt;</code> ไม่ได้ และกลับกันก็ไม่ได้ การข้ามไปมาจึงต้องผ่าน <code>json.parse</code> หรือ arm <code>is Record&lt;Tier, int&gt;</code> และ <code>record.set</code> รักษา key ที่ได้รับไว้ record แบบ generic ที่ใช้ type parameter ของตัวเองเป็น key จะถูกปฏิเสธ เว้นแต่ parameter นั้นเป็น <code>string</code>"
     },
     {
       "id": "h-efd6b0f9",

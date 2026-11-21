@@ -1,7 +1,7 @@
 ---
 title: ตรวจสอบได้ · ไม่มี any, match ที่ครบทุกกรณี · Glyph
 description: เสาหลักข้อแรกของ Glyph: ไม่มี any หรือ as, match ที่ครบทุกกรณี และ validator ตอนรันสำหรับ type ที่คุณประกาศ: ชั้นที่เข้มอยู่บน tsc พร้อมบอกข้อจำกัดไว้
-source_hash: b8ae04a4b3228182
+source_hash: 27017c2e0eebfe6d
 prev: / | &larr; หน้าแรก | ทำไม Glyph ถึงชนะ
 next: /pillars/greppability/ | เสาหลักถัดไป &rarr; | ค้นหาได้ด้วย grep: หนึ่งชื่อ หนึ่งที่
 ---
@@ -12,54 +12,71 @@ next: /pillars/greppability/ | เสาหลักถัดไป &rarr; | ค
         Glyph ปิดช่องโหว่ที่เอเจนต์ตกลงไป: <strong>ไม่มี <code>any</code> และไม่มี <code>as</code> ให้เขียน</strong> <code>match</code> <strong>พิสูจน์ได้ว่าครบทุกกรณี</strong> และ type ที่คุณประกาศได้<strong>validator ตอนรันแบบเข้ม</strong> ทั้งหมดบังคับใช้เป็นชั้นที่เข้มอยู่บน <code>tsc</code> มันไม่ได้ตรวจทุกอย่างเอง และด้านล่างบอกไว้ตรงๆ ว่าการรับประกันหยุดตรงไหนพอดี
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">คำโกหกที่ type บอกได้</h2>
-        <p class="lede">
-          ใน TypeScript type คือคำสัญญาตอนคอมไพล์ที่ระเหยหายไปก่อนโค้ดจะรัน annotation <code>User</code> ถูกลบจนไม่เหลืออะไร object ที่คุณได้จริงจากการเรียก network การ parse JSON หรือช่องในฟอร์มอาจเป็นรูปร่างอะไรก็ได้ แย่กว่านั้น ภาษาให้วิธีที่ถูกกฎหมายสามทางในการโกหกตัวตรวจ: <code>any</code>, cast แบบ <code>as</code> และ <code>!</code> แบบ non-null เอเจนต์ที่ทำงานเร็วหยิบทั้งสามมาใช้ และ <code>tsc --strict</code> ก็ยังเขียวขณะที่บั๊กถูกปล่อยออกไป
-        </p>
-        <p class="lede">
-          งานแรกของ Glyph คือปิดช่องโหว่เหล่านั้น ไม่ใช่ด้วย annotation ที่มากขึ้น แต่ด้วยการเอาทางหนีทีไล่ออกไปและทำให้ทุก type พกหลักฐานของมันไปถึงตอนรัน นี่คือความหมายของมัน ทีละการรับประกัน
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> ไม่มี <code>any</code></h2>
-        <p>
-          <code>any</code> คือ keyword ที่แพงที่สุดใน TypeScript: มันปิด type system สำหรับค่าหนึ่ง<em>และทุกอย่างที่ค่านั้นแตะ</em> <code>any</code> ตัวเดียวที่ขอบเขตวางยาพิษให้ call graph ปลายน้ำแบบเงียบๆ Glyph ไม่มีมัน top type คือ <code>unknown</code> และ <code>unknown</code> ทำอะไรไม่ได้: คุณเรียกมัน index มัน หรือส่งมันไปที่ที่มี type ไม่ได้ จนกว่าคุณจะ<em>พิสูจน์</em>ว่ามันคืออะไร
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript: คอมไพล์ผ่าน แล้ว crash</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript: คอมไพล์ผ่าน แล้ว crash</span>
+            <span class="cap">handler.ts</span>
 <pre>function handle(body: any) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   return body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: การ narrow คือหลักฐาน</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: การ narrow คือหลักฐาน</span>
+            <span class="cap">handler.glyph</span>
 <pre>fn handle(body: unknown) -&gt; string {
   return match User.parse(body) {
     Ok(u) =&gt; string.upper(u.name),
     Err(_) =&gt; "unknown",
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          คุณได้ค่าที่มี type ออกมาจาก <code>unknown</code> ไม่ได้ถ้าไม่มีการตรวจที่คอมไพเลอร์มองเห็น ใน Glyph การ narrow <strong>คือ</strong>หลักฐานตอนรัน ไม่มี syntax สำหรับข้ามมัน
-        </p>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">คำโกหกที่ type บอกได้</a></li>
+          <li><a href="#there-is-no-any">ไม่มี any</a></li>
+          <li><a href="#types-are-real-at-runtime">type ตอนรัน</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">ทุก case</a></li>
+          <li><a href="#errors-are-values-not-surprises">error เป็นค่า</a></li>
+          <li><a href="#even-pii-is-type-level">PII</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">การรับประกันหยุดตรงไหน</a></li>
+          <li><a href="#the-benchmark-coming">benchmark</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">TS แบบ strict และ lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label"><span class="ex-label">02</span> type มีอยู่จริงตอนรัน</h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">คำโกหกที่ type บอกได้<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ใน TypeScript type คือคำสัญญาตอนคอมไพล์ที่ระเหยหายไปก่อนโค้ดจะรัน annotation <code>User</code> ถูกลบจนไม่เหลืออะไร object ที่คุณได้จริงจากการเรียก network การ parse JSON หรือช่องในฟอร์มอาจเป็นรูปร่างอะไรก็ได้
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>แย่กว่านั้น ภาษาให้วิธีที่ถูกกฎหมายสามทางในการโกหกตัวตรวจ: <code>any</code>, cast แบบ <code>as</code> และ <code>!</code> แบบ non-null เอเจนต์ที่ทำงานเร็วหยิบทั้งสามมาใช้ และ <code>tsc --strict</code> ก็ยังเขียวขณะที่บั๊กถูกปล่อยออกไป</p></div>
+      <p class="ak-lede">
+        งานแรกของ Glyph คือปิดช่องโหว่เหล่านั้น ไม่ใช่ด้วย annotation ที่มากขึ้น แต่ด้วยการเอาทางหนีทีไล่ออกไปและทำให้ทุก type พกหลักฐานของมันไปถึงตอนรัน นี่คือความหมายของมัน ทีละการรับประกัน
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> ไม่มี <code>any</code><a class="ak-anchor" href="#there-is-no-any" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph ไม่มีมัน top type คือ <code>unknown</code> และ <code>unknown</code> ทำอะไรไม่ได้: คุณเรียกมัน index มัน หรือส่งมันไปที่ที่มี type ไม่ได้ จนกว่าคุณจะ<em>พิสูจน์</em>ว่ามันคืออะไร
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไม any ตัวเดียวจึงแพงขนาดนั้น</span></summary><div class="body">
         <p>
-          <code>User.parse</code> มีอยู่ได้อย่างไร? เพราะทุก record type และทุก tagged union ที่ไม่ใช่ generic จะ generate <strong>runtime descriptor</strong> มาด้วย: guard <code>is</code>, <code>parse</code> ที่ validate <code>unknown</code> ให้เป็น <code>Result</code> และ <code>schema</code> ที่ประกอบต่อได้ รูปร่างของ record ถูกตรวจจริงตอนรัน ไม่ใช่ถูกสันนิษฐาน การตรวจ <code>is User</code> จึงเป็นการตรวจจริง ไม่ใช่สิ่งที่ถูกลบทิ้งจนไม่ทำอะไร
+          <code>any</code> คือ keyword ที่แพงที่สุดใน TypeScript: มันปิด type system สำหรับค่าหนึ่ง<em>และทุกอย่างที่ค่านั้นแตะ</em> <code>any</code> ตัวเดียวที่ขอบเขตวางยาพิษให้ call graph ปลายน้ำแบบเงียบๆ
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        คุณได้ค่าที่มี type ออกมาจาก <code>unknown</code> ไม่ได้ถ้าไม่มีการตรวจที่คอมไพเลอร์มองเห็น ใน Glyph การ narrow <strong>คือ</strong>หลักฐานตอนรัน ไม่มี syntax สำหรับข้ามมัน
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> type มีอยู่จริงตอนรัน<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>User.parse</code> มีอยู่ได้อย่างไร? เพราะทุก record type และทุก tagged union ที่ไม่ใช่ generic จะ generate <strong>runtime descriptor</strong> มาด้วย: guard <code>is</code>, <code>parse</code> ที่ validate <code>unknown</code> ให้เป็น <code>Result</code> และ <code>schema</code> ที่ประกอบต่อได้
+      </p>
       <div class="code">
         <span class="cap">type ที่คุณเขียน และ descriptor ที่ generate จากมัน</span>
 <pre>type User = {
@@ -77,21 +94,24 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>นี่คือคำตอบของ "ทุก API ต้องมี validator ที่เขียนเอง" type คือ validator</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">descriptor ตรวจอะไร</span></summary><div class="body">
         <p>
-          นี่คือคำตอบของ "ทุก API ต้องมี validator ที่เขียนเอง" type คือ validator ขอบเขต (request body, ไฟล์ config, response จาก third-party) จะมี type ได้ก็ต่อเมื่อผ่านการตรวจที่ปฏิเสธข้อมูลผิดได้จริง
+          รูปร่างของ record ถูกตรวจจริงตอนรัน ไม่ใช่ถูกสันนิษฐาน การตรวจ <code>is User</code> จึงเป็นการตรวจจริง ไม่ใช่สิ่งที่ถูกลบทิ้งจนไม่ทำอะไร
         </p>
         <p>
-          จุดที่สิ่งนี้หยุด: descriptor ของ record เข้มโดยค่าเริ่มต้น มันยืนยัน field ที่ประกาศไว้และปฏิเสธค่าที่มี key ที่ไม่ได้ประกาศ (ใส่ <code>@open</code> บน type เพื่อยอมให้มีส่วนเกิน) record type ได้ descriptor รวมถึงตัวที่เป็น generic <code>Paginated&lt;User&gt;</code> จึงตรวจแต่ละ element ในฐานะ <code>User</code> และ descriptor ของ tagged union ตรวจ tag แล้วตรวจ field ของ payload ของ variant นั้น สิ่งที่ยังไม่ได้ descriptor คือ tagged union ที่เป็น generic (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> ไม่มี <code>Box.parse</code>) หรือ type ที่ import จาก <code>.d.ts</code> ที่คุณแค่อ้างถึง ในกรณีที่การตรวจพิสูจน์ได้แค่บางส่วนของรูปร่าง คอมไพเลอร์จะบอกไว้ แทนที่จะสื่อเป็นนัยถึงการรับประกันที่มันให้ไม่ได้
+          ขอบเขต (request body, ไฟล์ config, response จาก third-party) จะมี type ได้ก็ต่อเมื่อผ่านการตรวจที่ปฏิเสธข้อมูลผิดได้จริง
         </p>
-
-        <h2 class="block-label"><span class="ex-label">03</span> ครบทุก case ไม่อย่างนั้นคอมไพล์ไม่ผ่าน</h2>
         <p>
-          <code>match</code> บน union ที่ปิดผนึกต้องจัดการทุก variant เพิ่ม variant ทีหลังแล้ว match <em>ทุกตัว</em>ที่ไม่ได้รองรับมันจะคอมไพล์ไม่ผ่าน (<code>E0200</code>) case ใหม่ตกทะลุไปเป็น <code>undefined</code> แบบเงียบๆ เหมือน branch ของ <code>switch</code> ที่ถูกลืมไม่ได้ และไม่ใช่แค่ union: การ match <code>number</code> หรือ <code>string</code> ด้วยค่า literal ต้องมี <code>else</code> (<code>E0218</code>) เพราะโดเมนเหล่านั้นไม่มีขอบเขต และชุดของ literal ไม่มีวันครบ
+          จุดที่สิ่งนี้หยุด: descriptor ของ record เข้มโดยค่าเริ่มต้น มันยืนยัน field ที่ประกาศไว้และปฏิเสธค่าที่มี key ที่ไม่ได้ประกาศ (ใส่ <code>@open</code> บน type เพื่อยอมให้มีส่วนเกิน) record type ได้ descriptor รวมถึงตัวที่เป็น generic <code>Paginated&lt;User&gt;</code> จึงตรวจแต่ละ element ในฐานะ <code>User</code> และ descriptor ของ tagged union ตรวจ tag แล้วตรวจ field ของ payload ของ variant นั้น
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>สิ่งที่ยังไม่ได้ descriptor คือ tagged union ที่เป็น generic (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> ไม่มี <code>Box.parse</code>) หรือ type ที่ import จาก <code>.d.ts</code> ที่คุณแค่อ้างถึง ในกรณีที่การตรวจพิสูจน์ได้แค่บางส่วนของรูปร่าง คอมไพเลอร์จะบอกไว้ แทนที่จะสื่อเป็นนัยถึงการรับประกันที่มันให้ไม่ได้</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> ครบทุก case ไม่อย่างนั้นคอมไพล์ไม่ผ่าน<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>match</code> บน union ที่ปิดผนึกต้องจัดการทุก variant เพิ่ม variant ทีหลังแล้ว match <em>ทุกตัว</em>ที่ไม่ได้รองรับมันจะคอมไพล์ไม่ผ่าน (<code>E0200</code>)
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -105,7 +125,7 @@ fn label(s: Status) -&gt; string {
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">compile error ไม่ใช่ undefined ตอนรัน</span>
           <span class="cap">$ glyph build</span>
 <pre><span class="del">[E0200] non-exhaustive match on
@@ -116,14 +136,17 @@ fn label(s: Status) -&gt; string {
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">04</span> error เป็นค่า ไม่ใช่เรื่องไม่คาดฝัน</h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">match บน number และ string</span></summary><div class="body">
         <p>
-          ฟังก์ชันที่อาจล้มเหลวคืนค่า <code>Result&lt;T, E&gt;</code> คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code> และ error type ต้องตรงกัน (ไม่มีการแปลงแฝงที่ซ่อนความไม่ตรง) ถ้าเพิกเฉยต่อ <code>Result</code> ไปเลย (เรียกเพื่อผลข้างเคียงแล้วทิ้งสิ่งที่มันคืนมา) Glyph จะเตือน (<code>E0217</code>) เพราะ error ที่ถูกทิ้งคือความล้มเหลวที่ถูกกลืน คุณปิดเสียงมันได้อย่างตั้งใจด้วย <code>let _ = ...</code> ไม่ใช่โดยบังเอิญ
+          case ใหม่ตกทะลุไปเป็น <code>undefined</code> แบบเงียบๆ เหมือน branch ของ <code>switch</code> ที่ถูกลืมไม่ได้ และไม่ใช่แค่ union: การ match <code>number</code> หรือ <code>string</code> ด้วยค่า literal ต้องมี <code>else</code> (<code>E0218</code>) เพราะโดเมนเหล่านั้นไม่มีขอบเขต และชุดของ literal ไม่มีวันครบ
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> error เป็นค่า ไม่ใช่เรื่องไม่คาดฝัน<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ฟังก์ชันที่อาจล้มเหลวคืนค่า <code>Result&lt;T, E&gt;</code> คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code> และ error type ต้องตรงกัน (ไม่มีการแปลงแฝงที่ซ่อนความไม่ตรง)
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
@@ -137,14 +160,12 @@ fn main() -&gt; number {
   return 0
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ถ้าเพิกเฉยต่อ <code>Result</code> ไปเลย (เรียกเพื่อผลข้างเคียงแล้วทิ้งสิ่งที่มันคืนมา) Glyph จะเตือน (<code>E0217</code>) เพราะ error ที่ถูกทิ้งคือความล้มเหลวที่ถูกกลืน คุณปิดเสียงมันได้อย่างตั้งใจด้วย <code>let _ = ...</code> ไม่ใช่โดยบังเอิญ</p></div>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> แม้แต่ PII ก็อยู่ระดับ type</h2>
-        <p>
-          สัญชาตญาณเดียวกันคือ "ให้เป็นงานของคอมไพเลอร์ ไม่ใช่ธรรมเนียม" ไปถึงข้อมูลอ่อนไหวด้วย ใส่ <code>@redact</code> บน type แล้ว descriptor ของมันจะได้ <code>redact()</code> ที่ปิดบัง field เหล่านั้น <code>json.stringify(User.redact(u))</code> ที่หลงมาจึงทำข้อมูลรั่วไม่ได้ ระบุ field ที่ type ไม่มีแล้วจะเป็น compile error (<code>E0219</code>) ไม่ใช่การปิดบังที่ไม่ได้ปกป้องอะไรแบบเงียบๆ
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> แม้แต่ PII ก็อยู่ระดับ type<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        สัญชาตญาณเดียวกันคือ "ให้เป็นงานของคอมไพเลอร์ ไม่ใช่ธรรมเนียม" ไปถึงข้อมูลอ่อนไหวด้วย ใส่ <code>@redact</code> บน type แล้ว descriptor ของมันจะได้ <code>redact()</code> ที่ปิดบัง field เหล่านั้น <code>json.stringify(User.redact(u))</code> ที่หลงมาจึงทำข้อมูลรั่วไม่ได้
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre>@redact fields: [diagnosis, notes]
@@ -157,28 +178,35 @@ type Patient = {
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ระบุ field ที่ type ไม่มีแล้วจะเป็น compile error (<code>E0219</code>) ไม่ใช่การปิดบังที่ไม่ได้ปกป้องอะไรแบบเงียบๆ</p></div>
+      <p class="pull-quote">
+        ความล้มเหลวห้าแบบ (input ที่ไม่ถูกตรวจ case ที่พลาด error ที่ถูกทิ้ง secret ที่รั่ว key ที่ไม่ถูก validate) และทุกแบบการแก้มีรูปเดียวกัน: <strong>คอมไพเลอร์ไม่ยอมแกล้งทำเป็น</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          ความล้มเหลวห้าแบบ (input ที่ไม่ถูกตรวจ case ที่พลาด error ที่ถูกทิ้ง secret ที่รั่ว key ที่ไม่ถูก validate) และทุกแบบการแก้มีรูปเดียวกัน: <strong>คอมไพเลอร์ไม่ยอมแกล้งทำเป็น</strong>
-        </p>
-
-        <h2 class="block-label">บังคับใช้อย่างไร และการรับประกันหยุดตรงไหน</h2>
-        <p>
-          พูดให้แม่นยำ เพราะความต่างสำคัญ: Glyph เป็น<strong>ภาษาย่อยที่เข้มและบังคับใช้บน <code>tsc</code></strong> ไม่ใช่ตัวตรวจอิสระ บางอย่างมันพิสูจน์เอง: ความครบถ้วน error type ของ <code>?</code> การไม่มี <code>any</code>/<code>as</code> ในซอร์สของคุณ การ validate key แบบเข้ม ความเข้ากันได้ของ type ส่วนที่เหลือมันบังคับใช้โดย emit TypeScript แล้วรัน <code>tsc --strict</code> ซึ่งทำให้ build fail จุดหลักคือการตรวจเหล่านี้เป็น<em>ภาษา</em> ไม่ใช่ lint ที่ต้องเลือกเปิดซึ่งเอเจนต์ปิดได้ ไม่ใช่ว่า Glyph เขียน type checker ขึ้นใหม่
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">บังคับใช้อย่างไร และการรับประกันหยุดตรงไหน<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        พูดให้แม่นยำ เพราะความต่างสำคัญ: Glyph เป็น<strong>ภาษาย่อยที่เข้มและบังคับใช้บน <code>tsc</code></strong> ไม่ใช่ตัวตรวจอิสระ
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Glyph พิสูจน์เอง</b>บางอย่างมันพิสูจน์เอง: ความครบถ้วน error type ของ <code>?</code> การไม่มี <code>any</code>/<code>as</code> ในซอร์สของคุณ การ validate key แบบเข้ม</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>บังคับใช้ผ่าน tsc</b>ความเข้ากันได้ของ type ส่วนที่เหลือมันบังคับใช้โดย emit TypeScript แล้วรัน <code>tsc --strict</code> ซึ่งทำให้ build fail</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>จุดหลักคือการตรวจเหล่านี้เป็น<em>ภาษา</em> ไม่ใช่ lint ที่ต้องเลือกเปิดซึ่งเอเจนต์ปิดได้ ไม่ใช่ว่า Glyph เขียน type checker ขึ้นใหม่</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">ขอบที่ปิดใน 0.1.10 และการ validate generic แบบลึก</span></summary><div class="body">
         <p>
           ขอบสองจุดก่อนหน้านี้ถูกปิดใน 0.1.10 emitter เคยแทรก return cast ที่ตรวจโดย Glyph ไม่ใช่ <code>tsc</code> ใน<em>ทุก</em>ฟังก์ชัน generic ตอนนี้มันเกิดเฉพาะที่ combinator ของ validator ประกอบค่าของ type ที่ derive จาก shape (<code>infer_output&lt;Shape&gt;</code>) และ generic ที่ตรงไปตรงมาทุกตัว emit โดยไม่มี cast เลย และ output type ของ validator ไม่ถูกเชื่อตามคำบอกอีกต่อไป: <code>infer_output</code> derive มันจาก shape ที่คุณส่ง และ <code>tsc</code> ตรวจ annotation ของคุณเทียบกับมัน shape ที่ขาด field ของ type ที่คุณอ้างจึงคอมไพล์ไม่ผ่าน
         </p>
         <p>
-          type แบบ generic ก็ validate แบบลึกแล้ว: descriptor ของ <code>Paginated&lt;User&gt;</code> ตรวจทุก element <em>ในฐานะ <code>User</code></em> ไม่ใช่แค่ว่ามีอยู่ ยังเหลือขอบหนึ่งจุด บอกไว้ตรงๆ: type ที่ <em>import</em> จาก <code>.d.ts</code> ภายนอกที่คุณแค่อ้างถึงไม่มี descriptor จนกว่าคุณจะ materialize มันด้วย <code>glyph gen dts</code> field ของ type นั้นจึงถูกตรวจแค่ว่ามีอยู่ ไม่ได้ตรวจรูปร่าง ขอบนั้นเป็นความตั้งใจ (type ที่ Glyph ไม่ได้ emit สัญญาการ validate ตอนรันไม่ได้) และการ materialize ปิดมันได้
+          type แบบ generic ก็ validate แบบลึกแล้ว: descriptor ของ <code>Paginated&lt;User&gt;</code> ตรวจทุก element <em>ในฐานะ <code>User</code></em> ไม่ใช่แค่ว่ามีอยู่
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ยังเหลือขอบหนึ่งจุด บอกไว้ตรงๆ: type ที่ <em>import</em> จาก <code>.d.ts</code> ภายนอกที่คุณแค่อ้างถึงไม่มี descriptor จนกว่าคุณจะ materialize มันด้วย <code>glyph gen dts</code> field ของ type นั้นจึงถูกตรวจแค่ว่ามีอยู่ ไม่ได้ตรวจรูปร่าง ขอบนั้นเป็นความตั้งใจ (type ที่ Glyph ไม่ได้ emit สัญญาการ validate ตอนรันไม่ได้) และการ materialize ปิดมันได้</p></div>
 
-        <h2 class="block-label">benchmark: กำลังมา</h2>
-        <p>
-          ข้อกล่าวอ้างนี้เป็นเชิงประจักษ์ เราจึงตั้งใจจะวัด: เอาชุดการเปลี่ยนแปลงจริงที่เอเจนต์เขียน รันแต่ละตัวผ่าน <code>tsc --strict</code> และผ่าน Glyph แล้วนับว่าแต่ละตัวจับอะไรได้จริง Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก จึงยังไม่มีตัวเลขให้รายงาน กราฟด้านล่างเป็นที่ว่างรอไว้ และจะเติมด้วยข้อมูลจริงทันทีที่มีการใช้งานจริง
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">benchmark: กำลังมา<a class="ak-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ข้อกล่าวอ้างนี้เป็นเชิงประจักษ์ เราจึงตั้งใจจะวัด: เอาชุดการเปลี่ยนแปลงจริงที่เอเจนต์เขียน รันแต่ละตัวผ่าน <code>tsc --strict</code> และผ่าน Glyph แล้วนับว่าแต่ละตัวจับอะไรได้จริง
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก จึงยังไม่มีตัวเลขให้รายงาน กราฟด้านล่างเป็นที่ว่างรอไว้ และจะเติมด้วยข้อมูลจริงทันทีที่มีการใช้งานจริง</p></div>
 
       <div class="chart">
         <span class="label">บั๊กจากเอเจนต์ที่จับได้ &middot; ยิ่งสูงยิ่งดี</span>
@@ -196,24 +224,19 @@ type Patient = {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          ทั้งหมดนี้ไม่ได้แลกมาด้วยพิธีรีตอง ไม่มี annotation สำหรับพิสูจน์ ไม่มีสัญญา ไม่มี verifier ให้ต้องทำให้พอใจ โค้ดข้างบนเป็นแค่ Glyph ธรรมดา การตรวจสอบได้ไม่ใช่ฟีเจอร์ที่คุณเปิด มันคือสิ่งที่เหลืออยู่เมื่อวิธีโกหกทั้งหมดหายไป
-        </p>
-      </div>
+      <p class="ak-lede">
+        ทั้งหมดนี้ไม่ได้แลกมาด้วยพิธีรีตอง ไม่มี annotation สำหรับพิสูจน์ ไม่มีสัญญา ไม่มี verifier ให้ต้องทำให้พอใจ โค้ดข้างบนเป็นแค่ Glyph ธรรมดา การตรวจสอบได้ไม่ใช่ฟีเจอร์ที่คุณเปิด มันคือสิ่งที่เหลืออยู่เมื่อวิธีโกหกทั้งหมดหายไป
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label">"TypeScript แบบ strict กับ config ของ lint ก็ทำแบบนี้ได้"</h2>
-        <p>
-          ภายในโปรแกรม มันเข้าใกล้ <code>strict</code>, <code>noUncheckedIndexedAccess</code> และกฎที่ห้าม <code>any</code> แบบชัดแจ้ง จับสิ่งที่เอเจนต์จะเล็ดลอดไปได้ส่วนใหญ่ แต่หยุดที่ขอบ <code>JSON.parse(body) as User</code> คอมไพล์ผ่านทุกการตั้งค่าที่มี และวิธีแก้ที่ใช้กันคือ schema ของ zod ซึ่งเป็นคำอธิบาย <code>User</code> ชุดที่สองที่ต้องรักษาให้ตรงกับชุดแรกด้วยมือ ใน Glyph type คือ validator: <code>json.parse&lt;User&gt;(body)</code> ถูกตรวจเทียบกับ <code>User</code> เอง และ type ที่ Glyph ตรวจตอนรันไม่ได้จะถูกปฏิเสธแทนที่จะถูกเชื่อ
-        </p>
-        <p>
-          อีกความต่างคือใครพึ่งพามันได้ config ของ lint คือตัวเลือกที่ repository หนึ่งเลือก เอเจนต์ที่เปิด codebase TypeScript ที่ไม่คุ้นเคยสันนิษฐานไม่ได้ว่า <code>any</code> ถูกห้ามที่นั่น ใน Glyph มันเขียนไม่ได้ที่ไหนเลย
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">"TypeScript แบบ strict กับ config ของ lint ก็ทำแบบนี้ได้"<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ภายในโปรแกรม มันเข้าใกล้ <code>strict</code>, <code>noUncheckedIndexedAccess</code> และกฎที่ห้าม <code>any</code> แบบชัดแจ้ง จับสิ่งที่เอเจนต์จะเล็ดลอดไปได้ส่วนใหญ่ แต่หยุดที่ขอบ
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>ที่ขอบเขต</b><code>JSON.parse(body) as User</code> คอมไพล์ผ่านทุกการตั้งค่าที่มี และวิธีแก้ที่ใช้กันคือ schema ของ zod ซึ่งเป็นคำอธิบาย <code>User</code> ชุดที่สองที่ต้องรักษาให้ตรงกับชุดแรกด้วยมือ ใน Glyph type คือ validator: <code>json.parse&lt;User&gt;(body)</code> ถูกตรวจเทียบกับ <code>User</code> เอง และ type ที่ Glyph ตรวจตอนรันไม่ได้จะถูกปฏิเสธแทนที่จะถูกเชื่อ</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>ข้าม repository</b>อีกความต่างคือใครพึ่งพามันได้ config ของ lint คือตัวเลือกที่ repository หนึ่งเลือก เอเจนต์ที่เปิด codebase TypeScript ที่ไม่คุ้นเคยสันนิษฐานไม่ได้ว่า <code>any</code> ถูกห้ามที่นั่น ใน Glyph มันเขียนไม่ได้ที่ไหนเลย</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          การรับประกันเดียวกันในรูปความผิดพลาดที่เอเจนต์ทำและ error ที่หยุดมัน ตอบไว้ใน <a href="/answers/verifiability/">อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        การรับประกันเดียวกันในรูปความผิดพลาดที่เอเจนต์ทำและ error ที่หยุดมัน ตอบไว้ใน <a href="/answers/verifiability/">อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?</a>
+      </p>

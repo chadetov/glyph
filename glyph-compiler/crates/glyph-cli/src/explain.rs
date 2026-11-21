@@ -1071,7 +1071,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
             match try_save(2) { ... }  // a scrutinee\n\
             \"x ${load()}\"             // an interpolation: `${await load()}`\n\
             load() + 1                 // an operand, a field, an element\n\
-            takes(load())              // an argument to a Glyph-typed parameter\n\n\
+            takes(load())              // an argument to a Glyph-typed parameter\n\
+            fn() { save(1) }           // the tail of a sync lambda, annotated or not\n\n\
             A pending `Result` is this error and not E0217: `let _ =` is the \
             fix E0217 suggests, and it would silence the only diagnostic while \
             the call kept running. Wait for it first, then decide: \
@@ -2200,7 +2201,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0238",
         phase: "typechecker",
-        meaning: "A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` from a sync function are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these",
+        meaning: "A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` or tail value of a sync function or lambda (with or without a written return type) are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these",
         fix: "Write `await` before the call. In a function that cannot wait, make it `async fn`, or start the work on purpose with `task.detach(async fn() -> void { await f() })` from `std/task`",
     },
     // ----- emitter (E03xx) -----

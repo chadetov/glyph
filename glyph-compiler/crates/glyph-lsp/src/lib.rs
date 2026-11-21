@@ -2601,6 +2601,17 @@ mod tests {
         assert_eq!(&text[..*offset], "module m\nfn f() -> number {\n  let x");
     }
 
+    /// D51: a pending binding's hint is `: pending number`, in words, not the
+    /// backticked form hover and diagnostics quote.
+    #[test]
+    fn inlay_hint_names_a_pending_binding_in_words() {
+        let text = "module m\nasync fn load() -> number {\n  return 1\n}\nasync fn f() -> number {\n  let p = load()\n  return await p\n}\n";
+        let a = analysis::analyze_full(text).expect("analyze");
+        let hints = a.inlay_type_hints(text);
+        assert_eq!(hints.len(), 1, "{hints:?}");
+        assert_eq!(hints[0].1, ": pending number");
+    }
+
     #[test]
     fn inlay_hints_show_each_destructured_name_its_element_type() {
         // D48: one hint per name, after that name, with its element's type. A

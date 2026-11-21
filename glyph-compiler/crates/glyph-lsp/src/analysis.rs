@@ -2201,7 +2201,13 @@ impl Analysis {
     fn type_of_exact(&self, span: glyph_ast::Span) -> Option<String> {
         for (sp, ty) in self.type_map().iter() {
             if sp.start == span.start && sp.end == span.end {
-                let d = display_ty(ty);
+                // A pending value (D51) is labeled in words without the
+                // backticks its hover and diagnostics quote it with, so the
+                // hint does not read as a misquoted type.
+                let d = match ty {
+                    Ty::Pending(inner) => format!("pending {}", display_ty(inner)),
+                    other => display_ty(other),
+                };
                 if d != "?" && d != "unknown" && !d.is_empty() {
                     return Some(d);
                 }

@@ -14,8 +14,7 @@
 //! positions where something waits for it:
 //!
 //! 1. the operand of `await`;
-//! 2. `return`, or the tail value, of an async callable that returns a value,
-//!    or of a sync lambda with no written return type (see below);
+//! 2. `return`, or the tail value, of an async callable that returns a value;
 //! 3. the initializer of a named `let` (not `_`, not a pattern, not annotated)
 //!    whose name is used at least once. Each use is a pending value of its own
 //!    and is judged by these same rules where it stands;
@@ -35,13 +34,12 @@
 //! never reported on its own; its arms are, so one mistake is one diagnostic.
 //!
 //! A lambda with no written return type returns its tail, as the emitter
-//! writes it, so a sync one that ends in a pending call hands that value to
-//! whoever calls the lambda: `task.all([fn() { fetch_a() }])` gives `task.all`
-//! a thunk whose promise it awaits. Whether the caller waits is a question
-//! about the slot the lambda is passed to, the same one an async lambda passed
-//! to a sync `void` callback raises, and that rule is its own release. Until it
-//! lands, such a return is not judged here. A lambda that writes its return
-//! type is held to it like a `fn`.
+//! writes it, and a sync one is held to that like any sync callable: a
+//! pending tail or `return` value is E0238, as it is for `fn() -> number`
+//! and `fn() -> void` (record 133). A function that hands back a promise is
+//! spelled `async fn() { await save(1) }` in Glyph, so there is no slot whose
+//! promise-returning thunk needs the sync spelling, and accepting it would
+//! give one lambda three answers by how its return type is written.
 //!
 //! Not judged: a call whose callee the checker types `Unknown` is never
 //! pending in the first place, so an npm or host promise dropped on the floor
@@ -91,8 +89,12 @@ pub enum WaitContext {
     CanAwait,
     /// A sync `fn`, by name.
     SyncFn(String),
-    /// A sync lambda.
+    /// A sync lambda with a written return type.
     SyncLambda,
+    /// A sync lambda with no written return type, which returns its tail;
+    /// `params` is its parameter list as written, for the rewrite the help
+    /// offers.
+    UnannotatedLambda { params: String },
     /// A component, which is never async.
     Component(String),
 }
@@ -359,22 +361,26 @@ impl Pass<'_> {
                 }
             }
             Expr::Lambda {
+                params,
                 return_ty,
                 body,
                 is_async,
                 ..
             } => {
                 // A lambda returns its tail unless it is written `-> void`, an
-                // unannotated one included (the emitter's rule). A sync one
-                // with no written return type passes a pending value on to its
-                // caller, which is the callback-slot question this pass leaves
-                // to its own release (see the module comment).
+                // unannotated one included (the emitter's rule), and a sync
+                // one cannot wait for what it returns (see the module
+                // comment). The unannotated form's help rewrites the lambda
+                // itself, with its own parameters.
                 let frame = match (is_async, return_ty) {
                     (true, _) => Frame::waited(),
-                    (false, None) => Frame {
-                        context: WaitContext::SyncLambda,
-                        returns: Slot::Waited,
-                    },
+                    (false, None) => Frame::sync(WaitContext::UnannotatedLambda {
+                        params: params
+                            .iter()
+                            .map(|p| format!("{}: {}", p.name, crate::assign::type_expr_source(&p.ty)))
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    }),
                     (false, Some(_)) => Frame::sync(WaitContext::SyncLambda),
                 };
                 let yields = match return_ty {
@@ -702,8 +708,12 @@ pub(crate) fn pending_help(
              failure. Write `{detach}(async fn() -> void {{ {awaited} }})`."
         );
     }
+    let handle_result = format!(
+        "Write `{awaited}` and handle the `Result` it gives (`match`, `?`, or `let _ = {awaited}`)."
+    );
     if let WaitContext::CanAwait = context {
         return match position {
+            PendingPosition::Statement if settles_to_result => handle_result,
             PendingPosition::Statement => format!("Write `{awaited}`."),
             PendingPosition::Discarded => match settles_to_result {
                 true => format!(
@@ -719,6 +729,7 @@ pub(crate) fn pending_help(
                  where the value is needed."
             ),
             PendingPosition::Used { interpolated: true } => format!("Write `${{{awaited}}}`."),
+            PendingPosition::Used { interpolated: false } if settles_to_result => handle_result,
             PendingPosition::Used { interpolated: false } => format!("Write `{awaited}`."),
             // Unreachable: an async callable's `return` waits, and the
             // detach argument is answered above.
@@ -739,6 +750,10 @@ pub(crate) fn pending_help(
         (WaitContext::SyncFn(f), _) => format!(
             "`{f}` is not async, so it cannot wait. Make it `async fn {f}` and write \
              `{awaited}`, or start it on purpose with {detach}."
+        ),
+        (WaitContext::UnannotatedLambda { params }, PendingPosition::SyncReturn) => format!(
+            "This function is not async, so it cannot wait. Write `async fn({params}) {{ \
+             {awaited} }}`, or start the call on purpose with {detach}."
         ),
         (WaitContext::Component(c), _) => format!(
             "`{c}` is a component, which cannot be async. Start the call on purpose with \
@@ -892,7 +907,11 @@ mod tests {
              `try_save` is async, so the value here is a pending `Result<number, string>`, not the \
              `Result<number, string>` it will produce"
         );
-        assert_eq!(help, "Write `await try_save(2)`.");
+        assert_eq!(
+            help,
+            "Write `await try_save(2)` and handle the `Result` it gives (`match`, `?`, or `let _ = \
+             await try_save(2)`)."
+        );
     }
 
     /// The slot used to report E0204 with the wrong reason (`expected
@@ -947,7 +966,11 @@ mod tests {
     fn a_stdlib_async_call_is_pending() {
         let (msg, help) = one_in_async_main("  http.get(\"http://127.0.0.1:1/\")");
         assert!(msg.starts_with("`http.get(\"http://127.0.0.1:1/\")` is never awaited"), "{msg}");
-        assert_eq!(help, "Write `await http.get(\"http://127.0.0.1:1/\")`.");
+        assert_eq!(
+            help,
+            "Write `await http.get(\"http://127.0.0.1:1/\")` and handle the `Result` it gives \
+             (`match`, `?`, or `let _ = await http.get(\"http://127.0.0.1:1/\")`)."
+        );
     }
 
     /// A sync caller cannot wait, so the help offers both ways out.
@@ -1040,6 +1063,66 @@ mod tests {
              async fn main(argv: Array<string>) -> number {\n  let e = id(save(1))\n  return e\n}\n",
         );
         assert_eq!(c, vec!["E0238"], "{c:?}");
+    }
+
+    /// Record 133: a sync lambda with no written return type returns its
+    /// tail, so a pending tail is E0238 like `fn() -> number { save(5) }`, and
+    /// the help rewrites the lambda as async.
+    #[test]
+    fn an_unannotated_sync_lambda_with_a_pending_tail_is_refused() {
+        let found = e0238(
+            "async fn main(argv: Array<string>) -> number {\n  let f = fn() { save(4) }\n  f()\n  return 0\n}\n",
+        );
+        assert_eq!(found.len(), 1, "one E0238, at the tail: {found:?}");
+        assert_eq!(
+            found[0].0,
+            "`save(4)` is returned from this function, which is not async, so its caller gets a \
+             pending value it cannot wait for, and if the call fails nothing sees the error"
+        );
+        assert_eq!(
+            found[0].1,
+            "This function is not async, so it cannot wait. Write `async fn() { await save(4) }`, \
+             or start the call on purpose with `task.detach(async fn() -> void { await save(4) })` \
+             (with `import std/task`)."
+        );
+    }
+
+    /// The four slots record 133 named, each a sync lambda handing a pending
+    /// tail to code that would drop it or collect it as a promise.
+    #[test]
+    fn a_pending_tail_is_refused_in_every_slot_a_lambda_is_given_to() {
+        let body = "import std/task\nimport std/array\n\
+            async fn main(argv: Array<string>) -> number {\n\
+            \x20 let rs = await task.all([fn() { save(1) }])\n\
+            \x20 let t = timers.every(200, fn() { save(3) })\n\
+            \x20 let xs = [1, 2]\n\
+            \x20 let ys = array.map(xs, fn(x: number) { save(x) })\n\
+            \x20 task.detach(fn() { save(1) })\n\
+            \x20 timers.cancel(t)\n\
+            \x20 return rs.length + ys.length\n\
+            }\n";
+        let found = e0238(body);
+        assert_eq!(found.len(), 4, "{found:?}");
+        assert!(found.iter().any(|(_, h)| h.contains("Write `async fn(x: number) { await save(x) }`")), "{found:?}");
+    }
+
+    /// The call of a lambda whose pending tail is refused claims no type, so
+    /// `let n: number = f()` is not also a false `found void`.
+    #[test]
+    fn a_refused_tail_does_not_make_the_call_a_void() {
+        let c = codes(
+            "async fn main(argv: Array<string>) -> number {\n  let f = fn() { save(4) }\n  let n: number = f()\n  return n\n}\n",
+        );
+        assert_eq!(c, vec!["E0238"], "{c:?}");
+    }
+
+    /// The async spelling of the same thunk is what Glyph accepts.
+    #[test]
+    fn an_async_thunk_is_accepted() {
+        let c = codes(
+            "import std/task\nasync fn main(argv: Array<string>) -> number {\n  let rs = await task.all([async fn() { await save(1) }])\n  return rs.length\n}\n",
+        );
+        assert!(c.is_empty(), "{c:?}");
     }
 
     /// An async return's value is compared by what it settles to.

@@ -1,7 +1,7 @@
 ---
 title: 如果我不用 AI，Glyph 还值得用吗？ · Glyph
 description: 值得。AI 智能体是主打卖点，但每一项保证（穷尽的 match、没有 any、带运行时检查的类型、可以 grep 的代码、稳定的 diff）对人同样有帮助。
-source_hash: 353b3dea2a444a3f
+source_hash: afc93229f6bea704
 prev: /answers/vs-tooled-ts/ | &larr; 上一篇 | 为什么不直接用严格模式的 TypeScript + zod + eslint + ts-pattern？
 next: /answers/ai-authoring/ | 下一篇 &rarr; | AI 能可靠地写一门它几乎没见过的语言吗？
 ---
@@ -12,38 +12,55 @@ next: /answers/ai-authoring/ | 下一篇 &rarr; | AI 能可靠地写一门它几
         值得。以 AI 智能体为切入点，是因为智能体经常弄坏这些东西，但底下的每一项保证都是<strong>人能直接得到的工程收益</strong>：更少的运行时意外，更小的 diff，以及真正能 grep 的代码。这些都不需要大语言模型。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">这些是语言特性，不是 AI 特性</h2>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#these-are-language-features-not-ai-features">语言特性</a></li>
+          <li><a href="#what-you-get-solo">一个人也能得到的</a></li>
+          <li><a href="#so-why-lead-with-agents">为什么以智能体为主打</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="these-are-language-features-not-ai-features">这些是语言特性，不是 AI 特性<a class="ak-anchor" href="#these-are-language-features-not-ai-features" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        去掉“智能体”这个词，再看这份清单：没有 <code>any</code>，穷尽的 <code>match</code>，错误即值，在运行时检查的类型，每个名字只有一种声明形式，一种标准的、diff 稳定的格式。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>写过 Rust、Elm 或 OCaml 的人都会认出，这些正是让代码库易于维护的东西。早在 AI 写代码之前，它们就是好主意。Glyph 只是把它们带进一门形似 TypeScript、可以按文件逐个引入的语言。</p></div>
+
+      <h2 class="ak-h" id="what-you-get-solo">一个人用也能得到的好处<a class="ak-anchor" href="#what-you-get-solo" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>凌晨 3 点被叫醒的次数更少。</b>边界数据在构造时就经过校验（<code>User.parse</code>），缺少的情况是编译错误，而不是在生产环境中冒出来的 <code>undefined</code>。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>审查更快。</b>改一行就是一行 diff，所以审查者读的是改动本身，而不是周围的格式化噪音。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4l3.6 3.6"/></svg></span><b>什么都能找到。</b><code>grep "fn parseUser"</code> 会落在定义上：没有重载、汇总导出文件或装饰器把它分散开。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5c0-2.3 1.8-4 4-4s4 1.7 4 4"/><path d="M10.5 3.4a2.3 2.3 0 010 4.4M12 9.8c1.2.6 2 1.9 2 3.7"/></svg></span><b>上手更容易。</b>核心小，每件事只有一种做法，下一个人需要学习的隐性知识更少。</li>
+      </ul>
+
+      <h2 class="ak-h" id="so-why-lead-with-agents">那为什么以智能体为切入点？<a class="ak-anchor" href="#so-why-lead-with-agents" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        因为在那里回报<em>更大</em>。人最终会学会运行 linter、处理那个情况；而智能体会伸手去用 <code>any</code>，忘掉那个分支，然后在构建通过的状态下合并，你也不能指望它一直开着那些可选的工具。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">无论哪种情况，底线都在</span></summary><div class="body">
         <p>
-          去掉“智能体”这个词，再看这份清单：没有 <code>any</code>，穷尽的 <code>match</code>，错误即值，在运行时检查的类型，每个名字只有一种声明形式，一种标准的、diff 稳定的格式。写过 Rust、Elm 或 OCaml 的人都会认出，这些正是让代码库易于维护的东西。早在 AI 写代码之前，它们就是好主意。Glyph 只是把它们带进一门形似 TypeScript、可以按文件逐个引入的语言。
+          当代码由机器编写时，让严格性<em>不可选</em>的价值会成倍放大。但底线（上面那些好处）无论你是否使用智能体都在。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>可以把它看作一种更严格的 TypeScript，恰好非常适合智能体，而不是一个只有用智能体才说得过去的智能体工具。</p></div>
 
-        <h2 class="block-label">一个人用也能得到的好处</h2>
-        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>凌晨 3 点被叫醒的次数更少。</strong>边界数据在构造时就经过校验（<code>User.parse</code>），缺少的情况是编译错误，而不是在生产环境中冒出来的 <code>undefined</code>。</li>
-          <li><strong>审查更快。</strong>改一行就是一行 diff，所以审查者读的是改动本身，而不是周围的格式化噪音。</li>
-          <li><strong>什么都能找到。</strong><code>grep "fn parseUser"</code> 会落在定义上：没有重载、汇总导出文件或装饰器把它分散开。</li>
-          <li><strong>上手更容易。</strong>核心小，每件事只有一种做法，下一个人需要学习的隐性知识更少。</li>
-        </ul>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 取舍</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">如果你在开始一个新项目，或者你的团队本来就重视 ML 家族语言的那种纪律，这些好处会立刻兑现。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">如果你一个人在一个成熟、工具齐全的 TS 技术栈上工作，就需要再掂量一下：Glyph 还是早期预览版，这是一项需要权衡的实际成本。</span></span></li>
+          </ul>
+        </section>
 
-        <h2 class="block-label">那为什么以智能体为切入点？</h2>
-        <p>
-          因为在那里回报<em>更大</em>。人最终会学会运行 linter、处理那个情况；而智能体会伸手去用 <code>any</code>，忘掉那个分支，然后在构建通过的状态下合并，你也不能指望它一直开着那些可选的工具。当代码由机器编写时，让严格性<em>不可选</em>的价值会成倍放大。但底线（上面那些好处）无论你是否使用智能体都在。
-        </p>
-
-        <p class="callout">
-          可以把它看作一种更严格的 TypeScript，恰好非常适合智能体，而不是一个只有用智能体才说得过去的智能体工具。
-        </p>
-      </div>
-
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">取舍</h3>
-          <p>如果你在开始一个新项目，或者你的团队本来就重视 ML 家族语言的那种纪律，这些好处会立刻兑现。如果你一个人在一个成熟、工具齐全的 TS 技术栈上工作，就需要再掂量一下：Glyph 还是早期预览版，这是一项需要权衡的实际成本。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">无论哪种情况</h3>
-          <p>逃生口是永久的：它编译成你自己掌握的可读 TypeScript，所以在一个模块上试用它成本很低，也可以随时撤回。</p>
-        </div>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 无论哪种情况</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">逃生口是永久的：它编译成你自己掌握的可读 TypeScript，所以在一个模块上试用它成本很低，也可以随时撤回。</span></span></li>
+          </ul>
+        </section>
       </div>

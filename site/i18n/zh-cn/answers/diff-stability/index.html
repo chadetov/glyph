@@ -1,7 +1,7 @@
 ---
 title: 智能体的编辑会保持干净，还是会重新格式化我的文件？ · Glyph
 description: Glyph 只有一种标准排版，并且要求尾随逗号，所以改一行就是一行 diff。智能体无法把真正的改动埋在重新格式化的噪声里。
-source_hash: b0148f7848d7e246
+source_hash: e4dd437ddbdd1fba
 prev: /answers/verifiability/ | &larr; 上一篇 | 什么能防止智能体悄悄改坏我的代码？
 next: /answers/greppability/ | 下一篇 &rarr; | 智能体（或者我）能找到任何东西的定义位置吗？
 ---
@@ -12,50 +12,61 @@ next: /answers/greppability/ | 下一篇 &rarr; | 智能体（或者我）能找
         改一行就是<strong>一行 diff</strong>，每次都是。Glyph 只有一种标准排版，所以智能体<strong>无法把真正的改动埋在一大片重新格式化之下</strong>。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">为什么重要</h2>
-        <p>
-          智能体提交 pull request 时，diff <em>就是</em>审查的对象。如果一个一行的修复变成了 200 行的重新格式化，没有人能看出到底改了什么，而 bug 恰恰会从这种噪声中溜过去。稳定的 diff 意味着 diff 显示的是改动，<strong>并且只有改动</strong>。
-        </p>
-        <p>大部分工作由两条规则完成。下面逐一展示，以你审查时会看到的 diff 的形式。</p>
-
-        <h2 class="block-label">示例 1：尾随逗号，每行一项</h2>
-        <p>添加一个路由。按 TypeScript 的常见写法，原来的最后一行仅仅为了加一个逗号就得改动。改一项，动了两行：</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript：添加 "/billing"</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript：添加 "/billing"</span>
 <pre> const routes = [
    "/home",
 <span class="del">-  "/about"</span>
 <span class="add">+  "/about",</span>
 <span class="add">+  "/billing"</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">1 处改动，动了 3 行</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph：添加 "/billing"</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">1 处改动，动了 3 行</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph：添加 "/billing"</span>
 <pre> let routes = [
    "/home",
    "/about",
 <span class="add">+  "/billing",</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">新增 1 行，正好就是改动本身</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">新增 1 行，正好就是改动本身</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>添加一个路由。按 TypeScript 的常见写法，原来的最后一行仅仅为了加一个逗号就得改动。改一项，动了两行。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          尾随逗号是<strong>必需的</strong>，一行放不下的列表会每行一个元素，而不是重新排布，所以插入、删除或调整某一项的顺序，永远不会影响相邻的项。记录字段、参数、match 分支和导入也是如此。这个阈值有代价：一次重命名如果让某个调用超过 100 列，整个参数列表都会展开成每行一个。
-        </p>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么重要</a></li>
+          <li><a href="#trailing-commas">尾随逗号</a></li>
+          <li><a href="#example-2-one-canonical-layout">一种标准排版</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">注释留在原处</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">fmt 会弄坏构建吗？</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">示例 2：一种标准排版</h2>
-        <p>
-          正确的格式只有一种，由 <code>glyph fmt</code> 生成。空白、换行和对齐都不是智能体可以&ldquo;整理&rdquo;的选项，所以语义上的编辑不会顺带引起重新排版。改一个字段的类型，diff 就只有这一处：
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        智能体提交 pull request 时，diff <em>就是</em>审查的对象。如果一个一行的修复变成了 200 行的重新格式化，没有人能看出到底改了什么，而 bug 恰恰会从这种噪声中溜过去。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>稳定的 diff 意味着 diff 显示的是改动，<strong>并且只有改动</strong>。</p></div>
+      <p class="ak-lede">大部分工作由两条规则完成。下面逐一展示，以你审查时会看到的 diff 的形式。</p>
 
+      <h2 class="ak-h" id="trailing-commas">尾随逗号，每行一项<a class="ak-anchor" href="#trailing-commas" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        尾随逗号是<strong>必需的</strong>，一行放不下的列表会每行一个元素，而不是重新排布，所以插入、删除或调整某一项的顺序，永远不会影响相邻的项。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>记录字段、参数、match 分支和导入也是如此。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>这个阈值有代价：一次重命名如果让某个调用超过 100 列，整个参数列表都会展开成每行一个。</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">一种标准排版<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        正确的格式只有一种，由 <code>glyph fmt</code> 生成。空白、换行和对齐都不是智能体可以&ldquo;整理&rdquo;的选项，所以语义上的编辑不会顺带引起重新排版。改一个字段的类型，diff 就只有这一处：
+      </p>
       <div class="code">
         <span class="cap">user.glyph：改一个字段，审查一行</span>
 <pre> type User = {
@@ -65,18 +76,17 @@ next: /answers/greppability/ | 下一篇 &rarr; | 智能体（或者我）能找
    email: string,
  }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>因为排版是固定的，两个不同的智能体编辑同一个文件，会产生<strong>逐字节相同</strong>的格式，没有重新排版带来的反复改动，没有&ldquo;我的格式化工具和你的不一样&rdquo;这种噪声，<code>git blame</code> 也干净，指向真正改了那一行的提交，而不是重新格式化它的提交。</p></div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">只有一种标准排版，那格式化工具会挪动我的注释吗？<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        以前会，这是一个值得点名的 bug。现在的规则是：注释会重新输出在它原来所在的那一项上方，适用于记录体、联合类型的变体列表、数组或对象字面量、实参或形参列表，以及 <code>match</code>。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">注释是怎么漂移的，以及暴露它的应用</span></summary><div class="body">
         <p>
-          因为排版是固定的，两个不同的智能体编辑同一个文件，会产生<strong>逐字节相同</strong>的格式，没有重新排版带来的反复改动，没有&ldquo;我的格式化工具和你的不一样&rdquo;这种噪声，<code>git blame</code> 也干净，指向真正改了那一行的提交，而不是重新格式化它的提交。
+          Glyph 没有块注释，也没有文档注释语法，所以 <code>//</code> 行是解释记录字段、联合类型变体或 <code>match</code> 分支的唯一方式。格式化工具只在声明和语句的边界处输出待处理的注释，这意味着写在某个结构<em>内部</em>的注释会往下漂到下一个声明，读起来就像是它落在的那个东西的文档。用 Glyph 写扫雷游戏时暴露了这个问题。下面这两个声明来自<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">那个真实的应用</a>（注释有删减），分别用旧的和新的格式化工具处理。
         </p>
-
-        <h2 class="block-label">只有一种标准排版，那格式化工具会挪动我的注释吗？</h2>
-        <p>
-          以前会，这是一个值得点名的 bug。Glyph 没有块注释，也没有文档注释语法，所以 <code>//</code> 行是解释记录字段、联合类型变体或 <code>match</code> 分支的唯一方式。格式化工具只在声明和语句的边界处输出待处理的注释，这意味着写在某个结构<em>内部</em>的注释会往下漂到下一个声明，读起来就像是它落在的那个东西的文档。用 Glyph 写扫雷游戏时暴露了这个问题。下面这两个声明来自<a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">那个真实的应用</a>（注释有删减），分别用旧的和新的格式化工具处理。
-        </p>
-      </div>
-
+      </div></details>
       <div class="two-up">
         <div class="code">
           <span class="cap">0.1.37：运行一次 fmt</span>
@@ -113,41 +123,67 @@ type Cell = {
           <div style="padding:0 16px 14px"><span class="verdict good">每条注释都在它描述的东西上面</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          现在的规则是：注释会重新输出在它原来所在的那一项上方，适用于记录体、联合类型的变体列表、数组或对象字面量、实参或形参列表，以及 <code>match</code>。而且一个内部带注释的结构无论大小，总是采用每行一个元素的形式，这样注释就有一项可以放在上方。所以 <code>type Shape = { w: int, h: int }</code> 仍然会收成一行，而一旦你给 <code>h</code> 写了注释，这个记录就会保持展开。
-        </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>而且一个内部带注释的结构无论大小，总是采用每行一个元素的形式，这样注释就有一项可以放在上方。所以 <code>type Shape = { w: int, h: int }</code> 仍然会收成一行，而一旦你给 <code>h</code> 写了注释，这个记录就会保持展开。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么这算正确性 bug</span></summary><div class="body">
         <p>
           为什么这算正确性 bug，而不是外观问题：什么都没有失败。构建以 0 退出，<code>tsc</code> 通过，被搞乱的输出本身也是不动点，所以 CI 中的 <code>glyph fmt --check</code> 对一个注释已经在说错话的文件给出了通过。这和 Glyph 要消除的是同一类失败，只不过发生在格式化工具里，而不是类型系统里。
         </p>
+      </div></details>
 
-        <h2 class="block-label"><code>glyph fmt</code> 会把一个能构建的程序弄坏吗？</h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds"><code>glyph fmt</code> 会把一个能构建的程序弄坏吗？<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        会过，而且还有一种情况没有解决。一个你的程序必须扛得住的格式化工具，比缺少一个功能更糟，因为它会破坏本来能用的代码。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>分支体</b>现在，如果分支体最左边的记号是一个会被重新解析为代码块的 <code>{</code>，打印器就会给它加上括号，这包括空对象以及在它基础上构建的任何东西（<code>({}).size</code> 会变成 <code>({}.size)</code>）。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>模糊测试</b>模糊测试现在会解析格式化后的文件，并把语法树与原文件的比较，所以一种改变了文件含义的排版会在第一轮就失败，而不是等某个人注意到。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">无法再构建的空记录</span></summary><div class="body">
         <p>
-          会过，而且还有一种情况没有解决。先说已经修复的。表示&ldquo;空记录&rdquo;的分支写作 <code>true =&gt; ({})</code>。分支体位置是语法中唯一一个开头的 <code>{</code> 有歧义的地方，解析器的处理方式是要求大括号后面紧跟 <code>key:</code> 或 <code>...</code>。空对象两者都没有，所以当格式化工具去掉括号、重新打印成 <code>true =&gt; {}</code> 时，这个分支被解析成了一个空<em>代码块</em>，文件无法再构建：<code>E0223</code>，分支不产生值。你对能运行的代码跑了一次格式化工具，得到的代码却不再能编译。
+          先说已经修复的。表示&ldquo;空记录&rdquo;的分支写作 <code>true =&gt; ({})</code>。分支体位置是语法中唯一一个开头的 <code>{</code> 有歧义的地方，解析器的处理方式是要求大括号后面紧跟 <code>key:</code> 或 <code>...</code>。空对象两者都没有，所以当格式化工具去掉括号、重新打印成 <code>true =&gt; {}</code> 时，这个分支被解析成了一个空<em>代码块</em>，文件无法再构建：<code>E0223</code>，分支不产生值。你对能运行的代码跑了一次格式化工具，得到的代码却不再能编译。
         </p>
         <p>
-          现在，如果分支体最左边的记号是一个会被重新解析为代码块的 <code>{</code>，打印器就会给它加上括号，这包括空对象以及在它基础上构建的任何东西（<code>({}).size</code> 会变成 <code>({}.size)</code>）。本来就没有歧义的分支体，比如 <code>false =&gt; { a: "x" }</code>，保持不加括号，所以其他地方不会多出需要阅读的标点。<code>fmt</code> 对结果是不动点，生成的 TypeScript 也没有变化。一个你的程序必须扛得住的格式化工具，比缺少一个功能更糟，因为它会破坏本来能用的代码。
+          本来就没有歧义的分支体，比如 <code>false =&gt; { a: "x" }</code>，保持不加括号，所以其他地方不会多出需要阅读的标点。<code>fmt</code> 对结果是不动点，生成的 TypeScript 也没有变化。
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.138 又修复的两个</span></summary><div class="body">
         <p>
-          0.1.138 又修复了两个。在代码块中，以 <code>(</code> 开头的行会接续上一行，而在 0.1.137 及之前，格式化工具会把 <code>load()?</code> 后接 <code>.run()</code> 打印成 <code>(load()?).run()</code>，于是在 <code>let a = 1</code> 之后，格式化后的文件意思变成了 <code>let a = 1(…).run()</code>。现在它会保留 <code>load()?</code>，把 <code>.run()</code> 缩进放在下一行，并且把 <code>e?(x)</code>、<code>e?[0]</code> 和 <code>e? ?</code> 写成不带括号的形式。另一个是联合类型的 <code>where</code> 精化，格式化工具会把它丢掉，让一个 <code>check</code> 会拒绝的程序变成它会接受的程序。模糊测试现在会解析格式化后的文件，并把语法树与原文件的比较，所以一种改变了文件含义的排版会在第一轮就失败，而不是等某个人注意到。
+          0.1.138 又修复了两个。在代码块中，以 <code>(</code> 开头的行会接续上一行，而在 0.1.137 及之前，格式化工具会把 <code>load()?</code> 后接 <code>.run()</code> 打印成 <code>(load()?).run()</code>，于是在 <code>let a = 1</code> 之后，格式化后的文件意思变成了 <code>let a = 1(…).run()</code>。现在它会保留 <code>load()?</code>，把 <code>.run()</code> 缩进放在下一行，并且把 <code>e?(x)</code>、<code>e?[0]</code> 和 <code>e? ?</code> 写成不带括号的形式。另一个是联合类型的 <code>where</code> 精化，格式化工具会把它丢掉，让一个 <code>check</code> 会拒绝的程序变成它会接受的程序。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>这些格式化规则的背景，以及它们所做的取舍，见<a href="/pillars/diff-stability/">稳定的 diff 支柱页面</a>。</p></div>
 
-      <div class="detail">
-        <p>
-          这些格式化规则的背景，以及它们所做的取舍，见<a href="/pillars/diff-stability/">稳定的 diff 支柱页面</a>。
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">必需的尾随逗号、每行一项的列表，以及 <code>glyph fmt</code> 的单一标准排版，可往返转换且幂等，编辑器中支持保存时格式化。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> 永远不会把注释挪到不属于它的地方。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">注释会保留在它原来所在的那一项上方</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>注释会保留在它原来所在的那一项上方，包括在记录、字面量、实参列表、<code>match</code> 内部，在运算符的两个操作数之间，以及在方法链的各步之间，此时方法链会每行一步，点号放在行首。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>必需的尾随逗号、每行一项的列表，以及 <code>glyph fmt</code> 的单一标准排版，可往返转换且幂等，编辑器中支持保存时格式化。<code>glyph fmt</code> 永远不会把注释挪到不属于它的地方。注释会保留在它原来所在的那一项上方，包括在记录、字面量、实参列表、<code>match</code> 内部，在运算符的两个操作数之间，以及在方法链的各步之间，此时方法链会每行一步，点号放在行首。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">边界，以及接下来的工作</h3>
-          <p>注释总是单独输出在一行上，所以写在代码行末尾的注释（<code>w: int, // width in cells</code>）会被移到下一项的上方一行。它不再跨越声明边界，但确实会移动；要让它保持在行尾，打印器需要记录注释和哪一行共享。如果注释所在的位置在排版中无处安放，比如在索引内部、在方法链中间某个调用的实参之后，或者在 <code>!</code> 或 <code>await</code> 的操作数之前，它不会再被挪动：<code>glyph fmt</code> 会拒绝这个文件，保持原样，并指出所在行以及注释应该放在哪里，<code>glyph check</code> 也会以警告 E0500 报告同样的问题。JSX 属性之间、对象模式的字段之间的注释也会被拒绝，而这些地方本可以用每行一个的排版放下它；这些排版已经列入计划。打印器目前也还没有拆分长方法链或长 <code>+</code> 链的规则，所以过长的链会改为拆开最内层的实参列表，而那是错误的位置。我们还在构建一个 diff 大小的基准测试，对比在 TypeScript 中做同样编辑的结果，这样这根支柱就成了一个你可以核对的数字。</p>
-        </div>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 边界，以及接下来的工作</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">写在代码行末尾的注释会移到下一项的上方一行</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>注释总是单独输出在一行上，所以写在代码行末尾的注释（<code>w: int, // width in cells</code>）会被移到下一项的上方一行。它不再跨越声明边界，但确实会移动；要让它保持在行尾，打印器需要记录注释和哪一行共享。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">排版中无处安放的注释会被拒绝，而不是被挪动</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>如果注释所在的位置在排版中无处安放，比如在索引内部、在方法链中间某个调用的实参之后，或者在 <code>!</code> 或 <code>await</code> 的操作数之前，它不会再被挪动：<code>glyph fmt</code> 会拒绝这个文件，保持原样，并指出所在行以及注释应该放在哪里，<code>glyph check</code> 也会以警告 E0500 报告同样的问题。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">JSX 属性之间、对象模式的字段之间的注释也会被拒绝，而这些地方本可以用每行一个的排版放下它；这些排版已经列入计划。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">打印器目前也还没有拆分长方法链或长 <code>+</code> 链的规则，所以过长的链会改为拆开最内层的实参列表，而那是错误的位置。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">我们还在构建一个 diff 大小的基准测试，对比在 TypeScript 中做同样编辑的结果，这样这根支柱就成了一个你可以核对的数字。</span></span></li>
+          </ul>
+        </section>
       </div>

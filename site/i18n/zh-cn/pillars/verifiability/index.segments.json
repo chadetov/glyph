@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "b8ae04a4b3228182",
+  "source_hash": "27017c2e0eebfe6d",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "Glyph 堵上了智能体会掉进去的漏洞：<strong>没有可以写的 <code>any</code> 和 <code>as</code></strong>，<code>match</code> <strong>可证明是穷尽的</strong>，你声明的类型会得到<strong>严格的运行时校验器</strong>，这些都作为 <code>tsc</code> 之上的一层严格检查来强制执行。它并不自己验证一切，下文会明确说明保证在哪里止步。"
     },
     {
+      "id": "h-efbb175b",
+      "kind": "html",
+      "en": "TypeScript: compiles, then crashes",
+      "tr": "TypeScript：能编译，然后崩溃"
+    },
+    {
+      "id": "h-fd3640a0",
+      "kind": "html",
+      "en": "Glyph: the narrowing is the proof",
+      "tr": "Glyph：收窄本身就是证明"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-14006a10",
+      "kind": "html",
+      "en": "<a href=\"#the-lie-a-type-can-tell\">The lie a type can tell</a>",
+      "tr": "<a href=\"#the-lie-a-type-can-tell\">类型会说的谎</a>"
+    },
+    {
+      "id": "h-4335a2ef",
+      "kind": "html",
+      "en": "<a href=\"#there-is-no-any\">No any</a>",
+      "tr": "<a href=\"#there-is-no-any\">没有 any</a>"
+    },
+    {
+      "id": "h-14dde7ec",
+      "kind": "html",
+      "en": "<a href=\"#types-are-real-at-runtime\">Types at runtime</a>",
+      "tr": "<a href=\"#types-are-real-at-runtime\">运行时的类型</a>"
+    },
+    {
+      "id": "h-d0911bf6",
+      "kind": "html",
+      "en": "<a href=\"#every-case-or-it-doesn-t-compile\">Every case</a>",
+      "tr": "<a href=\"#every-case-or-it-doesn-t-compile\">每一种情况</a>"
+    },
+    {
+      "id": "h-b0fd3fd0",
+      "kind": "html",
+      "en": "<a href=\"#errors-are-values-not-surprises\">Errors as values</a>",
+      "tr": "<a href=\"#errors-are-values-not-surprises\">错误即值</a>"
+    },
+    {
+      "id": "h-75be2a29",
+      "kind": "html",
+      "en": "<a href=\"#even-pii-is-type-level\">PII</a>",
+      "tr": "<a href=\"#even-pii-is-type-level\">PII</a>"
+    },
+    {
+      "id": "h-d47b2d7f",
+      "kind": "html",
+      "en": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Where the guarantee stops</a>",
+      "tr": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">保证在哪里止步</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">基准测试</a>"
+    },
+    {
+      "id": "h-c5be8c0b",
+      "kind": "html",
+      "en": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Strict TS and lint</a>",
+      "tr": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">严格 TS 与 lint</a>"
+    },
+    {
       "id": "h-639f009d",
       "kind": "html",
       "en": "The lie a type can tell",
       "tr": "类型会说的谎"
     },
     {
-      "id": "h-075a79f0",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-51680a37",
       "kind": "html",
-      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all. Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
-      "tr": "在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。"
+      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all.",
+      "tr": "在 TypeScript 中，类型是一个编译时的承诺，代码运行之前就蒸发了。<code>User</code> 标注会被擦除得一干二净；你从网络调用、JSON 解析或表单字段实际拿到的对象，可能是任何结构。"
+    },
+    {
+      "id": "h-e2e3672a",
+      "kind": "html",
+      "en": "Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
+      "tr": "更糟的是，语言还给了你三种合法的方式就此向检查器撒谎：<code>any</code>、<code>as</code> 类型断言，以及非空断言 <code>!</code>。赶进度的智能体三种都会用，而 <code>tsc --strict</code> 一直是绿的，bug 就这样上线了。"
     },
     {
       "id": "h-3e057639",
@@ -83,22 +173,22 @@
       "tr": "<span class=\"ex-label\">01</span> 没有 <code>any</code>"
     },
     {
-      "id": "h-5f3593d9",
+      "id": "h-bc245dbd",
       "kind": "html",
-      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
-      "tr": "<code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。"
+      "en": "Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
+      "tr": "Glyph 没有它。顶层类型是 <code>unknown</code>，而 <code>unknown</code> 是惰性的：在你<em>证明</em>它是什么之前，不能调用它、不能索引它，也不能把它传给任何有类型的地方。"
     },
     {
-      "id": "h-efbb175b",
+      "id": "h-11d21731",
       "kind": "html",
-      "en": "TypeScript: compiles, then crashes",
-      "tr": "TypeScript：能编译，然后崩溃"
+      "en": "Details <span class=\"hint\">why one any costs so much</span>",
+      "tr": "详情 <span class=\"hint\">为什么一个 any 的代价这么高</span>"
     },
     {
-      "id": "h-fd3640a0",
+      "id": "h-76bc3093",
       "kind": "html",
-      "en": "Glyph: the narrowing is the proof",
-      "tr": "Glyph：收窄本身就是证明"
+      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream.",
+      "tr": "<code>any</code> 是 TypeScript 中代价最高的关键字：它会对一个值<em>以及这个值碰到的一切</em>关掉类型系统。边界上的一个 <code>any</code> 会悄悄污染下游的整个调用图。"
     },
     {
       "id": "h-f01c689a",
@@ -113,10 +203,10 @@
       "tr": "<span class=\"ex-label\">02</span> 类型在运行时是真实存在的"
     },
     {
-      "id": "h-6b3971a1",
+      "id": "h-1a69a996",
       "kind": "html",
-      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>. The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
-      "tr": "<code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。"
+      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>.",
+      "tr": "<code>User.parse</code> 是怎么来的？因为每个记录类型，以及每个非泛型的标签联合，都会同时生成一个<strong>运行时描述符</strong>：一个 <code>is</code> 守卫，一个把 <code>unknown</code> 校验成 <code>Result</code> 的 <code>parse</code>，以及一个可组合的 <code>schema</code>。"
     },
     {
       "id": "h-14c2cb86",
@@ -125,16 +215,40 @@
       "tr": "你写的类型，以及由它生成的描述符"
     },
     {
-      "id": "h-013d9e91",
+      "id": "h-c3e4b6d5",
       "kind": "html",
-      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator. A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
-      "tr": "这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。"
+      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator.",
+      "tr": "这就是对“每个 API 都要手写校验器”的回答。类型本身就是校验器。"
     },
     {
-      "id": "h-10d713ab",
+      "id": "h-0271b6cb",
       "kind": "html",
-      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields. What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
-      "tr": "它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。"
+      "en": "Details <span class=\"hint\">what the descriptor checks</span>",
+      "tr": "详情 <span class=\"hint\">描述符检查什么</span>"
+    },
+    {
+      "id": "h-c49f1369",
+      "kind": "html",
+      "en": "The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
+      "tr": "记录的结构在运行时会被真正检查，而不是假定，所以 <code>is User</code> 检查是真正的检查，而不是被擦除的空操作。"
+    },
+    {
+      "id": "h-7ec41b58",
+      "kind": "html",
+      "en": "A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
+      "tr": "边界（请求体、配置文件、第三方响应）只有通过一个真正能拒绝错误数据的检查，才会获得类型。"
+    },
+    {
+      "id": "h-c1597e84",
+      "kind": "html",
+      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields.",
+      "tr": "它在哪里止步：记录的描述符默认是严格的。它确认声明的字段，并拒绝带有未声明键的值（在类型上加 <code>@open</code> 可以允许额外的键）。记录类型都有描述符，包括泛型记录，所以 <code>Paginated&lt;User&gt;</code> 会把每个元素当作 <code>User</code> 来检查；标签联合的描述符先检查标签，再检查该变体的负载字段。"
+    },
+    {
+      "id": "h-9ae0aa14",
+      "kind": "html",
+      "en": "What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
+      "tr": "仍然没有描述符的是泛型标签联合（<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> 没有 <code>Box.parse</code>），以及只是引用的 <code>.d.ts</code> 中导入的类型。如果某个检查只能证明结构的一部分，编译器会直接说明，而不是暗示一个它做不到的保证。"
     },
     {
       "id": "h-7f6e1258",
@@ -143,10 +257,10 @@
       "tr": "<span class=\"ex-label\">03</span> 覆盖每种情况，否则无法编译"
     },
     {
-      "id": "h-0adab77f",
+      "id": "h-714a5971",
       "kind": "html",
-      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>). The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
-      "tr": "对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。"
+      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).",
+      "tr": "对封闭联合类型的 <code>match</code> 必须处理每个变体。以后新增一个变体，<em>每一个</em>没有考虑它的 match 都会停止编译（<code>E0200</code>）。"
     },
     {
       "id": "h-b6cc05d4",
@@ -155,16 +269,34 @@
       "tr": "编译错误，而不是运行时的 undefined"
     },
     {
+      "id": "h-1e14f808",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">number and string matches</span>",
+      "tr": "详情 <span class=\"hint\">对数字与字符串的 match</span>"
+    },
+    {
+      "id": "h-2121973b",
+      "kind": "html",
+      "en": "The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
+      "tr": "新情况不会像遗漏的 <code>switch</code> 分支那样悄悄落到 <code>undefined</code>。而且不只是联合类型：对 <code>number</code> 或 <code>string</code> 按字面值匹配时必须有 <code>else</code>（<code>E0218</code>），因为这些取值范围是无界的，一组字面值永远不可能完整。"
+    },
+    {
       "id": "h-85b49cf2",
       "kind": "html",
       "en": "<span class=\"ex-label\">04</span> Errors are values, not surprises",
       "tr": "<span class=\"ex-label\">04</span> 错误是值，不是意外"
     },
     {
-      "id": "h-9f7ae855",
+      "id": "h-8cad6d11",
       "kind": "html",
-      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch). Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
-      "tr": "可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。"
+      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch).",
+      "tr": "可能失败的函数返回 <code>Result&lt;T, E&gt;</code>。你用 <code>match</code> 处理它，或者用 <code>?</code> 运算符向上传递，而且错误类型必须对得上（没有隐式转换来掩盖不匹配）。"
+    },
+    {
+      "id": "h-51e3ca2c",
+      "kind": "html",
+      "en": "Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "如果完全忽略一个 <code>Result</code>（只为了副作用调用它，丢掉返回值），Glyph 会给出警告（<code>E0217</code>），因为被丢弃的错误就是被吞掉的失败。你只能用 <code>let _ = ...</code> 有意地让它安静，绝不会是无意的。"
     },
     {
       "id": "h-bc93cc11",
@@ -173,10 +305,16 @@
       "tr": "<span class=\"ex-label\">05</span> 连 PII 也在类型层面处理"
     },
     {
-      "id": "h-b6234b6d",
+      "id": "h-559df4dc",
       "kind": "html",
-      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
-      "tr": "同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。"
+      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "同样是“交给编译器，而不是靠约定”的思路，一直延伸到敏感数据。在类型上加 <code>@redact</code>，它的描述符就会多一个屏蔽这些字段的 <code>redact()</code>，所以随手写的 <code>json.stringify(User.redact(u))</code> 不会泄露它们。"
+    },
+    {
+      "id": "h-e0c731d9",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
+      "tr": "如果写了类型中不存在的字段，就是编译错误（<code>E0219</code>），而不是一个悄悄什么都没保护的屏蔽。"
     },
     {
       "id": "h-725757af",
@@ -191,10 +329,34 @@
       "tr": "如何强制执行，以及保证在哪里止步"
     },
     {
-      "id": "h-4641dcd8",
+      "id": "h-c91b558b",
       "kind": "html",
-      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation. The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
-      "tr": "这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。"
+      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier.",
+      "tr": "这里要说得准确，因为区别很重要：Glyph 是<strong>建立在 <code>tsc</code> 之上、强制执行的严格方言</strong>，而不是一个独立的验证器。"
+    },
+    {
+      "id": "h-540f13a2",
+      "kind": "html",
+      "en": "<b>Proved by Glyph</b>Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation.",
+      "tr": "<b>由 Glyph 证明</b>有些东西它自己证明：穷尽性、<code>?</code> 的错误类型、源码中不存在 <code>any</code>/<code>as</code>、严格的键校验。"
+    },
+    {
+      "id": "h-3251c604",
+      "kind": "html",
+      "en": "<b>Enforced through tsc</b>The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build.",
+      "tr": "<b>通过 tsc 强制执行</b>其余的类型兼容性，它通过生成 TypeScript 并运行 <code>tsc --strict</code> 来强制执行，不通过就让构建失败。"
+    },
+    {
+      "id": "h-afd82d3a",
+      "kind": "html",
+      "en": "The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
+      "tr": "切入点在于这些检查就是<em>语言本身</em>，而不是智能体可以关掉的可选 lint，并不在于 Glyph 重新实现了一个类型检查器。"
+    },
+    {
+      "id": "h-d0732969",
+      "kind": "html",
+      "en": "History <span class=\"hint\">edges closed in 0.1.10, deep generic validation</span>",
+      "tr": "历史 <span class=\"hint\">0.1.10 中堵上的边界，泛型的深度校验</span>"
     },
     {
       "id": "h-c25c2286",
@@ -203,10 +365,16 @@
       "tr": "这里早先的两个边界在 0.1.10 中已经堵上。代码生成器过去会在<em>每个</em>泛型函数中插入一个由 Glyph 而不是 <code>tsc</code> 检查的返回值类型断言；现在只有在校验器组合子组装一个由结构推导出的类型（<code>infer_output&lt;Shape&gt;</code>）的值时才会插入，所有正常的泛型生成的代码都完全没有类型断言。另外，校验器的输出类型不再被无条件信任：<code>infer_output</code> 根据你传入的结构推导它，<code>tsc</code> 会拿你的标注去对照：如果结构缺少你所声称类型中的某个字段，现在就无法编译。"
     },
     {
-      "id": "h-3ae3435e",
+      "id": "h-84808e67",
       "kind": "html",
-      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence. One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
-      "tr": "泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。"
+      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence.",
+      "tr": "泛型类型现在也会深度校验：<code>Paginated&lt;User&gt;</code> 的描述符会<em>把每个元素当作 <code>User</code></em> 来检查，而不只是检查是否存在。"
+    },
+    {
+      "id": "h-20559d87",
+      "kind": "html",
+      "en": "One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
+      "tr": "还剩一个边界，直接说明：从外部 <code>.d.ts</code> <em>导入</em>、你只是引用的类型，在你用 <code>glyph gen dts</code> 把它具体化之前没有描述符，所以这种类型的字段只检查是否存在，不检查结构。这个边界是有意的（Glyph 没有生成的类型无法承诺运行时校验），把它具体化就能堵上。"
     },
     {
       "id": "h-71727b66",
@@ -215,10 +383,16 @@
       "tr": "基准测试：即将进行"
     },
     {
-      "id": "h-e396933a",
+      "id": "h-d5addd8d",
       "kind": "html",
-      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches. Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
-      "tr": "这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。"
+      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches.",
+      "tr": "这个说法是经验性的，所以我们打算测量它：取一批真实的、由智能体编写的改动，分别用 <code>tsc --strict</code> 和 Glyph 检查，统计各自真正发现了什么。"
+    },
+    {
+      "id": "h-3d020067",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
+      "tr": "Glyph 还没有在实际项目中使用，所以没有数字可以报告。下面的图表是占位，一旦有了真实使用，就会填入真实数据。"
     },
     {
       "id": "h-53997b9b",
@@ -269,16 +443,22 @@
       "tr": "“严格模式的 TypeScript 加一套 lint 配置也能做到”"
     },
     {
-      "id": "h-9a1829dc",
+      "id": "h-129ba306",
       "kind": "html",
-      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
-      "tr": "在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。<code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。"
+      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges.",
+      "tr": "在程序内部，它们很接近。<code>strict</code>、<code>noUncheckedIndexedAccess</code> 和一条禁止显式 <code>any</code> 的规则，能拦住智能体原本会溜过去的大部分问题。它们在边界处止步。"
     },
     {
-      "id": "h-df4adf7a",
+      "id": "h-62c1627b",
       "kind": "html",
-      "en": "The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
-      "tr": "另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。"
+      "en": "<b>At the boundary</b><code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
+      "tr": "<b>在边界处</b><code>JSON.parse(body) as User</code> 在任何设置下都能编译，而通常的修补办法 zod schema，是 <code>User</code> 的第二份描述，必须手动与第一份保持同步。在 Glyph 中，类型本身就是校验器：<code>json.parse&lt;User&gt;(body)</code> 直接对照 <code>User</code> 检查，而 Glyph 无法在运行时检查的类型会被拒绝，而不是被信任。"
+    },
+    {
+      "id": "h-4e201e12",
+      "kind": "html",
+      "en": "<b>Across repositories</b>The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
+      "tr": "<b>跨仓库</b>另一个区别在于谁能依赖它。lint 配置是某个仓库自己做的选择。打开一个陌生 TypeScript 代码库的智能体，不能假定那里禁止了 <code>any</code>；而在 Glyph 中，任何地方都写不出它。"
     },
     {
       "id": "h-339efe42",

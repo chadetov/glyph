@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/diff-stability/index.html",
   "locale": "zh-cn",
-  "source_hash": "b0148f7848d7e246",
+  "source_hash": "e4dd437ddbdd1fba",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "改一行就是<strong>一行 diff</strong>，每次都是。Glyph 只有一种标准排版，所以智能体<strong>无法把真正的改动埋在一大片重新格式化之下</strong>。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "为什么重要"
-    },
-    {
-      "id": "h-303f30da",
-      "kind": "html",
-      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
-      "tr": "智能体提交 pull request 时，diff <em>就是</em>审查的对象。如果一个一行的修复变成了 200 行的重新格式化，没有人能看出到底改了什么，而 bug 恰恰会从这种噪声中溜过去。稳定的 diff 意味着 diff 显示的是改动，<strong>并且只有改动</strong>。"
-    },
-    {
-      "id": "h-0959c450",
-      "kind": "html",
-      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
-      "tr": "大部分工作由两条规则完成。下面逐一展示，以你审查时会看到的 diff 的形式。"
-    },
-    {
-      "id": "h-b49f3730",
-      "kind": "html",
-      "en": "Example 1: trailing commas, one item per line",
-      "tr": "示例 1：尾随逗号，每行一项"
-    },
-    {
-      "id": "h-58d68c63",
-      "kind": "html",
-      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
-      "tr": "添加一个路由。按 TypeScript 的常见写法，原来的最后一行仅仅为了加一个逗号就得改动。改一项，动了两行："
-    },
-    {
       "id": "h-708ed18b",
       "kind": "html",
       "en": "TypeScript: add \"/billing\"",
@@ -113,16 +83,118 @@
       "tr": "新增 1 行，正好就是改动本身"
     },
     {
-      "id": "h-d8c012cf",
+      "id": "h-d9d74afd",
       "kind": "html",
-      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
-      "tr": "尾随逗号是<strong>必需的</strong>，一行放不下的列表会每行一个元素，而不是重新排布，所以插入、删除或调整某一项的顺序，永远不会影响相邻的项。记录字段、参数、match 分支和导入也是如此。这个阈值有代价：一次重命名如果让某个调用超过 100 列，整个参数列表都会展开成每行一个。"
+      "en": "<span>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change.</span>",
+      "tr": "<span>添加一个路由。按 TypeScript 的常见写法，原来的最后一行仅仅为了加一个逗号就得改动。改一项，动了两行。</span>"
     },
     {
-      "id": "h-e48b5266",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Example 2: one canonical layout",
-      "tr": "示例 2：一种标准排版"
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-f2352172",
+      "kind": "html",
+      "en": "<a href=\"#trailing-commas\">Trailing commas</a>",
+      "tr": "<a href=\"#trailing-commas\">尾随逗号</a>"
+    },
+    {
+      "id": "h-11cefec2",
+      "kind": "html",
+      "en": "<a href=\"#example-2-one-canonical-layout\">One canonical layout</a>",
+      "tr": "<a href=\"#example-2-one-canonical-layout\">一种标准排版</a>"
+    },
+    {
+      "id": "h-29f8dc27",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Comments stay put</a>",
+      "tr": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">注释留在原处</a>"
+    },
+    {
+      "id": "h-fdeb81e5",
+      "kind": "html",
+      "en": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">Can fmt break a build?</a>",
+      "tr": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">fmt 会弄坏构建吗？</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-58e45c66",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through.",
+      "tr": "智能体提交 pull request 时，diff <em>就是</em>审查的对象。如果一个一行的修复变成了 200 行的重新格式化，没有人能看出到底改了什么，而 bug 恰恰会从这种噪声中溜过去。"
+    },
+    {
+      "id": "h-eaf4f5b7",
+      "kind": "html",
+      "en": "Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "稳定的 diff 意味着 diff 显示的是改动，<strong>并且只有改动</strong>。"
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "大部分工作由两条规则完成。下面逐一展示，以你审查时会看到的 diff 的形式。"
+    },
+    {
+      "id": "h-199b8427",
+      "kind": "html",
+      "en": "Trailing commas, one item per line",
+      "tr": "尾随逗号，每行一项"
+    },
+    {
+      "id": "h-215bfd18",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors.",
+      "tr": "尾随逗号是<strong>必需的</strong>，一行放不下的列表会每行一个元素，而不是重新排布，所以插入、删除或调整某一项的顺序，永远不会影响相邻的项。"
+    },
+    {
+      "id": "h-1b9fb93d",
+      "kind": "html",
+      "en": "The same holds for record fields, parameters, match arms, and imports.",
+      "tr": "记录字段、参数、match 分支和导入也是如此。"
+    },
+    {
+      "id": "h-78bcb0ef",
+      "kind": "html",
+      "en": "The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "这个阈值有代价：一次重命名如果让某个调用超过 100 列，整个参数列表都会展开成每行一个。"
+    },
+    {
+      "id": "h-34f561c3",
+      "kind": "html",
+      "en": "One canonical layout",
+      "tr": "一种标准排版"
     },
     {
       "id": "h-57d9d6f8",
@@ -149,10 +221,22 @@
       "tr": "只有一种标准排版，那格式化工具会挪动我的注释吗？"
     },
     {
-      "id": "h-84c044a6",
+      "id": "h-c6f55fae",
       "kind": "html",
-      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
-      "tr": "以前会，这是一个值得点名的 bug。Glyph 没有块注释，也没有文档注释语法，所以 <code>//</code> 行是解释记录字段、联合类型变体或 <code>match</code> 分支的唯一方式。格式化工具只在声明和语句的边界处输出待处理的注释，这意味着写在某个结构<em>内部</em>的注释会往下漂到下一个声明，读起来就像是它落在的那个东西的文档。用 Glyph 写扫雷游戏时暴露了这个问题。下面这两个声明来自<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">那个真实的应用</a>（注释有删减），分别用旧的和新的格式化工具处理。"
+      "en": "It used to, and that was a bug worth naming. The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>.",
+      "tr": "以前会，这是一个值得点名的 bug。现在的规则是：注释会重新输出在它原来所在的那一项上方，适用于记录体、联合类型的变体列表、数组或对象字面量、实参或形参列表，以及 <code>match</code>。"
+    },
+    {
+      "id": "h-32c20cca",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how comments drifted, and the app that surfaced it</span>",
+      "tr": "历史 <span class=\"hint\">注释是怎么漂移的，以及暴露它的应用</span>"
+    },
+    {
+      "id": "h-05d7c406",
+      "kind": "html",
+      "en": "Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "Glyph 没有块注释，也没有文档注释语法，所以 <code>//</code> 行是解释记录字段、联合类型变体或 <code>match</code> 分支的唯一方式。格式化工具只在声明和语句的边界处输出待处理的注释，这意味着写在某个结构<em>内部</em>的注释会往下漂到下一个声明，读起来就像是它落在的那个东西的文档。用 Glyph 写扫雷游戏时暴露了这个问题。下面这两个声明来自<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">那个真实的应用</a>（注释有删减），分别用旧的和新的格式化工具处理。"
     },
     {
       "id": "h-28875641",
@@ -179,10 +263,16 @@
       "tr": "每条注释都在它描述的东西上面"
     },
     {
-      "id": "h-9347eb4d",
+      "id": "h-91bcd89f",
       "kind": "html",
-      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
-      "tr": "现在的规则是：注释会重新输出在它原来所在的那一项上方，适用于记录体、联合类型的变体列表、数组或对象字面量、实参或形参列表，以及 <code>match</code>。而且一个内部带注释的结构无论大小，总是采用每行一个元素的形式，这样注释就有一项可以放在上方。所以 <code>type Shape = { w: int, h: int }</code> 仍然会收成一行，而一旦你给 <code>h</code> 写了注释，这个记录就会保持展开。"
+      "en": "And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "而且一个内部带注释的结构无论大小，总是采用每行一个元素的形式，这样注释就有一项可以放在上方。所以 <code>type Shape = { w: int, h: int }</code> 仍然会收成一行，而一旦你给 <code>h</code> 写了注释，这个记录就会保持展开。"
+    },
+    {
+      "id": "h-43c73b15",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why this counts as a correctness bug</span>",
+      "tr": "详情 <span class=\"hint\">为什么这算正确性 bug</span>"
     },
     {
       "id": "h-21ca8ea0",
@@ -197,22 +287,52 @@
       "tr": "<code>glyph fmt</code> 会把一个能构建的程序弄坏吗？"
     },
     {
-      "id": "h-6c81998d",
+      "id": "h-43f18884",
       "kind": "html",
-      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
-      "tr": "会过，而且还有一种情况没有解决。先说已经修复的。表示&ldquo;空记录&rdquo;的分支写作 <code>true =&gt; ({})</code>。分支体位置是语法中唯一一个开头的 <code>{</code> 有歧义的地方，解析器的处理方式是要求大括号后面紧跟 <code>key:</code> 或 <code>...</code>。空对象两者都没有，所以当格式化工具去掉括号、重新打印成 <code>true =&gt; {}</code> 时，这个分支被解析成了一个空<em>代码块</em>，文件无法再构建：<code>E0223</code>，分支不产生值。你对能运行的代码跑了一次格式化工具，得到的代码却不再能编译。"
+      "en": "It could, and one case is still open. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "会过，而且还有一种情况没有解决。一个你的程序必须扛得住的格式化工具，比缺少一个功能更糟，因为它会破坏本来能用的代码。"
     },
     {
-      "id": "h-e1bb9580",
+      "id": "h-67c48992",
       "kind": "html",
-      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
-      "tr": "现在，如果分支体最左边的记号是一个会被重新解析为代码块的 <code>{</code>，打印器就会给它加上括号，这包括空对象以及在它基础上构建的任何东西（<code>({}).size</code> 会变成 <code>({}.size)</code>）。本来就没有歧义的分支体，比如 <code>false =&gt; { a: \"x\" }</code>，保持不加括号，所以其他地方不会多出需要阅读的标点。<code>fmt</code> 对结果是不动点，生成的 TypeScript 也没有变化。一个你的程序必须扛得住的格式化工具，比缺少一个功能更糟，因为它会破坏本来能用的代码。"
+      "en": "<b>Arm bodies</b>The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>).",
+      "tr": "<b>分支体</b>现在，如果分支体最左边的记号是一个会被重新解析为代码块的 <code>{</code>，打印器就会给它加上括号，这包括空对象以及在它基础上构建的任何东西（<code>({}).size</code> 会变成 <code>({}.size)</code>）。"
     },
     {
-      "id": "h-8647fc74",
+      "id": "h-13cac55d",
       "kind": "html",
-      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
-      "tr": "0.1.138 又修复了两个。在代码块中，以 <code>(</code> 开头的行会接续上一行，而在 0.1.137 及之前，格式化工具会把 <code>load()?</code> 后接 <code>.run()</code> 打印成 <code>(load()?).run()</code>，于是在 <code>let a = 1</code> 之后，格式化后的文件意思变成了 <code>let a = 1(…).run()</code>。现在它会保留 <code>load()?</code>，把 <code>.run()</code> 缩进放在下一行，并且把 <code>e?(x)</code>、<code>e?[0]</code> 和 <code>e? ?</code> 写成不带括号的形式。另一个是联合类型的 <code>where</code> 精化，格式化工具会把它丢掉，让一个 <code>check</code> 会拒绝的程序变成它会接受的程序。模糊测试现在会解析格式化后的文件，并把语法树与原文件的比较，所以一种改变了文件含义的排版会在第一轮就失败，而不是等某个人注意到。"
+      "en": "<b>The fuzzer</b>The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "<b>模糊测试</b>模糊测试现在会解析格式化后的文件，并把语法树与原文件的比较，所以一种改变了文件含义的排版会在第一轮就失败，而不是等某个人注意到。"
+    },
+    {
+      "id": "h-1fb024a7",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the empty record that stopped building</span>",
+      "tr": "历史 <span class=\"hint\">无法再构建的空记录</span>"
+    },
+    {
+      "id": "h-496451d5",
+      "kind": "html",
+      "en": "The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "先说已经修复的。表示&ldquo;空记录&rdquo;的分支写作 <code>true =&gt; ({})</code>。分支体位置是语法中唯一一个开头的 <code>{</code> 有歧义的地方，解析器的处理方式是要求大括号后面紧跟 <code>key:</code> 或 <code>...</code>。空对象两者都没有，所以当格式化工具去掉括号、重新打印成 <code>true =&gt; {}</code> 时，这个分支被解析成了一个空<em>代码块</em>，文件无法再构建：<code>E0223</code>，分支不产生值。你对能运行的代码跑了一次格式化工具，得到的代码却不再能编译。"
+    },
+    {
+      "id": "h-1b3833f9",
+      "kind": "html",
+      "en": "An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged.",
+      "tr": "本来就没有歧义的分支体，比如 <code>false =&gt; { a: \"x\" }</code>，保持不加括号，所以其他地方不会多出需要阅读的标点。<code>fmt</code> 对结果是不动点，生成的 TypeScript 也没有变化。"
+    },
+    {
+      "id": "h-72aac669",
+      "kind": "html",
+      "en": "History <span class=\"hint\">two more fixed in 0.1.138</span>",
+      "tr": "历史 <span class=\"hint\">0.1.138 又修复的两个</span>"
+    },
+    {
+      "id": "h-8f6ab028",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted.",
+      "tr": "0.1.138 又修复了两个。在代码块中，以 <code>(</code> 开头的行会接续上一行，而在 0.1.137 及之前，格式化工具会把 <code>load()?</code> 后接 <code>.run()</code> 打印成 <code>(load()?).run()</code>，于是在 <code>let a = 1</code> 之后，格式化后的文件意思变成了 <code>let a = 1(…).run()</code>。现在它会保留 <code>load()?</code>，把 <code>.run()</code> 缩进放在下一行，并且把 <code>e?(x)</code>、<code>e?[0]</code> 和 <code>e? ?</code> 写成不带括号的形式。另一个是联合类型的 <code>where</code> 精化，格式化工具会把它丢掉，让一个 <code>check</code> 会拒绝的程序变成它会接受的程序。"
     },
     {
       "id": "h-a2de6c0a",
@@ -233,10 +353,34 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-d4cd9ceb",
+      "id": "h-5a22f6e3",
       "kind": "html",
-      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
-      "tr": "必需的尾随逗号、每行一项的列表，以及 <code>glyph fmt</code> 的单一标准排版，可往返转换且幂等，编辑器中支持保存时格式化。<code>glyph fmt</code> 永远不会把注释挪到不属于它的地方。注释会保留在它原来所在的那一项上方，包括在记录、字面量、实参列表、<code>match</code> 内部，在运算符的两个操作数之间，以及在方法链的各步之间，此时方法链会每行一步，点号放在行首。"
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.",
+      "tr": "必需的尾随逗号、每行一项的列表，以及 <code>glyph fmt</code> 的单一标准排版，可往返转换且幂等，编辑器中支持保存时格式化。"
+    },
+    {
+      "id": "h-85557a13",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> never moves a comment to somewhere it does not belong.",
+      "tr": "<code>glyph fmt</code> 永远不会把注释挪到不属于它的地方。"
+    },
+    {
+      "id": "h-89c8a999",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above",
+      "tr": "注释会保留在它原来所在的那一项上方"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-279ea3ea",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "注释会保留在它原来所在的那一项上方，包括在记录、字面量、实参列表、<code>match</code> 内部，在运算符的两个操作数之间，以及在方法链的各步之间，此时方法链会每行一步，点号放在行首。"
     },
     {
       "id": "h-6c3b3842",
@@ -245,10 +389,46 @@
       "tr": "边界，以及接下来的工作"
     },
     {
-      "id": "h-c064e43b",
+      "id": "h-33221162",
       "kind": "html",
-      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
-      "tr": "注释总是单独输出在一行上，所以写在代码行末尾的注释（<code>w: int, // width in cells</code>）会被移到下一项的上方一行。它不再跨越声明边界，但确实会移动；要让它保持在行尾，打印器需要记录注释和哪一行共享。如果注释所在的位置在排版中无处安放，比如在索引内部、在方法链中间某个调用的实参之后，或者在 <code>!</code> 或 <code>await</code> 的操作数之前，它不会再被挪动：<code>glyph fmt</code> 会拒绝这个文件，保持原样，并指出所在行以及注释应该放在哪里，<code>glyph check</code> 也会以警告 E0500 报告同样的问题。JSX 属性之间、对象模式的字段之间的注释也会被拒绝，而这些地方本可以用每行一个的排版放下它；这些排版已经列入计划。打印器目前也还没有拆分长方法链或长 <code>+</code> 链的规则，所以过长的链会改为拆开最内层的实参列表，而那是错误的位置。我们还在构建一个 diff 大小的基准测试，对比在 TypeScript 中做同样编辑的结果，这样这根支柱就成了一个你可以核对的数字。"
+      "en": "A comment at the end of a code line moves to the line above the next item",
+      "tr": "写在代码行末尾的注释会移到下一项的上方一行"
+    },
+    {
+      "id": "h-d6cba539",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares.",
+      "tr": "注释总是单独输出在一行上，所以写在代码行末尾的注释（<code>w: int, // width in cells</code>）会被移到下一项的上方一行。它不再跨越声明边界，但确实会移动；要让它保持在行尾，打印器需要记录注释和哪一行共享。"
+    },
+    {
+      "id": "h-0401bf48",
+      "kind": "html",
+      "en": "A comment the layout has nowhere to put is refused, not moved",
+      "tr": "排版中无处安放的注释会被拒绝，而不是被挪动"
+    },
+    {
+      "id": "h-5b543c13",
+      "kind": "html",
+      "en": "A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500.",
+      "tr": "如果注释所在的位置在排版中无处安放，比如在索引内部、在方法链中间某个调用的实参之后，或者在 <code>!</code> 或 <code>await</code> 的操作数之前，它不会再被挪动：<code>glyph fmt</code> 会拒绝这个文件，保持原样，并指出所在行以及注释应该放在哪里，<code>glyph check</code> 也会以警告 E0500 报告同样的问题。"
+    },
+    {
+      "id": "h-80d7deb5",
+      "kind": "html",
+      "en": "A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list.",
+      "tr": "JSX 属性之间、对象模式的字段之间的注释也会被拒绝，而这些地方本可以用每行一个的排版放下它；这些排版已经列入计划。"
+    },
+    {
+      "id": "h-cdce7594",
+      "kind": "html",
+      "en": "The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.",
+      "tr": "打印器目前也还没有拆分长方法链或长 <code>+</code> 链的规则，所以过长的链会改为拆开最内层的实参列表，而那是错误的位置。"
+    },
+    {
+      "id": "h-e182e34e",
+      "kind": "html",
+      "en": "We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "我们还在构建一个 diff 大小的基准测试，对比在 TypeScript 中做同样编辑的结果，这样这根支柱就成了一个你可以核对的数字。"
     }
   ]
 }

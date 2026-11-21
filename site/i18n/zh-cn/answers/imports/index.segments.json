@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/imports/index.html",
   "locale": "zh-cn",
-  "source_hash": "5a2ca99ba7fdb55b",
+  "source_hash": "23b2b45b7b2aff03",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,124 @@
       "tr": "能。Glyph 编译成<strong>普通的 TypeScript</strong>，并基于 npm：<code>.glyph</code> 模块可以从任何包导入，自身也能被你现有的 <code>.ts</code> 导入。你可以<strong>一次一个文件</strong>地引入它。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "为什么重要"
-    },
-    {
-      "id": "h-a0424c1d",
-      "kind": "html",
-      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it. That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
-      "tr": "没有人会为了试一门语言而重写代码库。因为 Glyph 的输出<em>就是</em> TypeScript，一个 <code>.glyph</code> 文件可以放进现有 TS/React/Node 项目的某个角落，导入同样的包，并导出给周围的 <code>.ts</code> 使用。正是这条渐进的路径，让我们选择以 TypeScript 为目标，而不是发布一个新的运行时。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
-    },
-    {
-      "id": "h-14807471",
-      "kind": "html",
-      "en": "You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect:",
-      "tr": "按名字导入包（包括带连字符的和 npm 作用域包），Glyph 会生成你预期的导入语句："
-    },
-    {
       "id": "h-9ddeefdb",
       "kind": "html",
       "en": "form.ts: emitted",
       "tr": "form.ts：生成结果"
     },
     {
-      "id": "h-6805488a",
+      "id": "h-6cf5fdbe",
       "kind": "html",
-      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file. <code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error. Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked. Here is zod used inline, with nothing hand-written:",
-      "tr": "如果包已经安装，并且自带类型（或者有 <code>@types/...</code>），你要做的就只有这些。不需要存根，也不需要适配文件。<code>glyph build</code> 会找到项目的 <code>node_modules</code>，并让类型检查器使用它，所以检查你代码的是这个包的真实类型，错误的调用就是真正的错误。子路径导入（<code>pkg/sub</code>）也会通过包的 <code>exports</code> 映射解析，所以子路径自己的类型也会被检查。下面是直接使用 zod 的例子，没有任何手写的东西："
+      "en": "<span>You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect.</span>",
+      "tr": "<span>按名字导入包（包括带连字符的和 npm 作用域包），Glyph 会生成你预期的导入语句。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-dcec54ee",
+      "kind": "html",
+      "en": "<a href=\"#installed-packages\">Installed packages</a>",
+      "tr": "<a href=\"#installed-packages\">已安装的包</a>"
+    },
+    {
+      "id": "h-21998576",
+      "kind": "html",
+      "en": "<a href=\"#value-derived-types\">Value-derived types</a>",
+      "tr": "<a href=\"#value-derived-types\">由值派生的类型</a>"
+    },
+    {
+      "id": "h-95007da9",
+      "kind": "html",
+      "en": "<a href=\"#when-you-need-whole-hand-written-typescript\">Hand-written TypeScript</a>",
+      "tr": "<a href=\"#when-you-need-whole-hand-written-typescript\">手写 TypeScript</a>"
+    },
+    {
+      "id": "h-d94cab8b",
+      "kind": "html",
+      "en": "<a href=\"#watching-a-subprocess-with-nothing-installed\">Subprocesses</a>",
+      "tr": "<a href=\"#watching-a-subprocess-with-nothing-installed\">子进程</a>"
+    },
+    {
+      "id": "h-481c1f41",
+      "kind": "html",
+      "en": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">Editing a shim</a>",
+      "tr": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">修改适配层</a>"
+    },
+    {
+      "id": "h-6f151525",
+      "kind": "html",
+      "en": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">Class-based clients</a>",
+      "tr": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">基于类的客户端</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "为什么重要"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-7a9c8785",
+      "kind": "html",
+      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it.",
+      "tr": "没有人会为了试一门语言而重写代码库。因为 Glyph 的输出<em>就是</em> TypeScript，一个 <code>.glyph</code> 文件可以放进现有 TS/React/Node 项目的某个角落，导入同样的包，并导出给周围的 <code>.ts</code> 使用。"
+    },
+    {
+      "id": "h-8f945607",
+      "kind": "html",
+      "en": "That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
+      "tr": "正是这条渐进的路径，让我们选择以 TypeScript 为目标，而不是发布一个新的运行时。"
+    },
+    {
+      "id": "h-17e331ce",
+      "kind": "html",
+      "en": "Installed packages bring their own types",
+      "tr": "已安装的包自带类型"
+    },
+    {
+      "id": "h-f2f27da3",
+      "kind": "html",
+      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file.",
+      "tr": "如果包已经安装，并且自带类型（或者有 <code>@types/...</code>），你要做的就只有这些。不需要存根，也不需要适配文件。"
+    },
+    {
+      "id": "h-5785d33d",
+      "kind": "html",
+      "en": "<code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error.",
+      "tr": "<code>glyph build</code> 会找到项目的 <code>node_modules</code>，并让类型检查器使用它，所以检查你代码的是这个包的真实类型，错误的调用就是真正的错误。"
+    },
+    {
+      "id": "h-d3a4379a",
+      "kind": "html",
+      "en": "Here is zod used inline, with nothing hand-written:",
+      "tr": "下面是直接使用 zod 的例子，没有任何手写的东西："
     },
     {
       "id": "h-dc9d8579",
@@ -101,16 +185,70 @@
       "tr": "调用 zod 没有定义的方法"
     },
     {
-      "id": "h-21f4ad4e",
+      "id": "h-d053ec00",
       "kind": "html",
-      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too. A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses). And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
-      "tr": "<code>glyph run</code> 会针对已安装的 zod 执行同一个程序，所以这不只是类型检查：为类型检查器解析这个包的那一项配置，同样为运行时解析它。<em>不</em>带类型、也没有 <code>@types/...</code> 的包，仍然需要你写一份声明，这就是 <code>.types/</code> 文件夹的用途（与 TypeScript 已有的 <code>.d.ts</code> 机制相同）。如果你想把一个库的形状变成一等的、<em>经过校验的</em> Glyph 类型，而不是只做类型导入，<code>glyph gen dts</code> 可以把 <code>.d.ts</code> 实化为带描述符的真实类型：见<a href=\"/answers/typed-apis/\">每个 API 都要手写校验器吗？</a>"
+      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too.",
+      "tr": "<code>glyph run</code> 会针对已安装的 zod 执行同一个程序，所以这不只是类型检查：为类型检查器解析这个包的那一项配置，同样为运行时解析它。"
     },
     {
-      "id": "h-b452280f",
+      "id": "h-6c15d6d3",
       "kind": "html",
-      "en": "Value-derived types are first-class. <code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too. For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow). So a library never forces a hand-written adapter file.",
-      "tr": "由值派生的类型是一等的。<code>type User = z.infer&lt;typeof user_schema&gt;</code> 可以直接使用：<code>typeof user_schema</code> 是对一个真实值引用的类型查询（拼错了会报未解析名字的错误），<code>z.infer&lt;...&gt;</code> 是普通的成员泛型类型。它会原样生成，由 <code>tsc</code> 化简，所以 <code>u.name</code> 是 <code>string</code>；校验来自 schema 自己的 <code>parse</code>，zod 本来就是这样工作的。JSX 属性展开（<code>&lt;input {...register()} /&gt;</code>）也是一等的。对于 Glyph 仍然写不出来的少数 TypeScript 惯用法，<code>extern_ts(\"...\")</code> 是作用域受限、可以 grep 的逃生口：<code>tsc</code> 会检查它，但要说清楚，它是信任边界，而不是经过运行时校验的边界（对 Glyph 不透明，返回的值是 <code>unknown</code>，需要自己收窄）。所以库永远不会迫使你手写适配文件。"
+      "en": "A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses).",
+      "tr": "<em>不</em>带类型、也没有 <code>@types/...</code> 的包，仍然需要你写一份声明，这就是 <code>.types/</code> 文件夹的用途（与 TypeScript 已有的 <code>.d.ts</code> 机制相同）。"
+    },
+    {
+      "id": "h-faf2dbc6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">subpath imports, and validated types from a <code>.d.ts</code></span>",
+      "tr": "详情 <span class=\"hint\">子路径导入，以及从 <code>.d.ts</code> 得到经过校验的类型</span>"
+    },
+    {
+      "id": "h-522447b0",
+      "kind": "html",
+      "en": "Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked.",
+      "tr": "子路径导入（<code>pkg/sub</code>）也会通过包的 <code>exports</code> 映射解析，所以子路径自己的类型也会被检查。"
+    },
+    {
+      "id": "h-1007fe54",
+      "kind": "html",
+      "en": "And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
+      "tr": "如果你想把一个库的形状变成一等的、<em>经过校验的</em> Glyph 类型，而不是只做类型导入，<code>glyph gen dts</code> 可以把 <code>.d.ts</code> 实化为带描述符的真实类型：见<a href=\"/answers/typed-apis/\">每个 API 都要手写校验器吗？</a>"
+    },
+    {
+      "id": "h-2db57ff2",
+      "kind": "html",
+      "en": "Value-derived types, JSX spread, and the escape hatch",
+      "tr": "由值派生的类型、JSX 展开和逃生口"
+    },
+    {
+      "id": "h-1e132a69",
+      "kind": "html",
+      "en": "Value-derived types are first-class. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too.",
+      "tr": "由值派生的类型是一等的。JSX 属性展开（<code>&lt;input {...register()} /&gt;</code>）也是一等的。"
+    },
+    {
+      "id": "h-6f2bd6e2",
+      "kind": "html",
+      "en": "So a library never forces a hand-written adapter file.",
+      "tr": "所以库永远不会迫使你手写适配文件。"
+    },
+    {
+      "id": "h-a6d90976",
+      "kind": "html",
+      "en": "For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow).",
+      "tr": "对于 Glyph 仍然写不出来的少数 TypeScript 惯用法，<code>extern_ts(\"...\")</code> 是作用域受限、可以 grep 的逃生口：<code>tsc</code> 会检查它，但要说清楚，它是信任边界，而不是经过运行时校验的边界（对 Glyph 不透明，返回的值是 <code>unknown</code>，需要自己收窄）。"
+    },
+    {
+      "id": "h-c137232f",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how <code>z.infer&lt;typeof s&gt;</code> resolves</span>",
+      "tr": "详情 <span class=\"hint\"><code>z.infer&lt;typeof s&gt;</code> 是如何解析的</span>"
+    },
+    {
+      "id": "h-12585308",
+      "kind": "html",
+      "en": "<code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works.",
+      "tr": "<code>type User = z.infer&lt;typeof user_schema&gt;</code> 可以直接使用：<code>typeof user_schema</code> 是对一个真实值引用的类型查询（拼错了会报未解析名字的错误），<code>z.infer&lt;...&gt;</code> 是普通的成员泛型类型。它会原样生成，由 <code>tsc</code> 化简，所以 <code>u.name</code> 是 <code>string</code>；校验来自 schema 自己的 <code>parse</code>，zod 本来就是这样工作的。"
     },
     {
       "id": "h-933fdf8a",
@@ -125,10 +263,28 @@
       "tr": "有时逃生口不是一个类型或表达式，而是真正的运行时代码：一个 node stream 循环、一个 <code>new Promise</code>、一个 worker 线程。把 <code>.ts</code> 放在 <code>&lt;src&gt;/extern/</code> 下，然后用 <code>import extern/&lt;name&gt;</code> 引用它。"
     },
     {
-      "id": "h-be412622",
+      "id": "h-fa79d5b6",
       "kind": "html",
-      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it. Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language. It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
-      "tr": "构建会把 <code>&lt;src&gt;/extern/**</code> 放进输出目录并生成相对路径的导入，所以 <code>tsc</code> 会把 extern 和你的 Glyph 代码一起做类型检查，重新构建也不会把它清理掉。相对导入在 Glyph 源码中仍然是非法的（这是一条可检索性规则），所以 <code>extern/*</code> 是唯一保留的路径，<code>grep -rn 'import extern/'</code> 能找出你离开这门语言的每一处。它和简单的那个方向正好相反：<code>.ts</code> 文件导入编译后的 Glyph 代码，什么都不需要。常见的 extern（http 服务器、<code>fs</code>）不用安装任何东西，就能针对内置的 node 适配层做类型检查。"
+      "en": "Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language.",
+      "tr": "相对导入在 Glyph 源码中仍然是非法的（这是一条可检索性规则），所以 <code>extern/*</code> 是唯一保留的路径，<code>grep -rn 'import extern/'</code> 能找出你离开这门语言的每一处。"
+    },
+    {
+      "id": "h-1f1e7e4e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">staging, the other direction, and the node shim</span>",
+      "tr": "详情 <span class=\"hint\">放入输出、另一个方向，以及 node 适配层</span>"
+    },
+    {
+      "id": "h-5604c230",
+      "kind": "html",
+      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it.",
+      "tr": "构建会把 <code>&lt;src&gt;/extern/**</code> 放进输出目录并生成相对路径的导入，所以 <code>tsc</code> 会把 extern 和你的 Glyph 代码一起做类型检查，重新构建也不会把它清理掉。"
+    },
+    {
+      "id": "h-34852d03",
+      "kind": "html",
+      "en": "It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
+      "tr": "它和简单的那个方向正好相反：<code>.ts</code> 文件导入编译后的 Glyph 代码，什么都不需要。常见的 extern（http 服务器、<code>fs</code>）不用安装任何东西，就能针对内置的 node 适配层做类型检查。"
     },
     {
       "id": "h-71b270de",
@@ -143,10 +299,16 @@
       "tr": "内置的 node 声明包含了 <code>child_process</code> 的异步部分，而不只是阻塞的部分，所以一个在长命令运行时报告其输出的工具，可以用 Glyph 写，而不必写成 extern："
     },
     {
-      "id": "h-1b963ba3",
+      "id": "h-dd6cd86b",
       "kind": "html",
-      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them. The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
-      "tr": "用 <code>io.print</code> 而不是 <code>io.println</code>：一个数据块是流的一个片段，而不是一行，一行可能分成两个数据块到达。重载遵循 <code>@types/node</code>，所以普通的 <code>spawn(command, args)</code> 返回的管道不为 null，传入 <code>stdio</code> 后则可能为 null。在 <code>stdio: \"inherit\"</code> 之后读取 <code>child.stdout</code>，在这里是 <code>TS18047</code>，使用真实类型定义时也是 <code>TS18047</code>，而不是对同一个值给出两种说法："
+      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them.",
+      "tr": "用 <code>io.print</code> 而不是 <code>io.println</code>：一个数据块是流的一个片段，而不是一行，一行可能分成两个数据块到达。"
+    },
+    {
+      "id": "h-a7ca9a52",
+      "kind": "html",
+      "en": "The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
+      "tr": "重载遵循 <code>@types/node</code>，所以普通的 <code>spawn(command, args)</code> 返回的管道不为 null，传入 <code>stdio</code> 后则可能为 null。在 <code>stdio: \"inherit\"</code> 之后读取 <code>child.stdout</code>，在这里是 <code>TS18047</code>，使用真实类型定义时也是 <code>TS18047</code>，而不是对同一个值给出两种说法："
     },
     {
       "id": "h-9dde8adf",
@@ -155,10 +317,28 @@
       "tr": "修改适配层，下一次运行用的就是你改过的适配层"
     },
     {
-      "id": "h-452ef7e8",
+      "id": "h-d10f8be9",
       "kind": "html",
-      "en": "A shim is a file you iterate on, so it has to count as a source. <code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents. Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
-      "tr": "适配层是你会反复修改的文件，所以它必须算作源码。<code>glyph run</code> 按源码的指纹缓存构建结果，这个指纹覆盖 <code>extern/</code> 下的每个 <code>.ts</code> 和 <code>.tsx</code>，既看路径也看内容。修改、重命名、新增或删除其中一个，下一次运行都会重新构建并重新运行 <code>tsc</code>。符号链接的适配层会被跟随，所以放在源码树之外的 <code>.ts</code> 会按它的实际内容计算哈希。"
+      "en": "A shim is a file you iterate on, so it has to count as a source.",
+      "tr": "适配层是你会反复修改的文件，所以它必须算作源码。"
+    },
+    {
+      "id": "h-b99f20ec",
+      "kind": "html",
+      "en": "<code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents.",
+      "tr": "<code>glyph run</code> 按源码的指纹缓存构建结果，这个指纹覆盖 <code>extern/</code> 下的每个 <code>.ts</code> 和 <code>.tsx</code>，既看路径也看内容。"
+    },
+    {
+      "id": "h-9f85f72e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what triggers a rebuild</span>",
+      "tr": "详情 <span class=\"hint\">什么会触发重新构建</span>"
+    },
+    {
+      "id": "h-c636c43d",
+      "kind": "html",
+      "en": "Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
+      "tr": "修改、重命名、新增或删除其中一个，下一次运行都会重新构建并重新运行 <code>tsc</code>。符号链接的适配层会被跟随，所以放在源码树之外的 <code>.ts</code> 会按它的实际内容计算哈希。"
     },
     {
       "id": "h-f9bad1f5",
@@ -173,6 +353,12 @@
       "tr": "适配层改了字段名，构建会指出来"
     },
     {
+      "id": "h-4c3ff3eb",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.44, and the files that do not count</span>",
+      "tr": "历史 <span class=\"hint\">0.1.44 之前的情况，以及不算数的文件</span>"
+    },
+    {
       "id": "h-82a5c1d0",
       "kind": "html",
       "en": "Until 0.1.44 the fingerprint skipped <code>extern/</code> entirely, so that rename produced a clean, type-checked build running the previous copy of the shim. Files under <code>extern/</code> that are not <code>.ts</code> or <code>.tsx</code> still do not affect the cache, which is deliberate: a <code>README.md</code> next to your shim is copied into the output along with it, but nothing type-checks or runs it, so there is nothing to rebuild.",
@@ -185,10 +371,10 @@
       "tr": "基于类的客户端：数据库和消息队列客户端"
     },
     {
-      "id": "h-c7898520",
+      "id": "h-42055f0b",
       "kind": "html",
-      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this. It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name. It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
-      "tr": "大多数数据库和消息队列客户端都是基于类的：你要写 <code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code>。Glyph 的 <code>new</code> 正是为此准备的。它原样生成 TypeScript 的 <code>new</code>，由 <code>tsc</code> 对照包的真实构造函数检查，所以错误的参数就是真正的错误，未定义的被调用者会按名字报出来。它只用于互操作：Glyph 自己没有 <code>class</code>，<code>new</code> 只能构造来自包、<code>.types</code> 声明或 <code>extern_ts</code> 的类型。"
+      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this.",
+      "tr": "大多数数据库和消息队列客户端都是基于类的：你要写 <code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code>。Glyph 的 <code>new</code> 正是为此准备的。"
     },
     {
       "id": "h-89f59f10",
@@ -203,6 +389,18 @@
       "tr": "工厂函数式的客户端不需要 <code>new</code>"
     },
     {
+      "id": "h-e340cea4",
+      "kind": "html",
+      "en": "It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name.",
+      "tr": "它原样生成 TypeScript 的 <code>new</code>，由 <code>tsc</code> 对照包的真实构造函数检查，所以错误的参数就是真正的错误，未定义的被调用者会按名字报出来。"
+    },
+    {
+      "id": "h-bdcee871",
+      "kind": "html",
+      "en": "It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
+      "tr": "它只用于互操作：Glyph 自己没有 <code>class</code>，<code>new</code> 只能构造来自包、<code>.types</code> 声明或 <code>extern_ts</code> 的类型。"
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -215,10 +413,76 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-112846a9",
+      "id": "h-27cbdd05",
       "kind": "html",
-      "en": "Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly. Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one. A declaration only your code reaches is not covered by that check yet, and a few are still wider than node. <code>.types/</code> ambient declarations for anything else, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back. When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
-      "tr": "导入任何 npm 包（包括带连字符的名字和作用域包）。已安装并自带类型（或有 <code>@types/...</code>）的包，不需要存根就能做类型检查和运行。基于类的客户端用 <code>new</code> 构造，由 <code>tsc</code> 对照真实构造函数检查；工厂函数式客户端直接导入并调用。Node 内置模块（<code>fs</code>、<code>path</code>、<code>http</code>、包含流式 <code>spawn</code> 的 <code>child_process</code>，以及其他模块）开箱即可做类型检查，安装 <code>@types/node</code> 后会自动加载它；CI 会针对该包的 <code>latest</code> 版本构建编译器自己的运行时，所以标准库依赖的声明不会与 node 的真实声明产生偏差。只有你的代码用到的声明暂时还不在这项检查的覆盖范围内，还有少数声明仍比 node 的更宽松。其他任何东西都可以用 <code>.types/</code> 环境声明；<code>glyph gen dts</code> 把 <code>.d.ts</code> 实化为经过校验的 Glyph 类型；输出干净的 <code>.ts</code>，你现有的 TypeScript 可以反过来导入。需要整段手写 TypeScript 时，<code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下的 <code>.ts</code>，它会和你的代码一起放入输出并做类型检查，并被 <code>glyph run</code> 的缓存跟踪，修改后会重新构建。"
+      "en": "Import any npm package (hyphenated and scoped names included).",
+      "tr": "导入任何 npm 包（包括带连字符的名字和作用域包）。"
+    },
+    {
+      "id": "h-714073e7",
+      "kind": "html",
+      "en": "An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub.",
+      "tr": "已安装并自带类型（或有 <code>@types/...</code>）的包，不需要存根就能做类型检查和运行。"
+    },
+    {
+      "id": "h-06eb4461",
+      "kind": "html",
+      "en": "Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly.",
+      "tr": "基于类的客户端用 <code>new</code> 构造，由 <code>tsc</code> 对照真实构造函数检查；工厂函数式客户端直接导入并调用。"
+    },
+    {
+      "id": "h-b96f67b7",
+      "kind": "html",
+      "en": "Node builtins type-check out of the box",
+      "tr": "Node 内置模块开箱即可做类型检查"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-e6bb6cae",
+      "kind": "html",
+      "en": "Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one.",
+      "tr": "Node 内置模块（<code>fs</code>、<code>path</code>、<code>http</code>、包含流式 <code>spawn</code> 的 <code>child_process</code>，以及其他模块）开箱即可做类型检查，安装 <code>@types/node</code> 后会自动加载它；CI 会针对该包的 <code>latest</code> 版本构建编译器自己的运行时，所以标准库依赖的声明不会与 node 的真实声明产生偏差。"
+    },
+    {
+      "id": "h-0b661b92",
+      "kind": "html",
+      "en": "A declaration only your code reaches is not covered by that check yet, and a few are still wider than node.",
+      "tr": "只有你的代码用到的声明暂时还不在这项检查的覆盖范围内，还有少数声明仍比 node 的更宽松。"
+    },
+    {
+      "id": "h-9c2289ad",
+      "kind": "html",
+      "en": "<code>.types/</code> ambient declarations for anything else.",
+      "tr": "其他任何东西都可以用 <code>.types/</code> 环境声明。"
+    },
+    {
+      "id": "h-7a450622",
+      "kind": "html",
+      "en": "<code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types.",
+      "tr": "<code>glyph gen dts</code> 把 <code>.d.ts</code> 实化为经过校验的 Glyph 类型。"
+    },
+    {
+      "id": "h-d10db82c",
+      "kind": "html",
+      "en": "Clean <code>.ts</code> output your existing TypeScript imports back.",
+      "tr": "输出干净的 <code>.ts</code>，你现有的 TypeScript 可以反过来导入。"
+    },
+    {
+      "id": "h-4fcbcf88",
+      "kind": "html",
+      "en": "<code>import extern/&lt;name&gt;</code> reaches hand-written TypeScript under <code>&lt;src&gt;/extern/</code>",
+      "tr": "<code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下手写的 TypeScript"
+    },
+    {
+      "id": "h-679e99f1",
+      "kind": "html",
+      "en": "When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
+      "tr": "需要整段手写 TypeScript 时，<code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下的 <code>.ts</code>，它会和你的代码一起放入输出并做类型检查，并被 <code>glyph run</code> 的缓存跟踪，修改后会重新构建。"
     },
     {
       "id": "h-b63a305d",
@@ -227,10 +491,34 @@
       "tr": "正在进行"
     },
     {
-      "id": "h-8fc5ce45",
+      "id": "h-8062c0af",
       "kind": "html",
-      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them. On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
-      "tr": "实化现在可以处理真实 SDK 中出现的各种形状（命名空间、跨文件以及别名/命名空间形式的重导出、子路径 <code>exports</code>、一等泛型），由值派生的类型（<code>z.infer&lt;typeof s&gt;</code>）也是一等的。剩下的主要 gap 是：未实化的包，其输出会对照它的 <code>.d.ts</code> 做类型检查，但除非你把它实化，否则不会做运行时校验。在 <code>extern/</code> 这一边，两个命令的源码根目录不同：<code>glyph run app.glyph</code> 以文件自己所在的目录为根，<code>glyph build src/</code> 以你指定的目录为根。因此位于子目录中的程序会在两个不同的位置寻找它的适配层，在我们确定使用哪一个根目录之前，这样布局的项目需要让两个位置都能找到适配层。找不到时会明确报错。"
+      "en": "Materialization handles the shapes real SDKs ship, and value-derived types are first-class",
+      "tr": "实化可以处理真实 SDK 中出现的各种形状，由值派生的类型也是一等的"
+    },
+    {
+      "id": "h-0b1af177",
+      "kind": "html",
+      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class.",
+      "tr": "实化现在可以处理真实 SDK 中出现的各种形状（命名空间、跨文件以及别名/命名空间形式的重导出、子路径 <code>exports</code>、一等泛型），由值派生的类型（<code>z.infer&lt;typeof s&gt;</code>）也是一等的。"
+    },
+    {
+      "id": "h-4deb95e3",
+      "kind": "html",
+      "en": "The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.",
+      "tr": "剩下的主要 gap 是：未实化的包，其输出会对照它的 <code>.d.ts</code> 做类型检查，但除非你把它实化，否则不会做运行时校验。"
+    },
+    {
+      "id": "h-edd85884",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between <code>glyph run</code> and <code>glyph build</code>",
+      "tr": "在 <code>extern/</code> 这一边，<code>glyph run</code> 和 <code>glyph build</code> 的源码根目录不同"
+    },
+    {
+      "id": "h-2b7829a4",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
+      "tr": "在 <code>extern/</code> 这一边，两个命令的源码根目录不同：<code>glyph run app.glyph</code> 以文件自己所在的目录为根，<code>glyph build src/</code> 以你指定的目录为根。因此位于子目录中的程序会在两个不同的位置寻找它的适配层，在我们确定使用哪一个根目录之前，这样布局的项目需要让两个位置都能找到适配层。找不到时会明确报错。"
     }
   ]
 }

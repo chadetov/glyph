@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/human-value/index.html",
   "locale": "zh-cn",
-  "source_hash": "353b3dea2a444a3f",
+  "source_hash": "afc93229f6bea704",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,64 @@
       "tr": "值得。以 AI 智能体为切入点，是因为智能体经常弄坏这些东西，但底下的每一项保证都是<strong>人能直接得到的工程收益</strong>：更少的运行时意外，更小的 diff，以及真正能 grep 的代码。这些都不需要大语言模型。"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-6b42c22f",
+      "kind": "html",
+      "en": "<a href=\"#these-are-language-features-not-ai-features\">Language features</a>",
+      "tr": "<a href=\"#these-are-language-features-not-ai-features\">语言特性</a>"
+    },
+    {
+      "id": "h-a6a62204",
+      "kind": "html",
+      "en": "<a href=\"#what-you-get-solo\">What you get, solo</a>",
+      "tr": "<a href=\"#what-you-get-solo\">一个人也能得到的</a>"
+    },
+    {
+      "id": "h-81243956",
+      "kind": "html",
+      "en": "<a href=\"#so-why-lead-with-agents\">Why lead with agents</a>",
+      "tr": "<a href=\"#so-why-lead-with-agents\">为什么以智能体为主打</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
       "id": "h-883d013e",
       "kind": "html",
       "en": "These are language features, not AI features",
       "tr": "这些是语言特性，不是 AI 特性"
     },
     {
-      "id": "h-377ab84f",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-6a786dfe",
       "kind": "html",
-      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
-      "tr": "去掉“智能体”这个词，再看这份清单：没有 <code>any</code>，穷尽的 <code>match</code>，错误即值，在运行时检查的类型，每个名字只有一种声明形式，一种标准的、diff 稳定的格式。写过 Rust、Elm 或 OCaml 的人都会认出，这些正是让代码库易于维护的东西。早在 AI 写代码之前，它们就是好主意。Glyph 只是把它们带进一门形似 TypeScript、可以按文件逐个引入的语言。"
+      "en": "Strip the word \"agent\" out and read the list: no <code>any</code>, exhaustive <code>match</code>, errors as values, types that are checked at runtime, one declaration form per name, a canonical diff-stable format.",
+      "tr": "去掉“智能体”这个词，再看这份清单：没有 <code>any</code>，穷尽的 <code>match</code>，错误即值，在运行时检查的类型，每个名字只有一种声明形式，一种标准的、diff 稳定的格式。"
+    },
+    {
+      "id": "h-307d3d43",
+      "kind": "html",
+      "en": "Anyone who's written Rust, Elm, or OCaml recognizes these as the things that make a codebase pleasant to maintain. They were good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language you can adopt one file at a time.",
+      "tr": "写过 Rust、Elm 或 OCaml 的人都会认出，这些正是让代码库易于维护的东西。早在 AI 写代码之前，它们就是好主意。Glyph 只是把它们带进一门形似 TypeScript、可以按文件逐个引入的语言。"
     },
     {
       "id": "h-bad10559",
@@ -77,28 +125,28 @@
       "tr": "一个人用也能得到的好处"
     },
     {
-      "id": "h-4f15d4ac",
+      "id": "h-6ff118c8",
       "kind": "html",
-      "en": "<strong>Fewer 3am pages.</strong> Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
-      "tr": "<strong>凌晨 3 点被叫醒的次数更少。</strong>边界数据在构造时就经过校验（<code>User.parse</code>），缺少的情况是编译错误，而不是在生产环境中冒出来的 <code>undefined</code>。"
+      "en": "<b>Fewer 3am pages.</b>Boundary data is validated by construction (<code>User.parse</code>), and a missing case is a compile error, not an <code>undefined</code> that surfaces in production.",
+      "tr": "<b>凌晨 3 点被叫醒的次数更少。</b>边界数据在构造时就经过校验（<code>User.parse</code>），缺少的情况是编译错误，而不是在生产环境中冒出来的 <code>undefined</code>。"
     },
     {
-      "id": "h-3212661c",
+      "id": "h-579891e9",
       "kind": "html",
-      "en": "<strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
-      "tr": "<strong>审查更快。</strong>改一行就是一行 diff，所以审查者读的是改动本身，而不是周围的格式化噪音。"
+      "en": "<b>Faster review.</b>A one-line change is a one-line diff, so a reviewer reads the change, not the reformatting churn around it.",
+      "tr": "<b>审查更快。</b>改一行就是一行 diff，所以审查者读的是改动本身，而不是周围的格式化噪音。"
     },
     {
-      "id": "h-bde8ceea",
+      "id": "h-10c51631",
       "kind": "html",
-      "en": "<strong>You can find anything.</strong> <code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
-      "tr": "<strong>什么都能找到。</strong><code>grep \"fn parseUser\"</code> 会落在定义上：没有重载、汇总导出文件或装饰器把它分散开。"
+      "en": "<b>You can find anything.</b><code>grep \"fn parseUser\"</code> lands on the definition: no overloads, barrels, or decorators scattering it.",
+      "tr": "<b>什么都能找到。</b><code>grep \"fn parseUser\"</code> 会落在定义上：没有重载、汇总导出文件或装饰器把它分散开。"
     },
     {
-      "id": "h-2d7f721c",
+      "id": "h-ce2cade1",
       "kind": "html",
-      "en": "<strong>Easier onboarding.</strong> A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
-      "tr": "<strong>上手更容易。</strong>核心小，每件事只有一种做法，下一个人需要学习的隐性知识更少。"
+      "en": "<b>Easier onboarding.</b>A small core with one way to do each thing means less tribal knowledge for the next person to learn.",
+      "tr": "<b>上手更容易。</b>核心小，每件事只有一种做法，下一个人需要学习的隐性知识更少。"
     },
     {
       "id": "h-a45cacac",
@@ -107,10 +155,22 @@
       "tr": "那为什么以智能体为切入点？"
     },
     {
-      "id": "h-0cf505e4",
+      "id": "h-41bfa897",
       "kind": "html",
-      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on. The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
-      "tr": "因为在那里回报<em>更大</em>。人最终会学会运行 linter、处理那个情况；而智能体会伸手去用 <code>any</code>，忘掉那个分支，然后在构建通过的状态下合并，你也不能指望它一直开着那些可选的工具。当代码由机器编写时，让严格性<em>不可选</em>的价值会成倍放大。但底线（上面那些好处）无论你是否使用智能体都在。"
+      "en": "Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green, and it can't be trusted to keep the opt-in tooling on.",
+      "tr": "因为在那里回报<em>更大</em>。人最终会学会运行 linter、处理那个情况；而智能体会伸手去用 <code>any</code>，忘掉那个分支，然后在构建通过的状态下合并，你也不能指望它一直开着那些可选的工具。"
+    },
+    {
+      "id": "h-4173ea23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the floor is there either way</span>",
+      "tr": "详情 <span class=\"hint\">无论哪种情况，底线都在</span>"
+    },
+    {
+      "id": "h-18feeddc",
+      "kind": "html",
+      "en": "The value of making the strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor (the wins above) is there whether you use an agent or not.",
+      "tr": "当代码由机器编写时，让严格性<em>不可选</em>的价值会成倍放大。但底线（上面那些好处）无论你是否使用智能体都在。"
     },
     {
       "id": "h-f388e69f",
@@ -131,10 +191,16 @@
       "tr": "取舍"
     },
     {
-      "id": "h-4370ff74",
+      "id": "h-0231228b",
       "kind": "html",
-      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
-      "tr": "如果你在开始一个新项目，或者你的团队本来就重视 ML 家族语言的那种纪律，这些好处会立刻兑现。如果你一个人在一个成熟、工具齐全的 TS 技术栈上工作，就需要再掂量一下：Glyph 还是早期预览版，这是一项需要权衡的实际成本。"
+      "en": "If you're starting something new, or your team already values ML-family discipline, the wins land immediately.",
+      "tr": "如果你在开始一个新项目，或者你的团队本来就重视 ML 家族语言的那种纪律，这些好处会立刻兑现。"
+    },
+    {
+      "id": "h-8dd4f5ff",
+      "kind": "html",
+      "en": "If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.",
+      "tr": "如果你一个人在一个成熟、工具齐全的 TS 技术栈上工作，就需要再掂量一下：Glyph 还是早期预览版，这是一项需要权衡的实际成本。"
     },
     {
       "id": "h-e15e4388",

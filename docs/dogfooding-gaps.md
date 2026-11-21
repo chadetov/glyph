@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-421 entries, 315 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-86 are open. G144, the D28 boundary cast that never reached the returns a
+422 entries, 315 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+87 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12412,6 +12412,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.153 (the release build): `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text``.*
 
+  *Reproduced against 0.1.159 (the release build): unchanged, `return <p>abc` then `}` is E0012 with the `{"}"}` help.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12451,6 +12453,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.153 (the release build): `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle``.*
 
+  *Reproduced against 0.1.159 (the release build): unchanged, `<p>a < b</p>` is E0002 with the general help, not `{"<"}`.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12472,6 +12476,8 @@ and is the owner's to confirm.
   printed raw.*
 
   *Reproduced against 0.1.153 (the release build): a BOM at offset 0 is ``[E0001] Error: parse: lex error: unexpected character`` with the BOM printed raw, and a no-break space inside `let a = 1` is the same E0001 with the character printed raw.*
+
+  *Reproduced against 0.1.159 (the release build): unchanged, a BOM, a no-break space and U+200B are E0001 with the raw character between the backticks.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -12965,13 +12971,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `k/`: both remove `Paid` and `Cancelled`.*
 
-  Planned for 0.1.157 (record 106).
+  Planned after 0.1.159 (record 106; see the release roadmap).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `k/`: `glyph fix` prints "removed 2 unused import(s)" and then declines the
   E0200, listing `Paid` and `Cancelled`.*
 
   *Reproduced against 0.1.153 (the release build) by record 106's probe `k/`: `glyph fix` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200, listing `Paid` and `Cancelled`.*
+
+  *Reproduced against 0.1.159 (the release build): unchanged, `glyph fix` on record 106's `k` removes both variant imports and then declines the E0200 that listed them.*
 
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
@@ -12985,7 +12993,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.142 (the release build) by record 106's probe
   `g5_first`.*
 
-  Planned for 0.1.157 (record 106).
+  Planned after 0.1.159 (record 106; see the release roadmap).
 
   *Reproduced against 0.1.148 (the release build) by record 106's probe
   `g/g5_first`: the decline still says "its arm `other` handles `Loaded`
@@ -13003,13 +13011,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.141 and 0.1.142 (the release build) by record 106's
   probe `h1_lcvariant`.*
 
-  Planned for 0.1.157 (record 106).
+  Planned after 0.1.159 (record 106; see the release roadmap).
 
   *Reproduced against 0.1.147 (the release build) by record 106's probe
   `g/h1_lcvariant`: `glyph fix` applies the E0220 rename and still declines
   the E0200 it read before the rename.*
 
   *Reproduced against 0.1.153 (the release build) by record 106's probe `g/h1_lcvariant`: `glyph fix` applies the E0220 rename to `Loaded` and still declines the E0200 listing `Loaded`, though `check` on the fixed file reports no diagnostics.*
+
+  *Reproduced against 0.1.159 (the release build): unchanged, after the applied E0220 rename `glyph fix` still declines the stale E0200, and the file then checks clean.*
 
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
@@ -13036,6 +13046,8 @@ and is the owner's to confirm.
   check on an unsupported type is not implemented``.*
 
   *Reproduced against 0.1.153 (the release build) by record 107's probes `a`, `b` and `d`: `is w.P` with `import w` and a checkable `w.P` is ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while `w.P.is(v)` in the same module checks clean.*
+
+  *Reproduced against 0.1.159 (the release build): unchanged, record 107's a, b and d are E0300; the `w.P.is(v)` control checks clean.*
 
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
@@ -13319,6 +13331,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.153 (the release build): under `check --no-tsc`, `let r: Record<Tier, int> = { a: 1, }`, `{}`, `{ a: 1, b: 2, c: 3, }`, `mut r["zzz"] = 3`, `Record<bool, int>`, `Record<Doc, int>` and `Record<Nullable<Tier>, int>` exit 0, while full `check` refuses them through `tsc` (TS2741, TS7053, TS2344). Record 113's s6, t5 and t6 are now refused by G373's key rules and no longer show this gap.*
 
+  *Reproduced against 0.1.159 (the release build): unchanged, the missing, empty, extra, write, `bool`-key, record-key and nullable-key probes pass `--no-tsc` and are TS2741, TS2739, TS2353, TS7053 and TS2344 with `tsc`.*
+
 - **G373. [FIXED] A `Record<string, V>` stands where a `Record<K, V>` with a narrower
   key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
   return r }`, a `record.set` or `record.remove` result, and record 113's t5
@@ -13382,6 +13396,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.147 by record 113's probe v3.*
 
   *Reproduced against 0.1.153 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``.*
+
+  *Reproduced against 0.1.159 (the release build): unchanged, record 113's `v3` is E0304 on `Idx<Tier>`.*
 
 - **G375. A `Record` check reports the whole map, not the entry.** A bad
   value, a stray key and a missing member all report ``field `m` must be
@@ -14154,6 +14170,8 @@ and is the owner's to confirm.
   `taint.sanitize` and `sqlite.from_trusted`.`` for the `LIKE '%${name}%'`
   query.*
 
+  *Reproduced against 0.1.159 (the release build): unchanged, a `LIKE '%${name}%'` query and a `'${first} ${last}'` query are E0239 with the general help and no rewrite.*
+
 - **G412. [FIXED] The formatter and the emitter erase a written `unknown` on a
   lambda parameter.** The parser recorded an omitted lambda annotation as a
   written `unknown` path, so the two were one node and three stages read it
@@ -14272,6 +14290,8 @@ and is the owner's to confirm.
   declared `m: Record<string, unknown>` read `m[k]` is E0224 on the same
   binary.*
 
+  *Reproduced against 0.1.159 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210.*
+
 - **G416. How an `unknown` renders as text.** `string.from(v)` is `String(v)`,
   so an `unknown` holding a record prints `[object Object]` and one holding an
   `Error` prints `Error: message`. Record 130 (F2) let `string.from` take a
@@ -14357,4 +14377,19 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the 0.1.159 branch build, before the version
   bump): `let cb: fn(number) -> void = save_void` gives ``[E0204] type
   mismatch: expected `function`, found `async function` `` with that help.*
+
+- **G422. A refused callback erases a result its argument does not decide.**
+  When an argument is refused for its kind of function (E0211), the call's
+  result is erased to `Unknown` if its declared return mentions a type
+  parameter the refused parameter's type also mentions. That is right for
+  `array.map`'s `U`, which only the callback binds, and too wide for
+  `fn pick<T>(x: T, f: fn(T) -> void) -> T`, where `x` binds `T`: `let s:
+  string = pick(5, async fn(n) { .. })` reports only E0211, and the E0204
+  appears once the callback is fixed. The build fails either way; the second
+  error is deferred, not lost. Erase only a type parameter bound solely
+  through the refused argument. Found by record 149.
+
+  *Reproduced against 0.1.159 (the release build) with record 149's probe
+  `t/d.glyph`: `let s: string = pick(5, async fn(n) { await save(1) })` gives
+  E0211 and no E0204.*
 

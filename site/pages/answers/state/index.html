@@ -2,10 +2,13 @@
 title: How do I share mutable state between functions? · Glyph
 description: Glyph has no mutable globals. Shared state lives in a std/store: a module-level const whose get, set and update are the only writes, found in one search.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/react/ | &larr; Previous | Does it work with React: components, hooks, and Context?
 next: /answers/language/ | Next &rarr; | Is this a real language, or a toy with gaps?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">14 &middot; Shared state</p>
       <h1 class="q-title">How do I share mutable state between functions?</h1>
@@ -19,13 +22,11 @@ next: /answers/language/ | Next &rarr; | Is this a real language, or a toy with 
         <code>.set(</code> or <code>.update(</code> you can grep for.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">See it</h2>
-        <p>
-          Declare the store once at module scope. Every function in the module shares it. No
-          <code>let</code> threaded through <code>main</code>, no capturing closures:
-        </p>
-      </div>
+      <h2 class="ak-h" id="see-it">See it<a class="ak-anchor" href="#see-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Declare the store once at module scope. Every function in the module shares it. No
+        <code>let</code> threaded through <code>main</code>, no capturing closures:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -68,33 +69,40 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">Why a store, and not a mutable global</h2>
-        <p>
-          This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local
-          assignments and module bindings <code>const</code>, because a scattered set of writable
-          globals is exactly what makes state hard to reason about and hard to <em>find</em>. A
+      <h2 class="ak-h" id="why-a-store-and-not-a-mutable-global">Why a store, and not a mutable global<a class="ak-anchor" href="#why-a-store-and-not-a-mutable-global" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        This is a deliberate design choice. Glyph keeps <code>mut</code> restricted to local
+        assignments and module bindings <code>const</code>, because a scattered set of writable
+        globals is exactly what makes state hard to reason about and hard to <em>find</em>.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>The binding never moves</b>A
           store needs neither rule loosened: the <code>const s</code> binding is immutable, and the
-          value inside changes only through <code>set</code>/<code>update</code>. So shared state
+          value inside changes only through <code>set</code>/<code>update</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>A library, not syntax</b>So shared state
           arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened
           mutation rules), and the mutation lives in exactly one audited place instead of
-          spread across your program.
-        </p>
-        <p>
-          One sharp edge, shared with TypeScript: an empty collection can't infer its element type,
-          so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>.
-          A scalar store (<code>create(0)</code>) infers fine.
-        </p>
-      </div>
+          spread across your program.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        One sharp edge, shared with TypeScript: an empty collection can't infer its element type,
+        so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>.
+        A scalar store (<code>create(0)</code>) infers fine.
+      </p></div>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">On the way</h3>
-          <p>Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.</span></span></li>
+          </ul>
+        </section>
       </div>

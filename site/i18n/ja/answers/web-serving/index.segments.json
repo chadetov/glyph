@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/web-serving/index.html",
   "locale": "ja",
-  "source_hash": "8027a10034b53500",
+  "source_hash": "d140a7206bb4ccec",
   "segments": [
     {
       "id": "title",
@@ -197,10 +197,10 @@
       "tr": "<b>ヘッダの値</b>Node がヘッダに書き込むのを拒否する文字は、出力時に値から取り除かれます。そのためクエリパラメータから組み立てた <code>location</code> が 2 つ目のヘッダや 2 つ目のレスポンスを注入することはできず、短縮 URL に含まれる絵文字でサーバーが落ちることもありません。"
     },
     {
-      "id": "h-490a6cd4",
+      "id": "h-a55fdf4c",
       "kind": "html",
-      "en": "<b>Form bodies</b>And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
-      "tr": "<b>フォームのボディ</b>また <code>form(req)</code> は、パーセントエスケープと一緒に <code>+</code> を空白としてデコードします。手作りのフォームのパースがよく見落とす組み合わせです。生のボディを読むので、自分でパースするハンドラのための <code>req.body</code> はそのまま残ります。"
+      "en": "<b>Form bodies</b><code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "tr": "<b>フォームのボディ</b><code>form(req)</code> は、パーセントエスケープと一緒に <code>+</code> を空白としてデコードします。手作りのフォームのパースがよく見落とす組み合わせです。生のボディを読むので、自分でパースするハンドラのための <code>req.body</code> はそのまま残ります。"
     },
     {
       "id": "h-b55f380c",

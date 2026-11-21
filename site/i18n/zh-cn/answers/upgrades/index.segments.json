@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/upgrades/index.html",
   "locale": "zh-cn",
-  "source_hash": "d07b464c988f9441",
+  "source_hash": "de023b1d5a6b401b",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "历史 <span class=\"hint\">doctor 以前打印的内容</span>"
     },
     {
-      "id": "h-154952dd",
+      "id": "h-476f059a",
       "kind": "html",
-      "en": "That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
-      "tr": "如果落后的是你 <code>PATH</code> 上的编译器，这个命令就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。"
+      "en": "<code>upgrade</code> is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
+      "tr": "如果落后的是你 <code>PATH</code> 上的编译器，<code>upgrade</code> 这个命令就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。"
     },
     {
       "id": "h-c1acb4b2",

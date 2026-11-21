@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/web-serving/index.html",
   "locale": "zh-cn",
-  "source_hash": "8027a10034b53500",
+  "source_hash": "d140a7206bb4ccec",
   "segments": [
     {
       "id": "title",
@@ -197,9 +197,9 @@
       "tr": "<b>响应头的值</b>Node 拒绝写入响应头的任何字符都会在输出时从值中剔除，所以用查询参数构造的 <code>location</code> 无法注入第二个响应头或第二个响应，短链接中的 emoji 也无法让服务器崩溃。"
     },
     {
-      "id": "h-490a6cd4",
+      "id": "h-a55fdf4c",
       "kind": "html",
-      "en": "<b>Form bodies</b>And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "en": "<b>Form bodies</b><code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
       "tr": "<b>表单请求体</b><code>form(req)</code> 会把 <code>+</code> 解码为空格，同时处理百分号转义，手写的表单解析通常会漏掉这一对；它读取的是原始请求体，所以对于自己解析请求体的处理函数，<code>req.body</code> 保持不变。"
     },
     {

@@ -1,7 +1,7 @@
 ---
 title: ¿Puedo servir una página web, o solo una API JSON? · Glyph
 description: std/http sirve páginas HTML, redirecciones, cabeceras de respuesta personalizadas y envíos de formularios, no solo JSON, con las cabeceras de respuesta modeladas por el type checker.
-source_hash: 8027a10034b53500
+source_hash: d140a7206bb4ccec
 prev: /answers/finance/ | &larr; Anterior | ¿Puedo confiarle dinero, y entradas que no controlo?
 next: /answers/interactive-cli/ | Siguiente &rarr; | ¿Puedo escribir un programa en el que alguien teclee?
 ---
@@ -90,7 +90,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
       <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Dos detalles que de otro modo harías mal a mano<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Valores de cabecera</b>Cualquier carácter que Node se niega a escribir en una cabecera se elimina del valor al salir, así que un <code>location</code> construido a partir de un parámetro de la query no puede inyectar una segunda cabecera ni una segunda respuesta, y un emoji en una URL acortada no puede tumbar el servidor.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Cuerpos de formulario</b>Y <code>form(req)</code> decodifica <code>+</code> como espacio junto con los escapes de porcentaje, la pareja que suele olvidar el parseo de formularios hecho a mano; lee el cuerpo en bruto, así que <code>req.body</code> queda intacto para los handlers que lo parsean por su cuenta.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Cuerpos de formulario</b><code>form(req)</code> decodifica <code>+</code> como espacio junto con los escapes de porcentaje, la pareja que suele olvidar el parseo de formularios hecho a mano; lee el cuerpo en bruto, así que <code>req.body</code> queda intacto para los handlers que lo parsean por su cuenta.</li>
       </ul>
 
       <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>

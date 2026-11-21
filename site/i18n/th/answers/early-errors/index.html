@@ -1,7 +1,7 @@
 ---
 title: ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า? · Glyph
 description: Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc
-source_hash: 9388fb478e6fc44c
+source_hash: 39590229d161d4c3
 prev: /answers/tooling/ | &larr; ก่อนหน้า | ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?
 next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?
 ---
@@ -66,7 +66,7 @@ next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse �
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>await</code> นอก <code>async fn</code></li>
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b>arm ของ <code>match</code> ที่ไม่ให้ค่าในขณะที่ <code>match</code> ถูกใช้เป็นค่า</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>และการ assign ที่เขียนโดยไม่มี <code>mut</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>การ assign ที่เขียนโดยไม่มี <code>mut</code></li>
       </ul>
       <p class="ak-lede">แต่ละข้อระบุกฎ อ้าง decision ที่อยู่เบื้องหลัง และแสดงก่อนและหลัง</p>
 

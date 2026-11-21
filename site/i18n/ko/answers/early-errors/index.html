@@ -1,7 +1,7 @@
 ---
 title: Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요? · Glyph
 description: Glyph는 async fn 밖의 await, 값을 만들지 않는 match arm, 빠진 mut를 tsc보다 먼저, 규칙과 수정 방법과 함께 여러분의 소스 기준으로 보고합니다.
-source_hash: 9388fb478e6fc44c
+source_hash: 39590229d161d4c3
 prev: /answers/tooling/ | &larr; 이전 | 에디터, 디버깅, 오류 경험은 어떤가요?
 next: /answers/parse-errors/ | 다음 &rarr; | 파싱이 실패하면 이유를 알 수 있나요?
 ---
@@ -66,7 +66,7 @@ next: /answers/parse-errors/ | 다음 &rarr; | 파싱이 실패하면 이유를 
       <ul class="ak-cards">
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>async fn</code> 밖의 <code>await</code></li>
         <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b><code>match</code>를 값으로 쓰는데 값을 만들지 않는 <code>match</code> arm</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>그리고 <code>mut</code> 없이 쓴 대입</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b><code>mut</code> 없이 쓴 대입</li>
       </ul>
       <p class="ak-lede">각각 규칙을 짚고, 그 뒤의 결정을 인용하며, 수정 전후를 보여 줍니다.</p>
 

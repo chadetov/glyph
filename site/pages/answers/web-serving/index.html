@@ -120,7 +120,7 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
           in a header is stripped from the value on the way out, so a <code>location</code> built
           from a query parameter cannot inject a second header or a second response, and an emoji
           in a shortened URL cannot take the server down.</li>
-        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form bodies</b>And <code>form(req)</code> decodes
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form bodies</b><code>form(req)</code> decodes
           <code>+</code> as a space along with percent escapes, the pair that hand-rolled form
           parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for
           handlers that parse it themselves.</li>

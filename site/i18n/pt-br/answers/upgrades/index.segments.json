@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/upgrades/index.html",
   "locale": "pt-br",
-  "source_hash": "d07b464c988f9441",
+  "source_hash": "de023b1d5a6b401b",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "Histórico <span class=\"hint\">o que o doctor sugeria antes</span>"
     },
     {
-      "id": "h-154952dd",
+      "id": "h-476f059a",
       "kind": "html",
-      "en": "That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
-      "tr": "Esse é o comando errado quando o que está desatualizado é o compilador no seu <code>PATH</code>, e por um tempo o <code>doctor</code> sugeria ele mesmo assim, apontando uma instalação global para um manifest que ela talvez nem tenha."
+      "en": "<code>upgrade</code> is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
+      "tr": "<code>upgrade</code> é o comando errado quando o que está desatualizado é o compilador no seu <code>PATH</code>, e por um tempo o <code>doctor</code> sugeria ele mesmo assim, apontando uma instalação global para um manifest que ela talvez nem tenha."
     },
     {
       "id": "h-c1acb4b2",

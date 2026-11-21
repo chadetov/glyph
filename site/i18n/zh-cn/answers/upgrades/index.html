@@ -1,7 +1,7 @@
 ---
 title: 新的 Glyph 版本会破坏我的构建吗？ · Glyph
 description: Glyph 项目会精确固定编译器版本，所以新版本不会意外进入你的构建。glyph doctor 告诉你有新版本，glyph upgrade 负责升级。
-source_hash: d07b464c988f9441
+source_hash: de023b1d5a6b401b
 prev: /answers/ai-authoring/ | &larr; 上一篇 | AI 能可靠地写一门它几乎没见过的语言吗？
 next: /answers/imports/ | 下一篇 &rarr; | 我能使用现有的 TypeScript、JavaScript 和 npm 库吗？
 ---
@@ -118,7 +118,7 @@ glyph upgrade: build before you commit; a new release may report diagnostics
       </p></div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">doctor 以前打印的内容</span></summary><div class="body">
         <p>
-          如果落后的是你 <code>PATH</code> 上的编译器，这个命令就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。
+          如果落后的是你 <code>PATH</code> 上的编译器，<code>upgrade</code> 这个命令就不对了，而有一段时间 <code>doctor</code> 照样会打印它，让全局安装去修改一个可能并不存在的清单文件。
         </p>
       </div></details>
 

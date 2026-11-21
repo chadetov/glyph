@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/upgrades/index.html",
   "locale": "ko",
-  "source_hash": "d07b464c988f9441",
+  "source_hash": "de023b1d5a6b401b",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "이력 <span class=\"hint\">doctor가 예전에 출력하던 것</span>"
     },
     {
-      "id": "h-154952dd",
+      "id": "h-476f059a",
       "kind": "html",
-      "en": "That is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
-      "tr": "뒤처진 것이 <code>PATH</code>에 있는 컴파일러라면 맞지 않는 명령인데, 한동안 <code>doctor</code>는 그래도 이 명령을 출력해서, 전역 설치를 있을지도 모르는 매니페스트로 안내했습니다."
+      "en": "<code>upgrade</code> is the wrong command when what is behind is the compiler on your <code>PATH</code>, and for a while <code>doctor</code> printed it anyway, pointing a global install at a manifest it may not have.",
+      "tr": "뒤처진 것이 <code>PATH</code>에 있는 컴파일러라면 <code>upgrade</code>는 맞지 않는 명령인데, 한동안 <code>doctor</code>는 그래도 이 명령을 출력해서, 전역 설치를 있을지도 모르는 매니페스트로 안내했습니다."
     },
     {
       "id": "h-c1acb4b2",

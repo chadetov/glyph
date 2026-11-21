@@ -875,7 +875,7 @@ pub enum TypeError {
         span: Span,
     },
 
-    /// G385, record 129 (D5y): a value with no text form converted to text.
+    /// G385, record 129 (D54): a value with no text form converted to text.
     /// One rule covers the three implicit conversions: a `${}` in a `"..."`
     /// or `"""..."""` literal, an operand of `+` whose other operand is a
     /// string, and the argument of `string.from`. Text-like is an allowlist

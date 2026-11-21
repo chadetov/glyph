@@ -2271,7 +2271,7 @@ impl Assigner<'_> {
 
     fn walk_expr(&mut self, e: &Expr) {
         self.walk_expr_node(e);
-        // D5y: each implicit conversion to text is judged once its operands
+        // D54: each implicit conversion to text is judged once its operands
         // are typed, by one rule, whichever of the three spellings it takes.
         self.check_text_conversions(e);
     }

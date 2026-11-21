@@ -123,7 +123,9 @@ fn demo() -> number {
 }
 ```
 
-Lambdas are `fn(params) { body }`; the last expression is the return value.
+Lambdas are `fn(params) { body }`; the last expression is the return value. A
+parameter written without a type takes the one its position expects, so `n` is a
+`number` here because `apply_twice` declares `f: fn(n: number) -> number`.
 
 ## What you get for the restrictions
 

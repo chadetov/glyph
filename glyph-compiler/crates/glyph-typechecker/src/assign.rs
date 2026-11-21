@@ -374,6 +374,7 @@ pub fn assign_types_with_relations(
             sql_refusals: RefCell::new(Vec::new()),
             reassigned: OnceCell::new(),
             narrowed_consts: HashMap::new(),
+            lambda_contexts: HashMap::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -487,6 +488,7 @@ pub fn assignability(
         sql_refusals: RefCell::new(Vec::new()),
         reassigned: OnceCell::new(),
         narrowed_consts: HashMap::new(),
+        lambda_contexts: HashMap::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -546,6 +548,7 @@ pub fn declared_record_fields(
         sql_refusals: RefCell::new(Vec::new()),
         reassigned: OnceCell::new(),
         narrowed_consts: HashMap::new(),
+        lambda_contexts: HashMap::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1338,6 +1341,14 @@ struct Assigner<'a> {
     /// A module `const` narrowed by the `is` arm being walked (record 134,
     /// B2). Read before the declaration's own type.
     narrowed_consts: HashMap<SymbolId, Ty>,
+    /// The contextual type of each parameter of a lambda about to be walked,
+    /// keyed by the lambda's span start (D5z). Filled by
+    /// `register_lambda_context` from the slot the lambda stands in (a call
+    /// argument, an annotated `let`/`const`, a `return`, a record field) and
+    /// consumed by the lambda arm. A parameter written with an annotation
+    /// ignores its entry; a missing entry or an `Unknown` one leaves an
+    /// omitted parameter not typed here.
+    lambda_contexts: HashMap<u32, Vec<Ty>>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1701,6 +1712,10 @@ impl Assigner<'_> {
                 self.return_stack.pop();
             }
             Decl::Const(c) => {
+                if let Some(te) = &c.ty {
+                    let slot = self.lowerer.lower(te);
+                    self.register_lambda_context(&c.value, &slot);
+                }
                 self.walk_expr(&c.value);
                 // An annotated module `const` gets the check an annotated `let`
                 // gets (G149). Lowering the const to its annotation made every
@@ -1922,11 +1937,13 @@ impl Assigner<'_> {
     }
 
     /// A lambda's parameters. A written annotation lowers like a
-    /// declaration's (a written `unknown` is the judged `unknown`); an omitted
-    /// one is `Ty::Unknown`, "not typed here", which no rule judges, and it
-    /// records no written type for diagnostics to quote.
-    fn bind_lambda_param_tys(&mut self, params: &[LambdaParam]) {
-        for p in params {
+    /// declaration's (a written `unknown` is the judged `unknown`), whatever
+    /// the slot expects. An omitted one takes the contextual type at its
+    /// position (D5z), and is `Ty::Unknown`, "not typed here", which no rule
+    /// judges, when the slot supplies none. An omitted one records no written
+    /// type for diagnostics to quote.
+    fn bind_lambda_param_tys(&mut self, params: &[LambdaParam], context: Option<&[Ty]>) {
+        for (i, p) in params.iter().enumerate() {
             match &p.ty {
                 Some(te) => {
                     let ty = self.lowerer.lower(te);
@@ -1934,8 +1951,150 @@ impl Assigner<'_> {
                     self.local_type_exprs.insert(p.span.start, te.clone());
                 }
                 None => {
-                    self.local_tys.insert(p.span.start, Ty::Unknown);
+                    let ty = context.and_then(|c| c.get(i)).cloned().unwrap_or(Ty::Unknown);
+                    self.local_tys.insert(p.span.start, ty);
                 }
+            }
+        }
+    }
+
+    /// Record the contextual parameter types for the lambdas `e` reaches
+    /// when it stands where `expected` is declared (D5z): `e` itself when it
+    /// is a lambda with an omitted annotation and `expected` is a function
+    /// type (read through aliases), and the field values of a record literal
+    /// against a record type, field by field. Anything else supplies no
+    /// context.
+    fn register_lambda_context(&mut self, e: &Expr, expected: &Ty) {
+        match e {
+            Expr::Lambda { params, span, .. } if params.iter().any(|p| p.ty.is_none()) => {
+                let Some(slots) = self.fn_params_of(expected) else {
+                    return;
+                };
+                let tys: Vec<Ty> = (0..params.len())
+                    .map(|i| slots.get(i).map_or(Ty::Unknown, |p| p.ty.clone()))
+                    .collect();
+                if tys.iter().any(|t| !t.is_unknown()) {
+                    self.lambda_contexts.insert(span.start, tys);
+                }
+            }
+            Expr::Object { fields, .. } => {
+                let Some(declared) = self.record_fields_of(expected) else {
+                    return;
+                };
+                for f in fields {
+                    if let ObjectField::KeyValue { key, value, .. } = f {
+                        if let Some(rf) = declared.iter().find(|d| d.name == *key) {
+                            self.register_lambda_context(value, &rf.ty);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The parameters of the function type `ty` is, read through second
+    /// names and `type` aliases (generic ones applied). `None` for any other
+    /// type, `Unknown` included.
+    fn fn_params_of(&self, ty: &Ty) -> Option<Vec<FnParam>> {
+        let mut current = ty.clone();
+        // Each step goes one alias further; the bound stops a cycle that
+        // crosses modules, where the per-module guard cannot see it.
+        for _ in 0..16 {
+            current = match &current {
+                Ty::Fn { params, .. } => return Some(params.clone()),
+                Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
+                Ty::App { base, args } => self.alias_body(base, args)?,
+                _ => return None,
+            };
+        }
+        None
+    }
+
+    /// Walk the arguments of a call that need a contextual type (D5z), after
+    /// every other argument has been walked. Each one is walked against its
+    /// parameter's type with the callee's type parameters instantiated from
+    /// what the earlier arguments bound and from written type arguments, so
+    /// `array.map(users, fn(u) -> string { .. })` types `u` as the element of
+    /// `users`. A type parameter nothing has bound yet is `Unknown` there,
+    /// never itself: a parameter typed `T` would be judged as an arbitrary
+    /// type the program never chose. Each walked lambda's own signature then
+    /// binds what it can for the arguments after it.
+    fn walk_contextual_args(
+        &mut self,
+        callee: &Expr,
+        type_args: &[TypeExpr],
+        args: &[Expr],
+        deferred: &[bool],
+    ) {
+        let callee_ty = self.tm.get(callee.span()).clone();
+        let Ty::Fn {
+            params, type_params, ..
+        } = &callee_ty
+        else {
+            for (a, _) in args.iter().zip(deferred).filter(|(_, d)| **d) {
+                self.walk_expr(a);
+            }
+            return;
+        };
+        // The names the callee binds: its declared list, else (a stdlib
+        // signature, modeled without one) every parameter its type names.
+        let declared = self.callee_generics(callee).or_else(|| type_params.clone());
+        let names: Vec<Ident> = match &declared {
+            Some(list) => list.clone(),
+            None => {
+                let mut found = Vec::new();
+                for p in params {
+                    collect_param_names(&p.ty, &mut found);
+                }
+                found
+            }
+        };
+        let mut subst: HashMap<Ident, Ty> = HashMap::new();
+        for ((p, a), d) in params.iter().zip(args).zip(deferred) {
+            if !*d {
+                let found = self.widen_fresh_literals(a, self.tm.get(a.span()).clone());
+                collect_type_param_bindings(&p.ty, &found, &mut subst);
+            }
+        }
+        if let Some((key, field)) = self.stdlib_callee(callee) {
+            let explicit = crate::stdlib::explicit_type_params(&key, &field);
+            let written = explicit.len() == type_args.len();
+            for (i, (name, unwritten)) in explicit.iter().enumerate() {
+                match type_args.get(i).filter(|_| written) {
+                    Some(t) => {
+                        subst.insert(Ident::from(*name), self.lowerer.lower(t));
+                    }
+                    None => {
+                        subst.entry(Ident::from(*name)).or_insert(unwritten.ty());
+                    }
+                }
+            }
+            if key == "std/record" {
+                subst.insert(Ident::from("K"), self.record_arg_key(args.first()));
+            }
+        }
+        if let Some(list) = declared.filter(|l| !type_args.is_empty() && l.len() == type_args.len()) {
+            for (name, t) in list.into_iter().zip(type_args) {
+                subst.insert(name, self.lowerer.lower(t));
+            }
+        }
+        for (i, (a, d)) in args.iter().zip(deferred).enumerate() {
+            if !*d {
+                continue;
+            }
+            if let Some(p) = params.get(i) {
+                let mut at = subst.clone();
+                for n in &names {
+                    at.entry(n.clone()).or_insert(Ty::Unknown);
+                }
+                let expected = substitute_type_params(&p.ty, &at);
+                self.register_lambda_context(a, &expected);
+                self.walk_expr(a);
+                let found = self.tm.get(a.span()).clone();
+                collect_type_param_bindings(&p.ty, &found, &mut subst);
+            } else {
+                self.walk_expr(a);
             }
         }
     }
@@ -1966,6 +2125,8 @@ impl Assigner<'_> {
             Stmt::Let(l) => {
                 if let Some(te) = &l.ty {
                     self.check_nullable_args(te);
+                    let slot = self.lowerer.lower(te);
+                    self.register_lambda_context(&l.value, &slot);
                 }
                 self.walk_expr(&l.value);
                 if let Expr::Match { arms, .. } = &l.value {
@@ -2088,6 +2249,9 @@ impl Assigner<'_> {
             },
             Stmt::Return(r) => {
                 if let Some(v) = &r.value {
+                    if let Some(slot) = self.return_stack.last().map(|er| er.ty.clone()) {
+                        self.register_lambda_context(v, &slot);
+                    }
                     self.walk_expr(v);
                     self.check_return_type(v);
                     // `return match ...` in a `void` callable returns nothing
@@ -2665,8 +2829,16 @@ impl Assigner<'_> {
                 if let Some(c) = self.null_chains.take(callee.span()) {
                     self.null_chains.open(*span, c);
                 }
-                for a in args {
+                // An argument that needs a contextual type (a lambda with an
+                // omitted annotation, or a record literal holding one) is
+                // walked after the others have bound the callee's type
+                // parameters (D5z).
+                let deferred: Vec<bool> = args.iter().map(needs_context).collect();
+                for (a, _) in args.iter().zip(&deferred).filter(|(_, d)| !**d) {
                     self.walk_expr(a);
+                }
+                if deferred.iter().any(|d| *d) {
+                    self.walk_contextual_args(callee, type_args, args, &deferred);
                 }
                 // Synthesize the call's type from the callee's signature.
                 // When the callee resolves to a `Ty::Fn` (a module-level
@@ -2988,7 +3160,8 @@ impl Assigner<'_> {
                 let er = self.enclosing_return(return_ty.as_ref(), *is_async);
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
-                self.bind_lambda_param_tys(params);
+                let context = self.lambda_contexts.remove(&span.start);
+                self.bind_lambda_param_tys(params, context.as_deref());
                 self.walk_block(body);
                 if wants_value {
                     self.check_value_match_tail(body);
@@ -3008,6 +3181,15 @@ impl Assigner<'_> {
                     if let (true, Ty::Fn { return_ty, .. }) = (pending_tail, &mut ty) {
                         *return_ty = Arc::new(Ty::Unknown);
                         self.refused_lambdas.insert(*span);
+                    }
+                }
+                // The signature carries what the parameters were typed as, so
+                // the lambda's own type agrees with its parameters' (D5z).
+                if let (Some(context), Ty::Fn { params: slots, .. }) = (&context, &mut ty) {
+                    for ((slot, p), c) in slots.iter_mut().zip(params).zip(context) {
+                        if p.ty.is_none() {
+                            slot.ty = c.clone();
+                        }
                     }
                 }
                 self.tm.insert(*span, ty);
@@ -9726,6 +9908,53 @@ fn weak_record_disjoint(found: &Ty, declared: &[RecordField]) -> bool {
 }
 
 /// Whether a type parameter appears anywhere in `ty`.
+/// Whether `e` reads a contextual type (D5z): a lambda with at least one
+/// parameter written without an annotation, or a record literal one of whose
+/// field values is such a lambda, at any depth.
+fn needs_context(e: &Expr) -> bool {
+    match e {
+        Expr::Lambda { params, .. } => params.iter().any(|p| p.ty.is_none()),
+        Expr::Object { fields, .. } => fields.iter().any(|f| {
+            matches!(f, ObjectField::KeyValue { value, .. } if needs_context(value))
+        }),
+        _ => false,
+    }
+}
+
+/// Every type parameter `ty` names, in first-seen order, once each.
+fn collect_param_names(ty: &Ty, out: &mut Vec<Ident>) {
+    match ty {
+        Ty::Param { name, .. } if !out.contains(name) => out.push(name.clone()),
+        Ty::App { base, args } => {
+            collect_param_names(base, out);
+            for a in args {
+                collect_param_names(a, out);
+            }
+        }
+        Ty::Record { fields } => {
+            for f in fields {
+                collect_param_names(&f.ty, out);
+            }
+        }
+        Ty::Fn {
+            params, return_ty, ..
+        } => {
+            for p in params {
+                collect_param_names(&p.ty, out);
+            }
+            collect_param_names(return_ty, out);
+        }
+        Ty::Union { variants } => {
+            for v in variants {
+                if let Some(p) = &v.payload {
+                    collect_param_names(p, out);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn ty_has_param(ty: &Ty) -> bool {
     match ty {
         Ty::Param { .. } => true,
@@ -16978,6 +17207,7 @@ component View(props: { s: Status }) -> Component {
             sql_refusals: RefCell::new(Vec::new()),
             reassigned: OnceCell::new(),
             narrowed_consts: HashMap::new(),
+            lambda_contexts: HashMap::new(),
         };
         f(&assigner)
     }

@@ -573,13 +573,17 @@ pub fn hover_at(
 }
 
 /// What hover says at a use of a lambda parameter written without an
-/// annotation. Glyph's checker has no type for it ("not typed here"), and an
-/// empty answer would read the same as a failed query (record 134).
+/// annotation whose position supplies no type either (D5z): no function type
+/// is expected there, or the one expected leaves it open. Glyph's checker has
+/// no type for it ("not typed here"), and an empty answer would read the same
+/// as a failed query (record 134). One that takes a type from its position
+/// hovers as that type, through the expression reading.
 pub const OMITTED_LAMBDA_PARAM_NOTE: &str =
-    "not typed here: the parameter has no annotation (contextual typing is G414)";
+    "not typed here: the parameter has no annotation, and its position supplies no type";
 
 /// [`OMITTED_LAMBDA_PARAM_NOTE`] when `offset` is on a use of a lambda
-/// parameter whose annotation is omitted; `None` otherwise.
+/// parameter whose annotation is omitted and the expression reading found no
+/// type for it; `None` otherwise.
 fn omitted_lambda_param_note(module: &Module, resolved: &ResolvedModule, offset: usize) -> Option<String> {
     let ResolvedRef::Local(def) = innermost_ref(resolved, offset)? else {
         return None;
@@ -2738,18 +2742,22 @@ mod tests {
         assert_eq!(a.hover(text, binding), Some("a pending `number`".to_string()));
     }
 
-    /// Record 130: an omitted lambda annotation is "not typed here", and
-    /// hover says so in a note rather than answering nothing, which an agent
-    /// could not tell from a failed query (record 134); a written `unknown`
-    /// is the declared `unknown`. The parser used to synthesize a written
-    /// `unknown` for the omitted form, so both hovered `unknown`.
+    /// Record 130 and D5z: an omitted lambda annotation takes the type its
+    /// position supplies, so `p` passed where `fn(number) -> U` is expected
+    /// hovers `number`. With no type from its position it is "not typed
+    /// here", and hover says so in a note rather than answering nothing,
+    /// which an agent could not tell from a failed query (record 134). A
+    /// written `unknown` is the declared `unknown` whatever the position
+    /// expects. Before D5z the first `p` hovered the note too.
     #[test]
     fn hover_tells_an_omitted_lambda_annotation_from_a_written_unknown() {
-        let text = "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  let a = array.map(xs, fn(p) -> number { return p })\n  return array.map(a, fn(q: unknown) -> number { return q })\n}\n";
+        let text = "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  let a = array.map(xs, fn(p) -> number { return p })\n  let g = fn(r) -> number { return r }\n  return array.map(a, fn(q: unknown) -> number { return g(q) })\n}\n";
         let a = analyze_full(text).expect("parses");
-        let omitted = text.find("return p").unwrap() + 7;
+        let contextual = text.find("return p").unwrap() + 7;
+        assert_eq!(a.hover(text, contextual), Some("number".to_string()));
+        let omitted = text.find("return r").unwrap() + 7;
         assert_eq!(a.hover(text, omitted), Some(OMITTED_LAMBDA_PARAM_NOTE.to_string()));
-        let written = text.find("return q").unwrap() + 7;
+        let written = text.find("g(q)").unwrap() + 2;
         assert_eq!(a.hover(text, written), Some("unknown".to_string()));
     }
 

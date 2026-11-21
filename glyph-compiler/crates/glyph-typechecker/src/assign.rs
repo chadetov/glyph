@@ -2815,12 +2815,26 @@ impl Assigner<'_> {
                     self.check_value_match_tail(body);
                 }
                 self.return_stack.pop();
-                let ty = self.lowerer.lower_callable_signature(
+                let mut ty = self.lowerer.lower_callable_signature(
                     &[],
                     params,
                     return_ty.as_ref(),
                     *is_async,
                 );
+                // A sync lambda with no written return type returns its tail
+                // (the emitter's rule) and lowers to `void`. When that tail is
+                // a pending value it is E0238 at the tail, and a call of the
+                // lambda then has no type worth claiming: `void` would make
+                // `let n: number = f()` a second, false refusal (record 133).
+                if return_ty.is_none() && !*is_async {
+                    let pending_tail = matches!(
+                        body.stmts.last(),
+                        Some(Stmt::Expr(e)) if matches!(self.tm.get(e.span()), Ty::Pending(_))
+                    );
+                    if let (true, Ty::Fn { return_ty, .. }) = (pending_tail, &mut ty) {
+                        *return_ty = Arc::new(Ty::Unknown);
+                    }
+                }
                 self.tm.insert(*span, ty);
             }
             Expr::Jsx(j) => {
@@ -9646,7 +9660,7 @@ fn prelude_type_param_count(kind: PreludeKind) -> Option<usize> {
     })
 }
 
-fn type_expr_source(te: &TypeExpr) -> String {
+pub(crate) fn type_expr_source(te: &TypeExpr) -> String {
     match te {
         TypeExpr::Path { segments, .. } => segments
             .iter()

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/web-serving/index.html",
   "locale": "ru",
-  "source_hash": "3919e268d4a46ec8",
+  "source_hash": "8027a10034b53500",
   "segments": [
     {
       "id": "title",
@@ -59,24 +59,6 @@
       "tr": "Веб-страницу. <code>std/http</code> выставляет заголовки ответа, поэтому страница <code>text/html</code>, редирект 302, заголовок кэширования и отправка HTML-формы пишутся на обычном Glyph. Без Express и без рукописной прослойки на TypeScript."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Почему это важно"
-    },
-    {
-      "id": "h-a57473e4",
-      "kind": "html",
-      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders. The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
-      "tr": "До 0.1.46 ответ был <code>{ status, body }</code>, и сервер выбирал content type по форме тела: строка становилась <code>text/plain</code>, всё остальное JSON. Для API этого достаточно, а для всего, что отображает браузер, бесполезно. Выход был один: написать свой сервер на <code>node:http</code> в рукописном файле <code>.ts</code>, и тогда весь путь запроса оказывался вне проверки типов. Из-за двух недостающих конструкторов приходилось отдавать целую границу приложения."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Посмотрите сами"
-    },
-    {
       "id": "h-f74a4195",
       "kind": "html",
       "en": "This is the router of <code>examples/apps/shortlink/main.glyph</code>, a URL shortener that ships in the repo. An HTML form creates a code, a POST answers with a redirect so a browser reload never re-posts, and following a code is a 302 to the target:",
@@ -89,22 +71,136 @@
       "tr": "shortlink.glyph: HTML-страница, отправка формы и 302"
     },
     {
-      "id": "h-78792ee0",
+      "id": "h-7f462672",
       "kind": "html",
-      "en": "The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>. A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500. <code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
-      "tr": "Выпуском раньше то же приложение занимало в репозитории 615 строк, из них 121 приходилась на рукописный сервер на <code>node:http</code> в соседнем файле <code>.ts</code>, потому что <code>Location</code> и тело <code>text/html</code> нечем было записать. Теперь в нём 494 строки, и оно ничего не импортирует за пределами <code>std</code>. Обработчик возвращает <code>Result&lt;Response, string&gt;</code>, поэтому 404 это обычный <code>Ok</code>, а <code>Err</code> остаётся для того, на что приложение ответить не может, и сервер превращает его в 500. <code>serve</code> остаётся в ожидании, пока слушает порт, поэтому ничего не нужно делать вручную, чтобы процесс не завершился, а неудачная привязка к порту возвращается как значение."
+      "en": "<span>The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>.</span>",
+      "tr": "<span>Выпуском раньше то же приложение занимало в репозитории 615 строк, из них 121 приходилась на рукописный сервер на <code>node:http</code> в соседнем файле <code>.ts</code>, потому что <code>Location</code> и тело <code>text/html</code> нечем было записать. Теперь в нём 494 строки, и оно ничего не импортирует за пределами <code>std</code>.</span>"
     },
     {
-      "id": "h-3d3a95ed",
-      "kind": "html",
-      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten. <code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation. The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
-      "tr": "<code>Response</code> несёт обязательное поле <code>headers: Record&lt;string, string&gt;</code>. Именно обязательное, а не необязательное: его заполняет каждый конструктор, поэтому чтение <code>resp.headers</code> никогда не требует проверки на отсутствие, и про этот канал нельзя забыть. <code>with_header(resp, \"cache-control\", \"no-store\")</code> возвращает новый ответ, а не изменяет существующий, потому что в Glyph нельзя изменять поля записи. Проверка типов знает, что все три конструктора возвращают <code>Response</code>, поэтому обработчик с объявленным типом возврата <code>Result&lt;Response, string&gt;</code> проверяется в Glyph, а не <code>tsc</code> на сгенерированном выводе."
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
     },
     {
-      "id": "h-45380bd8",
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Two details you would otherwise get wrong by hand. Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down. And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
-      "tr": "Две детали, которые вручную легко сделать неправильно. Любой символ, который Node отказывается записать в заголовок, удаляется из значения на выходе, поэтому <code>location</code>, собранный из параметра запроса, не может внедрить второй заголовок или второй ответ, а эмодзи в сокращаемом URL не уронит сервер. Кроме того, <code>form(req)</code> декодирует <code>+</code> как пробел вместе с процентным кодированием, а именно эту пару обычно упускает самописный разбор форм; он читает сырое тело, поэтому <code>req.body</code> остаётся нетронутым для обработчиков, которые разбирают его сами."
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Почему это важно</a>"
+    },
+    {
+      "id": "h-ff3f4a0f",
+      "kind": "html",
+      "en": "<a href=\"#a-handler-returns-a-result\">A handler returns a Result</a>",
+      "tr": "<a href=\"#a-handler-returns-a-result\">Обработчик возвращает Result</a>"
+    },
+    {
+      "id": "h-2b7bb5dd",
+      "kind": "html",
+      "en": "<a href=\"#every-response-carries-headers\">Every response carries headers</a>",
+      "tr": "<a href=\"#every-response-carries-headers\">У каждого ответа есть заголовки</a>"
+    },
+    {
+      "id": "h-4fc3a27a",
+      "kind": "html",
+      "en": "<a href=\"#two-details-you-would-otherwise-get-wrong-by-hand\">Two details</a>",
+      "tr": "<a href=\"#two-details-you-would-otherwise-get-wrong-by-hand\">Две детали</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Текущее состояние</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-ef6ebb6b",
+      "kind": "html",
+      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders.",
+      "tr": "До 0.1.46 ответ был <code>{ status, body }</code>, и сервер выбирал content type по форме тела: строка становилась <code>text/plain</code>, всё остальное JSON. Для API этого достаточно, а для всего, что отображает браузер, бесполезно."
+    },
+    {
+      "id": "h-7a8b8e66",
+      "kind": "html",
+      "en": "The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
+      "tr": "Выход был один: написать свой сервер на <code>node:http</code> в рукописном файле <code>.ts</code>, и тогда весь путь запроса оказывался вне проверки типов. Из-за двух недостающих конструкторов приходилось отдавать целую границу приложения."
+    },
+    {
+      "id": "h-e9baf9ce",
+      "kind": "html",
+      "en": "A handler returns a <code>Result</code>",
+      "tr": "Обработчик возвращает <code>Result</code>"
+    },
+    {
+      "id": "h-77081098",
+      "kind": "html",
+      "en": "A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500.",
+      "tr": "Обработчик возвращает <code>Result&lt;Response, string&gt;</code>, поэтому 404 это обычный <code>Ok</code>, а <code>Err</code> остаётся для того, на что приложение ответить не может, и сервер превращает его в 500."
+    },
+    {
+      "id": "h-3b5e7a0f",
+      "kind": "html",
+      "en": "<code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
+      "tr": "<code>serve</code> остаётся в ожидании, пока слушает порт, поэтому ничего не нужно делать вручную, чтобы процесс не завершился, а неудачная привязка к порту возвращается как значение."
+    },
+    {
+      "id": "h-b2d86512",
+      "kind": "html",
+      "en": "Every response carries headers",
+      "tr": "У каждого ответа есть заголовки"
+    },
+    {
+      "id": "h-63e976c0",
+      "kind": "html",
+      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten.",
+      "tr": "<code>Response</code> несёт обязательное поле <code>headers: Record&lt;string, string&gt;</code>. Именно обязательное, а не необязательное: его заполняет каждый конструктор, поэтому чтение <code>resp.headers</code> никогда не требует проверки на отсутствие, и про этот канал нельзя забыть."
+    },
+    {
+      "id": "h-c203e854",
+      "kind": "html",
+      "en": "<b>A new response, not a mutation</b><code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation.",
+      "tr": "<b>Новый ответ, а не изменение</b><code>with_header(resp, \"cache-control\", \"no-store\")</code> возвращает новый ответ, а не изменяет существующий, потому что в Glyph нельзя изменять поля записи."
+    },
+    {
+      "id": "h-3d6a66c4",
+      "kind": "html",
+      "en": "<b>Checked in Glyph</b>The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
+      "tr": "<b>Проверяется в Glyph</b>Проверка типов знает, что все три конструктора возвращают <code>Response</code>, поэтому обработчик с объявленным типом возврата <code>Result&lt;Response, string&gt;</code> проверяется в Glyph, а не <code>tsc</code> на сгенерированном выводе."
+    },
+    {
+      "id": "h-0c451afb",
+      "kind": "html",
+      "en": "Two details you would otherwise get wrong by hand",
+      "tr": "Две детали, которые вручную легко сделать неправильно"
+    },
+    {
+      "id": "h-986368a4",
+      "kind": "html",
+      "en": "<b>Header values</b>Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down.",
+      "tr": "<b>Значения заголовков</b>Любой символ, который Node отказывается записать в заголовок, удаляется из значения на выходе, поэтому <code>location</code>, собранный из параметра запроса, не может внедрить второй заголовок или второй ответ, а эмодзи в сокращаемом URL не уронит сервер."
+    },
+    {
+      "id": "h-490a6cd4",
+      "kind": "html",
+      "en": "<b>Form bodies</b>And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "tr": "<b>Тела форм</b>Кроме того, <code>form(req)</code> декодирует <code>+</code> как пробел вместе с процентным кодированием, а именно эту пару обычно упускает самописный разбор форм; он читает сырое тело, поэтому <code>req.body</code> остаётся нетронутым для обработчиков, которые разбирают его сами."
     },
     {
       "id": "h-b55f380c",
@@ -119,10 +215,28 @@
       "tr": "Уже работает"
     },
     {
-      "id": "h-cc38faef",
+      "id": "h-c0206481",
       "kind": "html",
-      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.",
-      "tr": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> и <code>form</code>; заголовки ответа уходят в сеть, а content type выводится, только если вы его не задали; на входе доступны заголовки запроса, параметры запроса, сегменты пути и сырое тело; клиент сообщает полученные заголовки ответа."
+      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>",
+      "tr": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> и <code>form</code>"
+    },
+    {
+      "id": "h-03d88d87",
+      "kind": "html",
+      "en": "Response headers on the wire with the content type inferred only when you did not set one",
+      "tr": "Заголовки ответа уходят в сеть, а content type выводится, только если вы его не задали"
+    },
+    {
+      "id": "h-bb33f8db",
+      "kind": "html",
+      "en": "Request headers, query parameters, path segments, and the raw body on the way in",
+      "tr": "На входе доступны заголовки запроса, параметры запроса, сегменты пути и сырое тело"
+    },
+    {
+      "id": "h-524136e0",
+      "kind": "html",
+      "en": "The client reports the response headers it received.",
+      "tr": "Клиент сообщает полученные заголовки ответа."
     },
     {
       "id": "h-b63a305d",
@@ -131,10 +245,34 @@
       "tr": "В работе"
     },
     {
-      "id": "h-faa08bc9",
+      "id": "h-8837a801",
       "kind": "html",
-      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.",
-      "tr": "Процентное кодирование это пробел, который виден во фрагменте выше: <code>form</code> декодирует тело формы, но <code>encode_component</code> для сборки URL нет, поэтому сокращатель пишет свою функцию. На стороне клиента тоже не хватает таймаута, политики редиректов, <code>head</code> и итогового URL, на который привёл редирект. Сервера статических файлов и шаблонизатора нет, и их не планируется."
+      "en": "Percent encoding is the gap the snippet above shows",
+      "tr": "Процентное кодирование это пробел, который виден во фрагменте выше"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Подробнее"
+    },
+    {
+      "id": "h-45568864",
+      "kind": "html",
+      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own.",
+      "tr": "Процентное кодирование это пробел, который виден во фрагменте выше: <code>form</code> декодирует тело формы, но <code>encode_component</code> для сборки URL нет, поэтому сокращатель пишет свою функцию."
+    },
+    {
+      "id": "h-84527f52",
+      "kind": "html",
+      "en": "Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on.",
+      "tr": "На стороне клиента тоже не хватает таймаута, политики редиректов, <code>head</code> и итогового URL, на который привёл редирект."
+    },
+    {
+      "id": "h-bb1590b8",
+      "kind": "html",
+      "en": "There is no static-file server and no template engine, and there is no plan for either.",
+      "tr": "Сервера статических файлов и шаблонизатора нет, и их не планируется."
     }
   ]
 }

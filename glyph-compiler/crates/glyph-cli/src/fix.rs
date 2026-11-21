@@ -404,7 +404,7 @@ fn fix_one_file(
                     why,
                 }),
             },
-            "E0240" => match plan_e0240(&source, &module, d) {
+            "E0240" => match plan_e0240(&source, d) {
                 Ok(edit) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -443,7 +443,11 @@ fn fix_one_file(
         ));
     }
     std::fs::write(path, &new_source).map_err(|e| format!("{}: {e}", path.display()))?;
-    if !report.changed.iter().any(|c| c == path) {
+    // The import rule records the path it collected; the diagnostic rules
+    // record the one `place_diagnostic` built from the project root, which
+    // can spell the same file differently (relative and absolute). One file
+    // is counted once (record 151, F6).
+    if !report.changed.iter().any(|c| same_file(c, path)) {
         report.changed.push(path.to_path_buf());
     }
     report.applied.extend(applied);
@@ -479,87 +483,26 @@ fn e0200_decline(d: &Diagnostic) -> String {
 // E0240: `mut ` before a bare statement that changes its receiver
 // ---------------------------------------------------------------------------
 
-/// Insert `mut ` before a call that changes its receiver, when the call is a
-/// whole expression statement on a place (G380, D5).
+/// Insert `mut ` before a call that changes its receiver, when the checker
+/// decided that is the whole repair (G380, D5).
 ///
-/// The diagnostic's range is the call. The rule writes only when the parsed
-/// file holds an expression statement whose expression has exactly that
-/// range, is a method call, and calls it on a place, which is the one shape
-/// where `mut ` is the whole repair. The checker reports the other shapes
-/// under E0240 as well (a value, an arm of a statement `match`, a receiver
-/// that is not a place), and each of those is declined with the reason.
-fn plan_e0240(source: &str, module: &glyph_ast::Module, d: &Diagnostic) -> Result<(u32, u32, String), String> {
-    let (s, e) = range_bytes(source, d).ok_or("the diagnostic's range is not a byte range of this file")?;
-    let mut found = None;
-    for item in &module.items {
-        let body = match item {
-            Decl::Fn(f) => &f.body,
-            Decl::Component(c) => &c.body,
-            Decl::Const(c) => {
-                expr_statement_calls(&c.value, s as u32, e as u32, &mut found);
-                continue;
-            }
-            _ => continue,
-        };
-        block_statement_calls(body, s as u32, e as u32, &mut found);
-    }
-    match found {
-        Some(true) => Ok((s as u32, s as u32, "mut ".to_string())),
-        Some(false) => Err(
-            "the call's receiver is not a name, a field or an index, so `mut ` before it would not keep the change; \
-             bind the value with `let` first"
-                .to_string(),
-        ),
+/// The checker places every E0240 by the position it stands in, and marks
+/// the one shape `mut ` repairs: a statement whose value nothing reads, on a
+/// place. The rule applies that decision (`Diagnostic::insert_before`)
+/// rather than reading the shape off the AST a second time, which is how an
+/// earlier version wrote `mut` before a block's returned tail and turned a
+/// working function into one `tsc` refuses (record 151, F1). Every other
+/// E0240 is declined with the reason.
+fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String> {
+    let (s, _) = range_bytes(source, d).ok_or("the diagnostic's range is not a byte range of this file")?;
+    match &d.insert_before {
+        Some(text) => Ok((s as u32, s as u32, text.clone())),
         None => Err(
-            "the call is not a whole statement (its value is used, or it is an arm of a `match`), so the repair \
-             depends on what it was for; the help names one"
+            "the call's value is used, or it is an arm of a `match`, a deferred call or a call on a value no name \
+             holds, so the repair depends on what it was for; the help names one"
                 .to_string(),
         ),
     }
-}
-
-/// Look in `b`, and every block and expression under it, for an expression
-/// statement spanning `[s, e)` that is a method call. `found` is set to
-/// whether its receiver is a place.
-fn block_statement_calls(b: &glyph_ast::Block, s: u32, e: u32, found: &mut Option<bool>) {
-    use glyph_ast::{visit, Expr, Stmt};
-    for stmt in &b.stmts {
-        if let Stmt::Expr(Expr::Call { callee, span, .. }) = stmt {
-            if span.start == s && span.end == e {
-                if let Expr::Member { object, optional: false, .. } = callee.as_ref() {
-                    *found = Some(object.is_place());
-                }
-            }
-        }
-        visit::stmt_exprs(stmt, &mut |x| expr_statement_calls(x, s, e, found));
-        visit::stmt_blocks(stmt, &mut |inner| block_statement_calls(inner, s, e, found));
-    }
-}
-
-/// The blocks inside an expression (lambda bodies, block arms, JSX
-/// attributes and children holding either), searched by
-/// `block_statement_calls`.
-fn expr_statement_calls(x: &glyph_ast::Expr, s: u32, e: u32, found: &mut Option<bool>) {
-    use glyph_ast::{visit, Expr, JsxAttr, JsxChild, JsxElement};
-    fn jsx(el: &JsxElement, s: u32, e: u32, found: &mut Option<bool>) {
-        for a in &el.attrs {
-            if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
-                expr_statement_calls(value, s, e, found);
-            }
-        }
-        for c in &el.children {
-            match c {
-                JsxChild::Element(inner) => jsx(inner, s, e, found),
-                JsxChild::Expr(v) => expr_statement_calls(v, s, e, found),
-                _ => {}
-            }
-        }
-    }
-    if let Expr::Jsx(el) = x {
-        jsx(el, s, e, found);
-    }
-    visit::child_blocks(x, &mut |b| block_statement_calls(b, s, e, found));
-    visit::child_exprs(x, &mut |c| expr_statement_calls(c, s, e, found));
 }
 
 // ---------------------------------------------------------------------------

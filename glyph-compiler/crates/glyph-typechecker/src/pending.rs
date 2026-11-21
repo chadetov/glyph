@@ -45,7 +45,7 @@
 //! pending in the first place, so an npm or host promise dropped on the floor
 //! is outside this rule (a gap of its own).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, LetBinding,
@@ -163,6 +163,10 @@ pub fn check_pending(module: &Module, resolved: &ResolvedModule, tm: &TypeMap) -
         frames: Vec::new(),
         errors: Vec::new(),
         lambda_slot: None,
+        array_ns: crate::mutation::ArrayNs::of(module),
+        returned_tails: HashSet::new(),
+        arm_tails: HashSet::new(),
+        dropped_tails: HashSet::new(),
     };
     for item in &module.items {
         match item {
@@ -201,6 +205,13 @@ enum Slot {
     Interpolated,
     SyncReturn,
     DetachArgument(String),
+    /// The value of a non-block arm of a `match` that is a statement. A
+    /// pending value here is a statement for E0238; E0240 tells it apart,
+    /// because its repair is a block (G380).
+    StatementArm,
+    /// The expression of a `defer`. A statement for E0238; for E0240 the
+    /// change cannot take `mut` there (record 151, F4).
+    Deferred,
 }
 
 struct Pass<'a> {
@@ -215,6 +226,18 @@ struct Pass<'a> {
     /// The slot the lambda about to be walked is passed to, set by the call
     /// that passes it and taken by the lambda.
     lambda_slot: Option<CallbackSlot>,
+    /// How E0240's help spells `std/array` in this module.
+    array_ns: crate::mutation::ArrayNs,
+    /// The last expression of a callable body whose value is returned, and
+    /// of a block arm of a `match` whose value is used (E0240, record 151,
+    /// F1). The slot alone cannot tell a returned tail from `return e`.
+    returned_tails: HashSet<(u32, u32)>,
+    arm_tails: HashSet<(u32, u32)>,
+    /// The last expression of an unannotated lambda passed where
+    /// `fn(...) -> void` is expected. The emitter returns it and the caller
+    /// drops it, so for E0240 it is a statement; E0238 keeps judging it as
+    /// the lambda's return (record 133).
+    dropped_tails: HashSet<(u32, u32)>,
 }
 
 /// The callable a statement is in: what the help can offer, and where its
@@ -247,10 +270,24 @@ impl Pass<'_> {
     /// (the emitter's rule), so the tail takes the frame's return slot and
     /// otherwise is a statement.
     fn callable(&mut self, frame: Frame, yields: bool, body: &Block) {
+        self.callable_dropping(frame, yields, false, body)
+    }
+
+    /// `callable`, where `dropped` says the caller drops what the body
+    /// returns (an unannotated lambda in a `void` slot).
+    fn callable_dropping(&mut self, frame: Frame, yields: bool, dropped: bool, body: &Block) {
         let tail = match yields {
             true => frame.returns.clone(),
             false => Slot::Statement,
         };
+        if let Some(Stmt::Expr(e)) = body.stmts.last() {
+            let key = (e.span().start, e.span().end);
+            match (yields, dropped) {
+                (true, false) => self.returned_tails.insert(key),
+                (true, true) => self.dropped_tails.insert(key),
+                (false, _) => false,
+            };
+        }
         self.frames.push(frame);
         self.block(body, tail);
         self.frames.pop();
@@ -319,7 +356,7 @@ impl Pass<'_> {
             Stmt::Loop(l) => self.block(&l.body, Slot::Statement),
             // `defer` runs its expression on the way out and drops the value,
             // so nothing waits for it.
-            Stmt::Defer(d) => self.expr(&d.expr, Slot::Statement),
+            Stmt::Defer(d) => self.expr(&d.expr, Slot::Deferred),
             Stmt::Break(_) | Stmt::Continue(_) => {}
         }
     }
@@ -336,6 +373,9 @@ impl Pass<'_> {
     }
 
     fn expr(&mut self, e: &Expr, slot: Slot) {
+        if let Some(call) = self.tm.mutating_call(e.span()).copied() {
+            self.mutation(e, call, &slot);
+        }
         // A `match` is reported through its arms, which take its slot.
         if !matches!(e, Expr::Match { .. }) {
             if let Ty::Pending(inner) = self.tm.get(e.span()) {
@@ -428,10 +468,23 @@ impl Pass<'_> {
                 scrutinee, arms, ..
             } => {
                 self.expr(scrutinee, Slot::Used);
+                let statement = matches!(slot, Slot::Statement | Slot::StatementArm);
                 for arm in arms {
                     match &arm.body {
+                        MatchArmBody::Expr(x) if statement => self.expr(x, Slot::StatementArm),
                         MatchArmBody::Expr(x) => self.expr(x, slot.clone()),
-                        MatchArmBody::Block(b) => self.block(b, slot.clone()),
+                        MatchArmBody::Block(b) => {
+                            if !statement {
+                                if let Some(Stmt::Expr(t)) = b.stmts.last() {
+                                    self.arm_tails.insert((t.span().start, t.span().end));
+                                }
+                            }
+                            let inner = match statement {
+                                true => Slot::Statement,
+                                false => slot.clone(),
+                            };
+                            self.block(b, inner)
+                        }
                     }
                 }
             }
@@ -448,6 +501,7 @@ impl Pass<'_> {
                 // comment). The unannotated form's help rewrites the lambda
                 // itself, with its own parameters.
                 let slot = self.lambda_slot.take().unwrap_or(CallbackSlot::Unknown);
+                let dropped = return_ty.is_none() && matches!(slot, CallbackSlot::SyncVoid | CallbackSlot::AsyncVoid);
                 let frame = match (is_async, return_ty) {
                     (true, _) => Frame::waited(),
                     (false, None) => Frame::sync(WaitContext::UnannotatedLambda {
@@ -467,10 +521,43 @@ impl Pass<'_> {
                     None => true,
                     Some(_) => returns_value(return_ty),
                 };
-                self.callable(frame, yields, body);
+                self.callable_dropping(frame, yields, dropped, body);
             }
             Expr::Jsx(j) => self.jsx(j),
         }
+    }
+
+    /// E0240 for a mutating call the checker recorded, placed by the slot it
+    /// stands in (G380; record 151, F1).
+    fn mutation(&mut self, e: &Expr, call: crate::mutation::MutatingCall, slot: &Slot) {
+        use crate::mutation::MutationSite as M;
+        let Expr::Call { callee, args, span, .. } = e else {
+            return;
+        };
+        let Expr::Member { object, optional, .. } = callee.as_ref() else {
+            return;
+        };
+        let key = (span.start, span.end);
+        let statement = matches!(slot, Slot::Statement) || self.dropped_tails.contains(&key);
+        let site = match slot {
+            _ if !call.place && (statement || matches!(slot, Slot::StatementArm)) => M::NotPlace,
+            _ if !call.place => M::Value,
+            _ if statement => M::Statement,
+            Slot::StatementArm => M::ArmValue,
+            Slot::Deferred => M::Deferred,
+            _ if self.returned_tails.contains(&key) => M::ReturnedTail,
+            _ if self.arm_tails.contains(&key) => M::ArmTail,
+            _ => M::Value,
+        };
+        let text = crate::mutation::CallText {
+            recv: object,
+            method: call.method,
+            args,
+            optional: *optional,
+            elem: call.elem,
+        };
+        let (message, help) = crate::mutation::mutation_outside_mut(site, &text, &self.array_ns);
+        self.errors.push(TypeError::MutationOutsideMut { kind: site, message, help, span: *span });
     }
 
     /// `task.detach` as this module spells it, when `callee` is that.
@@ -506,7 +593,7 @@ impl Pass<'_> {
     fn judge(&mut self, e: &Expr, inner: &Ty, slot: &Slot) {
         let position = match slot {
             Slot::Waited => return,
-            Slot::Statement => PendingPosition::Statement,
+            Slot::Statement | Slot::StatementArm | Slot::Deferred => PendingPosition::Statement,
             Slot::Discarded => PendingPosition::Discarded,
             Slot::UnusedLet(b) => PendingPosition::UnusedLet { binding: b.clone() },
             Slot::Used => PendingPosition::Used { interpolated: false },

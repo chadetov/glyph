@@ -1229,14 +1229,20 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Before:  xs.push(4)\n\
             After:   mut xs.push(4)\n\n\
             `glyph fix` writes that `mut` for you, in that one case: a call \
-            standing as a whole statement.\n\n\
+            standing as a statement whose value nothing reads.\n\n\
             The call may stand only as the whole call of a `mut` statement. \
             Anywhere else its value is read, and the change hides inside an \
             expression:\n\n\
             return xs.sort(cmp)[0]     // sorts the caller's array\n\
             let n = xs.pop()           // a `let` initializer\n\
             f(xs.push(1))              // an argument\n\
-            true => xs.push(1),        // an arm of a statement `match`\n\n\
+            true => xs.push(1),        // an arm of a statement `match`\n\
+            defer xs.pop()             // runs at scope exit, and takes no `mut`\n\n\
+            The last expression of a block whose value is used is a use too: \
+            in `fn f(ys: Array<number>) -> number { ys.push(4) }` the new length \
+            is returned. Write `mut ys.push(4)`, then `return array.len(ys)`. \
+            A deferred change goes in a function: `let undo = fn() -> void { \
+            mut xs.pop() }`, then `defer undo()`.\n\n\
             Each has a spelling that keeps the value apart from the change. \
             `array.sort(xs, cmp)` and `array.reverse(xs)` return a sorted or \
             reversed copy and leave `xs` alone. For `pop` and `shift`, read \
@@ -1246,7 +1252,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             writes the version for the call you have. An arm takes a block: \
             `true => { mut xs.push(1) }`.\n\n\
             A call under `mut` writes to a place, the same places \
-            `mut x = e` can: a name, a field, an index, with no `?.`. \
+            `mut x = e` can: a name, a field, an index, with no `?.` before \
+            the method. A write through an optional field is written \
+            `mut s.opt?.push(1)`: the `?.` may stand on the method link only. \
+            An element read by index from an `Array<E>` is an `E` here, so \
+            `rows[0].items.push(0)` is judged. \
             `mut make().push(1)` and `mut ys.filter(f).sort(cmp)` change an \
             array nothing holds, so the change is lost; bind it with `let` \
             first, or use `array.sort(ys.filter(f), cmp)`.\n\n\
@@ -2402,8 +2412,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0240",
         phase: "typechecker",
-        meaning: "A call that changes its receiver, outside a `mut` statement (G380, D5): `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill` or `copyWithin` on an `Array<T>` anywhere but as the whole call of a `mut` statement (a bare statement, a `return`, a `let` initializer, an argument, an operand, the receiver of another call, an arm value), or under `mut` on a receiver that is not a place (`mut make().push(1)`, `mut ys.filter(f).sort(cmp)`). A receiver the checker cannot type, and the stdlib `Set`, `Store` and `Deque`, are not judged. `tsc` accepts all of these",
-        fix: "Write `mut xs.push(v)` as its own statement (`glyph fix` inserts the `mut` for a bare statement). For a value, `array.sort(xs, cmp)` or `array.reverse(xs)` return a copy; read with `array.get` before `mut xs.pop()`; the help computes the rewrite",
+        meaning: "A call that changes its receiver, outside a `mut` statement (G380, D5): `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill` or `copyWithin` on an `Array<T>` (an element read by index included) anywhere but as the whole call of a `mut` statement (a statement, a `return`, a `let` initializer, an argument, an operand, the receiver of another call, an arm value, the last expression of a block whose value is used, a `defer`), or under `mut` on a receiver that is not a place (`mut make().push(1)`, `mut ys.filter(f).sort(cmp)`). A write through an optional field is `mut s.opt?.push(1)`. A receiver the checker cannot type, and the stdlib `Set`, `Store` and `Deque`, are not judged. `tsc` accepts all of these",
+        fix: "Write `mut xs.push(v)` as its own statement (`glyph fix` inserts the `mut` for a statement whose value nothing reads); for a returned tail, add `return array.len(xs)` after it; for a `defer`, defer a `fn() -> void` holding the `mut` statement. For a value, `array.sort(xs, cmp)` or `array.reverse(xs)` return a copy; read with `array.get` before `mut xs.pop()`; the help computes the rewrite",
     },
     CodeEntry {
         code: "E0241",

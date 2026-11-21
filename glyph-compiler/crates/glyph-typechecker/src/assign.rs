@@ -358,6 +358,7 @@ pub fn assign_types_with_relations(
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
@@ -474,6 +475,7 @@ pub fn assignability(
         call_callee: None,
         mut_call: None,
         coalesce_defaults: HashMap::new(),
+        absent_consumers: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -536,6 +538,7 @@ pub fn declared_record_fields(
         call_callee: None,
         mut_call: None,
         coalesce_defaults: HashMap::new(),
+        absent_consumers: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -1275,6 +1278,11 @@ struct Assigner<'a> {
     /// E0242 (G392, D56): a refused call with a default gets the `match` that
     /// handles the absence where the `??` did.
     coalesce_defaults: HashMap<Span, crate::absent::Default>,
+    /// What each expression's position does with its value, for E0242's
+    /// fix (decision record 155, F1): `Ok` where the value is used up (a
+    /// statement, a `match` scrutinee, a slot declared `Option`), `Err` with
+    /// the position named where it would go on being read as the element.
+    absent_consumers: HashMap<Span, Result<(), String>>,
     /// The interface pairings the relation is in the middle of deciding, so a
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
@@ -2222,6 +2230,15 @@ impl Assigner<'_> {
                     self.check_nullable_args(te);
                     let slot = self.lowerer.lower(te);
                     self.register_lambda_context(&l.value, &slot);
+                    let consumer = self.option_slot(&slot, "it initializes a `let` declared");
+                    self.absent_consumers.insert(l.value.span(), consumer);
+                } else {
+                    self.absent_consumers.insert(
+                        l.value.span(),
+                        Err("it initializes a `let` with no declared type, so the name would hold an `Option` \
+                             wherever it is read (a `??` on it hands back the `Option` itself)"
+                            .to_string()),
+                    );
                 }
                 self.walk_expr(&l.value);
                 if let Expr::Match { arms, .. } = &l.value {
@@ -2349,6 +2366,8 @@ impl Assigner<'_> {
                 if let Some(v) = &r.value {
                     if let Some(slot) = self.return_stack.last().map(|er| er.ty.clone()) {
                         self.register_lambda_context(v, &slot);
+                        let consumer = self.option_slot(&slot, "it is returned where the declared return is");
+                        self.absent_consumers.insert(v.span(), consumer);
                     }
                     self.walk_expr(v);
                     self.check_return_type(v);
@@ -2420,7 +2439,10 @@ impl Assigner<'_> {
             Stmt::Loop(l) => self.walk_block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Defer(d) => self.walk_expr(&d.expr),
-            Stmt::Expr(e) => self.walk_expr(e),
+            Stmt::Expr(e) => {
+                self.absent_consumers.insert(e.span(), Ok(()));
+                self.walk_expr(e)
+            }
         }
     }
 
@@ -2574,6 +2596,8 @@ impl Assigner<'_> {
             Expr::TemplateString { parts, span } => {
                 for p in parts {
                     if let TemplatePart::Expr { value, .. } = p {
+                        self.absent_consumers
+                            .insert(value.span(), Err("it is turned into text in a `${}`".to_string()));
                         self.walk_expr(value);
                     }
                 }
@@ -2607,6 +2631,9 @@ impl Assigner<'_> {
                     Expr::Ident { span, .. } => self.member_object.replace(*span),
                     _ => self.member_object,
                 };
+                let dot = if *optional { "?." } else { "." };
+                self.absent_consumers
+                    .insert(object.span(), Err(format!("its value is read with `{dot}{field}`")));
                 self.walk_expr(object);
                 self.member_object = outer_member_object;
                 let mut obj_ty = self.tm.get(object.span()).clone();
@@ -2871,6 +2898,9 @@ impl Assigner<'_> {
                 }
             }
             Expr::Binary { left, right, span, op } => {
+                let operand = || Err("it is an operand of an operator".to_string());
+                self.absent_consumers.insert(left.span(), operand());
+                self.absent_consumers.insert(right.span(), operand());
                 if *op == glyph_ast::BinOp::NullishCoalesce {
                     self.coalesce_defaults.insert(
                         left.span(),
@@ -2958,6 +2988,17 @@ impl Assigner<'_> {
                 // omitted annotation, or a record literal holding one) is
                 // walked after the others have bound the callee's type
                 // parameters (D55).
+                let declared = match self.tm.get(callee.span()) {
+                    Ty::Fn { params, .. } => params.iter().map(|p| p.ty.clone()).collect::<Vec<_>>(),
+                    _ => Vec::new(),
+                };
+                for (i, a) in args.iter().enumerate() {
+                    let consumer = match declared.get(i) {
+                        Some(t) if !t.is_unknown() => self.option_slot(t, "it is an argument where the parameter is"),
+                        _ => Err("it is an argument to a call whose parameter type Glyph does not know".to_string()),
+                    };
+                    self.absent_consumers.insert(a.span(), consumer);
+                }
                 let deferred: Vec<bool> = args.iter().map(needs_context).collect();
                 for (a, _) in args.iter().zip(&deferred).filter(|(_, d)| !**d) {
                     self.walk_expr(a);
@@ -3274,6 +3315,7 @@ impl Assigner<'_> {
                         }
                     }
                 }
+                self.absent_consumers.insert(scrutinee.span(), Ok(()));
                 self.walk_expr(scrutinee);
                 // Day-14 exhaustiveness check: when the scrutinee's type
                 // resolves to a user-defined tagged union, verify the
@@ -6997,11 +7039,24 @@ impl Assigner<'_> {
             args,
             optional: *optional,
             call: *span,
-            elem: (!elem.is_unknown()).then(|| ty_display(&elem)),
+            elem: (!elem.is_unknown()).then(|| crate::display_ty(&elem)).filter(|d| d != "?"),
             default: self.coalesce_defaults.get(span).cloned(),
+            consumer: self.absent_consumers.get(span).cloned().unwrap_or_else(|| {
+                Err("its value is used in a position the fix cannot show handles an `Option`".to_string())
+            }),
         };
         let (message, help, repair) = crate::absent::absent_call(&c, self.module);
         self.errors.push(TypeError::AbsentBuiltinResult { message, help, repair, span: *span });
+    }
+
+    /// `Ok` when `slot` is the prelude `Option`, so an `Option` placed there
+    /// is handled by whatever reads the slot; otherwise `Err` naming the
+    /// slot, `what` followed by its declared type (E0242's fix, record 155).
+    fn option_slot(&self, slot: &Ty, what: &str) -> Result<(), String> {
+        match self.prelude_app(slot, "Option") {
+            Some(_) => Ok(()),
+            None => Err(format!("{what} `{}`", crate::display_ty(slot))),
+        }
     }
 
     /// The built-in receiver a call's object is, with the array's element
@@ -17921,6 +17976,7 @@ component View(props: { s: Status }) -> Component {
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,

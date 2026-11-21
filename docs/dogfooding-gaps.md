@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-429 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-92 are open. G144, the D28 boundary cast that never reached the returns a
+430 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+93 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14586,3 +14586,13 @@ and is the owner's to confirm.
   *Reproduced against 0.1.160 (the release build): record 155's probe k01
   passes full `check` (`tsc --strict passed.`) and `run` prints
   `[object Object] false`.*
+
+- **G430. A `glyph fix` decline names an unannotated lambda's return as
+  `?`.** When the E0242 rewrite declines inside a lambda with no declared
+  return type, the reason says ``the declared return is `?` ``. It should
+  say the lambda declares no return type. The same rendering problem record
+  155 fixed in E0242's message (F3), here in the fix driver's text. Found by
+  record 156.
+
+  *Reproduced against 0.1.161 (the dev build) by record 156's probe `c2`:
+  the decline reason prints ``the declared return is `?` ``.*

@@ -3096,13 +3096,19 @@ impl Assigner<'_> {
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
                     // An argument refused for being the wrong kind of
-                    // function (D40) leaves the call's result untyped: an
-                    // async callback to `array.map` builds promises, not the
-                    // `U` its row binds, and a refusal of what that result
-                    // then meets (`${}`, a typed `let`) would report the one
-                    // mistake twice, the second time naming a type the
-                    // program does not hold.
-                    let mut kind_refused = false;
+                    // function (D40) leaves untyped the part of the result
+                    // it decides: an async callback to `array.map` builds
+                    // promises, not the `U` its parameter binds, and a
+                    // refusal of what that result then meets (`${}`, a typed
+                    // `let`) would report the one mistake twice, the second
+                    // time naming a type the program does not hold. Only a
+                    // return that mentions a type parameter the refused
+                    // parameter's type names is erased (record 148): `fn
+                    // apply<T>(f: fn(T) -> void) -> number` still returns a
+                    // `number`, and what that `number` meets is still judged.
+                    // Collected only where an error was pushed, so a call
+                    // that reported nothing keeps its result.
+                    let mut refused_params: HashSet<Ident> = HashSet::new();
                     for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
@@ -3111,17 +3117,20 @@ impl Assigner<'_> {
                         }
                         if let Some(e) = self.async_callback_refusal(callee, a, &found, &p.ty) {
                             self.errors.push(e);
-                            kind_refused = true;
+                            param_names_into(&p.ty, &mut refused_params);
                             continue;
                         }
+                        // A built-in method row types its callback `unknown`
+                        // and binds nothing from it; its result is the row's.
                         if let Some(e) = self.builtin_slot_kind_refusal(callee, args, i, a, &found) {
                             self.errors.push(e);
-                            kind_refused = true;
                             continue;
                         }
                         let kind_help = self.fn_kind_help(callee, args, a, &found, &expected);
-                        kind_refused |= kind_help.is_some();
                         if let Some(mut r) = self.value_refusal(a, &found, &expected) {
+                            if kind_help.is_some() {
+                                param_names_into(&p.ty, &mut refused_params);
+                            }
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
                             let accepted = self.accepted_values(&r.expected);
@@ -3142,7 +3151,7 @@ impl Assigner<'_> {
                             });
                         }
                     }
-                    let returned = match kind_refused {
+                    let returned = match mentions_any_param(return_ty, &refused_params) {
                         true => Ty::Unknown,
                         false => return_override
                             .unwrap_or_else(|| substitute_type_params(return_ty, &subst)),
@@ -10379,6 +10388,40 @@ fn collect_param_names(ty: &Ty, out: &mut Vec<Ident>) {
         }
         _ => {}
     }
+}
+
+/// Every type parameter `ty` names, into `out`.
+fn param_names_into(ty: &Ty, out: &mut HashSet<Ident>) {
+    match ty {
+        Ty::Param { name, .. } => {
+            out.insert(name.clone());
+        }
+        Ty::App { base, args } => {
+            param_names_into(base, out);
+            args.iter().for_each(|a| param_names_into(a, out));
+        }
+        Ty::Record { fields } => fields.iter().for_each(|f| param_names_into(&f.ty, out)),
+        Ty::Fn { params, return_ty, .. } => {
+            params.iter().for_each(|p| param_names_into(&p.ty, out));
+            param_names_into(return_ty, out);
+        }
+        Ty::Union { variants } => variants
+            .iter()
+            .filter_map(|v| v.payload.as_ref())
+            .for_each(|t| param_names_into(t, out)),
+        Ty::Pending(inner) => param_names_into(inner, out),
+        _ => {}
+    }
+}
+
+/// Whether `ty` names any of the type parameters in `names`.
+fn mentions_any_param(ty: &Ty, names: &HashSet<Ident>) -> bool {
+    if names.is_empty() {
+        return false;
+    }
+    let mut found = HashSet::new();
+    param_names_into(ty, &mut found);
+    !found.is_disjoint(names)
 }
 
 fn ty_has_param(ty: &Ty) -> bool {

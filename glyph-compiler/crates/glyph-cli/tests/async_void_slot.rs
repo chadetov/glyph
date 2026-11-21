@@ -327,12 +327,11 @@ fn e0238_in_a_sync_void_slot_offers_the_detach_form() {
     );
 }
 
-/// `forEach` on an array, once its callback slot is modeled (0.1.158 models
-/// the built-in array methods' callback parameters, record 142): the message
+/// `forEach` on an array, whose callback slot 0.1.158 models for context
+/// (D55, record 142) and this rule reads (record 144): the message
 /// names `forEach` alone, as record 129 wrote it, and an async caller is
 /// offered the loop that awaits each call in order.
 #[test]
-#[ignore = "needs the built-in Array<T> callback slots modeled in 0.1.158 (record 142, B1)"]
 fn for_each_in_an_async_caller_offers_the_awaiting_loop() {
     let src = format!(
         "module main\nimport std/timers\n{SAVE}\
@@ -353,7 +352,6 @@ fn for_each_in_an_async_caller_offers_the_awaiting_loop() {
 /// `forEach` from a sync caller: the `task.detach` callback, and the loop as
 /// the alternative once the caller is made async.
 #[test]
-#[ignore = "needs the built-in Array<T> callback slots modeled in 0.1.158 (record 142, B1)"]
 fn for_each_in_a_sync_caller_offers_detach() {
     let src = format!(
         "module main\nimport std/timers\n{SAVE}\
@@ -368,7 +366,6 @@ fn for_each_in_a_sync_caller_offers_detach() {
 /// Record 135's help 3 for `forEach` itself, which G384 could not give while
 /// the slot was `Unknown`.
 #[test]
-#[ignore = "needs the built-in Array<T> callback slots modeled in 0.1.158 (record 142, B1)"]
 fn e0238_in_for_each_offers_the_detach_form() {
     let src = format!(
         "module main\nimport std/timers\nimport std/task\n{SAVE}\
@@ -483,4 +480,81 @@ fn an_async_callback_to_array_map_gets_the_loop_help() {
     );
     let v = check(&project("map_loop", &fixed), false);
     assert!(v["ok"] == true && v["tsc"] == "passed", "{fixed}\n{v:#}");
+}
+
+/// Contextual typing (D55) and this rule read one slot: an omitted parameter
+/// of an async lambda given to `users.forEach` is typed `User` from it, and
+/// the same slot is the sync `void` one E0211 names. The help keeps the
+/// parameter as written and walks the receiver, and it compiles.
+#[test]
+fn for_each_on_records_with_an_untyped_async_lambda_is_refused_and_typed() {
+    let src = "module main\nimport std/timers\n\
+         type User = {\n  id: number,\n  name: string,\n}\n\
+         async fn save(id: number) -> void {\n  await timers.sleep(1)\n}\n\
+         async fn save_all(users: Array<User>) -> void {\n  users.forEach(async fn(p) { await save(p.id) })\n}\n";
+    let (message, help, start, end) = the_refusal(src);
+    assert_eq!(
+        message,
+        "`forEach` calls its callback without waiting, so each call of this `async fn` runs on its own and its errors are lost"
+    );
+    let fix = snippet_after(&help, "a failure reaches you: ");
+    assert_eq!(fix, "for p in users { await save(p.id) }");
+    let stmt_start = src[..start].rfind("users.forEach(").unwrap();
+    assert_applied_compiles("for_each_users", src, stmt_start, end + 1, fix, &help);
+    // The parameter is typed from the slot: a typo in it is refused too.
+    let typo = src.replace("p.id", "p.idd");
+    let v = check(&project("for_each_typo", &typo), true);
+    let mut got = codes(&v);
+    got.sort();
+    assert_eq!(got, vec!["E0210".to_string(), "E0211".to_string()], "{v:#}");
+}
+
+/// The method spellings of `map` and `filter` get the prose help, naming the
+/// method as written and walking its receiver, as `array.map` does.
+#[test]
+fn array_method_map_and_filter_get_the_loop_help() {
+    for (call, want) in [
+        (
+            "let ys = users.map(async fn(p) { await save(p.id) })\n  return ys.length",
+            "`users.map` does not wait for its callback. Await each call in a loop, `for p in users { ... await save(p.id) ... }`, or run them together with `task.all`.",
+        ),
+        (
+            "let ys = ids.filter(is_active)\n  return ys.length",
+            "`ids.filter` does not wait for its callback. Await each call in a loop, `for n in ids { ... await is_active(n) ... }`, or run them together with `task.all`.",
+        ),
+        (
+            "let ys = ids.filter(make())\n  return ys.length",
+            "`ids.filter` does not wait for its callback. Await each call in a loop, `for x in ids { ... }`, or run them together with `task.all`.",
+        ),
+    ] {
+        let src = format!(
+            "module main\nimport std/timers\n\
+             type User = {{\n  id: number,\n}}\n\
+             async fn save(id: number) -> void {{\n  await timers.sleep(1)\n}}\n\
+             async fn is_active(n: number) -> bool {{\n  return true\n}}\n\
+             fn make() -> async fn(number) -> bool {{\n  return is_active\n}}\n\
+             async fn go(users: Array<User>, ids: Array<number>) -> number {{\n  {call}\n}}\n"
+        );
+        let (help, _, _) = the_kind_help(&src);
+        assert_eq!(help, want);
+        assert!(!help.contains("async fn("), "{help}");
+    }
+}
+
+/// One mistake, one diagnostic: an async callback refused here leaves the
+/// call's result untyped, so a `${}`, a `+` or a typed `let` over that
+/// result does not report the same callback again as a text conversion or
+/// a type mismatch (E0237, E0204).
+#[test]
+fn a_refused_async_callback_is_reported_once() {
+    let src = format!(
+        "module main\nimport std/timers\nimport std/array\n{SAVE}\
+         async fn go(ids: Array<number>) -> void {{\n  \
+         let s = \"n ${{array.map(ids, async fn(x: number) {{ await save(x) }})}}\"\n  \
+         let t = \"n \" + array.map(ids, async fn(x: number) {{ await save(x) }})\n  \
+         let u: Array<number> = array.map(ids, async fn(x: number) {{ await save(x) }})\n  \
+         print(s)\n  print(t)\n  print(\"${{array.len(u)}}\")\n}}\n"
+    );
+    let v = check(&project("once", &src), true);
+    assert_eq!(codes(&v), vec!["E0211".to_string(); 3], "{v:#}");
 }

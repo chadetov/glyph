@@ -421,7 +421,7 @@
       <header class="page-hero">
         <p class="eyebrow">Casos que o TypeScript deixa passar</p>
         <h1>Detectado antes de ir para produção</h1>
-        <p class="lede">No total são 52 casos verificados: 37 casos de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 10 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 casos de TypeScript e 5 armadilhas).</p>
+        <p class="lede">No total são 51 casos verificados: 37 casos de TypeScript, 5 armadilhas de JavaScript que não existem em Glyph e 9 brechas que o Glyph ainda não fecha. O Glyph recusa 28 deles no build (23 casos de TypeScript e 5 armadilhas).</p>
         <p class="lede">Todos os exemplos de TypeScript da lista passam no <code>tsc --strict</code> sem erros. Cada um também é verificado contra um projeto configurado no máximo: todas as flags do compilador mais rígidas que <code>--strict</code>, mais o typescript-eslint <code>strictTypeChecked</code>. Em 21 dos 37 casos, nada nessa configuração detecta o problema. Uma flag do compilador que vem desativada por padrão detecta 5, e uma regra de lint detecta 11. Um projeto precisa ativar cada uma delas, e um agente pode desativá-la de novo. No Glyph, nenhuma delas é uma opção de configuração.</p>
         <p class="lede">
           Cada entrada são dois programas em <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a>, e a saída embaixo de cada um é o que as ferramentas imprimiram. Um gate do build, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, roda cada caso de novo e falha se qualquer uma das metades deixar de fazer o que a página diz. A configuração completa de TypeScript usada na comparação está nesse script.
@@ -1482,7 +1482,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">O que o Glyph ainda não detecta</h2>
         <p class="group-sub">
-          10 falhas que o Glyph ainda não fecha. Cada uma compila em Glyph hoje e faz a mesma coisa errada que em TypeScript. Todas têm uma reprodução em <code>catches/</code> e um número de gap aberto, e o gate falha quando uma correção entra, para que a entrada não sobreviva à falha.
+          9 falhas que o Glyph ainda não fecha. Cada uma compila em Glyph hoje e faz a mesma coisa errada que em TypeScript. Todas têm uma reprodução em <code>catches/</code> e um número de gap aberto, e o gate falha quando uma correção entra, para que a entrada não sobreviva à falha.
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> transforma um <code>0</code> legítimo em <code>3</code>. <span>G386</span></li>
@@ -1490,7 +1490,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <li><code>forEach(async ...)</code> descarta todas as promises, então o trabalho termina depois do código que depende dele, e nada avisa. <span>G384</span></li>
         <li><code>xs.sort(...)</code> dentro de um helper reordena o array de quem chamou, e nenhum <code>mut</code> marca isso. <span>G380</span></li>
         <li><code>.sort()</code> em números ordena como texto: <code>100,25,9</code>. <span>G388</span></li>
-        <li>Uma query SQL montada com <code>${name}</code> é aceita pelo <code>std/sqlite</code>. <span>G387</span></li>
         <li>Uma atualização perdida através de <code>await</code> em <code>c[0]</code>, enquanto a mesma escrita em um campo é recusada. <span>G390</span></li>
         <li><code>input + 1</code> em uma string, <code>users.find(...).name</code> e a leitura de um campo em <code>unknown</code> só são detectados pela etapa do <code>tsc</code>, não pelo checker do próprio Glyph, então o editor e as ferramentas de agente não os veem. <span>G381, G382, G392</span></li>
       </ul>

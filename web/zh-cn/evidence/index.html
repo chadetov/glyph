@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">测试用例<a class="h-anchor" href="#the-fixtures" aria-label="链接到本节">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 下的每个目录都包含 <code>ts.ts</code>、<code>glyph.glyph</code>，以及一个说明两者各自行为的 <code>case.toml</code>。<code>scripts/check_catches.py</code> 在 CI 中运行。它要求每个 <code>ts.ts</code> 都能通过 <code>tsc --strict</code>，因为不能编译的 TypeScript 程序什么也证明不了；然后按案例的类型检查 Glyph 那一半。共有 52 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 10 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。 按检查的类型划分：
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 下的每个目录都包含 <code>ts.ts</code>、<code>glyph.glyph</code>，以及一个说明两者各自行为的 <code>case.toml</code>。<code>scripts/check_catches.py</code> 在 CI 中运行。它要求每个 <code>ts.ts</code> 都能通过 <code>tsc --strict</code>，因为不能编译的 TypeScript 程序什么也证明不了；然后按案例的类型检查 Glyph 那一半。共有 51 个经过检验的案例：37 个 TypeScript 案例、5 个在 Glyph 中不存在的 JavaScript 陷阱，以及 9 个 Glyph 尚未堵上的漏洞。其中 28 个在构建时就被 Glyph 拒绝（23 个 TypeScript 案例和 5 个陷阱）。 按检查的类型划分：
         </p>
       </div>
 
@@ -444,7 +444,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">构建通过，并把该错误码作为警告报告</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">程序能运行，边界处的检查把错误数据变成 <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">程序能构建，运行时停下，并给出指定的输出</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">10</td><td data-label="What the gate requires of the Glyph">Glyph 接受这个程序，而它的行为是错的。漏洞堵上时，检查会失败并提示把案例移走</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">Glyph 接受这个程序，而它的行为是错的。漏洞堵上时，检查会失败并提示把案例移走</td></tr>
           </tbody>
         </table>
       </div>
@@ -538,7 +538,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">它还发现不了的问题<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="链接到本节">#</a></h2>
         <p>
-          10 个 <code>gap</code> 案例在<a href="/zh-cn/catches/#not-yet">案例页面</a>上，每个都带有 gap 编号。用 Glyph 构建应用时发现的每个漏洞都记录在清单 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> 中，其中方括号标记是唯一有效的状态（<code>[FIXED]</code>、<code>[HALF FIXED]</code>，没有标记表示未解决）；如果某个未解决条目的最近一次复现已经是五个版本以前，<code>scripts/check_gaps.py</code> 会让 CI 失败。
+          9 个 <code>gap</code> 案例在<a href="/zh-cn/catches/#not-yet">案例页面</a>上，每个都带有 gap 编号。用 Glyph 构建应用时发现的每个漏洞都记录在清单 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> 中，其中方括号标记是唯一有效的状态（<code>[FIXED]</code>、<code>[HALF FIXED]</code>，没有标记表示未解决）；如果某个未解决条目的最近一次复现已经是五个版本以前，<code>scripts/check_gaps.py</code> 会让 CI 失败。
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">版本如何被标记为 Breaking<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="链接到本节">#</a></h2>

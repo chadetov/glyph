@@ -4,7 +4,7 @@
     "output": "rows 2"
   },
   "glyph": {
-    "command": "glyph run",
-    "output": "rows 2"
+    "command": "glyph build",
+    "output": "[E0239] Error: typecheck: `db.query` runs its first argument as SQL, and this one is built from `name` at run time, so a value with a quote in it can change the query\nHelp: Pass the value as a parameter: `db.query(\"SELECT * FROM users WHERE name = ?\", [name])`."
   }
 }

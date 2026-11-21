@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">รับประกันอะไร<a class="h-anchor" href="#what-it-guarantees" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          ทุกข้อกล่าวอ้างว่า Glyph จับอะไรได้ คือกรณีหนึ่งในไดเรกทอรี <code>catches/</code> ของ repository: โปรแกรมเดียวกันใน TypeScript และใน Glyph ซึ่ง CI gate รันทั้งคู่ รวมทั้งหมดมี 52 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 10 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี) ในบรรดาข้อผิดพลาดที่ไม่ถูกปฏิเสธ 3 ข้อได้คำเตือน 9 ข้อเป็นข้อมูลผิดที่ถูกหยุดโดยการตรวจที่ขอบเขตตอนรัน และ 2 ข้อหยุดตอนรัน ข้อที่คนรีวิวโค้ดจากเอเจนต์พึ่งพามากที่สุด:
+          ทุกข้อกล่าวอ้างว่า Glyph จับอะไรได้ คือกรณีหนึ่งในไดเรกทอรี <code>catches/</code> ของ repository: โปรแกรมเดียวกันใน TypeScript และใน Glyph ซึ่ง CI gate รันทั้งคู่ รวมทั้งหมดมี 51 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 9 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี) ในบรรดาข้อผิดพลาดที่ไม่ถูกปฏิเสธ 3 ข้อได้คำเตือน 9 ข้อเป็นข้อมูลผิดที่ถูกหยุดโดยการตรวจที่ขอบเขตตอนรัน และ 2 ข้อหยุดตอนรัน ข้อที่คนรีวิวโค้ดจากเอเจนต์พึ่งพามากที่สุด:
         </p>
       </div>
 
@@ -456,7 +456,7 @@
 
         <h2 class="block-label" id="where-it-stops">หยุดตรงไหน<a class="h-anchor" href="#where-it-stops" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          การรับประกันครอบคลุมโค้ดที่เขียนด้วย Glyph exception ที่ throw จากภายใน dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type ที่ import จาก <code>.d.ts</code> ของแพ็กเกจไม่มีการตรวจตอนรัน ภายใน Glyph ช่องโหว่ที่ยังเปิดอยู่ 10 ข้อแสดงพร้อมหมายเลข gap ใน<a href="/th/catches/#not-yet">สิ่งที่ยังจับไม่ได้</a> และบัญชีฉบับเต็มอยู่ที่ <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> สำหรับการเปรียบเทียบกับ TypeScript แบบ strict บวก zod, eslint และ ts-pattern รวมถึงจุดที่ชุดนั้นยังทำได้ดีกว่า ดู<a href="/th/answers/vs-tooled-ts/">ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ</a>
+          การรับประกันครอบคลุมโค้ดที่เขียนด้วย Glyph exception ที่ throw จากภายใน dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type ที่ import จาก <code>.d.ts</code> ของแพ็กเกจไม่มีการตรวจตอนรัน ภายใน Glyph ช่องโหว่ที่ยังเปิดอยู่ 9 ข้อแสดงพร้อมหมายเลข gap ใน<a href="/th/catches/#not-yet">สิ่งที่ยังจับไม่ได้</a> และบัญชีฉบับเต็มอยู่ที่ <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a> สำหรับการเปรียบเทียบกับ TypeScript แบบ strict บวก zod, eslint และ ts-pattern รวมถึงจุดที่ชุดนั้นยังทำได้ดีกว่า ดู<a href="/th/answers/vs-tooled-ts/">ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ</a>
         </p>
 
         <h2 class="block-label" id="adopting-it-inside-an-existing-app">นำมาใช้ในแอปที่มีอยู่<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>

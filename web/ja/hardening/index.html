@@ -432,7 +432,7 @@
       <section>
         <h2 class="group-head"><code>tsc --strict</code> を通過し、Glyph ではコンパイルできないケース</h2>
         <p class="group-sub">
-          各ケースは 2 つのファイルです。<code>tsc --strict</code> で問題なく型検査を通る <code>.ts</code> と、コンパイルできない同じ内容の Glyph のプログラムです。ビルドのゲートである <code>scripts/check_catches.py</code> がすべてを再実行し、どちらかが期待どおりに動かなくなると失敗するので、保証が気づかないうちに消えればビルドも止まります。表には、<a href="/ja/catches/">検出できるもののページ</a>にある TypeScript のケース 37 件のうち、このように拒否される 23 件を載せています。残りは、Glyph がデータの到着時に検査するもの、警告するもの、実行時に止めるもので、そのページに載っています。チェック済みのケースは全部で 52 件です。TypeScript のケースが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 10 件です。そのうち 28 件はビルド時に Glyph が拒否します（TypeScript のケース 23 件と落とし穴 5 件）。
+          各ケースは 2 つのファイルです。<code>tsc --strict</code> で問題なく型検査を通る <code>.ts</code> と、コンパイルできない同じ内容の Glyph のプログラムです。ビルドのゲートである <code>scripts/check_catches.py</code> がすべてを再実行し、どちらかが期待どおりに動かなくなると失敗するので、保証が気づかないうちに消えればビルドも止まります。表には、<a href="/ja/catches/">検出できるもののページ</a>にある TypeScript のケース 37 件のうち、このように拒否される 23 件を載せています。残りは、Glyph がデータの到着時に検査するもの、警告するもの、実行時に止めるもので、そのページに載っています。チェック済みのケースは全部で 51 件です。TypeScript のケースが 37 件、Glyph には存在しない JavaScript の落とし穴が 5 件、Glyph がまだ塞いでいない穴が 9 件です。そのうち 28 件はビルド時に Glyph が拒否します（TypeScript のケース 23 件と落とし穴 5 件）。
         </p>
         <table class="catches-table">
           <thead><tr><th>Glyph の出力</th><th>TypeScript が通してしまったもの</th><th>ファイル</th></tr></thead>

@@ -421,7 +421,7 @@
       <header class="page-hero">
         <p class="eyebrow">TypeScript'in geçirdiği vakalar</p>
         <h1>Yayına çıkmadan yakalanır</h1>
-        <p class="lede">Toplam 52 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 10 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak).</p>
+        <p class="lede">Toplam 51 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 9 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak).</p>
         <p class="lede">Listedeki her TypeScript örneği <code>tsc --strict</code>'ten hatasız geçer. Her biri ayrıca en sıkı şekilde yapılandırılmış bir projeye karşı da kontrol edilir: <code>--strict</code>'ten daha katı tüm derleyici flag'leri, artı typescript-eslint <code>strictTypeChecked</code>. 37 vakanın 21 tanesini bu yapılandırmadaki hiçbir şey yakalamıyor. Varsayılan olarak kapalı olan bir derleyici flag'i 5 tanesini, bir lint kuralı da 11 tanesini yakalıyor. Bunların her birini projenin açması gerekir ve bir ajan onu yeniden kapatabilir. Glyph'te bunların hiçbiri bir yapılandırma seçeneği değil.</p>
         <p class="lede">
           Her girdi <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> içindeki iki programdan oluşur; her birinin altındaki çıktı, araçların yazdırdığı çıktının kendisidir. Bir build kontrolü, <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a>, her vakayı yeniden çalıştırır ve iki taraftan biri sayfanın söylediğini yapmayı bırakırsa başarısız olur. Karşılaştırmada kullanılan TypeScript yapılandırmasının tamamı bu script'in içindedir.
@@ -1482,7 +1482,7 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">Glyph'in henüz yakalamadıkları</h2>
         <p class="group-sub">
-          Glyph'in henüz kapatmadığı 10 açık. Bunların her biri bugün Glyph'te derlenir ve TypeScript'teki aynı yanlış şeyi yapar. Her birinin <code>catches/</code> içinde bir reprodüksiyonu ve açık bir gap numarası vardır; bir düzeltme geldiğinde kontrol başarısız olur, böylece girdi açıktan daha uzun yaşayamaz.
+          Glyph'in henüz kapatmadığı 9 açık. Bunların her biri bugün Glyph'te derlenir ve TypeScript'teki aynı yanlış şeyi yapar. Her birinin <code>catches/</code> içinde bir reprodüksiyonu ve açık bir gap numarası vardır; bir düzeltme geldiğinde kontrol başarısız olur, böylece girdi açıktan daha uzun yaşayamaz.
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code>, gerçek bir <code>0</code>'ı <code>3</code>'e çevirir. <span>G386</span></li>
@@ -1490,7 +1490,6 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
         <li><code>forEach(async ...)</code> her promise'i yok sayar; iş, ona bağlı koddan sonra biter ve hiçbir şey uyarı vermez. <span>G384</span></li>
         <li>Bir yardımcı fonksiyonun içindeki <code>xs.sort(...)</code>, çağıranın dizisini yeniden sıralar ve bunu hiçbir <code>mut</code> işaretlemez. <span>G380</span></li>
         <li>Sayılar üzerinde <code>.sort()</code>, onları metin olarak sıralar: <code>100,25,9</code>. <span>G388</span></li>
-        <li><code>${name}</code> ile kurulmuş bir SQL sorgusu <code>std/sqlite</code> tarafından kabul edilir. <span>G387</span></li>
         <li><code>c[0]</code> üzerinde <code>await</code> boyunca kaybolan bir güncelleme; oysa bir alana yapılan aynı yazma reddedilir. <span>G390</span></li>
         <li>Bir string üzerinde <code>input + 1</code>, <code>users.find(...).name</code> ve <code>unknown</code> üzerinde bir alan okuması yalnızca <code>tsc</code> adımında yakalanır, Glyph'in kendi checker'ında değil; bu yüzden editör ve ajan araçları bunları kaçırır. <span>G381, G382, G392</span></li>
       </ul>

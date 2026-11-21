@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-22. -->
 
 01 · The core promise
 
@@ -324,6 +324,24 @@ It is now a compile error pointing at `record.get`, which returns `Option<V>` so
 
 A map's keys are arbitrary, so the compiler cannot know the key is there. Typing the read as `string` stated something it had not checked, and the value printed as the text "undefined". Writing a key is untouched, and so is array indexing: a bound is a value a program can check, a map key is not.
 
+### A method that answers `undefined`
+
+a lookup that may find nothing: now E0242
+
+```
+let name = users.find(fn(u: User) -> bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  // passed tsc --strict too
+
+[E0242] the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option<User>`, and `match` it
+```
+
+A few JavaScript methods say "nothing there" with `undefined`, which Glyph's own checker could not see, so the editor and the agent tools passed the `.name` read. Each one now points at the standard library function that returns an `Option`, and `glyph fix` writes the array ones.
+
+**Details which methods, and what replaces them **
+
+The list is read off TypeScript's declarations: `find`, `findLast` and `at` on an array, and `at`, `codePointAt` and `match` on a string. The replacements are `array.find`, `array.find_last`, `array.get`, `string.char_at`, `string.code_point_at` and `regex.matches`. A `??` default becomes the `None` arm of a `match`. `array.get` answers `None` for a negative index, so the help for `xs.at(-1)` writes `array.get(xs, array.len(xs) - 1)`. A method called on an npm value is not judged, because Glyph does not know its type.
+
 ### `==` is value equality everywhere
 
 a test that passed while the code failed
@@ -482,7 +500,7 @@ A literal with a field the declared record does not have passes Glyph's checker,
 
 ## Where it stands
 
-### Shipping today 18
+### Shipping today 19
 
 Matching
 
@@ -505,6 +523,7 @@ Types, records and literals
 - A field typo on an annotated module-level `const` E0210
 - `==` as value equality on every type
 - Reading a key out of a map rejected E0224
+- A built-in method that answers `undefined`, such as `find` or `at`, refused with its `Option` form named E0242 since 0.1.161
 - Object literals and JSX attributes checked against the declared type E0204 E0211 E0210 since 0.1.124
 
   **Details**
@@ -528,7 +547,7 @@ Data boundaries
 - Runtime type descriptors
 - `@redact` PII masking on the type descriptor E0219
 
-### Getting sharper 13
+### Getting sharper 14
 
 Matching
 
@@ -575,6 +594,7 @@ Types, records and literals
 
 Data boundaries
 
+- A `find` or `at` on an npm value is not judged; only an array or a string Glyph has typed is E0242
 - Maps from another module or the standard library are read unchecked E0224
 
   **Details**
@@ -615,4 +635,4 @@ Tooling and the standard library
 
 Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the [verifiability pillar page](https://glyphlang.io/pillars/verifiability/).
 
-Code examples on this page are checked against Glyph 0.1.160 on every build. Last changed 19 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.160 on every build. Last changed 22 Nov 2026.

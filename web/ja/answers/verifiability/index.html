@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","item":"https://glyphlang.io/ja/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/verifiability/#article","headline":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","description":"TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。","url":"https://glyphlang.io/ja/answers/verifiability/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","item":"https://glyphlang.io/ja/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/verifiability/#article","headline":"エージェントがコードを気づかれずに壊すのを、何が防ぐのか","description":"TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。","url":"https://glyphlang.io/ja/answers/verifiability/","inLanguage":"ja","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -816,6 +816,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods"><code>undefined</code> を返すメソッド<a class="ak-anchor" href="#absent-methods" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">何も見つからないかもしれない検索: 現在は E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">JavaScript のいくつかのメソッドは「何もない」を <code>undefined</code> で表します。Glyph 自身のチェッカーにはそれが見えなかったため、エディタとエージェントのツールは <code>.name</code> の読み取りを通していました。今はそれぞれが <code>Option</code> を返す標準ライブラリの関数を示し、配列のものは <code>glyph fix</code> が書き換えます。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">どのメソッドが対象で、何に置き換えるか</span></summary><div class="body">
+        <p>
+          一覧は TypeScript の宣言から読み取っています。配列の <code>find</code>、<code>findLast</code>、<code>at</code> と、文字列の <code>at</code>、<code>codePointAt</code>、<code>match</code> です。置き換え先は <code>array.find</code>、<code>array.find_last</code>、<code>array.get</code>、<code>string.char_at</code>、<code>string.code_point_at</code>、<code>regex.matches</code> です。<code>??</code> のデフォルト値は <code>match</code> の <code>None</code> アームになります。<code>array.get</code> は負のインデックスに <code>None</code> を返すので、<code>xs.at(-1)</code> のヘルプは <code>array.get(xs, array.len(xs) - 1)</code> と書きます。npm の値に対するメソッド呼び出しは、Glyph がその型を知らないため判定しません。
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> はどこでも値の等価性<a class="ak-anchor" href="#equality" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">コードは失敗しているのにテストは通った</span>
@@ -965,7 +981,7 @@
       <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">19</span></h3>
 
           <p class="ak-st-group">マッチ</p>
           <ul class="ak-list">
@@ -990,6 +1006,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">型注釈付きのモジュールレベルの <code>const</code> でのフィールドのタイプミス</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">すべての型で値の等価性になる <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">map からのキーの読み取りを拒否</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code> や <code>at</code> のように <code>undefined</code> を返す組み込みメソッドを、<code>Option</code> 版を示して拒否</span><span class="chip code">E0242</span><span class="chip since">0.1.161 から</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">宣言された型に照らして検査されるオブジェクトリテラルと JSX 属性</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">0.1.124 から</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
                 <p>0.1.124 から、オブジェクトリテラルはそのフィールドが表すレコード型を持ちます。そのため <code>let g: string = { x: 1 }</code>、宣言されたレコードが必須とするフィールドを欠いたリテラル、合わない場所に渡されたリテラルは、<code>let</code>、<code>const</code>、<code>return</code>、呼び出しの引数のどこでも、宣言された型を示す E0204 または E0211 になります。また JSX 属性はコンポーネントの props レコードに照らして検査されるので、<code>&lt;Button variant="nope" /&gt;</code> は受け付ける値を示す E0211 になり、レコードが宣言していない属性は E0210 になります。E0210 は <code>glyph fix</code> で名前を直せます。</p>
@@ -1015,7 +1032,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中 <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中 <span class="count">14</span></h3>
 
           <p class="ak-st-group">マッチ</p>
           <ul class="ak-list">
@@ -1058,6 +1075,7 @@
 
           <p class="ak-st-group">データの境界</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">npm の値に対する <code>find</code> や <code>at</code> は判定しない。対象は Glyph が型を知っている配列と文字列だけ</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">別のモジュールや標準ライブラリから来た map は検査されずに読まれる</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
                 <p>別のモジュールや標準ライブラリから届く map は今も検査されずに読まれるので、E0224 はまだ <code>sqlite.Row</code> を対象にしていません。また 2 つの束縛を持つ <code>for i, x in xs</code> は今も型を失います。</p>
@@ -1101,7 +1119,7 @@
           これが Glyph の 4 つの柱の 1 つ目である理由と、その保証がどこで止まるかは、<a href="/ja/pillars/verifiability/">検証可能性の柱のページ</a>にあります。
         </p>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.160 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.160 で検証しています。最終更新：<time datetime="2026-11-22">2026年11月22日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <div class="spacer"></div>
         <a href="/ja/answers/diff-stability/" class="nx cta">

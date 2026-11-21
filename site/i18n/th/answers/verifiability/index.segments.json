@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "th",
-  "source_hash": "debac5501878fd3d",
+  "source_hash": "c7a4b93d61ceb50d",
   "segments": [
     {
       "id": "title",
@@ -623,6 +623,36 @@
       "tr": "key ของ map เป็นอะไรก็ได้ คอมไพเลอร์จึงรู้ไม่ได้ว่า key มีอยู่ การให้ type ของการอ่านเป็น <code>string</code> คือการยืนยันสิ่งที่ไม่ได้ตรวจ และค่าถูกพิมพ์ออกมาเป็นข้อความ \"undefined\" การเขียน key ไม่ได้ถูกแตะ และการ index array ก็เช่นกัน: ขอบเขตเป็นค่าที่โปรแกรมตรวจได้ key ของ map ไม่ใช่"
     },
     {
+      "id": "h-3a3d7d62",
+      "kind": "html",
+      "en": "A method that answers <code>undefined</code>",
+      "tr": "เมธอดที่ตอบกลับเป็น <code>undefined</code>"
+    },
+    {
+      "id": "h-260d7a8e",
+      "kind": "html",
+      "en": "a lookup that may find nothing: now E0242",
+      "tr": "การค้นหาที่อาจไม่พบอะไรเลย: ตอนนี้เป็น E0242"
+    },
+    {
+      "id": "h-ee3783df",
+      "kind": "html",
+      "en": "A few JavaScript methods say \"nothing there\" with <code>undefined</code>, which Glyph's own checker could not see, so the editor and the agent tools passed the <code>.name</code> read. Each one now points at the standard library function that returns an <code>Option</code>, and <code>glyph fix</code> writes the array ones.",
+      "tr": "เมธอดบางตัวของ JavaScript บอกว่า \"ไม่มีอะไร\" ด้วย <code>undefined</code> ซึ่ง checker ของ Glyph เองมองไม่เห็น editor และเครื่องมือของ agent จึงปล่อยการอ่าน <code>.name</code> ผ่านไป ตอนนี้แต่ละตัวชี้ไปที่ฟังก์ชันใน standard library ที่คืนค่าเป็น <code>Option</code> และ <code>glyph fix</code> เขียนแทนให้สำหรับเมธอดของ array"
+    },
+    {
+      "id": "h-a8265a1c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">which methods, and what replaces them</span>",
+      "tr": "รายละเอียด <span class=\"hint\">เมธอดไหนบ้าง และใช้อะไรแทน</span>"
+    },
+    {
+      "id": "h-797549b8",
+      "kind": "html",
+      "en": "The list is read off TypeScript's declarations: <code>find</code>, <code>findLast</code> and <code>at</code> on an array, and <code>at</code>, <code>codePointAt</code> and <code>match</code> on a string. The replacements are <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> and <code>regex.matches</code>. A <code>??</code> default becomes the <code>None</code> arm of a <code>match</code>. <code>array.get</code> answers <code>None</code> for a negative index, so the help for <code>xs.at(-1)</code> writes <code>array.get(xs, array.len(xs) - 1)</code>. A method called on an npm value is not judged, because Glyph does not know its type.",
+      "tr": "รายการนี้อ่านจาก declaration ของ TypeScript ได้แก่ <code>find</code>, <code>findLast</code> และ <code>at</code> บน array และ <code>at</code>, <code>codePointAt</code> และ <code>match</code> บน string ตัวแทนคือ <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> และ <code>regex.matches</code> ค่าเริ่มต้นที่ใช้ <code>??</code> จะกลายเป็น arm <code>None</code> ของ <code>match</code> และเพราะ <code>array.get</code> ตอบ <code>None</code> เมื่อ index ติดลบ help สำหรับ <code>xs.at(-1)</code> จึงเขียนเป็น <code>array.get(xs, array.len(xs) - 1)</code> เมธอดที่เรียกบนค่าจาก npm จะไม่ถูกตรวจ เพราะ Glyph ไม่รู้ type ของมัน"
+    },
+    {
       "id": "h-7affa1da",
       "kind": "html",
       "en": "<code>==</code> is value equality everywhere",
@@ -869,10 +899,10 @@
       "tr": "สถานะตอนนี้"
     },
     {
-      "id": "h-d58144f7",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">18</span>",
-      "tr": "ใช้ได้วันนี้ <span class=\"count\">18</span>"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "ใช้ได้วันนี้ <span class=\"count\">19</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -971,6 +1001,18 @@
       "tr": "การอ่าน key จาก map ถูกปฏิเสธ"
     },
     {
+      "id": "h-3f45b85d",
+      "kind": "html",
+      "en": "A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named",
+      "tr": "เมธอดในตัวที่ตอบ <code>undefined</code> เช่น <code>find</code> หรือ <code>at</code> ถูกปฏิเสธ พร้อมบอกรูปแบบที่ใช้ <code>Option</code>"
+    },
+    {
+      "id": "h-98f4194b",
+      "kind": "html",
+      "en": "since 0.1.161",
+      "tr": "ตั้งแต่ 0.1.161"
+    },
+    {
       "id": "h-0fdc9dd8",
       "kind": "html",
       "en": "Object literals and JSX attributes checked against the declared type",
@@ -1049,10 +1091,10 @@
       "tr": "การปิดบัง PII ด้วย <code>@redact</code> บน type descriptor"
     },
     {
-      "id": "h-f094b384",
+      "id": "h-87f2be3e",
       "kind": "html",
-      "en": "Getting sharper <span class=\"count\">13</span>",
-      "tr": "กำลังคมขึ้น <span class=\"count\">13</span>"
+      "en": "Getting sharper <span class=\"count\">14</span>",
+      "tr": "กำลังคมขึ้น <span class=\"count\">14</span>"
     },
     {
       "id": "h-832f8a5e",
@@ -1137,6 +1179,12 @@
       "kind": "html",
       "en": "Deeper flow-narrowing is on the roadmap",
       "tr": "การ narrow ตาม flow ที่ลึกขึ้นอยู่ใน roadmap"
+    },
+    {
+      "id": "h-cdeef03f",
+      "kind": "html",
+      "en": "A <code>find</code> or <code>at</code> on an npm value is not judged; only an array or a string Glyph has typed is",
+      "tr": "<code>find</code> หรือ <code>at</code> บนค่าจาก npm จะไม่ถูกตรวจ ตรวจเฉพาะ array หรือ string ที่ Glyph รู้ type"
     },
     {
       "id": "h-fd47e980",

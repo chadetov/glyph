@@ -1,7 +1,7 @@
 ---
 title: 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요? · Glyph
 description: TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.
-source_hash: debac5501878fd3d
+source_hash: c7a4b93d61ceb50d
 next: /answers/diff-stability/ | 다음 &rarr; | 에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?
 ---
       <p class="q-eyebrow">01 &middot; 핵심 약속</p>
@@ -347,6 +347,22 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods"><code>undefined</code>를 돌려주는 메서드<a class="ak-anchor" href="#absent-methods" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">아무것도 찾지 못할 수 있는 조회: 이제 E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">JavaScript의 몇몇 메서드는 "아무것도 없음"을 <code>undefined</code>로 알립니다. Glyph 자체 체커는 이것을 볼 수 없었기 때문에 에디터와 에이전트 도구는 <code>.name</code> 읽기를 통과시켰습니다. 이제 각 메서드는 <code>Option</code>을 반환하는 표준 라이브러리 함수를 가리키고, 배열 메서드는 <code>glyph fix</code>가 바꿔 씁니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">어떤 메서드이고 무엇으로 바꾸는지</span></summary><div class="body">
+        <p>
+          목록은 TypeScript 선언에서 읽어 옵니다. 배열의 <code>find</code>, <code>findLast</code>, <code>at</code>와 문자열의 <code>at</code>, <code>codePointAt</code>, <code>match</code>입니다. 대체 함수는 <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code>, <code>regex.matches</code>입니다. <code>??</code> 기본값은 <code>match</code>의 <code>None</code> 갈래가 됩니다. <code>array.get</code>은 음수 인덱스에 <code>None</code>을 돌려주므로 <code>xs.at(-1)</code>에 대한 도움말은 <code>array.get(xs, array.len(xs) - 1)</code>로 씁니다. npm 값에서 호출한 메서드는 Glyph가 그 타입을 모르기 때문에 판단하지 않습니다.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code>는 어디서나 값 비교입니다<a class="ak-anchor" href="#equality" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">코드는 실패했는데 통과한 테스트</span>
@@ -496,7 +512,7 @@ pub fn origin() -&gt; Point {
       <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">19</span></h3>
 
           <p class="ak-st-group">매칭</p>
           <ul class="ak-list">
@@ -521,6 +537,7 @@ pub fn origin() -&gt; Point {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">타입 표기가 있는 모듈 수준 <code>const</code>의 필드 오타</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">모든 타입에서 값 비교인 <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">맵에서 키를 읽는 것을 거부</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code>나 <code>at</code>처럼 <code>undefined</code>를 돌려주는 내장 메서드를 거부하고 <code>Option</code> 형태를 알려 줌</span><span class="chip code">E0242</span><span class="chip since">0.1.161부터</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">선언된 타입에 대해 검사되는 객체 리터럴과 JSX 속성</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">0.1.124부터</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
                 <p>0.1.124부터 객체 리터럴은 그 필드가 나타내는 레코드 타입을 가집니다. 그래서 <code>let g: string = { x: 1 }</code>, 선언된 레코드가 요구하는 필드가 빠진 리터럴, 맞지 않는 곳에 넘긴 리터럴은 <code>let</code>, <code>const</code>, <code>return</code>, 호출 인자에서 선언된 타입을 짚는 E0204나 E0211입니다. 그리고 JSX 속성은 컴포넌트의 props 레코드에 대해 검사되므로, <code>&lt;Button variant="nope" /&gt;</code>는 받아들이는 값을 보여 주는 E0211을 내고, 레코드에 선언되지 않은 속성은 <code>glyph fix</code>가 이름을 바꿔 주는 E0210을 냅니다.</p>
@@ -546,7 +563,7 @@ pub fn origin() -&gt; Point {
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 개선 중 <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 개선 중 <span class="count">14</span></h3>
 
           <p class="ak-st-group">매칭</p>
           <ul class="ak-list">
@@ -589,6 +606,7 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">데이터 경계</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">npm 값의 <code>find</code>나 <code>at</code>는 판단하지 않음. Glyph가 타입을 아는 배열이나 문자열만 판단함</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">다른 모듈이나 표준 라이브러리에서 온 맵은 검사 없이 읽힙니다</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
                 <p>다른 모듈이나 표준 라이브러리에서 온 맵은 여전히 검사 없이 읽히므로, E0224가 아직 <code>sqlite.Row</code>에 적용되지 않고, 바인딩이 두 개인 <code>for i, x in xs</code>는 여전히 타입을 잃습니다.</p>

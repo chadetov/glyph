@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Что мешает агенту незаметно сломать мой код?","item":"https://glyphlang.io/ru/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/verifiability/#article","headline":"Что мешает агенту незаметно сломать мой код?","description":"Изменения, которые в TypeScript компилируются и потом ломаются (пропущенный случай, необработанная ошибка, переименованное поле), в Glyph становятся ошибками компиляции, которые агент обязан исправить.","url":"https://glyphlang.io/ru/answers/verifiability/","inLanguage":"ru","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -814,6 +814,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">Метод, который отвечает <code>undefined</code><a class="ak-anchor" href="#absent-methods" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">поиск, который может ничего не найти: теперь E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">Несколько методов JavaScript сообщают «ничего нет» через <code>undefined</code>, а собственный checker Glyph этого не видел, поэтому редактор и инструменты агента пропускали чтение <code>.name</code>. Теперь каждый из них указывает на функцию стандартной библиотеки, которая возвращает <code>Option</code>, а для массивов замену пишет <code>glyph fix</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">какие методы и чем их заменить</span></summary><div class="body">
+        <p>
+          Список берётся из объявлений TypeScript: <code>find</code>, <code>findLast</code> и <code>at</code> у массива и <code>at</code>, <code>codePointAt</code> и <code>match</code> у строки. Замены: <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> и <code>regex.matches</code>. Значение по умолчанию через <code>??</code> становится веткой <code>None</code> в <code>match</code>. <code>array.get</code> возвращает <code>None</code> для отрицательного индекса, поэтому подсказка для <code>xs.at(-1)</code> пишет <code>array.get(xs, array.len(xs) - 1)</code>. Метод, вызванный на значении из npm, не проверяется, потому что Glyph не знает его тип.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> везде означает равенство значений<a class="ak-anchor" href="#equality" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">тест, который проходил, когда код не работал</span>
@@ -963,7 +979,7 @@
       <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">19</span></h3>
 
           <p class="ak-st-group">Сопоставление</p>
           <ul class="ak-list">
@@ -988,6 +1004,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Опечатка в поле аннотированного <code>const</code> уровня модуля</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> как равенство значений для любого типа</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чтение ключа из map отклоняется</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Встроенный метод, отвечающий <code>undefined</code>, например <code>find</code> или <code>at</code>, отклоняется с указанием формы через <code>Option</code></span><span class="chip code">E0242</span><span class="chip since">с 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объектные литералы и атрибуты JSX проверяются по объявленному типу</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">с 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
                 <p>С 0.1.124 у объектного литерала есть тип записи, который задают его поля, поэтому <code>let g: string = { x: 1 }</code>, литерал без поля, обязательного для объявленной записи, и литерал, переданный туда, куда он не подходит, дают E0204 или E0211 с названием объявленного типа, в <code>let</code>, <code>const</code>, <code>return</code> и аргументе вызова; а атрибут JSX проверяется по записи props компонента, поэтому <code>&lt;Button variant="nope" /&gt;</code> даёт E0211 со списком допустимых значений, а атрибут, которого запись не объявляет, даёт E0210, и <code>glyph fix</code> его переименовывает.</p>
@@ -1013,7 +1030,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее <span class="count">14</span></h3>
 
           <p class="ak-st-group">Сопоставление</p>
           <ul class="ak-list">
@@ -1056,6 +1073,7 @@
 
           <p class="ak-st-group">Границы данных</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>find</code> или <code>at</code> на значении из npm не проверяется; проверяются только массив или строка, тип которых известен Glyph</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Map из другого модуля или стандартной библиотеки читаются без проверки</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
                 <p>Map, пришедший из другого модуля или из стандартной библиотеки, по-прежнему читается без проверки, поэтому E0224 пока не покрывает <code>sqlite.Row</code>, а <code>for i, x in xs</code> с двумя переменными по-прежнему теряет их типы.</p>
@@ -1099,7 +1117,7 @@
           Почему это первый из четырёх принципов Glyph и где заканчивается его гарантия, рассказано на <a href="/ru/pillars/verifiability/">странице принципа проверяемости</a>.
         </p>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.160 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.160 при каждой сборке. Последнее изменение: <time datetime="2026-11-22">22 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <div class="spacer"></div>
         <a href="/ru/answers/diff-stability/" class="nx cta">

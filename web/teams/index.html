@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/teams/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"For teams","item":"https://glyphlang.io/teams/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/teams/#article","headline":"For teams · what Glyph guarantees and costs","description":"For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.","url":"https://glyphlang.io/teams/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/teams/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/teams/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"For teams","item":"https://glyphlang.io/teams/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/teams/#article","headline":"For teams · what Glyph guarantees and costs","description":"For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.","url":"https://glyphlang.io/teams/","inLanguage":"en","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/teams/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/teams/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/teams/" />
@@ -439,7 +439,7 @@
         <p>
           Every claim about what Glyph catches is a case in the repository's <code>catches/</code>
           directory: the same program in TypeScript and in Glyph, both run by a CI gate.
-          There are 48 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 6 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). Of the mistakes it does not refuse, 3 draw a warning,
+          There are 47 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 5 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). Of the mistakes it does not refuse, 3 draw a warning,
           9 are bad data stopped at a runtime boundary check, and
           2 stop at run time. The ones a reviewer of agent-written code leans on most:
         </p>
@@ -471,7 +471,7 @@
         <p>
           The guarantees cover code written in Glyph. An exception thrown inside an npm dependency
           still bypasses <code>Result</code>, and a type imported from a package's
-          <code>.d.ts</code> has no runtime check. Inside Glyph, the 6 open holes are listed with
+          <code>.d.ts</code> has no runtime check. Inside Glyph, the 5 open holes are listed with
           their gap numbers in <a href="/catches/#not-yet">what it does not catch yet</a>, and the
           full ledger is <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>.
           For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where

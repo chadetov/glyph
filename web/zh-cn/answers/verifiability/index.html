@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"什么能防止智能体悄悄改坏我的代码？","item":"https://glyphlang.io/zh-cn/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/verifiability/#article","headline":"什么能防止智能体悄悄改坏我的代码？","description":"在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。","url":"https://glyphlang.io/zh-cn/answers/verifiability/","inLanguage":"zh-Hans","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -816,6 +816,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">返回 <code>undefined</code> 的方法<a class="ak-anchor" href="#absent-methods" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">可能什么都找不到的查找：现在是 E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">有几个 JavaScript 方法用 <code>undefined</code> 表示“什么都没有”，Glyph 自己的检查器看不到它，所以编辑器和代理工具会放过对 <code>.name</code> 的读取。现在每个方法都会指向返回 <code>Option</code> 的标准库函数，数组上的那几个由 <code>glyph fix</code> 直接改写。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">涉及哪些方法，以及用什么替代</span></summary><div class="body">
+        <p>
+          这份列表读自 TypeScript 的声明：数组上的 <code>find</code>、<code>findLast</code> 和 <code>at</code>，以及字符串上的 <code>at</code>、<code>codePointAt</code> 和 <code>match</code>。替代写法是 <code>array.find</code>、<code>array.find_last</code>、<code>array.get</code>、<code>string.char_at</code>、<code>string.code_point_at</code> 和 <code>regex.matches</code>。<code>??</code> 的默认值会变成 <code>match</code> 的 <code>None</code> 分支。<code>array.get</code> 对负数索引返回 <code>None</code>，所以 <code>xs.at(-1)</code> 的帮助会写成 <code>array.get(xs, array.len(xs) - 1)</code>。在 npm 值上调用的方法不做判定，因为 Glyph 不知道它的类型。
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> 在任何地方都是值相等<a class="ak-anchor" href="#equality" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">代码失败时测试却通过了</span>
@@ -965,7 +981,7 @@
       <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">19</span></h3>
 
           <p class="ak-st-group">匹配</p>
           <ul class="ak-list">
@@ -990,6 +1006,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">带标注的模块级 <code>const</code> 上的字段拼写错误</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> 在所有类型上都是值相等</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">从 map 中读取键会被拒绝</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">像 <code>find</code> 或 <code>at</code> 这样返回 <code>undefined</code> 的内置方法会被拒绝，并指出它的 <code>Option</code> 写法</span><span class="chip code">E0242</span><span class="chip since">自 0.1.161 起</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">对象字面量和 JSX 属性按声明的类型检查</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">自 0.1.124 起</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
                 <p>从 0.1.124 起，对象字面量具有其字段所构成的记录类型，所以 <code>let g: string = { x: 1 }</code>、缺少声明的记录所要求的字段的字面量，以及传到不匹配位置的字面量，都会是 E0204 或 E0211 并指出声明的类型，无论在 <code>let</code>、<code>const</code>、<code>return</code> 还是调用参数中；JSX 属性会按组件的 props 记录检查，所以 <code>&lt;Button variant="nope" /&gt;</code> 会引发 E0211 并列出可接受的值，记录中未声明的属性会引发 E0210，<code>glyph fix</code> 可以把它改名。</p>
@@ -1015,7 +1032,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在加强 <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在加强 <span class="count">14</span></h3>
 
           <p class="ak-st-group">匹配</p>
           <ul class="ak-list">
@@ -1058,6 +1075,7 @@
 
           <p class="ak-st-group">数据边界</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">npm 值上的 <code>find</code> 或 <code>at</code> 不做判定；只判定 Glyph 已知类型的数组或字符串</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">来自其他模块或标准库的 map 读取不受检</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
                 <p>来自其他模块或标准库的 map 读取仍然不受检，所以 E0224 还不覆盖 <code>sqlite.Row</code>，双绑定的 <code>for i, x in xs</code> 仍然会丢失类型。</p>
@@ -1101,7 +1119,7 @@
           为什么这是 Glyph 四大支柱中的第一个，以及它的保证止于何处，见<a href="/zh-cn/pillars/verifiability/">可验证性支柱页面</a>。
         </p>
       </div>
-      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.160 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.160 检查。最后修改：<time datetime="2026-11-22">2026年11月22日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <div class="spacer"></div>
         <a href="/zh-cn/answers/diff-stability/" class="nx cta">

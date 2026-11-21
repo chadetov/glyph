@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?","item":"https://glyphlang.io/th/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/verifiability/#article","headline":"อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?","description":"การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้","url":"https://glyphlang.io/th/answers/verifiability/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?","item":"https://glyphlang.io/th/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/verifiability/#article","headline":"อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ?","description":"การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้","url":"https://glyphlang.io/th/answers/verifiability/","inLanguage":"th","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -816,6 +816,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">เมธอดที่ตอบกลับเป็น <code>undefined</code><a class="ak-anchor" href="#absent-methods" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">การค้นหาที่อาจไม่พบอะไรเลย: ตอนนี้เป็น E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">เมธอดบางตัวของ JavaScript บอกว่า "ไม่มีอะไร" ด้วย <code>undefined</code> ซึ่ง checker ของ Glyph เองมองไม่เห็น editor และเครื่องมือของ agent จึงปล่อยการอ่าน <code>.name</code> ผ่านไป ตอนนี้แต่ละตัวชี้ไปที่ฟังก์ชันใน standard library ที่คืนค่าเป็น <code>Option</code> และ <code>glyph fix</code> เขียนแทนให้สำหรับเมธอดของ array</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">เมธอดไหนบ้าง และใช้อะไรแทน</span></summary><div class="body">
+        <p>
+          รายการนี้อ่านจาก declaration ของ TypeScript ได้แก่ <code>find</code>, <code>findLast</code> และ <code>at</code> บน array และ <code>at</code>, <code>codePointAt</code> และ <code>match</code> บน string ตัวแทนคือ <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> และ <code>regex.matches</code> ค่าเริ่มต้นที่ใช้ <code>??</code> จะกลายเป็น arm <code>None</code> ของ <code>match</code> และเพราะ <code>array.get</code> ตอบ <code>None</code> เมื่อ index ติดลบ help สำหรับ <code>xs.at(-1)</code> จึงเขียนเป็น <code>array.get(xs, array.len(xs) - 1)</code> เมธอดที่เรียกบนค่าจาก npm จะไม่ถูกตรวจ เพราะ Glyph ไม่รู้ type ของมัน
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> คือความเท่ากันของค่าทุกที่<a class="ak-anchor" href="#equality" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">เทสต์ที่ผ่านขณะที่โค้ดล้มเหลว</span>
@@ -965,7 +981,7 @@
       <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">19</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -990,6 +1006,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">field ที่พิมพ์ผิดบน <code>const</code> ระดับ module ที่มี annotation</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> เป็นความเท่ากันของค่าบนทุก type</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การอ่าน key จาก map ถูกปฏิเสธ</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">เมธอดในตัวที่ตอบ <code>undefined</code> เช่น <code>find</code> หรือ <code>at</code> ถูกปฏิเสธ พร้อมบอกรูปแบบที่ใช้ <code>Option</code></span><span class="chip code">E0242</span><span class="chip since">ตั้งแต่ 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">object literal และ attribute ของ JSX ถูกตรวจเทียบกับ type ที่ประกาศ</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">ตั้งแต่ 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
                 <p>ตั้งแต่ 0.1.124 object literal มี record type ตาม field ที่มันเขียน <code>let g: string = { x: 1 }</code>, literal ที่ขาด field ที่ record ที่ประกาศกำหนด และ literal ที่ส่งในที่ที่ไม่เข้ากัน จึงเป็น E0204 หรือ E0211 พร้อมระบุ type ที่ประกาศ ทั้งที่ <code>let</code>, <code>const</code>, <code>return</code> และ argument ของการเรียก และ attribute ของ JSX ถูกตรวจเทียบกับ props record ของ component <code>&lt;Button variant="nope" /&gt;</code> จึงได้ E0211 พร้อมค่าที่มันรับ และ attribute ที่ record ไม่ได้ประกาศได้ E0210 ซึ่ง <code>glyph fix</code> เปลี่ยนชื่อให้</p>
@@ -1015,7 +1032,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น <span class="count">14</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -1058,6 +1075,7 @@
 
           <p class="ak-st-group">ขอบเขตของข้อมูล</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>find</code> หรือ <code>at</code> บนค่าจาก npm จะไม่ถูกตรวจ ตรวจเฉพาะ array หรือ string ที่ Glyph รู้ type</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">map จาก module อื่นหรือจาก standard library ถูกอ่านโดยไม่ตรวจ</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
                 <p>map ที่มาจาก module อื่นหรือจาก standard library ยังถูกอ่านโดยไม่ตรวจ E0224 จึงยังไม่ครอบคลุม <code>sqlite.Row</code> และ <code>for i, x in xs</code> ที่มีสอง binding ยังเสีย type ไป</p>
@@ -1101,7 +1119,7 @@
           ทำไมนี่เป็นเสาหลักข้อแรกจากสี่ข้อของ Glyph และการรับประกันหยุดตรงไหน อยู่ใน<a href="/th/pillars/verifiability/">หน้าเสาหลักเรื่องตรวจสอบได้</a>
         </p>
       </div>
-      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.160 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.160 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-22">22 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <div class="spacer"></div>
         <a href="/th/answers/diff-stability/" class="nx cta">

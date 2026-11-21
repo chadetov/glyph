@@ -1,7 +1,7 @@
 ---
 title: O que impede um agente de quebrar meu código em silêncio? · Glyph
 description: Mudanças que compilam e depois quebram em TypeScript, como um caso esquecido, um erro não tratado ou um campo renomeado, são erros de compilação em Glyph que o agente precisa corrigir.
-source_hash: debac5501878fd3d
+source_hash: c7a4b93d61ceb50d
 next: /answers/diff-stability/ | Próxima &rarr; | As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?
 ---
       <p class="q-eyebrow">01 &middot; A promessa central</p>
@@ -347,6 +347,22 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">Um método que responde <code>undefined</code><a class="ak-anchor" href="#absent-methods" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">uma busca que pode não encontrar nada: agora E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">Alguns métodos de JavaScript dizem "não há nada" com <code>undefined</code>, que o checker do próprio Glyph não enxergava, então o editor e as ferramentas do agente deixavam passar a leitura de <code>.name</code>. Agora cada um aponta para a função da biblioteca padrão que devolve um <code>Option</code>, e o <code>glyph fix</code> escreve as de array.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">quais métodos, e o que os substitui</span></summary><div class="body">
+        <p>
+          A lista vem das declarações do TypeScript: <code>find</code>, <code>findLast</code> e <code>at</code> em um array, e <code>at</code>, <code>codePointAt</code> e <code>match</code> em uma string. As substituições são <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> e <code>regex.matches</code>. Um padrão com <code>??</code> vira o braço <code>None</code> de um <code>match</code>. <code>array.get</code> responde <code>None</code> para um índice negativo, então o help para <code>xs.at(-1)</code> escreve <code>array.get(xs, array.len(xs) - 1)</code>. Um método chamado em um valor de npm não é julgado, porque o Glyph não conhece o tipo dele.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> é igualdade de valor em todo lugar<a class="ak-anchor" href="#equality" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">um teste que passava enquanto o código falhava</span>
@@ -496,7 +512,7 @@ pub fn origin() -&gt; Point {
       <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje <span class="count">19</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -521,6 +537,7 @@ pub fn origin() -&gt; Point {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um erro de digitação num campo de um <code>const</code> anotado no nível do módulo</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> como igualdade de valor em todos os tipos</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ler uma chave de um mapa é rejeitado</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um método nativo que responde <code>undefined</code>, como <code>find</code> ou <code>at</code>, recusado com a forma <code>Option</code> indicada</span><span class="chip code">E0242</span><span class="chip since">desde a 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Literais de objeto e atributos JSX verificados contra o tipo declarado</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">desde a 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
                 <p>Desde a 0.1.124, um literal de objeto tem o tipo record que os seus campos formam, então <code>let g: string = { x: 1 }</code>, um literal sem um campo que o record declarado exige e um literal passado onde não cabe são E0204 ou E0211 com o tipo declarado nomeado, num <code>let</code>, num <code>const</code>, num <code>return</code> e num argumento de chamada; e um atributo JSX é verificado contra o record de props do componente, então <code>&lt;Button variant="nope" /&gt;</code> gera E0211 com os valores aceitos, e um atributo que o record não declara gera E0210, que o <code>glyph fix</code> renomeia.</p>
@@ -546,7 +563,7 @@ pub fn origin() -&gt; Point {
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ficando mais preciso <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Ficando mais preciso <span class="count">14</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -589,6 +606,7 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Fronteiras de dados</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um <code>find</code> ou <code>at</code> em um valor de npm não é julgado; só um array ou uma string que o Glyph tipou</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Mapas vindos de outro módulo ou da biblioteca padrão são lidos sem verificação</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
                 <p>Um mapa que chega de outro módulo ou da biblioteca padrão ainda é lido sem verificação, então o E0224 ainda não cobre um <code>sqlite.Row</code>, e o <code>for i, x in xs</code> com duas variáveis ainda perde os tipos.</p>

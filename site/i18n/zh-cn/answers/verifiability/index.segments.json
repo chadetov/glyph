@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "debac5501878fd3d",
+  "source_hash": "c7a4b93d61ceb50d",
   "segments": [
     {
       "id": "title",
@@ -623,6 +623,36 @@
       "tr": "map 的键是任意的，所以编译器无法知道键是否存在。把读取的类型定为 <code>string</code>，等于断言了一件没有检查过的事，而这个值被打印成文本 \"undefined\"。写入键不受影响，数组索引也不受影响：边界是程序可以检查的值，map 的键则不是。"
     },
     {
+      "id": "h-3a3d7d62",
+      "kind": "html",
+      "en": "A method that answers <code>undefined</code>",
+      "tr": "返回 <code>undefined</code> 的方法"
+    },
+    {
+      "id": "h-260d7a8e",
+      "kind": "html",
+      "en": "a lookup that may find nothing: now E0242",
+      "tr": "可能什么都找不到的查找：现在是 E0242"
+    },
+    {
+      "id": "h-ee3783df",
+      "kind": "html",
+      "en": "A few JavaScript methods say \"nothing there\" with <code>undefined</code>, which Glyph's own checker could not see, so the editor and the agent tools passed the <code>.name</code> read. Each one now points at the standard library function that returns an <code>Option</code>, and <code>glyph fix</code> writes the array ones.",
+      "tr": "有几个 JavaScript 方法用 <code>undefined</code> 表示“什么都没有”，Glyph 自己的检查器看不到它，所以编辑器和代理工具会放过对 <code>.name</code> 的读取。现在每个方法都会指向返回 <code>Option</code> 的标准库函数，数组上的那几个由 <code>glyph fix</code> 直接改写。"
+    },
+    {
+      "id": "h-a8265a1c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">which methods, and what replaces them</span>",
+      "tr": "详情 <span class=\"hint\">涉及哪些方法，以及用什么替代</span>"
+    },
+    {
+      "id": "h-797549b8",
+      "kind": "html",
+      "en": "The list is read off TypeScript's declarations: <code>find</code>, <code>findLast</code> and <code>at</code> on an array, and <code>at</code>, <code>codePointAt</code> and <code>match</code> on a string. The replacements are <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> and <code>regex.matches</code>. A <code>??</code> default becomes the <code>None</code> arm of a <code>match</code>. <code>array.get</code> answers <code>None</code> for a negative index, so the help for <code>xs.at(-1)</code> writes <code>array.get(xs, array.len(xs) - 1)</code>. A method called on an npm value is not judged, because Glyph does not know its type.",
+      "tr": "这份列表读自 TypeScript 的声明：数组上的 <code>find</code>、<code>findLast</code> 和 <code>at</code>，以及字符串上的 <code>at</code>、<code>codePointAt</code> 和 <code>match</code>。替代写法是 <code>array.find</code>、<code>array.find_last</code>、<code>array.get</code>、<code>string.char_at</code>、<code>string.code_point_at</code> 和 <code>regex.matches</code>。<code>??</code> 的默认值会变成 <code>match</code> 的 <code>None</code> 分支。<code>array.get</code> 对负数索引返回 <code>None</code>，所以 <code>xs.at(-1)</code> 的帮助会写成 <code>array.get(xs, array.len(xs) - 1)</code>。在 npm 值上调用的方法不做判定，因为 Glyph 不知道它的类型。"
+    },
+    {
       "id": "h-7affa1da",
       "kind": "html",
       "en": "<code>==</code> is value equality everywhere",
@@ -869,10 +899,10 @@
       "tr": "当前状态"
     },
     {
-      "id": "h-d58144f7",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">18</span>",
-      "tr": "现已提供 <span class=\"count\">18</span>"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "现已提供 <span class=\"count\">19</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -971,6 +1001,18 @@
       "tr": "从 map 中读取键会被拒绝"
     },
     {
+      "id": "h-3f45b85d",
+      "kind": "html",
+      "en": "A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named",
+      "tr": "像 <code>find</code> 或 <code>at</code> 这样返回 <code>undefined</code> 的内置方法会被拒绝，并指出它的 <code>Option</code> 写法"
+    },
+    {
+      "id": "h-98f4194b",
+      "kind": "html",
+      "en": "since 0.1.161",
+      "tr": "自 0.1.161 起"
+    },
+    {
       "id": "h-0fdc9dd8",
       "kind": "html",
       "en": "Object literals and JSX attributes checked against the declared type",
@@ -1049,10 +1091,10 @@
       "tr": "类型描述符上的 <code>@redact</code> PII 脱敏"
     },
     {
-      "id": "h-f094b384",
+      "id": "h-87f2be3e",
       "kind": "html",
-      "en": "Getting sharper <span class=\"count\">13</span>",
-      "tr": "正在加强 <span class=\"count\">13</span>"
+      "en": "Getting sharper <span class=\"count\">14</span>",
+      "tr": "正在加强 <span class=\"count\">14</span>"
     },
     {
       "id": "h-832f8a5e",
@@ -1137,6 +1179,12 @@
       "kind": "html",
       "en": "Deeper flow-narrowing is on the roadmap",
       "tr": "更深入的流敏感类型收窄已在路线图上"
+    },
+    {
+      "id": "h-cdeef03f",
+      "kind": "html",
+      "en": "A <code>find</code> or <code>at</code> on an npm value is not judged; only an array or a string Glyph has typed is",
+      "tr": "npm 值上的 <code>find</code> 或 <code>at</code> 不做判定；只判定 Glyph 已知类型的数组或字符串"
     },
     {
       "id": "h-fd47e980",

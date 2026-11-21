@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">Фикстуры<a class="h-anchor" href="#the-fixtures" aria-label="Ссылка на этот раздел">#</a></h2>
         <p>
-          В каждом каталоге внутри <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> лежат <code>ts.ts</code>, <code>glyph.glyph</code> и <code>case.toml</code>, где сказано, что делает каждый из них. <code>scripts/check_catches.py</code> работает в CI. Он требует, чтобы каждый <code>ts.ts</code> проходил <code>tsc --strict</code>, потому что программа на TypeScript, которая не компилируется, ничего не доказывает, а половину на Glyph проверяет в соответствии с видом случая. Всего проверенных случаев: 48. Из них случаев в TypeScript: 37, ловушек JavaScript, которых нет в Glyph: 5, и дыр, которые Glyph пока не закрывает: 6. При сборке Glyph отклоняет 28 из них (случаев TypeScript: 23, ловушек: 5). По видам, которые проверяет гейт:
+          В каждом каталоге внутри <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> лежат <code>ts.ts</code>, <code>glyph.glyph</code> и <code>case.toml</code>, где сказано, что делает каждый из них. <code>scripts/check_catches.py</code> работает в CI. Он требует, чтобы каждый <code>ts.ts</code> проходил <code>tsc --strict</code>, потому что программа на TypeScript, которая не компилируется, ничего не доказывает, а половину на Glyph проверяет в соответствии с видом случая. Всего проверенных случаев: 47. Из них случаев в TypeScript: 37, ловушек JavaScript, которых нет в Glyph: 5, и дыр, которые Glyph пока не закрывает: 5. При сборке Glyph отклоняет 28 из них (случаев TypeScript: 23, ловушек: 5). По видам, которые проверяет гейт:
         </p>
       </div>
 
@@ -442,7 +442,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">Сборка проходит и сообщает этот код как предупреждение</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">Программа работает, а проверка на границе превращает плохие данные в <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">Программа собирается, а затем останавливается при выполнении с указанным выводом</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">6</td><td data-label="What the gate requires of the Glyph">Glyph принимает программу, и она делает не то. Когда дыра закрывается, гейт падает и просит перенести случай</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">5</td><td data-label="What the gate requires of the Glyph">Glyph принимает программу, и она делает не то. Когда дыра закрывается, гейт падает и просит перенести случай</td></tr>
           </tbody>
         </table>
       </div>
@@ -536,7 +536,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">Что он пока не ловит<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="Ссылка на этот раздел">#</a></h2>
         <p>
-          Случаи вида <code>gap</code> (6) есть на <a href="/ru/catches/#not-yet">странице случаев</a>, у каждого свой номер gap. Каждая дыра, найденная при написании приложений на Glyph, есть в реестре <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, где единственный живой статус это пометка в квадратных скобках (<code>[FIXED]</code>, <code>[HALF FIXED]</code> или никакой для открытых), а <code>scripts/check_gaps.py</code> валит CI, если открытая запись последний раз воспроизводилась больше пяти выпусков назад.
+          Случаи вида <code>gap</code> (5) есть на <a href="/ru/catches/#not-yet">странице случаев</a>, у каждого свой номер gap. Каждая дыра, найденная при написании приложений на Glyph, есть в реестре <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>, где единственный живой статус это пометка в квадратных скобках (<code>[FIXED]</code>, <code>[HALF FIXED]</code> или никакой для открытых), а <code>scripts/check_gaps.py</code> валит CI, если открытая запись последний раз воспроизводилась больше пяти выпусков назад.
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">Как выпуск получает пометку Breaking<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="Ссылка на этот раздел">#</a></h2>

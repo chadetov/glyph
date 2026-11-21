@@ -1,7 +1,7 @@
 ---
 title: Was hindert einen Agenten daran, meinen Code unbemerkt kaputtzumachen? · Glyph
 description: Änderungen, die in TypeScript kompilieren und dann kaputtgehen, wie ein fehlender Fall, ein unbehandelter Fehler oder ein umbenanntes Feld, sind in Glyph Compile-Fehler, die der Agent beheben muss.
-source_hash: debac5501878fd3d
+source_hash: c7a4b93d61ceb50d
 next: /answers/diff-stability/ | Weiter &rarr; | Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?
 ---
       <p class="q-eyebrow">01 &middot; Das Kernversprechen</p>
@@ -347,6 +347,22 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">Eine Methode, die mit <code>undefined</code> antwortet<a class="ak-anchor" href="#absent-methods" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">eine Suche, die vielleicht nichts findet: jetzt E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">Einige JavaScript-Methoden sagen „nichts da“ mit <code>undefined</code>, und das konnte Glyphs eigener Checker nicht sehen. Deshalb ließen der Editor und die Agent-Tools das Lesen von <code>.name</code> durch. Jetzt verweist jede auf die Funktion der Standardbibliothek, die ein <code>Option</code> zurückgibt, und die Array-Fälle schreibt <code>glyph fix</code> um.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">welche Methoden, und was sie ersetzt</span></summary><div class="body">
+        <p>
+          Die Liste wird aus den Deklarationen von TypeScript gelesen: <code>find</code>, <code>findLast</code> und <code>at</code> auf einem Array, und <code>at</code>, <code>codePointAt</code> und <code>match</code> auf einem String. Die Ersatzfunktionen sind <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> und <code>regex.matches</code>. Ein Standardwert mit <code>??</code> wird zum <code>None</code>-Arm eines <code>match</code>. <code>array.get</code> antwortet bei einem negativen Index mit <code>None</code>, daher schreibt die Hilfe für <code>xs.at(-1)</code> <code>array.get(xs, array.len(xs) - 1)</code>. Eine Methode auf einem npm-Wert wird nicht geprüft, weil Glyph ihren Typ nicht kennt.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> ist überall Wertgleichheit<a class="ak-anchor" href="#equality" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">ein Test, der bestand, während der Code scheiterte</span>
@@ -496,7 +512,7 @@ pub fn origin() -&gt; Point {
       <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">19</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -521,6 +537,7 @@ pub fn origin() -&gt; Point {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Tippfehler in einem Feld einer annotierten <code>const</code> auf Modulebene</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> als Wertgleichheit für jeden Typ</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Das Lesen eines Schlüssels aus einer Map wird abgelehnt</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine eingebaute Methode, die mit <code>undefined</code> antwortet, etwa <code>find</code> oder <code>at</code>, wird abgelehnt und ihre <code>Option</code>-Form genannt</span><span class="chip code">E0242</span><span class="chip since">seit 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Objektliterale und JSX-Attribute werden gegen den deklarierten Typ geprüft</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">seit 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>Seit 0.1.124 hat ein Objektliteral den Record-Typ, den seine Felder ausdrücken, also sind <code>let g: string = { x: 1 }</code>, ein Literal, dem ein Feld fehlt, das der deklarierte Record verlangt, und ein Literal, das übergeben wird, wo es nicht passt, E0204 oder E0211 mit Nennung des deklarierten Typs, bei einem <code>let</code>, einer <code>const</code>, einem <code>return</code> und einem Aufrufargument; und ein JSX-Attribut wird gegen den Props-Record der Komponente geprüft, also löst <code>&lt;Button variant="nope" /&gt;</code> E0211 mit den akzeptierten Werten aus, und ein Attribut, das der Record nicht deklariert, löst E0210 aus, das <code>glyph fix</code> umbenennt.</p>
@@ -546,7 +563,7 @@ pub fn origin() -&gt; Point {
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer <span class="count">14</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -589,6 +606,7 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Datengrenzen</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein <code>find</code> oder <code>at</code> auf einem npm-Wert wird nicht geprüft; nur ein Array oder String, dessen Typ Glyph kennt</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Maps aus einem anderen Modul oder der Standardbibliothek werden ungeprüft gelesen</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>Eine Map, die aus einem anderen Modul oder der Standardbibliothek kommt, wird weiterhin ungeprüft gelesen, also deckt E0224 noch kein <code>sqlite.Row</code> ab, und das <code>for i, x in xs</code> mit zwei Bindings verliert weiterhin seine Typen.</p>

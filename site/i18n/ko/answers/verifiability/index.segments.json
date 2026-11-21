@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "debac5501878fd3d",
+  "source_hash": "c7a4b93d61ceb50d",
   "segments": [
     {
       "id": "title",
@@ -623,6 +623,36 @@
       "tr": "맵의 키는 임의적이므로 컴파일러는 키가 있는지 알 수 없습니다. 읽은 값의 타입을 <code>string</code>으로 지정하는 것은 검사하지 않은 것을 단언하는 것이었고, 값은 \"undefined\"라는 텍스트로 출력되었습니다. 키를 쓰는 것은 그대로이고 배열 인덱싱도 그대로입니다. 범위는 프로그램이 검사할 수 있는 값이지만 맵 키는 그렇지 않습니다."
     },
     {
+      "id": "h-3a3d7d62",
+      "kind": "html",
+      "en": "A method that answers <code>undefined</code>",
+      "tr": "<code>undefined</code>를 돌려주는 메서드"
+    },
+    {
+      "id": "h-260d7a8e",
+      "kind": "html",
+      "en": "a lookup that may find nothing: now E0242",
+      "tr": "아무것도 찾지 못할 수 있는 조회: 이제 E0242"
+    },
+    {
+      "id": "h-ee3783df",
+      "kind": "html",
+      "en": "A few JavaScript methods say \"nothing there\" with <code>undefined</code>, which Glyph's own checker could not see, so the editor and the agent tools passed the <code>.name</code> read. Each one now points at the standard library function that returns an <code>Option</code>, and <code>glyph fix</code> writes the array ones.",
+      "tr": "JavaScript의 몇몇 메서드는 \"아무것도 없음\"을 <code>undefined</code>로 알립니다. Glyph 자체 체커는 이것을 볼 수 없었기 때문에 에디터와 에이전트 도구는 <code>.name</code> 읽기를 통과시켰습니다. 이제 각 메서드는 <code>Option</code>을 반환하는 표준 라이브러리 함수를 가리키고, 배열 메서드는 <code>glyph fix</code>가 바꿔 씁니다."
+    },
+    {
+      "id": "h-a8265a1c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">which methods, and what replaces them</span>",
+      "tr": "자세히 <span class=\"hint\">어떤 메서드이고 무엇으로 바꾸는지</span>"
+    },
+    {
+      "id": "h-797549b8",
+      "kind": "html",
+      "en": "The list is read off TypeScript's declarations: <code>find</code>, <code>findLast</code> and <code>at</code> on an array, and <code>at</code>, <code>codePointAt</code> and <code>match</code> on a string. The replacements are <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> and <code>regex.matches</code>. A <code>??</code> default becomes the <code>None</code> arm of a <code>match</code>. <code>array.get</code> answers <code>None</code> for a negative index, so the help for <code>xs.at(-1)</code> writes <code>array.get(xs, array.len(xs) - 1)</code>. A method called on an npm value is not judged, because Glyph does not know its type.",
+      "tr": "목록은 TypeScript 선언에서 읽어 옵니다. 배열의 <code>find</code>, <code>findLast</code>, <code>at</code>와 문자열의 <code>at</code>, <code>codePointAt</code>, <code>match</code>입니다. 대체 함수는 <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code>, <code>regex.matches</code>입니다. <code>??</code> 기본값은 <code>match</code>의 <code>None</code> 갈래가 됩니다. <code>array.get</code>은 음수 인덱스에 <code>None</code>을 돌려주므로 <code>xs.at(-1)</code>에 대한 도움말은 <code>array.get(xs, array.len(xs) - 1)</code>로 씁니다. npm 값에서 호출한 메서드는 Glyph가 그 타입을 모르기 때문에 판단하지 않습니다."
+    },
+    {
       "id": "h-7affa1da",
       "kind": "html",
       "en": "<code>==</code> is value equality everywhere",
@@ -869,10 +899,10 @@
       "tr": "현재 상태"
     },
     {
-      "id": "h-d58144f7",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">18</span>",
-      "tr": "지금 제공되는 것 <span class=\"count\">18</span>"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">19</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -971,6 +1001,18 @@
       "tr": "맵에서 키를 읽는 것을 거부"
     },
     {
+      "id": "h-3f45b85d",
+      "kind": "html",
+      "en": "A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named",
+      "tr": "<code>find</code>나 <code>at</code>처럼 <code>undefined</code>를 돌려주는 내장 메서드를 거부하고 <code>Option</code> 형태를 알려 줌"
+    },
+    {
+      "id": "h-98f4194b",
+      "kind": "html",
+      "en": "since 0.1.161",
+      "tr": "0.1.161부터"
+    },
+    {
       "id": "h-0fdc9dd8",
       "kind": "html",
       "en": "Object literals and JSX attributes checked against the declared type",
@@ -1049,10 +1091,10 @@
       "tr": "타입 디스크립터의 <code>@redact</code> 개인정보 마스킹"
     },
     {
-      "id": "h-f094b384",
+      "id": "h-87f2be3e",
       "kind": "html",
-      "en": "Getting sharper <span class=\"count\">13</span>",
-      "tr": "개선 중 <span class=\"count\">13</span>"
+      "en": "Getting sharper <span class=\"count\">14</span>",
+      "tr": "개선 중 <span class=\"count\">14</span>"
     },
     {
       "id": "h-832f8a5e",
@@ -1137,6 +1179,12 @@
       "kind": "html",
       "en": "Deeper flow-narrowing is on the roadmap",
       "tr": "더 깊은 흐름 기반 좁히기는 로드맵에 있습니다"
+    },
+    {
+      "id": "h-cdeef03f",
+      "kind": "html",
+      "en": "A <code>find</code> or <code>at</code> on an npm value is not judged; only an array or a string Glyph has typed is",
+      "tr": "npm 값의 <code>find</code>나 <code>at</code>는 판단하지 않음. Glyph가 타입을 아는 배열이나 문자열만 판단함"
     },
     {
       "id": "h-fd47e980",

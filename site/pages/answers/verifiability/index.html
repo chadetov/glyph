@@ -504,6 +504,36 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">A method that answers <code>undefined</code><a class="ak-anchor" href="#absent-methods" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">a lookup that may find nothing: now E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">A few JavaScript methods say "nothing there" with
+          <code>undefined</code>, which Glyph's own checker could not see, so the
+          editor and the agent tools passed the <code>.name</code> read. Each one now
+          points at the standard library function that returns an
+          <code>Option</code>, and <code>glyph fix</code> writes the array ones.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">which methods, and what replaces them</span></summary><div class="body">
+        <p>
+          The list is read off TypeScript's declarations: <code>find</code>,
+          <code>findLast</code> and <code>at</code> on an array, and <code>at</code>,
+          <code>codePointAt</code> and <code>match</code> on a string. The
+          replacements are <code>array.find</code>, <code>array.find_last</code>,
+          <code>array.get</code>, <code>string.char_at</code>,
+          <code>string.code_point_at</code> and <code>regex.matches</code>. A
+          <code>??</code> default becomes the <code>None</code> arm of a
+          <code>match</code>. <code>array.get</code> answers <code>None</code> for a
+          negative index, so the help for <code>xs.at(-1)</code> writes
+          <code>array.get(xs, array.len(xs) - 1)</code>. A method called on an npm
+          value is not judged, because Glyph does not know its type.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> is value equality everywhere<a class="ak-anchor" href="#equality" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a test that passed while the code failed</span>
@@ -705,7 +735,7 @@ pub fn origin() -&gt; Point {
       <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">19</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -730,6 +760,7 @@ pub fn origin() -&gt; Point {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A field typo on an annotated module-level <code>const</code></span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> as value equality on every type</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Reading a key out of a map rejected</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named</span><span class="chip code">E0242</span><span class="chip since">since 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Object literals and JSX attributes checked against the declared type</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">since 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>Since 0.1.124 an object literal has the record type its fields spell, so <code>let g: string = { x: 1 }</code>, a literal missing a field the declared record requires, and a literal passed where it does not fit are E0204 or E0211 with the declared type named, at a <code>let</code>, a <code>const</code>, a <code>return</code> and a call argument; and a JSX attribute is checked against the component's props record, so <code>&lt;Button variant="nope" /&gt;</code> draws E0211 with the values it accepts and an attribute the record does not declare draws E0210, which <code>glyph fix</code> renames.</p>
@@ -755,7 +786,7 @@ pub fn origin() -&gt; Point {
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper <span class="count">14</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -798,6 +829,7 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Data boundaries</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A <code>find</code> or <code>at</code> on an npm value is not judged; only an array or a string Glyph has typed is</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Maps from another module or the standard library are read unchecked</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p>A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types.</p>

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-428 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-91 are open. G144, the D28 boundary cast that never reached the returns a
+429 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+92 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13879,8 +13879,9 @@ and is the owner's to confirm.
   with help naming the `std/*` function that returns an `Option`; `pop` and
   `shift` stay E0240's, a call under `mut` stays E0241's, and an `Unknown`
   receiver is not judged. `array.find_last`, `string.char_at` and
-  `string.code_point_at` are new. `glyph fix` writes the array rewrites and
-  adds `import std/array`; it declines the string ones. Breaking: the
+  `string.code_point_at` are new. `glyph fix` writes the array rewrites where
+  the call's value is used up on the spot (record 155) and adds `import
+  std/array`; it declines the string ones. Breaking: the
   catch's `xs.at(-1) ?? 0` program passes full check on 0.1.160 and fails on
   0.1.161.
 
@@ -14538,6 +14539,11 @@ and is the owner's to confirm.
   s.opt?.pop()` names `array.get(s.opt, array.len(s.opt) - 1)` and `mut
   s.opt.pop()`.*
 
+  A second instance, found by record 155 (F4): with `type R = { opt?:
+  Array<number>, }`, the E0242 help for `rows[0].opt?.at(0)` writes
+  `array.get(rows[0].opt, 0)`, which drops the `?.` the same way and which
+  `tsc` refuses. *Reproduced against the 0.1.161 dev build.*
+
 - **G427. The built-in method table is read from `esnext`, and the emitted
   tsconfig asks for `es2022`.** `builtin_methods.rs` is generated from `lib:
   ["esnext", "dom"]`, while `glyph build` writes `"lib": ["es2022", "dom"]`
@@ -14566,3 +14572,17 @@ and is the owner's to confirm.
   *Reproduced against 0.1.160 (the release build): with `s = "a😀"`, a program
   binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check`
   and prints `1 1 1 true true`: three one-unit strings, all the same half.*
+
+- **G429. `??` on an `Option` or a `Result` hands back the object.** An
+  `Option` and a `Result` are tagged objects at run time and never nullish,
+  so `let u = array.find(xs, f)` then `let v = u ?? 0` gives `v` the `Option`
+  itself, and `${v}` prints `[object Object]`. Glyph's checker and `tsc`
+  both pass it. E0236 already refuses `?.` on these types for the same
+  reason; the fix extends it to `??`, with help writing the `match`.
+  Breaking, and the corpus is unmeasured. E0242 (0.1.161) steers every
+  lookup onto `Option`, so this spelling will get more common. Found by
+  record 155 (F2).
+
+  *Reproduced against 0.1.160 (the release build): record 155's probe k01
+  passes full `check` (`tsc --strict passed.`) and `run` prints
+  `[object Object] false`.*

@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Hauptnavigation">
         <div class="nav-brand">
           <a href="/de/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.158</a>
+          <a href="/versions/" class="nav-version" title="Release Notes">v0.1.159</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -487,18 +487,18 @@
 
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release-Takt und die Breaking-Markierung<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Die <a href="/versions/">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis 0.1.158, insgesamt 157, und 31 davon erschienen zwischen dem 1. Nov. 2026 und dem 21. Nov. 2026. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. 41 Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher.
+          Die <a href="/versions/">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis 0.1.159, insgesamt 158, und 32 davon erschienen zwischen dem 1. Nov. 2026 und dem 21. Nov. 2026. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. 42 Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher.
         </p>
         <p>
           Was ein Breaking-Release in der Praxis gekostet hat: Jede neuere Release Note sagt, was passiert ist, als die alte und die neue Version über die Beispiel-Apps des Repositorys liefen. Das sind die neuesten Breaking-Releases, zitiert aus ihren Release Notes:
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.159">0.1.159</a>: Die Release Notes sagen dazu nichts.</li>
           <li><a href="/versions/2026-11/#0.1.158">0.1.158</a>: Die Release Notes sagen dazu nichts.</li>
           <li><a href="/versions/2026-11/#0.1.157">0.1.157</a>: <span lang="en">&ldquo;Writing this rule turned up a real bug in one of the example apps.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.156">0.1.156</a>: Die Release Notes sagen dazu nichts.</li>
           <li><a href="/versions/2026-11/#0.1.155">0.1.155</a>: Die Release Notes sagen dazu nichts.</li>
           <li><a href="/versions/2026-11/#0.1.154">0.1.154</a>: <span lang="en">&ldquo;In the repository, two example apps did, and both were real bugs: the chat server's <code>main</code> started <code>daemon.serve(port)</code> and returned before the server bound, and the job queue's timer dropped each <code>drain</code>.&rdquo;</span></li>
-          <li><a href="/versions/2026-11/#0.1.153">0.1.153</a>: <span lang="en">&ldquo;No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code.&rdquo;</span></li>
         </ul>
 
         <p>

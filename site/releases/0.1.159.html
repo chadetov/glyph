@@ -1,0 +1,20 @@
+---
+version: 0.1.159
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: An async callback passed where nothing will wait for it is an error
+---
+            <p><code>ids.forEach(async fn(id) { await save(id) })</code> used to compile. <code>forEach</code> does not wait for its callback, so every <code>save</code> ran on its own, the function returned before any of them finished, and a failure in one was lost. The same held for <code>timers.every</code>, a socket handler, or any parameter declared <code>fn(...) -> void</code>. Now an async function given where a sync <code>void</code> callback is declared is E0211:</p>
+
+<pre><code>[E0211] `forEach` calls its callback without waiting, so each call of this `async fn` runs on its own and its errors are lost
+Help: Await each call in order, so the code after it runs once they are done and a failure reaches you: `for id in ids { await save(id) }`.</code></pre>
+
+            <p>The help is worked out from the program. Inside an async function, a <code>forEach</code> becomes a <code>for</code> loop that awaits each call. Inside a sync function, the help says the function cannot wait, and offers to make it async or to start each call on purpose with <code>task.detach</code>. <code>map</code>, <code>filter</code> and <code>find</code> with an async callback get a help naming the call and the array to loop over. The array methods read the same callback slot that 0.1.158 uses to type a lambda's parameters, so the parameter in the suggested loop has the type you'd expect.</p>
+
+            <p>The other direction is covered too. A sync function given where an async one is declared, such as <code>task.detach(tick)</code> with a plain <code>fn tick()</code>, is E0211 before <code>tsc</code> runs, and the help writes the async wrapper for you. Each mistake gets one diagnostic. An async callback inside <code>"${array.map(...)}"</code> no longer also draws a text-conversion error for the array of promises it would have produced. An unrelated error on the same line is still reported.</p>
+
+            <p>The same pairing at a <code>let</code>, a <code>return</code>, a record field or a component prop is refused too, but with the general message rather than one that names the callee (G421).</p>
+
+            <h3>Breaking</h3>
+            <p>A program that passes an async function to a sync <code>void</code> callback, binds one to a <code>fn(...) -> void</code>, gives a sync function where an async one is declared, or gives <code>array.map</code> an async lambda now fails to compile (0.1.158 exits 0, 0.1.159 exits 1). No tracked example app is affected: across the corpus the only new diagnostic is on the catch case for this mistake.</p>

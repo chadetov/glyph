@@ -357,6 +357,7 @@ pub fn assign_types_with_relations(
             assign_target: None,
             call_callee: None,
             mut_call: None,
+            coalesce_defaults: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
@@ -472,6 +473,7 @@ pub fn assignability(
         assign_target: None,
         call_callee: None,
         mut_call: None,
+        coalesce_defaults: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -533,6 +535,7 @@ pub fn declared_record_fields(
         assign_target: None,
         call_callee: None,
         mut_call: None,
+        coalesce_defaults: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -1268,6 +1271,10 @@ struct Assigner<'a> {
     /// each expression stands. Spans identify the nodes, as they do in the
     /// type map, so a nested call never matches its parent's.
     mut_call: Option<Span>,
+    /// The `??` each left operand stands in, keyed by the operand's span, for
+    /// E0242 (G392, D56): a refused call with a default gets the `match` that
+    /// handles the absence where the `??` did.
+    coalesce_defaults: HashMap<Span, crate::absent::Default>,
     /// The interface pairings the relation is in the middle of deciding, so a
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
@@ -2541,6 +2548,7 @@ impl Assigner<'_> {
         // call of a `mut` statement, on a place.
         if let Expr::Call { .. } = e {
             self.check_mutating_call(e);
+            self.check_absent_call(e);
         }
         // D54: each implicit conversion to text is judged once its operands
         // are typed, by one rule, whichever of the three spellings it takes.
@@ -2863,6 +2871,16 @@ impl Assigner<'_> {
                 }
             }
             Expr::Binary { left, right, span, op } => {
+                if *op == glyph_ast::BinOp::NullishCoalesce {
+                    self.coalesce_defaults.insert(
+                        left.span(),
+                        crate::absent::Default {
+                            whole: *span,
+                            value: right.span(),
+                            text: crate::pending::expr_source(right),
+                        },
+                    );
+                }
                 self.walk_expr(left);
                 self.walk_expr(right);
                 let ty = match op {
@@ -6944,6 +6962,46 @@ impl Assigner<'_> {
             help,
             span: *span,
         });
+    }
+
+    /// E0242 (G392, D56): a call to a built-in method whose TypeScript
+    /// return can be `undefined` or `null` (the generated `absent` column),
+    /// on a receiver Glyph types as an `Array<T>` or a `string`, reached
+    /// directly, through an index or through `?.`, in any position. Not
+    /// under `mut`, where E0241 is the one fault; not on `pop` or `shift`,
+    /// which E0240 owns; not on a receiver the checker types `Unknown`. The
+    /// call's own type stays `Unknown`, so what reads it adds nothing.
+    fn check_absent_call(&mut self, call: &Expr) {
+        let Expr::Call { callee, args, span, .. } = call else {
+            return;
+        };
+        let Expr::Member { object, field, optional, .. } = callee.as_ref() else {
+            return;
+        };
+        if Some(*span) == self.mut_call {
+            return;
+        }
+        let Some((receiver, elem)) = self.mutation_receiver(object) else {
+            return;
+        };
+        let Some(m) = receiver.method(field.as_ref()) else {
+            return;
+        };
+        if !m.absent || m.mutates {
+            return;
+        }
+        let c = crate::absent::AbsentCall {
+            receiver,
+            method: m.name,
+            recv: object,
+            args,
+            optional: *optional,
+            call: *span,
+            elem: (!elem.is_unknown()).then(|| ty_display(&elem)),
+            default: self.coalesce_defaults.get(span).cloned(),
+        };
+        let (message, help, repair) = crate::absent::absent_call(&c, self.module);
+        self.errors.push(TypeError::AbsentBuiltinResult { message, help, repair, span: *span });
     }
 
     /// The built-in receiver a call's object is, with the array's element
@@ -17862,6 +17920,7 @@ component View(props: { s: Status }) -> Component {
             assign_target: None,
             call_callee: None,
             mut_call: None,
+            coalesce_defaults: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,

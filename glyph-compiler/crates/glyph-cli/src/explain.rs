@@ -1288,6 +1288,45 @@ pub fn explain(code: &str) -> Option<&'static str> {
             functions of an npm package. `mut` there is allowed and not \
             required.",
 
+        "E0242" => "E0242: a built-in method that answers absence with `undefined`\n\n\
+            Glyph writes a value that may be missing as an `Option`, which \
+            `match` opens and the checker holds to a `None` arm (D56). A few \
+            JavaScript methods answer \"nothing there\" with `undefined` or \
+            `null` instead, a value Glyph's checker cannot see:\n\n\
+            users.find(f).name         // throws when nothing matches\n\
+            greet(users.at(3))         // passes `undefined` along\n\
+            xs.at(-1) ?? 0             // `tsc` accepts this one\n\
+            \"${s.at(7)}\"               // prints \"undefined\"\n\n\
+            On an `Array<T>` that is `find`, `findLast` and `at`; on a \
+            `string`, `at`, `codePointAt` and `match`. The list is read off \
+            TypeScript's declarations. `pop` and `shift` answer `undefined` \
+            too, and they are E0240's, since they change the array.\n\n\
+            Each has a `std/*` function that returns an `Option`:\n\n\
+            xs.find(f)        ->  array.find(xs, f)\n\
+            xs.findLast(f)    ->  array.find_last(xs, f)\n\
+            xs.at(2)          ->  array.get(xs, 2)\n\
+            xs.at(-1)         ->  array.get(xs, array.len(xs) - 1)\n\
+            s.at(i)           ->  string.char_at(s, i)\n\
+            s.codePointAt(i)  ->  string.code_point_at(s, i)\n\
+            s.match(p)        ->  regex.matches(p, s), or regex.captures(p, s)\n\n\
+            `array.get` answers `None` for a negative index, where `at` counts \
+            from the end. `string.char_at` and `string.code_point_at` return \
+            the whole character that starts at a code-unit index, so they \
+            answer `None` on the second half of a character outside the 16-bit \
+            range (an emoji, for example) where `at` hands back half of it. \
+            A `??` default becomes the `None` arm:\n\n\
+            Before:  let n = xs.at(-1) ?? 0\n\
+            After:   let n = match array.get(xs, array.len(xs) - 1) { Some(v) => v, None => 0, }\n\n\
+            `glyph fix` writes the `find`, `findLast` and `at` rewrites on an \
+            array, and adds `import std/array` when the module has none and \
+            no other binding is called `array`. It rewrites `at` only for an \
+            integer literal index, and a negative one only when the receiver \
+            is a name, a field or an index. It leaves the string calls and \
+            `match` to you, because the `Option` forms there answer \
+            differently.\n\n\
+            Not judged: a receiver the checker cannot type (an npm value), and \
+            a call under `mut`, which is E0241.",
+
         "E0300" => "E0300: construct the emitter does not handle, or a refined non-primitive base\n\n\
             E0300 covers two things. One is a construct the v1 TypeScript \
             emitter does not handle yet; rewrite it using a supported form \
@@ -2420,6 +2459,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "`mut` on a call that changes nothing (G380, D5): a method of an `Array<T>`, a `string` or a `number` that leaves its receiver unchanged (`mut xs.concat(ys)`, `mut s.toUpperCase()`), or a function read through a namespace import of a Glyph module (`mut array.push(xs, 1)`, `mut io.println(s)`). Decided from what the name resolves to; an npm namespace or an untyped receiver is not judged",
         fix: "Assign the result to keep it (`mut xs = xs.concat(ys)`), call the in-place method (`mut xs.push(1)`), or drop the `mut` from a function call",
+    },
+    CodeEntry {
+        code: "E0242",
+        phase: "typechecker",
+        meaning: "A built-in method that answers absence with `undefined` or `null` (G392, D56): `find`, `findLast` or `at` on an `Array<T>`, or `at`, `codePointAt` or `match` on a `string`, in any position, through an index or a `?.` included. Glyph writes a value that may be missing as an `Option`, and these hand back a value Glyph's checker cannot see; `xs.at(-1) ?? 0` passes `tsc` too. `pop` and `shift` are E0240's; a call under `mut` is E0241's; a receiver the checker cannot type is not judged",
+        fix: "Call the `std/*` function that returns an `Option` and `match` it: `array.find(xs, f)`, `array.find_last(xs, f)`, `array.get(xs, i)` (`array.get(xs, array.len(xs) - 1)` for `at(-1)`), `string.char_at(s, i)`, `string.code_point_at(s, i)`, `regex.matches(p, s)` or `regex.captures(p, s)`. A `??` default becomes the `None` arm. `glyph fix` writes the array rewrites; the help computes the call",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

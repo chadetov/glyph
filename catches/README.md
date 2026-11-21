@@ -13,8 +13,8 @@ compiler stopped doing.
 
 There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 32 are refused, 3
-warned, 10 checked at the boundary, 2 stopped at run time, and 6 are gaps Glyph
+check prints that zero rather than leaving it off. By kind, 33 are refused, 3
+warned, 10 checked at the boundary, 2 stopped at run time, and 5 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
 A case that stops being demonstrable gets deleted, not softened. Six have been.
@@ -239,7 +239,6 @@ the day its gap closes:
 | G386 | `gap-g386-or-on-a-number` | `requested \|\| 3`, turning a real `0` into `3` | nothing |
 | G388 | `gap-g388-sort-as-text` | `.sort()` on numbers, giving `100,25,9` | lint `require-array-sort-compare` |
 | G390 | `gap-g390-index-update-across-await` | a lost update on `c[0]` across `await` | lint `require-atomic-updates` |
-| G392 | `gap-g392-find-method-option` | `users.find(...).name`, refused only by the `tsc` pass (`TS2532`) | lint `no-non-null-assertion` |
 
 `null-in-optional-field` was the G391 gap case until 0.1.152 closed it. It is
 a `boundary` case now and off the page: `json.parse<Opts>` of
@@ -270,6 +269,13 @@ anything is saved.
 in a helper is refused because the sort changes the caller's array and its
 value is read in the same expression, with the help to sort a copy with
 `array.sort(xs, by_value)`, where the TypeScript prints `xs[0] is now 1`.
+
+`find-method-without-option` was the G392 gap case until 0.1.161 closed it.
+It is a `refused` case now, with `E0242`, and off the page:
+`users.find(...).name` is refused because `find` answers `undefined` when
+nothing matches, with the help to call `array.find`, which returns an
+`Option<User>`, where the TypeScript throws `Cannot read properties of
+undefined (reading 'name')`.
 
 ## Adding one
 

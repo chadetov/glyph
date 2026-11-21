@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "TypeError: Cannot read properties of undefined (reading 'name')"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0242] Error: typecheck: the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`\nHelp: pass `users` and the same callback to `array.find`, which returns `Option<User>`, and `match` it (with `import std/array`)"
+  }
+}

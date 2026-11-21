@@ -20873,6 +20873,9 @@ pub fn both(users: Array<User>) -> number {
             ("E0210", r#"let b2 = users.filter(fn(p) -> bool { return p.nmae == "a" })"#),
             ("E0210", r#"let c1 = array.find(users, fn(p) -> bool { return p.nmae == "a" })"#),
             ("E0210", r#"let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })"#),
+            // The method spelling of `find` is refused for its result since
+            // 0.1.161 (G392, D56); its callback is still judged.
+            ("E0242", r#"let c2 = users.find(fn(p) -> bool { return p.nmae == "a" })"#),
             ("E0210", "users.forEach(fn(p) { let _s = p.nmae })"),
             ("E0210", "let d = users.reduce(fn(acc, p) -> number { return acc + p.idd }, 0)"),
             ("E0210", "mut users.sort(fn(x, y) -> number { return x.idd - y.id })"),

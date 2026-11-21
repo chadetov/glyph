@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/repair-protocol/index.html",
   "locale": "zh-cn",
-  "source_hash": "4b15cc7a1cc4e288",
+  "source_hash": "777385c3f729126e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "它以数据的形式告诉你哪里错了，而不是一句需要解析的话：两个类型，以 <code>module::name</code> 表示的出错符号，以及能合法放在出错位置上的有限候选列表。<code>glyph check --agent</code> 还会加上修复性编辑不能破坏的东西。当答案完全确定时，<code>glyph fix</code> 会直接写入。"
     },
     {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-a5a0c846",
+      "kind": "html",
+      "en": "<span>A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here.</span>",
+      "tr": "<span>一个两模块的项目。<code>orders</code> 声明联合类型；<code>main</code> 对它写了一个 <code>match</code>，只处理了一种情况。<code>glyph check --agent</code> 的输出，删减到这里相关的键。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "本页内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">为什么重要</a>"
+    },
+    {
+      "id": "h-ea8d754a",
+      "kind": "html",
+      "en": "<a href=\"#reading-the-answer\">Reading the answer</a>",
+      "tr": "<a href=\"#reading-the-answer\">解读答案</a>"
+    },
+    {
+      "id": "h-8a7ac9be",
+      "kind": "html",
+      "en": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">What glyph fix writes</a>",
+      "tr": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">glyph fix 会写什么</a>"
+    },
+    {
+      "id": "h-aa030552",
+      "kind": "html",
+      "en": "<a href=\"#the-code-s-own-explanation-as-data\">Explanations as data</a>",
+      "tr": "<a href=\"#the-code-s-own-explanation-as-data\">作为数据的解释</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">当前状态</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "为什么重要"
     },
     {
-      "id": "h-26bdb633",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "链接到本节"
+    },
+    {
+      "id": "h-11db4724",
       "kind": "html",
-      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
-      "tr": "智能体围绕编译器的循环是：读错误，猜编辑，重新构建。损害就发生在猜的这一步，而之所以会发生，是因为错误只是一个字符串。读到“non-exhaustive match on <code>OrderStatus</code>”的智能体知道某个 match 少了几个分支，但不知道缺少的变体携带什么，于是写出 <code>Paid(\"tx_1\")</code>，等下一条诊断才发现不对。或者它读到“exhaustive”这个词，加一个 <code>else</code> 分支，构建通过了，却丢掉了这条诊断本来要保护的保证。"
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string.",
+      "tr": "智能体围绕编译器的循环是：读错误，猜编辑，重新构建。损害就发生在猜的这一步，而之所以会发生，是因为错误只是一个字符串。"
+    },
+    {
+      "id": "a-a1a30995",
+      "kind": "attr:aria-label",
+      "en": "The agent's loop",
+      "tr": "智能体的循环"
+    },
+    {
+      "id": "h-384ff278",
+      "kind": "html",
+      "en": "<span>read the error</span>",
+      "tr": "<span>读错误</span>"
+    },
+    {
+      "id": "h-7d4d8401",
+      "kind": "html",
+      "en": "<span>guess the edit</span>",
+      "tr": "<span>猜编辑</span>"
+    },
+    {
+      "id": "h-691bbc3c",
+      "kind": "html",
+      "en": "<span>rebuild</span>",
+      "tr": "<span>重新构建</span>"
     },
     {
       "id": "h-07118770",
@@ -77,46 +161,76 @@
       "tr": "这些编译器全都知道。它知道联合类型的各个变体和它们的负载，也知道 <code>else</code> 会放弃封闭性保证，却在回复前一行把这两样都丢掉了。"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-03055152",
       "kind": "html",
-      "en": "See it",
-      "tr": "看看实际效果"
+      "en": "Details <span class=\"hint\">the two wrong edits a string invites</span>",
+      "tr": "详情 <span class=\"hint\">字符串会招来的两种错误编辑</span>"
     },
     {
-      "id": "h-1dc2ec59",
+      "id": "h-5053ff58",
       "kind": "html",
-      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
-      "tr": "一个两模块的项目。<code>orders</code> 声明联合类型；<code>main</code> 对它写了一个 <code>match</code>，只处理了一种情况。<code>glyph check --agent</code> 的输出，删减到这里相关的键："
+      "en": "An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "读到“non-exhaustive match on <code>OrderStatus</code>”的智能体知道某个 match 少了几个分支，但不知道缺少的变体携带什么，于是写出 <code>Paid(\"tx_1\")</code>，等下一条诊断才发现不对。或者它读到“exhaustive”这个词，加一个 <code>else</code> 分支，构建通过了，却丢掉了这条诊断本来要保护的保证。"
     },
     {
-      "id": "h-22f8192a",
+      "id": "h-cdb153ae",
       "kind": "html",
-      "en": "glyph check --agent --no-tsc src",
-      "tr": "glyph check --agent --no-tsc src"
+      "en": "Reading the answer",
+      "tr": "解读答案"
     },
     {
-      "id": "h-e83558c5",
+      "id": "h-70dd500b",
       "kind": "html",
-      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
-      "tr": "有三点值得单独说明。<code>cause</code> 是出错的符号，它和 <code>entity</code> 不是一回事，后者是诊断所在的声明：这里编辑发生在 <code>main::describe</code> 中，而它必须匹配的形状来自 <code>orders::OrderStatus</code>。两者都是其他工具接受的地址，所以答案可以直接串联，不需要重新推导任何东西。"
+      "en": "Three things are worth pulling out.",
+      "tr": "有三点值得单独说明。"
     },
     {
-      "id": "h-24cad838",
+      "id": "h-3fae8dae",
       "kind": "html",
-      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
-      "tr": "<code>constraints</code> 不是修复方案。每一条都是编译器已经在强制执行的东西，把它写出来，是为了让满足诊断的编辑不会破坏诊断背后的保证。第二条约束说明了这个键存在的原因：<code>else</code> 分支是合法的，它能让构建通过，而这条约束说明了这样做的代价。"
+      "en": "<b><code>cause</code></b><code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>.",
+      "tr": "<b><code>cause</code></b><code>cause</code> 是出错的符号，它和 <code>entity</code> 不是一回事，后者是诊断所在的声明：这里编辑发生在 <code>main::describe</code> 中，而它必须匹配的形状来自 <code>orders::OrderStatus</code>。"
     },
     {
-      "id": "h-c78e85ef",
+      "id": "h-861b2ca6",
       "kind": "html",
-      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
-      "tr": "<code>symbols</code> 是诊断中提到的每个符号的 <code>glyph_symbol</code> 答案，所以智能体的下一次编辑不需要再调用一次。工具拒绝回答的符号会出现在 <code>symbols_absent</code> 中并附上原因，这样“我们没有查”和“我们查了，它不存在”就能区分开。"
+      "en": "<b><code>constraints</code></b><code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it.",
+      "tr": "<b><code>constraints</code></b><code>constraints</code> 不是修复方案。每一条都是编译器已经在强制执行的东西，把它写出来，是为了让满足诊断的编辑不会破坏诊断背后的保证。"
+    },
+    {
+      "id": "h-a017cea3",
+      "kind": "html",
+      "en": "<b><code>symbols</code></b><code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call.",
+      "tr": "<b><code>symbols</code></b><code>symbols</code> 是诊断中提到的每个符号的 <code>glyph_symbol</code> 答案，所以智能体的下一次编辑不需要再调用一次。"
     },
     {
       "id": "h-e9482ec6",
       "kind": "html",
       "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
       "tr": "每个键总是存在。编译器不掌握的事实会以显式的 <code>null</code> 出现，而不会缺少这个键，所以“缺失”在每个错误码上、在命令行和 MCP 两种方式上都只有一种写法。"
+    },
+    {
+      "id": "h-fc85bbcb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">addresses that chain, the else constraint, symbols_absent</span>",
+      "tr": "详情 <span class=\"hint\">可串联的地址、else 约束、symbols_absent</span>"
+    },
+    {
+      "id": "h-59c52ef6",
+      "kind": "html",
+      "en": "Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "两者都是其他工具接受的地址，所以答案可以直接串联，不需要重新推导任何东西。"
+    },
+    {
+      "id": "h-88250e38",
+      "kind": "html",
+      "en": "The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "第二条约束说明了这个键存在的原因：<code>else</code> 分支是合法的，它能让构建通过，而这条约束说明了这样做的代价。"
+    },
+    {
+      "id": "h-4bdb41da",
+      "kind": "html",
+      "en": "A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "工具拒绝回答的符号会出现在 <code>symbols_absent</code> 中并附上原因，这样“我们没有查”和“我们查了，它不存在”就能区分开。"
     },
     {
       "id": "h-d838480e",
@@ -137,10 +251,28 @@
       "tr": "对上面的 match 运行 glyph fix src"
     },
     {
-      "id": "h-2f820b6c",
+      "id": "h-84f7cc18",
       "kind": "html",
-      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
-      "tr": "编译器知道缺少哪些情况，以及每种情况的模式怎么写。它不知道订单为 <code>Paid</code> 时程序应该做什么，它写出的任何分支体都只是一个能通过编译的猜测。在 0.1.128 及之前，<code>glyph fix</code> 会写出这种猜测：每种情况一个分支，分支体打印这种情况并调用 <code>process.exit(1)</code>。这样程序能通过 <code>check</code>、<code>tsc</code> 和 <code>build</code>，<code>glyph query variants</code> 也会报告这个 match 是穷尽的，于是缺少的情况从编译错误变成了运行时崩溃，再也没有任何东西会标记它。"
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles.",
+      "tr": "编译器知道缺少哪些情况，以及每种情况的模式怎么写。它不知道订单为 <code>Paid</code> 时程序应该做什么，它写出的任何分支体都只是一个能通过编译的猜测。"
+    },
+    {
+      "id": "h-51e346df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what glyph fix wrote up to 0.1.128</span>",
+      "tr": "历史 <span class=\"hint\">0.1.128 及之前 glyph fix 写了什么</span>"
+    },
+    {
+      "id": "h-69045eed",
+      "kind": "html",
+      "en": "Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "在 0.1.128 及之前，<code>glyph fix</code> 会写出这种猜测：每种情况一个分支，分支体打印这种情况并调用 <code>process.exit(1)</code>。这样程序能通过 <code>check</code>、<code>tsc</code> 和 <code>build</code>，<code>glyph query variants</code> 也会报告这个 match 是穷尽的，于是缺少的情况从编译错误变成了运行时崩溃，再也没有任何东西会标记它。"
+    },
+    {
+      "id": "h-8aef4a74",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the arms come from, and how declines are reported</span>",
+      "tr": "详情 <span class=\"hint\">分支从哪里来，以及如何报告拒绝</span>"
     },
     {
       "id": "h-3f1cdc48",
@@ -161,10 +293,16 @@
       "tr": "错误码自己的解释，以数据形式提供"
     },
     {
-      "id": "h-c5081b0e",
+      "id": "h-f86088ac",
       "kind": "html",
-      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
-      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> 会返回详细解释、一行的 <code>help</code>、文档 URL，以及编译器反例语料库中的一个错误程序，并附上本编译器对它给出的诊断。这条诊断是在你询问时现场编译得到的，而不是存储下来的，所以不会与编译器的实际输出产生偏差。"
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> 会返回详细解释、一行的 <code>help</code>、文档 URL，以及编译器反例语料库中的一个错误程序，并附上本编译器对它给出的诊断。"
+    },
+    {
+      "id": "h-44a60dec",
+      "kind": "html",
+      "en": "The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "这条诊断是在你询问时现场编译得到的，而不是存储下来的，所以不会与编译器的实际输出产生偏差。"
     },
     {
       "id": "h-da4c5d63",
@@ -177,6 +315,12 @@
       "kind": "html",
       "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
       "tr": "语料库没有覆盖的错误码会返回 <code>counter_example: null</code>，并附一句话说明语料库中没有它的案例，而不是编一个示例。语料库只声明它覆盖了什么，对其余部分不做任何声明。"
+    },
+    {
+      "id": "h-05573974",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the whole corpus, through glyph llms --negative</span>",
+      "tr": "详情 <span class=\"hint\">通过 glyph llms --negative 获取完整语料库</span>"
     },
     {
       "id": "h-dee8d5de",
@@ -197,10 +341,46 @@
       "tr": "现已提供"
     },
     {
-      "id": "h-206d5f58",
+      "id": "h-2f0c125d",
       "kind": "html",
-      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
-      "tr": "每条诊断都带有 <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（由 <code>alternatives_kind</code> 说明它列出的是 <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code> 还是 <code>exports</code>，在报错处设置）、<code>related</code>、<code>module</code>、<code>file</code> 和 <code>explain</code>，这些值来自编译器抛出的错误本身，而不是重新推导的；编译器不掌握的事实一律是显式的 <code>null</code>。<code>file</code> 是相对于解析根目录的路径，报告会在 <code>project_root</code> 中给出这个根目录，所以可以直接打开。<code>glyph check --agent</code> 为每条诊断加上 <code>constraints</code> 和 <code>symbols</code>。<code>glyph fix</code> 应用三条规则（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>），并说明每一次拒绝及其原因，包括每一个 <code>E0200</code>：它只报告，从不写入。<code>glyph --explain &lt;CODE&gt; --json</code> 返回带有现场编译反例的解释，<code>glyph llms --negative &lt;CODE&gt;</code> 返回触发该错误码的完整错误程序语料库。"
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, each an explicit <code>null</code> when the compiler holds no such fact",
+      "tr": "每条诊断都带有 <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>、<code>related</code>、<code>module</code>、<code>file</code> 和 <code>explain</code>，编译器不掌握的事实一律是显式的 <code>null</code>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-27a772ba",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact.",
+      "tr": "每条诊断都带有 <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（由 <code>alternatives_kind</code> 说明它列出的是 <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code> 还是 <code>exports</code>，在报错处设置）、<code>related</code>、<code>module</code>、<code>file</code> 和 <code>explain</code>，这些值来自编译器抛出的错误本身，而不是重新推导的；编译器不掌握的事实一律是显式的 <code>null</code>。"
+    },
+    {
+      "id": "h-0e417299",
+      "kind": "html",
+      "en": "<code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens.",
+      "tr": "<code>file</code> 是相对于解析根目录的路径，报告会在 <code>project_root</code> 中给出这个根目录，所以可以直接打开。"
+    },
+    {
+      "id": "h-b9563801",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic.",
+      "tr": "<code>glyph check --agent</code> 为每条诊断加上 <code>constraints</code> 和 <code>symbols</code>。"
+    },
+    {
+      "id": "h-d9265b6f",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes.",
+      "tr": "<code>glyph fix</code> 应用三条规则（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>），并说明每一次拒绝及其原因，包括每一个 <code>E0200</code>：它只报告，从不写入。"
+    },
+    {
+      "id": "h-f47e2a59",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> 返回带有现场编译反例的解释，<code>glyph llms --negative &lt;CODE&gt;</code> 返回触发该错误码的完整错误程序语料库。"
     },
     {
       "id": "h-c647197d",
@@ -209,10 +389,28 @@
       "tr": "它的边界"
     },
     {
-      "id": "h-a46b5ce4",
+      "id": "h-8e863d3f",
       "kind": "html",
-      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
-      "tr": "<code>E0211</code> 上的 <code>cause</code> 是 <code>null</code>：调用参数处的出错符号是一个参数，而标识词汇无法表达 <code>module::fn.param</code>，所以这个 null 是有意为之，而不是遗漏。反例上的 <code>corrected</code> 总是 <code>null</code>，因为反例语料库没有为案例配上修复后的程序，而且 70 个错误码中有 24 个根本没有案例。<code>glyph fix</code> 只写三条规则，别的都不写，它也不会为不穷尽的 <code>match</code> 写分支：这些留给你或你的智能体，诊断中已给出各个情况及其模式。它拒绝的每一项，都会明确说出来。"
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission.",
+      "tr": "<code>E0211</code> 上的 <code>cause</code> 是 <code>null</code>：调用参数处的出错符号是一个参数，而标识词汇无法表达 <code>module::fn.param</code>，所以这个 null 是有意为之，而不是遗漏。"
+    },
+    {
+      "id": "h-672cdb61",
+      "kind": "html",
+      "en": "<code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all.",
+      "tr": "反例上的 <code>corrected</code> 总是 <code>null</code>，因为反例语料库没有为案例配上修复后的程序，而且 70 个错误码中有 24 个根本没有案例。"
+    },
+    {
+      "id": "h-03335405",
+      "kind": "html",
+      "en": "<code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic.",
+      "tr": "<code>glyph fix</code> 只写三条规则，别的都不写，它也不会为不穷尽的 <code>match</code> 写分支：这些留给你或你的智能体，诊断中已给出各个情况及其模式。"
+    },
+    {
+      "id": "h-d0d18970",
+      "kind": "html",
+      "en": "Everything it declines, it declines out loud.",
+      "tr": "它拒绝的每一项，都会明确说出来。"
     }
   ]
 }

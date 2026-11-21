@@ -1,7 +1,7 @@
 ---
 title: 涉及金额和不可信输入时，能信任它吗？ · Glyph
 description: 金额计算是精确的（小数，以及超过 2^53 的整数），不变式是由边界强制检查的类型，不可信输入未经清洗无法到达 SQL 或 shell 汇点。
-source_hash: 890e758a8ba38ece
+source_hash: ea0cf18a5e027680
 prev: /answers/language/ | &larr; 上一篇 | 这是一门真正的语言，还是一个有很多缺口的玩具？
 next: /answers/web-serving/ | 下一篇 &rarr; | 能提供网页，还是只能做 JSON API？
 ---
@@ -12,47 +12,62 @@ next: /answers/web-serving/ | 下一篇 &rarr; | 能提供网页，还是只能�
         能。金额计算是<strong>精确的</strong>，像“非负”这样的不变式是<strong>由边界强制检查的类型</strong>，不可信输入未经清洗<strong>无法到达 SQL 或 shell 汇点</strong>。其中任何一项写错，都会是编译错误或解析错误，而不是一条需要有人在三个函数之外记住的约定。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">金额不是浮点数</h2>
-        <p>
-          基于 IEEE-754 <code>number</code> 的金融系统，是一个迟早会被报告的 bug：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。<code>std/decimal</code> 是基于 BigInt 的精确十进制定点数。加、减、乘都是精确的；除法需要显式指定小数位数，并按四舍五入（远离零）舍入；格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre>let price = decimal("10.50")?
 let tax   = decimal("0.84")?
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">它消除的 bug</span>
+          </div>
+          <div class="code">
+            <span class="cap">它消除的 bug</span>
 <pre>// JS number, the default everywhere:
 0.1 + 0.2            // 0.30000000000000004
 1_000_000_000_000.10 * 1.07   // rounding drift
 9007199254740993     // === 9007199254740992
 
 // None of these are your money anymore.</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>基于 IEEE-754 <code>number</code> 的金融系统，是一个迟早会被报告的 bug：<code>0.1 + 0.2</code> 不等于 <code>0.3</code>，超过 2<sup>53</sup> 的值会悄悄丢失精度。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label">id 和计数器在超过 2<sup>53</sup> 后仍然精确</h2>
-        <p>
-          账户 id 或账本计数器超出浮点数范围后被舍入，是另一种灾难。<code>bigint</code> 是精确的任意精度整数，字面量写作 <code>123n</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === "bigint"</code>，所以以 JSON <code>number</code> 到达的 id 会被拒绝，而不是被悄悄截断。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">金额不是浮点数</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">id 与计数器</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">不变式即类型</a></li>
+          <li><a href="#injection-is-a-compile-error">注入</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label">不变式是类型，不是注释</h2>
-        <p>
-          “金额非负”和“评分在 1 到 5 之间”是那种写过一次就被遗忘的检查。<code>where</code> 精化把不变式放进类型，描述符在边界上强制检查它。不满足谓词的值从一开始就不会成为 <code>Amount</code>。
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">金额不是浮点数<a class="ak-anchor" href="#money-is-not-a-float" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code> 是基于 BigInt 的精确十进制定点数。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>精确运算</b>加、减、乘都是精确的。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>除法</b>除法需要显式指定小数位数，并按四舍五入（远离零）舍入。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>错误输入</b>格式错误的金额会解析为 <code>Err</code>，绝不会悄悄变成 <code>NaN</code>。</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">id 和计数器在超过 2<sup>53</sup> 后仍然精确<a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        账户 id 或账本计数器超出浮点数范围后被舍入，是另一种灾难。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code> 是精确的任意精度整数，字面量写作 <code>123n</code>，类型为 <code>bigint</code> 的记录字段会在边界上校验 <code>typeof === "bigint"</code>，所以以 JSON <code>number</code> 到达的 id 会被拒绝，而不是被悄悄截断。
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">不变式是类型，不是注释<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        “金额非负”和“评分在 1 到 5 之间”是那种写过一次就被遗忘的检查。<code>where</code> 精化把不变式放进类型，描述符在边界上强制检查它。
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre>type Amount = int where value &gt;= 0
@@ -62,14 +77,18 @@ Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
 Rating.parse(6)    <span class="cm"># Err</span>
 Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        不满足谓词的值从一开始就不会成为 <code>Amount</code>。
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label">注入是编译错误</h2>
-        <p>
-          典型的远程代码执行路径，是不可信输入到达 SQL 查询、shell 命令或 HTML 模板。<code>std/taint</code> 把这变成了类型错误。来自外部的值是 <code>Tainted</code>；你想保护的汇点接受 <code>Trusted</code>。两者在结构上不同，所以从一个变成另一个的唯一途径是显式的 <code>sanitize</code>。直接把被污染的值交给汇点，<code>tsc</code> 会拒绝编译。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">注入是编译错误<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        典型的远程代码执行路径，是不可信输入到达 SQL 查询、shell 命令或 HTML 模板。<code>std/taint</code> 把这变成了类型错误。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>两种类型</b>来自外部的值是 <code>Tainted</code>；你想保护的汇点接受 <code>Trusted</code>。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>唯一的转换途径</b>两者在结构上不同，所以从一个变成另一个的唯一途径是显式的 <code>sanitize</code>。</li>
+      </ul>
       <div class="two-up">
         <div class="code">
           <span class="cap">安全的路径能编译</span>
@@ -98,15 +117,32 @@ pub fn handle(body: string) -&gt; string {
 //   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        直接把被污染的值交给汇点，<code>tsc</code> 会拒绝编译。
+      </p></div>
 
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>用于精确金额的 <code>std/decimal</code>，用于精确大整数的 <code>bigint</code>，让不变式在边界上被校验的 <code>where</code> 精化，以及让不可信输入在没有显式 <code>sanitize</code> 的情况下无法到达受保护汇点的 <code>std/taint</code>。每一项都会被检查：错误的金额或 id 会在 <code>parse</code> 时失败，违反不变式会在 <code>parse</code> 时失败，未经清洗的值会在 <code>tsc</code> 时失败。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">边界在哪里</h3>
-          <p>目前 <code>where</code> 精化只覆盖原始基础类型；记录级和跨字段的不变式（<code>where value.paid &lt;= value.total</code>）是计划中的扩展。污点检查是一种你通过把汇点类型声明为 <code>Trusted</code> 而主动采用的约束，而不是自动的数据流分析：编译器强制执行你声明的边界，但不会替你在整个程序中推断污点。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">用于精确金额的 <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">用于精确大整数的 <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">让不变式在边界上被校验的 <code>where</code> 精化</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">让不可信输入在没有显式 <code>sanitize</code> 的情况下无法到达受保护汇点的 <code>std/taint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">每一项都会被检查：错误的金额或 id 会在 <code>parse</code> 时失败，违反不变式会在 <code>parse</code> 时失败，未经清洗的值会在 <code>tsc</code> 时失败。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 边界在哪里</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">目前 <code>where</code> 精化只覆盖原始基础类型；记录级和跨字段的不变式（<code>where value.paid &lt;= value.total</code>）是计划中的扩展。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">污点检查是一种你通过把汇点类型声明为 <code>Trusted</code> 而主动采用的约束，而不是自动的数据流分析</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>污点检查是一种你通过把汇点类型声明为 <code>Trusted</code> 而主动采用的约束，而不是自动的数据流分析：编译器强制执行你声明的边界，但不会替你在整个程序中推断污点。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

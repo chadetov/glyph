@@ -239,9 +239,9 @@ The same containers against a declared record or union came next. Since 0.1.130 
 
 ### A misspelled member on an array or a string
 
-A misspelled member on an array or a string is the other case that used to wait for `tsc`. `xs.lenght` is `E0210` with "did you mean `length`", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.
+A misspelled member on an array or a string is the other case that used to wait for `tsc`. `xs.lenght` is `E0210` with "did you mean `length`", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in `users.map(fn(u) -> string { return u.nmae })` `u` is a `User` and the typo is `E0210`.
 
-`tsc` would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.
+`tsc` would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.
 
 ## And three more, since 0.1.133
 

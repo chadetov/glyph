@@ -1,7 +1,7 @@
 ---
 title: Можно ли внедрить Glyph в моё существующее приложение? · Glyph
 description: Без переписывания: приложение остаётся на TypeScript, ядро предметной области пишется на Glyph, а скомпилированные модули импортируются как любой локальный файл. Работает в стандартном Vite.
-source_hash: 4dc0a3c1d0f26ab3
+source_hash: 407d584aaaf4d048
 prev: /answers/imports/ | &larr; Назад | Можно ли использовать мой существующий TypeScript, JavaScript и библиотеки из npm?
 next: /answers/typed-apis/ | Далее &rarr; | Нужно ли писать валидатор для каждого API вручную?
 ---
@@ -12,16 +12,7 @@ next: /answers/typed-apis/ | Далее &rarr; | Нужно ли писать в
         Без переписывания. Приложение остаётся на TypeScript, а часть, в которой нельзя ошибиться (модели, права доступа, переходы состояний, денежные расчёты), пишется на Glyph. <code>glyph build</code> генерирует модули, которые приложение импортирует <strong>как любой локальный файл</strong>, без настройки бандлера и без алиасов путей.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Большинство команд не могут переписать приложение, и большей части приложения Glyph не нужен. Нужен он ядру предметной области: правилам, которые ИИ-агент будет править в следующем месяце и которые никто не хочет получить тихо сломанными. Если держать это ядро на Glyph, исчерпывающий <code>match</code>, отсутствие приведений типов и проверенные границы будут ровно там, где они окупаются, а компоненты React, стили и инфраструктура останутся обычным TypeScript.
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>Одна папка с исходниками Glyph, скомпилированная в приложение и импортируемая интерфейсом:</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">Гибридная раскладка: ядро предметной области на Glyph, всё остальное на TypeScript</span>
 <pre>src/
@@ -34,21 +25,41 @@ import { TaskCard, can_move } from "../generated/models";
 
 const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Одна папка с исходниками Glyph, скомпилированная в приложение и импортируемая интерфейсом.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Всё, что нужно сгенерированному коду, идёт вместе с ним. Импорты относительные, включая встроенную стандартную библиотеку, поэтому в <code>tsconfig.json</code> и бандлер вашего проекта ничего добавлять не нужно: стандартный шаблон Vite компилирует и собирает результат как есть, и те же файлы проходят <code>tsc --strict</code> основного проекта. Помечайте то, что импортирует приложение, через <code>pub</code>; объявление без него приватно для своего модуля. Это не гипотеза: сторонний инженер <a href="https://github.com/yildizadem/glyph-kanban">так и построил Kanban-доску на React</a>, где матрица RBAC, формулы аналитики и переходы статусов лежат в четырёх модулях Glyph под написанным вручную интерфейсом на React.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Большинство команд не могут переписать приложение, и большей части приложения Glyph не нужен. Нужен он ядру предметной области: правилам, которые ИИ-агент будет править в следующем месяце и которые никто не хочет получить тихо сломанными.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Если держать это ядро на Glyph, исчерпывающий <code>match</code>, отсутствие приведений типов и проверенные границы будут ровно там, где они окупаются, а компоненты React, стили и инфраструктура останутся обычным TypeScript.</p></div>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Сгенерированный код встраивается в основной проект без изменений: везде относительные пути импорта, типы прелюдии несёт сам код, проверено на стандартном шаблоне Vite, <code>tsc --strict</code> основного проекта, esbuild и <code>tsx</code>. Гибридная раскладка описана в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">В работе</h3>
-          <p>Режима наблюдения пока нет: после правки исходников <code>.glyph</code> запускайте <code>glyph build</code> заново (добавьте это в свой скрипт <code>dev</code>). Модулям, использующим <code>std/fs</code> или <code>std/net</code>, нужен <code>@types/node</code> в основном проекте, как любому TypeScript, который работает с Node.</p>
-        </div>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">В основном проекте ничего добавлять не нужно<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Всё, что нужно сгенерированному коду, идёт вместе с ним.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>Относительные импорты</b>Импорты относительные, включая встроенную стандартную библиотеку, поэтому в <code>tsconfig.json</code> и бандлер вашего проекта ничего добавлять не нужно: стандартный шаблон Vite компилирует и собирает результат как есть, и те же файлы проходят <code>tsc --strict</code> основного проекта.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Экспорт через <code>pub</code></b>Помечайте то, что импортирует приложение, через <code>pub</code>; объявление без него приватно для своего модуля.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Это не гипотеза: сторонний инженер <a href="https://github.com/yildizadem/glyph-kanban">так и построил Kanban-доску на React</a>, где матрица RBAC, формулы аналитики и переходы статусов лежат в четырёх модулях Glyph под написанным вручную интерфейсом на React.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Сгенерированный код встраивается в основной проект без изменений: везде относительные пути импорта, типы прелюдии несёт сам код.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Проверено на стандартном шаблоне Vite, <code>tsc --strict</code> основного проекта, esbuild и <code>tsx</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Гибридная раскладка описана в <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">руководстве по развёртыванию</a>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Режима наблюдения пока нет: после правки исходников <code>.glyph</code> запускайте <code>glyph build</code> заново (добавьте это в свой скрипт <code>dev</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Модулям, использующим <code>std/fs</code> или <code>std/net</code>, нужен <code>@types/node</code> в основном проекте, как любому TypeScript, который работает с Node.</span></span></li>
+          </ul>
+        </section>
       </div>

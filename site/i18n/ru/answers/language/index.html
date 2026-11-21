@@ -1,7 +1,7 @@
 ---
 title: Это настоящий язык или игрушка с дырами? · Glyph
 description: Видимость модулей, структурные интерфейсы для ограничений дженериков, defer, структурированная конкурентность, match как значение и семантика, унаследованная от JavaScript.
-source_hash: 9a4735d3e9bad608
+source_hash: 747d0d2b7d4d7b01
 prev: /answers/state/ | &larr; Назад | Как разделять изменяемое состояние между функциями?
 next: /answers/finance/ | Далее &rarr; | Можно ли доверить ему деньги и ввод, который я не контролирую?
 ---
@@ -12,31 +12,52 @@ next: /answers/finance/ | Далее &rarr; | Можно ли доверить �
         В нём есть то, что нужно в настоящей кодовой базе: <strong>видимость модулей</strong>, <strong>интерфейсы</strong> для ограничения дженериков, <strong>defer</strong> для очистки ресурсов и хелперы для <strong>конкурентности</strong>. Там, где он опирается на JavaScript, он так и говорит, а не делает вид, что это не так.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          На языке, в котором можно написать один файл, но нельзя выстроить структуру проекта, кодовую базу не построишь. Важные пробелы вполне обыденные: можно ли спрятать хелпер, может ли дженерик требовать возможность, можно ли освободить файловый дескриптор на каждом пути выхода, можно ли запустить две вещи одновременно и дождаться обеих. Glyph отвечает на все четыре вопроса и не возвращается при этом к перегруженному аннотациями направлению, от которого сознательно отказался.
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>
-          Объявления приватны в своём модуле, пока вы не пометите их <code>pub</code>, так что публичная поверхность находится одним поиском (<code>grep '^pub'</code>), а хелпер никогда не утекает случайно:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">видимость: приватно по умолчанию</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">видимость: приватно по умолчанию</span>
 <pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
 
 <span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Объявления приватны в своём модуле, пока вы не пометите их <code>pub</code>, так что публичная поверхность находится одним поиском (<code>grep '^pub'</code>), а хелпер никогда не утекает случайно.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>interface</code> структурный, как в TypeScript: это набор сигнатур членов, которые может требовать дженерик. Никакого <code>implements</code> и номинальных церемоний. Подходит любое значение с этими членами, а следит за этим <code>tsc</code>.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#interfaces">Интерфейсы</a></li>
+          <li><a href="#defer">defer и задачи</a></li>
+          <li><a href="#javascript">Что унаследовано</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">match как значение</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">Вложенные паттерны</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">Типизированный результат match</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">Функции для строк и массивов</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">Каталоги и ошибки fs</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">Как проверяли функции</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">Деньги</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">Типы async-функций</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">Рекурсивные типы</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        На языке, в котором можно написать один файл, но нельзя выстроить структуру проекта, кодовую базу не построишь. Важные пробелы вполне обыденные:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Видимость</b>Можно ли спрятать хелпер?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Ограничения дженериков</b>Может ли дженерик требовать возможность?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Очистка</b>Можно ли освободить файловый дескриптор на каждом пути выхода?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Конкурентность</b>Можно ли запустить две вещи одновременно и дождаться обеих?</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph отвечает на все четыре вопроса и не возвращается при этом к перегруженному аннотациями направлению, от которого сознательно отказался.</p></div>
+
+      <h2 class="ak-h" id="interfaces">Интерфейсы ограничивают дженерики<a class="ak-anchor" href="#interfaces" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>interface</code> структурный, как в TypeScript: это набор сигнатур членов, которые может требовать дженерик. Никакого <code>implements</code> и номинальных церемоний. Подходит любое значение с этими членами, а следит за этим <code>tsc</code>.
+      </p>
       <div class="code">
         <span class="cap">интерфейсы ограничивают дженерики</span>
 <pre><span class="add">interface</span> Named {
@@ -48,32 +69,34 @@ pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          <code>defer</code> выполняет очистку при выходе из блока на любом пути, включая ранний return и выброшенную ошибку. Несколько defer выполняются в обратном порядке (последний первым), и всё это сочетается с дескрипторами <code>owned</code>. А <code>std/task</code> объединяет конкурентную работу с одним временем жизни, вместо того чтобы оставлять висящие промисы.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="defer"><code>defer</code> и структурированная конкурентность<a class="ak-anchor" href="#defer" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>defer</code> выполняет очистку при выходе из блока на любом пути, включая ранний return и выброшенную ошибку. А <code>std/task</code> объединяет конкурентную работу с одним временем жизни, вместо того чтобы оставлять висящие промисы.
+      </p>
       <div class="code">
         <span class="cap">defer + структурированная конкурентность</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">порядок выполнения и дескрипторы owned</span></summary><div class="body">
         <p>
-          Glyph компилируется в TypeScript и работает на движке JavaScript, поэтому наследует порядок вычислений, ссылочную семантику при изменении данных и однопоточную модель со сборкой мусора. Отличается он в сравнении: <code>==</code> сравнивает значения, записи поле за полем, а <code>===</code> в JavaScript сравнивает ссылки. Спецификация описывает это как гарантии, а не оставляет вам выяснять самим. Ручного управления памятью и модели без сборки мусора в планах нет: это за пределами того, чем является язык, транспилируемый в TypeScript.
+          Несколько defer выполняются в обратном порядке (последний первым), и всё это сочетается с дескрипторами <code>owned</code>.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label"><code>if</code> нет, поэтому <code>match</code> должен нести всё</h2>
-        <p>
-          Первое, что спрашивает разработчик на TypeScript после рассказа про исчерпывающую проверку: <code>match</code> это настоящая условная конструкция общего назначения или просто удобный способ разобрать union? Первое, и лучше всего это видно на присваивании. <code>match</code>, который целиком является значением <code>let</code> или <code>mut</code>, принимает всё, что принимает оператор: ветка может быть блоком, ветка может делать <code>await</code>, ветка может выполнить <code>break</code> из окружающего цикла, и ветка может читать привязку, которой присваивает значение. Так состояние протаскивается через цикл без <code>if</code>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="javascript">Что унаследовано от JavaScript<a class="ak-anchor" href="#javascript" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph компилируется в TypeScript и работает на движке JavaScript, поэтому наследует порядок вычислений, ссылочную семантику при изменении данных и однопоточную модель со сборкой мусора. Спецификация описывает это как гарантии, а не оставляет вам выяснять самим.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Отличается он в сравнении: <code>==</code> сравнивает значения, записи поле за полем, а <code>===</code> в JavaScript сравнивает ссылки.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Ручного управления памятью и модели без сборки мусора в планах нет: это за пределами того, чем является язык, транспилируемый в TypeScript.</p></div>
 
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything"><code>if</code> нет, поэтому <code>match</code> должен нести всё<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Первое, что спрашивает разработчик на TypeScript после рассказа про исчерпывающую проверку: <code>match</code> это настоящая условная конструкция общего назначения или просто удобный способ разобрать union? Первое, и лучше всего это видно на присваивании.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>match</code>, который целиком является значением <code>let</code> или <code>mut</code>, принимает всё, что принимает оператор: ветка может быть блоком, ветка может делать <code>await</code>, ветка может выполнить <code>break</code> из окружающего цикла, и ветка может читать привязку, которой присваивает значение. Так состояние протаскивается через цикл без <code>if</code>.</p></div>
       <div class="code">
         <span class="cap">из проверки ссылок: отслеживание блоков кода и ветка с await</span>
 <pre>for raw in lines {
@@ -89,20 +112,17 @@ let cache = <span class="add">match</span> args.offline {
   false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">во что это компилируется и откуда взяты фрагменты</span></summary><div class="body">
         <p>
-          Оба примера компилируются в обычный <code>switch</code>, который присваивает привязку в каждой ветке, поэтому <code>await</code> оказывается в объемлющей async-функции, а аккумулятор становится обычной переменной, тип которой TypeScript может вывести. <code>match</code>, использованный <em>внутри</em> более крупного выражения, как аргумент или операнд, по-прежнему превращается в замыкание, а значит, его ветки должны быть одиночными выражениями. Если вынести его в отдельный <code>let</code>, это ограничение снимается. Оба фрагмента взяты из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>, проверки ссылок в Markdown, написанной как раз для того, чтобы находить такие вещи.
+          Оба примера компилируются в обычный <code>switch</code>, который присваивает привязку в каждой ветке, поэтому <code>await</code> оказывается в объемлющей async-функции, а аккумулятор становится обычной переменной, тип которой TypeScript может вывести. Оба фрагмента взяты из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>, проверки ссылок в Markdown, написанной как раз для того, чтобы находить такие вещи.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p><code>match</code>, использованный <em>внутри</em> более крупного выражения, как аргумент или операнд, по-прежнему превращается в замыкание, а значит, его ветки должны быть одиночными выражениями. Если вынести его в отдельный <code>let</code>, это ограничение снимается.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Паттерн может описывать форму глубже одного уровня</h2>
-        <p>
-          Вариант с несколькими полями несёт запись, поэтому ветка, которая хочет распознать форму, должна добираться до полей этой записи. До 0.1.90 на месте поля можно было написать только имя: его можно было переименовать, и всё. Сопоставление с тегом там было ошибкой компиляции, а вложенный конструктор парсер не понимал. Обходной путь состоял в том, чтобы привязать каждое поле и написать вложенный <code>match</code> на каждый уровень, а для чего-то вроде балансировки красно-чёрного дерева это уже другая программа: ветки перестают совпадать со случаями, и каждый уровень заново протаскивает привязки верхних.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">Паттерн может описывать форму глубже одного уровня<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Вариант с несколькими полями несёт запись, поэтому ветка, которая хочет распознать форму, должна добираться до полей этой записи. Теперь поле принимает любой паттерн: тег варианта, вложенный конструктор, вложенную деструктуризацию, литерал, паттерн массива.
+      </p>
       <div class="code">
         <span class="cap">один случай поворота при балансировке красно-чёрного дерева, одной веткой</span>
 <pre>type Tree =
@@ -115,23 +135,26 @@ match t {
   other =&gt; other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">обходной путь до 0.1.90</span></summary><div class="body">
         <p>
-          Теперь поле принимает любой паттерн: тег варианта, вложенный конструктор, вложенную деструктуризацию, литерал, паттерн массива. У этого есть следствие, о котором стоит знать заранее. Поле, которое проверяет значение, может не совпасть, поэтому такая ветка больше не считается покрывающей свой вариант, и match, где единственная ветка <code>Node</code> это <code>Node({ color: Red, ... })</code>, считается неполным, пока остальное не заберёт соседняя ветка или <code>else</code>. Проверка доказывает покрытие по множеству тегов, а не по произведению полей, поэтому она не выяснит, что ветки <code>Red</code> и <code>Black</code> вместе исчерпывают <code>Node</code>. Требовать ветку catch-all значит выбрать прочтение, при котором match не может проскочить свой конец во время выполнения. То же самое там, где вариантов для подсчёта нет вообще: match по обычной записи, в котором каждая ветка проверяет поле, требует <code>else</code> в конце.
+          До 0.1.90 на месте поля можно было написать только имя: его можно было переименовать, и всё. Сопоставление с тегом там было ошибкой компиляции, а вложенный конструктор парсер не понимал. Обходной путь состоял в том, чтобы привязать каждое поле и написать вложенный <code>match</code> на каждый уровень, а для чего-то вроде балансировки красно-чёрного дерева это уже другая программа: ветки перестают совпадать со случаями, и каждый уровень заново протаскивает привязки верхних.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>У этого есть следствие, о котором стоит знать заранее. Поле, которое проверяет значение, может не совпасть, поэтому такая ветка больше не считается покрывающей свой вариант, и match, где единственная ветка <code>Node</code> это <code>Node({ color: Red, ... })</code>, считается неполным, пока остальное не заберёт соседняя ветка или <code>else</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему требуется catch-all, и позиция массива</span></summary><div class="body">
+        <p>
+          Проверка доказывает покрытие по множеству тегов, а не по произведению полей, поэтому она не выяснит, что ветки <code>Red</code> и <code>Black</code> вместе исчерпывают <code>Node</code>. Требовать ветку catch-all значит выбрать прочтение, при котором match не может проскочить свой конец во время выполнения. То же самое там, где вариантов для подсчёта нет вообще: match по обычной записи, в котором каждая ветка проверяет поле, требует <code>else</code> в конце.
         </p>
         <p>
           Одно место, куда это доходит и где вы этого можете не ждать, это позиция массива. <code>[Black]</code> как целая ветка раньше считался совпадающим с любым одноэлементным массивом, так что match, полагавшийся на это, признавался исчерпывающим, а потом уходил в эту же ветку и для <code>[Red]</code>. Элемент в PascalCase здесь тоже ссылка на вариант, поэтому такой match теперь даёт <code>E0208</code> на массивах длины 1. Привяжите элемент и сопоставляйте его отдельно. Понижение под этим всё ещё старое, поэтому проверка и стала той половиной, которая вышла первой.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label">И компилятор знает, что вернул <code>match</code></h2>
-        <p>
-          Следующий вопрос решает, есть ли во всём этом реальный смысл: когда вы получаете значение из ветки, знает ли Glyph его тип, или пожимает плечами и оставляет это <code>tsc</code> на потом? До 0.1.45 пожимал. Каждое выражение <code>match</code> имело неизвестный тип, так что значение, полученное из единственной ветвящейся конструкции языка, с этого места оставалось нетипизированным. Теперь <code>match</code> получает тип своих веток, когда они согласны, а про <code>T.parse</code> известно, что он возвращает <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, и именно по такой форме ветвится большая часть реального кода.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">И компилятор знает, что вернул <code>match</code><a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Следующий вопрос решает, есть ли во всём этом реальный смысл: когда вы получаете значение из ветки, знает ли Glyph его тип, или пожимает плечами и оставляет это <code>tsc</code> на потом? Теперь <code>match</code> получает тип своих веток, когда они согласны, а про <code>T.parse</code> известно, что он возвращает <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, и именно по такой форме ветвится большая часть реального кода.
+      </p>
       <div class="code">
         <span class="cap">из делителя расходов: без аннотации, и <code>i</code> это число</span>
 <pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
@@ -145,13 +168,24 @@ for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", 
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">до 0.1.45</span></summary><div class="body">
         <p>
-          Обе половины этого раньше ломались тихо. Цикл генерирует <code>wire.expenses.entries()</code>; когда тип итерируемого значения неизвестен, вместо этого генерируется <code>Object.entries(...)</code>, и <code>i</code> оказывается <em>строкой</em> <code>"0"</code>. Это корректный TypeScript, поэтому сборка проходила чисто, а программа печатала <code>01:a</code> там, где имелось в виду <code>1:a</code>. А <code>wire.expensez</code> теперь даёт <code>[E0210] type WireLedger has no field expensez</code> от Glyph, на строке <code>.glyph</code>, а не <code>TS2339</code> в сгенерированном TypeScript. Объединение работает как равенство по голове типа: ветка, которая заканчивается <code>return</code>, не голосует, а ветки, чьи типы расходятся, оставляют результат неизвестным, как было раньше. На уровень глубже оно смотрит только в аргументе типа, поэтому <code>None =&gt; []</code> согласуется с веткой <code>Array&lt;string&gt;</code>, а не топит весь <code>match</code>, и цикл после него по-прежнему привязывает число. Та же цепочка поверх <code>record.get</code> работает по той же причине: все шесть функций <code>std/record</code> берут тип значения из записи, которую вы передаёте. Фрагмент взят из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>, где была аннотация, которую это изменение удалило.
+          До 0.1.45 пожимал. Каждое выражение <code>match</code> имело неизвестный тип, так что значение, полученное из единственной ветвящейся конструкции языка, с этого места оставалось нетипизированным.
         </p>
-      </div>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что ломалось тихо и как работает объединение</span></summary><div class="body">
+        <p>
+          Обе половины этого раньше ломались тихо. Цикл генерирует <code>wire.expenses.entries()</code>; когда тип итерируемого значения неизвестен, вместо этого генерируется <code>Object.entries(...)</code>, и <code>i</code> оказывается <em>строкой</em> <code>"0"</code>. Это корректный TypeScript, поэтому сборка проходила чисто, а программа печатала <code>01:a</code> там, где имелось в виду <code>1:a</code>. А <code>wire.expensez</code> теперь даёт <code>[E0210] type WireLedger has no field expensez</code> от Glyph, на строке <code>.glyph</code>, а не <code>TS2339</code> в сгенерированном TypeScript.
+        </p>
+        <p>
+          Объединение работает как равенство по голове типа: ветка, которая заканчивается <code>return</code>, не голосует, а ветки, чьи типы расходятся, оставляют результат неизвестным, как было раньше. На уровень глубже оно смотрит только в аргументе типа, поэтому <code>None =&gt; []</code> согласуется с веткой <code>Array&lt;string&gt;</code>, а не топит весь <code>match</code>, и цикл после него по-прежнему привязывает число. Та же цепочка поверх <code>record.get</code> работает по той же причине: все шесть функций <code>std/record</code> берут тип значения из записи, которую вы передаёте. Фрагмент взят из <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>, где была аннотация, которую это изменение удалило.
+        </p>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">Поиск с пустым запасным вариантом<a class="ak-anchor" href="#empty-fallback" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Именно эта форма обходилась дороже всего. <code>record.get</code> на <code>Record&lt;string, Array&lt;string&gt;&gt;</code> даёт <code>Option&lt;Array&lt;string&gt;&gt;</code>, а <code>[]</code> это массив неизвестно чего, поэтому две ветки согласны на <code>Array</code>, а тип элемента берётся из той ветки, где он есть.
+      </p>
       <div class="code">
         <span class="cap">из резолвера зависимостей: поиск, пустой запасной вариант, обход по индексу</span>
 <pre>let path = <span class="add">match</span> record.get(res.reached, name) {
@@ -164,20 +198,16 @@ for i, hop in path {               <span class="cm"># i is a number, so the inde
   mut out = array.push(out, "${indent}${hop}")
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">до 0.1.55</span></summary><div class="body">
         <p>
-          Именно эта форма обходилась дороже всего. <code>record.get</code> на <code>Record&lt;string, Array&lt;string&gt;&gt;</code> даёт <code>Option&lt;Array&lt;string&gt;&gt;</code>, а <code>[]</code> это массив неизвестно чего, поэтому две ветки согласны на <code>Array</code>, а тип элемента берётся из той ветки, где он есть. До 0.1.55 их сравнивали на равенство, <code>[]</code> считался расхождением, и цикл ниже печатал <code>01:x</code> в сборке без диагностик, которую пропускал <code>tsc --strict</code>. Код лежит в <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>, где раньше он начинался с <code>let path: Array&lt;string&gt;</code> под комментарием в три строки, объяснявшим, что без этой аннотации всё сломается.
+          До 0.1.55 их сравнивали на равенство, <code>[]</code> считался расхождением, и цикл ниже печатал <code>01:x</code> в сборке без диагностик, которую пропускал <code>tsc --strict</code>. Код лежит в <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>, где раньше он начинался с <code>let path: Array&lt;string&gt;</code> под комментарием в три строки, объяснявшим, что без этой аннотации всё сломается.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Придётся ли писать <code>pad_start</code> самому?</h2>
-        <p>
-          Первый пробел, на который натыкаешься в реальной программе, это не возможность системы типов. Это когда тянешься за <code>string.slice</code> и ничего там не находишь. Пять раундов догфудинга подряд приносили один и тот же список, и до 0.1.47 шесть приложений в этом репозитории носили свой <code>repeat</code>, пять свой <code>pad_start</code>, и во всех был цикл там, где напрашивался fold. Эти одиннадцать имён теперь есть в поставке, а копии удалены из всех семи приложений, где они были.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself">Придётся ли писать <code>pad_start</code> самому?<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Первый пробел, на который натыкаешься в реальной программе, это не возможность системы типов. Это когда тянешься за <code>string.slice</code> и ничего там не находишь.
+      </p>
       <div class="code">
         <span class="cap">что появилось</span>
 <pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
@@ -189,29 +219,53 @@ string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span
 let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
 io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Эти одиннадцать имён теперь есть в поставке, а копии удалены из всех семи приложений, где они были.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">копии, которые приложения носили до 0.1.47</span></summary><div class="body">
+        <p>
+          Пять раундов догфудинга подряд приносили один и тот же список, и до 0.1.47 шесть приложений в этом репозитории носили свой <code>repeat</code>, пять свой <code>pad_start</code>, и во всех был цикл там, где напрашивался fold.
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">Чем они отличаются от TypeScript<a class="ak-anchor" href="#namesakes" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Три из них намеренно расходятся со своими тёзками из TypeScript.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code> возвращает <code>""</code> при отрицательном счётчике там, где TS бросает исключение, и именно поэтому <code>repeat(pad, width - len(s))</code> безопасен на строке, которая уже слишком длинная.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>Обе функции <code>index_of</code> возвращают <code>Option&lt;number&gt;</code> вместо <code>-1</code>, потому что <code>-1</code> это число, которое проходит проверку типов везде, где проходит настоящий индекс, а падает далеко от места вызова.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>Замена есть только в виде <code>replace_all</code>, поэтому нет формы «только первое вхождение», которую можно перепутать с <code>String.prototype.replace</code>, тихо заменяющим одно вхождение.</li>
+      </ul>
+      <h3 class="ak-h3" id="fold">Почему важен <code>fold</code><a class="ak-anchor" href="#fold" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>fold</code> единственный из них, который даёт выигрыш по принципу, а не просто экономит набор текста. <code>mut</code> это находимая grep запись каждого места, где меняется состояние, а без fold <code>grep mut</code> возвращает кучу циклов-счётчиков, которые не меняют ничего, что интересно ревьюеру.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Удаление самописных версий уменьшило число мест мутации в <code>examples/apps/</code> со 192 до 161.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как проверяли переписанное</span></summary><div class="body">
+        <p>
+          Переписанное проверяли по выводу, а не на ревью: все семь приложений запускались на фиксированных входных данных до и после, 26 файлов stdout, кодов выхода и HTTP-ответов, все совпали побайтно.
+        </p>
+      </div></details>
 
-      <div class="detail">
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">Можно ли обойти каталог и понять, что сломалось?<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        В <code>std/fs</code> было шесть функций, и ни одна не выводила содержимое каталога.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code> возвращает имена записей на один уровень вниз.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code> отвечает значением <code>bool</code>, как <code>fs.exists</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code> возвращает <code>FileInfo</code> из <code>is_dir</code>, <code>is_file</code>, <code>size</code> в байтах и <code>modified</code> в миллисекундах от эпохи, которое <code>time.format_iso</code> выводит напрямую.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Рекурсивного <code>walk</code> и glob нет; обход это эти три функции плюс <code>path.join</code>, примерно десять строк.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">обходной путь, который они заменили</span></summary><div class="body">
         <p>
-          Три из них намеренно расходятся со своими тёзками из TypeScript. <code>repeat</code> возвращает <code>""</code> при отрицательном счётчике там, где TS бросает исключение, и именно поэтому <code>repeat(pad, width - len(s))</code> безопасен на строке, которая уже слишком длинная. Обе функции <code>index_of</code> возвращают <code>Option&lt;number&gt;</code> вместо <code>-1</code>, потому что <code>-1</code> это число, которое проходит проверку типов везде, где проходит настоящий индекс, а падает далеко от места вызова. Замена есть только в виде <code>replace_all</code>, поэтому нет формы «только первое вхождение», которую можно перепутать с <code>String.prototype.replace</code>, тихо заменяющим одно вхождение.
+          Проверка ссылок в этом репозитории лезла мимо стандартной библиотеки в <code>readdirSync</code> из node и определяла, какие пути являются каталогами, пытаясь их прочитать и разбирая вернувшийся <code>errno</code>. Обе половины исправлены.
         </p>
-        <p>
-          <code>fold</code> единственный из них, который даёт выигрыш по принципу, а не просто экономит набор текста. <code>mut</code> это находимая grep запись каждого места, где меняется состояние, а без fold <code>grep mut</code> возвращает кучу циклов-счётчиков, которые не меняют ничего, что интересно ревьюеру. Удаление самописных версий уменьшило число мест мутации в <code>examples/apps/</code> со 192 до 161. Переписанное проверяли по выводу, а не на ревью: все семь приложений запускались на фиксированных входных данных до и после, 26 файлов stdout, кодов выхода и HTTP-ответов, все совпали побайтно.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">Можно ли обойти каталог и понять, что сломалось?</h2>
-        <p>
-          В <code>std/fs</code> было шесть функций, и ни одна не выводила содержимое каталога. Проверка ссылок в этом репозитории лезла мимо стандартной библиотеки в <code>readdirSync</code> из node и определяла, какие пути являются каталогами, пытаясь их прочитать и разбирая вернувшийся <code>errno</code>. Обе половины исправлены. <code>fs.read_dir</code> возвращает имена записей на один уровень вниз, <code>fs.is_dir</code> отвечает значением <code>bool</code>, как <code>fs.exists</code>, а <code>fs.stat</code> возвращает <code>FileInfo</code> из <code>is_dir</code>, <code>is_file</code>, <code>size</code> в байтах и <code>modified</code> в миллисекундах от эпохи, которое <code>time.format_iso</code> выводит напрямую. Рекурсивного <code>walk</code> и glob нет; обход это эти три функции плюс <code>path.join</code>, примерно десять строк.
-        </p>
-        <p>
-          Сторона ошибок изменилась сильнее. <code>FsError.kind</code> был <code>{ tag: string }</code>, и вся таксономия состояла из <code>NotFound</code>, так что отличить «этот путь каталог» от «этого пути нет» можно было только сравнением строки errno. Теперь у пяти видов ошибок, после которых программа реально восстанавливается, есть имена, а errno без имени приходит без потерь в хвосте <code>Other</code>.
-        </p>
-        <p>
-          Проверка типов знает, что эта таксономия закрыта, поэтому к <code>match</code> по <code>err.kind</code> предъявляются те же требования, что и к union, который вы объявили сами: покройте все шесть, и <code>else</code> не нужен, пропустите один, и сборка падает с <code>E0200</code>, называющей <code>fs.ErrorKind</code>. У <code>fs.FsError</code> и <code>fs.FileInfo</code> поля тоже проверяются, так что <code>err.mesage</code> это <code>E0210</code> по вашему исходнику на Glyph, а не ошибка <code>tsc</code> по сгенерированному TypeScript.
-        </p>
-      </div>
-
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">У ошибок есть имена<a class="ak-anchor" href="#fs-errors" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Сторона ошибок изменилась сильнее. Теперь у пяти видов ошибок, после которых программа реально восстанавливается, есть имена, а errno без имени приходит без потерь в хвосте <code>Other</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Проверка типов знает, что эта таксономия закрыта, поэтому к <code>match</code> по <code>err.kind</code> предъявляются те же требования, что и к union, который вы объявили сами: покройте все шесть, и <code>else</code> не нужен, пропустите один, и сборка падает с <code>E0200</code>, называющей <code>fs.ErrorKind</code>.</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">обойти дерево и назвать, что пошло не так</span>
 <pre>let names = fs.<span class="add">read_dir</span>(dir)?
@@ -235,36 +289,50 @@ match err.<span class="add">kind</span> {                        <span class="cm
   fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">старая таксономия, проверяемые поля и как проверить самому</span></summary><div class="body">
         <p>
-          Вместе с этим появились две функции поменьше, обе из того же приложения. <code>regex.captures_all</code> даёт группы захвата для каждого совпадения, а не только совпавший текст, так что плоский поиск <code>key=value</code> перестаёт быть самописным циклом. А <code>task.pool_settled</code> это <code>task.pool</code> с поведением при ошибках как у <code>all_settled</code>: ограниченная конкурентность, один результат на задачу, и один упавший хост стоит вам только результата этого хоста, а не всех результатов, которые пул успел собрать.
+          <code>FsError.kind</code> был <code>{ tag: string }</code>, и вся таксономия состояла из <code>NotFound</code>, так что отличить «этот путь каталог» от «этого пути нет» можно было только сравнением строки errno.
+        </p>
+        <p>
+          У <code>fs.FsError</code> и <code>fs.FileInfo</code> поля тоже проверяются, так что <code>err.mesage</code> это <code>E0210</code> по вашему исходнику на Glyph, а не ошибка <code>tsc</code> по сгенерированному TypeScript.
         </p>
         <p>
           Эта проверка работает. Удалите ветку <code>PermissionDenied</code> из <code>match</code> выше, и <code>glyph check --no-tsc</code> остановится с <code>E0200</code>: неполный match по <code>fs.ErrorKind</code>, не хватает вариантов <code>PermissionDenied</code>. Когда модель стандартной библиотеки только писалась, она покрывала одни возвращаемые типы, и такой match компилировался чисто и падал во время выполнения; формы полей и вариантов <code>fs.FsError</code>, <code>fs.FileInfo</code> и <code>fs.ErrorKind</code> теперь смоделированы.
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">Два небольших дополнения<a class="ak-anchor" href="#captures-all" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Вместе с этим появились две функции поменьше, обе из того же приложения.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code> даёт группы захвата для каждого совпадения, а не только совпавший текст, так что плоский поиск <code>key=value</code> перестаёт быть самописным циклом.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code> это <code>task.pool</code> с поведением при ошибках как у <code>all_settled</code>: ограниченная конкурентность, один результат на задачу, и один упавший хост стоит вам только результата этого хоста, а не всех результатов, которые пул успел собрать.</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label">Откуда известно, что это правильные функции?</h2>
-        <p>
-          Оттуда, что приложение, которое их просило, должно было перестать обходить их отсутствие, прежде чем выпуск засчитали как готовый. Библиотечная функция, которая вышла, и обходной путь, который её пережил, это разные утверждения, поэтому то же изменение, что добавило эти четыре функции, удалило их копии из проверки ссылок: импорт <code>readdirSync</code>, оба сравнения строк <code>errno</code>, 97 строк самописного сканера и пул, падающий при первой ошибке. Ушло 122 строки.
-        </p>
-        <p>
-          Два из этих удалений изменили поведение программы, и разницу измерили, а не обсуждали. Запустите старую и новую версии на дереве, где есть каталог, который нельзя прочитать: новая печатает <code>permission denied</code> и считает путь нечитаемым, а старая, которая могла только спросить, равен ли errno <code>EISDIR</code>, вообще не включала его в отчёт. Сделайте так, чтобы один из трёх URL бросал исключение: <code>pool_settled</code> напечатал все три строки и назвал сбой, а <code>pool</code> не напечатал ничего и упал на необработанном rejection, утащив за собой два хороших результата.
-        </p>
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">Откуда известно, что это правильные функции?<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Оттуда, что приложение, которое их просило, должно было перестать обходить их отсутствие, прежде чем выпуск засчитали как готовый.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Библиотечная функция, которая вышла, и обходной путь, который её пережил, это разные утверждения, поэтому то же изменение, что добавило эти четыре функции, удалило их копии из проверки ссылок: импорт <code>readdirSync</code>, оба сравнения строк <code>errno</code>, 97 строк самописного сканера и пул, падающий при первой ошибке. Ушло 122 строки.</p></div>
+      <h3 class="ak-h3" id="measured">Два изменения поведения, измеренные<a class="ak-anchor" href="#measured" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Два из этих удалений изменили поведение программы, и разницу измерили, а не обсуждали.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>Нечитаемый каталог</b>Запустите старую и новую версии на дереве, где есть каталог, который нельзя прочитать: новая печатает <code>permission denied</code> и считает путь нечитаемым, а старая, которая могла только спросить, равен ли errno <code>EISDIR</code>, вообще не включала его в отчёт.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Падающий URL</b>Сделайте так, чтобы один из трёх URL бросал исключение: <code>pool_settled</code> напечатал все три строки и назвал сбой, а <code>pool</code> не напечатал ничего и упал на необработанном rejection, утащив за собой два хороших результата.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">переписанный сканер и опасения насчёт альтернации</span></summary><div class="body">
         <p>
           Переписывание сканера закрыло и одно сомнение в дизайне. Поскольку группа захвата, которая не участвовала в совпадении, читается как <code>""</code>, так же как группа, совпавшая с пустой строкой, казалось, что <code>captures_all</code> не может сказать, какая ветка альтернативы сработала. Может, если оборачивать группой каждой ветки всю конструкцию, а не только нужную часть: тогда сработавшая группа начинается с <code>`</code>, <code>[</code>, <code>!</code> или <code>&lt;</code> и не может быть пустой. Часть, которая может быть пустой (цель ссылки), вложена внутрь, и про неё никогда не спрашивают. Так обход по символам на 180 строк превратился в два паттерна и диспетчеризацию на 12 строк с побайтно одинаковым выводом на документации самого репозитория и на тестовых данных, собранных специально, чтобы это сломать.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Деньги не считают на float</h2>
-        <p>
-          Пробел, который сразу закончил бы оценку в финтехе, это деньги на IEEE-754 <code>number</code>, где <code>0.1 + 0.2</code> не равно <code>0.3</code>, а значения больше 2<sup>53</sup> тихо теряют точность. <code>std/decimal</code> это точная десятичная арифметика с фиксированной точкой поверх BigInt: целое число произвольной точности с фиксированным количеством знаков после запятой, поэтому сложение, вычитание и умножение точны, а деление принимает явный масштаб и режим округления. Некорректная сумма разбирается в <code>Err</code>, а не в тихий <code>NaN</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">Деньги не считают на float<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Пробел, который сразу закончил бы оценку в финтехе, это деньги на IEEE-754 <code>number</code>, где <code>0.1 + 0.2</code> не равно <code>0.3</code>, а значения больше 2<sup>53</sup> тихо теряют точность.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>std/decimal</code> это точная десятичная арифметика с фиксированной точкой поверх BigInt: целое число произвольной точности с фиксированным количеством знаков после запятой, поэтому сложение, вычитание и умножение точны, а деление принимает явный масштаб и режим округления. Некорректная сумма разбирается в <code>Err</code>, а не в тихий <code>NaN</code>.</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre>let price = decimal("10.50")?
@@ -274,23 +342,16 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
       </div>
+      <h3 class="ak-h3" id="bigint">Большие целые числа<a class="ak-anchor" href="#bigint" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Для точных больших <em>целых</em> чисел, идентификаторов счетов и счётчиков, есть тип <code>bigint</code>: литералы пишутся как <code>123n</code>, он генерируется в настоящий <code>bigint</code> TypeScript, а поле записи с типом <code>bigint</code> проверяет <code>typeof === "bigint"</code> на границе, так что идентификатор, пришедший как JSON <code>number</code>, отклоняется, а не тихо округляется после 2<sup>53</sup>.
+      </p>
 
-      <div class="detail">
-        <p>
-          Для точных больших <em>целых</em> чисел, идентификаторов счетов и счётчиков, есть тип <code>bigint</code>: литералы пишутся как <code>123n</code>, он генерируется в настоящий <code>bigint</code> TypeScript, а поле записи с типом <code>bigint</code> проверяет <code>typeof === "bigint"</code> на границе, так что идентификатор, пришедший как JSON <code>number</code>, отклоняется, а не тихо округляется после 2<sup>53</sup>.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">У async-колбэка наконец есть тип</h2>
-        <p>
-          Тип функции был только <code>fn(A) -&gt; T</code>, который генерируется в <code>(a: A) =&gt; T</code>. Async-тело в это не вписывается, поэтому функцию, возвращающую отложенную задачу, или запись из async-обработчиков приходилось оставлять без аннотации, и проверка типов переставала туда смотреть. <code>async fn(A) -&gt; T</code> это недостающий тип. Он генерируется в <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, а <code>async fn()</code> без возвращаемого типа генерируется в <code>() =&gt; Promise&lt;void&gt;</code>.
-        </p>
-        <p>
-          Glyph сам различает эти два типа, а не оставляет это <code>tsc</code>: обычная функция там, где ожидается async, это <code>E0204</code> в return и <code>E0211</code> в аргументе вызова, и сообщение называет обе стороны. Единственный случай, который он не оценивает, это возвращаемый тип <code>void</code>, где TypeScript принимает любую функцию.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">У async-колбэка наконец есть тип<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Тип функции был только <code>fn(A) -&gt; T</code>, который генерируется в <code>(a: A) =&gt; T</code>. Async-тело в это не вписывается, поэтому функцию, возвращающую отложенную задачу, или запись из async-обработчиков приходилось оставлять без аннотации, и проверка типов переставала туда смотреть.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt; T</code> это недостающий тип. Он генерируется в <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, а <code>async fn()</code> без возвращаемого типа генерируется в <code>() =&gt; Promise&lt;void&gt;</code>.</p></div>
       <div class="code">
         <span class="cap">отложенная задача и словарь обработчиков</span>
 <pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
@@ -306,14 +367,17 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">Рекурсивный тип, сопоставленный до самого низа</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как Glyph различает обычные и async-функции</span></summary><div class="body">
         <p>
-          Union может называть сам себя внутри своей полезной нагрузки, со своими параметрами типа, а ветка match может вкладывать паттерн конструктора в поле другого паттерна конструктора. Вместе это даёт правила балансировки красно-чёрного дерева в четыре ветки: каждая называет ровно ту форму, которую переписывает, и форму проверяет компилятор, а не комментарий над ней, который это утверждает. <code>examples/apps/leaderboard/main.glyph</code> это вся программа: таблица лидеров, которая хранит все результаты в дереве и отвечает на запросы ранга, топ-N и диапазона обходом дерева, а не пересортировкой журнала.
+          Glyph сам различает эти два типа, а не оставляет это <code>tsc</code>: обычная функция там, где ожидается async, это <code>E0204</code> в return и <code>E0211</code> в аргументе вызова, и сообщение называет обе стороны.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Единственный случай, который он не оценивает, это возвращаемый тип <code>void</code>, где TypeScript принимает любую функцию.</p></div>
 
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">Рекурсивный тип, сопоставленный до самого низа<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Union может называть сам себя внутри своей полезной нагрузки, со своими параметрами типа, а ветка match может вкладывать паттерн конструктора в поле другого паттерна конструктора. Вместе это даёт правила балансировки красно-чёрного дерева в четыре ветки: каждая называет ровно ту форму, которую переписывает, и форму проверяет компилятор, а не комментарий над ней, который это утверждает.
+      </p>
       <div class="code">
         <span class="cap">один из четырёх случаев поворота</span>
 <pre>type Tree&lt;K, V&gt; =
@@ -334,15 +398,136 @@ fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code> это вся программа: таблица лидеров, которая хранит все результаты в дереве и отвечает на запросы ранга, топ-N и диапазона обходом дерева, а не пересортировкой журнала.</p></div>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Видимость <code>pub</code>, которая соблюдается при обоих способах сослаться на тип из соседнего модуля (именованный импорт и аннотация <code>lib.Secret</code>), структурные ограничения <code>interface</code>, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> как записываемый тип, union, который называет себя в своей полезной нагрузке и сопоставляется веткой с паттерном конструктора, вложенным в поле другого, <code>match</code> как значение <code>let</code> или <code>mut</code> с блоками, <code>await</code> и управлением циклом в ветках, <code>match</code>, чьи согласные ветки передают свой тип дальше в программу, типизированный <code>T.parse</code>, <code>std/decimal</code> для точных денежных расчётов, <code>bigint</code> для точных больших целых, разделители разрядов, раздел спецификации, который берёт на себя унаследованную от JS семантику, и стандартная библиотека с <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> и <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, а также <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, таксономия <code>FsError.kind</code>, соблюдение которой проверяется, и <code>regex.captures_all</code>. Большинство функций <code>std/string</code> и <code>std/array</code> теперь передают свой возвращаемый тип в вашу программу, так что <code>string.split</code> это <code>Array&lt;string&gt;</code>, и цикл по нему привязывает числовой индекс. <code>std/record</code> тоже смоделирован, тип значения берётся из записи, которую вы передаёте: <code>record.get(t, k)</code> на <code>Record&lt;string, Array&lt;string&gt;&gt;</code> это <code>Option&lt;Array&lt;string&gt;&gt;</code>, а <code>record.keys(t)</code> это <code>Array&lt;string&gt;</code>, поэтому <code>array.sort(record.keys(t), cmp)</code> сохраняет тип элемента.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Где это заканчивается</h3>
-          <p>Приватный импорт сообщает «not exported by M», то же сообщение, что и для отсутствующего имени; различать «приватное, пометьте <code>pub</code>» и «такого имени нет» научат в одном из следующих уточнений, оно в очереди. Видимость проверяется в аннотациях типов, но не для значений, прочитанных через пространство имён: <code>lib.helper()</code>, где <code>helper</code> приватный, по-прежнему ошибка <code>tsc</code>, а не Glyph. Async-контекст теперь проверяется (<code>E0222</code>), кроме одного места: у инициализатора <code>const</code> на уровне модуля нет объемлющей вызываемой сущности, поэтому <code>await</code> верхнего уровня там разрешён, и сгенерированный ESM его выполняет. Объединению веток всё ещё нужно, чтобы ветки совпадали по голове типа: когда они дают разные типы, результат для Glyph неизвестен, и что вы с ним делаете, проверяет только <code>tsc</code>. В таком же положении девять функций стандартной библиотеки. Шесть принимают необязательный последний аргумент (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), а проверка арности сравнивает одно число с одним числом, так что их моделирование давало бы ложную ошибку на каждом вызове без последнего аргумента; <code>array.map</code>, <code>flat_map</code> и <code>zip</code> берут тип элемента из колбэка, в который проверка типов не заходит. Значению, взятому прямо из этих девяти функций, нужна аннотация, прежде чем обходить его по индексу, а <code>match</code> по <code>string.index_of</code> без ветки <code>None</code> по-прежнему собирается чисто и падает во время выполнения. <code>array.index_of</code> смоделирован и сообщает <code>E0200</code>. Члены и арность вызова у значения, тип которого проверка не смогла определить, на этой границе по-прежнему не проверяются, а не считаются ошибкой. Со стороны библиотеки <code>string</code> индексирует единицы кода UTF-16, как всегда делали <code>len</code> и <code>split</code>, и это решено окончательно: <code>chars</code> или <code>char_at</code> нет и не планируется, потому что возвращённая половинка суррогатной пары выглядит как символ ровно до того момента, когда её выводят. Кодируйте через <code>encoding.hex_encode</code> и читайте по две шестнадцатеричные цифры. <code>captures_all</code> возвращает группы без смещений, так что сканер, которому нужно знать, где в строке началось совпадение, по-прежнему пишет свой цикл, а <code>fs.read_dir</code> отдаёт записи в порядке ОС, так что сортируйте их, когда вывод должен быть воспроизводимым. У вложенного паттерна поля осталось одно ограничение: конструктор с полезной нагрузкой в поле, на union, доступном через импорт пространства имён. <code>import tree { Node }</code>, а затем <code>Node({ left: Node({ key: k }) })</code> компилируется, а <code>import tree</code>, а затем <code>tree.Node({ left: tree.Node({ key: k }) })</code> даёт <code>E0300</code> на том же union. Второго ограничения больше нет: union, обобщённый по собственному параметру (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>), раньше отвергал вложенную ветку, которую принимал тот же union без параметра, а теперь принимает её, и с открытым параметром типа, и с конкретной подстановкой. Тот же поиск решал, проверяется ли match на пропущенные варианты вообще, поэтому до этого выпуска <code>match</code> по <code>Tree&lt;K&gt;</code> мог пропустить <code>Leaf</code>, собраться чисто, пройти <code>tsc --strict</code> и упасть во время выполнения там, где необобщённое написание давало <code>E0200</code>. Теперь об этом сообщают оба написания, и перенос union на один импорт дальше больше не меняет ответ: <code>match</code> по импортированному <code>Tree&lt;string&gt;</code> без <code>Leaf</code> даёт <code>E0200</code> с названием <code>Leaf</code>, так же как импортированный необобщённый <code>Tree</code>. Это был другой путь в коде, проверялся он отдельно и до этого выпуска вёл себя наоборот: собирался чисто и падал во время выполнения. Об одном свойстве покрытия импортированного union стоит знать, прежде чем на него полагаться: полезные нагрузки его вариантов тоже никогда не проверяются, поэтому <code>B(X)</code>, где <code>X</code> вариант собственного union полезной нагрузки, совпадает с каждым <code>B</code>, вместо того чтобы сообщить о пропущенном <code>Y</code>, и к дженерикам это отношения не имеет. Привязка поля или сопоставление с тегом без полезной нагрузки в поле работают во всех случаях.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">19</span></h3>
+
+          <p class="ak-st-group">Модули и типы</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Видимость <code>pub</code>, которая соблюдается при обоих способах сослаться на тип из соседнего модуля (именованный импорт и аннотация <code>lib.Secret</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Структурные ограничения <code>interface</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn(A) -&gt; T</code> как записываемый тип</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Union, который называет себя в своей полезной нагрузке и сопоставляется веткой с паттерном конструктора, вложенным в поле другого</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Управление потоком и <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code> как значение <code>let</code> или <code>mut</code> с блоками, <code>await</code> и управлением циклом в ветках</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code>, чьи согласные ветки передают свой тип дальше в программу</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Типизированный <code>T.parse</code></span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Числа и семантика</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> для точных денежных расчётов</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> для точных больших целых</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Разделители разрядов</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Раздел спецификации, который берёт на себя унаследованную от JS семантику</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Стандартная библиотека</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Стандартная библиотека с <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> и <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Таксономия <code>FsError.kind</code>, соблюдение которой проверяется</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Большинство функций <code>std/string</code> и <code>std/array</code> передают свой возвращаемый тип в вашу программу</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Большинство функций <code>std/string</code> и <code>std/array</code> теперь передают свой возвращаемый тип в вашу программу, так что <code>string.split</code> это <code>Array&lt;string&gt;</code>, и цикл по нему привязывает числовой индекс.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/record</code> смоделирован, тип значения берётся из записи, которую вы передаёте</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>std/record</code> тоже смоделирован, тип значения берётся из записи, которую вы передаёте: <code>record.get(t, k)</code> на <code>Record&lt;string, Array&lt;string&gt;&gt;</code> это <code>Option&lt;Array&lt;string&gt;&gt;</code>, а <code>record.keys(t)</code> это <code>Array&lt;string&gt;</code>, поэтому <code>array.sort(record.keys(t), cmp)</code> сохраняет тип элемента.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Где это заканчивается <span class="count">11</span></h3>
+
+          <p class="ak-st-group">Видимость</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Приватный импорт даёт то же сообщение, что и отсутствующее имя</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Приватный импорт сообщает «not exported by M», то же сообщение, что и для отсутствующего имени; различать «приватное, пометьте <code>pub</code>» и «такого имени нет» научат в одном из следующих уточнений, оно в очереди.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Приватное значение, прочитанное через пространство имён, это ошибка <code>tsc</code>, а не Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Видимость проверяется в аннотациях типов, но не для значений, прочитанных через пространство имён: <code>lib.helper()</code>, где <code>helper</code> приватный, по-прежнему ошибка <code>tsc</code>, а не Glyph.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Async</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> верхнего уровня в инициализаторе <code>const</code> на уровне модуля разрешён</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Async-контекст теперь проверяется (<code>E0222</code>), кроме одного места: у инициализатора <code>const</code> на уровне модуля нет объемлющей вызываемой сущности, поэтому <code>await</code> верхнего уровня там разрешён, и сгенерированный ESM его выполняет.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Выводимые типы</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Если ветки расходятся по голове типа, результат для Glyph неизвестен</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Объединению веток всё ещё нужно, чтобы ветки совпадали по голове типа: когда они дают разные типы, результат для Glyph неизвестен, и что вы с ним делаете, проверяет только <code>tsc</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">В таком же положении девять функций стандартной библиотеки</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>В таком же положении девять функций стандартной библиотеки. Шесть принимают необязательный последний аргумент (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>), а проверка арности сравнивает одно число с одним числом, так что их моделирование давало бы ложную ошибку на каждом вызове без последнего аргумента; <code>array.map</code>, <code>flat_map</code> и <code>zip</code> берут тип элемента из колбэка, в который проверка типов не заходит.</p>
+                <p>Значению, взятому прямо из этих девяти функций, нужна аннотация, прежде чем обходить его по индексу, а <code>match</code> по <code>string.index_of</code> без ветки <code>None</code> по-прежнему собирается чисто и падает во время выполнения. <code>array.index_of</code> смоделирован и сообщает <code>E0200</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Члены и арность вызова у значения, тип которого проверка не смогла определить, не проверяются</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Члены и арность вызова у значения, тип которого проверка не смогла определить, на этой границе по-прежнему не проверяются, а не считаются ошибкой.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Библиотека</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code> индексирует единицы кода UTF-16, и <code>chars</code> или <code>char_at</code> не планируется</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Со стороны библиотеки <code>string</code> индексирует единицы кода UTF-16, как всегда делали <code>len</code> и <code>split</code>, и это решено окончательно: <code>chars</code> или <code>char_at</code> нет и не планируется, потому что возвращённая половинка суррогатной пары выглядит как символ ровно до того момента, когда её выводят. Кодируйте через <code>encoding.hex_encode</code> и читайте по две шестнадцатеричные цифры.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code> не даёт смещений; <code>fs.read_dir</code> сохраняет порядок ОС</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>captures_all</code> возвращает группы без смещений, так что сканер, которому нужно знать, где в строке началось совпадение, по-прежнему пишет свой цикл, а <code>fs.read_dir</code> отдаёт записи в порядке ОС, так что сортируйте их, когда вывод должен быть воспроизводимым.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Паттерны</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Конструктор с полезной нагрузкой в поле не работает на union, доступном через импорт пространства имён</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>У вложенного паттерна поля осталось одно ограничение: конструктор с полезной нагрузкой в поле, на union, доступном через импорт пространства имён. <code>import tree { Node }</code>, а затем <code>Node({ left: Node({ key: k }) })</code> компилируется, а <code>import tree</code>, а затем <code>tree.Node({ left: tree.Node({ key: k }) })</code> даёт <code>E0300</code> на том же union.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Union, обобщённый по собственному параметру, принимает вложенную ветку и проверяется на пропущенные варианты</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Второго ограничения больше нет: union, обобщённый по собственному параметру (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>), раньше отвергал вложенную ветку, которую принимал тот же union без параметра, а теперь принимает её, и с открытым параметром типа, и с конкретной подстановкой. Тот же поиск решал, проверяется ли match на пропущенные варианты вообще, поэтому до этого выпуска <code>match</code> по <code>Tree&lt;K&gt;</code> мог пропустить <code>Leaf</code>, собраться чисто, пройти <code>tsc --strict</code> и упасть во время выполнения там, где необобщённое написание давало <code>E0200</code>.</p>
+                <p>Теперь об этом сообщают оба написания, и перенос union на один импорт дальше больше не меняет ответ: <code>match</code> по импортированному <code>Tree&lt;string&gt;</code> без <code>Leaf</code> даёт <code>E0200</code> с названием <code>Leaf</code>, так же как импортированный необобщённый <code>Tree</code>. Это был другой путь в коде, проверялся он отдельно и до этого выпуска вёл себя наоборот: собирался чисто и падал во время выполнения.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Покрытие импортированного union никогда не проверяет полезные нагрузки его вариантов</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Об одном свойстве покрытия импортированного union стоит знать, прежде чем на него полагаться: полезные нагрузки его вариантов тоже никогда не проверяются, поэтому <code>B(X)</code>, где <code>X</code> вариант собственного union полезной нагрузки, совпадает с каждым <code>B</code>, вместо того чтобы сообщить о пропущенном <code>Y</code>, и к дженерикам это отношения не имеет.</p>
+                <p>Привязка поля или сопоставление с тегом без полезной нагрузки в поле работают во всех случаях.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

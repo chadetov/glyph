@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "ru",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "Тело запроса приходит уже декодированным как <code>unknown</code>, поэтому там используется <code>T.parse(value)</code>: та же гарантия, без приведения."
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть."
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "Остальная недоверенная граница типизирована так же: <code>header(req, name)</code> и <code>query_param(req, name)</code> возвращают <code>Option&lt;string&gt;</code>, поэтому отсутствующий заголовок или параметр запроса это <code>None</code>, и <code>match</code> <em>заставляет</em> его обработать. Уберите ветку <code>None</code>, и код не скомпилируется. Отсутствующий ввод нельзя прочитать так, будто он есть. Поле тела подчиняется тому же правилу: <code>timeout_ms?: number</code> это отсутствующий ключ или число, поэтому <code>{\"timeout_ms\": null}</code> даёт <code>Err</code> в <code>[\"timeout_ms\"]</code>, одинаково из <code>T.parse</code>, <code>is T</code> и <code>json.parse&lt;T&gt;</code>. Объявите <code>timeout_ms?: Nullable&lt;number&gt;</code>, если отправитель пишет <code>null</code>. До 0.1.152 этот <code>null</code> возвращался внутри <code>Ok</code>."
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "ровно перечисленные ключи, без пропущенных и без лишних"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "Тип, уточнённый через <code>where</code>"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "<code>string</code> или число, уточнённые через <code>where</code>"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "ничего нового"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "Подробности <span class=\"hint\">уточнённые и int-ключи и что пока остаётся за tsc</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "Подробности <span class=\"hint\">уточнённые и int-ключи и что держит проверка</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>\"01\"</code> и <code>\"1.5\"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. Собственная проверка Glyph по-прежнему оставляет ключи значения, написанного в коде, на <code>tsc</code>, а обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>."
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "Для типа ключа, уточнённого через <code>where</code>, предикат выполняется на каждом ключе, а ключ <code>int</code> должен быть обычной записью целого числа, поэтому <code>\"01\"</code> и <code>\"1.5\"</code> отклоняются. <code>Record&lt;string, V&gt;</code> проверяется точно так же, как раньше. <code>where</code> не может уточнить объединение строковых литералов (<code>type T2 = Tier where value != \"pro\"</code> это <code>E0300</code> начиная с 0.1.152); запишите нужные члены отдельным объединением, <code>type T2 = \"free\"</code>, и оно станет ключом <code>Record</code> с той же проверкой точного набора ключей. Начиная с 0.1.153 собственная проверка Glyph держит и ключ значения, написанного в коде: <code>Record&lt;string, int&gt;</code> не подставляется туда, где объявлен <code>Record&lt;Tier, int&gt;</code>, и наоборот, поэтому переход идёт через <code>json.parse</code> или ветку <code>is Record&lt;Tier, int&gt;</code>, а <code>record.set</code> сохраняет переданный ему ключ. Обобщённая запись с ключом по собственному параметру типа отклоняется, если этот параметр не <code>string</code>."
     },
     {
       "id": "h-efd6b0f9",

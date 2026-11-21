@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-414 entries, 309 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-85 are open. G144, the D28 boundary cast that never reached the returns a
+415 entries, 309 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+86 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14059,14 +14059,16 @@ and is the owner's to confirm.
   exits 0 under `check --no-tsc`, and hover shows `unknown` inside the
   arm.*
 
-  Fixed in 0.1.156 (record 130, F3). Inside an arm whose pattern is `is T`, a
-  scrutinee that is a local name (a parameter or a `let`) has type `T` in
-  that arm's body, when `T` lowers to a primitive or a declared type. A
-  prelude container (`is Record<K, V>`, `is Array<X>`) does not narrow:
-  narrowing one exposes E0224 on an index read `tsc` accepts, in
-  `examples/01_validator.glyph`, and that is left to its own decision. The
-  name keeps its own type outside the arm, and an arm that
-  rebinds the name with `mut` is not narrowed. `is User => v.nmae` is E0210
+  Fixed in 0.1.156 (records 130 and 134). Inside an arm whose pattern is `is
+  T`, a scrutinee that is a name (a parameter, a `let` or a module `const`)
+  has type `T` in that arm's body, when `T` lowers to a primitive or a
+  declared type. A prelude container (`is Record<K, V>`, `is Array<X>`) does
+  not narrow yet (G415). The name keeps its own type outside the arm. A name
+  that any `mut` reassigns anywhere in its scope, nested lambdas included, is
+  not narrowed: a lambda defined before the `match` and called inside the arm
+  could rebind it while the arm runs (record 134, probe `r134/t/c`, where
+  narrowing typed `v.name` as `string` and `glyph run` printed `undefined`).
+  `is User => v.nmae` is E0210
   without `tsc`, and hover shows `number` inside `is number =>`.
 
 - **G414. An omitted lambda annotation takes no type from its context.**
@@ -14086,3 +14088,26 @@ and is the owner's to confirm.
   *Reproduced against 0.1.153 (the published package): `check --no-tsc`
   reports no diagnostics, and full `check` reports ``[TS2339] Error: tsc:
   Property 'nmae' does not exist on type 'User'``.*
+
+- **G415. `is Record<K, V>` and `is Array<X>` arms do not narrow; E0224
+  should not fire when `V` is `unknown`, and then containers narrow.** Since
+  0.1.156 an `is T` arm narrows its scrutinee for a primitive or a declared
+  `T`, but not for a prelude container. Narrowing one exposes E0224 on an
+  index read `tsc` accepts: `examples/01_validator.glyph:72` reads
+  `input[key]` inside `is Record<string, unknown>` and passes the value on to
+  `sub_schema.parse`, which is how an optional field parses, and Glyph has no
+  value a `None` arm could pass to say "absent", so the site cannot become
+  `record.get`. Decided in record 134: E0224 does not fire when `V` is
+  `unknown`, declared or narrowed, since an absent key yields a value
+  `unknown` already admits and any use must narrow first; then containers
+  narrow like every other `is` target. It has to land before G325: an
+  un-narrowed `is Array<string>` arm passes an `unknown` where
+  `Array<string>` is declared, and G325 refuses that. The test
+  `g415_a_prelude_container_is_arm_does_not_narrow` pins today's behaviour
+  and flips with the fix.
+
+  *Reproduced against 0.1.153 (the published package): `match v { is
+  Record<string, unknown> => v[k], else => v, }` with `v: unknown` reports no
+  diagnostics under `check --no-tsc`, because the arm does not narrow; a
+  declared `m: Record<string, unknown>` read `m[k]` is E0224 on the same
+  binary.*

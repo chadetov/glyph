@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/diff-stability/index.html",
   "locale": "th",
-  "source_hash": "b0148f7848d7e246",
+  "source_hash": "e4dd437ddbdd1fba",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "การแก้หนึ่งบรรทัดคือ<strong>diff หนึ่งบรรทัด</strong>ทุกครั้ง Glyph มี layout มาตรฐานแบบเดียว เอเจนต์จึง<strong>ฝังการเปลี่ยนแปลงจริงไว้ใต้กำแพงของการจัดรูปแบบใหม่ไม่ได้</strong>"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "ทำไมเรื่องนี้สำคัญ"
-    },
-    {
-      "id": "h-303f30da",
-      "kind": "html",
-      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through. Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
-      "tr": "เมื่อเอเจนต์เปิด pull request diff <em>คือ</em>การรีวิว ถ้าการแก้หนึ่งบรรทัดจริงๆ มาในรูปการจัดรูปแบบใหม่ 200 บรรทัด ก็ไม่มีใครเห็นว่าอะไรเปลี่ยนจริง และความรกนั้นคือที่ที่บั๊กหลุดผ่านไป diff ที่คงที่หมายความว่า diff แสดงการเปลี่ยนแปลง และ<strong>ไม่มีอะไรนอกจากการเปลี่ยนแปลง</strong>"
-    },
-    {
-      "id": "h-0959c450",
-      "kind": "html",
-      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
-      "tr": "กฎสองข้อทำงานส่วนใหญ่ นี่คือแต่ละข้อ แสดงเป็น diff ที่คุณจะรีวิว"
-    },
-    {
-      "id": "h-b49f3730",
-      "kind": "html",
-      "en": "Example 1: trailing commas, one item per line",
-      "tr": "ตัวอย่างที่ 1: trailing comma และหนึ่งรายการต่อบรรทัด"
-    },
-    {
-      "id": "h-58d68c63",
-      "kind": "html",
-      "en": "Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:",
-      "tr": "เพิ่ม route หนึ่งตัว ในสไตล์ที่พบบ่อยของ TypeScript บรรทัดสุดท้ายเดิมต้องเปลี่ยนเพื่อเพิ่ม comma สองบรรทัดขยับสำหรับการเปลี่ยนรายการเดียว:"
-    },
-    {
       "id": "h-708ed18b",
       "kind": "html",
       "en": "TypeScript: add \"/billing\"",
@@ -113,16 +83,118 @@
       "tr": "เพิ่ม 1 บรรทัด ตรงกับการเปลี่ยนแปลงพอดี"
     },
     {
-      "id": "h-d8c012cf",
+      "id": "h-d9d74afd",
       "kind": "html",
-      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors. The same holds for record fields, parameters, match arms, and imports. The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
-      "tr": "trailing comma เป็น<strong>สิ่งบังคับ</strong> และ list ที่ไม่พอดีในบรรทัดเดียวจะเป็นหนึ่ง element ต่อบรรทัดแทนที่จะถูกจัดกลุ่มใหม่ การแทรก ลบ หรือสลับลำดับรายการจึงไม่กระทบรายการข้างเคียง เช่นเดียวกับ field ของ record, parameter, arm ของ match และ import เกณฑ์นี้มีต้นทุน: การเปลี่ยนชื่อที่ดันการเรียกให้เกิน 100 คอลัมน์จะขยาย argument list ทั้งหมดเป็นหนึ่งตัวต่อบรรทัด"
+      "en": "<span>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change.</span>",
+      "tr": "<span>เพิ่ม route หนึ่งตัว ในสไตล์ที่พบบ่อยของ TypeScript บรรทัดสุดท้ายเดิมต้องเปลี่ยนเพื่อเพิ่ม comma สองบรรทัดขยับสำหรับการเปลี่ยนรายการเดียว</span>"
     },
     {
-      "id": "h-e48b5266",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Example 2: one canonical layout",
-      "tr": "ตัวอย่างที่ 2: layout มาตรฐานแบบเดียว"
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมเรื่องนี้สำคัญ</a>"
+    },
+    {
+      "id": "h-f2352172",
+      "kind": "html",
+      "en": "<a href=\"#trailing-commas\">Trailing commas</a>",
+      "tr": "<a href=\"#trailing-commas\">Trailing comma</a>"
+    },
+    {
+      "id": "h-11cefec2",
+      "kind": "html",
+      "en": "<a href=\"#example-2-one-canonical-layout\">One canonical layout</a>",
+      "tr": "<a href=\"#example-2-one-canonical-layout\">layout มาตรฐานแบบเดียว</a>"
+    },
+    {
+      "id": "h-29f8dc27",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">Comments stay put</a>",
+      "tr": "<a href=\"#one-canonical-layout-so-does-the-formatter-move-my-comments\">comment อยู่ที่เดิม</a>"
+    },
+    {
+      "id": "h-fdeb81e5",
+      "kind": "html",
+      "en": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">Can fmt break a build?</a>",
+      "tr": "<a href=\"#can-glyph-fmt-break-a-program-that-builds\">fmt ทำ build พังได้ไหม?</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-58e45c66",
+      "kind": "html",
+      "en": "When an agent opens a pull request, the diff <em>is</em> the review. If a genuine one-line fix arrives as a 200-line reformat, nobody can see what actually changed, and that noise is exactly where a bug slips through.",
+      "tr": "เมื่อเอเจนต์เปิด pull request diff <em>คือ</em>การรีวิว ถ้าการแก้หนึ่งบรรทัดจริงๆ มาในรูปการจัดรูปแบบใหม่ 200 บรรทัด ก็ไม่มีใครเห็นว่าอะไรเปลี่ยนจริง และความรกนั้นคือที่ที่บั๊กหลุดผ่านไป"
+    },
+    {
+      "id": "h-eaf4f5b7",
+      "kind": "html",
+      "en": "Diff stability means the diff shows the change and <strong>nothing but the change</strong>.",
+      "tr": "diff ที่คงที่หมายความว่า diff แสดงการเปลี่ยนแปลง และ<strong>ไม่มีอะไรนอกจากการเปลี่ยนแปลง</strong>"
+    },
+    {
+      "id": "h-0959c450",
+      "kind": "html",
+      "en": "Two rules do most of the work. Here's each, shown as the diff you'd review.",
+      "tr": "กฎสองข้อทำงานส่วนใหญ่ นี่คือแต่ละข้อ แสดงเป็น diff ที่คุณจะรีวิว"
+    },
+    {
+      "id": "h-199b8427",
+      "kind": "html",
+      "en": "Trailing commas, one item per line",
+      "tr": "trailing comma และหนึ่งรายการต่อบรรทัด"
+    },
+    {
+      "id": "h-215bfd18",
+      "kind": "html",
+      "en": "Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line goes one element per line rather than being repacked, so inserting, removing, or reordering an entry never disturbs its neighbors.",
+      "tr": "trailing comma เป็น<strong>สิ่งบังคับ</strong> และ list ที่ไม่พอดีในบรรทัดเดียวจะเป็นหนึ่ง element ต่อบรรทัดแทนที่จะถูกจัดกลุ่มใหม่ การแทรก ลบ หรือสลับลำดับรายการจึงไม่กระทบรายการข้างเคียง"
+    },
+    {
+      "id": "h-1b9fb93d",
+      "kind": "html",
+      "en": "The same holds for record fields, parameters, match arms, and imports.",
+      "tr": "เช่นเดียวกับ field ของ record, parameter, arm ของ match และ import"
+    },
+    {
+      "id": "h-78bcb0ef",
+      "kind": "html",
+      "en": "The threshold has a cost: a rename that pushes a call past 100 columns expands the whole argument list to one per line.",
+      "tr": "เกณฑ์นี้มีต้นทุน: การเปลี่ยนชื่อที่ดันการเรียกให้เกิน 100 คอลัมน์จะขยาย argument list ทั้งหมดเป็นหนึ่งตัวต่อบรรทัด"
+    },
+    {
+      "id": "h-34f561c3",
+      "kind": "html",
+      "en": "One canonical layout",
+      "tr": "layout มาตรฐานแบบเดียว"
     },
     {
       "id": "h-57d9d6f8",
@@ -149,10 +221,22 @@
       "tr": "layout มาตรฐานแบบเดียว แล้ว formatter จะย้าย comment ของฉันไหม?"
     },
     {
-      "id": "h-84c044a6",
+      "id": "h-c6f55fae",
       "kind": "html",
-      "en": "It used to, and that was a bug worth naming. Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
-      "tr": "เคย และนั่นเป็นบั๊กที่ควรพูดถึง Glyph ไม่มี block comment และไม่มี syntax สำหรับ doc comment บรรทัด <code>//</code> จึงเป็นวิธีเดียวที่จะอธิบาย field ของ record, variant ของ union หรือ arm ของ <code>match</code> formatter ปล่อย comment ที่ค้างอยู่เฉพาะที่ขอบของ declaration และ statement ซึ่งหมายความว่า comment ที่เขียน<em>ภายใน</em> construct จะไหลลงไปที่ declaration ถัดไป และอ่านแล้วเหมือนเป็นเอกสารของสิ่งที่มันไปตกอยู่ การเขียน Minesweeper ด้วย Glyph คือสิ่งที่ทำให้มันโผล่ขึ้นมา declaration สองตัวนี้มาจาก<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">แอปจริง</a> (ตัด comment ให้พอดี) รันผ่าน formatter ตัวเก่าและตัวใหม่"
+      "en": "It used to, and that was a bug worth naming. The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>.",
+      "tr": "เคย และนั่นเป็นบั๊กที่ควรพูดถึง กฎตอนนี้: comment ถูก emit ซ้ำไว้เหนือรายการที่มันเขียนไว้เหนือ ทั้งภายใน body ของ record, list ของ variant ใน union, literal แบบ array หรือ object, list ของ argument หรือ parameter และ <code>match</code>"
+    },
+    {
+      "id": "h-32c20cca",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how comments drifted, and the app that surfaced it</span>",
+      "tr": "ที่มา <span class=\"hint\">comment ไหลไปได้อย่างไร และแอปที่ทำให้มันโผล่ขึ้นมา</span>"
+    },
+    {
+      "id": "h-05d7c406",
+      "kind": "html",
+      "en": "Glyph has no block comments and no doc-comment syntax, so a <code>//</code> line is the only way to explain a record field, a union variant, or a <code>match</code> arm. The formatter flushed pending comments only at declaration and statement boundaries, which meant a comment written <em>inside</em> a construct drifted down to the next declaration and read as documentation for whatever it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come from <a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">the real app</a> (comments trimmed to fit), run through the old formatter and the new one.",
+      "tr": "Glyph ไม่มี block comment และไม่มี syntax สำหรับ doc comment บรรทัด <code>//</code> จึงเป็นวิธีเดียวที่จะอธิบาย field ของ record, variant ของ union หรือ arm ของ <code>match</code> formatter ปล่อย comment ที่ค้างอยู่เฉพาะที่ขอบของ declaration และ statement ซึ่งหมายความว่า comment ที่เขียน<em>ภายใน</em> construct จะไหลลงไปที่ declaration ถัดไป และอ่านแล้วเหมือนเป็นเอกสารของสิ่งที่มันไปตกอยู่ การเขียน Minesweeper ด้วย Glyph คือสิ่งที่ทำให้มันโผล่ขึ้นมา declaration สองตัวนี้มาจาก<a href=\"https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph\">แอปจริง</a> (ตัด comment ให้พอดี) รันผ่าน formatter ตัวเก่าและตัวใหม่"
     },
     {
       "id": "h-28875641",
@@ -179,10 +263,16 @@
       "tr": "ทุก comment อยู่บนสิ่งที่มันอธิบาย"
     },
     {
-      "id": "h-9347eb4d",
+      "id": "h-91bcd89f",
       "kind": "html",
-      "en": "The rule now: a comment is re-emitted above the item it was written above, inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a <code>match</code>. And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
-      "tr": "กฎตอนนี้: comment ถูก emit ซ้ำไว้เหนือรายการที่มันเขียนไว้เหนือ ทั้งภายใน body ของ record, list ของ variant ใน union, literal แบบ array หรือ object, list ของ argument หรือ parameter และ <code>match</code> และ construct ที่มี comment อยู่ข้างในจะใช้รูปแบบหนึ่ง element ต่อบรรทัดเสมอ ไม่ว่าขนาดเท่าไร comment จึงมีรายการให้วางอยู่เหนือ <code>type Shape = { w: int, h: int }</code> จึงยังยุบเหลือบรรทัดเดียว และทันทีที่คุณเขียนเอกสารให้ <code>h</code> record ก็จะคงสภาพขยายไว้"
+      "en": "And a construct holding an interior comment always takes the one-element-per-line form, at any size, so the comment has an item to sit above. So <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment you document <code>h</code> the record stays expanded.",
+      "tr": "และ construct ที่มี comment อยู่ข้างในจะใช้รูปแบบหนึ่ง element ต่อบรรทัดเสมอ ไม่ว่าขนาดเท่าไร comment จึงมีรายการให้วางอยู่เหนือ <code>type Shape = { w: int, h: int }</code> จึงยังยุบเหลือบรรทัดเดียว และทันทีที่คุณเขียนเอกสารให้ <code>h</code> record ก็จะคงสภาพขยายไว้"
+    },
+    {
+      "id": "h-43c73b15",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why this counts as a correctness bug</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ทำไมนี่จึงนับเป็นบั๊กด้านความถูกต้อง</span>"
     },
     {
       "id": "h-21ca8ea0",
@@ -197,22 +287,52 @@
       "tr": "<code>glyph fmt</code> ทำให้โปรแกรมที่ build ผ่านพังได้ไหม?"
     },
     {
-      "id": "h-6c81998d",
+      "id": "h-43f18884",
       "kind": "html",
-      "en": "It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
-      "tr": "เคยได้ และยังมีกรณีหนึ่งที่เปิดอยู่ เริ่มจากที่แก้แล้ว arm ที่หมายถึง &ldquo;record ว่าง&rdquo; เขียนว่า <code>true =&gt; ({})</code> ตำแหน่ง body ของ arm คือที่เดียวใน grammar ที่ <code>{</code> นำหน้ากำกวม และ parser ตัดสินโดยกำหนดให้ต้องมี <code>key:</code> หรือ <code>...</code> ต่อจากวงเล็บปีกกาทันที object ว่างไม่มีทั้งสองอย่าง เมื่อ formatter ตัดวงเล็บออกแล้วพิมพ์ใหม่เป็น <code>true =&gt; {}</code> arm จึงกลับมาเป็น<em>block</em> ว่าง และไฟล์ก็ build ไม่ผ่าน: <code>E0223</code> arm ไม่ได้ให้ค่า คุณรัน formatter บนโค้ดที่ใช้งานได้แล้วได้โค้ดที่คอมไพล์ไม่ผ่านอีกต่อไป"
+      "en": "It could, and one case is still open. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
+      "tr": "เคยได้ และยังมีกรณีหนึ่งที่เปิดอยู่ formatter ที่โปรแกรมของคุณต้องเอาตัวรอดจากมันแย่กว่าฟีเจอร์ที่ขาดไป เพราะมันทำลายโค้ดที่เคยใช้ได้แล้ว"
     },
     {
-      "id": "h-e1bb9580",
+      "id": "h-67c48992",
       "kind": "html",
-      "en": "The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged. A formatter your program has to survive is worse than a missing feature, because it damages code that already worked.",
-      "tr": "ตอนนี้ printer ใส่วงเล็บให้ body ของ arm ที่ token ซ้ายสุดเป็น <code>{</code> ซึ่งจะถูก parse ใหม่เป็น block ได้ ซึ่งก็คือ object ว่างและอะไรก็ตามที่สร้างบนมัน (<code>({}).size</code> กลับมาเป็น <code>({}.size)</code>) body ของ arm ที่อ่านได้ไม่กำกวมอยู่แล้ว อย่าง <code>false =&gt; { a: \"x\" }</code> ยังไม่มีวงเล็บ จึงไม่มีเครื่องหมายใหม่ให้อ่านที่อื่น <code>fmt</code> เป็น fixed point บนผลลัพธ์ และ TypeScript ที่ emit ออกมาไม่เปลี่ยน formatter ที่โปรแกรมของคุณต้องเอาตัวรอดจากมันแย่กว่าฟีเจอร์ที่ขาดไป เพราะมันทำลายโค้ดที่เคยใช้ได้แล้ว"
+      "en": "<b>Arm bodies</b>The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that would reparse as a block, which is the empty object and anything built on it (<code>({}).size</code> comes back as <code>({}.size)</code>).",
+      "tr": "<b>body ของ arm</b>ตอนนี้ printer ใส่วงเล็บให้ body ของ arm ที่ token ซ้ายสุดเป็น <code>{</code> ซึ่งจะถูก parse ใหม่เป็น block ได้ ซึ่งก็คือ object ว่างและอะไรก็ตามที่สร้างบนมัน (<code>({}).size</code> กลับมาเป็น <code>({}.size)</code>)"
     },
     {
-      "id": "h-8647fc74",
+      "id": "h-13cac55d",
       "kind": "html",
-      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
-      "tr": "อีกสองกรณีถูกแก้ใน 0.1.138 ภายใน block บรรทัดที่ขึ้นต้นด้วย <code>(</code> จะต่อจากบรรทัดข้างบน และจนถึง 0.1.137 formatter พิมพ์ <code>load()?</code> ตามด้วย <code>.run()</code> เป็น <code>(load()?).run()</code> หลัง <code>let a = 1</code> ไฟล์ที่จัดรูปแบบแล้วจึงหมายถึง <code>let a = 1(…).run()</code> ตอนนี้มันเก็บ <code>load()?</code> ไว้โดยมี <code>.run()</code> ย่อหน้าอยู่บรรทัดถัดไป และเขียน <code>e?(x)</code>, <code>e?[0]</code> และ <code>e? ?</code> โดยไม่มีวงเล็บ อีกกรณีคือ refinement <code>where</code> ของ union ซึ่ง formatter ทิ้งไป ทำให้โปรแกรมที่ <code>check</code> ปฏิเสธกลายเป็นโปรแกรมที่มันยอมรับ ตอนนี้ fuzzer parse ไฟล์ที่จัดรูปแบบแล้วและเทียบ tree กับของต้นฉบับ layout ที่เปลี่ยนความหมายของไฟล์จึง fail ตั้งแต่รอบแรก แทนที่จะรอให้ใครมาสังเกต"
+      "en": "<b>The fuzzer</b>The fuzzer now parses the formatted file and compares the tree with the original's, so a layout that changes what a file means fails on the first pass instead of waiting for someone to notice.",
+      "tr": "<b>fuzzer</b>ตอนนี้ fuzzer parse ไฟล์ที่จัดรูปแบบแล้วและเทียบ tree กับของต้นฉบับ layout ที่เปลี่ยนความหมายของไฟล์จึง fail ตั้งแต่รอบแรก แทนที่จะรอให้ใครมาสังเกต"
+    },
+    {
+      "id": "h-1fb024a7",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the empty record that stopped building</span>",
+      "tr": "ที่มา <span class=\"hint\">record ว่างที่ทำให้ build ไม่ผ่าน</span>"
+    },
+    {
+      "id": "h-496451d5",
+      "kind": "html",
+      "en": "The fixed one first. An arm meaning &ldquo;the empty record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has neither, so when the formatter dropped the parentheses and reprinted <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on working code and got code that no longer compiled.",
+      "tr": "เริ่มจากที่แก้แล้ว arm ที่หมายถึง &ldquo;record ว่าง&rdquo; เขียนว่า <code>true =&gt; ({})</code> ตำแหน่ง body ของ arm คือที่เดียวใน grammar ที่ <code>{</code> นำหน้ากำกวม และ parser ตัดสินโดยกำหนดให้ต้องมี <code>key:</code> หรือ <code>...</code> ต่อจากวงเล็บปีกกาทันที object ว่างไม่มีทั้งสองอย่าง เมื่อ formatter ตัดวงเล็บออกแล้วพิมพ์ใหม่เป็น <code>true =&gt; {}</code> arm จึงกลับมาเป็น<em>block</em> ว่าง และไฟล์ก็ build ไม่ผ่าน: <code>E0223</code> arm ไม่ได้ให้ค่า คุณรัน formatter บนโค้ดที่ใช้งานได้แล้วได้โค้ดที่คอมไพล์ไม่ผ่านอีกต่อไป"
+    },
+    {
+      "id": "h-1b3833f9",
+      "kind": "html",
+      "en": "An arm body that already reads unambiguously, like <code>false =&gt; { a: \"x\" }</code>, stays bare, so there is no new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and the emitted TypeScript is unchanged.",
+      "tr": "body ของ arm ที่อ่านได้ไม่กำกวมอยู่แล้ว อย่าง <code>false =&gt; { a: \"x\" }</code> ยังไม่มีวงเล็บ จึงไม่มีเครื่องหมายใหม่ให้อ่านที่อื่น <code>fmt</code> เป็น fixed point บนผลลัพธ์ และ TypeScript ที่ emit ออกมาไม่เปลี่ยน"
+    },
+    {
+      "id": "h-72aac669",
+      "kind": "html",
+      "en": "History <span class=\"hint\">two more fixed in 0.1.138</span>",
+      "tr": "ที่มา <span class=\"hint\">อีกสองกรณีที่แก้ใน 0.1.138</span>"
+    },
+    {
+      "id": "h-8f6ab028",
+      "kind": "html",
+      "en": "Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code> continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code> followed by <code>.run()</code> as <code>(load()?).run()</code>, so after <code>let a = 1</code> the formatted file meant <code>let a = 1(…).run()</code>. It now keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other was a union's <code>where</code> refinement, which the formatter dropped, turning a program <code>check</code> refused into one it accepted.",
+      "tr": "อีกสองกรณีถูกแก้ใน 0.1.138 ภายใน block บรรทัดที่ขึ้นต้นด้วย <code>(</code> จะต่อจากบรรทัดข้างบน และจนถึง 0.1.137 formatter พิมพ์ <code>load()?</code> ตามด้วย <code>.run()</code> เป็น <code>(load()?).run()</code> หลัง <code>let a = 1</code> ไฟล์ที่จัดรูปแบบแล้วจึงหมายถึง <code>let a = 1(…).run()</code> ตอนนี้มันเก็บ <code>load()?</code> ไว้โดยมี <code>.run()</code> ย่อหน้าอยู่บรรทัดถัดไป และเขียน <code>e?(x)</code>, <code>e?[0]</code> และ <code>e? ?</code> โดยไม่มีวงเล็บ อีกกรณีคือ refinement <code>where</code> ของ union ซึ่ง formatter ทิ้งไป ทำให้โปรแกรมที่ <code>check</code> ปฏิเสธกลายเป็นโปรแกรมที่มันยอมรับ"
     },
     {
       "id": "h-a2de6c0a",
@@ -233,10 +353,34 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-d4cd9ceb",
+      "id": "h-5a22f6e3",
       "kind": "html",
-      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
-      "tr": "trailing comma ที่บังคับ, list แบบหนึ่งรายการต่อบรรทัด และ layout มาตรฐานแบบเดียวของ <code>glyph fmt</code> ซึ่ง round-trip ได้และรันซ้ำได้ผลเท่าเดิม พร้อม format-on-save ใน editor <code>glyph fmt</code> ไม่เคยย้าย comment ไปที่ที่มันไม่ควรอยู่ comment อยู่เหนือรายการที่มันเขียนไว้เหนือ รวมถึงภายใน record, literal, argument list, <code>match</code>, ระหว่าง operand ของ operator และระหว่างขั้นของ method chain ซึ่งจะเป็นหนึ่งขั้นต่อบรรทัดโดยมีจุดนำหน้า"
+      "en": "Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.",
+      "tr": "trailing comma ที่บังคับ, list แบบหนึ่งรายการต่อบรรทัด และ layout มาตรฐานแบบเดียวของ <code>glyph fmt</code> ซึ่ง round-trip ได้และรันซ้ำได้ผลเท่าเดิม พร้อม format-on-save ใน editor"
+    },
+    {
+      "id": "h-85557a13",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> never moves a comment to somewhere it does not belong.",
+      "tr": "<code>glyph fmt</code> ไม่เคยย้าย comment ไปที่ที่มันไม่ควรอยู่"
+    },
+    {
+      "id": "h-89c8a999",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above",
+      "tr": "comment อยู่เหนือรายการที่มันเขียนไว้เหนือ"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "รายละเอียด"
+    },
+    {
+      "id": "h-279ea3ea",
+      "kind": "html",
+      "en": "Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.",
+      "tr": "comment อยู่เหนือรายการที่มันเขียนไว้เหนือ รวมถึงภายใน record, literal, argument list, <code>match</code>, ระหว่าง operand ของ operator และระหว่างขั้นของ method chain ซึ่งจะเป็นหนึ่งขั้นต่อบรรทัดโดยมีจุดนำหน้า"
     },
     {
       "id": "h-6c3b3842",
@@ -245,10 +389,46 @@
       "tr": "ขอบเขต และสิ่งที่จะตามมา"
     },
     {
-      "id": "h-c064e43b",
+      "id": "h-33221162",
       "kind": "html",
-      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
-      "tr": "comment จะถูก emit ในบรรทัดของตัวเองเสมอ comment ที่เขียนไว้ท้ายบรรทัดโค้ด (<code>w: int, // width in cells</code>) จึงย้ายไปอยู่บรรทัดเหนือรายการถัดไป มันไม่ข้ามขอบ declaration แล้ว แต่ก็ยังย้าย การเก็บไว้ท้ายบรรทัดต้องให้ printer ติดตามว่า comment อยู่บรรทัดเดียวกับอะไร comment ในตำแหน่งที่ layout ไม่มีที่วาง เช่นภายใน index หลัง argument ของการเรียกกลาง chain หรือก่อน operand ของ <code>!</code> หรือ <code>await</code> จะไม่ถูกย้ายอีกต่อไป: <code>glyph fmt</code> ปฏิเสธไฟล์ ปล่อยไว้ตามเดิม และระบุบรรทัดพร้อมบอกว่าควรย้าย comment ไปไว้ไหน และ <code>glyph check</code> รายงานสิ่งเดียวกันเป็นคำเตือน E0500 comment ระหว่าง attribute ของ JSX หรือระหว่าง field ของ object pattern ก็ถูกปฏิเสธด้วย ทั้งที่ layout แบบหนึ่งต่อบรรทัดวางได้ layout เหล่านั้นอยู่ในรายการแล้ว printer ยังไม่มีกฎสำหรับตัด method chain หรือ chain ของ <code>+</code> ที่ยาว chain ที่ยาวเกินจึงไปตัดที่ argument list ด้านในสุดแทน ซึ่งเป็นที่ที่ผิด เรากำลังสร้าง benchmark ขนาดของ diff เทียบกับการแก้แบบเดียวกันใน TypeScript ด้วย เพื่อให้เสาหลักข้อนี้เป็นตัวเลขที่คุณตรวจได้"
+      "en": "A comment at the end of a code line moves to the line above the next item",
+      "tr": "comment ท้ายบรรทัดโค้ดย้ายไปอยู่บรรทัดเหนือรายการถัดไป"
+    },
+    {
+      "id": "h-d6cba539",
+      "kind": "html",
+      "en": "A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares.",
+      "tr": "comment จะถูก emit ในบรรทัดของตัวเองเสมอ comment ที่เขียนไว้ท้ายบรรทัดโค้ด (<code>w: int, // width in cells</code>) จึงย้ายไปอยู่บรรทัดเหนือรายการถัดไป มันไม่ข้ามขอบ declaration แล้ว แต่ก็ยังย้าย การเก็บไว้ท้ายบรรทัดต้องให้ printer ติดตามว่า comment อยู่บรรทัดเดียวกับอะไร"
+    },
+    {
+      "id": "h-0401bf48",
+      "kind": "html",
+      "en": "A comment the layout has nowhere to put is refused, not moved",
+      "tr": "comment ที่ layout ไม่มีที่วางถูกปฏิเสธ ไม่ถูกย้าย"
+    },
+    {
+      "id": "h-5b543c13",
+      "kind": "html",
+      "en": "A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500.",
+      "tr": "comment ในตำแหน่งที่ layout ไม่มีที่วาง เช่นภายใน index หลัง argument ของการเรียกกลาง chain หรือก่อน operand ของ <code>!</code> หรือ <code>await</code> จะไม่ถูกย้ายอีกต่อไป: <code>glyph fmt</code> ปฏิเสธไฟล์ ปล่อยไว้ตามเดิม และระบุบรรทัดพร้อมบอกว่าควรย้าย comment ไปไว้ไหน และ <code>glyph check</code> รายงานสิ่งเดียวกันเป็นคำเตือน E0500"
+    },
+    {
+      "id": "h-80d7deb5",
+      "kind": "html",
+      "en": "A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list.",
+      "tr": "comment ระหว่าง attribute ของ JSX หรือระหว่าง field ของ object pattern ก็ถูกปฏิเสธด้วย ทั้งที่ layout แบบหนึ่งต่อบรรทัดวางได้ layout เหล่านั้นอยู่ในรายการแล้ว"
+    },
+    {
+      "id": "h-cdce7594",
+      "kind": "html",
+      "en": "The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.",
+      "tr": "printer ยังไม่มีกฎสำหรับตัด method chain หรือ chain ของ <code>+</code> ที่ยาว chain ที่ยาวเกินจึงไปตัดที่ argument list ด้านในสุดแทน ซึ่งเป็นที่ที่ผิด"
+    },
+    {
+      "id": "h-e182e34e",
+      "kind": "html",
+      "en": "We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.",
+      "tr": "เรากำลังสร้าง benchmark ขนาดของ diff เทียบกับการแก้แบบเดียวกันใน TypeScript ด้วย เพื่อให้เสาหลักข้อนี้เป็นตัวเลขที่คุณตรวจได้"
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 title: เอเจนต์ของฉันถามคอมไพเลอร์เรื่องสัญลักษณ์ก่อนได้ไหม? · Glyph
 description: glyph_symbol ตอบในการเรียกครั้งเดียว: variant ของ union, field ของ record, signature ของฟังก์ชัน และ match บนมันต้องครบทุกกรณีหรือไม่
-source_hash: 49fea6335f3e735f
+source_hash: 074134dc5808375e
 prev: /answers/impact/ | &larr; ก่อนหน้า | คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง ก่อนที่ฉันจะแก้?
 next: /answers/repair-protocol/ | ถัดไป &rarr; | เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?
 ---
@@ -12,22 +12,8 @@ next: /answers/repair-protocol/ | ถัดไป &rarr; | เมื่อ build
         ในการเรียกครั้งเดียว <code>glyph_symbol</code> รับ <code>module::name</code> ที่ diagnostic พิมพ์ไว้แล้ว หรือตำแหน่งในไฟล์ แล้วตอบด้วย field ของ record พร้อม type, variant ของ union พร้อม payload <em>และ syntax ที่ใช้สร้างแต่ละตัว</em>, parameter และ return ของสิ่งที่เรียกได้, member ของ interface และ <code>match</code> บนมันต้องครบทุกกรณีหรือไม่
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          เอเจนต์ที่ถูกขอให้จัดการ case ใหม่ใน union ที่มันไม่ได้ประกาศเองต้องรู้ว่า variant ถืออะไรไว้ การอ่าน declaration หมายถึงต้องหาไฟล์ก่อน การค้นหาสัญลักษณ์เคยให้แค่ชื่อและช่วงไบต์ และรายการ variant เคยให้แค่ <code>["Pending", "Paid", "Cancelled"]</code> จากตรงนั้นเอเจนต์เขียน <code>Paid("tx_1")</code> ซึ่งไม่ใช่รูปร่างที่ถูก แล้วไปรู้จาก diagnostic คอมไพเลอร์มี payload อยู่ตลอด เครื่องมือทิ้งมันไปหนึ่งบรรทัดก่อนตอบ
-        </p>
-        <p>
-          นั่นคือรูปแบบที่ช่องทางสำหรับเอเจนต์สร้างขึ้นมาเพื่อกำจัด: ข้อเท็จจริงที่คอมไพเลอร์คำนวณและ memoize ไว้แล้ว แต่ไม่มีเครื่องมือไหนส่งให้ การตรวจโปรเจกต์สาม module พบว่า hover ตอบได้สองจากสิบสี่ตำแหน่ง และทุก union มาโดยไม่มี payload
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p>
-          โปรเจกต์สามไฟล์ที่ประกาศ <code>OrderStatus</code> ไว้ใน <code>orders.glyph</code> ถามจาก <code>main.glyph</code> ซึ่งไม่ได้ import มัน:
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   "entity": "orders::OrderStatus",
@@ -53,20 +39,52 @@ next: /answers/repair-protocol/ | ถัดไป &rarr; | เมื่อ build
     module this project holds, and the compiler parsed and resolved that declaration"
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>โปรเจกต์สามไฟล์ที่ประกาศ <code>OrderStatus</code> ไว้ใน <code>orders.glyph</code> ถามจาก <code>main.glyph</code> ซึ่งไม่ได้ import มัน</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#absent">ทุก null บอกเหตุผล</a></li>
+          <li><a href="#the-second-question-an-agent-asks">Assignable</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">dependency และ export</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">สิบเอ็ดเครื่องมือ</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เอเจนต์ที่ถูกขอให้จัดการ case ใหม่ใน union ที่มันไม่ได้ประกาศเองต้องรู้ว่า variant ถืออะไรไว้ การอ่าน declaration หมายถึงต้องหาไฟล์ก่อน
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>คอมไพเลอร์มี payload อยู่ตลอด เครื่องมือทิ้งมันไปหนึ่งบรรทัดก่อนตอบ</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">สิ่งที่การค้นหาสัญลักษณ์เคยคืนให้</span></summary><div class="body">
         <p>
-          ตัดบางส่วน: คำตอบยังมี <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> และ <code>examples</code> ทุกตัวมาเป็นคู่ key จะเป็น null ก็ต่อเมื่อมีประโยค <code>&lt;key&gt;_absent</code> อยู่ข้างๆ บอกเหตุผล เอเจนต์จึงไม่ต้องเดาว่าคำตอบที่หายไปหมายถึงสัญลักษณ์ไม่มีสิ่งนั้น หรือเครื่องมือไม่ได้ดู <code>const</code> ที่ไม่มี annotation จะไม่รายงาน type ตามกฎนี้: ตัวตรวจตั้งใจไม่อนุมาน type ของ declaration จาก initializer การพิมพ์ type ของ initializer จะบอกผู้เรียกว่าการใช้ชื่อนั้นถูกตรวจกับบางอย่าง ทั้งที่ไม่ได้ตรวจอะไรเลย
+          การค้นหาสัญลักษณ์เคยให้แค่ชื่อและช่วงไบต์ และรายการ variant เคยให้แค่ <code>["Pending", "Paid", "Cancelled"]</code> จากตรงนั้นเอเจนต์เขียน <code>Paid("tx_1")</code> ซึ่งไม่ใช่รูปร่างที่ถูก แล้วไปรู้จาก diagnostic
         </p>
-
-        <h2 class="block-label">คำถามที่สองที่เอเจนต์ถาม</h2>
         <p>
-          เมื่อได้รูปร่างแล้ว สิ่งถัดไปที่มันอยากรู้คือค่าที่ถืออยู่ใส่ในที่ที่กำลังจะใส่ได้ไหม <code>glyph_assignable</code> ใช้การเปรียบเทียบของตัวตรวจเอง แต่ละฝั่งเป็น <code>module::name</code> หรือการเขียน type ของ Glyph อ่านในขอบเขตของไฟล์ที่คุณระบุ และคำตัดสินบอกว่าเกิดอะไรขึ้นในสามแบบ
+          นั่นคือรูปแบบที่ช่องทางสำหรับเอเจนต์สร้างขึ้นมาเพื่อกำจัด: ข้อเท็จจริงที่คอมไพเลอร์คำนวณและ memoize ไว้แล้ว แต่ไม่มีเครื่องมือไหนส่งให้ การตรวจโปรเจกต์สาม module พบว่า hover ตอบได้สองจากสิบสี่ตำแหน่ง และทุก union มาโดยไม่มี payload
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="absent">ทุก null บอกเหตุผล<a class="ak-anchor" href="#absent" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัดบางส่วน: คำตอบยังมี <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> และ <code>examples</code> ทุกตัวมาเป็นคู่
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>key จะเป็น null ก็ต่อเมื่อมีประโยค <code>&lt;key&gt;_absent</code> อยู่ข้างๆ บอกเหตุผล เอเจนต์จึงไม่ต้องเดาว่าคำตอบที่หายไปหมายถึงสัญลักษณ์ไม่มีสิ่งนั้น หรือเครื่องมือไม่ได้ดู</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">const ที่ไม่มี annotation</span></summary><div class="body">
+        <p>
+          <code>const</code> ที่ไม่มี annotation จะไม่รายงาน type ตามกฎนี้: ตัวตรวจตั้งใจไม่อนุมาน type ของ declaration จาก initializer การพิมพ์ type ของ initializer จะบอกผู้เรียกว่าการใช้ชื่อนั้นถูกตรวจกับบางอย่าง ทั้งที่ไม่ได้ตรวจอะไรเลย
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">คำถามที่สองที่เอเจนต์ถาม<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เมื่อได้รูปร่างแล้ว สิ่งถัดไปที่มันอยากรู้คือค่าที่ถืออยู่ใส่ในที่ที่กำลังจะใส่ได้ไหม <code>glyph_assignable</code> ใช้การเปรียบเทียบของตัวตรวจเอง
+      </p>
       <div class="two-up">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   "verdict": "WILL_FAIL",
@@ -87,7 +105,7 @@ next: /answers/repair-protocol/ | ถัดไป &rarr; | เมื่อ build
             "read_as": "number" }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   "verdict": "COMPATIBLE",
@@ -105,37 +123,91 @@ next: /answers/repair-protocol/ | ถัดไป &rarr; | เมื่อ build
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">คำตัดสินสามแบบ และทำไมไม่มี SAFE</span></summary><div class="body">
+        <p>
+          แต่ละฝั่งเป็น <code>module::name</code> หรือการเขียน type ของ Glyph อ่านในขอบเขตของไฟล์ที่คุณระบุ และคำตัดสินบอกว่าเกิดอะไรขึ้นในสามแบบ
+        </p>
         <p>
           คำที่ใช้คือ <code>COMPATIBLE</code> ไม่ใช่ <code>SAFE</code> และความต่างควรได้หนึ่งประโยค <code>SAFE</code> เป็นคำของ <code>glyph_impact</code> และหมายถึงจุดหนึ่งยังถูกต้องหลังการแก้หนึ่งครั้ง คำตอบนี้เกี่ยวกับ type สองตัวโดยไม่มีจุดและไม่มีการแก้ในคำถาม คำตัดสินที่สามคือ <code>UNDETERMINED</code> ซึ่งใช้เมื่อไม่มีกฎไหนครอบคลุมการจับคู่นั้น type ของฟังก์ชันสองตัวกลับมาแบบนั้น เพราะความสัมพันธ์ข้างใต้เปรียบเทียบ return และไม่บอกอะไรเกี่ยวกับ parameter ความเงียบของมันตรงนั้นไม่ใช่การยอมรับ และเครื่องมือจะไม่รายงานว่าเป็นการยอมรับ
         </p>
+      </div></details>
 
-        <h2 class="block-label">อีกทิศทาง: สิ่งนี้พึ่งพาอะไร และ module นั้นให้อะไรฉันบ้าง</h2>
-        <p>
-          <code>glyph_references</code> ตอบว่าใครใช้สัญลักษณ์หนึ่ง <code>glyph_dependencies</code> คือตารางเดียวกันอ่านจากอีกฝั่ง: declaration หนึ่งพึ่งพาอะไร ทุก declaration ที่ซอร์สของมันอ้างถึง แยกเป็น <code>CALLS</code>, <code>REFERENCES</code> และ <code>FIELD_ACCESS</code> แต่ละเส้นมีทั้งสองปลายและตำแหน่งที่อยู่ <code>glyph_exports</code> ตอบว่า module หนึ่งเปิดอะไรให้ผู้ import เห็น จากคิวรี export ของคอมไพเลอร์เอง ไม่ใช่จากการสแกน: ทุก declaration ที่เป็น <code>pub</code> และทุก variant ที่ union แบบ <code>pub</code> ยกขึ้นมา แต่ละตัวเป็นรายการพร้อมตัวตน ชนิด และ signature เอเจนต์ที่กำลังจะเขียน import ถามได้ว่ามีอะไรอยู่อีกฝั่งแทนที่จะเปิดไฟล์
-        </p>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">อีกทิศทาง: สิ่งนี้พึ่งพาอะไร และ module นั้นให้อะไรฉันบ้าง<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เอเจนต์ที่กำลังจะเขียน import ถามได้ว่ามีอะไรอยู่อีกฝั่งแทนที่จะเปิดไฟล์
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code> ตอบว่าใครใช้สัญลักษณ์หนึ่ง</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code> คือตารางเดียวกันอ่านจากอีกฝั่ง: declaration หนึ่งพึ่งพาอะไร ทุก declaration ที่ซอร์สของมันอ้างถึง แยกเป็น <code>CALLS</code>, <code>REFERENCES</code> และ <code>FIELD_ACCESS</code> แต่ละเส้นมีทั้งสองปลายและตำแหน่งที่อยู่</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code> ตอบว่า module หนึ่งเปิดอะไรให้ผู้ import เห็น จากคิวรี export ของคอมไพเลอร์เอง ไม่ใช่จากการสแกน: ทุก declaration ที่เป็น <code>pub</code> และทุก variant ที่ union แบบ <code>pub</code> ยกขึ้นมา แต่ละตัวเป็นรายการพร้อมตัวตน ชนิด และ signature</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">บั๊ก PROVED ที่ภาพสะท้อนจับได้</span></summary><div class="body">
         <p>
           การสร้างภาพสะท้อนของความสัมพันธ์คือสิ่งที่จับบั๊กในตัวเดิมได้ ทุกเส้นมีที่มากำกับ และ <code>PROVED</code> ควรหมายความว่าคอมไพเลอร์อ่านทั้งสองปลายแล้ว มันเคยตอบ <code>PROVED</code> สำหรับเส้นที่เข้าไปใน module ที่ parse ไม่ผ่าน ซึ่งไม่มีอะไรถูกอ่านเลย ตอนนี้มันตอบ <code>UNDETERMINED</code> พร้อมเหตุผล และเพราะ <code>glyph_references</code> กับ <code>glyph_impact</code> เรียกฟังก์ชันเดียวกัน ทั้งคู่จึงผิดแบบเดียวกันและถูกแก้ทั้งคู่
         </p>
+      </div></details>
 
-        <h2 class="block-label">สิบเอ็ดเครื่องมือ และไม่ต้องมี client</h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">สิบเอ็ดเครื่องมือ และไม่ต้องมี client<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code> ให้บริการสิบเอ็ดตัว: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code>
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่รับ argument เดียวกันเป็น flag และพิมพ์ JSON เดียวกัน วิ่งผ่าน entry point เดียวกับที่ client ใช้ เอเจนต์ที่รันได้แค่คำสั่ง shell จึงถามคำถามเดียวกันได้</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">diagnostic และสิ่งที่ตามมาหลังการแก้</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code> ให้บริการสิบเอ็ดตัว: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่รับ argument เดียวกันเป็น flag และพิมพ์ JSON เดียวกัน วิ่งผ่าน entry point เดียวกับที่ client ใช้ เอเจนต์ที่รันได้แค่คำสั่ง shell จึงถามคำถามเดียวกันได้ <code>glyph_diagnostics</code> ตรวจไฟล์ภายในโปรเจกต์และคืน diagnostic ที่ <code>glyph check --json</code> พิมพ์ จาก type ของ Rust ตัวเดียวกัน พร้อมเทสต์ที่รันทั้งสองช่องทางบนหกโปรเจกต์และเทียบ JSON ทีละ key รายละเอียดเต็มอยู่ใน<a href="/mcp/">หน้า MCP</a>
+          <code>glyph_diagnostics</code> ตรวจไฟล์ภายในโปรเจกต์และคืน diagnostic ที่ <code>glyph check --json</code> พิมพ์ จาก type ของ Rust ตัวเดียวกัน พร้อมเทสต์ที่รันทั้งสองช่องทางบนหกโปรเจกต์และเทียบ JSON ทีละ key รายละเอียดเต็มอยู่ใน<a href="/mcp/">หน้า MCP</a>
         </p>
         <p>
           ทั้งหมดนั้นถามก่อนแก้ หลังแก้ คอมไพเลอร์ตอบในอีกทิศทาง: <code>glyph check --agent</code> พิมพ์แต่ละ diagnostic พร้อม invariant ที่การแก้ต้องรักษาไว้ และคำอธิบาย <code>glyph_symbol</code> ของทุกสัญลักษณ์ที่มันอ้างถึง รูปร่างที่เอเจนต์ต้องใช้จึงมาพร้อมกับ error ที่ต้องการมัน เรื่องนั้นมี<a href="/answers/repair-protocol/">หน้าของตัวเอง</a>
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>เครื่องมืออ่านสิบเอ็ดตัวผ่าน MCP แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> <code>glyph_symbol</code> ตอบตามตัวตนหรือตามตำแหน่ง และทุกข้อเท็จจริงที่มันไม่มีเป็น null พร้อมประโยคบอกเหตุผล ตัวตนไปถึง stdlib: <code>Result</code> ใน prelude คือ <code>std/result::Result</code> ซึ่งเป็น module ที่ resolver ลงทะเบียนมันไว้ และเป็น module ที่ emitter เขียน import มาจาก <code>glyph query symbol --entity std/result::Result</code> จึงตอบด้วย <code>Ok(T)</code> และ <code>Err(E)</code>, <code>glyph query exports --module std/result</code> แสดงรายการ API และ <code>E0200</code> บนมันมีตัวตนนั้นใน <code>cause</code> ไม่มีซอร์ส Glyph อยู่เบื้องหลัง <code>path</code> และ <code>range</code> จึงเป็น null พร้อมเหตุผลนั้น แทนที่จะหายไป hover ตอบได้ครบทั้งสิบสี่ตำแหน่งที่การตรวจทดสอบบนโปรเจกต์สาม module เทียบกับสองตำแหน่งก่อนเริ่มงานนี้: ชื่อที่ประกาศใน module อื่นตอบจาก declaration ของ module นั้นเอง binding ของ import ฟังก์ชันที่ import มา ณ จุดที่เรียก variant ที่ import มาและใช้เป็นค่า และ field ที่อ่านจาก record ที่ import มา จึงมี type ทั้งหมด <code>glyph_dependencies</code> และ <code>glyph_exports</code> ปิดชุดที่ G221 ขอไว้ <code>glyph_variants</code> มี payload และ syntax การสร้างของแต่ละตัว <code>glyph_definition</code> และ <code>glyph_symbols</code> มี <code>module::name</code> คำตอบจึงต่อเข้า <code>glyph_impact</code> ได้โดยไม่ต้องหาใหม่ ตาราง signature-type ของ <code>glyph_impact</code> ตัดสิน container เทียบ container, record เชิงโครงสร้างเทียบ record เชิงโครงสร้างหรือที่ประกาศไว้ (ในเครื่อง ที่ import มา generic หรือชื่อที่สอง), element ของ JSX ในฐานะการเรียกที่มันถูกแปลงไป และ union ของ string literal ทั้งสองฝั่งด้วยการเปรียบเทียบเดียวกับที่ <code>glyph_assignable</code> ทำ เครื่องมือทั้งสองจึงขัดแย้งกันเรื่องการจับคู่หนึ่งไม่ได้ argument ที่ความสัมพันธ์อ่านการจับคู่ได้ครบเป็น <code>WILL_FAIL</code> ไม่ว่าการเปรียบเทียบจะออกมาทางไหน เพราะ <code>change_signature_type</code> ไม่ได้ระบุ type ที่ใช้แทน และการจับคู่ที่ยอมรับคือการจับคู่ที่ type ที่ใช้แทนอาจถูกปฏิเสธได้ มีเพียงการจับคู่ที่ความสัมพันธ์ปฏิเสธที่จะตัดสินเท่านั้นที่เป็น <code>UNDETERMINED</code></p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">หยุดตรงไหน</h3>
-          <p>ไม่มีเครื่องมือไหนที่นี่เขียน: ไม่มี rename ไม่มีการแก้ที่นำไปใช้ ฝั่งเขียนคือ <code>glyph fix</code> บน command line และมันซ่อมสามอย่าง ไม่ใช่อะไรก็ได้ที่คุณขอ: import ที่ไม่ได้ใช้, หัวของ arm ที่ตัวตรวจมีคำแนะนำเดียวพอดี และชื่อ field ที่ห่างหนึ่งตัวอักษรจาก field ที่ประกาศไว้ตัวเดียวพอดี export ของ stdlib ที่คอมไพเลอร์ไม่ได้ model ทั้ง declaration และ signature จะตอบ <code>kind: null</code> พร้อมเหตุผล: <code>std/result::all</code> และ <code>std/io::println</code> มี type อยู่ใน TypeScript ที่คอมไพเลอร์นำเข้าไป และไม่มี pass ของ Glyph ไหนอ่าน <code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ: <code>tsc</code>, การตรวจ <code>E0104</code> สำหรับ import ที่อ้างถึง module ที่ไม่มี ซึ่งต้องใช้มุมมอง <code>node_modules</code> ของ build และ <code>E0400</code> สำหรับ <code>@example</code> ที่ fail ซึ่งต้องรันโปรเจกต์ที่ emit ออกมา มันระบุทั้งสามไว้ใน <code>not_run</code> แทนที่จะตอบราวกับว่าได้ทำแล้ว</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">เครื่องมืออ่านสิบเอ็ดตัวผ่าน MCP แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code> ตอบตามตัวตนหรือตามตำแหน่ง และทุกข้อเท็จจริงที่มันไม่มีเป็น null พร้อมประโยคบอกเหตุผล</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตัวตนไปถึง stdlib: <code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ตัวตนไปถึง stdlib: <code>Result</code> ใน prelude คือ <code>std/result::Result</code> ซึ่งเป็น module ที่ resolver ลงทะเบียนมันไว้ และเป็น module ที่ emitter เขียน import มาจาก <code>glyph query symbol --entity std/result::Result</code> จึงตอบด้วย <code>Ok(T)</code> และ <code>Err(E)</code>, <code>glyph query exports --module std/result</code> แสดงรายการ API และ <code>E0200</code> บนมันมีตัวตนนั้นใน <code>cause</code> ไม่มีซอร์ส Glyph อยู่เบื้องหลัง <code>path</code> และ <code>range</code> จึงเป็น null พร้อมเหตุผลนั้น แทนที่จะหายไป</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">hover ตอบได้สิบสี่จากสิบสี่ตำแหน่งที่ทดสอบ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>hover ตอบได้ครบทั้งสิบสี่ตำแหน่งที่การตรวจทดสอบบนโปรเจกต์สาม module เทียบกับสองตำแหน่งก่อนเริ่มงานนี้: ชื่อที่ประกาศใน module อื่นตอบจาก declaration ของ module นั้นเอง binding ของ import ฟังก์ชันที่ import มา ณ จุดที่เรียก variant ที่ import มาและใช้เป็นค่า และ field ที่อ่านจาก record ที่ import มา จึงมี type ทั้งหมด</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code> และ <code>glyph_exports</code> ปิดชุดที่ G221 ขอไว้</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code> มี payload และ syntax การสร้างของแต่ละตัว <code>glyph_definition</code> และ <code>glyph_symbols</code> มี <code>module::name</code> คำตอบจึงต่อเข้า <code>glyph_impact</code> ได้โดยไม่ต้องหาใหม่</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code> และ <code>glyph_assignable</code> ใช้การเปรียบเทียบเดียวกัน</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ตาราง signature-type ของ <code>glyph_impact</code> ตัดสิน container เทียบ container, record เชิงโครงสร้างเทียบ record เชิงโครงสร้างหรือที่ประกาศไว้ (ในเครื่อง ที่ import มา generic หรือชื่อที่สอง), element ของ JSX ในฐานะการเรียกที่มันถูกแปลงไป และ union ของ string literal ทั้งสองฝั่งด้วยการเปรียบเทียบเดียวกับที่ <code>glyph_assignable</code> ทำ เครื่องมือทั้งสองจึงขัดแย้งกันเรื่องการจับคู่หนึ่งไม่ได้ argument ที่ความสัมพันธ์อ่านการจับคู่ได้ครบเป็น <code>WILL_FAIL</code> ไม่ว่าการเปรียบเทียบจะออกมาทางไหน เพราะ <code>change_signature_type</code> ไม่ได้ระบุ type ที่ใช้แทน และการจับคู่ที่ยอมรับคือการจับคู่ที่ type ที่ใช้แทนอาจถูกปฏิเสธได้ มีเพียงการจับคู่ที่ความสัมพันธ์ปฏิเสธที่จะตัดสินเท่านั้นที่เป็น <code>UNDETERMINED</code></p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> หยุดตรงไหน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ไม่มีเครื่องมือไหนที่นี่เขียน: ไม่มี rename ไม่มีการแก้ที่นำไปใช้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ฝั่งเขียนคือ <code>glyph fix</code> และมันซ่อมสามอย่าง</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ฝั่งเขียนคือ <code>glyph fix</code> บน command line และมันซ่อมสามอย่าง ไม่ใช่อะไรก็ได้ที่คุณขอ: import ที่ไม่ได้ใช้, หัวของ arm ที่ตัวตรวจมีคำแนะนำเดียวพอดี และชื่อ field ที่ห่างหนึ่งตัวอักษรจาก field ที่ประกาศไว้ตัวเดียวพอดี</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">export บางตัวของ stdlib ตอบ <code>kind: null</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>export ของ stdlib ที่คอมไพเลอร์ไม่ได้ model ทั้ง declaration และ signature จะตอบ <code>kind: null</code> พร้อมเหตุผล: <code>std/result::all</code> และ <code>std/io::println</code> มี type อยู่ใน TypeScript ที่คอมไพเลอร์นำเข้าไป และไม่มี pass ของ Glyph ไหนอ่าน</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ และระบุไว้ใน <code>not_run</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>glyph_diagnostics</code> ข้ามสามการตรวจที่ <code>glyph check</code> ทำ: <code>tsc</code>, การตรวจ <code>E0104</code> สำหรับ import ที่อ้างถึง module ที่ไม่มี ซึ่งต้องใช้มุมมอง <code>node_modules</code> ของ build และ <code>E0400</code> สำหรับ <code>@example</code> ที่ fail ซึ่งต้องรันโปรเจกต์ที่ emit ออกมา มันระบุทั้งสามไว้ใน <code>not_run</code> แทนที่จะตอบราวกับว่าได้ทำแล้ว</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/repair-protocol/index.html",
   "locale": "th",
-  "source_hash": "4b15cc7a1cc4e288",
+  "source_hash": "777385c3f729126e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "มันบอกว่าอะไรผิดในรูปข้อมูล ไม่ใช่ประโยคที่ต้อง parse: type ทั้งสอง สัญลักษณ์ที่ผิดในรูป <code>module::name</code> และรายการจำกัดของสิ่งที่วางแทนตรงที่ผิดได้อย่างถูกต้อง <code>glyph check --agent</code> เพิ่มสิ่งที่การแก้ต้องไม่ทำพัง ในกรณีที่คำตอบถูกกำหนดไว้ชัดเจน <code>glyph fix</code> จะเขียนให้"
     },
     {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-a5a0c846",
+      "kind": "html",
+      "en": "<span>A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here.</span>",
+      "tr": "<span>โปรเจกต์สอง module <code>orders</code> ประกาศ union ส่วน <code>main</code> เขียน <code>match</code> บนมันและจัดการแค่ case เดียว <code>glyph check --agent</code> ตัดเหลือเฉพาะ key ที่สำคัญตรงนี้</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมเรื่องนี้สำคัญ</a>"
+    },
+    {
+      "id": "h-ea8d754a",
+      "kind": "html",
+      "en": "<a href=\"#reading-the-answer\">Reading the answer</a>",
+      "tr": "<a href=\"#reading-the-answer\">อ่านคำตอบ</a>"
+    },
+    {
+      "id": "h-8a7ac9be",
+      "kind": "html",
+      "en": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">What glyph fix writes</a>",
+      "tr": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">สิ่งที่ glyph fix เขียน</a>"
+    },
+    {
+      "id": "h-aa030552",
+      "kind": "html",
+      "en": "<a href=\"#the-code-s-own-explanation-as-data\">Explanations as data</a>",
+      "tr": "<a href=\"#the-code-s-own-explanation-as-data\">คำอธิบายในรูปข้อมูล</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "ทำไมเรื่องนี้สำคัญ"
     },
     {
-      "id": "h-26bdb633",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-11db4724",
       "kind": "html",
-      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
-      "tr": "loop ของเอเจนต์รอบคอมไพเลอร์คือ อ่าน error เดาการแก้ build ใหม่ ขั้นเดาคือจุดที่ความเสียหายเกิด และมันเกิดเพราะ error เป็น string เอเจนต์ที่อ่าน \"non-exhaustive match on <code>OrderStatus</code>\" รู้ว่า match ขาด arm ไปบางตัว แต่ไม่รู้ว่า variant ที่ขาดถืออะไรไว้ มันจึงเขียน <code>Paid(\"tx_1\")</code> แล้วไปรู้จาก diagnostic ถัดไป หรือมันอ่านคำว่า \"exhaustive\" เพิ่ม arm <code>else</code> แล้ว build ก็เขียว โดยทิ้งการรับประกันที่ diagnostic มีไว้ปกป้องไปแล้ว"
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string.",
+      "tr": "loop ของเอเจนต์รอบคอมไพเลอร์คือ อ่าน error เดาการแก้ build ใหม่ ขั้นเดาคือจุดที่ความเสียหายเกิด และมันเกิดเพราะ error เป็น string"
+    },
+    {
+      "id": "a-a1a30995",
+      "kind": "attr:aria-label",
+      "en": "The agent's loop",
+      "tr": "loop ของเอเจนต์"
+    },
+    {
+      "id": "h-384ff278",
+      "kind": "html",
+      "en": "<span>read the error</span>",
+      "tr": "<span>อ่าน error</span>"
+    },
+    {
+      "id": "h-7d4d8401",
+      "kind": "html",
+      "en": "<span>guess the edit</span>",
+      "tr": "<span>เดาการแก้</span>"
+    },
+    {
+      "id": "h-691bbc3c",
+      "kind": "html",
+      "en": "<span>rebuild</span>",
+      "tr": "<span>build ใหม่</span>"
     },
     {
       "id": "h-07118770",
@@ -77,46 +161,76 @@
       "tr": "คอมไพเลอร์รู้ทั้งหมดนั้น มันรู้ variant ของ union และ payload ของแต่ละตัว รู้ว่า <code>else</code> จะทำให้เสียการปิดผนึก และทิ้งทั้งสองอย่างไปหนึ่งบรรทัดก่อนตอบ"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-03055152",
       "kind": "html",
-      "en": "See it",
-      "tr": "ดูของจริง"
+      "en": "Details <span class=\"hint\">the two wrong edits a string invites</span>",
+      "tr": "รายละเอียด <span class=\"hint\">การแก้ผิดสองแบบที่ error แบบ string ชวนให้ทำ</span>"
     },
     {
-      "id": "h-1dc2ec59",
+      "id": "h-5053ff58",
       "kind": "html",
-      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
-      "tr": "โปรเจกต์สอง module <code>orders</code> ประกาศ union ส่วน <code>main</code> เขียน <code>match</code> บนมันและจัดการแค่ case เดียว <code>glyph check --agent</code> ตัดเหลือเฉพาะ key ที่สำคัญตรงนี้:"
+      "en": "An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "เอเจนต์ที่อ่าน \"non-exhaustive match on <code>OrderStatus</code>\" รู้ว่า match ขาด arm ไปบางตัว แต่ไม่รู้ว่า variant ที่ขาดถืออะไรไว้ มันจึงเขียน <code>Paid(\"tx_1\")</code> แล้วไปรู้จาก diagnostic ถัดไป หรือมันอ่านคำว่า \"exhaustive\" เพิ่ม arm <code>else</code> แล้ว build ก็เขียว โดยทิ้งการรับประกันที่ diagnostic มีไว้ปกป้องไปแล้ว"
     },
     {
-      "id": "h-22f8192a",
+      "id": "h-cdb153ae",
       "kind": "html",
-      "en": "glyph check --agent --no-tsc src",
-      "tr": "glyph check --agent --no-tsc src"
+      "en": "Reading the answer",
+      "tr": "อ่านคำตอบ"
     },
     {
-      "id": "h-e83558c5",
+      "id": "h-70dd500b",
       "kind": "html",
-      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
-      "tr": "มีสามเรื่องที่ควรดึงออกมา <code>cause</code> คือสัญลักษณ์ที่ผิด และเป็นคนละอย่างกับ <code>entity</code> ซึ่งคือ declaration ที่ diagnostic อยู่ ตรงนี้การแก้เกิดใน <code>main::describe</code> และรูปร่างที่ต้องตรงมาจาก <code>orders::OrderStatus</code> ทั้งสองเป็นที่อยู่ที่เครื่องมืออื่นรับได้ คำตอบจึงต่อกันได้โดยไม่ต้องหาอะไรใหม่"
+      "en": "Three things are worth pulling out.",
+      "tr": "มีสามเรื่องที่ควรดึงออกมา"
     },
     {
-      "id": "h-24cad838",
+      "id": "h-3fae8dae",
       "kind": "html",
-      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
-      "tr": "<code>constraints</code> ไม่ใช่การแก้ แต่ละข้อคือสิ่งที่คอมไพเลอร์บังคับใช้อยู่แล้ว เขียนออกมาเพื่อให้การแก้ที่ทำให้ diagnostic หายไปไม่ทำลายการรับประกันที่อยู่เบื้องหลัง ข้อจำกัดข้อที่สองคือเหตุผลที่ key นี้มีอยู่: arm แบบ <code>else</code> ถูกต้องตามกฎ มันจะทำให้ build เขียว และข้อจำกัดบอกว่าการเลือกมันต้องแลกกับอะไร"
+      "en": "<b><code>cause</code></b><code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>.",
+      "tr": "<b><code>cause</code></b><code>cause</code> คือสัญลักษณ์ที่ผิด และเป็นคนละอย่างกับ <code>entity</code> ซึ่งคือ declaration ที่ diagnostic อยู่ ตรงนี้การแก้เกิดใน <code>main::describe</code> และรูปร่างที่ต้องตรงมาจาก <code>orders::OrderStatus</code>"
     },
     {
-      "id": "h-c78e85ef",
+      "id": "h-861b2ca6",
       "kind": "html",
-      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
-      "tr": "<code>symbols</code> คือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปของเอเจนต์จึงไม่ต้องเรียกซ้ำ สัญลักษณ์ที่เครื่องมือปฏิเสธจะอยู่ใน <code>symbols_absent</code> พร้อมเหตุผล ซึ่งแยก \"เราไม่ได้ดู\" ออกจาก \"เราดูแล้วและมันไม่มี\""
+      "en": "<b><code>constraints</code></b><code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it.",
+      "tr": "<b><code>constraints</code></b><code>constraints</code> ไม่ใช่การแก้ แต่ละข้อคือสิ่งที่คอมไพเลอร์บังคับใช้อยู่แล้ว เขียนออกมาเพื่อให้การแก้ที่ทำให้ diagnostic หายไปไม่ทำลายการรับประกันที่อยู่เบื้องหลัง"
+    },
+    {
+      "id": "h-a017cea3",
+      "kind": "html",
+      "en": "<b><code>symbols</code></b><code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call.",
+      "tr": "<b><code>symbols</code></b><code>symbols</code> คือคำตอบของ <code>glyph_symbol</code> สำหรับทุกสัญลักษณ์ที่ diagnostic อ้างถึง การแก้ครั้งถัดไปของเอเจนต์จึงไม่ต้องเรียกซ้ำ"
     },
     {
       "id": "h-e9482ec6",
       "kind": "html",
       "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
       "tr": "ทุก key มีอยู่เสมอ ข้อเท็จจริงที่คอมไพเลอร์ไม่มีจะมาเป็น <code>null</code> อย่างชัดแจ้ง ไม่เคยเป็น key ที่หายไป การไม่มีจึงมีวิธีเขียนแบบเดียวในทุกรหัส และทั้งบน CLI และ MCP"
+    },
+    {
+      "id": "h-fc85bbcb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">addresses that chain, the else constraint, symbols_absent</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ที่อยู่ที่ต่อกันได้ ข้อจำกัดเรื่อง else และ symbols_absent</span>"
+    },
+    {
+      "id": "h-59c52ef6",
+      "kind": "html",
+      "en": "Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "ทั้งสองเป็นที่อยู่ที่เครื่องมืออื่นรับได้ คำตอบจึงต่อกันได้โดยไม่ต้องหาอะไรใหม่"
+    },
+    {
+      "id": "h-88250e38",
+      "kind": "html",
+      "en": "The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "ข้อจำกัดข้อที่สองคือเหตุผลที่ key นี้มีอยู่: arm แบบ <code>else</code> ถูกต้องตามกฎ มันจะทำให้ build เขียว และข้อจำกัดบอกว่าการเลือกมันต้องแลกกับอะไร"
+    },
+    {
+      "id": "h-4bdb41da",
+      "kind": "html",
+      "en": "A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "สัญลักษณ์ที่เครื่องมือปฏิเสธจะอยู่ใน <code>symbols_absent</code> พร้อมเหตุผล ซึ่งแยก \"เราไม่ได้ดู\" ออกจาก \"เราดูแล้วและมันไม่มี\""
     },
     {
       "id": "h-d838480e",
@@ -137,10 +251,28 @@
       "tr": "glyph fix src กับ match ข้างบน"
     },
     {
-      "id": "h-2f820b6c",
+      "id": "h-84f7cc18",
       "kind": "html",
-      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
-      "tr": "คอมไพเลอร์รู้ว่า case ไหนขาดไป และ pattern ที่แต่ละตัวใช้ แต่ไม่รู้ว่าโปรแกรมควรทำอะไรเมื่อคำสั่งซื้อเป็น <code>Paid</code> และ body ใดๆ ที่มันเขียนก็คือการเดาที่คอมไพล์ผ่าน จนถึง 0.1.128 <code>glyph fix</code> เขียนการเดานั้น: หนึ่ง arm ต่อ case โดย body พิมพ์ชื่อ case แล้วเรียก <code>process.exit(1)</code> จากนั้นโปรแกรมก็ผ่าน <code>check</code>, <code>tsc</code> และ <code>build</code> และ <code>glyph query variants</code> รายงานว่า match ครบทุกกรณี case ที่ขาดจึงย้ายจาก compile error ไปเป็น crash ตอนรัน โดยไม่เหลืออะไรคอยเตือน"
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles.",
+      "tr": "คอมไพเลอร์รู้ว่า case ไหนขาดไป และ pattern ที่แต่ละตัวใช้ แต่ไม่รู้ว่าโปรแกรมควรทำอะไรเมื่อคำสั่งซื้อเป็น <code>Paid</code> และ body ใดๆ ที่มันเขียนก็คือการเดาที่คอมไพล์ผ่าน"
+    },
+    {
+      "id": "h-51e346df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what glyph fix wrote up to 0.1.128</span>",
+      "tr": "ที่มา <span class=\"hint\">สิ่งที่ glyph fix เขียนจนถึง 0.1.128</span>"
+    },
+    {
+      "id": "h-69045eed",
+      "kind": "html",
+      "en": "Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "จนถึง 0.1.128 <code>glyph fix</code> เขียนการเดานั้น: หนึ่ง arm ต่อ case โดย body พิมพ์ชื่อ case แล้วเรียก <code>process.exit(1)</code> จากนั้นโปรแกรมก็ผ่าน <code>check</code>, <code>tsc</code> และ <code>build</code> และ <code>glyph query variants</code> รายงานว่า match ครบทุกกรณี case ที่ขาดจึงย้ายจาก compile error ไปเป็น crash ตอนรัน โดยไม่เหลืออะไรคอยเตือน"
+    },
+    {
+      "id": "h-8aef4a74",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the arms come from, and how declines are reported</span>",
+      "tr": "รายละเอียด <span class=\"hint\">arm มาจากไหน และการปฏิเสธถูกรายงานอย่างไร</span>"
     },
     {
       "id": "h-3f1cdc48",
@@ -161,10 +293,16 @@
       "tr": "คำอธิบายของรหัสเอง ในรูปข้อมูล"
     },
     {
-      "id": "h-c5081b0e",
+      "id": "h-f86088ac",
       "kind": "html",
-      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
-      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> ตอบด้วยคำอธิบายแบบยาว <code>help</code> หนึ่งบรรทัด URL ของเอกสาร และโปรแกรมที่ผิดจากชุดตัวอย่างเชิงลบของคอมไพเลอร์ คู่กับ diagnostic ที่คอมไพเลอร์ตัวนี้ให้กับมัน diagnostic ถูกคอมไพล์เมื่อคุณถาม ไม่ได้เก็บไว้ มันจึงไม่เพี้ยนจากสิ่งที่คอมไพเลอร์พูดจริง"
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> ตอบด้วยคำอธิบายแบบยาว <code>help</code> หนึ่งบรรทัด URL ของเอกสาร และโปรแกรมที่ผิดจากชุดตัวอย่างเชิงลบของคอมไพเลอร์ คู่กับ diagnostic ที่คอมไพเลอร์ตัวนี้ให้กับมัน"
+    },
+    {
+      "id": "h-44a60dec",
+      "kind": "html",
+      "en": "The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "diagnostic ถูกคอมไพล์เมื่อคุณถาม ไม่ได้เก็บไว้ มันจึงไม่เพี้ยนจากสิ่งที่คอมไพเลอร์พูดจริง"
     },
     {
       "id": "h-da4c5d63",
@@ -177,6 +315,12 @@
       "kind": "html",
       "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
       "tr": "รหัสที่ชุดตัวอย่างไม่ครอบคลุมจะกลับมาพร้อม <code>counter_example: null</code> และประโยคที่บอกว่าชุดตัวอย่างไม่มีกรณีสำหรับมัน แทนที่จะเป็นตัวอย่างที่แต่งขึ้น ชุดตัวอย่างอ้างเฉพาะสิ่งที่มันครอบคลุม และไม่อ้างอะไรเกี่ยวกับส่วนที่เหลือ"
+    },
+    {
+      "id": "h-05573974",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the whole corpus, through glyph llms --negative</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ชุดตัวอย่างทั้งหมด ผ่าน glyph llms --negative</span>"
     },
     {
       "id": "h-dee8d5de",
@@ -197,10 +341,46 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-206d5f58",
+      "id": "h-2f0c125d",
       "kind": "html",
-      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
-      "tr": "ทุก diagnostic มี <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (พร้อม <code>alternatives_kind</code> ที่บอกว่ามันแสดง <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> หรือ <code>exports</code> ซึ่งตั้งไว้ตรงที่ error ถูกแจ้ง), <code>related</code>, <code>module</code>, <code>file</code> และ <code>explain</code> เติมจาก error ที่คอมไพเลอร์แจ้งจริง ไม่ได้หาใหม่ และแต่ละตัวเป็น <code>null</code> อย่างชัดแจ้งเมื่อคอมไพเลอร์ไม่มีข้อเท็จจริงนั้น <code>file</code> เป็น path ที่สัมพัทธ์กับ resolution root และรายงานระบุ root นั้นใน <code>project_root</code> จึงเปิดได้ <code>glyph check --agent</code> เพิ่ม <code>constraints</code> และ <code>symbols</code> ต่อ diagnostic <code>glyph fix</code> ใช้สามกฎ (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) และระบุทุกการปฏิเสธพร้อมเหตุผล รวมถึง <code>E0200</code> ทุกตัว ซึ่งมันรายงานและไม่เคยเขียน <code>glyph --explain &lt;CODE&gt; --json</code> คืนคำอธิบายพร้อมตัวอย่างค้านที่คอมไพล์แล้ว และ <code>glyph llms --negative &lt;CODE&gt;</code> คืนชุดโปรแกรมที่ผิดทั้งหมดที่ได้รหัสนั้น"
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, each an explicit <code>null</code> when the compiler holds no such fact",
+      "tr": "ทุก diagnostic มี <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> และ <code>explain</code> แต่ละตัวเป็น <code>null</code> อย่างชัดแจ้งเมื่อคอมไพเลอร์ไม่มีข้อเท็จจริงนั้น"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "รายละเอียด"
+    },
+    {
+      "id": "h-27a772ba",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact.",
+      "tr": "ทุก diagnostic มี <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (พร้อม <code>alternatives_kind</code> ที่บอกว่ามันแสดง <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> หรือ <code>exports</code> ซึ่งตั้งไว้ตรงที่ error ถูกแจ้ง), <code>related</code>, <code>module</code>, <code>file</code> และ <code>explain</code> เติมจาก error ที่คอมไพเลอร์แจ้งจริง ไม่ได้หาใหม่ และแต่ละตัวเป็น <code>null</code> อย่างชัดแจ้งเมื่อคอมไพเลอร์ไม่มีข้อเท็จจริงนั้น"
+    },
+    {
+      "id": "h-0e417299",
+      "kind": "html",
+      "en": "<code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens.",
+      "tr": "<code>file</code> เป็น path ที่สัมพัทธ์กับ resolution root และรายงานระบุ root นั้นใน <code>project_root</code> จึงเปิดได้"
+    },
+    {
+      "id": "h-b9563801",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic.",
+      "tr": "<code>glyph check --agent</code> เพิ่ม <code>constraints</code> และ <code>symbols</code> ต่อ diagnostic"
+    },
+    {
+      "id": "h-d9265b6f",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes.",
+      "tr": "<code>glyph fix</code> ใช้สามกฎ (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) และระบุทุกการปฏิเสธพร้อมเหตุผล รวมถึง <code>E0200</code> ทุกตัว ซึ่งมันรายงานและไม่เคยเขียน"
+    },
+    {
+      "id": "h-f47e2a59",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code> คืนคำอธิบายพร้อมตัวอย่างค้านที่คอมไพล์แล้ว และ <code>glyph llms --negative &lt;CODE&gt;</code> คืนชุดโปรแกรมที่ผิดทั้งหมดที่ได้รหัสนั้น"
     },
     {
       "id": "h-c647197d",
@@ -209,10 +389,28 @@
       "tr": "หยุดตรงไหน"
     },
     {
-      "id": "h-a46b5ce4",
+      "id": "h-8e863d3f",
       "kind": "html",
-      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
-      "tr": "<code>cause</code> ของ <code>E0211</code> เป็น <code>null</code>: สัญลักษณ์ที่ผิดที่ argument ของการเรียกคือ parameter และ <code>module::fn.param</code> ไม่ใช่สิ่งที่คำศัพท์ของตัวตนเขียนได้ null นั้นจึงเป็นความตั้งใจ ไม่ใช่การตกหล่น <code>corrected</code> ในตัวอย่างค้านเป็น <code>null</code> เสมอ เพราะชุดตัวอย่างเชิงลบไม่ได้จับคู่โปรแกรมที่แก้แล้วกับกรณีใด และ 24 จาก 70 รหัสไม่มีกรณีเลย <code>glyph fix</code> เขียนสามกฎและไม่มีอย่างอื่น และไม่เขียน arm ให้ <code>match</code> ที่ไม่ครบ: สิ่งเหล่านั้นเหลือไว้ให้คุณหรือเอเจนต์ของคุณ โดยมี case และ pattern อยู่ใน diagnostic ทุกอย่างที่มันปฏิเสธ มันปฏิเสธอย่างเปิดเผย"
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission.",
+      "tr": "<code>cause</code> ของ <code>E0211</code> เป็น <code>null</code>: สัญลักษณ์ที่ผิดที่ argument ของการเรียกคือ parameter และ <code>module::fn.param</code> ไม่ใช่สิ่งที่คำศัพท์ของตัวตนเขียนได้ null นั้นจึงเป็นความตั้งใจ ไม่ใช่การตกหล่น"
+    },
+    {
+      "id": "h-672cdb61",
+      "kind": "html",
+      "en": "<code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all.",
+      "tr": "<code>corrected</code> ในตัวอย่างค้านเป็น <code>null</code> เสมอ เพราะชุดตัวอย่างเชิงลบไม่ได้จับคู่โปรแกรมที่แก้แล้วกับกรณีใด และ 24 จาก 70 รหัสไม่มีกรณีเลย"
+    },
+    {
+      "id": "h-03335405",
+      "kind": "html",
+      "en": "<code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic.",
+      "tr": "<code>glyph fix</code> เขียนสามกฎและไม่มีอย่างอื่น และไม่เขียน arm ให้ <code>match</code> ที่ไม่ครบ: สิ่งเหล่านั้นเหลือไว้ให้คุณหรือเอเจนต์ของคุณ โดยมี case และ pattern อยู่ใน diagnostic"
+    },
+    {
+      "id": "h-d0d18970",
+      "kind": "html",
+      "en": "Everything it declines, it declines out loud.",
+      "tr": "ทุกอย่างที่มันปฏิเสธ มันปฏิเสธอย่างเปิดเผย"
     }
   ]
 }

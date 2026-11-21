@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Основная навигация">
         <div class="nav-brand">
           <a href="/ru/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.157</a>
+          <a href="/versions/" class="nav-version" title="Примечания к выпуску">v0.1.158</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -487,18 +487,18 @@
 
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Частота выпусков и пометка Breaking<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Ссылка на этот раздел">#</a></h2>
         <p>
-          На <a href="/versions/">странице версий</a> есть запись для каждого выпуска от 0.1.0 до 0.1.157, всего 156, и 30 из них вышли в период с 1 ноя 2026 по 21 ноя 2026. Выпуск помечается как Breaking, если он отклоняет программу, которую принимала предыдущая версия; так приходит большинство исправлений корректности. Пометку несут записей: 40. Её ставят, запуская самую маленькую затронутую программу под обеими версиями, а не читая дифф. Выпуски до 0.1.99 так не проверялись, поэтому старый выпуск без пометки не проверен, а не безопасен.
+          На <a href="/versions/">странице версий</a> есть запись для каждого выпуска от 0.1.0 до 0.1.158, всего 157, и 31 из них вышли в период с 1 ноя 2026 по 21 ноя 2026. Выпуск помечается как Breaking, если он отклоняет программу, которую принимала предыдущая версия; так приходит большинство исправлений корректности. Пометку несут записей: 41. Её ставят, запуская самую маленькую затронутую программу под обеими версиями, а не читая дифф. Выпуски до 0.1.99 так не проверялись, поэтому старый выпуск без пометки не проверен, а не безопасен.
         </p>
         <p>
           Во что на практике обошёлся выпуск Breaking: в каждой недавней заметке сказано, что произошло, когда старую и новую версии прогнали по примерам приложений из репозитория. Вот самые новые выпуски Breaking, цитаты из их заметок:
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.158">0.1.158</a>: В заметке об этом не сказано.</li>
           <li><a href="/versions/2026-11/#0.1.157">0.1.157</a>: <span lang="en">&ldquo;Writing this rule turned up a real bug in one of the example apps.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.156">0.1.156</a>: В заметке об этом не сказано.</li>
           <li><a href="/versions/2026-11/#0.1.155">0.1.155</a>: В заметке об этом не сказано.</li>
           <li><a href="/versions/2026-11/#0.1.154">0.1.154</a>: <span lang="en">&ldquo;In the repository, two example apps did, and both were real bugs: the chat server's <code>main</code> started <code>daemon.serve(port)</code> and returned before the server bound, and the job queue's timer dropped each <code>drain</code>.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.153">0.1.153</a>: <span lang="en">&ldquo;No tracked <code>.glyph</code> file and none of the 32 example apps changed exit code.&rdquo;</span></li>
-          <li><a href="/versions/2026-11/#0.1.152">0.1.152</a>: <span lang="en">&ldquo;No file in the repository, none of the 32 example apps and neither outside app we test against decodes a null into an optional field.&rdquo;</span></li>
         </ul>
 
         <p>

@@ -50,4 +50,4 @@ This isn't a hypothetical: an outside engineer [built a React Kanban board this 
 - No watch mode yet: rerun `glyph build` after editing `.glyph` sources (wire it into your `dev` script).
 - Modules using `std/fs` or `std/net` need `@types/node` in the host, like any Node-touching TypeScript.
 
-Code examples on this page are checked against Glyph 0.1.157 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.158 on every build. Last changed 21 Nov 2026.

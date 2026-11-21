@@ -8,6 +8,13 @@
   <updated>2026-11-21T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.158 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.158" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.158</id>
+    <updated>2026-11-21T00:00:00Z</updated>
+    <summary>A lambda parameter without an annotation takes its type from where the lambda is passed</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.157 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.157" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.157</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.129</id>
     <updated>2026-11-02T00:00:00Z</updated>
     <summary>Before announcing a preview I had two agents start from npx @glyphlang/glyph init with nothing but the shipped docs, one building a small React page and one a Node CLI.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.128 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.128" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.128</id>
-    <updated>2026-11-01T00:00:00Z</updated>
-    <summary>This release is about writing a React app in Glyph against real React.</summary>
   </entry>
 </feed>

@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-422 entries, 315 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+423 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 87 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -13505,7 +13505,7 @@ and is the owner's to confirm.
 
   Planned for 0.1.158 (record 117).
 
-- **G380. A mutating method call needs no `mut`, so `grep "^\s*mut "` is not
+- **G380. [FIXED] A mutating method call needs no `mut`, so `grep "^\s*mut "` is not
   a complete audit of mutation.** D5 says it is. `xs.push(4)` and
   `xs.sort(cmp)` compile with no `mut`, and a helper `fn smallest(xs:
   Array<number>) -> number { return xs.sort(cmp)[0] }` reorders its caller's
@@ -13524,6 +13524,25 @@ and is the owner's to confirm.
   (the caller's `xs[0]` changed from `3`).*
 
   *Reproduced against 0.1.155 (the release build): `xs.push(4)` is `no diagnostics` under `--no-tsc`, and the `smallest` program prints `1 1` (the caller's `xs[0]` changed from `3`).*
+
+  Fixed in 0.1.160 (decision record 150; D5 amended, reversing Q7). The
+  generated method rows carry `mutates`, written by hand in
+  `scripts/check_builtin_members.py` as `MUTATING` and `NON_MUTATING` per
+  receiver: generation fails on a method in neither set or both, and node
+  calls every array method on a fresh array and checks the receiver changed
+  exactly when the method is in `MUTATING`. One of the nine methods on an
+  `Array<T>` anywhere but as the whole call of a `mut` statement is E0240,
+  with a help computed per method and position (`array.sort(xs, cmp)` for a
+  sort whose value is read, `array.get` before `mut xs.pop()`), and `glyph
+  fix` inserts `mut ` before a bare statement. Under `mut` the receiver must
+  be a place (`is_place`, the predicate the parser uses for `mut x = e`), so
+  `mut make().push(1)` and `mut ys.filter(f).sort(cmp)` are E0240 too. `mut`
+  before a call Glyph knows changes nothing (`mut xs.concat(ys)`, `mut
+  array.push(xs, 1)`, `mut io.println(s)`) is E0241. A receiver the checker
+  cannot type is not judged, and the stdlib `Set`, `Store` and `Deque` wait on
+  G423. `return xs.sort(cmp)[0]` exits 0 on the published 0.1.159 and 1 on
+  this build; across the 394 corpus units the only new diagnostic is the
+  catch case, now the refused `sort-without-mut`.
 
 - **G381. A member read on an `unknown` value passes Glyph's own checker.**
   `match json.parse(text) { Ok(data) => data.usr.name, ... }` is `no
@@ -13846,6 +13865,13 @@ and is the owner's to confirm.
   `c/t`: `xs` prints `["a","zzz"]`, no diagnostics.*
 
   *Reproduced against 0.1.155 (the release build) with a minimal probe from the entry's text: `xs` prints `["a","zzz"]` and the widened `Record` value prints `{"k":"zzz"}`, with no diagnostics and `tsc --strict` passing. Record 119's `c/t` now stops at E0204 on its key-widening functions, which is G373.*
+
+  G380 (0.1.160) is its precondition and is closed: every write to an array
+  Glyph's checker types is a `mut` statement now, so this can be judged at
+  exactly those sites, for instance by refusing a `mut` write through an
+  alias whose element type is wider than the value's original. It is a
+  different mechanism from G380 (variance through an alias, not the audit's
+  completeness), so it is its own release (record 150, section 5).
 
 - **G395. `int` is erased to `number` in the checker.** The lowerer maps
   `int` to `Primitive::Number`, so `Record<number, int>` passes where
@@ -14392,4 +14418,25 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build) with record 149's probe
   `t/d.glyph`: `let s: string = pick(5, async fn(n) { await save(1) })` gives
   E0211 and no E0204.*
+
+- **G423. Glyph's checker does not type the stdlib `Set`, `Store` and `Deque`,
+  so their writes are outside D5's audit.** `let a: number = set.create<string>()`
+  and `let b: number = store.create(0)` pass `check --no-tsc` with no
+  diagnostics, so the checker cannot tell `seen.add(x)` from a pure call, and
+  G380 could not mark `add`, `remove`, `set`, `update`, `push_back`,
+  `push_front`, `pop_back` and `pop_front`. The corpus already has two
+  spellings of one write: `examples/apps/resilient` writes `mut HITS.set(0)`,
+  while auth_api, csvql and `examples/corpus/store` write `cursor.set(...)`
+  with no `mut`, about 50 sites, and `runtime/std/store.ts` and `set.ts`
+  promise that every mutation is a greppable `s.set(...)`. The fix may come in
+  two steps: type the receivers (its new refusals are ones `tsc` already
+  makes), then mark the writing members, which is breaking (the ~50 sites
+  migrate and the two runtime doc comments change to `mut s.set(...)`).
+  Found by decision record 150 (finding 3), filed with 0.1.160.
+
+  *Reproduced against 0.1.159 (the release build) by record 150's probe
+  `g_settype`: both `let` annotations pass `check --no-tsc` with no
+  diagnostics. On the 0.1.160 branch build, `seen.add("a")` and
+  `mut seen.add("a")` on a `set.create<string>()` are both accepted, pinned by
+  `a_stdlib_set_receiver_is_not_judged_until_g423`.*
 

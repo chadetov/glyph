@@ -127,7 +127,7 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">
           <span class="cap">the injection path does not</span>
-<pre data-check="expect-error TS2345">module query
+<pre data-check="expect-error E0211">module query
 
 import std/taint { Tainted, Trusted, taint, expose }
 
@@ -140,14 +140,14 @@ pub fn handle(body: string) -&gt; string {
   return run_query(input)
 }
 
-// [TS2345] Argument of type 'Tainted&lt;string&gt;'
-//   is not assignable to parameter of type
-//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+// [E0211] argument type mismatch: expected
+//   `taint.Trusted&lt;string&gt;`, found
+//   `taint.Tainted&lt;string&gt;` (query.glyph:11)</pre>
         </div>
       </div>
       <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
         Hand a sink the tainted value directly and
-        <code>tsc</code> refuses to compile it.
+        Glyph's checker refuses it (E0211) before <code>tsc</code> runs.
       </p></div>
 
       <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -159,7 +159,7 @@ pub fn handle(body: string) -&gt; string {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> for exact large integers</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>where</code> refinements so an invariant is validated at the boundary</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code></span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value is refused by Glyph's checker.</span></span></li>
           </ul>
         </section>
 

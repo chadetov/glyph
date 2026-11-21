@@ -12,9 +12,12 @@
 //! A shape check at the call is defeated by the `let` hoist Glyph's own
 //! guidance produces (`let q = "...${name}..."`, then `db.query(q, [])`), so
 //! a name is followed to its initializer: a module `const`, or a local `let`
-//! that no `mut` reassigns anywhere in the module.
+//! that no `mut` reassigns anywhere in the module. "No `mut` reassigns it" is
+//! `crate::reassign::Reassigned::never_reassigned`, the predicate `is`-arm
+//! narrowing reads too (D53), so the two rules cannot disagree about whether
+//! a binding keeps its value (record 136).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use glyph_ast::{
     ArrayElem, BinOp, Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, MatchArmBody, Module,
@@ -31,17 +34,15 @@ use crate::TypeError;
 /// chain the resolver accepts, but a bound keeps a cycle from recursing.
 const MAX_DEPTH: usize = 32;
 
-/// What the module says about each local `let`: its initializer, and whether
-/// any `mut` reassigns it. Collected once per module before the walk, because
-/// a reassignment after the query (in a loop, or in a closure) changes the
-/// answer for a use that comes before it.
+/// What the module says about each local `let`: its initializer. Collected
+/// once per module before the walk. Whether a `mut` reassigns the binding is
+/// not collected here: it is `Reassigned::never_reassigned`, shared with
+/// `is`-arm narrowing.
 #[derive(Default)]
 pub(super) struct SqlFacts<'a> {
     /// The initializer of each `let x = ...`, keyed by the binding's
     /// definition start, which is what `ResolvedRef::Local` carries.
     lets: HashMap<u32, &'a Expr>,
-    /// Every local a `mut x = ...` reassigns, by the same key.
-    mutated: HashSet<u32>,
 }
 
 impl<'a> SqlFacts<'a> {
@@ -74,11 +75,7 @@ impl<'a> SqlFacts<'a> {
             }
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { target, value } => {
-                    if let Expr::Ident { span, .. } = target {
-                        if let Some(ResolvedRef::Local(id)) = resolved.resolutions.get(*span) {
-                            self.mutated.insert(id);
-                        }
-                    } else {
+                    if !matches!(target, Expr::Ident { .. }) {
                         self.expr(target, resolved);
                     }
                     self.expr(value, resolved);
@@ -304,7 +301,7 @@ impl Assigner<'_> {
                 };
                 match self.resolved.resolutions.get(*span) {
                     Some(ResolvedRef::Local(id)) => {
-                        if self.sql_facts.mutated.contains(&id) {
+                        if !self.reassigned().never_reassigned(ResolvedRef::Local(id), self.resolved) {
                             return Err(NonConst::Mutated(name.to_string()));
                         }
                         match self.sql_facts.lets.get(&id) {
@@ -1065,6 +1062,28 @@ mod tests {
                     format!("{}`q` is reassigned with `mut`, which makes its text a run-time value{TAIL}", sink(m)),
                     help
                 )],
+                "{m}"
+            );
+        }
+    }
+
+    /// A constant `let` that a `mut` reassigns only inside a lambda is not
+    /// constant: calling the lambda before the query would rebuild it. The
+    /// answer comes from `Reassigned::never_reassigned`, the predicate
+    /// `is`-arm narrowing reads (D53, record 136), and a JSX attribute lambda
+    /// counts the same way.
+    #[test]
+    fn a_let_reassigned_only_inside_a_lambda_is_not_constant() {
+        for m in METHODS {
+            let src = program(&format!(
+                "  let q = \"SELECT * FROM users\"\n  let widen = fn() -> void {{ mut q = q + \" WHERE name = '${{name}}'\" }}\n  widen()\n  {}\n",
+                call(m, "q")
+            ));
+            let got = e0239s(&src);
+            assert_eq!(got.len(), 1, "{m}: {got:?}");
+            assert_eq!(
+                got[0].0,
+                format!("{}`q` is reassigned with `mut`, which makes its text a run-time value{TAIL}", sink(m)),
                 "{m}"
             );
         }

@@ -609,7 +609,7 @@ console.log(sendInvoice(user.plan));</pre><span class="cap">$ tsx ts.ts</span><p
           <div class="c-side gl">
             <div class="c-tags"><span class="c-lang">Glyph</span><span class="c-kind">отклонено при сборке</span></div>
             <div class="code c-code"><span class="cap">glyph.glyph</span><pre><span class="k">let</span> active = array.filter(names, <span class="k">async</span> <span class="k">fn</span>(n: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">bool</span> { <span class="k">await</span> is_active(n) })</pre><span class="cap">$ glyph build</span><pre class="c-out"><span class="e">[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`</span>
-<span class="h">Help: Pass a value of the expected type, or change the parameter's type.</span></pre></div>
+<span class="h">Help: `array.filter` does not wait for its callback. Await each call in a loop, `for n in names { ... await is_active(n) ... }`, or run them together with `task.all`.</span></pre></div>
             <p class="c-result"><b>Асинхронная функция не является ответом «да или нет».</b></p>
           </div>
         </div>

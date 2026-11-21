@@ -5,6 +5,6 @@
   },
   "glyph": {
     "command": "glyph build",
-    "output": "[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`\nHelp: Pass a value of the expected type, or change the parameter's type."
+    "output": "[E0211] Error: typecheck: argument type mismatch: expected `function`, found `async function`\nHelp: `array.filter` does not wait for its callback. Await each call in a loop, `for n in names { ... await is_active(n) ... }`, or run them together with `task.all`."
   }
 }

@@ -14334,23 +14334,23 @@ and is the owner's to confirm.
   `t/b.glyph`: hover on `i` at the `for` line is `string`, hover on the use in
   `let n: number = i` is `unknown`.*
 
-- **G421. A function-kind mismatch outside a sync `void` argument says only
-  ``expected `async function`, found `function` ``.** 0.1.159 gives an async
-  function in a sync `fn(...) -> void` argument its own E0211 message and a
-  help computed from the program. Every other pairing of the two kinds keeps
-  the general argument or `let` message, with the help "Pass a value of the
-  expected type, or change the parameter's type": `task.detach(tick)` with a
-  sync `fn tick()` (the fix is `async fn tick()`, or `async fn() -> void {
-  tick() }`), `array.map(xs, async fn(x: number) { ... })` (the fix is a loop
-  or `task.all`), an async lambda in a component's `fn(string) -> void` prop,
-  and `let cb: fn(number) -> void = save`. The display also drops the
-  signatures, so the two types read the same apart from the word `async`.
-  Each case is refused correctly; what is missing is the message naming the
-  callee and a help that compiles, as E0238's help-by-destination already
-  does. Not breaking. Found while building 0.1.159.
+- **G421. A function-kind mismatch at a `let`, `const`, `return` or field says
+  only ``expected `function`, found `async function` ``.** 0.1.159 refuses
+  a sync function where an async one is declared and an async function where
+  a sync one is, at every position. At a call argument each refusal carries
+  a help computed from the program (record 144): the `void`-slot message
+  and its `task.detach` or loop rewrite, the `async fn() -> void { tick()
+  }` wrapper or `async fn tick()` for a sync function in an async slot, and
+  the loop or `task.all` prose for an async callback to `array.map`. The
+  other positions keep the general E0204 message and help, "Change the
+  value, or the declared type, so the two agree": `let cb: fn(number) ->
+  void = save` with `async fn save`, a `return` of one, a record field
+  holding one. A component prop, which is an argument, also keeps the
+  general E0211 wording. Each case is refused correctly; what is missing is
+  a message that names the two kinds and a help that compiles. Not
+  breaking. Found while building 0.1.159.
 
   *Reproduced against 0.1.154 (the 0.1.159 branch build, before the version
-  bump): `task.detach(tick)` gives ``[E0211] argument type mismatch:
-  expected `async function`, found `function` `` with that help, and the
-  component prop case gives ``expected `function`, found `async function` ``.*
+  bump): `let cb: fn(number) -> void = save_void` gives ``[E0204] type
+  mismatch: expected `function`, found `async function` `` with that help.*
 

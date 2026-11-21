@@ -154,3 +154,121 @@ pub(crate) fn quotable(e: &Expr) -> Option<String> {
     let s = expr_source(e);
     (!s.contains("...")).then_some(s)
 }
+
+/// An argument refused for being the wrong kind of function, as far as the
+/// help can rewrite it (record 144).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KindValue {
+    /// A named function. `params` as in [`AsyncCallback::Named`].
+    Named {
+        name: String,
+        params: Option<Vec<(String, String)>>,
+    },
+    /// A lambda: its parameters and return type as written, and its body
+    /// when the help can quote it.
+    Lambda {
+        params: Vec<(String, String)>,
+        return_ty: Option<String>,
+        body: Option<String>,
+    },
+    /// Anything else of a function type.
+    Other,
+}
+
+/// The help for a sync function where an async one is declared (G408).
+/// `ret` is the parameter's return as the wrapper writes it: `Some(None)` for
+/// `void`, `Some(Some(t))` for a type the checker can spell, `None` when it
+/// cannot.
+pub(crate) fn sync_into_async_help(
+    callee: &str,
+    value: &KindValue,
+    ret: Option<Option<String>>,
+    found_ret: Option<String>,
+) -> String {
+    match value {
+        KindValue::Named {
+            name,
+            params: Some(ps),
+        } => {
+            let names: Vec<&str> = ps.iter().map(|(n, _)| n.as_str()).collect();
+            let call = format!("{name}({})", names.join(", "));
+            let returns = match &ret {
+                Some(Some(t)) => format!(" -> {t}"),
+                _ => String::new(),
+            };
+            let declared = format!("async fn {name}({}){returns}", written(ps));
+            // A wrapper only where calling the function gives what the
+            // parameter's function returns: anything, for `void`, and
+            // otherwise the same type. A function whose return the checker
+            // cannot read (an `extern_ts` body) is not wrapped, since the
+            // call would not type as the parameter's return.
+            let wrapper = match &ret {
+                Some(None) => Some(format!("async fn({}) -> void {{ {call} }}", written(ps))),
+                Some(Some(t)) if found_ret.as_deref() == Some(t.as_str()) => Some(format!(
+                    "async fn({}) -> {t} {{ return {call} }}",
+                    written(ps)
+                )),
+                _ => None,
+            };
+            match wrapper {
+                Some(w) => format!(
+                    "`{callee}` takes an async function, and `{name}` is not async. Pass `{w}`, \
+                     or declare it `{declared}`."
+                ),
+                None => format!(
+                    "`{callee}` takes an async function, and `{name}` is not async. Declare it \
+                     `{declared}`."
+                ),
+            }
+        }
+        KindValue::Named { name, params: None } => format!(
+            "`{callee}` takes an async function, and `{name}` is not async. Declare it `async \
+             fn`, or pass an async lambda that calls it."
+        ),
+        KindValue::Lambda {
+            params, return_ty, ..
+        } => {
+            let ret = return_ty
+                .as_ref()
+                .map(|t| format!(" -> {t}"))
+                .unwrap_or_default();
+            format!(
+                "`{callee}` takes an async function, and this one is not async. Write it \
+                 `async fn({}){ret} {{ ... }}`, keeping its body.",
+                written(params)
+            )
+        }
+        KindValue::Other => format!(
+            "`{callee}` takes an async function, and this value is not one. Pass an async \
+             lambda that calls it."
+        ),
+    }
+}
+
+/// The help for an async callback where a sync one that keeps a value is
+/// declared (G407, G99): record 135's help 4, prose with no `async fn(`
+/// snippet, because no async callback fits the slot.
+pub(crate) fn async_into_value_help(callee: &str, value: &KindValue, iterable: &str) -> String {
+    let (var, work) = match value {
+        KindValue::Named { name, params } => {
+            let var = params
+                .as_ref()
+                .and_then(|ps| ps.first().map(|(n, _)| n.clone()))
+                .unwrap_or_else(|| "x".to_string());
+            let work = format!("await {name}({var})");
+            (var, work)
+        }
+        KindValue::Lambda { params, body, .. } => {
+            let var = params
+                .first()
+                .map(|(n, _)| n.clone())
+                .unwrap_or_else(|| "x".to_string());
+            (var, body.clone().unwrap_or_else(|| "await ...".to_string()))
+        }
+        KindValue::Other => ("x".to_string(), "await ...".to_string()),
+    };
+    format!(
+        "`{callee}` does not wait for its callback. Await each call in a loop, `for {var} in \
+         {iterable} {{ ... {work} ... }}`, or run them together with `task.all`."
+    )
+}

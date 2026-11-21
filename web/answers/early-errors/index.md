@@ -491,11 +491,11 @@ Every code
 
   `E0238` only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An `async` callback passed to a timer, a socket handler or any `fn(...) -> void` parameter is refused with `E0211`, since nothing waits for it; an array's own `forEach` joins them once the built-in array methods' callbacks have types.
 
-- Mixing up `fn` and `async fn` is refused, but most of those messages are still generic
+- Mixing up `fn` and `async fn` outside a call is refused with a generic message
 
   **Details**
 
-  An `async` callback given to `array.map`, a sync function given to `task.detach`, or an `async fn` bound to a `fn(...) -> void` is refused, as it should be. Only the async callback in a `void` argument gets a message that names the callee and a help you can paste; the others say  expected `async function`, found `function`  and leave the fix to you.
+  At a call, the wrong kind of function gets a help you can paste: a sync `tick` given to `task.detach` is told to pass `async fn() -> void { tick() }` or declare `async fn tick()`. An `async fn` bound to a `fn(...) -> void` in a `let`, returned, or stored in a field is refused too, but the message only says  expected `function`, found `async function`  and leaves the fix to you.
 
 - A top-level `await` is allowed
 

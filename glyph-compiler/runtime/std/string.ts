@@ -4,11 +4,13 @@
 // count instead of throwing (Glyph has no try/catch, so a `RangeError` crossing
 // the boundary would be unrecoverable).
 //
-// Indices are UTF-16 code units, the same space `len` and `split` already use,
-// and there is deliberately no codepoint accessor (no `chars`, no `char_at`): an
-// accessor that can return half a surrogate pair is worse than none, because the
-// half reads as a character until it is written out. Walk codepoints by encoding
-// to bytes first (`encoding.hex_encode`, then two hex digits at a time).
+// Indices are UTF-16 code units, the same space `len` and `split` already use.
+// No accessor here returns half a surrogate pair, because the half reads as a
+// character until it is written out. `char_at` and `code_point_at` take a
+// code-unit index and return the whole code point that starts there, or `None`
+// when the index is out of range or falls on the second half of a pair or on a
+// lone surrogate (amended in 0.1.161, decision record 154). There is still no
+// `chars`.
 //
 // Argument order: this module is subject-first, so the string being operated on
 // is always the first argument. `std/regex` is the one module that is
@@ -91,6 +93,42 @@ export function slice(s: string, start: number, end?: number): string {
 export function index_of(s: string, needle: string, from?: number): Option<number> {
   const i = s.indexOf(needle, from ?? 0);
   return i < 0 ? None : Some(i);
+}
+
+// The code point that starts at code-unit index `i`, or `undefined` when no
+// whole one does: `i` is not an integer or is out of range, or the unit there
+// is the second half of a surrogate pair, or a surrogate with no partner.
+function whole_code_point(s: string, i: number): number | undefined {
+  if (!Number.isInteger(i) || i < 0 || i >= s.length) {
+    return undefined;
+  }
+  const unit = s.charCodeAt(i);
+  if (unit >= 0xdc00 && unit <= 0xdfff) {
+    return undefined;
+  }
+  if (unit >= 0xd800 && unit <= 0xdbff) {
+    const next = i + 1 < s.length ? s.charCodeAt(i + 1) : 0;
+    return next >= 0xdc00 && next <= 0xdfff ? s.codePointAt(i) : undefined;
+  }
+  return unit;
+}
+
+// The character that starts at code-unit index `i`, as a string of one or two
+// units, or `None`. `s.at(i)` answers `undefined` past the end, counts from the
+// end for a negative `i`, and hands back half a pair; this does none of those
+// (G392, decision record 154). On "a😀", index 1 is `Some("😀")` and index 2,
+// the emoji's second half, is `None`.
+export function char_at(s: string, i: number): Option<string> {
+  const cp = whole_code_point(s, i);
+  return cp === undefined ? None : Some(String.fromCodePoint(cp));
+}
+
+// The code point that starts at code-unit index `i`, or `None`, by the same
+// rule as `char_at`. `s.codePointAt(i)` answers the value of a lone second half
+// as if it were a character.
+export function code_point_at(s: string, i: number): Option<number> {
+  const cp = whole_code_point(s, i);
+  return cp === undefined ? None : Some(cp);
 }
 
 // `replace_all` replaces every occurrence, unlike TS

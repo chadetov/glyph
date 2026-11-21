@@ -121,7 +121,7 @@ impl StdlibStubs {
         s.add(
             "std/array",
             &[
-                "map", "filter", "find", "zip", "len", "get", "push", "concat", "reverse", "slice", "any",
+                "map", "filter", "find", "find_last", "zip", "len", "get", "push", "concat", "reverse", "slice", "any",
                 "contains", "sort", "fold", "fold_while", "try_fold", "index_of", "flat_map",
                 "range", "range_from", "max", "min", "sum", "max_by", "min_by",
             ],
@@ -131,7 +131,7 @@ impl StdlibStubs {
             &[
                 "from", "join", "split", "len", "trim", "lower", "upper", "contains", "starts_with",
                 "ends_with", "repeat", "pad_start", "pad_end", "slice", "index_of", "replace_all",
-                "trim_start", "trim_end",
+                "trim_start", "trim_end", "char_at", "code_point_at",
             ],
         );
         s.add(

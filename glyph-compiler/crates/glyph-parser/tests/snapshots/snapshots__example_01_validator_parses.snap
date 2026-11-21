@@ -276,18 +276,9 @@ Module {
                                                 key: "parse",
                                                 value: Lambda {
                                                     params: [
-                                                        Param {
+                                                        LambdaParam {
                                                             name: "input",
-                                                            owned: false,
-                                                            ty: Path {
-                                                                segments: [
-                                                                    "unknown",
-                                                                ],
-                                                                span: Span {
-                                                                    start: 1149,
-                                                                    end: 1154,
-                                                                },
-                                                            },
+                                                            ty: None,
                                                             span: Span {
                                                                 start: 1149,
                                                                 end: 1154,
@@ -539,18 +530,9 @@ Module {
                                                 key: "parse",
                                                 value: Lambda {
                                                     params: [
-                                                        Param {
+                                                        LambdaParam {
                                                             name: "input",
-                                                            owned: false,
-                                                            ty: Path {
-                                                                segments: [
-                                                                    "unknown",
-                                                                ],
-                                                                span: Span {
-                                                                    start: 1381,
-                                                                    end: 1386,
-                                                                },
-                                                            },
+                                                            ty: None,
                                                             span: Span {
                                                                 start: 1381,
                                                                 end: 1386,
@@ -899,18 +881,9 @@ Module {
                                                 key: "parse",
                                                 value: Lambda {
                                                     params: [
-                                                        Param {
+                                                        LambdaParam {
                                                             name: "input",
-                                                            owned: false,
-                                                            ty: Path {
-                                                                segments: [
-                                                                    "unknown",
-                                                                ],
-                                                                span: Span {
-                                                                    start: 2560,
-                                                                    end: 2565,
-                                                                },
-                                                            },
+                                                            ty: None,
                                                             span: Span {
                                                                 start: 2560,
                                                                 end: 2565,
@@ -1794,18 +1767,9 @@ Module {
                                                 key: "parse",
                                                 value: Lambda {
                                                     params: [
-                                                        Param {
+                                                        LambdaParam {
                                                             name: "input",
-                                                            owned: false,
-                                                            ty: Path {
-                                                                segments: [
-                                                                    "unknown",
-                                                                ],
-                                                                span: Span {
-                                                                    start: 3433,
-                                                                    end: 3438,
-                                                                },
-                                                            },
+                                                            ty: None,
                                                             span: Span {
                                                                 start: 3433,
                                                                 end: 3438,
@@ -2991,18 +2955,9 @@ Module {
                                                                                             },
                                                                                             Lambda {
                                                                                                 params: [
-                                                                                                    Param {
+                                                                                                    LambdaParam {
                                                                                                         name: "p",
-                                                                                                        owned: false,
-                                                                                                        ty: Path {
-                                                                                                            segments: [
-                                                                                                                "unknown",
-                                                                                                            ],
-                                                                                                            span: Span {
-                                                                                                                start: 5431,
-                                                                                                                end: 5432,
-                                                                                                            },
-                                                                                                        },
+                                                                                                        ty: None,
                                                                                                         span: Span {
                                                                                                             start: 5431,
                                                                                                             end: 5432,

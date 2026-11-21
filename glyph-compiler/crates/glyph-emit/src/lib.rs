@@ -113,7 +113,7 @@
 
 use glyph_ast::{
     ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
-    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, JsxKind, LetBinding, LiteralPattern,
+    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, JsxKind, LambdaParam, LetBinding, LiteralPattern,
     MatchArm,
     MatchArmBody,
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
@@ -3743,19 +3743,17 @@ impl<'a> Emitter<'a> {
         Ok(out.join(", "))
     }
 
-    /// Emit lambda parameters. An un-annotated lambda parameter (which the
-    /// parser records as type `unknown`) is emitted without a type so
-    /// TypeScript infers it from the lambda's call-site context — the
-    /// higher-order function's signature. Annotating it `unknown` would instead
-    /// force every use of the parameter to fail. An explicitly typed parameter
-    /// keeps its annotation.
-    fn lambda_params(&self, params: &[Param]) -> Result<String, EmitError> {
+    /// Emit lambda parameters. A parameter written without an annotation is
+    /// emitted without one, so TypeScript infers it from the lambda's
+    /// call-site context, the higher-order function's signature. A written
+    /// annotation is emitted as written, `unknown` included: the program
+    /// declared that type, and `tsc` holds the body to it as Glyph does.
+    fn lambda_params(&self, params: &[LambdaParam]) -> Result<String, EmitError> {
         let mut out = Vec::with_capacity(params.len());
         for p in params {
-            if is_unknown_type(&p.ty) {
-                out.push(p.name.to_string());
-            } else {
-                out.push(format!("{}: {}", p.name, self.ty(&p.ty)?));
+            match &p.ty {
+                None => out.push(p.name.to_string()),
+                Some(te) => out.push(format!("{}: {}", p.name, self.ty(te)?)),
             }
         }
         Ok(out.join(", "))
@@ -11404,12 +11402,6 @@ fn is_void_type(te: &TypeExpr) -> bool {
     is_named_type(te, "void")
 }
 
-/// Whether `te` is the `unknown` type (what the parser records for an
-/// un-annotated lambda parameter).
-fn is_unknown_type(te: &TypeExpr) -> bool {
-    is_named_type(te, "unknown")
-}
-
 /// Whether a function with this return type yields a value through its tail
 /// expression (an implicit return). A `void` or unannotated return does not:
 /// its body runs for effect.
@@ -14730,6 +14722,20 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
             "module x\npub fn apply(f: fn(n: number) -> number) -> number { return f(1) }\npub fn use_it() -> number {\n  return apply(fn(n: number) { n + 1 })\n}\n",
         );
         assert!(ts.contains("(n: number) => {"), "{ts}");
+    }
+
+    /// Record 130: a written `unknown` is a declared type, and it is emitted,
+    /// so `tsc` holds the body to it as Glyph does. It used to be read as an
+    /// omitted annotation and dropped, and `tsc` then inferred `number` for a
+    /// parameter the program declared `unknown`. The omitted form still emits
+    /// bare, so `tsc` infers it from the call site.
+    #[test]
+    fn written_unknown_lambda_param_is_emitted_and_omitted_stays_bare() {
+        let ts = emit(
+            "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  return array.map(xs, fn(p: unknown) -> number { return p + 1 })\n}\npub fn g(xs: Array<number>) -> Array<number> {\n  return array.map(xs, fn(q) -> number { return q + 1 })\n}\n",
+        );
+        assert!(ts.contains("(p: unknown): number => {"), "{ts}");
+        assert!(ts.contains("(q): number => {"), "{ts}");
     }
 
     #[test]

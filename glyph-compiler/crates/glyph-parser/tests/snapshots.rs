@@ -63,6 +63,17 @@ fn destructuring_let_parses() {
     insta::assert_debug_snapshot!(ast);
 }
 
+/// An omitted lambda annotation and a written `unknown` are different nodes:
+/// `fn(p)` carries `ty: None`, `fn(q: unknown)` carries the written path. The
+/// parser used to synthesize an `unknown` path for the omitted one, so the two
+/// were the same node and three stages read it three ways (record 130).
+#[test]
+fn lambda_params_parse() {
+    let source = fixture("lambda_params.glyph");
+    let ast = glyph_parser::parse(&source).expect("lambda_params.glyph should parse");
+    insta::assert_debug_snapshot!(ast);
+}
+
 /// Try parsing the real example files. Each test reports the first parse
 /// error if it fails. This is the week-1 acceptance criterion: all 4 example
 /// files parse to AST with snapshots checked into git.

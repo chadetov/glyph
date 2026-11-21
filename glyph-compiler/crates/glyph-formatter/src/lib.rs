@@ -36,7 +36,7 @@ use std::collections::HashSet;
 
 use glyph_ast::{
     Annotation, ArrayElem, BinOp, Block, Comment, ComponentDecl, ConstDecl, Decl, Expr, FnDecl,
-    FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern,
+    FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LambdaParam, LiteralPattern,
     MatchArm, MatchArmBody, Module, MutKind, MutStmt, ObjectField, Param, Pattern, PostfixOp,
     RecordTypeField, Span, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
 };
@@ -964,10 +964,10 @@ impl Printer {
         self.type_expr(&param.ty);
     }
 
-    /// Lambda parameters. An un-annotated lambda parameter is recorded by the
-    /// parser as type `unknown`; reprint it bare (`fn(x) { .. }`) rather than
-    /// inventing a `: unknown` annotation. An explicit annotation is kept.
-    fn lambda_params(&mut self, params: &[Param], open: u32, end: u32) {
+    /// Lambda parameters, printed as written: an omitted annotation stays
+    /// omitted (`fn(x) { .. }`) and a written one, `: unknown` included, is
+    /// kept.
+    fn lambda_params(&mut self, params: &[LambdaParam], open: u32, end: u32) {
         self.delimited(
             params,
             open,
@@ -977,15 +977,12 @@ impl Printer {
             "()",
             "(",
             ")",
-            |_, param: &Param| (param.span.start, param.span.end),
+            |_, param: &LambdaParam| (param.span.start, param.span.end),
             |p, param| {
-                if param.owned {
-                    p.push("owned ");
-                }
                 p.push(&param.name);
-                if !is_unknown_ty(&param.ty) {
+                if let Some(te) = &param.ty {
                     p.push(": ");
-                    p.type_expr(&param.ty);
+                    p.type_expr(te);
                 }
             },
         );
@@ -2395,10 +2392,6 @@ fn decl_start(d: &Decl) -> u32 {
 
 /// True for the `unknown` type written by the parser for an un-annotated
 /// lambda parameter.
-fn is_unknown_ty(t: &TypeExpr) -> bool {
-    matches!(t, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == "unknown")
-}
-
 /// True when an expression printed as a match-arm body would re-parse as a
 /// *block* instead of that expression, so the printer must wrap it in
 /// parentheses.

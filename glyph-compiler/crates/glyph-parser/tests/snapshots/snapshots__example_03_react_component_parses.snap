@@ -717,18 +717,19 @@ Module {
                                                                         },
                                                                         Lambda {
                                                                             params: [
-                                                                                Param {
+                                                                                LambdaParam {
                                                                                     name: "q",
-                                                                                    owned: false,
-                                                                                    ty: Path {
-                                                                                        segments: [
-                                                                                            "string",
-                                                                                        ],
-                                                                                        span: Span {
-                                                                                            start: 1453,
-                                                                                            end: 1459,
+                                                                                    ty: Some(
+                                                                                        Path {
+                                                                                            segments: [
+                                                                                                "string",
+                                                                                            ],
+                                                                                            span: Span {
+                                                                                                start: 1453,
+                                                                                                end: 1459,
+                                                                                            },
                                                                                         },
-                                                                                    },
+                                                                                    ),
                                                                                     span: Span {
                                                                                         start: 1450,
                                                                                         end: 1459,
@@ -1148,18 +1149,9 @@ Module {
                                                                 name: "on_change",
                                                                 value: Lambda {
                                                                     params: [
-                                                                        Param {
+                                                                        LambdaParam {
                                                                             name: "event",
-                                                                            owned: false,
-                                                                            ty: Path {
-                                                                                segments: [
-                                                                                    "unknown",
-                                                                                ],
-                                                                                span: Span {
-                                                                                    start: 1980,
-                                                                                    end: 1985,
-                                                                                },
-                                                                            },
+                                                                            ty: None,
                                                                             span: Span {
                                                                                 start: 1980,
                                                                                 end: 1985,

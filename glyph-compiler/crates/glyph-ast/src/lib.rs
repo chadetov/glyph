@@ -175,6 +175,22 @@ pub struct Param {
     pub span: Span,
 }
 
+/// A lambda parameter. Unlike a declaration's `Param`, its annotation may be
+/// omitted (`fn(p) { .. }`), and the omission is recorded as `None` rather
+/// than as a type: an omitted annotation means "not typed here", which is a
+/// different thing from a written `unknown`, and every stage reads the two
+/// apart from this field alone. A lambda parameter is never `owned` (D25:
+/// lambdas borrow in v1).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LambdaParam {
+    pub name: Ident,
+    /// The written annotation, or `None` when the parameter has none.
+    pub ty: Option<TypeExpr>,
+    /// From the name to the end of the annotation, or the name alone when
+    /// the annotation is omitted.
+    pub span: Span,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDecl {
     pub name: Ident,
@@ -556,7 +572,7 @@ pub enum Expr {
     /// an optional `async` prefix (`async fn(args) { await ... }`). Anonymous
     /// form per D4; body is a block.
     Lambda {
-        params: Vec<Param>,
+        params: Vec<LambdaParam>,
         return_ty: Option<TypeExpr>,
         body: Block,
         is_async: bool,

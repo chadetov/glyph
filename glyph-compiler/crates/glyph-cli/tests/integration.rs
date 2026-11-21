@@ -20474,7 +20474,7 @@ fn no_text_form_expected() -> Vec<(&'static str, &'static str, &'static str)> {
         (
             "return \"a\" + v",
             "`+` joins an `unknown` to a string, and an `unknown` may hold a record, which has no text form: it prints `[object Object]`",
-            "Say the conversion out loud with `${string.from(v)}`; if `v` may hold a record it still prints `[object Object]`, so `match` it first: `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`.",
+            "Say the conversion out loud with `string.from(v)`; if `v` may hold a record it still prints `[object Object]`, so `match` it first: `match v { is string => \"${v}\", is number => \"${v}\", else => \"?\", }`.",
         ),
         (
             "return fn(p: unknown) -> string { return \"${p}\" }",
@@ -20930,5 +20930,66 @@ fn both_snippets_of_the_unknown_help_compile() {
         if tsc_available() {
             assert!(stderr.contains("tsc --strict passed"), "{stderr}");
         }
+    }
+}
+
+/// Record 139, B1: a `+` chain is judged whole. A `+` result is `Unknown`
+/// until G382, so a pairwise rule missed `u` in both of these. Each is one
+/// E0237 at `u`, with the computed help. A field read in a chain is text, and
+/// a chain whose operands are all `Unknown` is not judged.
+#[test]
+fn a_plus_chain_is_judged_whole() {
+    let text = r#"module main
+
+type User = { name: string, }
+
+pub fn chained(u: User, name: string, n: number) -> string {
+  let a1 = "Hello " + name + ", " + u
+  let a9 = ("a" + name) + u
+  let a5 = "x" + n + u.name
+  return a1 + a9 + a5
+}
+
+pub fn untyped(a: number, c: number) -> string {
+  let x = (a * c) + (a - c)
+  return "${x}"
+}
+"#;
+    let got = no_text_form_diagnostics("g385-plus-chain", text);
+    let message = "`+` joins a `User` to a string, and a record has no text form: it prints `[object Object]`";
+    let help = "Join a field, such as `u.name`.";
+    assert_eq!(
+        got,
+        vec![
+            ("let a1 = \"Hello \" + name + \", \" + u".to_string(), message.to_string(), help.to_string()),
+            ("let a9 = (\"a\" + name) + u".to_string(), message.to_string(), help.to_string()),
+        ],
+        "one E0237 at `u` in each chain, nothing else"
+    );
+}
+
+/// Record 139, B2: beside a `+`, the `unknown` help's call is the operand
+/// itself, `string.from(v)`, and it compiles there under the full check.
+#[test]
+fn the_unknown_help_beside_a_plus_compiles() {
+    let refused = "module main\n\nimport std/string\n\npub fn show(v: unknown) -> string {\n  return \"v: \" + v\n}\n";
+    let got = no_text_form_diagnostics("g385-unknown-plus", refused);
+    assert_eq!(got.len(), 1, "{got:#?}");
+    let help = &got[0].2;
+    let said = help.split('`').nth(1).expect("the first snippet");
+    assert_eq!(said, "string.from(v)", "{help}");
+    let program = refused.replace("\"v: \" + v", &format!("\"v: \" + {said}"));
+    let root = unique_tmp("g385-unknown-plus-applied");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", &program);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        std::ffi::OsStr::new("--no-test"),
+        main.as_os_str(),
+    ]);
+    assert_eq!(code, 0, "the + snippet does not compile:\n{program}\n{stdout}\n{stderr}");
+    if tsc_available() {
+        assert!(stderr.contains("tsc --strict passed"), "{stderr}");
     }
 }

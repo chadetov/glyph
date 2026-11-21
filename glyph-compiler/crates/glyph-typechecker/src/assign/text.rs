@@ -81,19 +81,32 @@ impl Assigner<'_> {
                     }
                 }
             }
-            Expr::Binary {
-                op: BinOp::Add,
-                left,
-                right,
-                ..
-            } => {
-                let left_ty = self.tm.get(left.span()).clone();
-                let right_ty = self.tm.get(right.span()).clone();
-                if self.scalar_of(&left_ty) == Some(Scalar::String) {
-                    self.check_text_operand(right, &Position::Plus);
-                }
-                if self.scalar_of(&right_ty) == Some(Scalar::String) {
-                    self.check_text_operand(left, &Position::Plus);
+            // A `+` chain is judged whole (record 139, B1). A `+` result is
+            // `Unknown` until G382 types it, so judging only the two operands
+            // of each node let `"Hello " + name + ", " + u` through: `u`'s
+            // partner is the untyped `"Hello " + name + ", "`. The chain is
+            // flattened left to right (parentheses leave no node), and when
+            // any operand is a known string every operand is judged; an
+            // `Unknown` one stays unjudged. Each enclosing `+` sees the same
+            // operands again, so an operand already refused is not refused
+            // twice.
+            Expr::Binary { op: BinOp::Add, .. } => {
+                let mut operands = Vec::new();
+                flatten_plus(e, &mut operands);
+                let joins_text = operands.iter().any(|o| {
+                    let ty = self.tm.get(o.span()).clone();
+                    self.scalar_of(&ty) == Some(Scalar::String)
+                });
+                if joins_text {
+                    for o in operands {
+                        let span = o.span();
+                        let refused = self.errors.iter().any(|err| {
+                            matches!(err, TypeError::NoTextForm { span: s, .. } if *s == span)
+                        });
+                        if !refused {
+                            self.check_text_operand(o, &Position::Plus);
+                        }
+                    }
                 }
             }
             Expr::Call { callee, args, .. } => {
@@ -462,12 +475,20 @@ impl Assigner<'_> {
                 let with = string_import
                     .map(|i| format!(" (with `{i}`)"))
                     .unwrap_or_default();
+                // Beside a `+` the call is the operand itself; a `${}` there
+                // would not parse (record 139, B2).
+                let said = |src: &str| match position {
+                    Position::Plus => format!("{string_ns}.from({src})"),
+                    _ => format!("${{{string_ns}.from({src})}}"),
+                };
                 match source {
                     Some(src) if is_plain_name(src) => format!(
-                        "Say the conversion out loud with `${{{string_ns}.from({src})}}`{with}; if `{src}` may hold a record it still prints `[object Object]`, so `match` it first: `match {src} {{ is string => \"${{{src}}}\", is number => \"${{{src}}}\", else => \"?\", }}`."
+                        "Say the conversion out loud with `{}`{with}; if `{src}` may hold a record it still prints `[object Object]`, so `match` it first: `match {src} {{ is string => \"${{{src}}}\", is number => \"${{{src}}}\", else => \"?\", }}`.",
+                        said(src)
                     ),
                     Some(src) => format!(
-                        "Say the conversion out loud with `${{{string_ns}.from({src})}}`{with}; if it may hold a record it still prints `[object Object]`, so bind it with `let` and `match` the name with `is string` and `is number` arms first."
+                        "Say the conversion out loud with `{}`{with}; if it may hold a record it still prints `[object Object]`, so bind it with `let` and `match` the name with `is string` and `is number` arms first.",
+                        said(src)
                     ),
                     None => format!(
                         "Say the conversion out loud with `{string_ns}.from`{with}; if the value may hold a record it still prints `[object Object]`, so bind it with `let` and `match` the name with `is string` and `is number` arms first."
@@ -567,6 +588,22 @@ fn then_use(position: &Position, name: &str) -> String {
         Position::Interpolation => format!("interpolate `${{{name}}}`"),
         Position::Plus => format!("join `{name}`"),
         Position::StringFrom { .. } => format!("use `{name}`, which is already text"),
+    }
+}
+
+/// The operands of a `+` chain, left to right, through any nesting.
+fn flatten_plus<'e>(e: &'e Expr, out: &mut Vec<&'e Expr>) {
+    match e {
+        Expr::Binary {
+            op: BinOp::Add,
+            left,
+            right,
+            ..
+        } => {
+            flatten_plus(left, out);
+            flatten_plus(right, out);
+        }
+        other => out.push(other),
     }
 }
 

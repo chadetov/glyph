@@ -84,7 +84,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
 
     // `std/decimal`'s two constructors. Modeled so a `Decimal` is a type the
     // checker holds rather than `Unknown`: a `Decimal` is an object whose text
-    // is its `to_string()`, and `${d}` prints `[object Object]`, which D51
+    // is its `to_string()`, and `${d}` prints `[object Object]`, which D5y
     // refuses only for a value the checker can see is one. `zero` is a value,
     // not a function, and this table types functions, so it stays `Unknown`.
     if module_key == "std/decimal" {
@@ -536,7 +536,7 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
     let (params, ret): (Vec<FnParam>, Ty) = match field {
         // The one parameter in this module that is `unknown`:
         // `runtime/std/string.ts` declares it `(value: unknown)`. The row
-        // does not decide what may be rendered; D51 does, at the call, by
+        // does not decide what may be rendered; D5y does, at the call, by
         // the rule that judges a `${}` (E0237).
         "from" => (vec![required(Ty::Unknown)], string()),
         // The element type is deliberately left off. `string.join` is where

@@ -2,10 +2,13 @@
 title: Can I serve a web page, or only a JSON API? · Glyph
 description: std/http serves HTML pages, redirects, custom response headers and form posts, not only JSON, with the response headers modeled by the type checker.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/finance/ | &larr; Previous | Can I trust it with money, and with input I don't control?
 next: /answers/interactive-cli/ | Next &rarr; | Can I write a program someone types into?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">17 &middot; Serving the web</p>
       <h1 class="q-title">Can I serve a web page, or only a JSON API?</h1>
@@ -16,27 +19,14 @@ next: /answers/interactive-cli/ | Next &rarr; | Can I write a program someone ty
         all ordinary Glyph. No Express, no hand-written TypeScript shim.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the
-          content type from the body's shape: a string was <code>text/plain</code>, anything else
-          was JSON. That is fine for an API and useless for anything a browser renders. The way
-          out was to write your own server on <code>node:http</code> in a hand-written
-          <code>.ts</code> file, which puts your whole request path outside the type checker.
-          Two missing constructors were costing an entire application boundary.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           This is the router of <code>examples/apps/shortlink/main.glyph</code>, a URL shortener that
           ships in the repo. An HTML form creates a code, a POST answers with a redirect so a
           browser reload never re-posts, and following a code is a 302 to the target:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">shortlink.glyph: an HTML page, a form post, and the 302</span>
+        <div class="code">
+          <span class="cap">shortlink.glyph: an HTML page, a form post, and the 302</span>
 <pre>fn handle_home(req: Request) -&gt; Response {
   return match req.method {
     "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
@@ -66,51 +56,98 @@ async fn main(argv: Array&lt;string&gt;) -&gt; number {
   let outcome = await serve(8138, route)
   return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          The same app was in the repo one release ago at 615 lines, 121 of which were a
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>The same app was in the repo one release ago at 615 lines, 121 of which were a
           hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because
           a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines
-          now and imports nothing outside <code>std</code>. A handler returns
-          <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an
-          <code>Err</code> is reserved for what the app cannot answer, which the server turns into a
-          500. <code>serve</code> stays pending while it listens, so nothing has to keep the process
-          alive by hand and a failed bind comes back as a value.
-        </p>
-      </div>
+          now and imports nothing outside <code>std</code>.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>.
-          Required, not optional: every constructor fills it in, so reading
-          <code>resp.headers</code> never needs an absence check, and the channel cannot be
-          forgotten. <code>with_header(resp, "cache-control", "no-store")</code> returns a new
-          response rather than mutating one, because Glyph has no record-field mutation.
-          The type checker knows all three constructors return a <code>Response</code>, so a
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#a-handler-returns-a-result">A handler returns a Result</a></li>
+          <li><a href="#every-response-carries-headers">Every response carries headers</a></li>
+          <li><a href="#two-details-you-would-otherwise-get-wrong-by-hand">Two details</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the
+        content type from the body's shape: a string was <code>text/plain</code>, anything else
+        was JSON. That is fine for an API and useless for anything a browser renders.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        The way
+        out was to write your own server on <code>node:http</code> in a hand-written
+        <code>.ts</code> file, which puts your whole request path outside the type checker.
+        Two missing constructors were costing an entire application boundary.
+      </p></div>
+
+      <h2 class="ak-h" id="a-handler-returns-a-result">A handler returns a <code>Result</code><a class="ak-anchor" href="#a-handler-returns-a-result" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A handler returns
+        <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an
+        <code>Err</code> is reserved for what the app cannot answer, which the server turns into a
+        500.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>serve</code> stays pending while it listens, so nothing has to keep the process
+        alive by hand and a failed bind comes back as a value.
+      </p></div>
+
+      <h2 class="ak-h" id="every-response-carries-headers">Every response carries headers<a class="ak-anchor" href="#every-response-carries-headers" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>.
+        Required, not optional: every constructor fills it in, so reading
+        <code>resp.headers</code> never needs an absence check, and the channel cannot be
+        forgotten.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>A new response, not a mutation</b><code>with_header(resp, "cache-control", "no-store")</code> returns a new
+          response rather than mutating one, because Glyph has no record-field mutation.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Checked in Glyph</b>The type checker knows all three constructors return a <code>Response</code>, so a
           handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is
-          checked in Glyph, not by <code>tsc</code> on generated output.
-        </p>
-        <p>
-          Two details you would otherwise get wrong by hand. Any character Node refuses to write
+          checked in Glyph, not by <code>tsc</code> on generated output.</li>
+      </ul>
+
+      <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Two details you would otherwise get wrong by hand<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Header values</b>Any character Node refuses to write
           in a header is stripped from the value on the way out, so a <code>location</code> built
           from a query parameter cannot inject a second header or a second response, and an emoji
-          in a shortened URL cannot take the server down. And <code>form(req)</code> decodes
+          in a shortened URL cannot take the server down.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form bodies</b>And <code>form(req)</code> decodes
           <code>+</code> as a space along with percent escapes, the pair that hand-rolled form
           parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for
-          handlers that parse it themselves.
-        </p>
-      </div>
+          handlers that parse it themselves.</li>
+      </ul>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">On the way</h3>
-          <p>Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Response headers on the wire with the content type inferred only when you did not set one</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Request headers, query parameters, path segments, and the raw body on the way in</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The client reports the response headers it received.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Percent encoding is the gap the snippet above shows</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">There is no static-file server and no template engine, and there is no plan for either.</span></span></li>
+          </ul>
+        </section>
       </div>

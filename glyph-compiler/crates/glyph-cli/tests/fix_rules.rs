@@ -749,3 +749,61 @@ fn e0220_names_a_top_level_catch_all_not_one_inside_a_payload() {
     assert!(out.contains("its arm `rest` handles `Empty` now"), "{out}");
     assert_eq!(source_of(&dir), src, "nothing is rewritten");
 }
+
+// ---------------------------------------------------------------------------
+// E0240
+// ---------------------------------------------------------------------------
+
+/// A mutating call written as a bare statement takes the `mut ` D5 asks for
+/// (G380). The result re-checks clean, `glyph fmt --check` leaves it alone,
+/// and a second `glyph fix` changes nothing.
+#[test]
+fn e0240_inserts_mut_before_a_bare_mutating_statement() {
+    let src = "module main\n\n\
+               fn main(argv: Array<string>) -> number {\n  \
+               let xs = [3, 1, 2]\n  \
+               let ones = [1]\n  \
+               xs.push(4)\n  \
+               ones.forEach(fn(x: number) -> void { xs.push(x) })\n  \
+               print(\"${xs.length}\")\n  \
+               return 0\n}\n";
+    let dir = project("e0240-stmt", src);
+    let out = fix(&dir);
+    assert!(out.contains("applied E0240"), "{out}");
+    let fixed = source_of(&dir);
+    assert!(fixed.contains("  mut xs.push(4)\n"), "{fixed}");
+    assert!(fixed.contains("{ mut xs.push(x) }"), "{fixed}");
+    let (code, report) = check(&dir);
+    assert_eq!(code, 0, "{report}");
+    let fmt = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["fmt", "--check", "src"])
+        .output()
+        .expect("run glyph fmt");
+    assert!(fmt.status.success(), "{}", String::from_utf8_lossy(&fmt.stdout));
+    fix(&dir);
+    assert_eq!(source_of(&dir), fixed, "a second fix changes nothing");
+}
+
+/// A mutating call whose value is used, an arm value, a receiver that is not
+/// a place and an E0241 are each declined or untouched: the repair depends
+/// on what the call was for.
+#[test]
+fn e0240_declines_every_shape_but_the_bare_statement() {
+    let src = "module main\n\
+               fn make() -> Array<number> { return [1] }\n\
+               fn main(argv: Array<string>) -> number {\n  \
+               let xs = [3, 1, 2]\n  \
+               let n = xs.pop()\n  \
+               match xs.length > 1 {\n    true => xs.push(1),\n    false => {},\n  }\n  \
+               make().push(1)\n  \
+               mut xs.concat([1])\n  \
+               print(\"${n} ${xs.length}\")\n  \
+               return 0\n}\n";
+    let dir = project("e0240-decline", src);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0240"), "{out}");
+    assert!(!out.contains("applied E0240"), "{out}");
+    assert!(!out.contains("E0241"), "E0241 is never repaired: {out}");
+    assert_eq!(source_of(&dir), src, "nothing is rewritten");
+}

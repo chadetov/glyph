@@ -16,6 +16,12 @@
 //!   declared field within edit distance one of it, and only when there is
 //!   exactly one.
 //!
+//! * **E0240**, a call that changes its receiver written as a bare
+//!   statement, takes the `mut ` D5 asks for (G380). Only that one shape:
+//!   an expression statement whose whole expression is the call, on a
+//!   receiver that is a place. A call whose value is used, or an arm of a
+//!   statement `match`, has a repair that depends on what was meant.
+//!
 //! Neither guesses. Where the compiler does not hold the answer the rule
 //! declines and says why, and the reason reaches the command's output beside
 //! what it did apply.
@@ -256,11 +262,12 @@ fn collect_glyph_files(path: &Path, out: &mut Vec<PathBuf>) {
 
 /// The codes this pass reads. A diagnostic with any other code is left alone.
 ///
-/// `E0210` and `E0220` are repaired when the compiler determines the repair.
+/// `E0210`, `E0220` and `E0240` are repaired when the compiler determines the
+/// repair.
 /// `E0200` is read and never repaired: each one is reported as declined, and
 /// its `missing_variants` is what the `E0220` rule asks to learn whether the
 /// variant it would rename a head to is still free.
-const RULE_CODES: [&str; 3] = ["E0200", "E0210", "E0220"];
+const RULE_CODES: [&str; 4] = ["E0200", "E0210", "E0220", "E0240"];
 
 /// Check the tree, then apply every rule that the resulting diagnostics fully
 /// determine.
@@ -397,6 +404,21 @@ fn fix_one_file(
                     why,
                 }),
             },
+            "E0240" => match plan_e0240(&source, &module, d) {
+                Ok(edit) => {
+                    applied.push(Applied {
+                        code: d.code.clone(),
+                        file: path.to_path_buf(),
+                        what: "wrote `mut` before a call that changes its receiver".to_string(),
+                    });
+                    edits.push(edit);
+                }
+                Err(why) => report.declined.push(Declined {
+                    code: d.code.clone(),
+                    file: path.to_path_buf(),
+                    why,
+                }),
+            },
             "E0200" => report.declined.push(Declined {
                 code: d.code.clone(),
                 file: path.to_path_buf(),
@@ -451,6 +473,93 @@ fn e0200_decline(d: &Diagnostic) -> String {
         "the compiler does not determine what a missing arm should do, so `glyph fix` \
          writes none: {cases}. `glyph check --agent` gives the pattern each case takes."
     )
+}
+
+// ---------------------------------------------------------------------------
+// E0240: `mut ` before a bare statement that changes its receiver
+// ---------------------------------------------------------------------------
+
+/// Insert `mut ` before a call that changes its receiver, when the call is a
+/// whole expression statement on a place (G380, D5).
+///
+/// The diagnostic's range is the call. The rule writes only when the parsed
+/// file holds an expression statement whose expression has exactly that
+/// range, is a method call, and calls it on a place, which is the one shape
+/// where `mut ` is the whole repair. The checker reports the other shapes
+/// under E0240 as well (a value, an arm of a statement `match`, a receiver
+/// that is not a place), and each of those is declined with the reason.
+fn plan_e0240(source: &str, module: &glyph_ast::Module, d: &Diagnostic) -> Result<(u32, u32, String), String> {
+    let (s, e) = range_bytes(source, d).ok_or("the diagnostic's range is not a byte range of this file")?;
+    let mut found = None;
+    for item in &module.items {
+        let body = match item {
+            Decl::Fn(f) => &f.body,
+            Decl::Component(c) => &c.body,
+            Decl::Const(c) => {
+                expr_statement_calls(&c.value, s as u32, e as u32, &mut found);
+                continue;
+            }
+            _ => continue,
+        };
+        block_statement_calls(body, s as u32, e as u32, &mut found);
+    }
+    match found {
+        Some(true) => Ok((s as u32, s as u32, "mut ".to_string())),
+        Some(false) => Err(
+            "the call's receiver is not a name, a field or an index, so `mut ` before it would not keep the change; \
+             bind the value with `let` first"
+                .to_string(),
+        ),
+        None => Err(
+            "the call is not a whole statement (its value is used, or it is an arm of a `match`), so the repair \
+             depends on what it was for; the help names one"
+                .to_string(),
+        ),
+    }
+}
+
+/// Look in `b`, and every block and expression under it, for an expression
+/// statement spanning `[s, e)` that is a method call. `found` is set to
+/// whether its receiver is a place.
+fn block_statement_calls(b: &glyph_ast::Block, s: u32, e: u32, found: &mut Option<bool>) {
+    use glyph_ast::{visit, Expr, Stmt};
+    for stmt in &b.stmts {
+        if let Stmt::Expr(Expr::Call { callee, span, .. }) = stmt {
+            if span.start == s && span.end == e {
+                if let Expr::Member { object, optional: false, .. } = callee.as_ref() {
+                    *found = Some(object.is_place());
+                }
+            }
+        }
+        visit::stmt_exprs(stmt, &mut |x| expr_statement_calls(x, s, e, found));
+        visit::stmt_blocks(stmt, &mut |inner| block_statement_calls(inner, s, e, found));
+    }
+}
+
+/// The blocks inside an expression (lambda bodies, block arms, JSX
+/// attributes and children holding either), searched by
+/// `block_statement_calls`.
+fn expr_statement_calls(x: &glyph_ast::Expr, s: u32, e: u32, found: &mut Option<bool>) {
+    use glyph_ast::{visit, Expr, JsxAttr, JsxChild, JsxElement};
+    fn jsx(el: &JsxElement, s: u32, e: u32, found: &mut Option<bool>) {
+        for a in &el.attrs {
+            if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
+                expr_statement_calls(value, s, e, found);
+            }
+        }
+        for c in &el.children {
+            match c {
+                JsxChild::Element(inner) => jsx(inner, s, e, found),
+                JsxChild::Expr(v) => expr_statement_calls(v, s, e, found),
+                _ => {}
+            }
+        }
+    }
+    if let Expr::Jsx(el) = x {
+        jsx(el, s, e, found);
+    }
+    visit::child_blocks(x, &mut |b| block_statement_calls(b, s, e, found));
+    visit::child_exprs(x, &mut |c| expr_statement_calls(c, s, e, found));
 }
 
 // ---------------------------------------------------------------------------

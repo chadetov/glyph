@@ -2,10 +2,13 @@
 title: Can my agent ask the compiler about a symbol first? · Glyph
 description: glyph_symbol answers in one call: a union's variants, a record's fields, a function's signature, and whether a match over it must be exhaustive.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/impact/ | &larr; Previous | Can the compiler tell me what a change will break before I make it?
 next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the compiler tell my agent how to fix it?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">22 &middot; Ask the compiler</p>
       <h1 class="q-title">Can my agent ask the compiler what a symbol is before it writes code?</h1>
@@ -18,30 +21,8 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
         <code>match</code> over it must be exhaustive.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          An agent asked to handle a new case in a union it didn't declare has to know what the
-          variants carry. Reading the declaration means finding the file first. Symbol search used
-          to give it a name and a byte range, and a variant listing used to give it
-          <code>["Pending", "Paid", "Cancelled"]</code>. From that an agent writes
-          <code>Paid("tx_1")</code>, which is not the shape, and finds out from a diagnostic. The
-          compiler had the payload the whole time. The tool dropped it one line before the reply.
-        </p>
-        <p>
-          That's the pattern the agent surface was built to remove: facts the compiler already
-          computes and memoizes, that no tool hands over. An audit of a three-module project found
-          hover answering two of fourteen positions and every union arriving without its payloads.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>
-          A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>.
-          Asked from <code>main.glyph</code>, which doesn't import it:
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   "entity": "orders::OrderStatus",
@@ -67,31 +48,69 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
     module this project holds, and the compiler parsed and resolved that declaration"
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>.
+          Asked from <code>main.glyph</code>, which doesn't import it.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#absent">Every null says why</a></li>
+          <li><a href="#the-second-question-an-agent-asks">Assignable</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">Dependencies and exports</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">Eleven tools</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        An agent asked to handle a new case in a union it didn't declare has to know what the
+        variants carry. Reading the declaration means finding the file first.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The
+        compiler had the payload the whole time. The tool dropped it one line before the reply.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what symbol search used to return</span></summary><div class="body">
         <p>
-          Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>,
-          <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>,
-          <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null
-          only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never
-          has to guess whether a missing answer means the symbol has none or the tool didn't look.
+          Symbol search used
+          to give it a name and a byte range, and a variant listing used to give it
+          <code>["Pending", "Paid", "Cancelled"]</code>. From that an agent writes
+          <code>Paid("tx_1")</code>, which is not the shape, and finds out from a diagnostic.
+        </p>
+        <p>
+          That's the pattern the agent surface was built to remove: facts the compiler already
+          computes and memoizes, that no tool hands over. An audit of a three-module project found
+          hover answering two of fourteen positions and every union arriving without its payloads.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="absent">Every null says why<a class="ak-anchor" href="#absent" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>,
+        <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>,
+        <code>async</code> and <code>examples</code>. Every one of them is a pair.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A key is null
+        only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never
+        has to guess whether a missing answer means the symbol has none or the tool didn't look.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">an unannotated const</span></summary><div class="body">
+        <p>
           An unannotated <code>const</code> reports no type on that rule: the checker deliberately
           doesn't infer a declaration's type from its initializer, so printing the initializer's
           type would tell a caller that uses of the name are checked against something that checks
           nothing.
         </p>
+      </div></details>
 
-        <h2 class="block-label">The second question an agent asks</h2>
-        <p>
-          Having the shape, the next thing it wants to know is whether the value it holds can go
-          where it's about to put it. <code>glyph_assignable</code> asks the checker's own
-          comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the
-          scope of the file you name, and the verdict says which of three things happened.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">The second question an agent asks<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Having the shape, the next thing it wants to know is whether the value it holds can go
+        where it's about to put it. <code>glyph_assignable</code> asks the checker's own
+        comparison.
+      </p>
       <div class="two-up">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   "verdict": "WILL_FAIL",
@@ -112,7 +131,7 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
             "read_as": "number" }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   "verdict": "COMPATIBLE",
@@ -130,8 +149,12 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the three verdicts, and why not SAFE</span></summary><div class="body">
+        <p>
+          Each side is a <code>module::name</code> or a Glyph type spelling, read in the
+          scope of the file you name, and the verdict says which of three things happened.
+        </p>
         <p>
           The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a
           sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular
@@ -141,19 +164,26 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
           relation underneath compares the returns and says nothing about the parameters. Its
           silence there is not an acceptance, and the tool won't report it as one.
         </p>
+      </div></details>
 
-        <h2 class="block-label">The other direction: what does this depend on, and what does that module give me</h2>
-        <p>
-          <code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">The other direction: what does this depend on, and what does that module give me<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        An agent about to write an import can
+        ask what is on the other side instead of opening the file.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code> answers who uses a symbol.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code>
           is the same tables read from the other end: what one declaration depends on, every
           declaration its own source names, split into <code>CALLS</code>,
           <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and
-          where it sits. <code>glyph_exports</code> answers what a module makes visible to an
+          where it sits.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code> answers what a module makes visible to an
           importer, from the compiler's own export query rather than from a scan: every
           <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as
-          an entry with its identity, kind and signature. An agent about to write an import can
-          ask what is on the other side instead of opening the file.
-        </p>
+          an entry with its identity, kind and signature.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the PROVED bug the mirror caught</span></summary><div class="body">
         <p>
           Building the mirror of a relation is what caught a bug in the original. Every edge
           carries a provenance, and <code>PROVED</code> is meant to say the compiler read both
@@ -162,18 +192,24 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
           now, and since <code>glyph_references</code> and <code>glyph_impact</code> call the same
           function, both were wrong the same way and both are fixed.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Eleven tools, and no client required</h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">Eleven tools, and no client required<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>,
+        <code>glyph_impact</code>, <code>glyph_assignable</code>,
+        <code>glyph_diagnostics</code>, <code>glyph_hover</code>,
+        <code>glyph_definition</code>, <code>glyph_references</code>,
+        <code>glyph_variants</code>, <code>glyph_symbols</code>,
+        <code>glyph_dependencies</code> and <code>glyph_exports</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Each has a
+        <code>glyph query</code> verb taking the same arguments as flags and printing the same
+        JSON, routed through the same entry point a client reaches, so an agent that only runs
+        shell commands asks the same questions.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">diagnostics, and what comes after an edit</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>,
-          <code>glyph_impact</code>, <code>glyph_assignable</code>,
-          <code>glyph_diagnostics</code>, <code>glyph_hover</code>,
-          <code>glyph_definition</code>, <code>glyph_references</code>,
-          <code>glyph_variants</code>, <code>glyph_symbols</code>,
-          <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a
-          <code>glyph query</code> verb taking the same arguments as flags and printing the same
-          JSON, routed through the same entry point a client reaches, so an agent that only runs
-          shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file
+          <code>glyph_diagnostics</code> checks a file
           inside its project and returns the diagnostic <code>glyph check --json</code> prints, from
           the same Rust type, with a test that runs both surfaces on six projects and compares the
           JSON key for key. Full details on the <a href="/mcp/">MCP page</a>.
@@ -185,16 +221,54 @@ next: /answers/repair-protocol/ | Next &rarr; | When the build fails, does the c
           it names, so the shape an agent needs arrives with the error that asked for it. That has
           <a href="/answers/repair-protocol/">a page of its own</a>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Where it stops</h3>
-          <p>No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eleven read tools over MCP, each with a <code>glyph query</code> verb.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The identity reaches the stdlib: <code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Hover answers fourteen of fourteen probed positions</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for.</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code> and <code>glyph_assignable</code> make the same comparison</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Where it stops</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">No tool here writes: no rename, no applied edit.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The write side is <code>glyph fix</code>, and it repairs three things</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Some stdlib exports answer <code>kind: null</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes, and names them in <code>not_run</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

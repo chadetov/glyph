@@ -2,10 +2,13 @@
 title: When a parse fails, do I find out why? · Glyph
 description: A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/early-errors/ | &larr; Previous | Why does Glyph catch what tsc catches, but earlier?
 next: /answers/debugging/ | Next &rarr; | When it breaks in production at 3am, what does on-call see?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">27 &middot; Parse failures</p>
       <h1 class="q-title">When a parse fails, do I find out why?</h1>
@@ -17,44 +20,23 @@ next: /answers/debugging/ | Next &rarr; | When it breaks in production at 3am, w
         back to the line that imposed it.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          A validator that says "this payload is bad" has done half the job. The handler
-          still has to decide: is this a client that forgot a field, or a client that sent
-          a password four characters long? One is a 400, the other is a 422, and if the
-          validator won't say, you end up parsing the same body twice with two different
-          types to recover a bit the validator already had.
-        </p>
-        <p>
-          That is exactly what happened building an auth API in Glyph. A signup with no
-          <code>password</code> key at all came back as <code>weak_password</code>, because
-          absent and too-short produced the same string.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>One type, one constraint:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">signup.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">One type, one constraint:</p>
+        <div class="code">
+          <span class="cap">signup.glyph</span>
 <pre>pub type Password = string where value.length &gt;= 8
 
 pub type Signup = {
   email: string,
   password: Password,
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Four bad payloads, four different answers. Each is one <code>Issue</code>, shown
           as <code>code | path | message</code>:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Signup.parse(...)</span>
+        <div class="code term">
+          <span class="cap">Signup.parse(...)</span>
 <pre><span class="cm">// { "email": "user@example.com" }</span>
 missing     ["password"]  field `password` is required
 
@@ -66,46 +48,81 @@ type        ["email"]     field `email` must be string
 
 <span class="cm">// [1, 2, 3]</span>
 type        []            expected Signup (an object), got an array</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>The second one is the point. <code>value.length &gt;= 8</code> is written once, at
+          the type, and the rejection quotes it verbatim.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">from a 422 body back to the declaration</span></summary><div class="body">
+          <p>
+            Paste that string out of an HTTP
+            422 body into <code>grep</code> and you land on the declaration that produced it.
+            Nobody has to keep a copy of the rule in the error-message layer, which is how
+            the two drift apart.
+          </p>
+        </div></details>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what an array used to do</span></summary><div class="body">
+          <p>
+            The fourth one used to be worse than a bad message. An array is an object to
+            <code>typeof</code>, so a record with no required fields accepted one outright,
+            and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared
+            field, none of them mentioning that you had sent a list.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
-        <p>
-          The second one is the point. <code>value.length &gt;= 8</code> is written once, at
-          the type, and the rejection quotes it verbatim. Paste that string out of an HTTP
-          422 body into <code>grep</code> and you land on the declaration that produced it.
-          Nobody has to keep a copy of the rule in the error-message layer, which is how
-          the two drift apart.
-        </p>
-        <p>
-          The fourth one used to be worse than a bad message. An array is an object to
-          <code>typeof</code>, so a record with no required fields accepted one outright,
-          and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared
-          field, none of them mentioning that you had sent a list.
-        </p>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#nested-types-answer-for-themselves">Nested types</a></li>
+          <li><a href="#the-code-not-the-string">The code, not the string</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Nested types answer for themselves</h2>
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A validator that says "this payload is bad" has done half the job.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        The handler
+        still has to decide: is this a client that forgot a field, or a client that sent
+        a password four characters long? One is a 400, the other is a 422, and if the
+        validator won't say, you end up parsing the same body twice with two different
+        types to recover a bit the validator already had.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">where this came up</span></summary><div class="body">
         <p>
-          A field whose type has its own descriptor is validated by that type's
-          <code>parse</code>, and its issues come back with the field name on the front of
-          the path. So a <code>Password</code> nested two levels down reports
-          <code>["body", "password"]</code> and still carries its own message. You get the
-          location and the reason from the same issue, without re-running anything.
+          That is exactly what happened building an auth API in Glyph. A signup with no
+          <code>password</code> key at all came back as <code>weak_password</code>, because
+          absent and too-short produced the same string.
         </p>
+      </div></details>
 
-        <h2 class="block-label">The code, not the string</h2>
-        <p>
-          <code>Issue</code> carries an optional <code>code</code>:
-          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>,
-          <code>"unexpected"</code>, or <code>"depth"</code>. Branch on that. Matching on message text is the
-          fragility Glyph exists to remove, and the message is for the human reading the
-          response body. <code>"depth"</code> is the answer for a body nested more than
-          1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>):
-          one issue at the field where it happened, where before 0.1.150 the check threw
-          <code>RangeError: Maximum call stack size exceeded</code> and took the handler
-          with it.
-        </p>
-      </div>
+      <h2 class="ak-h" id="nested-types-answer-for-themselves">Nested types answer for themselves<a class="ak-anchor" href="#nested-types-answer-for-themselves" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A field whose type has its own descriptor is validated by that type's
+        <code>parse</code>, and its issues come back with the field name on the front of
+        the path. So a <code>Password</code> nested two levels down reports
+        <code>["body", "password"]</code> and still carries its own message.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="The path a nested issue reports">
+          <li><span>body</span></li>
+          <li><span>password</span></li>
+          <li><span>Password</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>You get the
+          location and the reason from the same issue, without re-running anything.</span></figcaption>
+      </figure>
 
+      <h2 class="ak-h" id="the-code-not-the-string">The code, not the string<a class="ak-anchor" href="#the-code-not-the-string" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Issue</code> carries an optional <code>code</code>:
+        <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>,
+        <code>"unexpected"</code>, or <code>"depth"</code>. Branch on that. Matching on message text is the
+        fragility Glyph exists to remove, and the message is for the human reading the
+        response body.
+      </p>
       <div class="code">
         <span class="cap">A 400/422 split that does not read the message</span>
 <pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
@@ -116,22 +133,49 @@ type        []            expected Signup (an object), got an array</pre>
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>code</code> is optional, so an <code>Issue</code> you build by hand, and
+        every consumer written before it existed, still compiles unchanged.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the <code>"depth"</code> code</span></summary><div class="body">
         <p>
-          <code>code</code> is optional, so an <code>Issue</code> you build by hand, and
-          every consumer written before it existed, still compiles unchanged.
+          <code>"depth"</code> is the answer for a body nested more than
+          1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>):
+          one issue at the field where it happened, where before 0.1.150 the check threw
+          <code>RangeError: Maximum call stack size exceeded</code> and took the handler
+          with it.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, <code>"unexpected"</code> for a key the type does not declare, and <code>"depth"</code> for a value nested more than 1000 deep. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Getting sharper</h3>
-          <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Records and <code>where</code> types report the failing rule, not just the failing field</span><span class="chip code">missing</span><span class="chip code">type</span><span class="chip code">refinement</span><span class="chip code">unexpected</span><span class="chip code">depth</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, <code>"unexpected"</code> for a key the type does not declare, and <code>"depth"</code> for a value nested more than 1000 deep.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A refinement quotes its predicate.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A field whose type has a descriptor delegates to it, so nested issues arrive with the full path.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Optional fields (<code>f?: T</code>) are never reported as missing.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper <span class="count">2</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A field typed by something with no descriptor of its own still gets the flat check and a <code>"type"</code> issue</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A module's own type called <code>Issue</code> is refused at the line that names it</span><span class="chip code">E0110</span><span class="chip since">since 0.1.60</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

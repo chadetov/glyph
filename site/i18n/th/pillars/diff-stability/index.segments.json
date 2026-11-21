@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/diff-stability/index.html",
   "locale": "th",
-  "source_hash": "dda01800844f43a2",
+  "source_hash": "efcaa38e3c37f640",
   "segments": [
     {
       "id": "title",
@@ -59,42 +59,6 @@
       "tr": "การแก้หนึ่งบรรทัดคือ<strong>diff หนึ่งบรรทัด</strong> รูปแบบมาตรฐานเดียว trailing comma และ list ที่อยู่ในบรรทัดเดียวทั้งหมด หรือหนึ่ง element ต่อบรรทัดทั้งหมด ไม่มีการจัดกลุ่มใหม่ การรีวิวจึงแสดงการเปลี่ยนแปลงที่เกิดขึ้น ไม่ใช่ความวุ่นวายรอบๆ"
     },
     {
-      "id": "h-d88b5884",
-      "kind": "html",
-      "en": "Review is reading diffs",
-      "tr": "การรีวิวคือการอ่าน diff"
-    },
-    {
-      "id": "h-199ca7e9",
-      "kind": "html",
-      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency. In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
-      "tr": "แทบทุกอย่างที่เราเชื่อถือเกี่ยวกับการเปลี่ยนแปลง (การรีวิว blame การ revert การ bisect) สร้างบน diff อัตราส่วนสัญญาณต่อสิ่งรบกวนของ diff จึงเป็นสกุลเงินจริง ใน codebase ส่วนใหญ่มันแย่มาก: formatter จัดบรรทัดที่ตัดไว้ใหม่ ตัวเรียง import สลับทั้ง block การเปลี่ยนชื่อแตะ whitespace ของทุกจุดที่เรียก และบรรทัดเดียวที่<em>สำคัญ</em>ก็จมอยู่ในห้าสิบบรรทัดที่ไม่สำคัญ"
-    },
-    {
-      "id": "h-f039c970",
-      "kind": "html",
-      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout gives the model nothing to churn.",
-      "tr": "เอเจนต์ทำให้เรื่องนี้แย่ลงมาก เมื่อได้งานเล็กๆ โมเดลยินดีเขียนทั้งฟังก์ชันหรือทั้งไฟล์ใหม่เพื่อเปลี่ยนสิ่งเดียว เพราะการสร้างใหม่ง่ายกว่าการแก้อย่างแม่นยำสำหรับมัน คนรีวิวต้องมาเทียบ diff ระหว่างของที่เขียนใหม่กับต้นฉบับ และ<em>หวัง</em>ว่าการเปลี่ยนแปลงจริงมีแค่ที่ตั้งใจ Glyph สร้างมาให้ layout ไม่มีอะไรให้โมเดลปั่นป่วน"
-    },
-    {
-      "id": "h-afcfd1de",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
-      "tr": "<span class=\"ex-label\">01</span> layout มาตรฐานเดียว ไม่มีตัวเลือก"
-    },
-    {
-      "id": "h-f8a89d48",
-      "kind": "html",
-      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing. The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
-      "tr": "<code>glyph fmt</code> พิมพ์ทุกไฟล์ใหม่ใน layout ตายตัวแบบเดียว: ย่อหน้าสองช่อง trailing comma ในทุก list ที่มีหลายบรรทัด และ list ที่อยู่ในบรรทัดเดียวขณะที่ยังพอดีใน 100 คอลัมน์ และเป็นหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี เป็นแบบทั้งหมดหรือไม่มีเลย formatter ไม่เคยจัดกลุ่ม element ใหม่ให้เต็มบรรทัด list จึงไม่มีวันอยู่บรรทัดหนึ่งบางส่วนและบรรทัดถัดไปบางส่วน และการเพิ่ม field คือการเพิ่มหนึ่งบรรทัด เพราะมีรูปร่างที่ถูกต้องเพียงแบบเดียว จึงไม่มีอะไรให้เถียงกัน และไม่มีอะไรให้เครื่องมือแอบ \"แก้\" ไปด้วย"
-    },
-    {
-      "id": "h-d74094e1",
-      "kind": "html",
-      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
-      "tr": "เกณฑ์ความกว้างคือต้นทุนของเรื่องนี้ เปลี่ยนชื่อ binding จนการเรียกเกิน 100 คอลัมน์ แล้วการเรียกจะขยายเป็นหนึ่ง argument ต่อบรรทัด: แก้หนึ่ง token ได้ diff สี่บรรทัด สิ่งที่แลกมาคือ layout ขึ้นกับโค้ดและคอลัมน์ที่มันเริ่มเท่านั้น เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้ไบต์ที่ตรงกัน"
-    },
-    {
       "id": "h-79570668",
       "kind": "html",
       "en": "Reflowed style: one change, three touched lines",
@@ -119,6 +83,132 @@
       "tr": "git diff (แบบมาตรฐาน)"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-397463bb",
+      "kind": "html",
+      "en": "<a href=\"#review-is-reading-diffs\">Review is reading diffs</a>",
+      "tr": "<a href=\"#review-is-reading-diffs\">การรีวิวคือการอ่าน diff</a>"
+    },
+    {
+      "id": "h-ce58ab88",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-no-choices\">One canonical layout</a>",
+      "tr": "<a href=\"#one-canonical-layout-no-choices\">layout มาตรฐานแบบเดียว</a>"
+    },
+    {
+      "id": "h-5642172f",
+      "kind": "html",
+      "en": "<a href=\"#order-is-stable-so-history-is-legible\">Stable order</a>",
+      "tr": "<a href=\"#order-is-stable-so-history-is-legible\">ลำดับที่คงที่</a>"
+    },
+    {
+      "id": "h-93c2a791",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-no-import-churn\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-no-import-churn\">ไม่มี barrel file</a>"
+    },
+    {
+      "id": "h-903080aa",
+      "kind": "html",
+      "en": "<a href=\"#generation-is-idempotent-not-a-blob\">Idempotent generation</a>",
+      "tr": "<a href=\"#generation-is-idempotent-not-a-blob\">การ generate ที่ idempotent</a>"
+    },
+    {
+      "id": "h-65de8b4a",
+      "kind": "html",
+      "en": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>",
+      "tr": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">benchmark</a>"
+    },
+    {
+      "id": "h-d88b5884",
+      "kind": "html",
+      "en": "Review is reading diffs",
+      "tr": "การรีวิวคือการอ่าน diff"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-d0dd6080",
+      "kind": "html",
+      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency.",
+      "tr": "แทบทุกอย่างที่เราเชื่อถือเกี่ยวกับการเปลี่ยนแปลง (การรีวิว blame การ revert การ bisect) สร้างบน diff อัตราส่วนสัญญาณต่อสิ่งรบกวนของ diff จึงเป็นสกุลเงินจริง"
+    },
+    {
+      "id": "h-f342f678",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the noise comes from</span>",
+      "tr": "รายละเอียด <span class=\"hint\">สิ่งรบกวนมาจากไหน</span>"
+    },
+    {
+      "id": "h-89489cc0",
+      "kind": "html",
+      "en": "In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
+      "tr": "ใน codebase ส่วนใหญ่มันแย่มาก: formatter จัดบรรทัดที่ตัดไว้ใหม่ ตัวเรียง import สลับทั้ง block การเปลี่ยนชื่อแตะ whitespace ของทุกจุดที่เรียก และบรรทัดเดียวที่<em>สำคัญ</em>ก็จมอยู่ในห้าสิบบรรทัดที่ไม่สำคัญ"
+    },
+    {
+      "id": "h-e3147d32",
+      "kind": "html",
+      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one.",
+      "tr": "เอเจนต์ทำให้เรื่องนี้แย่ลงมาก เมื่อได้งานเล็กๆ โมเดลยินดีเขียนทั้งฟังก์ชันหรือทั้งไฟล์ใหม่เพื่อเปลี่ยนสิ่งเดียว เพราะการสร้างใหม่ง่ายกว่าการแก้อย่างแม่นยำสำหรับมัน คนรีวิวต้องมาเทียบ diff ระหว่างของที่เขียนใหม่กับต้นฉบับ และ<em>หวัง</em>ว่าการเปลี่ยนแปลงจริงมีแค่ที่ตั้งใจ"
+    },
+    {
+      "id": "h-408937d1",
+      "kind": "html",
+      "en": "Glyph is built so that the layout gives the model nothing to churn.",
+      "tr": "Glyph สร้างมาให้ layout ไม่มีอะไรให้โมเดลปั่นป่วน"
+    },
+    {
+      "id": "h-afcfd1de",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
+      "tr": "<span class=\"ex-label\">01</span> layout มาตรฐานเดียว ไม่มีตัวเลือก"
+    },
+    {
+      "id": "h-b77fb19e",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing.",
+      "tr": "<code>glyph fmt</code> พิมพ์ทุกไฟล์ใหม่ใน layout ตายตัวแบบเดียว: ย่อหน้าสองช่อง trailing comma ในทุก list ที่มีหลายบรรทัด และ list ที่อยู่ในบรรทัดเดียวขณะที่ยังพอดีใน 100 คอลัมน์ และเป็นหนึ่ง element ต่อบรรทัดเมื่อไม่พอดี เป็นแบบทั้งหมดหรือไม่มีเลย"
+    },
+    {
+      "id": "h-7b7a954c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no repacking, one legal shape</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ไม่จัดกลุ่มใหม่ มีรูปร่างที่ถูกต้องแบบเดียว</span>"
+    },
+    {
+      "id": "h-138c6b00",
+      "kind": "html",
+      "en": "The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
+      "tr": "formatter ไม่เคยจัดกลุ่ม element ใหม่ให้เต็มบรรทัด list จึงไม่มีวันอยู่บรรทัดหนึ่งบางส่วนและบรรทัดถัดไปบางส่วน และการเพิ่ม field คือการเพิ่มหนึ่งบรรทัด เพราะมีรูปร่างที่ถูกต้องเพียงแบบเดียว จึงไม่มีอะไรให้เถียงกัน และไม่มีอะไรให้เครื่องมือแอบ \"แก้\" ไปด้วย"
+    },
+    {
+      "id": "h-d74094e1",
+      "kind": "html",
+      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
+      "tr": "เกณฑ์ความกว้างคือต้นทุนของเรื่องนี้ เปลี่ยนชื่อ binding จนการเรียกเกิน 100 คอลัมน์ แล้วการเรียกจะขยายเป็นหนึ่ง argument ต่อบรรทัด: แก้หนึ่ง token ได้ diff สี่บรรทัด สิ่งที่แลกมาคือ layout ขึ้นกับโค้ดและคอลัมน์ที่มันเริ่มเท่านั้น เอเจนต์สองตัวที่แก้ไฟล์เดียวกันจึงได้ไบต์ที่ตรงกัน"
+    },
+    {
       "id": "h-90e0d667",
       "kind": "html",
       "en": "The trailing comma is doing quiet work: because the last element already ends in a comma, adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.",
@@ -131,10 +221,16 @@
       "tr": "<span class=\"ex-label\">02</span> ลำดับคงที่ ประวัติจึงอ่านได้"
     },
     {
-      "id": "h-caf8f67b",
+      "id": "h-71cbcedc",
       "kind": "html",
-      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours. <code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
-      "tr": "หนึ่ง element ต่อบรรทัดหมายความว่าการสลับลำดับ แทรก หรือลบรายการ แตะเฉพาะบรรทัดของรายการนั้น ไม่เคยแตะเพื่อนข้างเคียง <code>git blame</code> ยังมีความหมาย: commit ล่าสุดที่แตะแต่ละบรรทัดคือ commit ที่เปลี่ยน element <em>นั้น</em>จริง ไม่ใช่รอบจัดรูปแบบที่บังเอิญจัดแถวที่มันอยู่ร่วมใหม่"
+      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours.",
+      "tr": "หนึ่ง element ต่อบรรทัดหมายความว่าการสลับลำดับ แทรก หรือลบรายการ แตะเฉพาะบรรทัดของรายการนั้น ไม่เคยแตะเพื่อนข้างเคียง"
+    },
+    {
+      "id": "h-59fb6fdf",
+      "kind": "html",
+      "en": "<code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
+      "tr": "<code>git blame</code> ยังมีความหมาย: commit ล่าสุดที่แตะแต่ละบรรทัดคือ commit ที่เปลี่ยน element <em>นั้น</em>จริง ไม่ใช่รอบจัดรูปแบบที่บังเอิญจัดแถวที่มันอยู่ร่วมใหม่"
     },
     {
       "id": "h-bfb2f0bd",
@@ -155,16 +251,22 @@
       "tr": "<span class=\"ex-label\">04</span> การ generate ให้ผลเท่าเดิมเมื่อรันซ้ำ ไม่ใช่ก้อนทึบ"
     },
     {
-      "id": "h-c4bbd5c2",
+      "id": "h-6837705f",
       "kind": "html",
-      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file. And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
-      "tr": "วินัยเดียวกันขยายไปถึงโค้ดที่ generate <code>glyph gen</code> และ <code>glyph regen</code> พิมพ์ output ใหม่ผ่าน formatter มาตรฐาน การ generate ใหม่หลังสเปกเปลี่ยนจึงได้ diff ที่<em>เล็กที่สุด</em>ซึ่งรีวิวได้จริง เปลี่ยนไม่กี่บรรทัด ไม่ใช่แทนที่ไฟล์ที่เครื่องเขียนทั้งไฟล์ และทุก <code>.ts</code> ที่ emit มี source map มาด้วย แม้แต่ output ที่คอมไพล์แล้วก็ไล่กลับไปยังบรรทัดที่คุณแก้ได้สะอาด"
+      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file.",
+      "tr": "วินัยเดียวกันขยายไปถึงโค้ดที่ generate <code>glyph gen</code> และ <code>glyph regen</code> พิมพ์ output ใหม่ผ่าน formatter มาตรฐาน การ generate ใหม่หลังสเปกเปลี่ยนจึงได้ diff ที่<em>เล็กที่สุด</em>ซึ่งรีวิวได้จริง เปลี่ยนไม่กี่บรรทัด ไม่ใช่แทนที่ไฟล์ที่เครื่องเขียนทั้งไฟล์"
     },
     {
       "id": "h-e4efdc9c",
       "kind": "html",
       "en": "a field added to the spec &rarr; the regenerated diff",
       "tr": "เพิ่ม field ในสเปก &rarr; diff ที่ generate ใหม่"
+    },
+    {
+      "id": "h-8d821d14",
+      "kind": "html",
+      "en": "And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
+      "tr": "และทุก <code>.ts</code> ที่ emit มี source map มาด้วย แม้แต่ output ที่คอมไพล์แล้วก็ไล่กลับไปยังบรรทัดที่คุณแก้ได้สะอาด"
     },
     {
       "id": "h-91e761f8",
@@ -179,22 +281,22 @@
       "tr": "สำหรับการจัดรูปแบบส่วนใหญ่ ทำได้ Prettier ที่ตั้ง <code>trailingComma: \"all\"</code> ใส่ comma ให้ element สุดท้าย และพิมพ์ list ยาวเป็นหนึ่งตัวต่อบรรทัด ซึ่งได้ส่วนใหญ่ของหัวข้อ 01 แล้ว ความต่างอยู่สามที่"
     },
     {
-      "id": "h-abb494fb",
+      "id": "h-d78411aa",
       "kind": "html",
-      "en": "<strong>The layout depends only on the code.</strong> Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
-      "tr": "<strong>layout ขึ้นกับโค้ดเท่านั้น</strong> Prettier คง object literal ไว้แบบขยายถ้าคนเขียนขึ้นบรรทัดใหม่หลัง <code>{</code> และยุบมันถ้าไม่ได้ขึ้น object เดียวกันจึงพิมพ์ได้สองแบบขึ้นกับว่าพิมพ์มาแบบไหนตอนแรก เอเจนต์สองตัวที่เขียนสิ่งเดียวกันได้สอง layout และการแก้ครั้งถัดไปของตัวใดตัวหนึ่งจะโผล่เป็นการจัดบรรทัดใหม่ <code>glyph fmt</code> พิมพ์ <code>{ a: 1, b: 2 }</code> แบบเดียวกันไม่ว่า input จะถูกตัดบรรทัดอย่างไร"
+      "en": "<b>The layout depends only on the code.</b>Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
+      "tr": "<b>layout ขึ้นกับโค้ดเท่านั้น</b>Prettier คง object literal ไว้แบบขยายถ้าคนเขียนขึ้นบรรทัดใหม่หลัง <code>{</code> และยุบมันถ้าไม่ได้ขึ้น object เดียวกันจึงพิมพ์ได้สองแบบขึ้นกับว่าพิมพ์มาแบบไหนตอนแรก เอเจนต์สองตัวที่เขียนสิ่งเดียวกันได้สอง layout และการแก้ครั้งถัดไปของตัวใดตัวหนึ่งจะโผล่เป็นการจัดบรรทัดใหม่ <code>glyph fmt</code> พิมพ์ <code>{ a: 1, b: 2 }</code> แบบเดียวกันไม่ว่า input จะถูกตัดบรรทัดอย่างไร"
     },
     {
-      "id": "h-2b89c0b6",
+      "id": "h-cadbc396",
       "kind": "html",
-      "en": "<strong>There is nothing to configure.</strong> Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
-      "tr": "<strong>ไม่มีอะไรให้ตั้งค่า</strong> output ของ Prettier เป็นไปตามไฟล์ config ของ repository และบาง repository ก็ไม่มี เอเจนต์ที่ย้ายไปมาระหว่างโปรเจกต์ TypeScript จะเจอ layout ต่างกันในแต่ละที่ ไฟล์ Glyph มี layout เดียวกันในทุกโปรเจกต์ เพราะ formatter ไม่มีตัวเลือก"
+      "en": "<b>There is nothing to configure.</b>Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
+      "tr": "<b>ไม่มีอะไรให้ตั้งค่า</b>output ของ Prettier เป็นไปตามไฟล์ config ของ repository และบาง repository ก็ไม่มี เอเจนต์ที่ย้ายไปมาระหว่างโปรเจกต์ TypeScript จะเจอ layout ต่างกันในแต่ละที่ ไฟล์ Glyph มี layout เดียวกันในทุกโปรเจกต์ เพราะ formatter ไม่มีตัวเลือก"
     },
     {
-      "id": "h-68832179",
+      "id": "h-45adf37f",
       "kind": "html",
-      "en": "<strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
-      "tr": "<strong>formatter เปลี่ยนความหมายของไฟล์ไม่ได้</strong> <code>glyph fmt</code> ถูกทดสอบโดย parse output ของตัวเองแล้วเทียบ syntax tree กับของ input บนทุกตัวอย่างใน repository และภายใต้ fuzzer เมื่อ comment อยู่ในที่ที่ layout ไม่มีบรรทัดให้ มันจะปฏิเสธไฟล์ (<code>E0500</code>) แทนที่จะย้าย comment ไปอยู่ข้างโค้ดที่มันไม่ได้อธิบาย"
+      "en": "<b>The formatter can't change what a file says.</b><code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
+      "tr": "<b>formatter เปลี่ยนความหมายของไฟล์ไม่ได้</b><code>glyph fmt</code> ถูกทดสอบโดย parse output ของตัวเองแล้วเทียบ syntax tree กับของ input บนทุกตัวอย่างใน repository และภายใต้ fuzzer เมื่อ comment อยู่ในที่ที่ layout ไม่มีบรรทัดให้ มันจะปฏิเสธไฟล์ (<code>E0500</code>) แทนที่จะย้าย comment ไปอยู่ข้างโค้ดที่มันไม่ได้อธิบาย"
     },
     {
       "id": "h-759bd893",
@@ -215,10 +317,16 @@
       "tr": "benchmark: กำลังมา"
     },
     {
-      "id": "h-2ef42aea",
+      "id": "h-6219861d",
       "kind": "html",
-      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
-      "tr": "ตัวเลขที่จับเรื่องนี้ได้คือขนาดของ diff ต่อการเปลี่ยนแปลงเชิงตรรกะหนึ่งครั้ง: มีกี่บรรทัดที่ขยับเมื่อคุณแก้ตามที่ตั้งใจหนึ่งครั้ง ใน Glyph เทียบกับการเปลี่ยนแปลง TypeScript ที่เทียบเท่าซึ่งผ่าน formatter ทั่วไป Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีประวัติจริงให้ดึงมา"
+      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter.",
+      "tr": "ตัวเลขที่จับเรื่องนี้ได้คือขนาดของ diff ต่อการเปลี่ยนแปลงเชิงตรรกะหนึ่งครั้ง: มีกี่บรรทัดที่ขยับเมื่อคุณแก้ตามที่ตั้งใจหนึ่งครั้ง ใน Glyph เทียบกับการเปลี่ยนแปลง TypeScript ที่เทียบเท่าซึ่งผ่าน formatter ทั่วไป"
+    },
+    {
+      "id": "h-4f7ab29f",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
+      "tr": "Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีประวัติจริงให้ดึงมา"
     },
     {
       "id": "h-2f2e8c1d",

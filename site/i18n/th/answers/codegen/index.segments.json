@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/codegen/index.html",
   "locale": "th",
-  "source_hash": "6bd6413e23269b0f",
+  "source_hash": "1458da457ddd2481",
   "segments": [
     {
       "id": "title",
@@ -59,34 +59,118 @@
       "tr": "ได้ ชี้ <code>glyph gen openapi</code> ไปที่สเปก OpenAPI: <code>--client</code> emit HTTP client ที่มี type หนึ่งฟังก์ชันต่อหนึ่ง operation ส่วน <code>--handlers</code> emit server stub และ dispatcher <code>route</code> ที่ใช้งานได้ ถ้าแหล่งความจริงของคุณคือ schema ของ <code>zod</code> <code>glyph gen zod</code> ก็ทำแบบเดียวกัน ทุกอย่างออกมาเป็น<strong>Glyph ที่ commit ได้และ grep หาได้</strong> ซึ่งคุณเป็นเจ้าของและแก้ได้ ไม่ใช่ขั้นตอน codegen ที่ซ่อนอยู่"
     },
     {
+      "id": "h-48772a26",
+      "kind": "html",
+      "en": "<span>See it: the client. Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>.</span>",
+      "tr": "<span>ดูของจริง: client แต่ละ operation กลายเป็น <code>async fn</code> ที่มี path parameter และ request body แบบมี type และคืนค่าเป็น HTTP <code>Response</code></span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-58489e97",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why generate</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมต้อง generate</a>"
+    },
+    {
+      "id": "h-cbb668d9",
+      "kind": "html",
+      "en": "<a href=\"#the-handlers-router\">The server router</a>",
+      "tr": "<a href=\"#the-handlers-router\">router ฝั่ง server</a>"
+    },
+    {
+      "id": "h-e1eb6c30",
+      "kind": "html",
+      "en": "<a href=\"#from-a-zod-schema-instead\">From a zod schema</a>",
+      "tr": "<a href=\"#from-a-zod-schema-instead\">จาก schema ของ zod</a>"
+    },
+    {
+      "id": "h-754db10a",
+      "kind": "html",
+      "en": "<a href=\"#what-it-maps\">What it maps</a>",
+      "tr": "<a href=\"#what-it-maps\">สิ่งที่มัน map</a>"
+    },
+    {
+      "id": "h-94b5051a",
+      "kind": "html",
+      "en": "<a href=\"#keeping-it-in-sync\">Keeping it in sync</a>",
+      "tr": "<a href=\"#keeping-it-in-sync\">การรักษาให้ตรงกัน</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "ทำไมเรื่องนี้สำคัญ"
     },
     {
-      "id": "h-6e5bdb9e",
-      "kind": "html",
-      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
-      "tr": "API client ที่เขียนเองและ DTO ของมันเพี้ยนไปจากสเปก และความเพี้ยนนั้นเป็นบั๊กประเภทที่ไม่มีใครชอบ เพราะ Glyph generate โค้ด<em>จริง</em> (ฟังก์ชันที่มี type, declaration <code>type</code> จริงพร้อม runtime descriptor) สเปกจึงยังเป็นแหล่งความจริง และการ generate ใหม่คือ diff ที่ให้ผลเท่าเดิมเมื่อรันซ้ำและรีวิวได้ ไม่ใช่กล่องดำ"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
     },
     {
-      "id": "h-a484bd7e",
+      "id": "h-b56e391d",
       "kind": "html",
-      "en": "See it: the client",
-      "tr": "ดูของจริง: client"
+      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys.",
+      "tr": "API client ที่เขียนเองและ DTO ของมันเพี้ยนไปจากสเปก และความเพี้ยนนั้นเป็นบั๊กประเภทที่ไม่มีใครชอบ"
     },
     {
-      "id": "h-009373ae",
+      "id": "h-6b7dbfe2",
       "kind": "html",
-      "en": "Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>:",
-      "tr": "แต่ละ operation กลายเป็น <code>async fn</code> ที่มี path parameter และ request body แบบมี type และคืนค่าเป็น HTTP <code>Response</code>:"
+      "en": "Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
+      "tr": "เพราะ Glyph generate โค้ด<em>จริง</em> (ฟังก์ชันที่มี type, declaration <code>type</code> จริงพร้อม runtime descriptor) สเปกจึงยังเป็นแหล่งความจริง และการ generate ใหม่คือ diff ที่ให้ผลเท่าเดิมเมื่อรันซ้ำและรีวิวได้ ไม่ใช่กล่องดำ"
     },
     {
-      "id": "h-e40c10b9",
+      "id": "h-b367bcb9",
       "kind": "html",
-      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
-      "tr": "router ของ <code>--handlers</code> match path ด้วย array pattern <code>/tasks/{id}</code> จึงกลายเป็น <code>[\"tasks\", id]</code> และ bind parameter ให้คุณ stub แต่ละตัวเริ่มเป็น <code>501</code> พร้อม comment ที่แสดงการ parse body คุณเติมให้ครบแล้วผูกด้วย <code>await serve(PORT, route)</code>"
+      "en": "The <code>--handlers</code> router",
+      "tr": "router ของ <code>--handlers</code>"
+    },
+    {
+      "id": "h-284ded24",
+      "kind": "html",
+      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you.",
+      "tr": "router ของ <code>--handlers</code> match path ด้วย array pattern <code>/tasks/{id}</code> จึงกลายเป็น <code>[\"tasks\", id]</code> และ bind parameter ให้คุณ"
+    },
+    {
+      "id": "a-43688790",
+      "kind": "attr:aria-label",
+      "en": "How a path reaches a handler",
+      "tr": "path ไปถึง handler อย่างไร"
+    },
+    {
+      "id": "h-0350fae7",
+      "kind": "html",
+      "en": "<span>[\"tasks\", id]</span>",
+      "tr": "<span>[\"tasks\", id]</span>"
+    },
+    {
+      "id": "h-5e8779d7",
+      "kind": "html",
+      "en": "<span>getTask(req, id)</span>",
+      "tr": "<span>getTask(req, id)</span>"
+    },
+    {
+      "id": "h-3c7f5f99",
+      "kind": "html",
+      "en": "Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
+      "tr": "stub แต่ละตัวเริ่มเป็น <code>501</code> พร้อม comment ที่แสดงการ parse body คุณเติมให้ครบแล้วผูกด้วย <code>await serve(PORT, route)</code>"
     },
     {
       "id": "h-06875f94",
@@ -101,16 +185,52 @@
       "tr": "ถ้าทีมของคุณนิยามรูปร่างด้วย <code>zod</code> อยู่แล้ว ก็ generate จากตรงนั้นได้เลย schema จะกลายเป็น type ของ Glyph เต็มตัวพร้อม descriptor ของตัวเอง:"
     },
     {
-      "id": "h-e545951d",
+      "id": "h-a9d87f56",
       "kind": "html",
-      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
-      "tr": "<strong>discriminated union</strong> แบบ polymorphic (<code>discriminator</code> ของ OpenAPI) ออกมาเป็น tagged union ของ Glyph จริงๆ บวกกับ <code>parse_&lt;Name&gt;</code> ที่ generate ขึ้นมาเพื่ออ่าน property ที่เป็น discriminator และ validate เข้า variant ที่ถูกต้อง เพราะ Glyph ใช้ชื่อ constructor เป็น tag ไม่ใช่ property ใดก็ได้ dispatcher ที่ generate จึงเชื่อม object จาก wire เข้ากับ union ให้คุณ"
+      "en": "What it maps",
+      "tr": "สิ่งที่มัน map"
     },
     {
-      "id": "h-b5ade80b",
+      "id": "h-ad738665",
       "kind": "html",
-      "en": "Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
-      "tr": "จุดที่ยังไม่พอ: การ generate ซื่อตรงต่อข้อมูลบน wire จึง map ส่วนที่พบบ่อย 80%: object, primitive, array, reference, field ที่ไม่บังคับและ nullable และ discriminated union สิ่งที่มันแทนได้ไม่ตรงทั้งหมด (string enum, union ที่<em>ไม่มี</em> discriminator) จะถูกทำให้แคบลงพร้อมพิมพ์หมายเหตุ แทนที่จะสร้าง validator ที่ปฏิเสธข้อมูลจริง enum ที่ละเอียดกว่านี้คือสิ่งถัดไป และเครื่องมือมี dependency จริง: <code>gen dts</code>/<code>gen zod</code> ต้องใช้ Node และ <code>typescript</code>/<code>zod</code> <code>gen dts</code> ใช้ได้กับ TypeScript ทุกรุ่น (5, 6 หรือ native port 7.x) โดย resolve จากโปรเจกต์ของคุณก่อน และจะบอกชัดเจนว่าต้องติดตั้งอะไรถ้าขาด"
+      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant.",
+      "tr": "<strong>discriminated union</strong> แบบ polymorphic (<code>discriminator</code> ของ OpenAPI) ออกมาเป็น tagged union ของ Glyph จริงๆ บวกกับ <code>parse_&lt;Name&gt;</code> ที่ generate ขึ้นมาเพื่ออ่าน property ที่เป็น discriminator และ validate เข้า variant ที่ถูกต้อง"
+    },
+    {
+      "id": "h-aba52bb9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a dispatcher is generated</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ทำไมต้อง generate dispatcher</span>"
+    },
+    {
+      "id": "h-becb56b5",
+      "kind": "html",
+      "en": "Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
+      "tr": "เพราะ Glyph ใช้ชื่อ constructor เป็น tag ไม่ใช่ property ใดก็ได้ dispatcher ที่ generate จึงเชื่อม object จาก wire เข้ากับ union ให้คุณ"
+    },
+    {
+      "id": "h-8cf0e63d",
+      "kind": "html",
+      "en": "Where it falls short",
+      "tr": "จุดที่ยังไม่พอ"
+    },
+    {
+      "id": "h-3721ff3d",
+      "kind": "html",
+      "en": "Generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields (kept apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the schema does not require gets <code>?</code>, which takes no <code>null</code>), and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next.",
+      "tr": "การ generate ซื่อตรงต่อข้อมูลบน wire จึง map ส่วนที่พบบ่อย 80%: object, primitive, array, reference, field ที่ไม่บังคับและ nullable (แยกกัน: field ที่ nullable กลายเป็น <code>Nullable&lt;T&gt;</code> และ field ที่ schema ไม่ได้บังคับได้ <code>?</code> ซึ่งไม่รับ <code>null</code>) และ discriminated union สิ่งที่มันแทนได้ไม่ตรงทั้งหมด (string enum, union ที่<em>ไม่มี</em> discriminator) จะถูกทำให้แคบลงพร้อมพิมพ์หมายเหตุ แทนที่จะสร้าง validator ที่ปฏิเสธข้อมูลจริง enum ที่ละเอียดกว่านี้คือสิ่งถัดไป"
+    },
+    {
+      "id": "h-9bac82eb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what the generators need installed</span>",
+      "tr": "รายละเอียด <span class=\"hint\">generator ต้องติดตั้งอะไรบ้าง</span>"
+    },
+    {
+      "id": "h-48a2aab0",
+      "kind": "html",
+      "en": "And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
+      "tr": "และเครื่องมือมี dependency จริง: <code>gen dts</code>/<code>gen zod</code> ต้องใช้ Node และ <code>typescript</code>/<code>zod</code> <code>gen dts</code> ใช้ได้กับ TypeScript ทุกรุ่น (5, 6 หรือ native port 7.x) โดย resolve จากโปรเจกต์ของคุณก่อน และจะบอกชัดเจนว่าต้องติดตั้งอะไรถ้าขาด"
     },
     {
       "id": "h-9d3f5fa1",
@@ -119,10 +239,16 @@
       "tr": "รักษาให้ตรงกัน"
     },
     {
-      "id": "h-c8254899",
+      "id": "h-1cae4884",
       "kind": "html",
-      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
-      "tr": "ทุกไฟล์ที่ generate บันทึกคำสั่งที่สร้างมันไว้ใน header เมื่อสเปกเปลี่ยน คุณไม่ต้องไล่หาว่าต้องรันคำสั่งไหนซ้ำ: <code>glyph regen</code> สแกนหา header เหล่านั้นและรันแต่ละคำสั่งซ้ำ เขียน output ทับ มันให้ผลเท่าเดิมเมื่อรันซ้ำ regen ที่สเปกไม่เปลี่ยนจึงไม่แตะอะไรเลย และใส่ใน pre-commit hook หรือ CI check ที่ fail เมื่อโค้ดที่ commit ไว้เพี้ยนจากสเปกได้ง่าย"
+      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output.",
+      "tr": "ทุกไฟล์ที่ generate บันทึกคำสั่งที่สร้างมันไว้ใน header เมื่อสเปกเปลี่ยน คุณไม่ต้องไล่หาว่าต้องรันคำสั่งไหนซ้ำ: <code>glyph regen</code> สแกนหา header เหล่านั้นและรันแต่ละคำสั่งซ้ำ เขียน output ทับ"
+    },
+    {
+      "id": "h-a851399c",
+      "kind": "html",
+      "en": "It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
+      "tr": "มันให้ผลเท่าเดิมเมื่อรันซ้ำ regen ที่สเปกไม่เปลี่ยนจึงไม่แตะอะไรเลย และใส่ใน pre-commit hook หรือ CI check ที่ fail เมื่อโค้ดที่ commit ไว้เพี้ยนจากสเปกได้ง่าย"
     },
     {
       "id": "h-b55f380c",
@@ -143,10 +269,16 @@
       "tr": "<code>glyph gen openapi</code> (type, <code>--client</code>, <code>--handlers</code> พร้อม router จริง), <code>glyph gen dts</code>, <code>glyph gen zod</code> และ <code>glyph regen</code> สำหรับรีเฟรชทั้งหมดจากต้นทาง: ทุกคำสั่ง emit Glyph ที่ commit ได้ มี descriptor และ generate ใหม่ได้ผลเท่าเดิม"
     },
     {
-      "id": "h-d9d35e28",
+      "id": "h-e97a207e",
       "kind": "html",
-      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
-      "tr": "type สองตัวที่จะถูกเขียนใต้ชื่อ Glyph เดียวกันจะหยุด generator แทนที่จะสร้างไฟล์ที่คอมไพล์ไม่ได้: มันระบุทุกต้นทางที่ชนกัน ไม่เขียนอะไรเลย และ <code>--rename Source=GlyphName</code> แก้ได้ ตัวเลือกนั้นถูกบันทึกไว้ใน header ที่ generate <code>glyph regen</code> จึงเล่นซ้ำได้"
+      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it.",
+      "tr": "type สองตัวที่จะถูกเขียนใต้ชื่อ Glyph เดียวกันจะหยุด generator แทนที่จะสร้างไฟล์ที่คอมไพล์ไม่ได้: มันระบุทุกต้นทางที่ชนกัน ไม่เขียนอะไรเลย และ <code>--rename Source=GlyphName</code> แก้ได้"
+    },
+    {
+      "id": "h-4a14a711",
+      "kind": "html",
+      "en": "That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
+      "tr": "ตัวเลือกนั้นถูกบันทึกไว้ใน header ที่ generate <code>glyph regen</code> จึงเล่นซ้ำได้"
     },
     {
       "id": "h-b63a305d",
@@ -155,10 +287,22 @@
       "tr": "กำลังมา"
     },
     {
-      "id": "h-a232f27a",
+      "id": "h-d6518625",
       "kind": "html",
-      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
-      "tr": "การ map enum ที่ละเอียดขึ้นและการครอบคลุม OpenAPI ที่กว้างขึ้น แต่ละอย่างมาภายใต้กฎเดียวกันคือซื่อตรงต่อ wire และมีหมายเหตุเมื่อทำให้แคบลง การ generate จาก <code>.d.ts</code> ของแพ็กเกจอ่าน declaration <code>interface</code> และ <code>type</code> ของมัน ไลบรารีที่ API เป็น class หรือที่ field ใช้ type ที่คำนวณอย่าง <code>Omit</code> จึงเหลือ reference ที่ generator ระบุไว้ในหมายเหตุ และ <code>glyph build</code> รายงานว่า resolve ไม่ได้ การ import class แบบนั้นแล้วสร้างด้วย <code>new</code> ไม่ต้อง generate และถูกตรวจโดย <code>tsc</code> เส้นทางนั้นจึงไม่ได้รับผลกระทบ"
+      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule.",
+      "tr": "การ map enum ที่ละเอียดขึ้นและการครอบคลุม OpenAPI ที่กว้างขึ้น แต่ละอย่างมาภายใต้กฎเดียวกันคือซื่อตรงต่อ wire และมีหมายเหตุเมื่อทำให้แคบลง"
+    },
+    {
+      "id": "h-006226eb",
+      "kind": "html",
+      "en": "Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved.",
+      "tr": "การ generate จาก <code>.d.ts</code> ของแพ็กเกจอ่าน declaration <code>interface</code> และ <code>type</code> ของมัน ไลบรารีที่ API เป็น class หรือที่ field ใช้ type ที่คำนวณอย่าง <code>Omit</code> จึงเหลือ reference ที่ generator ระบุไว้ในหมายเหตุ และ <code>glyph build</code> รายงานว่า resolve ไม่ได้"
+    },
+    {
+      "id": "h-aee5dd1d",
+      "kind": "html",
+      "en": "Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
+      "tr": "การ import class แบบนั้นแล้วสร้างด้วย <code>new</code> ไม่ต้อง generate และถูกตรวจโดย <code>tsc</code> เส้นทางนั้นจึงไม่ได้รับผลกระทบ"
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 title: นามธรรม · core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน · Glyph
 description: เสาหลักข้อที่สี่ของ Glyph: หนึ่งวิธีต่อหนึ่งแนวคิด pattern matching แทนบันได switch, Result แทน exception, record แทน tuple และ match เป็นเงื่อนไข
-source_hash: 01e075d4f0eca884
+source_hash: 20ee19449bc530dd
 prev: /pillars/greppability/ | &larr; เสาหลักก่อนหน้า | diff ที่คงที่: การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด
 next: /pillars/diff-stability/ | กลับไปที่จุดเริ่มต้น &rarr; | ตรวจสอบได้: จริงตอนรันด้วย
 ---
@@ -12,21 +12,7 @@ next: /pillars/diff-stability/ | กลับไปที่จุดเริ�
         เขียนตามที่ตั้งใจด้วย<strong>core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน</strong>: pattern matching แทนบันได switch, <code>Result</code> แทน exception ที่ throw, record ที่มีชื่อแทน tuple หนึ่งวิธีที่ดีต่อหนึ่งแนวคิด ไม่ใช่ชั้นที่พอกพูนกันมาแบบ TypeScript
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">วิธีพูดเรื่องเดียวกันมีมากเกินไป</h2>
-        <p class="lede">
-          TypeScript โตมาด้วยการพอกพูน และเก็บทุกชั้นไว้ คุณ model ชุด case ที่ตายตัวได้เป็น <code>enum</code>, union ของ string literal หรือ object แบบ <code>const</code> คุณอธิบายรูปร่างได้ด้วย <code>interface</code>, <code>type</code> หรือ <code>class</code> มี <code>namespace</code> และ module, decorator และ higher-order function มีห้า idiom สำหรับแทบทุกอย่าง แต่ละตัวมีกรณีขอบของตัวเอง
-        </p>
-        <p class="lede">
-          สำหรับคน นั่นคือความยืดหยุ่น สำหรับ<strong>เอเจนต์</strong>มันคือทุ่นระเบิด: วิธีแสดงสิ่งหนึ่งที่มากขึ้นหมายถึงโอกาสเลือกตัวที่มีกับดักมากขึ้น และมี idiom ให้จำไม่ให้สับสนมากขึ้น เสาหลักเรื่องนามธรรมของ Glyph คือการลบออกโดยตั้งใจ: เครื่องมือคมหนึ่งชิ้นต่องาน เลือกให้วิธีที่ชัดที่สุดเป็นวิธีที่ปลอดภัยด้วย
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> เป็นเงื่อนไขแบบเดียว</h2>
-        <p>
-          ไม่มี statement <code>if</code>/<code>else</code> การแตก branch คือ <code>match</code> ทุกที่ และ <code>match</code> เป็น expression: มันให้ค่า construct เดียวครอบคลุมการทดสอบ boolean การ dispatch ตาม union และตารางค่า จึงไม่ต้องตัดสินใจว่าจะใช้รูปแบบการแตก branch <em>แบบไหน</em>
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: เป็น statement ไม่ใช่ค่า</span>
@@ -48,14 +34,47 @@ else label = "C";</pre>
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">02</span> tagged union และ pattern matching</h2>
-        <p>
-          วิธี model "หนึ่งในรูปร่างเหล่านี้" คือ tagged union และวิธีแยกมันออกคือ <code>match</code> ซึ่ง destructure payload ในขั้นเดียวกับที่เลือก case ไม่มี field discriminant ให้ดูแลเอง ไม่มีบันได <code>switch</code> บน tag ที่เป็น string ไม่มี cast ในแต่ละ branch เพื่อกู้รูปร่างคืน
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">วิธีที่มากเกินไป</a></li>
+          <li><a href="#match-is-the-only-conditional"><code>match</code> เป็นเงื่อนไข</a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">tagged union</a></li>
+          <li><a href="#result-over-exceptions"><code>Result</code> แทน exception</a></li>
+          <li><a href="#named-records-over-positional-tuples">record ที่มีชื่อ</a></li>
+          <li><a href="#one-primitive-per-job">หนึ่ง primitive ต่องาน</a></li>
+          <li><a href="#the-benchmark-coming">benchmark</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">วิธีพูดเรื่องเดียวกันมีมากเกินไป<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript โตมาด้วยการพอกพูน และเก็บทุกชั้นไว้
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>ชุด case ที่ตายตัว</b>คุณ model ชุด case ที่ตายตัวได้เป็น <code>enum</code>, union ของ string literal หรือ object แบบ <code>const</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>รูปร่าง</b>คุณอธิบายรูปร่างได้ด้วย <code>interface</code>, <code>type</code> หรือ <code>class</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>ที่เหลือทั้งหมด</b>มี <code>namespace</code> และ module, decorator และ higher-order function มีห้า idiom สำหรับแทบทุกอย่าง แต่ละตัวมีกรณีขอบของตัวเอง</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          สำหรับคน นั่นคือความยืดหยุ่น สำหรับ<strong>เอเจนต์</strong>มันคือทุ่นระเบิด: วิธีแสดงสิ่งหนึ่งที่มากขึ้นหมายถึงโอกาสเลือกตัวที่มีกับดักมากขึ้น และมี idiom ให้จำไม่ให้สับสนมากขึ้น
+      </p></div>
+      <p class="ak-lede">
+          เสาหลักเรื่องนามธรรมของ Glyph คือการลบออกโดยตั้งใจ: เครื่องมือคมหนึ่งชิ้นต่องาน เลือกให้วิธีที่ชัดที่สุดเป็นวิธีที่ปลอดภัยด้วย
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> เป็นเงื่อนไขแบบเดียว<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ไม่มี statement <code>if</code>/<code>else</code> การแตก branch คือ <code>match</code> ทุกที่ และ <code>match</code> เป็น expression: มันให้ค่า
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>construct เดียวครอบคลุมการทดสอบ boolean การ dispatch ตาม union และตารางค่า จึงไม่ต้องตัดสินใจว่าจะใช้รูปแบบการแตก branch <em>แบบไหน</em></p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> tagged union และ pattern matching<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          วิธี model "หนึ่งในรูปร่างเหล่านี้" คือ tagged union และวิธีแยกมันออกคือ <code>match</code> ซึ่ง destructure payload ในขั้นเดียวกับที่เลือก case
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre>type Feed =
@@ -71,19 +90,22 @@ fn view(feed: Feed) -&gt; string {
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> แทน exception</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่คุณไม่ต้องเขียนเองอีกต่อไป</span></summary><div class="body">
         <p>
-          ความล้มเหลวเป็นค่า ไม่ใช่การกระโดดของ control flow ที่ซ่อนอยู่ ฟังก์ชันที่อาจล้มเหลวบอกไว้ใน return type (<code>Result&lt;T, E&gt;</code>) และคุณประกอบความล้มเหลวด้วย operator <code>?</code> แทนที่จะครอบจุดเรียกด้วย <code>try</code>/<code>catch</code> แล้วหวังว่าสิ่งที่ถูกจะ throw class ที่ถูก เส้นทาง error มองเห็นได้เท่ากับเส้นทางปกติ
+          ไม่มี field discriminant ให้ดูแลเอง ไม่มีบันได <code>switch</code> บน tag ที่เป็น string ไม่มี cast ในแต่ละ branch เพื่อกู้รูปร่างคืน
         </p>
+      </div></details>
 
-        <h2 class="block-label"><span class="ex-label">04</span> record ที่มีชื่อแทน tuple ตามตำแหน่ง</h2>
-        <p>
-          ข้อมูลอธิบายด้วย field ที่มีชื่อเสมอ ไม่มี object-literal shorthand และไม่มีการหยิบ tuple นิรนามที่คุณต้องจำว่า <code>[0]</code> และ <code>[1]</code> คืออะไร รูปร่างอ่านเหมือนกันทั้งที่นิยาม ที่สร้าง และที่ใช้
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> แทน exception<a class="ak-anchor" href="#result-over-exceptions" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ความล้มเหลวเป็นค่า ไม่ใช่การกระโดดของ control flow ที่ซ่อนอยู่ ฟังก์ชันที่อาจล้มเหลวบอกไว้ใน return type (<code>Result&lt;T, E&gt;</code>) และคุณประกอบความล้มเหลวด้วย operator <code>?</code> แทนที่จะครอบจุดเรียกด้วย <code>try</code>/<code>catch</code> แล้วหวังว่าสิ่งที่ถูกจะ throw class ที่ถูก
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เส้นทาง error มองเห็นได้เท่ากับเส้นทางปกติ</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> record ที่มีชื่อแทน tuple ตามตำแหน่ง<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          ข้อมูลอธิบายด้วย field ที่มีชื่อเสมอ รูปร่างอ่านเหมือนกันทั้งที่นิยาม ที่สร้าง และที่ใช้
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: [0] กับ [1] คืออะไร?</span>
@@ -104,23 +126,34 @@ fn origin() -&gt; Point {
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> primitive หนึ่งตัวต่องาน</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ไม่มี shorthand ไม่มี tuple นิรนาม</span></summary><div class="body">
         <p>
-          เมื่อแนวคิดหนึ่งต้องมีเครื่องมือของตัวเอง Glyph ให้แค่หนึ่งตัวพอดี state ที่ใช้ร่วมกันและเปลี่ยนค่าได้อยู่ใน <code>std/store</code> handle ของไฟล์หรือ socket ที่ต้องปิดครั้งเดียวคือ resource แบบ <code>owned</code> การวนซ้ำคือ <code>for x in xs</code> แต่ละตัวเป็น primitive เดียวที่มีชื่อและสร้างมาเพื่องานนั้น ไม่ใช่ pattern ที่คุณต้องประกอบใหม่จากชิ้นส่วนทั่วไปแล้วทำผิดแบบแนบเนียน
+          ไม่มี object-literal shorthand และไม่มีการหยิบ tuple นิรนามที่คุณต้องจำว่า <code>[0]</code> และ <code>[1]</code> คืออะไร
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> primitive หนึ่งตัวต่องาน<a class="ak-anchor" href="#one-primitive-per-job" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          เมื่อแนวคิดหนึ่งต้องมีเครื่องมือของตัวเอง Glyph ให้แค่หนึ่งตัวพอดี
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>state ที่ใช้ร่วมกัน</b>state ที่ใช้ร่วมกันและเปลี่ยนค่าได้อยู่ใน <code>std/store</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>handle</b>handle ของไฟล์หรือ socket ที่ต้องปิดครั้งเดียวคือ resource แบบ <code>owned</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>การวนซ้ำ</b>การวนซ้ำคือ <code>for x in xs</code></li>
+      </ul>
+      <p class="ak-lede">
+          แต่ละตัวเป็น primitive เดียวที่มีชื่อและสร้างมาเพื่องานนั้น ไม่ใช่ pattern ที่คุณต้องประกอบใหม่จากชิ้นส่วนทั่วไปแล้วทำผิดแบบแนบเนียน
+      </p>
 
         <p class="pull-quote">
           นามธรรมในที่นี้หมายถึง<strong>เครื่องมือที่น้อยลงและคมขึ้น</strong> ไม่ใช่มากขึ้น ทุกแนวคิดมีรูปแบบที่ชัดเจน และรูปแบบที่ชัดเจนคือรูปแบบที่ตั้งใจให้ใช้
         </p>
 
-        <h2 class="block-label">benchmark: กำลังมา</h2>
-        <p>
-          วิธีวัดเรื่องนี้คือพื้นที่ผิว: คนอ่านต้องถือแนวคิดที่แตกต่างกันกี่อย่างเพื่อเข้าใจโปรแกรม และต้องใช้โค้ดเท่าไรในการแสดงงานทั่วไปอย่างสะอาด Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีโปรแกรมจริงมากพอให้เปรียบเทียบ
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">benchmark: กำลังมา<a class="ak-anchor" href="#the-benchmark-coming" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          วิธีวัดเรื่องนี้คือพื้นที่ผิว: คนอ่านต้องถือแนวคิดที่แตกต่างกันกี่อย่างเพื่อเข้าใจโปรแกรม และต้องใช้โค้ดเท่าไรในการแสดงงานทั่วไปอย่างสะอาด
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีโปรแกรมจริงมากพอให้เปรียบเทียบ</p></div>
       <div class="chart">
         <span class="label">จำนวนแนวคิดที่แตกต่างกันในการอ่าน module ทั่วไป &middot; ยิ่งน้อยยิ่งดี</span>
         <h3>TypeScript เทียบกับ Glyph</h3>
@@ -137,8 +170,6 @@ fn origin() -&gt; Point {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           core ที่เล็กกว่าเรียนรู้ได้ง่ายกว่าสำหรับคน ซึ่งเรียนครั้งเดียว และทำให้ถูกได้ง่ายกว่าสำหรับโมเดลทุกครั้ง นั่นคือชั้นส่วนเสริมทั้งหมดในประโยคเดียว: เอาตัวเลือกที่เพิ่มแค่ความเสี่ยงออกไป แล้วสิ่งที่เหลือคือภาษาที่พูดตามที่หมายถึง
-        </p>
-      </div>
+      </p></div>

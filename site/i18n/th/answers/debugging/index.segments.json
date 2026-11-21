@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/debugging/index.html",
   "locale": "th",
-  "source_hash": "23c0350a6befa9fd",
+  "source_hash": "4049ecaf7d564dbf",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,76 @@
       "tr": "TypeScript ที่อ่านได้และเป็นของคุณ พร้อม<strong>source map ที่ชี้กลับไปยัง <code>.glyph</code></strong>ข้างทุกไฟล์ที่ emit debugger, bundler หรือ error tracker ไล่โค้ดที่กำลังรันกลับไปยังซอร์สของคุณได้ และแม้แต่คนที่ไม่เคยเห็น Glyph ก็อ่าน TS ที่ generate ได้ ก่อนหน้านั้น <code>glyph build</code> และ <code>glyph run</code> รายงาน diagnostic ชุดเดียวกันบน tree เดียวกัน loop ที่เร็วจึงซ่อนสิ่งที่ build จะจับได้ไม่ได้ ข้อจำกัดสองข้อ ซึ่งอยู่บนเส้นทาง <code>glyph run</code> ทั้งคู่ ระบุไว้ด้านล่าง"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-6cd9ee03",
+      "kind": "html",
+      "en": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Readable TypeScript</a>",
+      "tr": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">TypeScript ที่อ่านได้</a>"
+    },
+    {
+      "id": "h-646a3fde",
+      "kind": "html",
+      "en": "<a href=\"#2-source-maps-back-to-glyph\">Source maps</a>",
+      "tr": "<a href=\"#2-source-maps-back-to-glyph\">source map</a>"
+    },
+    {
+      "id": "h-7efdc0b7",
+      "kind": "html",
+      "en": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build and type errors</a>",
+      "tr": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">error จาก build และ type</a>"
+    },
+    {
+      "id": "h-0e83535a",
+      "kind": "html",
+      "en": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run diagnostics</a>",
+      "tr": "<a href=\"#4-glyph-run-tells-you-the-same-things\">diagnostic ของ glyph run</a>"
+    },
+    {
+      "id": "h-1d802df0",
+      "kind": "html",
+      "en": "<a href=\"#two-current-limitations\">Two limitations</a>",
+      "tr": "<a href=\"#two-current-limitations\">ข้อจำกัดสองข้อ</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
       "id": "h-ddc2261b",
       "kind": "html",
       "en": "1 &middot; The generated TypeScript is yours to read",
       "tr": "1 &middot; TypeScript ที่ generate เป็นของคุณ อ่านได้"
     },
     {
-      "id": "h-d332c631",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-14b544d0",
       "kind": "html",
-      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS. So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
-      "tr": "Glyph ไม่ได้ส่ง runtime ที่ทึบแสงมาด้วย มัน emit TypeScript ธรรมดาที่จัดรูปแบบแล้ว ซึ่งคุณ commit และ deploy เหมือน TS ทั่วไป กรณีที่แย่ที่สุด (วิศวกร on-call ที่ไม่รู้จัก Glyph ตอนตีสาม) ก็ยังอ่าน TypeScript ธรรมดา ไม่ใช่ภาษาถิ่น ไม่มีกล่องดำระหว่างซอร์สของคุณกับ production"
+      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS.",
+      "tr": "Glyph ไม่ได้ส่ง runtime ที่ทึบแสงมาด้วย มัน emit TypeScript ธรรมดาที่จัดรูปแบบแล้ว ซึ่งคุณ commit และ deploy เหมือน TS ทั่วไป"
+    },
+    {
+      "id": "h-5e597c9e",
+      "kind": "html",
+      "en": "So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
+      "tr": "กรณีที่แย่ที่สุด (วิศวกร on-call ที่ไม่รู้จัก Glyph ตอนตีสาม) ก็ยังอ่าน TypeScript ธรรมดา ไม่ใช่ภาษาถิ่น ไม่มีกล่องดำระหว่างซอร์สของคุณกับ production"
     },
     {
       "id": "h-a717c0e5",
@@ -77,10 +137,10 @@
       "tr": "2 &middot; source map ที่ชี้กลับไปยัง <code>.glyph</code>"
     },
     {
-      "id": "h-8bb7e6b3",
+      "id": "h-4d19e462",
       "kind": "html",
-      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
-      "tr": "ทุกไฟล์ <code>.ts</code> ที่ emit มี source map มาตรฐาน v3 (<code>.ts.map</code>) อยู่ข้างๆ พร้อม comment <code>sourceMappingURL</code> และซอร์ส Glyph ของคุณฝังอยู่ (<code>sourcesContent</code>) อะไรก็ตามที่ใช้ source map (Chrome DevTools, Node debugger, error tracker อย่าง Sentry, bundler ของคุณ) ไล่ต่อผ่านมันได้และแสดงบรรทัดใน <code>.glyph</code> ไม่ใช่บรรทัดที่ generate"
+      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>).",
+      "tr": "ทุกไฟล์ <code>.ts</code> ที่ emit มี source map มาตรฐาน v3 (<code>.ts.map</code>) อยู่ข้างๆ พร้อม comment <code>sourceMappingURL</code> และซอร์ส Glyph ของคุณฝังอยู่ (<code>sourcesContent</code>)"
     },
     {
       "id": "h-8723e53b",
@@ -89,16 +149,40 @@
       "tr": "dist/main.ts (ส่วนท้าย)"
     },
     {
+      "id": "h-bbc36693",
+      "kind": "html",
+      "en": "Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
+      "tr": "อะไรก็ตามที่ใช้ source map (Chrome DevTools, Node debugger, error tracker อย่าง Sentry, bundler ของคุณ) ไล่ต่อผ่านมันได้และแสดงบรรทัดใน <code>.glyph</code> ไม่ใช่บรรทัดที่ generate"
+    },
+    {
       "id": "h-00ec273b",
       "kind": "html",
       "en": "3 &middot; Build and type errors already point at Glyph",
       "tr": "3 &middot; error ตอน build และ type error ชี้ไปที่ Glyph อยู่แล้ว"
     },
     {
-      "id": "h-a164aaf9",
+      "id": "h-094ec3e0",
       "kind": "html",
-      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved). The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it. And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
-      "tr": "คุณแทบไม่มีทางไปถึง production พร้อม type error เพราะ <code>glyph build</code> รัน <code>tsc --strict</code> และ<strong>map ทุก error ของ <code>tsc</code> กลับไปยังซอร์ส <code>.glyph</code> ของคุณ</strong> (เครื่องหมายชี้ตำแหน่งแบบเดียวกัน และรักษารหัส error ของ TypeScript ไว้) เครื่องหมายชี้อยู่ที่ expression ของ Glyph ที่เล็กที่สุดซึ่งโค้ดของมันถูก <code>tsc</code> ปฏิเสธ: argument ที่ผิดจะขีดเส้นใต้ argument นั้น field ที่สะกดผิดใน event handler ของ JSX จะขีดเส้นใต้การเข้าถึง member นั้น ไม่ใช่ <code>return</code> ทั้งก้อนรอบๆ และ <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง (code, severity, file, line/col เริ่มจาก 1, help) ให้ CI หรือเครื่องมือของคุณนำไปใช้"
+      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and maps every <code>tsc</code> error back onto your <code>.glyph</code> source (same caret, the TypeScript error code preserved).",
+      "tr": "คุณแทบไม่มีทางไปถึง production พร้อม type error เพราะ <code>glyph build</code> รัน <code>tsc --strict</code> และ map ทุก error ของ <code>tsc</code> กลับไปยังซอร์ส <code>.glyph</code> ของคุณ (เครื่องหมายชี้ตำแหน่งแบบเดียวกัน และรักษารหัส error ของ TypeScript ไว้)"
+    },
+    {
+      "id": "h-e0892f4d",
+      "kind": "html",
+      "en": "And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
+      "tr": "และ <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง (code, severity, file, line/col เริ่มจาก 1, help) ให้ CI หรือเครื่องมือของคุณนำไปใช้"
+    },
+    {
+      "id": "h-d5fb5419",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the caret lands</span>",
+      "tr": "รายละเอียด <span class=\"hint\">เครื่องหมายชี้ไปตกที่ไหน</span>"
+    },
+    {
+      "id": "h-82bd0b54",
+      "kind": "html",
+      "en": "The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it.",
+      "tr": "เครื่องหมายชี้อยู่ที่ expression ของ Glyph ที่เล็กที่สุดซึ่งโค้ดของมันถูก <code>tsc</code> ปฏิเสธ: argument ที่ผิดจะขีดเส้นใต้ argument นั้น field ที่สะกดผิดใน event handler ของ JSX จะขีดเส้นใต้การเข้าถึง member นั้น ไม่ใช่ <code>return</code> ทั้งก้อนรอบๆ"
     },
     {
       "id": "h-e0bf31b5",
@@ -107,10 +191,10 @@
       "tr": "4 &middot; <code>glyph run</code> บอกสิ่งเดียวกัน"
     },
     {
-      "id": "h-52859b2b",
+      "id": "h-205f9330",
       "kind": "html",
-      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count. The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
-      "tr": "คำสั่งที่คุณพิมพ์ทั้งวันคือ <code>glyph run</code> และจนถึง 0.1.40 มันเงียบกว่า build มันคอมไพล์ทั้งไดเรกทอรี เอารายการไฟล์ที่ emit ออกจากรายงาน แล้วทิ้ง diagnostic ไป tree ที่ <code>glyph build</code> เตือนจะรันผ่านสะอาดและ exit 0 ตอนนี้มันรายงานชุดเดียวกัน: รวมคำเตือน ทั้งในไฟล์ที่คุณระบุและไฟล์ข้างเคียง หลัง output ของโปรแกรม พร้อมจำนวนหนึ่งบรรทัด cache ของการรันเก็บมันไว้ การรันครั้งที่สองของซอร์สที่ไม่เปลี่ยนจึงบอกสิ่งที่ครั้งแรกบอก แทนที่จะเงียบไป และรายการใน cache ที่ไม่มี diagnostic ถือว่า miss และ build ใหม่"
+      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count.",
+      "tr": "คำสั่งที่คุณพิมพ์ทั้งวันคือ <code>glyph run</code> และจนถึง 0.1.40 มันเงียบกว่า build ตอนนี้มันรายงานชุดเดียวกัน: รวมคำเตือน ทั้งในไฟล์ที่คุณระบุและไฟล์ข้างเคียง หลัง output ของโปรแกรม พร้อมจำนวนหนึ่งบรรทัด"
     },
     {
       "id": "h-136e8e91",
@@ -119,22 +203,64 @@
       "tr": "import ที่ไม่ได้ใช้ เพิ่มเข้ามาก่อนโค้ดที่จะใช้มันหนึ่งขั้น"
     },
     {
+      "id": "h-6172ffe9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the run cache</span>",
+      "tr": "รายละเอียด <span class=\"hint\">cache ของการรัน</span>"
+    },
+    {
+      "id": "h-f83bcf81",
+      "kind": "html",
+      "en": "The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
+      "tr": "cache ของการรันเก็บมันไว้ การรันครั้งที่สองของซอร์สที่ไม่เปลี่ยนจึงบอกสิ่งที่ครั้งแรกบอก แทนที่จะเงียบไป และรายการใน cache ที่ไม่มี diagnostic ถือว่า miss และ build ใหม่"
+    },
+    {
+      "id": "h-c498308c",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.40</span>",
+      "tr": "ที่มา <span class=\"hint\">ก่อน 0.1.40</span>"
+    },
+    {
+      "id": "h-8906eaf7",
+      "kind": "html",
+      "en": "It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0.",
+      "tr": "มันคอมไพล์ทั้งไดเรกทอรี เอารายการไฟล์ที่ emit ออกจากรายงาน แล้วทิ้ง diagnostic ไป tree ที่ <code>glyph build</code> เตือนจะรันผ่านสะอาดและ exit 0"
+    },
+    {
       "id": "h-4ffc5345",
       "kind": "html",
       "en": "Two current limitations",
       "tr": "ข้อจำกัดสองข้อในตอนนี้"
     },
     {
-      "id": "h-2e9a04df",
+      "id": "h-afa28129",
       "kind": "html",
-      "en": "<strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
-      "tr": "<strong>stack ตอน crash ของ <code>glyph run</code> เองยังแสดงเลขบรรทัดของ <code>.ts</code></strong> <code>glyph run</code> รันผ่าน <code>tsx</code> และ <code>tsx</code> ไม่ได้ไล่ source map ต่อผ่านการแปลง <code>.ts</code>&rarr;<code>.js</code> ของตัวเอง throw ที่ไม่ถูกจับระหว่าง <code>glyph run</code> จึงรายงานบรรทัดที่ generate การ remap stack นั้นเป็นงานที่จะตามมา มันมีผลกับ loop <code>run</code> ในเครื่อง ส่วนการ deploy จริง คุณ <code>glyph build</code> เป็น <code>.ts</code> แล้ว bundle ด้วย toolchain ปกติ และ <code>.ts.map</code> ก็ไล่ต่อตามปกติ stack บน production ที่ปลุกคุณขึ้นมาจึง map กลับไปยัง <code>.glyph</code>"
+      "en": "<b><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</b><code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up.",
+      "tr": "<b>stack ตอน crash ของ <code>glyph run</code> เองยังแสดงเลขบรรทัดของ <code>.ts</code></b><code>glyph run</code> รันผ่าน <code>tsx</code> และ <code>tsx</code> ไม่ได้ไล่ source map ต่อผ่านการแปลง <code>.ts</code>&rarr;<code>.js</code> ของตัวเอง throw ที่ไม่ถูกจับระหว่าง <code>glyph run</code> จึงรายงานบรรทัดที่ generate การ remap stack นั้นเป็นงานที่จะตามมา"
     },
     {
-      "id": "h-853b7c0e",
+      "id": "h-d5a381c9",
       "kind": "html",
-      "en": "<strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</strong> A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
-      "tr": "<strong>error ใน module ข้างเคียงไม่เปลี่ยน exit code ของ <code>glyph run</code></strong> module ที่คอมไพล์ไม่ผ่านจะ import ไม่ได้ และโปรแกรมที่ไม่เคย import มันก็ยังรันไป ตอนนี้คุณเห็น error แล้ว แต่ process ยัง exit ด้วยค่าที่ <code>main</code> คืนมา การทำให้มัน exit ไม่เป็นศูนย์จะทำให้ tree ที่รันได้ดีวันนี้ fail จึงเป็นการตัดสินใจที่ยังเปิดอยู่ ไม่ใช่การมองข้าม ถ้าคุณต้องการให้สุขภาพของ tree เป็นตัวตัดสิน exit code ให้ใช้ <code>glyph build</code>"
+      "en": "<b>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</b>A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned.",
+      "tr": "<b>error ใน module ข้างเคียงไม่เปลี่ยน exit code ของ <code>glyph run</code></b>module ที่คอมไพล์ไม่ผ่านจะ import ไม่ได้ และโปรแกรมที่ไม่เคย import มันก็ยังรันไป ตอนนี้คุณเห็น error แล้ว แต่ process ยัง exit ด้วยค่าที่ <code>main</code> คืนมา"
+    },
+    {
+      "id": "h-4320ed23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">production stacks, and why the exit code stays</span>",
+      "tr": "รายละเอียด <span class=\"hint\">stack บน production และทำไม exit code ยังเหมือนเดิม</span>"
+    },
+    {
+      "id": "h-b248d268",
+      "kind": "html",
+      "en": "It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
+      "tr": "มันมีผลกับ loop <code>run</code> ในเครื่อง ส่วนการ deploy จริง คุณ <code>glyph build</code> เป็น <code>.ts</code> แล้ว bundle ด้วย toolchain ปกติ และ <code>.ts.map</code> ก็ไล่ต่อตามปกติ stack บน production ที่ปลุกคุณขึ้นมาจึง map กลับไปยัง <code>.glyph</code>"
+    },
+    {
+      "id": "h-f778d0a9",
+      "kind": "html",
+      "en": "Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
+      "tr": "การทำให้มัน exit ไม่เป็นศูนย์จะทำให้ tree ที่รันได้ดีวันนี้ fail จึงเป็นการตัดสินใจที่ยังเปิดอยู่ ไม่ใช่การมองข้าม ถ้าคุณต้องการให้สุขภาพของ tree เป็นตัวตัดสิน exit code ให้ใช้ <code>glyph build</code>"
     },
     {
       "id": "h-b55f380c",
@@ -149,10 +275,40 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-5da7231a",
+      "id": "h-35d5883f",
       "kind": "html",
-      "en": "Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
-      "tr": "TS ที่อ่านได้และ commit ไว้ <code>.ts.map</code> v3 ต่อไฟล์ error ของ <code>tsc</code> ที่ remap ไปยัง <code>.glyph</code> และ diagnostic แบบ <code>--json</code> <code>glyph run</code> รายงานแบบเดียวกับ <code>glyph build</code> รวมถึงตอน cache อุ่นอยู่ สาย source map ของ toolchain สำหรับ deploy ไปถึง <code>.glyph</code>"
+      "en": "Readable committed TS.",
+      "tr": "TS ที่อ่านได้และ commit ไว้"
+    },
+    {
+      "id": "h-a999d756",
+      "kind": "html",
+      "en": "A v3 <code>.ts.map</code> per file.",
+      "tr": "<code>.ts.map</code> v3 ต่อไฟล์"
+    },
+    {
+      "id": "h-b02dde54",
+      "kind": "html",
+      "en": "<code>tsc</code> errors remapped onto <code>.glyph</code>.",
+      "tr": "error ของ <code>tsc</code> ที่ remap ไปยัง <code>.glyph</code>"
+    },
+    {
+      "id": "h-73412889",
+      "kind": "html",
+      "en": "<code>--json</code> diagnostics.",
+      "tr": "diagnostic แบบ <code>--json</code>"
+    },
+    {
+      "id": "h-957cf9ca",
+      "kind": "html",
+      "en": "<code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included.",
+      "tr": "<code>glyph run</code> รายงานแบบเดียวกับ <code>glyph build</code> รวมถึงตอน cache อุ่นอยู่"
+    },
+    {
+      "id": "h-f523a3fc",
+      "kind": "html",
+      "en": "Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
+      "tr": "สาย source map ของ toolchain สำหรับ deploy ไปถึง <code>.glyph</code>"
     },
     {
       "id": "h-b63a305d",
@@ -161,10 +317,22 @@
       "tr": "กำลังมา"
     },
     {
-      "id": "h-bd6c0e1c",
+      "id": "h-d493c944",
       "kind": "html",
-      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.",
-      "tr": "remap stack ตอน crash ของ <code>glyph run</code> เอง (เพื่อให้ loop run ในเครื่องแสดง frame ของ <code>.glyph</code> ด้วย) การตัดสินใจว่า error ใน module ข้างเคียงควรทำให้ <code>glyph run</code> exit ไม่เป็นศูนย์หรือไม่ และการดีบักใน editor ที่ดีขึ้นผ่าน LSP"
+      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too).",
+      "tr": "remap stack ตอน crash ของ <code>glyph run</code> เอง (เพื่อให้ loop run ในเครื่องแสดง frame ของ <code>.glyph</code> ด้วย)"
+    },
+    {
+      "id": "h-eb0e2b45",
+      "kind": "html",
+      "en": "A decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero.",
+      "tr": "การตัดสินใจว่า error ใน module ข้างเคียงควรทำให้ <code>glyph run</code> exit ไม่เป็นศูนย์หรือไม่"
+    },
+    {
+      "id": "h-b5b5ebde",
+      "kind": "html",
+      "en": "Richer editor debugging via the LSP.",
+      "tr": "การดีบักใน editor ที่ดีขึ้นผ่าน LSP"
     }
   ]
 }

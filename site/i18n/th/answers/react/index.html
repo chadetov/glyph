@@ -1,7 +1,7 @@
 ---
 title: ใช้กับ React, hook และ Context ได้ไหม? · Glyph
 description: React มีมาในตัว: component คอมไพล์เป็น function component, JSX ถูกแปลงเป็น createElement และ action ของ reducer ถูก match แบบครบทุกกรณี
-source_hash: 7cfdf0dbb16b7eaf
+source_hash: 4d46f3d681c38c46
 prev: /answers/codegen/ | &larr; ก่อนหน้า | generate client และ server ที่มี type จากสเปก API ได้ไหม?
 next: /answers/state/ | ถัดไป &rarr; | จะแชร์ state ที่เปลี่ยนค่าได้ระหว่างฟังก์ชันอย่างไร?
 ---
@@ -12,18 +12,9 @@ next: /answers/state/ | ถัดไป &rarr; | จะแชร์ state ที
         ได้ <code>component</code> คอมไพล์เป็น function component ของ React, JSX ถูกแปลงเป็น <code>createElement</code>, hook ของ React เองถูก import ด้วยชื่อและ destructure คู่ค่าของมันได้ และ state ของ reducer ได้การตรวจความครบถ้วนที่ TypeScript ธรรมดาไม่มี ตัวหน้าเว็บเอง (title, จุด mount, state ที่บันทึกไว้) เข้าถึงผ่าน <code>std/dom</code> และ <code>std/storage</code> ช่องว่างที่ควรรู้ก่อน: ตัวตรวจของ Glyph เองไม่ได้ให้ type กับสิ่งที่ hook คืนมา <code>tsc</code> จึงเป็นคนตรวจค่าเหล่านั้น
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          โค้ดที่เอเจนต์เขียนจำนวนมากเป็น React Glyph ถือว่ามันเป็นเป้าหมายหลัก ไม่ใช่ของที่แปะเพิ่ม: <code>component</code> เป็น keyword ของตัวเอง (<code>grep "^component "</code> จึงตรวจ UI ทั้งหมดได้) hook ของ React import จาก <code>react</code> และเรียกด้วยชื่อและ type จริง ตรวจโดย <code>tsc</code> เทียบกับ declaration ของ React เอง
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p><code>useReducer</code> ของ React จริง กับ reducer บน tagged union ทุก action ต้องถูกจัดการ และคอมไพเลอร์ตรวจให้:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph กับ react@18 และ type ของมัน</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph กับ react@18 และ type ของมัน</span>
 <pre>import react { useReducer }
 
 type Action = Inc | Dec | Reset
@@ -41,24 +32,55 @@ pub component Counter() {
   let [count, dispatch] = useReducer(reducer, 0)
   return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span><code>useReducer</code> ของ React จริง กับ reducer บน tagged union ทุก action ต้องถูกจัดการ และคอมไพเลอร์ตรวจให้</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          เพิ่ม action <code>Double</code> แล้ว reducer จะคอมไพล์ไม่ผ่านด้วย <code>E0200</code> ที่ระบุชื่อมัน ซึ่ง <code>switch</code> ของ TypeScript ธรรมดาจะปล่อยให้ออกไป คู่ค่าถูก destructure ด้วย <code>let [count, dispatch]</code> และ TypeScript ที่ emit ออกมาเพิ่ม <code>satisfies readonly [unknown, unknown]</code> <code>tsc</code> จึงพิสูจน์ได้ว่า hook คืนคู่ค่าและยังอนุมาน type ของแต่ละตัวได้ ตัวตรวจของ Glyph เองไม่ให้ type กับค่าที่มาจาก React argument ที่ผิดสำหรับ <code>dispatch</code> หรือ state setter จึงถูกรายงานโดย <code>tsc</code> ใน build ไม่ใช่โดย editor หรือ <code>--no-tsc</code> React <strong>Context</strong> ใช้ได้วันนี้ผ่าน <code>createContext</code> / <code>useContext</code> และชื่อ element แบบ member expression (<code>&lt;ThemeContext.Provider&gt;</code>) ใช้ได้โดยตรง ไม่ต้องหาทางเลี่ยง
-        </p>
-        <p>
-          การ spread prop ใน JSX ก็ใช้ได้: <code>&lt;input {...register("email")} /&gt;</code> ถูกแปลงเป็น object spread ใน props idiom ของ react-hook-form จึงไม่ต้องมี adapter type ที่ derive จากค่าของ zod ใช้ได้เต็มที่: <code>type FormData = z.infer&lt;typeof schema&gt;</code> ใช้ได้โดยตรง ไม่ต้องใช้ทางออกฉุกเฉิน สิ่งเดียวที่ต่าง: component รับ props record ตัวเดียว ไม่ใช่หลาย parameter ตามตำแหน่ง ดู<a href="/answers/imports/">การใช้ไลบรารีของคุณ</a>และ<a href="/hardening/">หน้าการทดสอบความแข็งแรง</a>ว่าขอบเขตนั้นอยู่ตรงไหนพอดี
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#reducers-and-hooks">reducer และ hook</a></li>
+          <li><a href="#context-and-libraries">Context และไลบรารี</a></li>
+          <li><a href="#are-props-checked-before-tsc">props ก่อน tsc</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">&lt;match&gt; ใน JSX</a></li>
+          <li><a href="#how-does-a-page-start-it">การเริ่มหน้าเว็บ</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label">props ถูกตรวจก่อน tsc ไหม?</h2>
-        <p>
-          ใช่ Glyph เทียบแต่ละ element กับ props record ของ component เอง ค่าที่ผิด prop ที่สะกดผิด และ prop บังคับที่ขาดไป จึงเป็น error ของ Glyph ที่ระบุชื่อ prop คุณเห็นมันใน editor และผ่าน MCP ไม่ใช่แค่ใน build เต็ม และทำงานเหมือนกันไม่ว่า component จะถูก import ด้วยชื่อหรือผ่าน module ของมัน:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        โค้ดที่เอเจนต์เขียนจำนวนมากเป็น React Glyph ถือว่ามันเป็นเป้าหมายหลัก ไม่ใช่ของที่แปะเพิ่ม: <code>component</code> เป็น keyword ของตัวเอง (<code>grep "^component "</code> จึงตรวจ UI ทั้งหมดได้)
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>hook ของ React import จาก <code>react</code> และเรียกด้วยชื่อและ type จริง ตรวจโดย <code>tsc</code> เทียบกับ declaration ของ React เอง</p></div>
 
+      <h2 class="ak-h" id="reducers-and-hooks">reducer และ hook<a class="ak-anchor" href="#reducers-and-hooks" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เพิ่ม action <code>Double</code> แล้ว reducer จะคอมไพล์ไม่ผ่านด้วย <code>E0200</code> ที่ระบุชื่อมัน ซึ่ง <code>switch</code> ของ TypeScript ธรรมดาจะปล่อยให้ออกไป
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ตัวตรวจของ Glyph เองไม่ให้ type กับค่าที่มาจาก React argument ที่ผิดสำหรับ <code>dispatch</code> หรือ state setter จึงถูกรายงานโดย <code>tsc</code> ใน build ไม่ใช่โดย editor หรือ <code>--no-tsc</code></p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">คู่ค่าของ hook ถูก destructure อย่างไร</span></summary><div class="body">
+        <p>
+          คู่ค่าถูก destructure ด้วย <code>let [count, dispatch]</code> และ TypeScript ที่ emit ออกมาเพิ่ม <code>satisfies readonly [unknown, unknown]</code> <code>tsc</code> จึงพิสูจน์ได้ว่า hook คืนคู่ค่าและยังอนุมาน type ของแต่ละตัวได้
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context และไลบรารี<a class="ak-anchor" href="#context-and-libraries" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        React <strong>Context</strong> ใช้ได้วันนี้ผ่าน <code>createContext</code> / <code>useContext</code> และชื่อ element แบบ member expression (<code>&lt;ThemeContext.Provider&gt;</code>) ใช้ได้โดยตรง ไม่ต้องหาทางเลี่ยง
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>prop spread</b>การ spread prop ใน JSX ก็ใช้ได้: <code>&lt;input {...register("email")} /&gt;</code> ถูกแปลงเป็น object spread ใน props idiom ของ react-hook-form จึงไม่ต้องมี adapter</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>type ของ zod</b>type ที่ derive จากค่าของ zod ใช้ได้เต็มที่: <code>type FormData = z.infer&lt;typeof schema&gt;</code> ใช้ได้โดยตรง ไม่ต้องใช้ทางออกฉุกเฉิน</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>สิ่งเดียวที่ต่าง: component รับ props record ตัวเดียว ไม่ใช่หลาย parameter ตามตำแหน่ง ดู<a href="/answers/imports/">การใช้ไลบรารีของคุณ</a>และ<a href="/hardening/">หน้าการทดสอบความแข็งแรง</a>ว่าขอบเขตนั้นอยู่ตรงไหนพอดี</p></div>
+
+      <h2 class="ak-h" id="are-props-checked-before-tsc">props ถูกตรวจก่อน tsc ไหม?<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ใช่ Glyph เทียบแต่ละ element กับ props record ของ component เอง ค่าที่ผิด prop ที่สะกดผิด และ prop บังคับที่ขาดไป จึงเป็น error ของ Glyph ที่ระบุชื่อ prop และทำงานเหมือนกันไม่ว่า component จะถูก import ด้วยชื่อหรือผ่าน module ของมัน:
+      </p>
       <div class="code">
         <span class="cap">main.glyph โดยมี <code>Card</code> ประกาศไว้ใน <code>ui.glyph</code></span>
 <pre>import ui
@@ -74,20 +96,21 @@ pub component App() {
 // E0210 type `CardProps` has no field `cout`; did you mean `count`?
 // E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>คุณเห็นมันใน editor และผ่าน MCP ไม่ใช่แค่ใน build เต็ม</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">missing_fields ใน --json และ props record ตัวเดียว (E0229)</span></summary><div class="body">
         <p>
           <code>--json</code> ส่งชื่อที่ขาดมาเป็น list <code>missing_fields</code> เอเจนต์จึงเพิ่ม props ได้โดยไม่ต้อง parse ข้อความ component ยังต้องรับ props เป็น record เดียว: <code>component Greeting(name: string)</code> เป็น E0229 ที่ parameter เพราะ React ส่งแค่ props object เสมอ และ element นั้นไม่มีวันตรวจ type ผ่าน ถ้าคุณเรียกมันเป็นฟังก์ชันแทนที่จะ render ให้ประกาศด้วย <code>fn</code>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">&lt;match&gt; ใน JSX ถูกตรวจเหมือน match ไหม?</h2>
-        <p>
-          มันคือสิ่งเดียวกัน แต่ละ <code>&lt;case&gt;</code> รับ pattern แบบเดียวกับที่ arm ของ <code>match</code> รับ และคอมไพเลอร์ส่งมันผ่านโค้ดเดียวกับที่ใช้กับ arm ชื่อที่ case bind ได้ type ของ payload field ที่ record ของ payload ไม่มีคือ E0210 และ variant ที่ขาดไปคือ E0200 case ที่ทดสอบค่าครอบคลุมแค่ส่วนหนึ่งของ variant จึงต้องมี case ข้างเคียงหรือ <code>&lt;case else&gt;</code> รับส่วนที่เหลือ:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">&lt;match&gt; ใน JSX ถูกตรวจเหมือน match ไหม?<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        มันคือสิ่งเดียวกัน แต่ละ <code>&lt;case&gt;</code> รับ pattern แบบเดียวกับที่ arm ของ <code>match</code> รับ และคอมไพเลอร์ส่งมันผ่านโค้ดเดียวกับที่ใช้กับ arm
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>type ของ payload</b>ชื่อที่ case bind ได้ type ของ payload field ที่ record ของ payload ไม่มีคือ E0210 และ variant ที่ขาดไปคือ E0200</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>case ที่ครอบคลุมบางส่วน</b>case ที่ทดสอบค่าครอบคลุมแค่ส่วนหนึ่งของ variant จึงต้องมี case ข้างเคียงหรือ <code>&lt;case else&gt;</code> รับส่วนที่เหลือ</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre>type Page =
@@ -106,13 +129,11 @@ component Results(props: { page: Page }) {
 <span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">หน้าเว็บเริ่มมันอย่างไร?</h2>
-        <p>
-          Glyph ไม่มี statement ระดับบนสุด หน้าเว็บจึงเรียก <code>main</code> ที่ export ไว้เอง แอปมีสอง module: ตัวหนึ่งเก็บ component อีกตัว mount มันบน <code>#root</code> ผ่าน <code>std/dom</code> และ <code>createRoot</code> ของ react-dom attribute ของ event เป็น snake case (<code>on_change</code> emit เป็น <code>onChange</code> ของ React) handler เป็น lambda และข้อความของ input คือ <code>e.currentTarget.value</code>
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">หน้าเว็บเริ่มมันอย่างไร?<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph ไม่มี statement ระดับบนสุด หน้าเว็บจึงเรียก <code>main</code> ที่ export ไว้เอง แอปมีสอง module: ตัวหนึ่งเก็บ component อีกตัว mount มันบน <code>#root</code> ผ่าน <code>std/dom</code> และ <code>createRoot</code> ของ react-dom
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>attribute ของ event เป็น snake case (<code>on_change</code> emit เป็น <code>onChange</code> ของ React) handler เป็น lambda และข้อความของ input คือ <code>e.currentTarget.value</code></p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react">module app
@@ -154,21 +175,41 @@ pub fn main() -&gt; void {
   main();
 &lt;/script&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="จาก module ไปเป็น bundle"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">การ build ทำไม main ตัวนี้ไม่รับอะไร และ walkthrough</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> ตรวจ module รัน <code>tsc --strict</code> เทียบกับ declaration ของ React และเขียน TypeScript ลง <code>dist/gen</code> จากนั้น <code>npx vite build --outDir dist/web</code> อ่าน <code>index.html</code> ตาม import ไป และ bundle มันพร้อม React <code>main</code> ตัวนี้ไม่รับอะไรและไม่คืนอะไร เพราะสคริปต์เรียกมันโดยไม่มี argument ส่วน <code>main(argv) -&gt; number</code> ที่ <code>glyph init</code> เขียนคือตัวที่ <code>glyph run</code> เรียกภายใต้ node ตัวอย่างเต็มทีละขั้น พร้อม <code>package.json</code> และบรรทัดติดตั้ง อยู่ที่ <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">running Glyph in a browser page</a> ในเอกสารอ้างอิงที่ <code>glyph llms</code> พิมพ์ออกมา CI build <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> ด้วยวิธีเดียวกันและ render ใน Chromium แบบ headless
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>component, JSX, fragment (<code>&lt;&gt;...&lt;/&gt;</code>), ชื่อ element แบบ member expression (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props ที่ถูกตรวจเทียบกับ component ก่อน <code>tsc</code> ไม่ว่าจะ import แบบไหน, hook ของ React เองที่ import ด้วยชื่อ (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) โดย tsc ตรวจ type และ destructure คู่ค่าได้ (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> ที่มี action เป็น tagged union แบบครบทุกกรณี, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> ที่ถูกตรวจและแปลงเป็น <code>match</code> ด้วย pattern ของ arm, Context ผ่าน <code>createContext</code>/<code>useContext</code> และหน้าเว็บผ่าน <code>std/dom</code> (title, จุด mount, ที่อยู่), <code>std/storage</code> และ <code>std/console</code> ข้อความใน JSX อ่านแบบที่ TSX อ่าน <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> จึงเป็นข้อความธรรมดา ส่วน <code>}</code>, <code>&gt;</code>, <code>//</code> และ HTML entity อย่าง <code>&amp;amp;</code> ถูกปฏิเสธในข้อความ (E0012) พร้อมวิธีเขียนที่ควรใช้แทน การอ่าน member บน array ถูกตรวจ <code>{items.foo}</code> บน <code>Array&lt;string&gt;</code> จึงเป็น E0210 <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> เป็นแอปเต็มบน React 18 ที่ bundle ด้วย Vite และ render ในเบราว์เซอร์</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>ตัวตรวจของ Glyph ไม่ให้ type กับผลของ hook <code>set_count("x")</code> บน state ที่เป็นตัวเลขจึงเป็น error ของ <code>tsc</code> ใน build แทนที่จะเป็นของ Glyph ใน editor <code>std/dom</code> หยุดที่การอ่านหน้าเว็บและตั้ง title: React เป็นเจ้าของ DOM ที่มัน render จึงไม่มี setter ของ element หรือ event listener effect ต้องเขียนเป็น <code>fn() -&gt; void { ... }</code> เพราะ lambda คืน expression สุดท้าย และ React จะเรียกมันเป็น cleanup type ของ props ที่เขียนแบบ inline ยังแสดงเป็น <code>record</code> ในข้อความเหล่านี้ ส่วนที่มีชื่อจะแสดงชื่อ การฝัง output ของ Glyph ในแอป Vite ที่มีอยู่ โดยที่ UI เป็น TypeScript อยู่ใน<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">คู่มือการ deploy</a></p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">component, JSX, fragment (<code>&lt;&gt;...&lt;/&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ชื่อ element แบบ member expression (<code>&lt;Ctx.Provider&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX prop spread (<code>{...register()}</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">props ที่ถูกตรวจเทียบกับ component ก่อน <code>tsc</code> ไม่ว่าจะ import แบบไหน</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">hook ของ React เองที่ import ด้วยชื่อ (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) โดย tsc ตรวจ type และ destructure คู่ค่าได้ (<code>let [count, set_count] = useState(0)</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>useReducer</code> ที่มี action เป็น tagged union แบบครบทุกกรณี</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> ที่ถูกตรวจและแปลงเป็น <code>match</code> ด้วย pattern ของ arm</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Context ผ่าน <code>createContext</code>/<code>useContext</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">หน้าเว็บผ่าน <code>std/dom</code> (title, จุด mount, ที่อยู่), <code>std/storage</code> และ <code>std/console</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ข้อความใน JSX อ่านแบบที่ TSX อ่าน <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> จึงเป็นข้อความธรรมดา ส่วน <code>}</code>, <code>&gt;</code>, <code>//</code> และ HTML entity อย่าง <code>&amp;amp;</code> ถูกปฏิเสธในข้อความ (E0012) พร้อมวิธีเขียนที่ควรใช้แทน</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การอ่าน member บน array ถูกตรวจ <code>{items.foo}</code> บน <code>Array&lt;string&gt;</code> จึงเป็น E0210</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> เป็นแอปเต็มบน React 18 ที่ bundle ด้วย Vite และ render ในเบราว์เซอร์</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ตัวตรวจของ Glyph ไม่ให้ type กับผลของ hook <code>set_count("x")</code> บน state ที่เป็นตัวเลขจึงเป็น error ของ <code>tsc</code> ใน build แทนที่จะเป็นของ Glyph ใน editor</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> หยุดที่การอ่านหน้าเว็บและตั้ง title: React เป็นเจ้าของ DOM ที่มัน render จึงไม่มี setter ของ element หรือ event listener</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">effect ต้องเขียนเป็น <code>fn() -&gt; void { ... }</code> เพราะ lambda คืน expression สุดท้าย และ React จะเรียกมันเป็น cleanup</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">type ของ props ที่เขียนแบบ inline ยังแสดงเป็น <code>record</code> ในข้อความเหล่านี้ ส่วนที่มีชื่อจะแสดงชื่อ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การฝัง output ของ Glyph ในแอป Vite ที่มีอยู่ โดยที่ UI เป็น TypeScript อยู่ใน<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">คู่มือการ deploy</a></span></span></li>
+          </ul>
+        </section>
       </div>

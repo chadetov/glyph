@@ -2375,6 +2375,17 @@ impl Assigner<'_> {
                     [_, v] => Some(v),
                     _ => None,
                 };
+                // A loop over a declared `unknown` (written, or the slot type a
+                // lambda parameter took under D55) yields values nobody has
+                // typed: every binding is the declared `unknown`, index
+                // included, and the emitter hands `tsc` the same pair type
+                // (record 146). Leaving them open let `let s: string = i`
+                // through both checkers while `i` held a number.
+                if matches!(self.canonicalize_aliases(self.tm.get(f.iter.span())), Ty::UnknownTop) {
+                    for b in &f.bindings {
+                        self.local_tys.insert(b.span.start, Ty::UnknownTop);
+                    }
+                }
                 if let Some(v) = elem_binding {
                     if let Some(elem) = array_elem_ty(&self.tm.get(f.iter.span()).clone()) {
                         // A written array widens here the way it widens at a

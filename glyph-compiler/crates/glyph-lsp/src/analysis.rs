@@ -2774,6 +2774,19 @@ mod tests {
         assert_eq!(a.hover(text, function), Some("User".to_string()));
     }
 
+    /// Record 146: both bindings of a loop over a declared `unknown` are the
+    /// declared `unknown`, index included, and hover says so. They were open
+    /// before, so hover on `i` answered nothing while `tsc` read `any`.
+    #[test]
+    fn hover_shows_unknown_bindings_of_a_loop_over_unknown() {
+        let text = "module x\npub fn walk(v: unknown) -> number {\n  let n = 0\n  for i, x in v {\n    let a = i\n    let b = x\n    mut n = n + 1\n  }\n  return n\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let index = text.find("= i").unwrap() + 2;
+        assert_eq!(a.hover(text, index), Some("unknown".to_string()));
+        let item = text.find("= x").unwrap() + 2;
+        assert_eq!(a.hover(text, item), Some("unknown".to_string()));
+    }
+
     /// Record 134, B1: a name a closure reassigns is not narrowed, so hover
     /// inside the arm shows its declared type.
     #[test]

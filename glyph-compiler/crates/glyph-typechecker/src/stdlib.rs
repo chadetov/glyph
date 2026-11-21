@@ -594,6 +594,17 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
             vec![required(string()), required(count()), optional(count())],
             string(),
         ),
+        // The whole code point that starts at a code-unit index, or `None`
+        // (G392, decision record 154): the `Option` forms of `s.at(i)` and
+        // `s.codePointAt(i)`, which never hand back half a surrogate pair.
+        "char_at" => (
+            vec![required(string()), required(count())],
+            option_ty(prelude, string())?,
+        ),
+        "code_point_at" => (
+            vec![required(string()), required(count())],
+            option_ty(prelude, count())?,
+        ),
         // The pad is a string and the width is a number, which is the pair a
         // caller gets backwards: `string.pad_start(s, "0", 4)` was two
         // `unknown`s and is now the error it reads as.
@@ -1226,7 +1237,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
             ],
             xs,
         ),
-        "find" => (
+        "find" | "find_last" => (
             vec![of(xs.clone()), of(pred())],
             option_ty(prelude, elem())?,
         ),

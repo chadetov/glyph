@@ -1543,6 +1543,9 @@ of truth. On the async path it was a preprocessor with opinions.
   and the failure lands far from the call. A program that has to walk codepoints
   converts to bytes first, with `encoding.hex_encode` and two hex digits at a
   time, which is what `examples/apps/shortlink/main.glyph` does in its slug encoder.
+
+  *Amended in 0.1.161 (decision record 154): a code-unit-indexed accessor that
+  never returns a half pair ships as `char_at`/`code_point_at`.*
   Written down in D12, `docs/reference/stdlib.md`, and the `std/string` runtime
   header. Be plain about what this decision buys: **no workaround comes out of
   any app.** The hex walk stays; it is now the documented answer rather than a

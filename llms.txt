@@ -665,6 +665,7 @@ row to it.
 
 ```
 array.find<T>(xs, predicate) -> Option<T>
+array.find_last<T>(xs, predicate) -> Option<T>   // the last match
 array.filter<T>(xs, predicate) -> Array<T>
 array.map<T, U>(xs, f) -> Array<U>
 array.zip<A, B, C>(a, b, f) -> Array<C>
@@ -748,6 +749,8 @@ string.index_of(s, needle, from?) -> Option<number>   // None, not -1
 string.replace_all(s, from, to) -> string   // every occurrence
 string.trim_start(s) -> string
 string.trim_end(s) -> string
+string.char_at(s, i) -> Option<string>       // the whole character starting at index i
+string.code_point_at(s, i) -> Option<number> // its code point
 ```
 
 Argument order: every module except `std/regex` takes the subject first;
@@ -757,10 +760,12 @@ Argument order: every module except `std/regex` takes the subject first;
 parameter of all four is a `string`, so a swap compiles and prints the wrong
 thing.
 
-Indices are UTF-16 code units, and there is no codepoint accessor (no `chars`,
-no `char_at`) by design: one that can split a surrogate pair is worse than none.
-Walk codepoints by encoding to bytes with `encoding.hex_encode` and reading two
-hex digits at a time.
+Indices are UTF-16 code units, and no function hands back half of a surrogate
+pair. `string.char_at` and `string.code_point_at` return the whole character
+that starts at a code-unit index, or `None` when the index is out of range
+(negative included) or falls on the second half of a pair or a lone surrogate:
+on `"a😀"`, `char_at` at 1 is `Some("😀")` and at 2 is `None`. There is no
+`chars`.
 
 Glyph models the return type of these functions, so `for i, part in string.split(s, ",")`
 binds a numeric index with no annotation. The six with a `?` parameter

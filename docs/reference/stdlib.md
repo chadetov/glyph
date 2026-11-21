@@ -99,6 +99,7 @@ range and the absence is something the program handles.
 
 ```
 array.find<T>(xs, predicate: fn(T) -> bool) -> Option<T>
+array.find_last<T>(xs, predicate: fn(T) -> bool) -> Option<T>  // the last match
 array.filter<T>(xs, predicate: fn(T) -> bool) -> Array<T>
 array.map<T, U>(xs, f: fn(T) -> U) -> Array<U>
 array.zip<A, B, C>(a, b, f: fn(A, B) -> C) -> Array<C>
@@ -238,16 +239,24 @@ string.index_of(s: string, needle: string, from?: number) -> Option<number>
 string.replace_all(s: string, from: string, to: string) -> string
 string.trim_start(s: string) -> string
 string.trim_end(s: string) -> string
+string.char_at(s: string, i: number) -> Option<string>       // the whole character at index i
+string.code_point_at(s: string, i: number) -> Option<number> // its code point
 ```
 
 Indices are UTF-16 code units, the same space `len` and `split` use, and
 negative `slice` indices count back from the end exactly as `array.slice` does.
-That is the whole model, and it is not going to change: there is no codepoint
-accessor and none is planned, because an accessor that can hand back half of a
-surrogate pair is worse than no accessor at all. A program that has to walk
-codepoints (a percent-encoder, a width calculator) encodes to bytes first with
-`encoding.hex_encode` and reads two hex digits at a time; `examples/apps/shortlink/main.glyph`
-does exactly that in its slug encoder.
+No function here hands back half of a surrogate pair, because the half reads as
+a character right up to the point where it is written out. `char_at` and
+`code_point_at` take a code-unit index and return the whole character that
+starts there, as a one- or two-unit string or as its code point. They answer
+`None` when the index is not an integer or is out of range (a negative index
+included), and when it falls on the second half of a pair or on a lone
+surrogate. On `"a😀"`, `char_at` at 1 is `Some("😀")` and at 2 is `None`. They
+are the `Option` forms of `s.at(i)` and `s.codePointAt(i)`, which E0242 refuses
+(decision record 154). There is no `chars`. A program that has to walk
+codepoints (a percent-encoder, a width calculator) can also encode to bytes
+first with `encoding.hex_encode` and read two hex digits at a time;
+`examples/apps/shortlink/main.glyph` does that in its slug encoder.
 Two functions diverge from their TypeScript namesakes on purpose: `repeat`
 clamps a negative count to `""` where TS throws, which is what makes
 `repeat(pad, width - len(s))` safe, and `index_of` returns `None` instead of

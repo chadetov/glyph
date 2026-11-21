@@ -14,6 +14,19 @@ export function find<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Opt
   return None;
 }
 
+/// The last element `predicate` accepts, or `None`. `find` searched from the
+/// end: the `Option` spelling of `xs.findLast(f)`, which answers `undefined`
+/// (G392, D56).
+export function find_last<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Option<T> {
+  for (let i = xs.length - 1; i >= 0; i--) {
+    const x = xs[i] as T;
+    if (predicate(x)) {
+      return Some(x);
+    }
+  }
+  return None;
+}
+
 export function filter<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Array<T> {
   return xs.filter(predicate);
 }

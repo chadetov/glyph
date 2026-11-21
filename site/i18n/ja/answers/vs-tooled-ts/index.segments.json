@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/vs-tooled-ts/index.html",
   "locale": "ja",
-  "source_hash": "d0694478c32b0491",
+  "source_hash": "47270533d1ace9c6",
   "segments": [
     {
       "id": "title",
@@ -59,12 +59,6 @@
       "tr": "それらの保証はどれも<strong>オプトイン</strong>で、エージェントは 1 行でそれぞれを迂回できるからです。Glyph の厳格さは、エージェントが編集できる設定ファイルではありません。言語そのものです。強制のポイントが「このファイルに lint をかけるのを忘れなかったか」から「コンパイルが通るか」に移ります。"
     },
     {
-      "id": "h-6fe61e8e",
-      "kind": "html",
-      "en": "What tooled TypeScript already covers",
-      "tr": "ツールを揃えた TypeScript がすでにカバーしているもの"
-    },
-    {
       "id": "h-81a5cd3d",
       "kind": "html",
       "en": "A well-configured TypeScript setup gets you a long way, and if your team runs all of it in CI you've already closed most of the gaps Glyph targets. It's the alternative worth taking seriously, so here's the mapping:",
@@ -77,10 +71,58 @@
       "tr": "ツールを揃えた TypeScript がすでに与えてくれるもの"
     },
     {
-      "id": "h-97277570",
+      "id": "h-82ea38d1",
       "kind": "html",
-      "en": "If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.",
-      "tr": "そのすべてを組み込んで強制しているなら、ほとんど目的は達成できています。TypeScript にもこれらの考え方はあります。それを必須にすることで言語が加えるものは、3 つに集約されます。"
+      "en": "<span>What tooled TypeScript already covers. If you have all that wired up and enforced, you're most of the way there. TypeScript has these ideas. What a language adds by making them non-optional comes down to three things.</span>",
+      "tr": "<span>ツールを揃えた TypeScript がすでにカバーしているもの。そのすべてを組み込んで強制しているなら、ほとんど目的は達成できています。TypeScript にもこれらの考え方はあります。それを必須にすることで言語が加えるものは、3 つに集約されます。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-a61c5a32",
+      "kind": "html",
+      "en": "<a href=\"#non-optional-beats-opt-in\">Non-optional beats opt-in</a>",
+      "tr": "<a href=\"#non-optional-beats-opt-in\">任意より必須</a>"
+    },
+    {
+      "id": "h-56fdd1d5",
+      "kind": "html",
+      "en": "<a href=\"#the-type-is-the-validator-no-second-artifact\">The type is the validator</a>",
+      "tr": "<a href=\"#the-type-is-the-validator-no-second-artifact\">型がバリデータ</a>"
+    },
+    {
+      "id": "h-78207e88",
+      "kind": "html",
+      "en": "<a href=\"#greppable-mutation\">Greppable mutation</a>",
+      "tr": "<a href=\"#greppable-mutation\">grep できる変更</a>"
+    },
+    {
+      "id": "h-183c1a0f",
+      "kind": "html",
+      "en": "<a href=\"#the-failure-mode-diff\">The failure-mode diff</a>",
+      "tr": "<a href=\"#the-failure-mode-diff\">失敗の仕方の違い</a>"
+    },
+    {
+      "id": "h-667150a9",
+      "kind": "html",
+      "en": "<a href=\"#where-tooled-typescript-is-still-ahead\">Where TypeScript is ahead</a>",
+      "tr": "<a href=\"#where-tooled-typescript-is-still-ahead\">TypeScript が勝っている点</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
     },
     {
       "id": "h-f41467bd",
@@ -89,10 +131,16 @@
       "tr": "<span class=\"ex-label\">01</span> オプトインより必須"
     },
     {
-      "id": "h-4b85313e",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-6e8d3377",
       "kind": "html",
-      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges. Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
-      "tr": "eslint の設定が守れるのは、エージェントがそれを<em>通す</em>コードだけです。エージェントは <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code> を書くことも、単に <code>.exhaustive()</code> を忘れることもでき、それでもコンパイルは通ってマージされます。こうした抜け道はどれも、エージェントが編集できる設定です。Glyph には手を伸ばせる抜け道がありません。<code>as</code> も、無視用のプラグマもなく、コンパイラに見える検査なしに <code>unknown</code> から型付きの値を取り出す方法もありません。"
+      "en": "Every one of those escape hatches is a config the agent can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler can see.",
+      "tr": "こうした抜け道はどれも、エージェントが編集できる設定です。Glyph には手を伸ばせる抜け道がありません。<code>as</code> も、無視用のプラグマもなく、コンパイラに見える検査なしに <code>unknown</code> から型付きの値を取り出す方法もありません。"
     },
     {
       "id": "h-c68c151a",
@@ -107,10 +155,22 @@
       "tr": "Glyph：無効にするものがない"
     },
     {
-      "id": "h-dab47249",
+      "id": "h-58790978",
       "kind": "html",
-      "en": "Strictness the agent <strong>cannot config-disable</strong> sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
-      "tr": "エージェントが<strong>設定で無効にできない</strong>厳格さは、無効にできる厳格さとは別の強制ポイントにあります。Glyph はその違いの上に作られています。"
+      "en": "Strictness the agent cannot config-disable sits at a different enforcement point than strictness it can. Glyph is built on that difference.",
+      "tr": "エージェントが設定で無効にできない厳格さは、無効にできる厳格さとは別の強制ポイントにあります。Glyph はその違いの上に作られています。"
+    },
+    {
+      "id": "h-23d23b4a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what an agent can write past eslint</span>",
+      "tr": "詳細 <span class=\"hint\">エージェントが eslint をすり抜けて書けるもの</span>"
+    },
+    {
+      "id": "h-c40024ce",
+      "kind": "html",
+      "en": "Your eslint config only protects code the agent routes <em>through</em> it, and the agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>, and it still compiles and merges.",
+      "tr": "eslint の設定が守れるのは、エージェントがそれを<em>通す</em>コードだけです。エージェントは <code>as unknown as User</code>、<code>@ts-ignore</code>、<code>// eslint-disable-next-line</code> を書くことも、単に <code>.exhaustive()</code> を忘れることもでき、それでもコンパイルは通ってマージされます。"
     },
     {
       "id": "h-351a8ad8",
@@ -119,10 +179,22 @@
       "tr": "<span class=\"ex-label\">02</span> 型がバリデータになる：2 つ目の成果物はない"
     },
     {
-      "id": "h-4895997c",
+      "id": "h-b4be93d8",
       "kind": "html",
-      "en": "zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand. Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile. In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
-      "tr": "zod は信頼できる情報源を逆転させます。<em>スキーマ</em>を書き、そこから型を導き出し、型、スキーマ、シリアライザを手で同期させ続けます。それらを揃えておくところこそ、エージェントがずれを持ち込む場所です。型のフィールド名を変えてスキーマは変えず、どちらもコンパイルは通ります。Glyph では型<em>が</em>バリデータです。<code>type User = {...}</code> を宣言すると、それと一緒に <code>User.parse</code> が生成されます。成果物は 1 つで、同期させるものも忘れるものもありません。"
+      "en": "In Glyph the type <em>is</em> the validator: declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it. One artifact, nothing to keep in sync, nothing to forget.",
+      "tr": "Glyph では型<em>が</em>バリデータです。<code>type User = {...}</code> を宣言すると、それと一緒に <code>User.parse</code> が生成されます。成果物は 1 つで、同期させるものも忘れるものもありません。"
+    },
+    {
+      "id": "h-573fdca2",
+      "kind": "html",
+      "en": "<b>zod: schema first</b>zod inverts your source of truth: you write the <em>schema</em>, derive the type from it, and then keep the type, the schema, and any serializer in sync by hand.",
+      "tr": "<b>zod：スキーマが先</b>zod は信頼できる情報源を逆転させます。<em>スキーマ</em>を書き、そこから型を導き出し、型、スキーマ、シリアライザを手で同期させ続けます。"
+    },
+    {
+      "id": "h-c2556156",
+      "kind": "html",
+      "en": "<b>Where drift comes in</b>Keeping those aligned is exactly where an agent introduces drift: it renames a field in the type and not the schema, and both still compile.",
+      "tr": "<b>ずれが入り込む場所</b>それらを揃えておくところこそ、エージェントがずれを持ち込む場所です。型のフィールド名を変えてスキーマは変えず、どちらもコンパイルは通ります。"
     },
     {
       "id": "h-e7c43b4b",
@@ -131,10 +203,22 @@
       "tr": "<span class=\"ex-label\">03</span> grep できる変更"
     },
     {
-      "id": "h-84ccbe2f",
+      "id": "h-6bcb048e",
       "kind": "html",
-      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
-      "tr": "TypeScript では、状態の変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、セッター、スプレッドの陰に隠れられます。検索できる単一のトークンはなく、これを完全に解決する lint ルールもありません。Glyph では共有状態はストアに置かれ、すべての変更は文字どおりの <code>.set(</code>/<code>.update(</code> です。<code>grep 'mut '</code> でローカルな変更もすべて見つかります。素の TypeScript にはこれに相当するものがありません。"
+      "en": "In Glyph shared state lives in a store and every change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> finds every local mutation. Stock TypeScript has no equivalent.",
+      "tr": "Glyph では共有状態はストアに置かれ、すべての変更は文字どおりの <code>.set(</code>/<code>.update(</code> です。<code>grep 'mut '</code> でローカルな変更もすべて見つかります。素の TypeScript にはこれに相当するものがありません。"
+    },
+    {
+      "id": "h-185a9af8",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where a TypeScript write can hide</span>",
+      "tr": "詳細 <span class=\"hint\">TypeScript で書き込みが隠れられる場所</span>"
+    },
+    {
+      "id": "h-1a86e571",
+      "kind": "html",
+      "en": "In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to search for, and no lint rule fully fixes it.",
+      "tr": "TypeScript では、状態の変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、セッター、スプレッドの陰に隠れられます。検索できる単一のトークンはなく、これを完全に解決する lint ルールもありません。"
     },
     {
       "id": "h-c48915e0",
@@ -173,34 +257,40 @@
       "tr": "現時点で Glyph より勝っている点が 4 つあります："
     },
     {
-      "id": "h-18d16c34",
+      "id": "h-03c8dc23",
       "kind": "html",
-      "en": "<strong>Richer validation.</strong> Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
-      "tr": "<strong>より豊かな検証。</strong>Glyph のディスクリプタはデフォルトで厳格（宣言していないキーを拒否）で、<code>where</code> による refinement はプリミティブに述語を付けられます（<code>type Email = string where value.includes(\"@\")</code>）。ディスクリプタは型が届くすべての境界でそれを実行します。それでも zod が勝っている点が 2 つあります。<code>.email()</code> や <code>.url()</code> のような既製の検査を備えていること（Glyph では自分で書きます）と、オブジェクト全体に refinement をかけられることです。レコードに対する <code>where</code>（2 つのフィールドにまたがる <code>lo &lt;= hi</code>）は、現時点では <code>E0300</code> になります。"
+      "en": "<b>Richer validation.</b>Glyph descriptors are strict by default (they reject undeclared keys), and a <code>where</code> refinement puts a predicate on a primitive (<code>type Email = string where value.includes(\"@\")</code>), which the descriptor runs at every boundary the type reaches. zod is still ahead in two ways: it ships ready-made checks such as <code>.email()</code> and <code>.url()</code> that you write yourself in Glyph, and it refines whole objects, while a <code>where</code> on a record (<code>lo &lt;= hi</code> across two fields) is <code>E0300</code> today.",
+      "tr": "<b>より豊かな検証。</b>Glyph のディスクリプタはデフォルトで厳格（宣言していないキーを拒否）で、<code>where</code> による refinement はプリミティブに述語を付けられます（<code>type Email = string where value.includes(\"@\")</code>）。ディスクリプタは型が届くすべての境界でそれを実行します。それでも zod が勝っている点が 2 つあります。<code>.email()</code> や <code>.url()</code> のような既製の検査を備えていること（Glyph では自分で書きます）と、オブジェクト全体に refinement をかけられることです。レコードに対する <code>where</code>（2 つのフィールドにまたがる <code>lo &lt;= hi</code>）は、現時点では <code>E0300</code> になります。"
     },
     {
-      "id": "h-39dcdf91",
+      "id": "h-b4ae2d52",
       "kind": "html",
-      "en": "<strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
-      "tr": "<strong>より深いマッチング。</strong>ts-pattern のガードや深い構造パターンは、Glyph の <code>match</code> で表せる範囲を超えています。"
+      "en": "<b>Deeper matching.</b>ts-pattern's guards and deep structural patterns go beyond what Glyph's <code>match</code> expresses.",
+      "tr": "<b>より深いマッチング。</b>ts-pattern のガードや深い構造パターンは、Glyph の <code>match</code> で表せる範囲を超えています。"
     },
     {
-      "id": "h-5f78ed48",
+      "id": "h-8880bb8d",
       "kind": "html",
-      "en": "<strong>\"Provable absence\" stops at the <code>.ts</code> boundary.</strong> Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
-      "tr": "<strong>「存在しないことの証明」は <code>.ts</code> の境界で止まります。</strong>Glyph の保証は Glyph が書いたコードに対して成り立ちます。npm の依存パッケージから throw された例外は今も <code>Result</code> を迂回しますし、import した <code>.d.ts</code> の型には実行時ディスクリプタがありません。"
+      "en": "<b>\"Provable absence\" stops at the <code>.ts</code> boundary.</b>Glyph's guarantees hold for code Glyph authored; a thrown exception from an npm dependency still bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime descriptor.",
+      "tr": "<b>「存在しないことの証明」は <code>.ts</code> の境界で止まります。</b>Glyph の保証は Glyph が書いたコードに対して成り立ちます。npm の依存パッケージから throw された例外は今も <code>Result</code> を迂回しますし、import した <code>.d.ts</code> の型には実行時ディスクリプタがありません。"
     },
     {
-      "id": "h-e663b903",
+      "id": "h-bc73c7f8",
       "kind": "html",
-      "en": "<strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
-      "tr": "<strong>エコシステムと採用。</strong>TypeScript のツール、コミュニティ、採用できる人材ははるかに大きく、何年もの本番での利用実績があります。Glyph はアーリープレビューです。"
+      "en": "<b>Ecosystem and hiring.</b>The TypeScript tooling, community, and hiring pool are far larger, with years of production use behind them. Glyph is an early preview.",
+      "tr": "<b>エコシステムと採用。</b>TypeScript のツール、コミュニティ、採用できる人材ははるかに大きく、何年もの本番での利用実績があります。Glyph はアーリープレビューです。"
     },
     {
       "id": "h-fe2104b6",
       "kind": "html",
       "en": "If you've fully wired tooled TypeScript and your agents stay inside it, you've got most of this. Glyph's argument is that \"stay inside it\" is the load-bearing phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact validation, and greppable mutation are the parts you cannot get by adding more opt-in tools.",
       "tr": "ツールを揃えた TypeScript を完全に組み込み、エージェントがその中にとどまるなら、これらの大半は手に入っています。Glyph の主張は、「その中にとどまる」こそが要となる言葉であり、エージェントが破るのはまさにその部分だということです。必須であること、1 つの成果物での検証、grep できる変更は、オプトインのツールをいくら追加しても得られない部分です。"
+    },
+    {
+      "id": "h-4eb3fb1a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">ReScript, Gleam or Elm</span>",
+      "tr": "詳細 <span class=\"hint\">ReScript、Gleam、Elm</span>"
     },
     {
       "id": "h-39372df5",
@@ -219,6 +309,48 @@
       "kind": "html",
       "en": "Shipping today",
       "tr": "提供中"
+    },
+    {
+      "id": "h-0a6a9374",
+      "kind": "html",
+      "en": "No <code>any</code>/<code>as</code>.",
+      "tr": "<code>any</code>/<code>as</code> がない。"
+    },
+    {
+      "id": "h-49eec597",
+      "kind": "html",
+      "en": "Exhaustive <code>match</code>.",
+      "tr": "網羅的な <code>match</code>。"
+    },
+    {
+      "id": "h-35ca1001",
+      "kind": "html",
+      "en": "Discarded-<code>Result</code> warning.",
+      "tr": "捨てられた <code>Result</code> への警告。"
+    },
+    {
+      "id": "h-33f4234f",
+      "kind": "html",
+      "en": "Type-generated validators.",
+      "tr": "型から生成されるバリデータ。"
+    },
+    {
+      "id": "h-cbc7347a",
+      "kind": "html",
+      "en": "Greppable mutation.",
+      "tr": "grep できる変更。"
+    },
+    {
+      "id": "h-ac94eb5f",
+      "kind": "html",
+      "en": "All non-optional, none an eslint rule you can disable.",
+      "tr": "どれも必須で、無効にできる eslint ルールではない。"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
     },
     {
       "id": "h-a2418e07",

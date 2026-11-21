@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "ja",
-  "source_hash": "42e24af1156f67f1",
+  "source_hash": "430fde319321c2e5",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "6 種類の編集については、教えてくれます。<code>glyph_impact</code> は、これから変更する宣言と変更の内容（名前の変更、バリアントの削除、パラメータの型の変更、引数の数の変更、削除）を受け取り、決まった選択肢の中から<strong>箇所ごとに 1 つの判定</strong>を返します。それぞれに、なぜ他ではなくその判定なのかという理由が付きます。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "なぜ重要か"
-    },
-    {
-      "id": "h-113a4126",
-      "kind": "html",
-      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward. Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
-      "tr": "関数の名前を変える、ユニオンを広げる、パラメータが受け付けるものを変える。そういうとき、古い名前を grep してすべての呼び出しを見つけたと願うか、編集してからコンパイラの言うことを読むかのどちらかです。どちらの方法でも、コンパイルが通ったまま黙って誤りになる箇所はわかりません。catch-all のアームを持つ <code>match</code> は、バリアントを追加しても失敗せず、新しいケースを誰も選んでいない行き先へ流し始めるだけです。その箇所はビルドには決して現れません。<code>glyph_impact</code> は、コンパイラが実行するのと同じ解析を使って、編集の前に答えます。"
-    },
-    {
-      "id": "h-5a7866e7",
-      "kind": "html",
-      "en": "What comes back",
-      "tr": "返ってくるもの"
-    },
-    {
-      "id": "h-da22973a",
-      "kind": "html",
-      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the change is taken here silently), <code>SAFE</code> (it can prove the site stays correct), <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence), and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at all).",
-      "tr": "リクエストでは、<code>module::name</code> の識別子でエンティティを指定し、決まった選択肢から変更を指定します：<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>。変更の指定は必須です。判定は編集についての事実だからです。編集を指定しなければ、すべての箇所が結果ではなく単なる参照として返ってきてしまいます。答えには、エンティティ、変更、そして <code>impact</code> のリストが含まれます。箇所ごとに 1 エントリで、それぞれに所属する宣言、<code>relation</code>、<code>verdict</code>、<code>because</code>、そして該当するものがちょうど 1 つあればコンパイラが出す診断コードが入ります。判定は決まった選択肢で、それぞれが 1 つの意味を持ちます：<code>WILL_FAIL</code>（その箇所がコンパイルできなくなることをコンパイラが証明できる）、<code>ABSORBS</code>（変更がそこで黙って受け入れられることを証明できる）、<code>SAFE</code>（その箇所が正しいままであることを証明できる）、<code>UNDETERMINED</code>（その箇所を調べたが、結果を確定できない）、<code>NOT_INDEXED</code>（その形の箇所については、そもそもこの質問ができない）。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "実例"
-    },
-    {
       "id": "h-86ba488a",
       "kind": "html",
       "en": "A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and one reads <code>label</code> as a value and never calls it. Asking what <code>change_signature_type</code> does to each gets three different verdicts, because they're three different claims:",
@@ -107,10 +77,148 @@
       "tr": "結果。3 つの箇所に絞ったもの"
     },
     {
-      "id": "h-cdf2b702",
+      "id": "h-a1dce1aa",
       "kind": "html",
-      "en": "Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label. This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
-      "tr": "同じ編集、3 つの箇所、3 つの判定。それぞれの <code>because</code> はカテゴリのラベルではなく、コンパイラが実際に出す文です。これはこの変更に対するコンパイラ自身のテスト（<code>glyph-cli/tests/agent_loop.rs</code> の <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>）と同じ内容です。テストはそのあと実際に編集を行い、E0211 が <code>WILL_FAIL</code> の予告どおりの場所にだけ出て、残りの 2 か所ではコンパイラが何も言わないことを確認しています。"
+      "en": "<span>Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label.</span>",
+      "tr": "<span>同じ編集、3 つの箇所、3 つの判定。それぞれの <code>because</code> はカテゴリのラベルではなく、コンパイラが実際に出す文です。</span>"
+    },
+    {
+      "id": "h-7ff698cb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the compiler test this mirrors</span>",
+      "tr": "詳細 <span class=\"hint\">これと同じ内容のコンパイラのテスト</span>"
+    },
+    {
+      "id": "h-b0f93c00",
+      "kind": "html",
+      "en": "This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
+      "tr": "これはこの変更に対するコンパイラ自身のテスト（<code>glyph-cli/tests/agent_loop.rs</code> の <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>）と同じ内容です。テストはそのあと実際に編集を行い、E0211 が <code>WILL_FAIL</code> の予告どおりの場所にだけ出て、残りの 2 か所ではコンパイラが何も言わないことを確認しています。"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">なぜ重要か</a>"
+    },
+    {
+      "id": "h-227b0659",
+      "kind": "html",
+      "en": "<a href=\"#what-comes-back\">What comes back</a>",
+      "tr": "<a href=\"#what-comes-back\">返ってくるもの</a>"
+    },
+    {
+      "id": "h-682c9014",
+      "kind": "html",
+      "en": "<a href=\"#on-a-real-application\">On a real application</a>",
+      "tr": "<a href=\"#on-a-real-application\">実際のアプリケーションで</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-9e5268ec",
+      "kind": "html",
+      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward.",
+      "tr": "関数の名前を変える、ユニオンを広げる、パラメータが受け付けるものを変える。そういうとき、古い名前を grep してすべての呼び出しを見つけたと願うか、編集してからコンパイラの言うことを読むかのどちらかです。"
+    },
+    {
+      "id": "h-db276c0c",
+      "kind": "html",
+      "en": "Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
+      "tr": "どちらの方法でも、コンパイルが通ったまま黙って誤りになる箇所はわかりません。catch-all のアームを持つ <code>match</code> は、バリアントを追加しても失敗せず、新しいケースを誰も選んでいない行き先へ流し始めるだけです。その箇所はビルドには決して現れません。<code>glyph_impact</code> は、コンパイラが実行するのと同じ解析を使って、編集の前に答えます。"
+    },
+    {
+      "id": "h-5a7866e7",
+      "kind": "html",
+      "en": "What comes back",
+      "tr": "返ってくるもの"
+    },
+    {
+      "id": "h-af924ab7",
+      "kind": "html",
+      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The verdicts are closed and each means one thing:",
+      "tr": "リクエストでは、<code>module::name</code> の識別子でエンティティを指定し、決まった選択肢から変更を指定します：<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>。判定は決まった選択肢で、それぞれが 1 つの意味を持ちます："
+    },
+    {
+      "id": "h-4a36f89d",
+      "kind": "html",
+      "en": "Verdict",
+      "tr": "判定"
+    },
+    {
+      "id": "h-1f5d64b9",
+      "kind": "html",
+      "en": "Meaning",
+      "tr": "意味"
+    },
+    {
+      "id": "h-7654985b",
+      "kind": "html",
+      "en": "the compiler can prove the site stops compiling",
+      "tr": "その箇所がコンパイルできなくなることをコンパイラが証明できる"
+    },
+    {
+      "id": "h-2e902292",
+      "kind": "html",
+      "en": "it can prove the change is taken here silently",
+      "tr": "変更がそこで黙って受け入れられることを証明できる"
+    },
+    {
+      "id": "h-1cbbbfa0",
+      "kind": "html",
+      "en": "it can prove the site stays correct",
+      "tr": "その箇所が正しいままであることを証明できる"
+    },
+    {
+      "id": "h-199ea864",
+      "kind": "html",
+      "en": "it looked at this site and can't establish the consequence",
+      "tr": "その箇所を調べたが、結果を確定できない"
+    },
+    {
+      "id": "h-4e74c295",
+      "kind": "html",
+      "en": "the question isn't askable for a site of this shape at all",
+      "tr": "その形の箇所については、そもそもこの質問ができない"
+    },
+    {
+      "id": "h-aec68efa",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the change is required, and what each entry holds</span>",
+      "tr": "詳細 <span class=\"hint\">変更の指定が必須である理由と、各エントリの中身</span>"
+    },
+    {
+      "id": "h-3b307258",
+      "kind": "html",
+      "en": "The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one.",
+      "tr": "変更の指定は必須です。判定は編集についての事実だからです。編集を指定しなければ、すべての箇所が結果ではなく単なる参照として返ってきてしまいます。答えには、エンティティ、変更、そして <code>impact</code> のリストが含まれます。箇所ごとに 1 エントリで、それぞれに所属する宣言、<code>relation</code>、<code>verdict</code>、<code>because</code>、そして該当するものがちょうど 1 つあればコンパイラが出す診断コードが入ります。"
     },
     {
       "id": "h-ed0c982f",
@@ -119,10 +227,22 @@
       "tr": "実際のアプリケーションで"
     },
     {
-      "id": "h-0a557626",
+      "id": "h-34192c8e",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant. Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
-      "tr": "このリポジトリにある 11 ファイルの CSV クエリエンジン <code>examples/apps/csvql</code> には、タグ付きユニオン <code>Value</code> が 1 つあり、現在 4 つのバリアントを持っています。5 つ目（<code>Blob</code>）を追加すると何が起きるかを <code>glyph_impact</code> に尋ねると、4 ファイルにわたる 10 か所の match が見つかります。8 か所はコンパイルに失敗し、2 か所は新しいバリアントを黙って吸収する catch-all のアームを含んでいます。実際にバリアントを追加すると、コンパイラはちょうど 8 件の <code>E0200</code> を、予測どおりの 8 か所で報告し、<code>ABSORBS</code> の 2 か所については前後どちらでも何も言いません。ツールなしでやるとしたら同じアプリで catch-all のアームをテキスト検索することになりますが、それでは同じ 2 か所が 20 件のヒットの中に埋もれ（適合率 0.10）、失敗する 8 か所については何もわかりません。テキスト検索には、<code>match</code> がどの型を調べているかという概念がないからです。"
+      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant.",
+      "tr": "このリポジトリにある 11 ファイルの CSV クエリエンジン <code>examples/apps/csvql</code> には、タグ付きユニオン <code>Value</code> が 1 つあり、現在 4 つのバリアントを持っています。5 つ目（<code>Blob</code>）を追加すると何が起きるかを <code>glyph_impact</code> に尋ねると、4 ファイルにわたる 10 か所の match が見つかります。8 か所はコンパイルに失敗し、2 か所は新しいバリアントを黙って吸収する catch-all のアームを含んでいます。"
+    },
+    {
+      "id": "h-57529b83",
+      "kind": "html",
+      "en": "<b>Checked by the build</b>Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after.",
+      "tr": "<b>ビルドで確かめる</b>実際にバリアントを追加すると、コンパイラはちょうど 8 件の <code>E0200</code> を、予測どおりの 8 か所で報告し、<code>ABSORBS</code> の 2 か所については前後どちらでも何も言いません。"
+    },
+    {
+      "id": "h-44f82082",
+      "kind": "html",
+      "en": "<b>A text search instead</b>A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
+      "tr": "<b>代わりにテキスト検索をすると</b>ツールなしでやるとしたら同じアプリで catch-all のアームをテキスト検索することになりますが、それでは同じ 2 か所が 20 件のヒットの中に埋もれ（適合率 0.10）、失敗する 8 か所については何もわかりません。テキスト検索には、<code>match</code> がどの型を調べているかという概念がないからです。"
     },
     {
       "id": "h-b55f380c",
@@ -137,10 +257,46 @@
       "tr": "提供中"
     },
     {
-      "id": "h-b902e12f",
+      "id": "h-0d0ff806",
       "kind": "html",
-      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
-      "tr": "決まった 6 種類の変更（<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>）と、決まった 5 種類の判定があり、影響を受ける箇所ごとに理由と診断コード付きのエントリが 1 つ返ります。<code>change_signature_type</code> は呼び出しの引数ごとに型検査器自身の比較ルールで判定され、箇所の判定はその引数の中で最も弱いものになります。JSX 要素は、それが変換される呼び出しとして判定されます。<code>&lt;Card title=\"x\" /&gt;</code> は <code>Card</code> に渡される 1 つの props レコードで、各属性は照合されるフィールドに対して、同じ型の呼び出し引数が受けるのと同じ判定とともに並びます。カバー範囲（検索が読めたものと読めなかったもの）は、答え全体で 1 回ではなく検索ごとに示され、どのノードにも、それが Glyph のソース、<code>extern_ts</code> の抜け道、中身の見えない <code>.d.ts</code> のどれから来たかが付きます。"
+      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code.",
+      "tr": "決まった 6 種類の変更（<code>add_variant</code>、<code>remove_variant</code>、<code>rename</code>、<code>change_arity</code>、<code>change_signature_type</code>、<code>remove</code>）と、決まった 5 種類の判定があり、影響を受ける箇所ごとに理由と診断コード付きのエントリが 1 つ返ります。"
+    },
+    {
+      "id": "h-d3ea45aa",
+      "kind": "html",
+      "en": "<code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments.",
+      "tr": "<code>change_signature_type</code> は呼び出しの引数ごとに型検査器自身の比較ルールで判定され、箇所の判定はその引数の中で最も弱いものになります。"
+    },
+    {
+      "id": "h-e6408624",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to",
+      "tr": "JSX 要素は、それが変換される呼び出しとして判定される"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-28ce4e1d",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get.",
+      "tr": "JSX 要素は、それが変換される呼び出しとして判定されます。<code>&lt;Card title=\"x\" /&gt;</code> は <code>Card</code> に渡される 1 つの props レコードで、各属性は照合されるフィールドに対して、同じ型の呼び出し引数が受けるのと同じ判定とともに並びます。"
+    },
+    {
+      "id": "h-25db2624",
+      "kind": "html",
+      "en": "Coverage is stated per search, and every node carries where it came from",
+      "tr": "カバー範囲は検索ごとに示され、どのノードにも出どころが付く"
+    },
+    {
+      "id": "h-bed94cd7",
+      "kind": "html",
+      "en": "Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
+      "tr": "カバー範囲（検索が読めたものと読めなかったもの）は、答え全体で 1 回ではなく検索ごとに示され、どのノードにも、それが Glyph のソース、<code>extern_ts</code> の抜け道、中身の見えない <code>.d.ts</code> のどれから来たかが付きます。"
     },
     {
       "id": "h-c647197d",
@@ -149,10 +305,46 @@
       "tr": "限界"
     },
     {
-      "id": "h-42652a98",
+      "id": "h-6c7cfe36",
       "kind": "html",
-      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
-      "tr": "深さは 1 ホップまでは正確で、それより先は空です。Glyph は宣言の型を本体から推論しないので、呼び出し先の型が呼び出し元のシグネチャに届くことはなく、X への変更が無効にしうるのは X を名指しする式だけです。深さ 2 を求めると、代わりに正確な質問を示す <code>next_query</code> 付きで答えが返ります。2 ホップ目に必要なのは誰かが 1 つ目の箇所に施す修正であり、その修正はまだ存在しないからです。<code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張です。型検査器が型を持たない引数や、どのルールも読まないフィールドとのレコードの対応は <code>UNDETERMINED</code>（調べたが決められなかった）で、呼び出されずに値として読まれる関数は <code>NOT_INDEXED</code>（そこではそもそも質問ができなかった）です。注意すべきは <code>ABSORBS</code> です。その箇所はコンパイルが通り続けるのに、誤りであることは証明されています。ビルドが成功しても、それは決して見えません。"
+      "en": "Depth is exact at one hop and empty past it",
+      "tr": "深さは 1 ホップまでは正確で、それより先は空"
+    },
+    {
+      "id": "h-c8aff8e3",
+      "kind": "html",
+      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X.",
+      "tr": "深さは 1 ホップまでは正確で、それより先は空です。Glyph は宣言の型を本体から推論しないので、呼び出し先の型が呼び出し元のシグネチャに届くことはなく、X への変更が無効にしうるのは X を名指しする式だけです。"
+    },
+    {
+      "id": "h-6fa44778",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead",
+      "tr": "深さ 2 を求めると、代わりに正確な質問を示す <code>next_query</code> 付きで答えが返る"
+    },
+    {
+      "id": "h-a7b177c5",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet.",
+      "tr": "深さ 2 を求めると、代わりに正確な質問を示す <code>next_query</code> 付きで答えが返ります。2 ホップ目に必要なのは誰かが 1 つ目の箇所に施す修正であり、その修正はまだ存在しないからです。"
+    },
+    {
+      "id": "h-636febd9",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims",
+      "tr": "<code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張"
+    },
+    {
+      "id": "h-a63dd5a1",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
+      "tr": "<code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張です。型検査器が型を持たない引数や、どのルールも読まないフィールドとのレコードの対応は <code>UNDETERMINED</code>（調べたが決められなかった）で、呼び出されずに値として読まれる関数は <code>NOT_INDEXED</code>（そこではそもそも質問ができなかった）です。"
+    },
+    {
+      "id": "h-32f66691",
+      "kind": "html",
+      "en": "<code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
+      "tr": "注意すべきは <code>ABSORBS</code> です。その箇所はコンパイルが通り続けるのに、誤りであることは証明されています。ビルドが成功しても、それは決して見えません。"
     }
   ]
 }

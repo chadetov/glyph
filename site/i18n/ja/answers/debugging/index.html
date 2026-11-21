@@ -1,7 +1,7 @@
 ---
 title: 深夜 3 時に壊れたとき、オンコール担当には何が見えるのか · Glyph
 description: Glyph は読みやすい TypeScript にコンパイルされ、各 .glyph ファイルへ戻る v3 ソースマップが付くので、スタックトレースや tsc のエラーは自分が書いた Glyph を指します。
-source_hash: 23c0350a6befa9fd
+source_hash: 4049ecaf7d564dbf
 prev: /answers/parse-errors/ | &larr; 前へ | パースが失敗したとき、その理由はわかるのか
 next: /playground/ | ひととおり見ました &rarr; | 次は Playground で Glyph を書いてみましょう
 ---
@@ -12,35 +12,51 @@ next: /playground/ | ひととおり見ました &rarr; | 次は Playground で 
         自分のものとして持てる読みやすい TypeScript と、出力された各ファイルの横に置かれる<strong> <code>.glyph</code> へ戻るソースマップ</strong>です。デバッガ、バンドラ、エラートラッカーは実行中のコードをソースまでたどれますし、Glyph を見たことがない人でも生成された TS を読めます。それ以前に、<code>glyph build</code> と <code>glyph run</code> は同じツリーに対して同じ診断を報告するので、手軽なループがビルドなら検出したはずのものを隠すことはありません。どちらも <code>glyph run</code> の経路に関する 2 つの制限については、後で説明します。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">1 &middot; 生成された TypeScript は自分で読める</h2>
-        <p>
-          Glyph は中身の見えないランタイムを同梱しません。出力するのは普通の整形された TypeScript で、ほかの TS と同じようにコミットしてデプロイします。だから最悪のケース（深夜 3 時に、Glyph を知らないオンコールのエンジニア）でも、読むのは方言ではなく普通の TypeScript です。ソースと本番の間にブラックボックスはありません。
-        </p>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#1-the-generated-typescript-is-yours-to-read">読める TypeScript</a></li>
+          <li><a href="#2-source-maps-back-to-glyph">ソースマップ</a></li>
+          <li><a href="#3-build-and-type-errors-already-point-at-glyph">ビルドと型のエラー</a></li>
+          <li><a href="#4-glyph-run-tells-you-the-same-things">glyph run の診断</a></li>
+          <li><a href="#two-current-limitations">2 つの制限</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">2 &middot; <code>.glyph</code> へ戻るソースマップ</h2>
-        <p>
-          出力されるどの <code>.ts</code> にも、標準の v3 ソースマップ（<code>.ts.map</code>）が隣に付きます。<code>sourceMappingURL</code> コメントがあり、Glyph のソースも埋め込まれています（<code>sourcesContent</code>）。ソースマップを扱えるもの（Chrome DevTools、Node のデバッガ、Sentry のようなエラートラッカー、バンドラ）なら、それをたどって生成された行ではなく <code>.glyph</code> の行を表示できます。
-        </p>
-      </div>
+      <h2 class="ak-h" id="1-the-generated-typescript-is-yours-to-read">1 &middot; 生成された TypeScript は自分で読める<a class="ak-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph は中身の見えないランタイムを同梱しません。出力するのは普通の整形された TypeScript で、ほかの TS と同じようにコミットしてデプロイします。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>だから最悪のケース（深夜 3 時に、Glyph を知らないオンコールのエンジニア）でも、読むのは方言ではなく普通の TypeScript です。ソースと本番の間にブラックボックスはありません。</p></div>
+
+      <h2 class="ak-h" id="2-source-maps-back-to-glyph">2 &middot; <code>.glyph</code> へ戻るソースマップ<a class="ak-anchor" href="#2-source-maps-back-to-glyph" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        出力されるどの <code>.ts</code> にも、標準の v3 ソースマップ（<code>.ts.map</code>）が隣に付きます。<code>sourceMappingURL</code> コメントがあり、Glyph のソースも埋め込まれています（<code>sourcesContent</code>）。
+      </p>
       <div class="code">
         <span class="cap">dist/main.ts（末尾）</span>
 <pre>// ...emitted TypeScript...
 //# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ソースマップを扱えるもの（Chrome DevTools、Node のデバッガ、Sentry のようなエラートラッカー、バンドラ）なら、それをたどって生成された行ではなく <code>.glyph</code> の行を表示できます。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">3 &middot; ビルドエラーと型エラーはすでに Glyph を指す</h2>
+      <h2 class="ak-h" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; ビルドエラーと型エラーはすでに Glyph を指す<a class="ak-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        型エラーのまま本番に出ることはまずありません。<code>glyph build</code> が <code>tsc --strict</code> を実行し、すべての <code>tsc</code> エラーを <code>.glyph</code> のソースに対応付け直すからです（キャレットも同じで、TypeScript のエラーコードも保たれます）。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>さらに <code>glyph build --json</code> はすべての診断を構造化された JSON（コード、深刻度、ファイル、1 始まりの行と列、ヘルプ）で出力するので、CI やツールがそれをもとに動けます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">キャレットが置かれる場所</span></summary><div class="body">
         <p>
-          型エラーのまま本番に出ることはまずありません。<code>glyph build</code> が <code>tsc --strict</code> を実行し、<strong>すべての <code>tsc</code> エラーを <code>.glyph</code> のソースに対応付け直す</strong>からです（キャレットも同じで、TypeScript のエラーコードも保たれます）。キャレットは、<code>tsc</code> が拒否したコードに対応する最小の Glyph の式に置かれます。引数が誤っていればその引数に、JSX のイベントハンドラ内でフィールド名を綴り間違えていれば、それを囲む <code>return</code> 全体ではなくそのメンバーアクセスに下線が引かれます。さらに <code>glyph build --json</code> はすべての診断を構造化された JSON（コード、深刻度、ファイル、1 始まりの行と列、ヘルプ）で出力するので、CI やツールがそれをもとに動けます。
+          キャレットは、<code>tsc</code> が拒否したコードに対応する最小の Glyph の式に置かれます。引数が誤っていればその引数に、JSX のイベントハンドラ内でフィールド名を綴り間違えていれば、それを囲む <code>return</code> 全体ではなくそのメンバーアクセスに下線が引かれます。
         </p>
+      </div></details>
 
-        <h2 class="block-label">4 &middot; <code>glyph run</code> も同じことを伝える</h2>
-        <p>
-          一日中打つコマンドは <code>glyph run</code> で、0.1.40 まではビルドより口数が少ないものでした。ディレクトリ全体をコンパイルし、レポートから出力ファイルの一覧を取り出して、診断は捨てていました。<code>glyph build</code> が指摘するツリーでも、何事もなく実行されて終了コード 0 で終わっていました。今は同じ診断を報告します。警告も含め、指定したファイルにもその兄弟ファイルにも、プログラムの出力の後に、1 行の件数とともに表示します。実行キャッシュが診断も保持するので、変更のないソースを 2 回目に実行しても黙らずに 1 回目と同じことを伝えます。診断が欠けたキャッシュエントリはミスとして扱われ、再ビルドされます。
-        </p>
-      </div>
-      <div class="code">
+      <h2 class="ak-h" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> も同じことを伝える<a class="ak-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        一日中打つコマンドは <code>glyph run</code> で、0.1.40 まではビルドより口数が少ないものでした。今は同じ診断を報告します。警告も含め、指定したファイルにもその兄弟ファイルにも、プログラムの出力の後に、1 行の件数とともに表示します。
+      </p>
+      <div class="code term">
         <span class="cap">使われていない import。それを使うはずのコードより 1 ステップ前に追加されたもの</span>
 <pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
@@ -54,25 +70,51 @@ next: /playground/ | ひととおり見ました &rarr; | 次は Playground で 
 
 glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">現在の 2 つの制限</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">実行キャッシュ</span></summary><div class="body">
         <p>
-          <strong><code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行番号を表示します。</strong><code>glyph run</code> は <code>tsx</code> 経由で実行し、<code>tsx</code> は自身の <code>.ts</code>&rarr;<code>.js</code> 変換を通してソースマップをつなげないので、<code>glyph run</code> 中に捕捉されない throw があると、生成された行が報告されます。このスタックの対応付けは今後の課題です。影響するのはローカルの <code>run</code> ループです。実際のデプロイでは <code>glyph build</code> で <code>.ts</code> を出力し、普段のツールチェーンでバンドルするので、<code>.ts.map</code> はいつもどおりつながり、呼び出しを受ける本番のスタックは <code>.glyph</code> に対応付けられます。
+          実行キャッシュが診断も保持するので、変更のないソースを 2 回目に実行しても黙らずに 1 回目と同じことを伝えます。診断が欠けたキャッシュエントリはミスとして扱われ、再ビルドされます。
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.40 より前</span></summary><div class="body">
+        <p>
+          ディレクトリ全体をコンパイルし、レポートから出力ファイルの一覧を取り出して、診断は捨てていました。<code>glyph build</code> が指摘するツリーでも、何事もなく実行されて終了コード 0 で終わっていました。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="two-current-limitations">現在の 2 つの制限<a class="ak-anchor" href="#two-current-limitations" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b><code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行番号を表示します。</b><code>glyph run</code> は <code>tsx</code> 経由で実行し、<code>tsx</code> は自身の <code>.ts</code>&rarr;<code>.js</code> 変換を通してソースマップをつなげないので、<code>glyph run</code> 中に捕捉されない throw があると、生成された行が報告されます。このスタックの対応付けは今後の課題です。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>兄弟モジュールのエラーは <code>glyph run</code> の終了コードを変えません。</b>コンパイルに失敗したモジュールは import できなくなりますが、それを import しないプログラムはそのまま実行されます。今はエラーが表示されますが、プロセスは <code>main</code> が返した値で終了します。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">本番のスタックと、終了コードが変わらない理由</span></summary><div class="body">
+        <p>
+          影響するのはローカルの <code>run</code> ループです。実際のデプロイでは <code>glyph build</code> で <code>.ts</code> を出力し、普段のツールチェーンでバンドルするので、<code>.ts.map</code> はいつもどおりつながり、呼び出しを受ける本番のスタックは <code>.glyph</code> に対応付けられます。
         </p>
         <p>
-          <strong>兄弟モジュールのエラーは <code>glyph run</code> の終了コードを変えません。</strong>コンパイルに失敗したモジュールは import できなくなりますが、それを import しないプログラムはそのまま実行されます。今はエラーが表示されますが、プロセスは <code>main</code> が返した値で終了します。0 以外で終了するようにすると、今は問題なく動いているツリーが失敗するようになるので、見落としではなく未決定の判断です。ツリーの健全性で終了コードを決めたいなら、それは <code>glyph build</code> の役割です。
+          0 以外で終了するようにすると、今は問題なく動いているツリーが失敗するようになるので、見落としではなく未決定の判断です。ツリーの健全性で終了コードを決めたいなら、それは <code>glyph build</code> の役割です。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>コミットされる読みやすい TS、ファイルごとの v3 <code>.ts.map</code>、<code>.glyph</code> に対応付け直された <code>tsc</code> エラー、<code>--json</code> の診断。<code>glyph run</code> はキャッシュが温まっている場合も含め、<code>glyph build</code> と同じものを報告します。デプロイ用ツールチェーンのソースマップのつながりは <code>.glyph</code> まで届きます。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">予定</h3>
-          <p><code>glyph run</code> のクラッシュ時のスタック自体の対応付け（ローカルの実行ループでも <code>.glyph</code> のフレームが表示されるように）、兄弟モジュールのエラーで <code>glyph run</code> を 0 以外で終了させるかどうかの判断、そして LSP によるより充実したエディタでのデバッグ。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">コミットされる読みやすい TS。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ファイルごとの v3 <code>.ts.map</code>。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>.glyph</code> に対応付け直された <code>tsc</code> エラー。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>--json</code> の診断。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph run</code> はキャッシュが温まっている場合も含め、<code>glyph build</code> と同じものを報告します。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">デプロイ用ツールチェーンのソースマップのつながりは <code>.glyph</code> まで届きます。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph run</code> のクラッシュ時のスタック自体の対応付け（ローカルの実行ループでも <code>.glyph</code> のフレームが表示されるように）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">兄弟モジュールのエラーで <code>glyph run</code> を 0 以外で終了させるかどうかの判断。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">LSP によるより充実したエディタでのデバッグ。</span></span></li>
+          </ul>
+        </section>
       </div>

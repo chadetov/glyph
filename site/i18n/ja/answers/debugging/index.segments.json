@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/debugging/index.html",
   "locale": "ja",
-  "source_hash": "23c0350a6befa9fd",
+  "source_hash": "4049ecaf7d564dbf",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,76 @@
       "tr": "自分のものとして持てる読みやすい TypeScript と、出力された各ファイルの横に置かれる<strong> <code>.glyph</code> へ戻るソースマップ</strong>です。デバッガ、バンドラ、エラートラッカーは実行中のコードをソースまでたどれますし、Glyph を見たことがない人でも生成された TS を読めます。それ以前に、<code>glyph build</code> と <code>glyph run</code> は同じツリーに対して同じ診断を報告するので、手軽なループがビルドなら検出したはずのものを隠すことはありません。どちらも <code>glyph run</code> の経路に関する 2 つの制限については、後で説明します。"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-6cd9ee03",
+      "kind": "html",
+      "en": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Readable TypeScript</a>",
+      "tr": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">読める TypeScript</a>"
+    },
+    {
+      "id": "h-646a3fde",
+      "kind": "html",
+      "en": "<a href=\"#2-source-maps-back-to-glyph\">Source maps</a>",
+      "tr": "<a href=\"#2-source-maps-back-to-glyph\">ソースマップ</a>"
+    },
+    {
+      "id": "h-7efdc0b7",
+      "kind": "html",
+      "en": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build and type errors</a>",
+      "tr": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">ビルドと型のエラー</a>"
+    },
+    {
+      "id": "h-0e83535a",
+      "kind": "html",
+      "en": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run diagnostics</a>",
+      "tr": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run の診断</a>"
+    },
+    {
+      "id": "h-1d802df0",
+      "kind": "html",
+      "en": "<a href=\"#two-current-limitations\">Two limitations</a>",
+      "tr": "<a href=\"#two-current-limitations\">2 つの制限</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-ddc2261b",
       "kind": "html",
       "en": "1 &middot; The generated TypeScript is yours to read",
       "tr": "1 &middot; 生成された TypeScript は自分で読める"
     },
     {
-      "id": "h-d332c631",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-14b544d0",
       "kind": "html",
-      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS. So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
-      "tr": "Glyph は中身の見えないランタイムを同梱しません。出力するのは普通の整形された TypeScript で、ほかの TS と同じようにコミットしてデプロイします。だから最悪のケース（深夜 3 時に、Glyph を知らないオンコールのエンジニア）でも、読むのは方言ではなく普通の TypeScript です。ソースと本番の間にブラックボックスはありません。"
+      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS.",
+      "tr": "Glyph は中身の見えないランタイムを同梱しません。出力するのは普通の整形された TypeScript で、ほかの TS と同じようにコミットしてデプロイします。"
+    },
+    {
+      "id": "h-5e597c9e",
+      "kind": "html",
+      "en": "So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
+      "tr": "だから最悪のケース（深夜 3 時に、Glyph を知らないオンコールのエンジニア）でも、読むのは方言ではなく普通の TypeScript です。ソースと本番の間にブラックボックスはありません。"
     },
     {
       "id": "h-a717c0e5",
@@ -77,10 +137,10 @@
       "tr": "2 &middot; <code>.glyph</code> へ戻るソースマップ"
     },
     {
-      "id": "h-8bb7e6b3",
+      "id": "h-4d19e462",
       "kind": "html",
-      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
-      "tr": "出力されるどの <code>.ts</code> にも、標準の v3 ソースマップ（<code>.ts.map</code>）が隣に付きます。<code>sourceMappingURL</code> コメントがあり、Glyph のソースも埋め込まれています（<code>sourcesContent</code>）。ソースマップを扱えるもの（Chrome DevTools、Node のデバッガ、Sentry のようなエラートラッカー、バンドラ）なら、それをたどって生成された行ではなく <code>.glyph</code> の行を表示できます。"
+      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>).",
+      "tr": "出力されるどの <code>.ts</code> にも、標準の v3 ソースマップ（<code>.ts.map</code>）が隣に付きます。<code>sourceMappingURL</code> コメントがあり、Glyph のソースも埋め込まれています（<code>sourcesContent</code>）。"
     },
     {
       "id": "h-8723e53b",
@@ -89,16 +149,40 @@
       "tr": "dist/main.ts（末尾）"
     },
     {
+      "id": "h-bbc36693",
+      "kind": "html",
+      "en": "Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
+      "tr": "ソースマップを扱えるもの（Chrome DevTools、Node のデバッガ、Sentry のようなエラートラッカー、バンドラ）なら、それをたどって生成された行ではなく <code>.glyph</code> の行を表示できます。"
+    },
+    {
       "id": "h-00ec273b",
       "kind": "html",
       "en": "3 &middot; Build and type errors already point at Glyph",
       "tr": "3 &middot; ビルドエラーと型エラーはすでに Glyph を指す"
     },
     {
-      "id": "h-a164aaf9",
+      "id": "h-094ec3e0",
       "kind": "html",
-      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved). The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it. And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
-      "tr": "型エラーのまま本番に出ることはまずありません。<code>glyph build</code> が <code>tsc --strict</code> を実行し、<strong>すべての <code>tsc</code> エラーを <code>.glyph</code> のソースに対応付け直す</strong>からです（キャレットも同じで、TypeScript のエラーコードも保たれます）。キャレットは、<code>tsc</code> が拒否したコードに対応する最小の Glyph の式に置かれます。引数が誤っていればその引数に、JSX のイベントハンドラ内でフィールド名を綴り間違えていれば、それを囲む <code>return</code> 全体ではなくそのメンバーアクセスに下線が引かれます。さらに <code>glyph build --json</code> はすべての診断を構造化された JSON（コード、深刻度、ファイル、1 始まりの行と列、ヘルプ）で出力するので、CI やツールがそれをもとに動けます。"
+      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and maps every <code>tsc</code> error back onto your <code>.glyph</code> source (same caret, the TypeScript error code preserved).",
+      "tr": "型エラーのまま本番に出ることはまずありません。<code>glyph build</code> が <code>tsc --strict</code> を実行し、すべての <code>tsc</code> エラーを <code>.glyph</code> のソースに対応付け直すからです（キャレットも同じで、TypeScript のエラーコードも保たれます）。"
+    },
+    {
+      "id": "h-e0892f4d",
+      "kind": "html",
+      "en": "And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
+      "tr": "さらに <code>glyph build --json</code> はすべての診断を構造化された JSON（コード、深刻度、ファイル、1 始まりの行と列、ヘルプ）で出力するので、CI やツールがそれをもとに動けます。"
+    },
+    {
+      "id": "h-d5fb5419",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the caret lands</span>",
+      "tr": "詳細 <span class=\"hint\">キャレットが置かれる場所</span>"
+    },
+    {
+      "id": "h-82bd0b54",
+      "kind": "html",
+      "en": "The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it.",
+      "tr": "キャレットは、<code>tsc</code> が拒否したコードに対応する最小の Glyph の式に置かれます。引数が誤っていればその引数に、JSX のイベントハンドラ内でフィールド名を綴り間違えていれば、それを囲む <code>return</code> 全体ではなくそのメンバーアクセスに下線が引かれます。"
     },
     {
       "id": "h-e0bf31b5",
@@ -107,10 +191,10 @@
       "tr": "4 &middot; <code>glyph run</code> も同じことを伝える"
     },
     {
-      "id": "h-52859b2b",
+      "id": "h-205f9330",
       "kind": "html",
-      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count. The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
-      "tr": "一日中打つコマンドは <code>glyph run</code> で、0.1.40 まではビルドより口数が少ないものでした。ディレクトリ全体をコンパイルし、レポートから出力ファイルの一覧を取り出して、診断は捨てていました。<code>glyph build</code> が指摘するツリーでも、何事もなく実行されて終了コード 0 で終わっていました。今は同じ診断を報告します。警告も含め、指定したファイルにもその兄弟ファイルにも、プログラムの出力の後に、1 行の件数とともに表示します。実行キャッシュが診断も保持するので、変更のないソースを 2 回目に実行しても黙らずに 1 回目と同じことを伝えます。診断が欠けたキャッシュエントリはミスとして扱われ、再ビルドされます。"
+      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count.",
+      "tr": "一日中打つコマンドは <code>glyph run</code> で、0.1.40 まではビルドより口数が少ないものでした。今は同じ診断を報告します。警告も含め、指定したファイルにもその兄弟ファイルにも、プログラムの出力の後に、1 行の件数とともに表示します。"
     },
     {
       "id": "h-136e8e91",
@@ -119,22 +203,64 @@
       "tr": "使われていない import。それを使うはずのコードより 1 ステップ前に追加されたもの"
     },
     {
+      "id": "h-6172ffe9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the run cache</span>",
+      "tr": "詳細 <span class=\"hint\">実行キャッシュ</span>"
+    },
+    {
+      "id": "h-f83bcf81",
+      "kind": "html",
+      "en": "The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
+      "tr": "実行キャッシュが診断も保持するので、変更のないソースを 2 回目に実行しても黙らずに 1 回目と同じことを伝えます。診断が欠けたキャッシュエントリはミスとして扱われ、再ビルドされます。"
+    },
+    {
+      "id": "h-c498308c",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.40</span>",
+      "tr": "経緯 <span class=\"hint\">0.1.40 より前</span>"
+    },
+    {
+      "id": "h-8906eaf7",
+      "kind": "html",
+      "en": "It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0.",
+      "tr": "ディレクトリ全体をコンパイルし、レポートから出力ファイルの一覧を取り出して、診断は捨てていました。<code>glyph build</code> が指摘するツリーでも、何事もなく実行されて終了コード 0 で終わっていました。"
+    },
+    {
       "id": "h-4ffc5345",
       "kind": "html",
       "en": "Two current limitations",
       "tr": "現在の 2 つの制限"
     },
     {
-      "id": "h-2e9a04df",
+      "id": "h-afa28129",
       "kind": "html",
-      "en": "<strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
-      "tr": "<strong><code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行番号を表示します。</strong><code>glyph run</code> は <code>tsx</code> 経由で実行し、<code>tsx</code> は自身の <code>.ts</code>&rarr;<code>.js</code> 変換を通してソースマップをつなげないので、<code>glyph run</code> 中に捕捉されない throw があると、生成された行が報告されます。このスタックの対応付けは今後の課題です。影響するのはローカルの <code>run</code> ループです。実際のデプロイでは <code>glyph build</code> で <code>.ts</code> を出力し、普段のツールチェーンでバンドルするので、<code>.ts.map</code> はいつもどおりつながり、呼び出しを受ける本番のスタックは <code>.glyph</code> に対応付けられます。"
+      "en": "<b><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</b><code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up.",
+      "tr": "<b><code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行番号を表示します。</b><code>glyph run</code> は <code>tsx</code> 経由で実行し、<code>tsx</code> は自身の <code>.ts</code>&rarr;<code>.js</code> 変換を通してソースマップをつなげないので、<code>glyph run</code> 中に捕捉されない throw があると、生成された行が報告されます。このスタックの対応付けは今後の課題です。"
     },
     {
-      "id": "h-853b7c0e",
+      "id": "h-d5a381c9",
       "kind": "html",
-      "en": "<strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</strong> A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
-      "tr": "<strong>兄弟モジュールのエラーは <code>glyph run</code> の終了コードを変えません。</strong>コンパイルに失敗したモジュールは import できなくなりますが、それを import しないプログラムはそのまま実行されます。今はエラーが表示されますが、プロセスは <code>main</code> が返した値で終了します。0 以外で終了するようにすると、今は問題なく動いているツリーが失敗するようになるので、見落としではなく未決定の判断です。ツリーの健全性で終了コードを決めたいなら、それは <code>glyph build</code> の役割です。"
+      "en": "<b>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</b>A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned.",
+      "tr": "<b>兄弟モジュールのエラーは <code>glyph run</code> の終了コードを変えません。</b>コンパイルに失敗したモジュールは import できなくなりますが、それを import しないプログラムはそのまま実行されます。今はエラーが表示されますが、プロセスは <code>main</code> が返した値で終了します。"
+    },
+    {
+      "id": "h-4320ed23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">production stacks, and why the exit code stays</span>",
+      "tr": "詳細 <span class=\"hint\">本番のスタックと、終了コードが変わらない理由</span>"
+    },
+    {
+      "id": "h-b248d268",
+      "kind": "html",
+      "en": "It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
+      "tr": "影響するのはローカルの <code>run</code> ループです。実際のデプロイでは <code>glyph build</code> で <code>.ts</code> を出力し、普段のツールチェーンでバンドルするので、<code>.ts.map</code> はいつもどおりつながり、呼び出しを受ける本番のスタックは <code>.glyph</code> に対応付けられます。"
+    },
+    {
+      "id": "h-f778d0a9",
+      "kind": "html",
+      "en": "Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
+      "tr": "0 以外で終了するようにすると、今は問題なく動いているツリーが失敗するようになるので、見落としではなく未決定の判断です。ツリーの健全性で終了コードを決めたいなら、それは <code>glyph build</code> の役割です。"
     },
     {
       "id": "h-b55f380c",
@@ -149,10 +275,40 @@
       "tr": "提供中"
     },
     {
-      "id": "h-5da7231a",
+      "id": "h-35d5883f",
       "kind": "html",
-      "en": "Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
-      "tr": "コミットされる読みやすい TS、ファイルごとの v3 <code>.ts.map</code>、<code>.glyph</code> に対応付け直された <code>tsc</code> エラー、<code>--json</code> の診断。<code>glyph run</code> はキャッシュが温まっている場合も含め、<code>glyph build</code> と同じものを報告します。デプロイ用ツールチェーンのソースマップのつながりは <code>.glyph</code> まで届きます。"
+      "en": "Readable committed TS.",
+      "tr": "コミットされる読みやすい TS。"
+    },
+    {
+      "id": "h-a999d756",
+      "kind": "html",
+      "en": "A v3 <code>.ts.map</code> per file.",
+      "tr": "ファイルごとの v3 <code>.ts.map</code>。"
+    },
+    {
+      "id": "h-b02dde54",
+      "kind": "html",
+      "en": "<code>tsc</code> errors remapped onto <code>.glyph</code>.",
+      "tr": "<code>.glyph</code> に対応付け直された <code>tsc</code> エラー。"
+    },
+    {
+      "id": "h-73412889",
+      "kind": "html",
+      "en": "<code>--json</code> diagnostics.",
+      "tr": "<code>--json</code> の診断。"
+    },
+    {
+      "id": "h-957cf9ca",
+      "kind": "html",
+      "en": "<code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included.",
+      "tr": "<code>glyph run</code> はキャッシュが温まっている場合も含め、<code>glyph build</code> と同じものを報告します。"
+    },
+    {
+      "id": "h-f523a3fc",
+      "kind": "html",
+      "en": "Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
+      "tr": "デプロイ用ツールチェーンのソースマップのつながりは <code>.glyph</code> まで届きます。"
     },
     {
       "id": "h-b63a305d",
@@ -161,10 +317,22 @@
       "tr": "予定"
     },
     {
-      "id": "h-bd6c0e1c",
+      "id": "h-d493c944",
       "kind": "html",
-      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.",
-      "tr": "<code>glyph run</code> のクラッシュ時のスタック自体の対応付け（ローカルの実行ループでも <code>.glyph</code> のフレームが表示されるように）、兄弟モジュールのエラーで <code>glyph run</code> を 0 以外で終了させるかどうかの判断、そして LSP によるより充実したエディタでのデバッグ。"
+      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too).",
+      "tr": "<code>glyph run</code> のクラッシュ時のスタック自体の対応付け（ローカルの実行ループでも <code>.glyph</code> のフレームが表示されるように）。"
+    },
+    {
+      "id": "h-eb0e2b45",
+      "kind": "html",
+      "en": "A decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero.",
+      "tr": "兄弟モジュールのエラーで <code>glyph run</code> を 0 以外で終了させるかどうかの判断。"
+    },
+    {
+      "id": "h-b5b5ebde",
+      "kind": "html",
+      "en": "Richer editor debugging via the LSP.",
+      "tr": "LSP によるより充実したエディタでのデバッグ。"
     }
   ]
 }

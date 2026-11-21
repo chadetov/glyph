@@ -1,7 +1,7 @@
 ---
 title: React、フック、Context で使えるか？ · Glyph
 description: React は組み込みでサポートされています。コンポーネントは関数コンポーネントにコンパイルされ、JSX は createElement に変換され、reducer のアクションは網羅的に match されます。
-source_hash: 7cfdf0dbb16b7eaf
+source_hash: 4d46f3d681c38c46
 prev: /answers/codegen/ | &larr; 前へ | API の仕様から型付きのクライアントとサーバーを生成できるか
 next: /answers/state/ | 次へ &rarr; | 関数の間で可変の状態をどう共有するか
 ---
@@ -12,18 +12,9 @@ next: /answers/state/ | 次へ &rarr; | 関数の間で可変の状態をどう�
         使えます。<code>component</code> は React の関数コンポーネントにコンパイルされ、JSX は <code>createElement</code> に変換されます。React 自身のフックは名前で import し、ペアは分割代入で受け取れます。reducer の状態には、素の TypeScript にはない網羅性の検査が付きます。ページそのもの（タイトル、マウント先、保存した状態）には <code>std/dom</code> と <code>std/storage</code> からアクセスします。最初に知っておくべき穴：Glyph 自身の型検査はフックの戻り値を型付けしないので、それらの値は <code>tsc</code> が検査します。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">なぜ重要か</h2>
-        <p>
-          エージェントが書くコードの多くは React です。Glyph は React を後付けではなく正式なターゲットとして扱います。<code>component</code> は独立したキーワードです（なので <code>grep "^component "</code> で UI 全体を確認できます）。React のフックは <code>react</code> から import して本来の名前と型で呼び出し、<code>tsc</code> が React 自身の型宣言に対して検査します。
-        </p>
-
-        <h2 class="block-label">実例</h2>
-        <p>React 本物の <code>useReducer</code> を、タグ付きユニオンを扱う reducer と組み合わせた例です。すべてのアクションを扱う必要があり、コンパイラがそれを検査します：</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph、react@18 とその型定義に対して</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph、react@18 とその型定義に対して</span>
 <pre>import react { useReducer }
 
 type Action = Inc | Dec | Reset
@@ -41,24 +32,55 @@ pub component Counter() {
   let [count, dispatch] = useReducer(reducer, 0)
   return &lt;button on_click={fn() { dispatch(Inc) }}&gt;{count}&lt;/button&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>React 本物の <code>useReducer</code> を、タグ付きユニオンを扱う reducer と組み合わせた例です。すべてのアクションを扱う必要があり、コンパイラがそれを検査します。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Double</code> アクションを追加すると、reducer はそれを名指しする <code>E0200</code> でコンパイルできなくなります。素の TypeScript の <code>switch</code> なら、そのままリリースされてしまうところです。ペアは <code>let [count, dispatch]</code> で分割代入され、出力される TypeScript には <code>satisfies readonly [unknown, unknown]</code> が付くので、<code>tsc</code> はフックがペアを返したことを証明しつつ、各要素の型を推論します。Glyph 自身の型検査は React から来る値を型付けしないので、<code>dispatch</code> や state のセッターへの誤った引数は、エディタや <code>--no-tsc</code> ではなく、ビルド中の <code>tsc</code> が報告します。React の <strong>Context</strong> は現在 <code>createContext</code> / <code>useContext</code> で使え、メンバー式の要素名（<code>&lt;ThemeContext.Provider&gt;</code>）もそのまま使えます。回避策は要りません。
-        </p>
-        <p>
-          JSX の props スプレッドも使えます。<code>&lt;input {...register("email")} /&gt;</code> は props の中のオブジェクトスプレッドに変換されるので、react-hook-form のイディオムにアダプタは要りません。Zod の値から導出される型も正式にサポートされています。<code>type FormData = z.infer&lt;typeof schema&gt;</code> がそのまま使え、抜け道は要りません。1 つだけ違う点があります。コンポーネントは複数の位置引数ではなく、1 つの props レコードを受け取ります。その境界がどこにあるかは、<a href="/answers/imports/">既存のライブラリを使う</a>と<a href="/hardening/">堅牢化のページ</a>を参照してください。
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#reducers-and-hooks">reducer とフック</a></li>
+          <li><a href="#context-and-libraries">Context とライブラリ</a></li>
+          <li><a href="#are-props-checked-before-tsc">tsc より前の props 検査</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">JSX の中の &lt;match&gt;</a></li>
+          <li><a href="#how-does-a-page-start-it">ページの起動</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label">props は tsc より前に検査されるか？</h2>
-        <p>
-          されます。Glyph は各要素をそのコンポーネントの props レコードと自分で照合するので、誤った値、綴りを間違えた prop、必須の prop の欠落は、その prop の名前を挙げる Glyph のエラーになります。フルビルドだけでなく、エディタや MCP でも見えます。コンポーネントを名前で import しても、モジュール経由で import しても同じように動きます：
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        エージェントが書くコードの多くは React です。Glyph は React を後付けではなく正式なターゲットとして扱います。<code>component</code> は独立したキーワードです（なので <code>grep "^component "</code> で UI 全体を確認できます）。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>React のフックは <code>react</code> から import して本来の名前と型で呼び出し、<code>tsc</code> が React 自身の型宣言に対して検査します。</p></div>
 
+      <h2 class="ak-h" id="reducers-and-hooks">reducer とフック<a class="ak-anchor" href="#reducers-and-hooks" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Double</code> アクションを追加すると、reducer はそれを名指しする <code>E0200</code> でコンパイルできなくなります。素の TypeScript の <code>switch</code> なら、そのままリリースされてしまうところです。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph 自身の型検査は React から来る値を型付けしないので、<code>dispatch</code> や state のセッターへの誤った引数は、エディタや <code>--no-tsc</code> ではなく、ビルド中の <code>tsc</code> が報告します。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">フックが返すペアの分割代入</span></summary><div class="body">
+        <p>
+          ペアは <code>let [count, dispatch]</code> で分割代入され、出力される TypeScript には <code>satisfies readonly [unknown, unknown]</code> が付くので、<code>tsc</code> はフックがペアを返したことを証明しつつ、各要素の型を推論します。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context とライブラリ<a class="ak-anchor" href="#context-and-libraries" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        React の <strong>Context</strong> は現在 <code>createContext</code> / <code>useContext</code> で使え、メンバー式の要素名（<code>&lt;ThemeContext.Provider&gt;</code>）もそのまま使えます。回避策は要りません。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>props スプレッド</b>JSX の props スプレッドも使えます。<code>&lt;input {...register("email")} /&gt;</code> は props の中のオブジェクトスプレッドに変換されるので、react-hook-form のイディオムにアダプタは要りません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Zod の型</b>Zod の値から導出される型も正式にサポートされています。<code>type FormData = z.infer&lt;typeof schema&gt;</code> がそのまま使え、抜け道は要りません。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>1 つだけ違う点があります。コンポーネントは複数の位置引数ではなく、1 つの props レコードを受け取ります。その境界がどこにあるかは、<a href="/answers/imports/">既存のライブラリを使う</a>と<a href="/hardening/">堅牢化のページ</a>を参照してください。</p></div>
+
+      <h2 class="ak-h" id="are-props-checked-before-tsc">props は tsc より前に検査されるか？<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        されます。Glyph は各要素をそのコンポーネントの props レコードと自分で照合するので、誤った値、綴りを間違えた prop、必須の prop の欠落は、その prop の名前を挙げる Glyph のエラーになります。コンポーネントを名前で import しても、モジュール経由で import しても同じように動きます：
+      </p>
       <div class="code">
         <span class="cap">main.glyph。<code>Card</code> は <code>ui.glyph</code> で宣言</span>
 <pre>import ui
@@ -74,20 +96,21 @@ pub component App() {
 // E0210 type `CardProps` has no field `cout`; did you mean `count`?
 // E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>フルビルドだけでなく、エディタや MCP でも見えます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">--json の missing_fields と、1 つの props レコード（E0229）</span></summary><div class="body">
         <p>
           <code>--json</code> は欠けている名前を <code>missing_fields</code> のリストとして返すので、エージェントはメッセージをパースせずに props を追加できます。また、コンポーネントは props を 1 つのレコードとして受け取る必要があります。<code>component Greeting(name: string)</code> はパラメータの位置で E0229 になります。React は props オブジェクトしか渡さないので、その要素は決して型検査を通らないからです。レンダリングせずに関数として呼び出すなら、<code>fn</code> で宣言してください。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">JSX の中の &lt;match&gt; は match と同じように検査されるか？</h2>
-        <p>
-          同じものです。各 <code>&lt;case&gt;</code> は <code>match</code> のアームと同じパターンを受け取り、コンパイラはアームに使うのと同じコードでそれを処理します。case が束縛する名前はペイロードの型を持ち、ペイロードのレコードにないフィールドは E0210、欠けているバリアントは E0200 になります。値を判定する case はそのバリアントの一部しか扱わないので、残りを受け持つ兄弟の case か <code>&lt;case else&gt;</code> が必要です：
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">JSX の中の &lt;match&gt; は match と同じように検査されるか？<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        同じものです。各 <code>&lt;case&gt;</code> は <code>match</code> のアームと同じパターンを受け取り、コンパイラはアームに使うのと同じコードでそれを処理します。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>ペイロードの型</b>case が束縛する名前はペイロードの型を持ち、ペイロードのレコードにないフィールドは E0210、欠けているバリアントは E0200 になります。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>部分的な case</b>値を判定する case はそのバリアントの一部しか扱わないので、残りを受け持つ兄弟の case か <code>&lt;case else&gt;</code> が必要です。</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre>type Page =
@@ -106,13 +129,11 @@ component Results(props: { page: Page }) {
 <span class="add">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label">ページからはどう起動するのか？</h2>
-        <p>
-          Glyph にはトップレベルの文がないので、ページがエクスポートされた <code>main</code> を自分で呼び出します。アプリは 2 つのモジュールからなります。コンポーネントを持つモジュールと、<code>std/dom</code> と react-dom の <code>createRoot</code> を使ってそれらを <code>#root</code> にマウントするモジュールです。イベント属性はスネークケースで（<code>on_change</code> は React の <code>onChange</code> として出力されます）、ハンドラはラムダで、入力のテキストは <code>e.currentTarget.value</code> です。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">ページからはどう起動するのか？<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph にはトップレベルの文がないので、ページがエクスポートされた <code>main</code> を自分で呼び出します。アプリは 2 つのモジュールからなります。コンポーネントを持つモジュールと、<code>std/dom</code> と react-dom の <code>createRoot</code> を使ってそれらを <code>#root</code> にマウントするモジュールです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>イベント属性はスネークケースで（<code>on_change</code> は React の <code>onChange</code> として出力されます）、ハンドラはラムダで、入力のテキストは <code>e.currentTarget.value</code> です。</p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react">module app
@@ -154,21 +175,41 @@ pub fn main() -&gt; void {
   main();
 &lt;/script&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="モジュールからバンドルまで"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ビルド、この main が何も受け取らない理由、手順の解説</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> はモジュールを検査し、React の型宣言に対して <code>tsc --strict</code> を実行し、TypeScript を <code>dist/gen</code> に書き出します。続いて <code>npx vite build --outDir dist/web</code> が <code>index.html</code> を読み、import をたどって React とともにバンドルします。この <code>main</code> は何も受け取らず何も返しません。スクリプトが引数なしで呼び出すからです。<code>glyph init</code> が書く <code>main(argv) -&gt; number</code> は、node 上で <code>glyph run</code> が呼び出すものです。<code>package.json</code> とインストールのコマンドを含む手順の全体は、<code>glyph llms</code> が出力するリファレンスの<a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">ブラウザのページで Glyph を動かす</a>にあります。CI は <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> を同じ方法でビルドし、ヘッドレス Chromium でレンダリングしています。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">現状</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>コンポーネント、JSX、フラグメント（<code>&lt;&gt;...&lt;/&gt;</code>）、メンバー式の要素名（<code>&lt;Ctx.Provider&gt;</code>）、JSX の props スプレッド（<code>{...register()}</code>）、どの import の書き方でも <code>tsc</code> より前にコンポーネントに対して検査される props、名前で import する React 自身のフック（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>。型は tsc が検査し、ペアは分割代入できます：<code>let [count, set_count] = useState(0)</code>）、網羅的なタグ付きユニオンのアクションを持つ <code>useReducer</code>、アームのパターンを使う <code>match</code> として検査・変換される <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>、<code>createContext</code>/<code>useContext</code> による Context、そして <code>std/dom</code>（タイトル、マウント先、アドレス）、<code>std/storage</code>、<code>std/console</code> を通したページの操作。JSX のテキストは TSX と同じように読まれるので、<code>&lt;p&gt;Don't stop&lt;/p&gt;</code> は普通のテキストです。<code>}</code>、<code>&gt;</code>、<code>//</code>、<code>&amp;amp;</code> のような HTML エンティティはテキスト中では拒否され（E0012）、代わりの書き方が示されます。配列に対するメンバーの読み取りは検査されるので、<code>Array&lt;string&gt;</code> に対する <code>{items.foo}</code> は E0210 です。<a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> は、Vite でバンドルされブラウザでレンダリングされる React 18 のアプリ一式です。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">予定</h3>
-          <p>Glyph の型検査はフックの戻り値を型付けしないので、数値の state に対する <code>set_count("x")</code> は、エディタでの Glyph のエラーではなく、ビルド中の <code>tsc</code> のエラーになります。<code>std/dom</code> にできるのはページの読み取りとタイトルの設定までです。React がレンダリングする DOM は React のものなので、要素のセッターやイベントリスナーはありません。エフェクトは <code>fn() -&gt; void { ... }</code> と書く必要があります。ラムダは最後の式を返すので、React がそれをクリーンアップとして呼んでしまうからです。インラインで書いた props の型は、これらのメッセージでは今も <code>record</code> と表示されます。名前付きの型ならその名前が表示されます。UI を TypeScript で書いた既存の Vite アプリに Glyph の出力を組み込む方法は、<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイのガイド</a>にあります。</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">コンポーネント、JSX、フラグメント（<code>&lt;&gt;...&lt;/&gt;</code>）</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">メンバー式の要素名（<code>&lt;Ctx.Provider&gt;</code>）</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX の props スプレッド（<code>{...register()}</code>）</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">どの import の書き方でも <code>tsc</code> より前にコンポーネントに対して検査される props</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">名前で import する React 自身のフック（<code>useState</code>、<code>useReducer</code>、<code>useEffect</code>。型は tsc が検査し、ペアは分割代入できます：<code>let [count, set_count] = useState(0)</code>）</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">網羅的なタグ付きユニオンのアクションを持つ <code>useReducer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">アームのパターンを使う <code>match</code> として検査・変換される <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>createContext</code>/<code>useContext</code> による Context</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/dom</code>（タイトル、マウント先、アドレス）、<code>std/storage</code>、<code>std/console</code> を通したページの操作</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX のテキストは TSX と同じように読まれるので、<code>&lt;p&gt;Don't stop&lt;/p&gt;</code> は普通のテキストです。<code>}</code>、<code>&gt;</code>、<code>//</code>、<code>&amp;amp;</code> のような HTML エンティティはテキスト中では拒否され（E0012）、代わりの書き方が示されます。</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">配列に対するメンバーの読み取りは検査されるので、<code>Array&lt;string&gt;</code> に対する <code>{items.foo}</code> は E0210 です。</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> は、Vite でバンドルされブラウザでレンダリングされる React 18 のアプリ一式です。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyph の型検査はフックの戻り値を型付けしないので、数値の state に対する <code>set_count("x")</code> は、エディタでの Glyph のエラーではなく、ビルド中の <code>tsc</code> のエラーになります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> にできるのはページの読み取りとタイトルの設定までです。React がレンダリングする DOM は React のものなので、要素のセッターやイベントリスナーはありません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">エフェクトは <code>fn() -&gt; void { ... }</code> と書く必要があります。ラムダは最後の式を返すので、React がそれをクリーンアップとして呼んでしまうからです。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">インラインで書いた props の型は、これらのメッセージでは今も <code>record</code> と表示されます。名前付きの型ならその名前が表示されます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">UI を TypeScript で書いた既存の Vite アプリに Glyph の出力を組み込む方法は、<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">デプロイのガイド</a>にあります。</span></span></li>
+          </ul>
+        </section>
       </div>

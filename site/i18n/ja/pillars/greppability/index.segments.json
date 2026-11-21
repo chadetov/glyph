@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/greppability/index.html",
   "locale": "ja",
-  "source_hash": "7d5d7e45736ff422",
+  "source_hash": "9c3cf289350d83ef",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "<strong>1 つの名前、1 つの場所。</strong>すべてのシンボルは、宣言された場所でちょうど 1 つの構文上の形を持ちます。そのため、インデックスも言語サーバーも運も必要なく、普通の <code>grep</code> で必ず定義が見つかります。"
     },
     {
-      "id": "h-cfc911db",
-      "kind": "html",
-      "en": "Why \"where is this defined?\" is hard",
-      "tr": "「これはどこで定義されているのか」が難しい理由"
-    },
-    {
-      "id": "h-8a696257",
-      "kind": "html",
-      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest. The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
-      "tr": "成熟した TypeScript のコードベースでは、<em>この名前はどこから来たのか</em>という最も単純な質問が、しばしば最も難しくなります。この言語には、1 つのシンボルを多くの場所に散らばらせる方法がいくつもあります。オーバーロードは関数を複数のシグネチャに分け、デコレータは関数を別の何かで包み、<code>namespace</code> と <code>interface</code> のマージは型を複数のファイルに散らし、<code>declare module</code> は自分のものではないコードを拡張し、バレルファイルの <code>index.ts</code> はすべてを再エクスポートするので、インポート元のパスに実体があるとは限りません。"
-    },
-    {
-      "id": "h-7ac6182d",
-      "kind": "html",
-      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is. Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
-      "tr": "人間は LSP と慣れで対処します。<strong>エージェント</strong>は grep します。リポジトリをテキストとして読むので、これらの構文はどれも、コードの場所についてテキストが嘘をつく箇所になります。Glyph はこれらを取り除きます。その結果、検索が経験則ではなく信頼できる基本操作になる言語になります。"
-    },
-    {
-      "id": "h-e0bad820",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
-      "tr": "<span class=\"ex-label\">01</span> 1 つの宣言、1 つの形"
-    },
-    {
-      "id": "h-b1b69e3e",
-      "kind": "html",
-      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>). So the search for a definition has exactly one answer.",
-      "tr": "関数、型、コンポーネントは、1 つの構文でちょうど 1 回だけ宣言されます。シグネチャを分けるオーバーロードも、名前を再宣言する方法もありません。トップレベルに同じ名前のものが 2 つあれば即エラーです（<code>E0100</code>）。そのため、定義の検索には答えが 1 つしかありません。"
-    },
-    {
       "id": "h-e3252323",
       "kind": "html",
       "en": "TypeScript: four hits, one is the body",
@@ -101,10 +71,124 @@
       "tr": "Glyph：最初のヒットが定義"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-24ca6fa6",
+      "kind": "html",
+      "en": "<a href=\"#why-where-is-this-defined-is-hard\">Why it is hard</a>",
+      "tr": "<a href=\"#why-where-is-this-defined-is-hard\">なぜ難しいのか</a>"
+    },
+    {
+      "id": "h-50c02449",
+      "kind": "html",
+      "en": "<a href=\"#one-declaration-one-form\">One declaration, one form</a>",
+      "tr": "<a href=\"#one-declaration-one-form\">1 つの宣言、1 つの形</a>"
+    },
+    {
+      "id": "h-ad5848b5",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-the-import-path-is-the-location\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-the-import-path-is-the-location\">バレルファイルなし</a>"
+    },
+    {
+      "id": "h-91485703",
+      "kind": "html",
+      "en": "<a href=\"#no-hidden-ways-to-attach-behavior\">No hidden behavior</a>",
+      "tr": "<a href=\"#no-hidden-ways-to-attach-behavior\">隠れた振る舞いなし</a>"
+    },
+    {
+      "id": "h-2d5e229e",
+      "kind": "html",
+      "en": "<a href=\"#even-mutation-is-greppable\">Greppable mutation</a>",
+      "tr": "<a href=\"#even-mutation-is-greppable\">grep できる変更</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">ベンチマーク</a>"
+    },
+    {
+      "id": "h-0b94e373",
+      "kind": "html",
+      "en": "<a href=\"#a-lint-rule-can-ban-overloads-and-decorators\">\"A lint rule can do this\"</a>",
+      "tr": "<a href=\"#a-lint-rule-can-ban-overloads-and-decorators\">「lint ルールでできる」</a>"
+    },
+    {
+      "id": "h-cfc911db",
+      "kind": "html",
+      "en": "Why \"where is this defined?\" is hard",
+      "tr": "「これはどこで定義されているのか」が難しい理由"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-bdb2c935",
+      "kind": "html",
+      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest.",
+      "tr": "成熟した TypeScript のコードベースでは、<em>この名前はどこから来たのか</em>という最も単純な質問が、しばしば最も難しくなります。"
+    },
+    {
+      "id": "h-3a120abf",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">overloads, decorators, merging, augmentation, barrels</span>",
+      "tr": "詳細 <span class=\"hint\">オーバーロード、デコレータ、マージ、拡張、バレル</span>"
+    },
+    {
+      "id": "h-fb571be7",
+      "kind": "html",
+      "en": "The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
+      "tr": "この言語には、1 つのシンボルを多くの場所に散らばらせる方法がいくつもあります。オーバーロードは関数を複数のシグネチャに分け、デコレータは関数を別の何かで包み、<code>namespace</code> と <code>interface</code> のマージは型を複数のファイルに散らし、<code>declare module</code> は自分のものではないコードを拡張し、バレルファイルの <code>index.ts</code> はすべてを再エクスポートするので、インポート元のパスに実体があるとは限りません。"
+    },
+    {
+      "id": "h-58f30961",
+      "kind": "html",
+      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is.",
+      "tr": "人間は LSP と慣れで対処します。<strong>エージェント</strong>は grep します。リポジトリをテキストとして読むので、これらの構文はどれも、コードの場所についてテキストが嘘をつく箇所になります。"
+    },
+    {
+      "id": "h-d45a6d81",
+      "kind": "html",
+      "en": "Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
+      "tr": "Glyph はこれらを取り除きます。その結果、検索が経験則ではなく信頼できる基本操作になる言語になります。"
+    },
+    {
+      "id": "h-e0bad820",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
+      "tr": "<span class=\"ex-label\">01</span> 1 つの宣言、1 つの形"
+    },
+    {
+      "id": "h-e0587fdd",
+      "kind": "html",
+      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>).",
+      "tr": "関数、型、コンポーネントは、1 つの構文でちょうど 1 回だけ宣言されます。シグネチャを分けるオーバーロードも、名前を再宣言する方法もありません。トップレベルに同じ名前のものが 2 つあれば即エラーです（<code>E0100</code>）。"
+    },
+    {
       "id": "h-eb25898c",
       "kind": "html",
       "en": "The declaration keyword is part of the name you search for. <code>grep \"fn parseUser\"</code> cannot match a call, an import, or a re-export, only the one place it's <strong>defined</strong>.",
       "tr": "宣言のキーワードは、検索する名前の一部です。<code>grep \"fn parseUser\"</code> は、呼び出しにもインポートにも再エクスポートにもマッチせず、<strong>定義された</strong>唯一の場所にだけマッチします。"
+    },
+    {
+      "id": "h-a3c3049c",
+      "kind": "html",
+      "en": "So the search for a definition has exactly one answer.",
+      "tr": "そのため、定義の検索には答えが 1 つしかありません。"
     },
     {
       "id": "h-79996f09",
@@ -113,10 +197,10 @@
       "tr": "<span class=\"ex-label\">02</span> バレルファイルはない：インポートパスが場所になる"
     },
     {
-      "id": "h-f450e21f",
+      "id": "h-b2f4eba2",
       "kind": "html",
-      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
-      "tr": "Glyph のインポートは再エクスポートをせず、中身がインポートだけのモジュールは拒否されます（<code>E0102</code>）。出どころをわかりにくくする <code>index.ts</code> の層はありません。そのためインポートは、シンボルが実際にあるモジュールを指します。パスが<em>そのまま</em>アドレスです。"
+      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer.",
+      "tr": "Glyph のインポートは再エクスポートをせず、中身がインポートだけのモジュールは拒否されます（<code>E0102</code>）。出どころをわかりにくくする <code>index.ts</code> の層はありません。"
     },
     {
       "id": "h-f4999a77",
@@ -125,16 +209,28 @@
       "tr": "インポートを見れば、どこを見ればよいかが正確にわかる"
     },
     {
+      "id": "h-5d9e758c",
+      "kind": "html",
+      "en": "So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
+      "tr": "そのためインポートは、シンボルが実際にあるモジュールを指します。パスが<em>そのまま</em>アドレスです。"
+    },
+    {
       "id": "h-6c9d2ede",
       "kind": "html",
       "en": "<span class=\"ex-label\">03</span> No hidden ways to attach behavior",
       "tr": "<span class=\"ex-label\">03</span> 振る舞いを付け加える隠れた方法はない"
     },
     {
-      "id": "h-c09fa1b1",
+      "id": "h-d17431ab",
       "kind": "html",
-      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to. A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
-      "tr": "関数を見えない層で包むデコレータも、ツリーのあちこちからメンバーを集める <code>namespace</code> のマージも、開こうとも思わないファイルからサードパーティの型を拡張する <code>declare module</code> も、メソッドが指すものを付け替える暗黙の <code>this</code> もありません。名前は 1 つの宣言に解決され、それを形づくるものはすべてその宣言の場所で見えます。"
+      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to.",
+      "tr": "関数を見えない層で包むデコレータも、ツリーのあちこちからメンバーを集める <code>namespace</code> のマージも、開こうとも思わないファイルからサードパーティの型を拡張する <code>declare module</code> も、メソッドが指すものを付け替える暗黙の <code>this</code> もありません。"
+    },
+    {
+      "id": "h-adad9b4d",
+      "kind": "html",
+      "en": "A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
+      "tr": "名前は 1 つの宣言に解決され、それを形づくるものはすべてその宣言の場所で見えます。"
     },
     {
       "id": "h-1f8a2312",
@@ -143,10 +239,16 @@
       "tr": "<span class=\"ex-label\">04</span> 変更も grep できる"
     },
     {
-      "id": "h-844b3d63",
+      "id": "h-f2ca2c10",
       "kind": "html",
-      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
-      "tr": "grep しやすさは定義を見つけることだけではなく、<em>作用</em>を見つけることでもあります。共有状態は <code>std/store</code> に置かれ、それへの変更はすべて文字どおりの <code>.set(</code> か <code>.update(</code> の呼び出しです。そのため、ファイル中に散らばった代入を探し回る代わりに、1 回の検索でその状態に書き込む箇所をすべて列挙できます。"
+      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call.",
+      "tr": "grep しやすさは定義を見つけることだけではなく、<em>作用</em>を見つけることでもあります。共有状態は <code>std/store</code> に置かれ、それへの変更はすべて文字どおりの <code>.set(</code> か <code>.update(</code> の呼び出しです。"
+    },
+    {
+      "id": "h-8d916673",
+      "kind": "html",
+      "en": "So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
+      "tr": "そのため、ファイル中に散らばった代入を探し回る代わりに、1 回の検索でその状態に書き込む箇所をすべて列挙できます。"
     },
     {
       "id": "h-69824f13",
@@ -161,10 +263,16 @@
       "tr": "ベンチマーク：準備中"
     },
     {
-      "id": "h-45b81f92",
+      "id": "h-16e77859",
       "kind": "html",
-      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
-      "tr": "この主張を測れる形にすると、精度になります。あるシンボルについて、普通の grep のヒットのうち本当に探していたものの割合はどれくらいか、エージェントが定義にたどり着くまでに何ステップかかるか、です。Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダです。測定できる実際のコードベースができたら、実際の数値で埋まります。"
+      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition?",
+      "tr": "この主張を測れる形にすると、精度になります。あるシンボルについて、普通の grep のヒットのうち本当に探していたものの割合はどれくらいか、エージェントが定義にたどり着くまでに何ステップかかるか、です。"
+    },
+    {
+      "id": "h-bbe0254d",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
+      "tr": "Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダです。測定できる実際のコードベースができたら、実際の数値で埋まります。"
     },
     {
       "id": "h-22a29cf4",
@@ -215,10 +323,22 @@
       "tr": "「lint ルールでオーバーロードやデコレータは禁止できる」"
     },
     {
-      "id": "h-054477f5",
+      "id": "h-f7708ca3",
       "kind": "html",
-      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload. The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it. In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
-      "tr": "自分のリポジトリでなら、できます。ESLint は namespace を禁止でき、チームはオーバーロードを使わないと取り決められます。それでも言語はそのすべてを許しているので、保証は設定がある間だけ続き、その設定が適用されるコードにしか及びません。依存パッケージ、生成されたファイル、他人のリポジトリに対する <code>grep</code> は、それを当てにできません。Glyph ではこれらの構文が存在しないので、<code>grep</code> はどの Glyph ファイルでも同じように機能します。チームの誰も設定していないファイルでもです。"
+      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload.",
+      "tr": "自分のリポジトリでなら、できます。ESLint は namespace を禁止でき、チームはオーバーロードを使わないと取り決められます。"
+    },
+    {
+      "id": "h-851eb261",
+      "kind": "html",
+      "en": "The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it.",
+      "tr": "それでも言語はそのすべてを許しているので、保証は設定がある間だけ続き、その設定が適用されるコードにしか及びません。依存パッケージ、生成されたファイル、他人のリポジトリに対する <code>grep</code> は、それを当てにできません。"
+    },
+    {
+      "id": "h-ba3cf568",
+      "kind": "html",
+      "en": "In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
+      "tr": "Glyph ではこれらの構文が存在しないので、<code>grep</code> はどの Glyph ファイルでも同じように機能します。チームの誰も設定していないファイルでもです。"
     },
     {
       "id": "h-7ef205c4",

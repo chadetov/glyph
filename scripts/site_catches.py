@@ -560,7 +560,7 @@ def hero(cases: list[dict], t: Lang) -> str:
     ts_cap, ts_out = ts_output(pick)
     gl_cap, gl_out = glyph_output(pick)
     return f"""          <figure class="c-hero">
-            <figcaption><a href="/catches/#{pick["slug"]}">{t.text(pick, "page_title")}</a>{t.s("catches.colon")}{t.text(pick, "why")}</figcaption>
+            <figcaption><a href="{case_url(pick)}">{t.text(pick, "page_title")}</a>{t.s("catches.colon")}{t.text(pick, "why")}</figcaption>
             <div class="c-hero-side ts">
               <div class="c-tags"><span class="c-lang">TypeScript</span><span class="c-verdict">{t.text(pick, "ts_verdict")}</span></div>
               {code_box("ts.ts", pick["ts_code"], "ts", ts_cap, ts_out)}
@@ -577,7 +577,7 @@ def top(cases: list[dict], t: Lang) -> str:
     picks = [c for c in mistakes(cases) if c["fullconfig"] == "none"][:3]
     cards = []
     for i, c in enumerate(picks, 1):
-        cards.append(f"""          <a class="c-card" href="/catches/#{c["slug"]}">
+        cards.append(f"""          <a class="c-card" href="{case_url(c)}">
             <span class="c-card-n">{i}</span>
             <h3>{t.text(c, "page_title")}</h3>
             <p>{t.text(c, "why")}</p>
@@ -597,7 +597,7 @@ def refused_table(cases: list[dict], t: Lang) -> str:
         if c["code"].startswith("TS"):
             code += f' <span class="muted">{s("catches.tsc_pass")}</span>'
         rows.append(
-            f'            <tr><td>{code}</td><td><a href="/catches/#{c["slug"]}">{t.text(c, "page_title")}</a></td>'
+            f'            <tr><td>{code}</td><td><a href="{case_url(c)}">{t.text(c, "page_title")}</a></td>'
             f'<td><a href="{REPO}/tree/main/catches/{c["slug"]}"><code>catches/{c["slug"]}/</code></a></td></tr>\n')
     return ('        <table class="catches-table">\n'
             f'          <thead><tr><th>{s("catches.table.says")}</th><th>{s("catches.table.let")}</th>'

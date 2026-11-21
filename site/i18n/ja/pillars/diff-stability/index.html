@@ -1,7 +1,7 @@
 ---
 title: 差分の安定性 · 1 行の変更は 1 行の差分 · Glyph
 description: Glyph の第 3 の柱：唯一の正規フォーマット、末尾カンマ、詰め直されないリスト、バレルファイルなし、冪等なコード生成。差分には変更そのものが表れ、無関係な書き換えは出ません。
-source_hash: dda01800844f43a2
+source_hash: efcaa38e3c37f640
 prev: /pillars/abstraction/ | &larr; 前の柱 | grep しやすさ：1 つの名前、1 つの場所
 next: /pillars/verifiability/ | 次の柱 &rarr; | 抽象化：小さく直交したコア
 ---
@@ -12,65 +12,85 @@ next: /pillars/verifiability/ | 次の柱 &rarr; | 抽象化：小さく直交�
         1 行の変更は <strong>1 行の差分</strong>になります。唯一の正規フォーマット、末尾カンマ、そして全体が 1 行に収まるか、1 行に 1 要素ずつ並ぶかのどちらかで、決して詰め直されないリスト。そのためレビューには、周りの書き換えではなく、実際に行われた変更が表れます。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">レビューとは差分を読むこと</h2>
-        <p class="lede">
-          変更について私たちが信頼しているもの（レビュー、blame、revert、bisect）のほとんどは差分の上に成り立っています。だから差分の S/N 比がそのまま価値になります。多くのコードベースではそれがひどいものです。フォーマッタが折り返した行を組み直し、インポートの並べ替えツールがブロックを入れ替え、リネームがすべての呼び出し箇所の空白に触れ、<em>重要な</em> 1 行が関係のない 50 行に埋もれます。
-        </p>
-        <p class="lede">
-          エージェントはこれを大幅に悪化させます。小さなタスクを与えられても、モデルは 1 つのことを変えるために関数全体やファイル全体を平気で書き直します。ピンポイントで編集するより作り直すほうが楽だからです。レビューする人は、書き直されたものを元のものと比べて、本当の変更が意図したものだけであることを<em>祈る</em>しかありません。Glyph は、レイアウトにモデルが書き換える余地がないように作られています。
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> 唯一の正規レイアウト、選択肢なし</h2>
-        <p>
-          <code>glyph fmt</code> はすべてのファイルを 1 つの決まったレイアウトで出力し直します。インデントはスペース 2 つ、複数行のリストには必ず末尾カンマ、リストは 100 桁に収まる間は 1 行のままで、収まらなければ 1 行に 1 要素になります。選択は全部か無しかです。フォーマッタは行を埋めるために要素を詰め直すことがないので、リストが一部だけ 1 行目に、一部だけ次の行にあることはなく、フィールドの追加は 1 行の追加になります。合法な形がちょうど 1 つしかないので、議論することも、ツールが横から「直す」こともありません。
-        </p>
-        <p>
-          代償は幅のしきい値です。束縛の名前を変えて呼び出しが 100 桁を超えると、呼び出しは引数ごとに 1 行に展開されます。1 トークンの編集が 4 行の差分になります。その代わり、レイアウトはコードと開始桁だけで決まり、ほかの何にも左右されないので、同じファイルを編集する 2 つのエージェントは同じバイト列にたどり着きます。
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">組み直すスタイル：1 つの変更で 3 行に触れる</span>
-          <span class="cap">git diff（詰めたフォーマット）</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">組み直すスタイル：1 つの変更で 3 行に触れる</span>
+            <span class="cap">git diff（詰めたフォーマット）</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph：1 つの変更で 1 行の追加</span>
-          <span class="cap">git diff（正規フォーマット）</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph：1 つの変更で 1 行の追加</span>
+            <span class="cap">git diff（正規フォーマット）</span>
 <pre>  type User = {
     id: number,
     name: string,
 <span class="add">+   email: string,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          末尾カンマは目立たない仕事をしています。最後の要素がすでにカンマで終わっているので、兄弟要素を追加しても<strong>上の行が編集されることは決してありません。</strong>1 つの挿入は 1 行です。
-        </p>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">レビューは差分を読むこと</a></li>
+          <li><a href="#one-canonical-layout-no-choices">唯一の正規レイアウト</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">安定した順序</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">バレルファイルなし</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">冪等な生成</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">ベンチマーク</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label"><span class="ex-label">02</span> 順序が安定しているので、履歴が読める</h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">レビューとは差分を読むこと<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        変更について私たちが信頼しているもの（レビュー、blame、revert、bisect）のほとんどは差分の上に成り立っています。だから差分の S/N 比がそのまま価値になります。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ノイズの出どころ</span></summary><div class="body">
         <p>
-          1 行に 1 要素なので、要素の並べ替え、挿入、削除はその要素の行にしか触れず、隣の行には触れません。<code>git blame</code> は意味を保ちます。各行の最後のコミットは、たまたま同じ行を詰め直したフォーマットのコミットではなく、<em>その</em>要素を実際に変更したコミットです。
+          多くのコードベースではそれがひどいものです。フォーマッタが折り返した行を組み直し、インポートの並べ替えツールがブロックを入れ替え、リネームがすべての呼び出し箇所の空白に触れ、<em>重要な</em> 1 行が関係のない 50 行に埋もれます。
         </p>
-
-        <h2 class="block-label"><span class="ex-label">03</span> バレルファイルなし：インポートの書き換えなし</h2>
         <p>
-          インポートは再エクスポートをせず、<code>index.ts</code> による集約の層もない（<code>E0102</code>）ので、シンボルを追加したり移動したりしても、すべての利用者がインポートするバレルファイルを通じて影響が広がることはありません。編集する依存関係は意図したものだけで、インポートグラフの残りは動きません。
+          エージェントはこれを大幅に悪化させます。小さなタスクを与えられても、モデルは 1 つのことを変えるために関数全体やファイル全体を平気で書き直します。ピンポイントで編集するより作り直すほうが楽だからです。レビューする人は、書き直されたものを元のものと比べて、本当の変更が意図したものだけであることを<em>祈る</em>しかありません。
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph は、レイアウトにモデルが書き換える余地がないように作られています。</p></div>
 
-        <h2 class="block-label"><span class="ex-label">04</span> 生成は冪等で、塊ではない</h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> 唯一の正規レイアウト、選択肢なし<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> はすべてのファイルを 1 つの決まったレイアウトで出力し直します。インデントはスペース 2 つ、複数行のリストには必ず末尾カンマ、リストは 100 桁に収まる間は 1 行のままで、収まらなければ 1 行に 1 要素になります。選択は全部か無しかです。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">詰め直しなし、合法な形は 1 つ</span></summary><div class="body">
         <p>
-          同じ規律は生成コードにも及びます。<code>glyph gen</code> と <code>glyph regen</code> は出力を正規フォーマッタで出力し直すので、仕様の変更後に再生成すると、機械が書いたファイルを丸ごと置き換えるのではなく、数行が変わるだけの、実際にレビューできる<em>最小限の</em>差分になります。また、出力されるすべての <code>.ts</code> にはソースマップが付くので、コンパイル後の出力からも、変更した行まできれいにたどれます。
+          フォーマッタは行を埋めるために要素を詰め直すことがないので、リストが一部だけ 1 行目に、一部だけ次の行にあることはなく、フィールドの追加は 1 行の追加になります。合法な形がちょうど 1 つしかないので、議論することも、ツールが横から「直す」こともありません。
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>代償は幅のしきい値です。束縛の名前を変えて呼び出しが 100 桁を超えると、呼び出しは引数ごとに 1 行に展開されます。1 トークンの編集が 4 行の差分になります。その代わり、レイアウトはコードと開始桁だけで決まり、ほかの何にも左右されないので、同じファイルを編集する 2 つのエージェントは同じバイト列にたどり着きます。</p></div>
+      <p class="pull-quote">
+        末尾カンマは目立たない仕事をしています。最後の要素がすでにカンマで終わっているので、兄弟要素を追加しても<strong>上の行が編集されることは決してありません。</strong>1 つの挿入は 1 行です。
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> 順序が安定しているので、履歴が読める<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        1 行に 1 要素なので、要素の並べ替え、挿入、削除はその要素の行にしか触れず、隣の行には触れません。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>git blame</code> は意味を保ちます。各行の最後のコミットは、たまたま同じ行を詰め直したフォーマットのコミットではなく、<em>その</em>要素を実際に変更したコミットです。</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> バレルファイルなし：インポートの書き換えなし<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        インポートは再エクスポートをせず、<code>index.ts</code> による集約の層もない（<code>E0102</code>）ので、シンボルを追加したり移動したりしても、すべての利用者がインポートするバレルファイルを通じて影響が広がることはありません。編集する依存関係は意図したものだけで、インポートグラフの残りは動きません。
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> 生成は冪等で、塊ではない<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        同じ規律は生成コードにも及びます。<code>glyph gen</code> と <code>glyph regen</code> は出力を正規フォーマッタで出力し直すので、仕様の変更後に再生成すると、機械が書いたファイルを丸ごと置き換えるのではなく、数行が変わるだけの、実際にレビューできる<em>最小限の</em>差分になります。
+      </p>
       <div class="code">
         <span class="cap">仕様にフィールドを追加 &rarr; 再生成された差分</span>
 <pre>  type Task = {
@@ -80,36 +100,27 @@ next: /pillars/verifiability/ | 次の柱 &rarr; | 抽象化：小さく直交�
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>また、出力されるすべての <code>.ts</code> にはソースマップが付くので、コンパイル後の出力からも、変更した行まできれいにたどれます。</p></div>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> 「TypeScript なら Prettier でできる」</h2>
-        <p>
-          フォーマットの多くについては、できます。<code>trailingComma: "all"</code> を設定した Prettier は最後の要素にカンマを付け、長いリストを 1 行に 1 要素で出力するので、セクション 01 の大部分は実現できます。違いは 3 か所にあります。
-        </p>
-        <p>
-          <strong>レイアウトはコードだけで決まります。</strong>Prettier は、書いた人が <code>{</code> の後で改行していればオブジェクトリテラルを展開したままにし、していなければ折りたたみます。そのため同じオブジェクトが、最初にどう入力されたかによって 2 通りに出力されえます。同じものを書く 2 つのエージェントは 2 つのレイアウトを生み、どちらかを次に編集すると組み直しとして差分に表れます。<code>glyph fmt</code> は、入力がどう折り返されていても <code>{ a: 1, b: 2 }</code> を同じように出力します。
-        </p>
-        <p>
-          <strong>設定するものがありません。</strong>Prettier の出力はリポジトリの設定ファイル次第で、設定ファイルがないリポジトリもあります。TypeScript のプロジェクトを渡り歩くエージェントは、プロジェクトごとに違うレイアウトに出会います。Glyph のファイルはどのプロジェクトでも同じレイアウトです。フォーマッタにオプションがないからです。
-        </p>
-        <p>
-          <strong>フォーマッタはファイルの内容を変えられません。</strong><code>glyph fmt</code> は、自分の出力をパースして構文木を入力のものと比較する方法で、リポジトリのすべての例とファザーのもとでテストされています。レイアウト上に置き場所のない位置にコメントがある場合、そのコメントを関係のないコードの隣に動かすのではなく、ファイルを拒否します（<code>E0500</code>）。
-        </p>
-        <p>
-          このリストのうち 1 つはまだできていません。<code>glyph fmt</code> はインポートを並べ替えないので、2 つのエージェントが別々の場所にインポートを追加すると、インポートのブロックが異なるものになります（G358）。
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> 「TypeScript なら Prettier でできる」<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        フォーマットの多くについては、できます。<code>trailingComma: "all"</code> を設定した Prettier は最後の要素にカンマを付け、長いリストを 1 行に 1 要素で出力するので、セクション 01 の大部分は実現できます。違いは 3 か所にあります。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>レイアウトはコードだけで決まります。</b>Prettier は、書いた人が <code>{</code> の後で改行していればオブジェクトリテラルを展開したままにし、していなければ折りたたみます。そのため同じオブジェクトが、最初にどう入力されたかによって 2 通りに出力されえます。同じものを書く 2 つのエージェントは 2 つのレイアウトを生み、どちらかを次に編集すると組み直しとして差分に表れます。<code>glyph fmt</code> は、入力がどう折り返されていても <code>{ a: 1, b: 2 }</code> を同じように出力します。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>設定するものがありません。</b>Prettier の出力はリポジトリの設定ファイル次第で、設定ファイルがないリポジトリもあります。TypeScript のプロジェクトを渡り歩くエージェントは、プロジェクトごとに違うレイアウトに出会います。Glyph のファイルはどのプロジェクトでも同じレイアウトです。フォーマッタにオプションがないからです。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>フォーマッタはファイルの内容を変えられません。</b><code>glyph fmt</code> は、自分の出力をパースして構文木を入力のものと比較する方法で、リポジトリのすべての例とファザーのもとでテストされています。レイアウト上に置き場所のない位置にコメントがある場合、そのコメントを関係のないコードの隣に動かすのではなく、ファイルを拒否します（<code>E0500</code>）。</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>このリストのうち 1 つはまだできていません。<code>glyph fmt</code> はインポートを並べ替えないので、2 つのエージェントが別々の場所にインポートを追加すると、インポートのブロックが異なるものになります（G358）。</p></div>
+      <p class="pull-quote">
+        差分の安定性があるから、「エージェントが何かを変えた」が「エージェントが<strong>まさにこれ</strong>を変えた」になります。ノイズがゼロなら、レビューは速く、信頼は安く済みます。
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          差分の安定性があるから、「エージェントが何かを変えた」が「エージェントが<strong>まさにこれ</strong>を変えた」になります。ノイズがゼロなら、レビューは速く、信頼は安く済みます。
-        </p>
-
-        <h2 class="block-label">ベンチマーク：準備中</h2>
-        <p>
-          これを表す数値は、論理的な変更 1 つあたりの差分の大きさです。意図した編集を 1 つしたときに何行が動くかを、Glyph と、一般的なフォーマッタにかけた同等の TypeScript の変更とで比べます。Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、もとにできる実際の履歴ができたら実測値で埋まります。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">ベンチマーク：準備中<a class="ak-anchor" href="#the-benchmark-coming" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        これを表す数値は、論理的な変更 1 つあたりの差分の大きさです。意図した編集を 1 つしたときに何行が動くかを、Glyph と、一般的なフォーマッタにかけた同等の TypeScript の変更とで比べます。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph はまだ実運用で使われていないので、下のグラフはプレースホルダで、もとにできる実際の履歴ができたら実測値で埋まります。</p></div>
 
       <div class="chart">
         <span class="label">フィールド 1 つの変更あたりの差分行数 &middot; 少ないほど良い</span>
@@ -127,14 +138,10 @@ next: /pillars/verifiability/ | 次の柱 &rarr; | 抽象化：小さく直交�
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          代わりに少し自由がなくなります（好きなように行を手で詰めることはできません）が、その見返りに読みやすさが大きく得られます。これは仕上げの柱すべてに共通する取引です。どうでもよかった選択肢を手放して、大事な信号を守ります。
-        </p>
-      </div>
+      <p class="ak-lede">
+        代わりに少し自由がなくなります（好きなように行を手で詰めることはできません）が、その見返りに読みやすさが大きく得られます。これは仕上げの柱すべてに共通する取引です。どうでもよかった選択肢を手放して、大事な信号を守ります。
+      </p>
 
-      <div class="detail">
-        <p>
-          これがレビューでのエージェントの編集にとって何を意味するかは、変更前後の差分とともに <a href="/answers/diff-stability/">エージェントの編集はきれいなままか、ファイル全体を整形し直してしまうのか</a> で説明しています。
-        </p>
-      </div>
+      <p class="ak-lede">
+        これがレビューでのエージェントの編集にとって何を意味するかは、変更前後の差分とともに <a href="/answers/diff-stability/">エージェントの編集はきれいなままか、ファイル全体を整形し直してしまうのか</a> で説明しています。
+      </p>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/interactive-cli/index.html",
   "locale": "ja",
-  "source_hash": "a2332eec4a663662",
+  "source_hash": "e06954a40c0a760a",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "書けます。<code>io.read_line</code> は <strong>1 行が届いた時点で</strong> return し、stdin が閉じるのを待ちません。そのため REPL、ゲームループ、チャットクライアントは、次の行を読む前に各行に応答します。0.1.62 までは待っていました。これははっきり書いておく価値があります。それが原因で、対話型のプログラムはどれも書けなかったからです。"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "なぜ重要か"
-    },
-    {
-      "id": "h-4473016d",
-      "kind": "html",
-      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name. Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
-      "tr": "入力の終わりでしか return しない行リーダーは、行リーダーの名前を付けたファイルリーダーです。ファイルをパイプで通すと完璧に動くので、誰も気づきませんでした。リポジトリで stdin を読むアプリはどれもパイプから読んでいたのです。そこへ誰かがチャットクライアントを書いたところ、入力している間は黙ったままで、Ctrl-D を押した後にすべての応答を一度に出力しました。"
-    },
-    {
-      "id": "h-02cdf3c6",
-      "kind": "html",
-      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
-      "tr": "そのアプリは、記録した JSON ファイルを再生するセッションリプレイヤーとしてリリースされ、ソースにはその理由を説明するコメントが付いていました。ほかに 3 つのアプリが、誰もそれと名指ししないまま、同じ問題に合わせた形になっていました。マインスイーパーは手番の間に再描画できず、テキストアドベンチャーは <code>look</code> に応答できず、REPL は入力を終えるまで何も評価しませんでした。"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "実例"
-    },
-    {
       "id": "h-b3adfa1a",
       "kind": "html",
       "en": "The whole live-session loop of the chat app. Read, apply, print, repeat:",
@@ -101,10 +77,58 @@
       "tr": "glyph run examples/apps/chat/main.glyph --stdin"
     },
     {
-      "id": "h-c4443d66",
+      "id": "h-2109b4f0",
       "kind": "html",
-      "en": "One to two milliseconds from typed line to answer. Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
-      "tr": "入力した行から応答まで 1 から 2 ミリ秒です。修正前は、stdin が閉じた 6460ms まで何も出力されませんでした。通しで実行したときの最初の応答は約 1.6 秒後ですが、これは <code>tsx</code> の起動時間で、読み取りの遅延ではありません。"
+      "en": "<span>One to two milliseconds from typed line to answer.</span>",
+      "tr": "<span>入力した行から応答まで 1 から 2 ミリ秒です。</span>"
+    },
+    {
+      "id": "h-31a4afbb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">before the fix, and where the first 1.6 seconds go</span>",
+      "tr": "詳細 <span class=\"hint\">修正前の様子と、最初の 1.6 秒の内訳</span>"
+    },
+    {
+      "id": "h-5e15f281",
+      "kind": "html",
+      "en": "Before the fix, nothing printed until 6460ms, which is when stdin closed. The first response in a full run lands around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.",
+      "tr": "修正前は、stdin が閉じた 6460ms まで何も出力されませんでした。通しで実行したときの最初の応答は約 1.6 秒後ですが、これは <code>tsx</code> の起動時間で、読み取りの遅延ではありません。"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "なぜ重要か"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
+    },
+    {
+      "id": "h-b79b0674",
+      "kind": "html",
+      "en": "A line reader that only returns at end of input is a file reader wearing a line reader's name.",
+      "tr": "入力の終わりでしか return しない行リーダーは、行リーダーの名前を付けたファイルリーダーです。"
+    },
+    {
+      "id": "h-880c0447",
+      "kind": "html",
+      "en": "Piping a file through it works perfectly, which is why nothing caught it: every app in the repository that read stdin read a pipe. Then someone wrote a chat client, and it sat silent while they typed and printed every answer at once after Ctrl-D.",
+      "tr": "ファイルをパイプで通すと完璧に動くので、誰も気づきませんでした。リポジトリで stdin を読むアプリはどれもパイプから読んでいたのです。そこへ誰かがチャットクライアントを書いたところ、入力している間は黙ったままで、Ctrl-D を押した後にすべての応答を一度に出力しました。"
+    },
+    {
+      "id": "h-665ff28b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the apps shaped around it</span>",
+      "tr": "経緯 <span class=\"hint\">この問題に合わせて形を変えたアプリ</span>"
+    },
+    {
+      "id": "h-02cdf3c6",
+      "kind": "html",
+      "en": "That app shipped as a session replayer over a recorded JSON file, with a comment in its source saying why. Three other apps had been shaped around the same thing without anyone naming it: minesweeper could not redraw between moves, the text adventure could not answer <code>look</code>, and a REPL evaluated nothing until you hung up.",
+      "tr": "そのアプリは、記録した JSON ファイルを再生するセッションリプレイヤーとしてリリースされ、ソースにはその理由を説明するコメントが付いていました。ほかに 3 つのアプリが、誰もそれと名指ししないまま、同じ問題に合わせた形になっていました。マインスイーパーは手番の間に再描画できず、テキストアドベンチャーは <code>look</code> に応答できず、REPL は入力を終えるまで何も評価しませんでした。"
     },
     {
       "id": "h-a2b1ea84",
@@ -113,22 +137,46 @@
       "tr": "実際につまずきやすい点"
     },
     {
-      "id": "h-92f12884",
+      "id": "h-b12d0301",
       "kind": "html",
-      "en": "A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input. Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped. Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
-      "tr": "末尾の <code>\\r</code> は取り除かれるので、CRLF のファイルでも LF のファイルでも同じ行が得られ、Windows からの入力で見えない文字をデバッグする羽目にはなりません。最後の改行なしで終わる入力も、<code>None</code> の前にその最後の行を一度返すので、末尾に改行のないファイルの最終行が黙って捨てられることはありません。読み取りの境界をまたいで分割されたマルチバイトの UTF-8 は、置換文字にならずに保持されて完成させられます。"
+      "en": "<b>CRLF</b>A trailing <code>\\r</code> is stripped, so a CRLF file and an LF file give you the same lines and you are not debugging an invisible character on Windows input.",
+      "tr": "<b>CRLF</b>末尾の <code>\\r</code> は取り除かれるので、CRLF のファイルでも LF のファイルでも同じ行が得られ、Windows からの入力で見えない文字をデバッグする羽目にはなりません。"
     },
     {
-      "id": "h-734ae2bb",
+      "id": "h-61bc0f0f",
       "kind": "html",
-      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
-      "tr": "<code>read_to_string</code> は同じバッファから読み出すので、2 つは組み合わせられます。ヘッダを <code>read_line</code> で読んでからボディを <code>read_to_string</code> で読むと、2 つ目のコピーでも空文字列でもなく、残りの部分が得られます。最初に呼べば、従来どおり stdin 全体を返します。パイプで渡した 200,000 行を数えるのに約 20ms しかかからないので、1 行ずつ読んでもスループットが犠牲になることはありません。"
+      "en": "<b>No final newline</b>Input that ends without a final newline still hands back that last line once before <code>None</code>, so the last row of a file with no trailing newline is not silently dropped.",
+      "tr": "<b>最後の改行なし</b>最後の改行なしで終わる入力も、<code>None</code> の前にその最後の行を一度返すので、末尾に改行のないファイルの最終行が黙って捨てられることはありません。"
+    },
+    {
+      "id": "h-19f6ad49",
+      "kind": "html",
+      "en": "<b>Split UTF-8</b>Multi-byte UTF-8 split across a read boundary is held and completed rather than turning into replacement characters.",
+      "tr": "<b>分割された UTF-8</b>読み取りの境界をまたいで分割されたマルチバイトの UTF-8 は、置換文字にならずに保持されて完成させられます。"
+    },
+    {
+      "id": "h-223ab389",
+      "kind": "html",
+      "en": "<code>read_line</code>, then <code>read_to_string</code>",
+      "tr": "<code>read_line</code> のあとに <code>read_to_string</code>"
+    },
+    {
+      "id": "h-e058bf0b",
+      "kind": "html",
+      "en": "<code>read_to_string</code> drains the same buffer, so the two compose: <code>read_line</code> for a header and then <code>read_to_string</code> for the body gives you the rest, not a second copy and not an empty string. Called first, it still returns all of stdin.",
+      "tr": "<code>read_to_string</code> は同じバッファから読み出すので、2 つは組み合わせられます。ヘッダを <code>read_line</code> で読んでからボディを <code>read_to_string</code> で読むと、2 つ目のコピーでも空文字列でもなく、残りの部分が得られます。最初に呼べば、従来どおり stdin 全体を返します。"
     },
     {
       "id": "h-dbb27136",
       "kind": "html",
       "en": "A header line, then the body",
       "tr": "ヘッダ行を読み、続いてボディを読む"
+    },
+    {
+      "id": "h-e4472dc4",
+      "kind": "html",
+      "en": "200,000 piped lines are counted in about 20ms, so reading a line at a time is not a throughput tradeoff.",
+      "tr": "パイプで渡した 200,000 行を数えるのに約 20ms しかかからないので、1 行ずつ読んでもスループットが犠牲になることはありません。"
     },
     {
       "id": "h-b55f380c",
@@ -143,16 +191,64 @@
       "tr": "提供中"
     },
     {
-      "id": "h-d2b638c8",
+      "id": "h-a2c1f233",
       "kind": "html",
-      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
-      "tr": "<code>io.read_line</code> はストリームが閉じたときではなく行が届いたときに return するので、プロンプト、読み取り、応答のループはターミナルでもパイプでも同じように動きます。CRLF は正規化され、終端のない最後の行は一度だけ渡され、マルチバイト文字はチャンクの境界をまたいでも壊れず、<code>read_to_string</code> は同じバッファの残りを受け取ります。リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求します。ファイルをパイプで渡すテストは、壊れた実装に対しても通ってしまうからです。<code>io.print</code> と <code>io.eprint</code> は改行なしで書き込むので、REPL の <code>&gt; </code> プロンプトは答えを入力する行に表示されます。<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教えるので、チャットアプリの <code>--stdin</code> のようなフラグだけが判断の手段ではなくなりました。"
+      "en": "<code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike.",
+      "tr": "<code>io.read_line</code> はストリームが閉じたときではなく行が届いたときに return するので、プロンプト、読み取り、応答のループはターミナルでもパイプでも同じように動きます。"
+    },
+    {
+      "id": "h-94947ad8",
+      "kind": "html",
+      "en": "CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer.",
+      "tr": "CRLF は正規化され、終端のない最後の行は一度だけ渡され、マルチバイト文字はチャンクの境界をまたいでも壊れず、<code>read_to_string</code> は同じバッファの残りを受け取ります。"
+    },
+    {
+      "id": "h-8618bd0c",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back",
+      "tr": "リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求する"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-9436a961",
+      "kind": "html",
+      "en": "A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.",
+      "tr": "リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求します。ファイルをパイプで渡すテストは、壊れた実装に対しても通ってしまうからです。"
+    },
+    {
+      "id": "h-18b0c175",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline",
+      "tr": "<code>io.print</code> と <code>io.eprint</code> は改行なしで書き込む"
+    },
+    {
+      "id": "h-800433b7",
+      "kind": "html",
+      "en": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe",
+      "tr": "<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教える"
+    },
+    {
+      "id": "h-3842dbc3",
+      "kind": "html",
+      "en": "<code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.",
+      "tr": "<code>io.print</code> と <code>io.eprint</code> は改行なしで書き込むので、REPL の <code>&gt; </code> プロンプトは答えを入力する行に表示されます。<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教えるので、チャットアプリの <code>--stdin</code> のようなフラグだけが判断の手段ではなくなりました。"
     },
     {
       "id": "h-43278834",
       "kind": "html",
       "en": "Still rough",
       "tr": "まだ粗い点"
+    },
+    {
+      "id": "h-88dfc50f",
+      "kind": "html",
+      "en": "A program that wants to redraw a screen has no cursor control",
+      "tr": "画面を再描画したいプログラムには、カーソル制御の手段がない"
     },
     {
       "id": "h-ec1da8e1",

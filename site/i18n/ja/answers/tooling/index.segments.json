@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "ja",
-  "source_hash": "d0791fdb41f61a1e",
+  "source_hash": "6673445690cb5116",
   "segments": [
     {
       "id": "title",
@@ -59,10 +59,94 @@
       "tr": "<code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張はリポジトリにありますが、まだ Marketplace には公開していないので、ソースからビルドしてください。どのエラーにも、安定したコード、直し方、理由が付いています。"
     },
     {
+      "id": "h-b37fe312",
+      "kind": "html",
+      "en": "glyph build",
+      "tr": "glyph build"
+    },
+    {
+      "id": "h-926bbd75",
+      "kind": "html",
+      "en": "<span>See it: every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them.</span>",
+      "tr": "<span>実例：どの診断にも、安定したコード、1 行の直し方、そして多くの場合は設計上の理由が付いています。<code>glyph --explain</code> は、どの診断についても詳しい説明を出力します。</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "このページの内容"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">なぜ重要か</a>"
+    },
+    {
+      "id": "h-b0862ea5",
+      "kind": "html",
+      "en": "<a href=\"#is-it-a-real-lsp-or-just-a-vs-code-plugin\">The language server</a>",
+      "tr": "<a href=\"#is-it-a-real-lsp-or-just-a-vs-code-plugin\">言語サーバー</a>"
+    },
+    {
+      "id": "h-394f88a3",
+      "kind": "html",
+      "en": "<a href=\"#error-messages\">Error messages</a>",
+      "tr": "<a href=\"#error-messages\">エラーメッセージ</a>"
+    },
+    {
+      "id": "h-4bbe1b07",
+      "kind": "html",
+      "en": "<a href=\"#debugging\">Debugging</a>",
+      "tr": "<a href=\"#debugging\">デバッグ</a>"
+    },
+    {
+      "id": "h-f8ac489f",
+      "kind": "html",
+      "en": "<a href=\"#checking-without-running\">Checking without running</a>",
+      "tr": "<a href=\"#checking-without-running\">実行せずに検査する</a>"
+    },
+    {
+      "id": "h-f7c787bd",
+      "kind": "html",
+      "en": "<a href=\"#an-honest-transcript\">The build transcript</a>",
+      "tr": "<a href=\"#an-honest-transcript\">ビルドの出力</a>"
+    },
+    {
+      "id": "h-76bd0dd6",
+      "kind": "html",
+      "en": "<a href=\"#for-the-agent-in-the-loop\">For agents</a>",
+      "tr": "<a href=\"#for-the-agent-in-the-loop\">エージェント向け</a>"
+    },
+    {
+      "id": "h-66af3262",
+      "kind": "html",
+      "en": "<a href=\"#warnings\">Warnings</a>",
+      "tr": "<a href=\"#warnings\">警告</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">現状</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "なぜ重要か"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "このセクションへのリンク"
     },
     {
       "id": "h-ff6f4a0b",
@@ -77,34 +161,52 @@
       "tr": "本物の LSP ですか、それとも VS Code のプラグインにすぎないのですか？"
     },
     {
-      "id": "h-45403764",
+      "id": "h-2e969777",
       "kind": "html",
-      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands). The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
-      "tr": "本物です。コンパイラには <code>glyph lsp</code> で起動する言語サーバーが含まれており、stdio 上で Language Server Protocol を話します（どの LSP クライアントも理解する標準の JSON-RPC トランスポートです）。同梱の VS Code 拡張はその薄いクライアントですが、VS Code 固有の部分はありません。Neovim、Helix、Zed、Emacs（eglot）など、LSP に対応した<strong>どの</strong>エディタでも <code>glyph lsp</code> を指定すれば同じように動きます。すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。"
+      "en": "A real one. The compiler ships a language server you launch as <code>glyph lsp</code>, which speaks the Language Server Protocol over stdio (the standard JSON-RPC transport every LSP client understands).",
+      "tr": "本物です。コンパイラには <code>glyph lsp</code> で起動する言語サーバーが含まれており、stdio 上で Language Server Protocol を話します（どの LSP クライアントも理解する標準の JSON-RPC トランスポートです）。"
     },
     {
-      "id": "h-83dcf965",
+      "id": "h-b38ab28b",
       "kind": "html",
-      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save. Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything. Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
-      "tr": "サーバーはエディタに必要な機能を実装しています。後述の安定したコード付きのリアルタイム診断、hover による型表示、定義へのジャンプ（名前付き import 経由ならモジュールをまたいで動きます。namespace 経由の <code>ui.Button</code> にはまだ何も答えません）、補完、アウトラインとシンボル検索のためのドキュメントシンボルとワークスペースシンボル、ワークスペース全体の参照検索、リネーム、そして保存時の整形のための正規の <code>glyph fmt</code> レイアウトによるフォーマットです。リネームは完全に動きます。モジュールレベルの宣言をリネームすると、その定義、すべての参照、そしてワークスペース全体で import している各モジュールの <code>import</code> 束縛が書き換わります。何かを変更する前に、新しい名前（キーワードではない正しい識別子か）も検査します。知っておくべき制限が 2 つあります。ファイルをまたぐインデックスはキャッシュされず、リクエストごとに再構築されます（通常のプロジェクトなら問題なく、将来高速化する価値があります）。また、現時点でパースできないファイルはスキップされるので、それ自体が壊れているファイル内の参照にはリネームが届きません。"
+      "en": "The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves the same.",
+      "tr": "同梱の VS Code 拡張はその薄いクライアントですが、VS Code 固有の部分はありません。Neovim、Helix、Zed、Emacs（eglot）など、LSP に対応した<strong>どの</strong>エディタでも <code>glyph lsp</code> を指定すれば同じように動きます。"
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-1cde591c",
       "kind": "html",
-      "en": "See it",
-      "tr": "実例"
+      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
+      "tr": "すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。"
     },
     {
-      "id": "h-f168aa2b",
+      "id": "h-7122439f",
       "kind": "html",
-      "en": "Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:",
-      "tr": "どの診断にも、安定したコード、1 行の直し方、そして多くの場合は設計上の理由が付いています。<code>glyph --explain</code> は、どの診断についても詳しい説明を出力します。"
+      "en": "What the server implements",
+      "tr": "サーバーが実装しているもの"
     },
     {
-      "id": "h-b37fe312",
+      "id": "h-99b44c18",
       "kind": "html",
-      "en": "glyph build",
-      "tr": "glyph build"
+      "en": "The server implements what an editor needs: live diagnostics with the stable codes below, hover types, go-to-definition (across modules through a named import; through a namespace, <code>ui.Button</code> still answers nothing), completion, document and workspace symbols for outline and symbol search, workspace-wide find-references, rename, and formatting in the canonical <code>glyph fmt</code> layout for format-on-save.",
+      "tr": "サーバーはエディタに必要な機能を実装しています。後述の安定したコード付きのリアルタイム診断、hover による型表示、定義へのジャンプ（名前付き import 経由ならモジュールをまたいで動きます。namespace 経由の <code>ui.Button</code> にはまだ何も答えません）、補完、アウトラインとシンボル検索のためのドキュメントシンボルとワークスペースシンボル、ワークスペース全体の参照検索、リネーム、そして保存時の整形のための正規の <code>glyph fmt</code> レイアウトによるフォーマットです。"
+    },
+    {
+      "id": "h-7897dc1a",
+      "kind": "html",
+      "en": "Rename is complete: renaming a module-level declaration edits its definition, every reference, and each importing module's <code>import</code> binding across the workspace, and it checks the new name (a real identifier, not a keyword) before touching anything.",
+      "tr": "リネームは完全に動きます。モジュールレベルの宣言をリネームすると、その定義、すべての参照、そしてワークスペース全体で import している各モジュールの <code>import</code> 束縛が書き換わります。何かを変更する前に、新しい名前（キーワードではない正しい識別子か）も検査します。"
+    },
+    {
+      "id": "h-81aa15e1",
+      "kind": "html",
+      "en": "Two limits worth knowing: the cross-file index is rebuilt on each request rather than cached (fine for a normal project, worth speeding up later), and a file that doesn't currently parse is skipped, so a rename won't reach references inside a file that's itself broken.",
+      "tr": "知っておくべき制限が 2 つあります。ファイルをまたぐインデックスはキャッシュされず、リクエストごとに再構築されます（通常のプロジェクトなら問題なく、将来高速化する価値があります）。また、現時点でパースできないファイルはスキップされるので、それ自体が壊れているファイル内の参照にはリネームが届きません。"
+    },
+    {
+      "id": "h-40429184",
+      "kind": "html",
+      "en": "Error messages",
+      "tr": "エラーメッセージ"
     },
     {
       "id": "h-f4269bfb",
@@ -113,46 +215,160 @@
       "tr": "エラーメッセージは、エージェントや初心者が最もつまずくところを重点的に改善しました。<code>if</code> と書くと、汎用的な &ldquo;unexpected token&rdquo; ではなく <code>match</code> を使うよう案内します。引数の数の誤り、網羅的でない <code>match</code>、バリアントの書き間違いには、それぞれ専用のコード付きの、直せるエラーがあります。"
     },
     {
-      "id": "h-6fe35c75",
+      "id": "h-399b9dab",
       "kind": "html",
-      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
-      "tr": "TypeScript のバックエンドでしか検出できない型エラーは、以前は生成された <code>.ts</code> を指していました。今は<strong>元の <code>.glyph</code> に対応付けて</strong>表示されます（同じ ariadne のキャレット、同じ安定したコード）。そのため <code>tsc</code> のエラーも Glyph 本来のエラーと同じように読めます。"
+      "en": "Type errors that only the TypeScript back-end can catch used to point at the generated <code>.ts</code>. Now they're mapped back onto your <code>.glyph</code> (same ariadne caret, same stable code), so a <code>tsc</code> error reads like a native Glyph one.",
+      "tr": "TypeScript のバックエンドでしか検出できない型エラーは、以前は生成された <code>.ts</code> を指していました。今は元の <code>.glyph</code> に対応付けて表示されます（同じ ariadne のキャレット、同じ安定したコード）。そのため <code>tsc</code> のエラーも Glyph 本来のエラーと同じように読めます。"
     },
     {
-      "id": "h-6896e18a",
+      "id": "h-47fc5bfb",
       "kind": "html",
-      "en": "<strong>Debugging:</strong> you debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger. Every build ships a standard <strong>v3 source map</strong> beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers. One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
-      "tr": "<strong>デバッグ：</strong>出力された TypeScript を、Node のインスペクタ、ブラウザの開発者ツール、IDE の JS/TS デバッガなど、すでに使っているツールでデバッグします。どのビルドでも、各 <code>.ts</code> の横に標準の <strong>v3 ソースマップ</strong>（Glyph のソースを埋め込んだもの）を出力するので、マップを連鎖させるデバッガやバンドラなら <code>.glyph</code> の行番号に戻れます。まだ対応していないことが 1 つあります。<code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行を表示します。<code>tsx</code> が変換の際にマップを連鎖させないためです。このスタックの対応付けは次の作業です。"
+      "en": "Debugging",
+      "tr": "デバッグ"
     },
     {
-      "id": "h-27214eb4",
+      "id": "h-1fb6c4be",
       "kind": "html",
-      "en": "<strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong> <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory). It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
-      "tr": "<strong>実行せずに「これはコンパイルできるか」を聞く：</strong><code>glyph check path.glyph</code> は 1 つのファイル、またはディレクトリ全体を型検査して終了します。ツリーには何も書き込みません。これは <code>glyph run</code> には約束できないことで、<code>glyph build</code> はそもそも行いませんでした（ディレクトリ以外は拒否していました）。ビルドと同じパイプラインを、出力した TypeScript に対する <code>tsc --strict</code> も含めて実行し、終了時に削除する一時ディレクトリで行います。速く答えがほしいときは <code>--no-tsc</code> で Glyph の段階のあとに止められます。<code>--json</code> は、<code>glyph build --json</code> と同じ形の診断をエージェントに渡します。ファイルはそのディレクトリの文脈で検査されるので、隣のファイルが壊れていれば検査も失敗します。<code>@example</code> と <code>@doc @run</code> のテストもここで、<code>glyph build</code> と同じゲートとして実行されます。そのため、ビルドなら失敗するツリーを check がクリーンと報告することはありません。何も実行しない答えがほしいときは <code>--no-test</code> でテストを省けます。"
+      "en": "You debug the emitted TypeScript with the tools you already use, like Node's inspector, browser devtools, or your IDE's JS/TS debugger.",
+      "tr": "出力された TypeScript を、Node のインスペクタ、ブラウザの開発者ツール、IDE の JS/TS デバッガなど、すでに使っているツールでデバッグします。"
     },
     {
-      "id": "h-1608da85",
+      "id": "h-68298ff4",
       "kind": "html",
-      "en": "<strong>The transcript doesn't lie to you either.</strong> A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran. The summary now prints after every stage that can turn the build red, so a red build never shows a green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
-      "tr": "<strong>出力も嘘をつきません。</strong>以前は、失敗するビルドが &ldquo;no diagnostics&rdquo; で始まり、その下に <code>tsc</code> のエラーを表示していました。Glyph の段階のサマリーが、TypeScript の段階の実行前に書かれていたためです。今はビルドを赤にしうるすべての段階のあとにサマリーを出力するので、赤いビルドで緑の行が出ることはありません。同じ作業で、<code>glyph run app.glyph --min -12.50</code> も動くようになりました。以前は先頭のハイフンのせいで、<code>main</code> に届く前に clap が引数を拒否していました。glyph 自身のフラグは引き続き glyph に結び付くので、それと衝突するプログラムのフラグの前には <code>--</code> を置いてください。"
+      "en": "Every build ships a standard v3 source map beside each <code>.ts</code> (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back into your <code>.glyph</code> line numbers.",
+      "tr": "どのビルドでも、各 <code>.ts</code> の横に標準の v3 ソースマップ（Glyph のソースを埋め込んだもの）を出力するので、マップを連鎖させるデバッガやバンドラなら <code>.glyph</code> の行番号に戻れます。"
     },
     {
-      "id": "h-c48aa55b",
+      "id": "h-7391441b",
       "kind": "html",
-      "en": "<strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
-      "tr": "<strong>ループの中にいるエージェントのために：</strong><code>glyph build --json</code> はすべての診断を構造化された JSON で出力します。安定したコード、重大度、メッセージ、ファイル、1 始まりの行と列の範囲、さらに help と note です。Glyph のソースに対応付けた <code>tsc</code> のエラーも含みます。エージェントはターミナルのテキストを切り出すのではなく、これを直接読んで対応できます。"
+      "en": "One thing it doesn't cover yet: <code>glyph run</code>'s own crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain the map through its transform. Remapping that stack is next.",
+      "tr": "まだ対応していないことが 1 つあります。<code>glyph run</code> 自身のクラッシュ時のスタックは、まだ <code>.ts</code> の行を表示します。<code>tsx</code> が変換の際にマップを連鎖させないためです。このスタックの対応付けは次の作業です。"
     },
     {
-      "id": "h-4f44d56b",
+      "id": "h-9ee5583f",
       "kind": "html",
-      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a <strong>Model Context Protocol server</strong> over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a position, where a name is <strong>defined</strong> (following imports), every <strong>reference</strong> to a symbol across the whole project, or a <strong>symbol search</strong>, without running a full build or reading every file. It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
-      "tr": "対話的なエージェント向けには、バッチの診断以外にもあります。<a href=\"/mcp/\"><code>glyph mcp</code></a> は stdio 上で <strong>Model Context Protocol サーバー</strong>を実行し（同じバイナリで、エディタと同じ解析を使います）、言語サーバーのクエリを MCP ツールとして公開します。エージェントは、フルビルドを実行したりすべてのファイルを読んだりせずに、ファイルの<strong>診断</strong>、ある位置の<strong>型</strong>、名前が<strong>定義</strong>されている場所（import をたどります）、プロジェクト全体でのシンボルへのすべての<strong>参照</strong>、<strong>シンボル検索</strong>を問い合わせられます。同じ純粋な解析レイヤーの上の薄いアダプターで、別の実装ではないので、コンパイラやエディタが見ているものからずれることはありません。"
+      "en": "Asking &ldquo;does this compile?&rdquo; without running it",
+      "tr": "実行せずに「これはコンパイルできるか」を聞く"
     },
     {
-      "id": "h-b7132d5c",
+      "id": "h-0084ac49",
       "kind": "html",
-      "en": "<strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
-      "tr": "<strong>すべてがハードエラーというわけではありません。</strong>Glyph には、ビルドを失敗させずに無駄を指摘する警告のレベルがあります。<em>未使用の import</em>（<code>E0106</code>）、<em>未使用の</em> <code>let</code>（<code>E0107</code>。<code>_</code> で始まる名前は除外）、そして <code>return</code>/<code>break</code>/<code>continue</code> のあとの<em>到達不能なコード</em>（<code>E0108</code>）です。これらはモジュールを正直に保ちます。使われていない import は、コードが実際には持っていない依存関係を読み手に探させる、まさに grep しやすさを損なうノイズです。警告は同じ表示と <code>--json</code> の出力に重大度付きで現れ、TypeScript も出力されます。"
+      "en": "<code>glyph check path.glyph</code> type-checks one file, or a whole directory, and exits. It writes nothing into your tree, which <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all (it refused anything that wasn't a directory).",
+      "tr": "<code>glyph check path.glyph</code> は 1 つのファイル、またはディレクトリ全体を型検査して終了します。ツリーには何も書き込みません。これは <code>glyph run</code> には約束できないことで、<code>glyph build</code> はそもそも行いませんでした（ディレクトリ以外は拒否していました）。"
+    },
+    {
+      "id": "h-2b44d12c",
+      "kind": "html",
+      "en": "--no-tsc",
+      "tr": "--no-tsc"
+    },
+    {
+      "id": "h-2903d237",
+      "kind": "html",
+      "en": "--json",
+      "tr": "--json"
+    },
+    {
+      "id": "h-80e15faf",
+      "kind": "html",
+      "en": "--no-test",
+      "tr": "--no-test"
+    },
+    {
+      "id": "h-52b3e2a3",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what it runs, and the flags</span>",
+      "tr": "詳細 <span class=\"hint\">何を実行するか、そしてフラグ</span>"
+    },
+    {
+      "id": "h-90cfdd90",
+      "kind": "html",
+      "en": "It runs the same pipeline a build runs, including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the fast answer; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. A file is checked in the context of its own directory, so a broken sibling still fails the check. Your <code>@example</code> and <code>@doc @run</code> tests run here too, the same gate <code>glyph build</code> uses, so a check cannot report a clean tree that a build would fail; <code>--no-test</code> skips them when you want an answer that executes nothing.",
+      "tr": "ビルドと同じパイプラインを、出力した TypeScript に対する <code>tsc --strict</code> も含めて実行し、終了時に削除する一時ディレクトリで行います。速く答えがほしいときは <code>--no-tsc</code> で Glyph の段階のあとに止められます。<code>--json</code> は、<code>glyph build --json</code> と同じ形の診断をエージェントに渡します。ファイルはそのディレクトリの文脈で検査されるので、隣のファイルが壊れていれば検査も失敗します。<code>@example</code> と <code>@doc @run</code> のテストもここで、<code>glyph build</code> と同じゲートとして実行されます。そのため、ビルドなら失敗するツリーを check がクリーンと報告することはありません。何も実行しない答えがほしいときは <code>--no-test</code> でテストを省けます。"
+    },
+    {
+      "id": "h-ee530faa",
+      "kind": "html",
+      "en": "The transcript doesn't lie to you either",
+      "tr": "出力も嘘をつかない"
+    },
+    {
+      "id": "h-2dd69876",
+      "kind": "html",
+      "en": "The summary now prints after every stage that can turn the build red, so a red build never shows a green line.",
+      "tr": "今はビルドを赤にしうるすべての段階のあとにサマリーを出力するので、赤いビルドで緑の行が出ることはありません。"
+    },
+    {
+      "id": "h-b498e1de",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the summary that came too early</span>",
+      "tr": "経緯 <span class=\"hint\">早すぎたサマリー</span>"
+    },
+    {
+      "id": "h-27472e19",
+      "kind": "html",
+      "en": "A failing build used to open with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it, because the Glyph-stage summary was written before the TypeScript stage ran.",
+      "tr": "以前は、失敗するビルドが &ldquo;no diagnostics&rdquo; で始まり、その下に <code>tsc</code> のエラーを表示していました。Glyph の段階のサマリーが、TypeScript の段階の実行前に書かれていたためです。"
+    },
+    {
+      "id": "h-1184e08a",
+      "kind": "html",
+      "en": "In the same pass, <code>glyph run app.glyph --min -12.50</code> started working: a leading hyphen used to make clap reject the argument before your <code>main</code> ever saw it.",
+      "tr": "同じ作業で、<code>glyph run app.glyph --min -12.50</code> も動くようになりました。以前は先頭のハイフンのせいで、<code>main</code> に届く前に clap が引数を拒否していました。"
+    },
+    {
+      "id": "h-54209177",
+      "kind": "html",
+      "en": "Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one of them.",
+      "tr": "glyph 自身のフラグは引き続き glyph に結び付くので、それと衝突するプログラムのフラグの前には <code>--</code> を置いてください。"
+    },
+    {
+      "id": "h-e651945a",
+      "kind": "html",
+      "en": "And for the agent in the loop",
+      "tr": "ループの中にいるエージェントのために"
+    },
+    {
+      "id": "h-39af60f1",
+      "kind": "html",
+      "en": "<code>glyph build --json</code> emits every diagnostic as structured JSON: a stable code, severity, message, file, and 1-based line/column range, plus the help and note, including <code>tsc</code> errors mapped onto your Glyph source. An agent reads and acts on them directly instead of scraping terminal text.",
+      "tr": "<code>glyph build --json</code> はすべての診断を構造化された JSON で出力します。安定したコード、重大度、メッセージ、ファイル、1 始まりの行と列の範囲、さらに help と note です。Glyph のソースに対応付けた <code>tsc</code> のエラーも含みます。エージェントはターミナルのテキストを切り出すのではなく、これを直接読んで対応できます。"
+    },
+    {
+      "id": "h-327a87a9",
+      "kind": "html",
+      "en": "<code>glyph mcp</code> for interactive agents",
+      "tr": "対話的なエージェント向けの <code>glyph mcp</code>"
+    },
+    {
+      "id": "h-eaf1f143",
+      "kind": "html",
+      "en": "For interactive agents there's more than batch diagnostics: <a href=\"/mcp/\"><code>glyph mcp</code></a> runs a Model Context Protocol server over stdio (the same binary, the same analysis the editor uses), exposing the language server's queries as MCP tools. An agent can ask for a file's diagnostics, the type at a position, where a name is defined (following imports), every reference to a symbol across the whole project, or a symbol search, without running a full build or reading every file.",
+      "tr": "対話的なエージェント向けには、バッチの診断以外にもあります。<a href=\"/mcp/\"><code>glyph mcp</code></a> は stdio 上で Model Context Protocol サーバーを実行し（同じバイナリで、エディタと同じ解析を使います）、言語サーバーのクエリを MCP ツールとして公開します。エージェントは、フルビルドを実行したりすべてのファイルを読んだりせずに、ファイルの診断、ある位置の型、名前が定義されている場所（import をたどります）、プロジェクト全体でのシンボルへのすべての参照、シンボル検索を問い合わせられます。"
+    },
+    {
+      "id": "h-70b14055",
+      "kind": "html",
+      "en": "It's a thin adapter over the same pure analysis layer, not a second implementation, so it can't drift from what the compiler and editor see.",
+      "tr": "同じ純粋な解析レイヤーの上の薄いアダプターで、別の実装ではないので、コンパイラやエディタが見ているものからずれることはありません。"
+    },
+    {
+      "id": "h-6bb01c84",
+      "kind": "html",
+      "en": "Not everything is a hard error",
+      "tr": "すべてがハードエラーというわけではない"
+    },
+    {
+      "id": "h-5efb1c4d",
+      "kind": "html",
+      "en": "Glyph has a warning tier that flags dead weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>), and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>).",
+      "tr": "Glyph には、ビルドを失敗させずに無駄を指摘する警告のレベルがあります。<em>未使用の import</em>（<code>E0106</code>）、<em>未使用の</em> <code>let</code>（<code>E0107</code>。<code>_</code> で始まる名前は除外）、そして <code>return</code>/<code>break</code>/<code>continue</code> のあとの<em>到達不能なコード</em>（<code>E0108</code>）です。"
+    },
+    {
+      "id": "h-50a086a5",
+      "kind": "html",
+      "en": "These keep a module honest: a dead import is exactly the kind of greppability noise that makes a reader hunt for a dependency the code doesn't really have. Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and still emit TypeScript.",
+      "tr": "これらはモジュールを正直に保ちます。使われていない import は、コードが実際には持っていない依存関係を読み手に探させる、まさに grep しやすさを損なうノイズです。警告は同じ表示と <code>--json</code> の出力に重大度付きで現れ、TypeScript も出力されます。"
     },
     {
       "id": "h-b55f380c",
@@ -167,10 +383,52 @@
       "tr": "提供中"
     },
     {
-      "id": "h-090dcbbc",
+      "id": "h-8cab8cec",
       "kind": "html",
-      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file; a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
-      "tr": "言語サーバー（stdio 上の <code>glyph lsp</code>。どのエディタでも使え、VS Code 拡張を同梱）。ハイライト、診断、hover、定義へのジャンプ、補完、シンボル、ワークスペース全体の参照検索とリネーム、保存時の整形を備え、0.1.124 からはモジュールの境界をまたいで答えます。サーバーはプロジェクトごとに 1 つのデータベースを持ち、開いているバッファをディスク上のファイルに重ねているので、import した関数や import したレコードのフィールドを hover すると <code>glyph query hover</code> と同じ答えが返り、あるファイルの未保存の編集が別のファイルから見え、1 回のキー入力のコストは単一ファイルのときより 1 から 9 パーセント増えるだけです。<code>glyph mcp</code> の Model Context Protocol サーバーは 11 のツールを持ちます。エディタのクエリに加えて <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code>、<code>glyph_exports</code> で、それぞれに MCP クライアントを持たないエージェントのために同じ JSON を出力する <code>glyph query</code> のサブコマンドがあります。安定したエラーコード、<code>glyph --explain</code>、<code>.glyph</code> のソースに対応付けた <code>tsc</code> バックエンドのエラー、警告のレベル（未使用の import や束縛、到達不能なコード）、<code>--json</code> による構造化された診断もあります。<code>glyph check [path]</code> は 1 つのファイルやツリーを、実行も出力の書き込みもせずに型検査します。<code>glyph fmt --check</code> は CI で整形のゲートになります。何も書き込まず、ファイルが唯一の正規のレイアウトになっていなければ 0 以外で終了します。"
+      "en": "A language server for any editor, answering across a module boundary<span class=\"chip since\">since 0.1.124</span>",
+      "tr": "どのエディタでも使え、モジュールの境界をまたいで答える言語サーバー<span class=\"chip since\">0.1.124 から</span>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "詳細"
+    },
+    {
+      "id": "h-f8afc45f",
+      "kind": "html",
+      "en": "A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save, answering across a module boundary since 0.1.124: the server holds one database per project with your open buffers layered over the files on disk, so hovering an imported function or a field of an imported record gives the answer <code>glyph query hover</code> gives, an unsaved edit in one file is seen from another, and a keystroke costs one to nine percent more than it did single-file;",
+      "tr": "言語サーバー（stdio 上の <code>glyph lsp</code>。どのエディタでも使え、VS Code 拡張を同梱）。ハイライト、診断、hover、定義へのジャンプ、補完、シンボル、ワークスペース全体の参照検索とリネーム、保存時の整形を備え、0.1.124 からはモジュールの境界をまたいで答えます。サーバーはプロジェクトごとに 1 つのデータベースを持ち、開いているバッファをディスク上のファイルに重ねているので、import した関数や import したレコードのフィールドを hover すると <code>glyph query hover</code> と同じ答えが返り、あるファイルの未保存の編集が別のファイルから見え、1 回のキー入力のコストは単一ファイルのときより 1 から 9 パーセント増えるだけです。"
+    },
+    {
+      "id": "h-5d2d8166",
+      "kind": "html",
+      "en": "A <code>glyph mcp</code> Model Context Protocol server with eleven tools",
+      "tr": "11 のツールを持つ <code>glyph mcp</code> の Model Context Protocol サーバー"
+    },
+    {
+      "id": "h-04977e83",
+      "kind": "html",
+      "en": "a <code>glyph mcp</code> Model Context Protocol server with eleven tools, the editor's queries plus <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>, each with a <code>glyph query</code> verb printing the same JSON for an agent with no MCP client;",
+      "tr": "<code>glyph mcp</code> の Model Context Protocol サーバーは 11 のツールを持ちます。エディタのクエリに加えて <code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_dependencies</code>、<code>glyph_exports</code> で、それぞれに MCP クライアントを持たないエージェントのために同じ JSON を出力する <code>glyph query</code> のサブコマンドがあります。"
+    },
+    {
+      "id": "h-88c1a36e",
+      "kind": "html",
+      "en": "Stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics.",
+      "tr": "安定したエラーコード、<code>glyph --explain</code>、<code>.glyph</code> のソースに対応付けた <code>tsc</code> バックエンドのエラー、警告のレベル（未使用の import や束縛、到達不能なコード）、<code>--json</code> による構造化された診断。"
+    },
+    {
+      "id": "h-cef35f2e",
+      "kind": "html",
+      "en": "<code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output.",
+      "tr": "<code>glyph check [path]</code> は 1 つのファイルやツリーを、実行も出力の書き込みもせずに型検査します。"
+    },
+    {
+      "id": "h-9e1cc669",
+      "kind": "html",
+      "en": "<code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.",
+      "tr": "<code>glyph fmt --check</code> は CI で整形のゲートになります。何も書き込まず、ファイルが唯一の正規のレイアウトになっていなければ 0 以外で終了します。"
     },
     {
       "id": "h-b63a305d",
@@ -179,10 +437,16 @@
       "tr": "予定"
     },
     {
-      "id": "h-ad09c9c6",
+      "id": "h-c337dcaa",
       "kind": "html",
-      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
-      "tr": "ファイルをまたぐインデックスをリクエストごとに再構築せずキャッシュすること（大きなツリーで速くなります）。そして <code>glyph run</code> 自身のクラッシュ時のスタックの対応付けです。<code>tsx</code> は出力されたマップを変換の際に連鎖させないので、そのスタックはまだ <code>.glyph</code> ではなく出力された <code>.ts</code> を示します。"
+      "en": "Caching the cross-file index instead of rebuilding it per request (a speed win on large trees).",
+      "tr": "ファイルをまたぐインデックスをリクエストごとに再構築せずキャッシュすること（大きなツリーで速くなります）。"
+    },
+    {
+      "id": "h-fd729464",
+      "kind": "html",
+      "en": "Remapping <code>glyph run</code>'s own crash stack, since <code>tsx</code> does not chain the emitted map through its transform, so that stack still names the emitted <code>.ts</code> rather than your <code>.glyph</code>.",
+      "tr": "<code>glyph run</code> 自身のクラッシュ時のスタックの対応付け。<code>tsx</code> は出力されたマップを変換の際に連鎖させないので、そのスタックはまだ <code>.glyph</code> ではなく出力された <code>.ts</code> を示します。"
     }
   ]
 }

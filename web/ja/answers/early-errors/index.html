@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
-      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/early-errors/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -739,9 +738,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">配列や文字列のメンバーのつづり間違い<a class="ak-anchor" href="#member-typo" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        配列や文字列のメンバーのつづり間違いも、以前は <code>tsc</code> を待っていたケースです。<code>xs.lenght</code> は「<code>length</code> ではありませんか」付きの <code>E0210</code> になります。レコードのフィールド読み取りをそのフィールドと照合するのと同じように、TypeScript のライブラリが配列と文字列に宣言しているメンバーと照合します。
+        配列や文字列のメンバーのつづり間違いも、以前は <code>tsc</code> を待っていたケースです。<code>xs.lenght</code> は「<code>length</code> ではありませんか」付きの <code>E0210</code> になります。レコードのフィールド読み取りをそのフィールドと照合するのと同じように、TypeScript のライブラリが配列と文字列に宣言しているメンバーと照合します。型を書いていないパラメーターを持つコールバックの中でも同じです。パラメーターはその位置が期待する型を受け取るので、<code>users.map(fn(u) -&gt; string { return u.nmae })</code> では <code>u</code> は <code>User</code> であり、タイポは <code>E0210</code> になります。
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> はどちらも拒否していたので、それを実行するビルドはすでに赤くなっていました。変わったのは、チェッカーと、その上に作られたすべてのものが、先にそれを検出するようになったことです。</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> は三つとも拒否していたので、それを実行するビルドはすでに赤くなっていました。変わったのは、チェッカーと、その上に作られたすべてのものが、先にそれを検出するようになったことです。</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">さらに 3 つ、0.1.133 から<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -991,12 +990,12 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> が呼び出しを非同期だと分かるのは、Glyph のチェッカーがそのシグネチャを持っている場合だけ</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p><code>E0238</code> が呼び出しを非同期だと分かるのは Glyph のチェッカーがそのシグネチャを持っている場合だけなので、npm パッケージや node の組み込みが返す promise は今も黙って捨てられることがあります。<code>forEach</code> やタイマーに渡した <code>async</code> コールバックもまだ拒否されません。このルールにはコールバックの位置のモデル化が必要で、予定されています。</p>
+                <p><code>E0238</code> が呼び出しを async だと知るのは、Glyph のチェッカーがそのシグネチャを持っているときだけなので、npm パッケージや node のビルトインからの promise は今も黙って捨てられることがあります。<code>forEach</code>、タイマー、ソケットのハンドラー、あるいは任意の <code>fn(...) -&gt; void</code> パラメーターに渡した <code>async</code> コールバックは、何もそれを待たないので <code>E0211</code> で拒否されます。</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取る</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">呼び出しの外で <code>fn</code> と <code>async fn</code> を取り違えると、汎用のメッセージで拒否されます</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取り、保留中の値の配列を返します。これは <code>[object Promise]</code> と表示されます。述語を受け取る 5 つの配列関数は、コールバックに対する <code>E0211</code> でこれを止めます。残りの 3 つを同じようにモデル化すると、<code>par.all(array.map(items, async fn ...))</code> も拒否してしまいます。これは Glyph で処理を並行に実行する方法で、保留中の値の配列は言語の中で表す書き方がないからです。これは抜けているエントリではなく型システムの判断なので、未解決のままです。</p>
+                <p>呼び出しでは、種類の違う関数には貼り付けて使えるヘルプが付きます。<code>task.detach</code> に渡した同期の <code>tick</code> には、<code>async fn() -&gt; void { tick() }</code> を渡すか <code>async fn tick()</code> と宣言するよう示されます。<code>let</code> で <code>fn(...) -&gt; void</code> に束縛した、返した、あるいはフィールドに入れた <code>async fn</code> も拒否されますが、メッセージは <code>expected `function`, found `async function`</code> と言うだけで、修正はあなたに任されます。</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">トップレベルの <code>await</code> は許可されている</span></span>

@@ -1,7 +1,7 @@
 ---
 title: Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요? · Glyph
 description: Glyph는 async fn 밖의 await, 값을 만들지 않는 match arm, 빠진 mut를 tsc보다 먼저, 규칙과 수정 방법과 함께 여러분의 소스 기준으로 보고합니다.
-source_hash: c5e5837369abce5e
+source_hash: 711a41075e3cd266
 prev: /answers/tooling/ | &larr; 이전 | 에디터, 디버깅, 오류 경험은 어떤가요?
 next: /answers/parse-errors/ | 다음 &rarr; | 파싱이 실패하면 이유를 알 수 있나요?
 ---
@@ -270,9 +270,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">배열이나 문자열의 철자가 틀린 멤버<a class="ak-anchor" href="#member-typo" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        배열이나 문자열의 철자가 틀린 멤버도 예전에는 <code>tsc</code>를 기다리던 경우입니다. <code>xs.lenght</code>는 이제 "did you mean <code>length</code>"와 함께 <code>E0210</code>이며, 레코드의 필드 읽기를 필드에 대해 검사하듯 TypeScript 라이브러리가 배열과 문자열에 선언한 멤버에 대해 검사합니다.
+        배열이나 문자열의 철자가 틀린 멤버도 예전에는 <code>tsc</code>를 기다리던 경우입니다. <code>xs.lenght</code>는 이제 "did you mean <code>length</code>"와 함께 <code>E0210</code>이며, 레코드의 필드 읽기를 필드에 대해 검사하듯 TypeScript 라이브러리가 배열과 문자열에 선언한 멤버에 대해 검사합니다. 매개변수에 타입을 적지 않은 콜백 안에서도 마찬가지입니다. 매개변수는 그 위치가 기대하는 타입을 받으므로 <code>users.map(fn(u) -&gt; string { return u.nmae })</code>에서 <code>u</code>는 <code>User</code>이고 오타는 <code>E0210</code>입니다.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code>도 둘 다 거부했을 것이므로 그것을 실행한 빌드는 이미 실패했습니다. 바뀐 것은 검사기와 그 위에 만든 모든 것이 먼저 이를 본다는 점입니다.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code>도 셋 다 거부했을 것이므로 그것을 실행한 빌드는 이미 실패했습니다. 바뀐 것은 검사기와 그 위에 만든 모든 것이 먼저 이를 본다는 점입니다.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">그리고 0.1.133부터 세 가지 더<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -522,12 +522,12 @@ string.repeeat(s, 2)
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code>은 Glyph 검사기가 시그니처를 알 때만 호출을 async로 인식합니다</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
-                <p><code>E0238</code>은 Glyph 검사기가 호출의 시그니처를 알 때만 그것이 async임을 알기 때문에, npm 패키지나 node 내장 모듈이 돌려주는 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>나 타이머에 넘긴 <code>async</code> 콜백도 아직 거부되지 않습니다. 이 규칙은 콜백 자리를 모델링해야 하며, 계획되어 있습니다.</p>
+                <p><code>E0238</code>는 Glyph 검사기가 시그니처를 가지고 있을 때만 호출이 async라는 것을 알기 때문에, npm 패키지나 node 내장 모듈에서 온 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>, 타이머, 소켓 핸들러 또는 어떤 <code>fn(...) -&gt; void</code> 매개변수에 넘긴 <code>async</code> 콜백은 아무것도 기다려 주지 않으므로 <code>E0211</code>로 거부됩니다.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받습니다</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">호출 바깥에서 <code>fn</code>과 <code>async fn</code>을 혼동하면 일반적인 메시지로 거부됩니다</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받아 pending 값의 배열을 돌려주며, 이는 <code>[object Promise]</code>로 출력됩니다. 조건 함수를 받는 배열 함수 다섯 개는 콜백 위치에서 <code>E0211</code>로 이를 막습니다. 나머지 세 개를 같은 방식으로 모델링하면 Glyph가 작업을 동시에 실행하는 방법인 <code>par.all(array.map(items, async fn ...))</code>도 거부하게 됩니다. pending 값의 배열을 언어에서 표현할 방법이 없기 때문입니다. 이는 빠진 항목이 아니라 타입 시스템 차원의 결정이므로 열려 있습니다.</p>
+                <p>호출에서는 종류가 다른 함수에 붙여 넣을 수 있는 도움말이 붙습니다. <code>task.detach</code>에 넘긴 동기 <code>tick</code>에는 <code>async fn() -&gt; void { tick() }</code>를 넘기거나 <code>async fn tick()</code>으로 선언하라고 안내합니다. <code>let</code>에서 <code>fn(...) -&gt; void</code>에 바인딩하거나, 반환하거나, 필드에 저장한 <code>async fn</code>도 거부되지만, 메시지는 <code>expected `function`, found `async function`</code>이라고만 하고 수정은 여러분에게 맡깁니다.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">최상위 <code>await</code>가 허용됩니다</span></span>

@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Esta página es una traducción. La versión en inglés es la de referencia. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28es%29%3A+%2Fes%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fes%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">Informar de un problema con la traducción</a></p>
-      <p class="i18n-stale">La versión en inglés de esta página ha cambiado desde que se tradujo. <a href="/answers/early-errors/" hreflang="en" data-lang="en">Leer la versión actual en inglés</a></p>
     </div>
     <script>
       (function () {
@@ -737,9 +736,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">Un miembro mal escrito en un array o un string<a class="ak-anchor" href="#member-typo" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        Un miembro mal escrito en un array o un string es el otro caso que antes esperaba a <code>tsc</code>. <code>xs.lenght</code> es <code>E0210</code> con "did you mean <code>length</code>", comprobado contra los miembros que la librería de TypeScript declara para arrays y strings, igual que la lectura de un campo de un record se comprueba contra sus campos.
+        Un miembro mal escrito en un array o un string es el otro caso que antes esperaba a <code>tsc</code>. <code>xs.lenght</code> es <code>E0210</code> con "did you mean <code>length</code>", comprobado contra los miembros que la librería de TypeScript declara para arrays y strings, igual que la lectura de un campo de un record se comprueba contra sus campos. Lo mismo vale dentro de un callback cuyo parámetro no tiene tipo escrito: el parámetro toma el tipo que espera su posición, así que en <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> es un <code>User</code> y la errata es <code>E0210</code>.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> habría rechazado los dos, así que un build que lo ejecutara ya estaba en rojo; lo que cambia es que el checker, y todo lo que se construye sobre él, los ve primero.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> habría rechazado los tres, así que un build que lo ejecutara ya estaba en rojo; lo que cambia es que el checker, y todo lo que se construye sobre él, los ve primero.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">Y tres más, desde la 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -989,12 +988,12 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> solo reconoce una llamada como asíncrona cuando el checker de Glyph tiene su firma</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
-                <p><code>E0238</code> solo sabe que una llamada es asíncrona cuando el checker de Glyph tiene su firma, así que una promise de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code> o a un timer tampoco se rechaza aún: esa regla necesita modelar los slots de callback, y está prevista.</p>
+                <p><code>E0238</code> solo sabe que una llamada es async cuando el checker de Glyph tiene su firma, así que una promesa de un paquete npm o de un builtin de node todavía puede descartarse en silencio. Un callback <code>async</code> pasado a <code>forEach</code>, a un timer, a un handler de socket o a cualquier parámetro <code>fn(...) -&gt; void</code> se rechaza con <code>E0211</code>, porque nada lo espera.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Confundir <code>fn</code> y <code>async fn</code> fuera de una llamada se rechaza con un mensaje genérico</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> y <code>zip</code> todavía aceptan un callback <code>async</code> sin quejarse y devuelven un array de valores pendientes, que se imprime como <code>[object Promise]</code>; las cinco funciones de array que reciben un predicado sí lo impiden, con <code>E0211</code> en el callback. Modelar las otras tres de la misma forma también rechazaría <code>par.all(array.map(items, async fn ...))</code>, que es como Glyph ejecuta trabajo en concurrencia, porque un array de valores pendientes no tiene forma de escribirse en el lenguaje. Es una decisión del sistema de tipos y no una entrada que falte, así que sigue abierta.</p>
+                <p>En una llamada, el tipo equivocado de función recibe una ayuda que puedes pegar: a un <code>tick</code> síncrono pasado a <code>task.detach</code> se le indica pasar <code>async fn() -&gt; void { tick() }</code> o declarar <code>async fn tick()</code>. Una <code>async fn</code> asignada a un <code>fn(...) -&gt; void</code> en un <code>let</code>, devuelta o guardada en un campo también se rechaza, pero el mensaje solo dice <code>expected `function`, found `async function`</code> y te deja la corrección a ti.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Se permite un <code>await</code> de nivel superior</span></span>

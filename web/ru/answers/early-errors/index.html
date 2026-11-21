@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fearly-errors%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fearly-errors%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fearly-errors%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
-      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/early-errors/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -737,9 +736,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">Опечатка в имени члена массива или строки<a class="ak-anchor" href="#member-typo" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям.
+        Опечатка в имени члена массива или строки это другой случай, который раньше ждал <code>tsc</code>. <code>xs.lenght</code> даёт <code>E0210</code> с «did you mean <code>length</code>», и проверяется по членам, которые библиотека TypeScript объявляет для массивов и строк, так же как чтение поля записи проверяется по её полям. То же верно внутри колбэка, у параметра которого не написан тип: параметр получает тип, которого ждёт его позиция, поэтому в <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> имеет тип <code>User</code>, а опечатка даёт <code>E0210</code>.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> отклонил бы оба случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> отклонил бы все три случая, так что сборка, которая его запускала, и так была красной; изменилось то, что проверка Glyph и всё, что на ней построено, видят их первыми.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">И ещё три, начиная с 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -989,12 +988,12 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> распознаёт вызов как async, только если у проверки Glyph есть его сигнатура</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p><code>E0238</code> знает, что вызов async, только если у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча отброшен. Колбэк <code>async</code>, переданный в <code>forEach</code> или таймер, тоже пока не отклоняется: для этого правила нужно смоделировать позиции колбэков, и оно запланировано.</p>
+                <p><code>E0238</code> знает, что вызов асинхронный, только когда у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча потерян. <code>async</code>-колбэк, переданный в <code>forEach</code>, таймер, обработчик сокета или любой параметр <code>fn(...) -&gt; void</code>, отклоняется с <code>E0211</code>, потому что его никто не ждёт.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Путаница <code>fn</code> и <code>async fn</code> вне вызова отклоняется с общим сообщением</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт.</p>
+                <p>В вызове функция не того вида получает подсказку, которую можно вставить: синхронному <code>tick</code>, переданному в <code>task.detach</code>, предлагают передать <code>async fn() -&gt; void { tick() }</code> или объявить <code>async fn tick()</code>. <code>async fn</code>, привязанная к <code>fn(...) -&gt; void</code> в <code>let</code>, возвращённая или сохранённая в поле, тоже отклоняется, но сообщение говорит лишь <code>expected `function`, found `async function`</code> и оставляет исправление вам.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> на верхнем уровне разрешён</span></span>

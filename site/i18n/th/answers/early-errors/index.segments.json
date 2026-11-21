@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "th",
-  "source_hash": "c5e5837369abce5e",
+  "source_hash": "711a41075e3cd266",
   "segments": [
     {
       "id": "title",
@@ -599,16 +599,16 @@
       "tr": "member ที่สะกดผิดบน array หรือ string"
     },
     {
-      "id": "h-6a0adcec",
+      "id": "h-4bd37848",
       "kind": "html",
-      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields.",
-      "tr": "member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม \"did you mean <code>length</code>\" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน"
+      "en": "A misspelled member on an array or a string is the other case that used to wait for <code>tsc</code>. <code>xs.lenght</code> is <code>E0210</code> with \"did you mean <code>length</code>\", checked against the members TypeScript's library declares for arrays and strings, the way a record's field read is checked against its fields. The same holds inside a callback whose parameter has no written type: the parameter takes the type its position expects, so in <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> is a <code>User</code> and the typo is <code>E0210</code>.",
+      "tr": "member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม \"did you mean <code>length</code>\" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน เช่นเดียวกันภายใน callback ที่พารามิเตอร์ไม่ได้เขียนชนิดไว้ พารามิเตอร์จะได้ชนิดที่ตำแหน่งของมันคาดหวัง ดังนั้นใน <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> เป็น <code>User</code> และการพิมพ์ผิดเป็น <code>E0210</code>"
     },
     {
-      "id": "h-f84d5e4f",
+      "id": "h-76465a74",
       "kind": "html",
-      "en": "<code>tsc</code> would have refused both, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
-      "tr": "<code>tsc</code> ก็จะปฏิเสธทั้งคู่ build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน"
+      "en": "<code>tsc</code> would have refused all three, so a build that ran it was already red; the change is that the checker, and everything built on it, sees them first.",
+      "tr": "<code>tsc</code> ก็จะปฏิเสธทั้งสามกรณี build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน"
     },
     {
       "id": "h-3d087635",
@@ -1169,22 +1169,22 @@
       "tr": "รายละเอียด"
     },
     {
-      "id": "h-58e46187",
+      "id": "h-464f4cba",
       "kind": "html",
-      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
-      "tr": "<code>E0238</code> รู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน ดังนั้น promise จากแพ็กเกจ npm หรือ builtin ของ node ยังอาจถูกทิ้งไปเงียบๆ ได้ callback แบบ <code>async</code> ที่ส่งให้ <code>forEach</code> หรือ timer ก็ยังไม่ถูกปฏิเสธเช่นกัน: กฎนี้ต้องจำลองตำแหน่งของ callback ก่อน และอยู่ในแผนแล้ว"
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code>, a timer, a socket handler or any <code>fn(...) -&gt; void</code> parameter is refused with <code>E0211</code>, since nothing waits for it.",
+      "tr": "<code>E0238</code> จะรู้ว่าการเรียกเป็น async ก็ต่อเมื่อตัวตรวจของ Glyph มี signature ของมัน ดังนั้น promise จากแพ็กเกจ npm หรือ builtin ของ node ยังอาจถูกทิ้งไปอย่างเงียบ ๆ callback แบบ <code>async</code> ที่ส่งให้ <code>forEach</code>, timer, handler ของ socket หรือพารามิเตอร์ <code>fn(...) -&gt; void</code> ใด ๆ จะถูกปฏิเสธด้วย <code>E0211</code> เพราะไม่มีอะไรรอมัน"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-170e1714",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น"
+      "en": "Mixing up <code>fn</code> and <code>async fn</code> outside a call is refused with a generic message",
+      "tr": "การสลับ <code>fn</code> กับ <code>async fn</code> นอกการเรียกจะถูกปฏิเสธด้วยข้อความทั่วไป"
     },
     {
-      "id": "h-ef5ceb2e",
+      "id": "h-a80f8a50",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.",
-      "tr": "<code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่"
+      "en": "At a call, the wrong kind of function gets a help you can paste: a sync <code>tick</code> given to <code>task.detach</code> is told to pass <code>async fn() -&gt; void { tick() }</code> or declare <code>async fn tick()</code>. An <code>async fn</code> bound to a <code>fn(...) -&gt; void</code> in a <code>let</code>, returned, or stored in a field is refused too, but the message only says <code>expected `function`, found `async function`</code> and leaves the fix to you.",
+      "tr": "ในการเรียก ฟังก์ชันผิดชนิดจะได้คำแนะนำที่วางใช้ได้ทันที: <code>tick</code> แบบ sync ที่ส่งให้ <code>task.detach</code> จะถูกบอกให้ส่ง <code>async fn() -&gt; void { tick() }</code> หรือประกาศเป็น <code>async fn tick()</code> ส่วน <code>async fn</code> ที่ผูกกับ <code>fn(...) -&gt; void</code> ใน <code>let</code> ที่ถูก return หรือเก็บไว้ในฟิลด์ก็ถูกปฏิเสธเช่นกัน แต่ข้อความบอกเพียง <code>expected `function`, found `async function`</code> และปล่อยให้คุณแก้เอง"
     },
     {
       "id": "h-3873e42e",

@@ -1,7 +1,7 @@
 ---
 title: Por que o Glyph detecta o que o tsc detecta, só que antes? · Glyph
 description: O Glyph informa await fora de uma async fn, um braço de match que não produz valor e um mut faltando no seu fonte, com a regra e o conserto, antes do tsc.
-source_hash: c5e5837369abce5e
+source_hash: 711a41075e3cd266
 prev: /answers/tooling/ | &larr; Anterior | Como é a experiência de editor, depuração e erros?
 next: /answers/parse-errors/ | Próxima &rarr; | Quando um parse falha, eu descubro o motivo?
 ---
@@ -270,9 +270,9 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 
       <h3 class="ak-h3" id="member-typo">Um membro com erro de digitação num array ou numa string<a class="ak-anchor" href="#member-typo" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
-        Um membro com erro de digitação num array ou numa string é o outro caso que antes esperava o <code>tsc</code>. <code>xs.lenght</code> é <code>E0210</code> com "did you mean <code>length</code>", verificado contra os membros que a biblioteca do TypeScript declara para arrays e strings, do mesmo jeito que a leitura de um campo de record é verificada contra os campos dele.
+        Um membro com erro de digitação num array ou numa string é o outro caso que antes esperava o <code>tsc</code>. <code>xs.lenght</code> é <code>E0210</code> com "did you mean <code>length</code>", verificado contra os membros que a biblioteca do TypeScript declara para arrays e strings, do mesmo jeito que a leitura de um campo de record é verificada contra os campos dele. O mesmo vale dentro de um callback cujo parâmetro não tem tipo escrito: o parâmetro recebe o tipo que sua posição espera, então em <code>users.map(fn(u) -&gt; string { return u.nmae })</code> <code>u</code> é um <code>User</code> e o erro de digitação é <code>E0210</code>.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O <code>tsc</code> teria recusado os dois, então um build que o rodava já ficava vermelho; a mudança é que o verificador, e tudo o que é construído sobre ele, os vê primeiro.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O <code>tsc</code> teria recusado os três, então um build que o rodava já ficava vermelho; a mudança é que o verificador, e tudo o que é construído sobre ele, os vê primeiro.</p></div>
 
       <h2 class="ak-h" id="and-three-more-since-0-1-133">E mais três, desde a 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
@@ -522,12 +522,12 @@ string.repeeat(s, 2)
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> só reconhece uma chamada como assíncrona quando o verificador do Glyph tem a assinatura dela</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
-                <p><code>E0238</code> só sabe que uma chamada é assíncrona quando o verificador do Glyph tem a assinatura dela, então uma promise de um pacote npm ou de um builtin do node ainda pode ser descartada em silêncio. Um callback <code>async</code> passado a <code>forEach</code> ou a um timer também ainda não é recusado: essa regra precisa que os slots de callback sejam modelados, e está planejada.</p>
+                <p><code>E0238</code> só sabe que uma chamada é async quando o verificador do Glyph tem a assinatura dela, então uma promise de um pacote npm ou de um builtin do node ainda pode ser descartada em silêncio. Um callback <code>async</code> passado a <code>forEach</code>, a um timer, a um handler de socket ou a qualquer parâmetro <code>fn(...) -&gt; void</code> é recusado com <code>E0211</code>, já que nada espera por ele.</p>
               </div></details>
             </li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> e <code>zip</code> ainda aceitam um callback <code>async</code> sem reclamar</span></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Confundir <code>fn</code> e <code>async fn</code> fora de uma chamada é recusado com uma mensagem genérica</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
-                <p><code>array.map</code>, <code>flat_map</code> e <code>zip</code> ainda aceitam um callback <code>async</code> sem reclamar e devolvem um array de valores pendentes, que é impresso como <code>[object Promise]</code>; as cinco funções de array que recebem predicado barram isso, com <code>E0211</code> no callback. Modelar as outras três do mesmo jeito também rejeitaria <code>par.all(array.map(items, async fn ...))</code>, que é como o Glyph executa trabalho concorrente, porque um array de valores pendentes não tem como ser escrito na linguagem. Isso é uma decisão de sistema de tipos, não uma entrada faltando, então está em aberto.</p>
+                <p>Em uma chamada, o tipo errado de função recebe uma ajuda que você pode colar: um <code>tick</code> síncrono passado a <code>task.detach</code> é orientado a passar <code>async fn() -&gt; void { tick() }</code> ou declarar <code>async fn tick()</code>. Uma <code>async fn</code> atribuída a um <code>fn(...) -&gt; void</code> em um <code>let</code>, retornada ou guardada em um campo também é recusada, mas a mensagem só diz <code>expected `function`, found `async function`</code> e deixa a correção com você.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um <code>await</code> no nível superior é permitido</span></span>

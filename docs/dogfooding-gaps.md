@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-402 entries, 306 are fixed, 8 are partly fixed, 11 are decided or resolved, and
-77 are open. G144, the D28 boundary cast that never reached the returns a
+405 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+79 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13451,7 +13451,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the release build): ``[E0002] Error: parse:
   expected `}`, found As``.*
 
-- **G384. An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
+- **G384. [HALF FIXED] An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
   `ids.forEach(async fn(id: string) -> void { await save(id) })` both report no
   diagnostics. The first returns before the save finishes and loses its error;
   the second runs every save concurrently and nothing waits for any of them.
@@ -13461,6 +13461,39 @@ and is the owner's to confirm.
   async bugs in agent-written code).
 
   *Reproduced against 0.1.149 (the release build): both probes are `1 module(s) checked, no diagnostics` under `--no-tsc`.*
+
+  Half fixed on the 0.1.154 branch, for the pending value (record 129,
+  decision (b), D51). A call to a callee the checker knows is async (an
+  `async fn`, an async lambda, an `async fn(...)` value, a stdlib function
+  modeled async) is a new `Ty::Pending(T)` that `await` unwraps, and it may
+  stand only where something waits for it: the operand of `await`, the return
+  or tail value of an async callable, a named `let` that is read, or an
+  argument to a callee with no Glyph signature. Everywhere else is the new
+  E0238, the block's final statement included, with `let _ =`, a never-read
+  `let`, a typed `let`, a scrutinee, an operand, `${}`, a field, an element,
+  a member read, a Glyph-typed argument and a `return` from a sync function.
+  A pending `Result` is E0238 and no longer E0217. `std/task` gained `detach`
+  for work a sync callback starts on purpose; it reports a rejection on
+  stderr. The un-awaited call used to type as its result, which is why
+  `let n: number = load()` passed and `match try_save(2)` was checked against
+  a `Result` the program never held. Two latent bugs in the corpus were
+  refused and fixed: `examples/apps/chat/main.glyph` dropped
+  `daemon.serve(port)` in a sync `main`, and `examples/apps/jobq/main.glyph`
+  discarded `worker.drain(...)` with `let _ =` in a timer callback.
+
+  What remains is the second probe, an async function passed where a sync
+  callback is taken (`ids.forEach(async fn ...)`, `timers.after(1, async fn
+  ...)`, and a sync lambda with no written return type whose tail is a
+  pending call, which hands the value on to the same slot). That needs the
+  callback parameters modeled and an amendment to D40, and is scheduled on
+  its own as 0.1.159, where the catch moves to caught. A promise from a callee the checker types `Unknown`
+  is G404.
+
+  *Re-run against the 0.1.154 branch build (`glyph 0.1.153`, before the
+  version bump): record 129's `p384/a.glyph` exits 1 with seven E0238 (it
+  exited 0 with two E0217 warnings on the published 0.1.152 and on 0.1.153);
+  `p384/b.glyph` exits 1 with E0238 on the scrutinee and on `let _ =`; the
+  catch `gap-g384-dropped-async-call` (the `forEach` half) still exits 0.*
 
 - **G385. Interpolation accepts any type, so a record prints `[object Object]`.** `print("Welcome back, ${user}!")` with `user: User` checks clean and prints
   `Welcome back, [object Object]!`; an `Option` and a pending async value do the
@@ -13707,3 +13740,46 @@ and is the owner's to confirm.
   @glyphlang/glyph@0.1.152`): `check --no-tsc` exits 0 with no
   diagnostics, and full `check` reports `[TS2345] Error: tsc: Argument of
   type 'string' is not assignable to parameter of type 'number'`.*
+
+- **G403. E0217 skips the final statement of a block.** `fn tail(s: string)
+  -> void { parse(s) }`, where `parse` returns a `Result`, drops it with no
+  diagnostic: the warning is raised only for a non-final statement, on the
+  reasoning that the last one may be a `match` arm's value. A `void`
+  function's last statement is not its value, and neither is the last
+  statement of a block whose value is discarded. E0238 judges the same
+  position by where the block stands (the tail of a value-returning callable,
+  an arm of a `match` in value position) rather than exempting it, and E0217
+  should do the same. Breaking only in the warning count. Found by record 129.
+
+  *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
+  build by record 129's `p384/e.glyph`: `1 module(s) checked, no
+  diagnostics`, exit 0.*
+
+- **G404. A dropped promise from an npm package or a host builtin is silent.**
+  `import dns/promises { lookup }` then a bare `lookup("localhost")` gets no
+  diagnostic from Glyph's checker and none from `tsc`, and `let n: number =
+  lookup("localhost")` none from Glyph's. The checker types a callee it has
+  no signature for as `Unknown`, so the call is never a pending value (D51)
+  and E0238 cannot see it. The documented edge of the pending type; closing
+  it needs the checker to read a materialized or builtin `Promise<T>` return
+  as pending. Not breaking until it is closed. Found by record 129.
+
+  *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
+  build by record 129's `p384/c.glyph`: no E0238 and no `tsc` error on the
+  bare call; the branch build reports only E0107 on the unused `n`.*
+
+- **G405. The prelude `Issue`'s fields are untyped to Glyph's checker.** A
+  value read from an `Issue` (the issue type `json.parse` and `T.parse`
+  return) is `Unknown` to the checker, although the runtime declares `path`
+  as `ReadonlyArray<string | number>` and `message` as `string`. Every rule
+  that judges a type skips it: record 129 measured `"${i.path}:
+  ${i.message}"` in `examples/apps/sitegen/load.glyph:21` printing `items,0,
+  name: ...` by accident, which the planned text-conversion rule (G385)
+  cannot refuse while the field has no type. Give the prelude `Issue` record
+  its field types. Found by record 129, which reported hover on `i.path`
+  answering `null`.
+
+  *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
+  build: `fn f(i: Issue) -> number { let p: number = i.path  let m: number =
+  i.message ... }` (one statement per line) checks with no diagnostics, exit
+  0.*

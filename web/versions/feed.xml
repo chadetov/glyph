@@ -8,6 +8,13 @@
   <updated>2026-11-21T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.156 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.156" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.156</id>
+    <updated>2026-11-21T00:00:00Z</updated>
+    <summary>A lambda parameter has the type you wrote, and is arms narrow</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.155 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.155" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.155</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-10/#0.1.127</id>
     <updated>2026-10-29T00:00:00Z</updated>
     <summary>This release is about records.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.126 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-10/#0.1.126" />
-    <id>https://glyphlang.io/versions/2026-10/#0.1.126</id>
-    <updated>2026-10-17T00:00:00Z</updated>
-    <summary>This release finishes what 0.1.125 started on React components: the type a component returns now means something to tsc, go-to-definition works through a namespace import, and impact answers the same for a call however its callee was imported.</summary>
   </entry>
 </feed>

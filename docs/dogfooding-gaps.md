@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-425 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-89 are open. G144, the D28 boundary cast that never reached the returns a
+426 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+90 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14480,4 +14480,18 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build): `check --no-tsc` reports
   no diagnostics and `glyph run` throws `TypeError: Cannot convert undefined
   or null to object`.*
+
+- **G426. The value-position help for an optional mutating call drops the
+  `?.`.** `let n = s.opt?.pop()` on `type S = { opt?: Array<number>, }` is
+  rightly E0240, but the help says to read with `array.get(s.opt, ...)` and
+  then write `mut s.opt.pop()`, and that program fails `tsc` (TS2345 twice,
+  TS18048). The statement form `mut s.opt?.pop()` compiles. When the call is
+  optional the help should write the statement with its `?.` and leave out
+  the read-first clause, which needs a narrowed field (G393). On the same
+  probe, E0241's ``to keep it, write `mut s.opt = ` before the call`` should
+  print the whole assignment. Found by record 152 (R1).
+
+  *Reproduced against 0.1.160 (the dev build): the E0240 help on `let n =
+  s.opt?.pop()` names `array.get(s.opt, array.len(s.opt) - 1)` and `mut
+  s.opt.pop()`.*
 

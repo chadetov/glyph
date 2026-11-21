@@ -2011,6 +2011,65 @@ impl Assigner<'_> {
         None
     }
 
+    /// The function type a built-in `Array<T>` method expects at argument
+    /// `index`, for contextual typing only (D5z). The generated method rows
+    /// (G312) model these callbacks as `unknown`, or leave the whole method
+    /// untyped where TypeScript declares overloads, so the method spelling
+    /// `users.map(fn(u) ..)` would type nothing where `array.map(users, ..)`
+    /// types `u`. This gives the parameters TypeScript's declarations give
+    /// them, over the receiver's element type: `(T, number, Array<T>)` for
+    /// the per-element callbacks, the accumulator then `T` for `reduce`
+    /// (the seed's widened type, or `T` with no seed), and `(T, T)` for a
+    /// comparator. The return type is left unknown: it binds nothing here,
+    /// and the method's result typing stays the generated row's.
+    fn builtin_callback_slot(&self, callee: &Expr, args: &[Expr], index: usize) -> Option<Ty> {
+        let Expr::Member { object, field, .. } = callee else {
+            return None;
+        };
+        let (crate::builtin_members::BuiltinReceiver::Array, elem) =
+            self.builtin_receiver_elem(self.tm.get(object.span()))?
+        else {
+            return None;
+        };
+        if elem.is_unknown() || index != 0 {
+            return None;
+        }
+        let param = |ty: Ty| FnParam {
+            name: None,
+            owned: false,
+            ty,
+            optional: true,
+        };
+        let params = match field.as_ref() {
+            "map" | "forEach" | "flatMap" | "filter" | "find" | "findIndex" | "findLast"
+            | "findLastIndex" | "some" | "every" => vec![
+                param(elem.clone()),
+                param(Ty::Prim(Primitive::Number)),
+                param(self.array_ty(elem.clone())),
+            ],
+            "reduce" | "reduceRight" => {
+                let acc = match args.get(1) {
+                    Some(seed) => self.widen_fresh_literals(seed, self.tm.get(seed.span()).clone()),
+                    None => elem.clone(),
+                };
+                vec![
+                    param(acc),
+                    param(elem.clone()),
+                    param(Ty::Prim(Primitive::Number)),
+                    param(self.array_ty(elem.clone())),
+                ]
+            }
+            "sort" | "toSorted" => vec![param(elem.clone()), param(elem.clone())],
+            _ => return None,
+        };
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(Ty::Unknown),
+            is_async: false,
+            type_params: None,
+        })
+    }
+
     /// Walk the arguments of a call that need a contextual type (D5z), after
     /// every other argument has been walked. Each one is walked against its
     /// parameter's type with the callee's type parameters instantiated from
@@ -2032,7 +2091,10 @@ impl Assigner<'_> {
             params, type_params, ..
         } = &callee_ty
         else {
-            for (a, _) in args.iter().zip(deferred).filter(|(_, d)| **d) {
+            for (i, (a, _)) in args.iter().zip(deferred).enumerate().filter(|(_, (_, d))| **d) {
+                if let Some(slot) = self.builtin_callback_slot(callee, args, i) {
+                    self.register_lambda_context(a, &slot);
+                }
                 self.walk_expr(a);
             }
             return;
@@ -2088,7 +2150,14 @@ impl Assigner<'_> {
                 for n in &names {
                     at.entry(n.clone()).or_insert(Ty::Unknown);
                 }
-                let expected = substitute_type_params(&p.ty, &at);
+                let mut expected = substitute_type_params(&p.ty, &at);
+                // A built-in method's generated row models its callback as
+                // `unknown`; the element type supplies the context instead.
+                if self.fn_params_of(&expected).is_none() {
+                    if let Some(slot) = self.builtin_callback_slot(callee, args, i) {
+                        expected = slot;
+                    }
+                }
                 self.register_lambda_context(a, &expected);
                 self.walk_expr(a);
                 let found = self.tm.get(a.span()).clone();
@@ -3397,6 +3466,20 @@ impl Assigner<'_> {
         if j.kind() == JsxKind::Match {
             self.walk_jsx_match(j);
             return;
+        }
+        // An attribute of a component element is a field of the one props
+        // object the element passes, so a lambda in it takes the field's type
+        // the way a record-literal field does (D5z). A DOM element's
+        // attributes come from React's types, which this checker does not
+        // hold, so there is no shape and nothing is registered.
+        if let Some((_, shape)) = self.jsx_component_props_shape(j) {
+            for attr in &j.attrs {
+                if let JsxAttr::Expr { name, value, .. } = attr {
+                    if let Some(field) = shape.fields.iter().find(|f| f.name == *name) {
+                        self.register_lambda_context(value, &field.ty);
+                    }
+                }
+            }
         }
         for attr in &j.attrs {
             match attr {

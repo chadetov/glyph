@@ -209,8 +209,8 @@ fn a_call_on_a_value_nothing_holds_is_e0240_under_mut() {
         found[0].2,
         "bind the array with `let` first, `let ys = make()`, then write `mut ys.push(1)`"
     );
-    assert_eq!(found[1].1, "`.sort(cmp)` sorts the new array `ys.filter(...)` returns, and nothing keeps it");
-    assert!(found[1].2.starts_with("`array.sort(ys.filter(...), cmp)` returns the sorted array"), "{}", found[1].2);
+    assert_eq!(found[1].1, "`.sort(cmp)` sorts the new array a call returns, and nothing keeps it");
+    assert!(found[1].2.starts_with("`array.sort` returns the sorted array"), "{}", found[1].2);
     assert!(found.iter().all(|f| f.0 == "E0240"));
 }
 
@@ -420,9 +420,11 @@ fn every_help_spelling_compiles_and_runs() {
         \x20 let s = smallest([9, 4])\n\
         \x20 let pushed = array.push(xs, 1)\n\
         \x20 let front = array.concat([0], xs)\n\
+        \x20 let plain = array.sort([3, 1], fn(a: number, b: number) -> number { return a - b })\n\
+        \x20 let words = array.sort([\"b\", \"a\"], fn(a: string, b: string) -> number { return a.localeCompare(b) })\n\
         \x20 let shown = match last { Some(v) => v, None => 0, }\n\
         \x20 let shown2 = match first { Some(v) => v, None => 0, }\n\
-        \x20 io.println(\"${shown} ${shown2} ${removed.length} ${n} ${sorted.length} ${back.length} ${s} ${xs[0]} ${pushed.length} ${front.length}\")\n\
+        \x20 io.println(\"${shown} ${shown2} ${removed.length} ${n} ${sorted.length} ${back.length} ${s} ${xs[0]} ${pushed.length} ${front.length} ${plain[0]} ${words[0]}\")\n\
         \x20 return 0\n\
         }\n";
     let dir = project("help", src);
@@ -435,7 +437,7 @@ fn every_help_spelling_compiles_and_runs() {
         .expect("run glyph run");
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
-        stdout.contains("2 3 1 1 1 1 4 7 2 2"),
+        stdout.contains("2 3 1 1 1 1 4 7 2 2 1 a"),
         "unexpected output:\n{stdout}\n{}",
         String::from_utf8_lossy(&out.stderr)
     );
@@ -470,4 +472,192 @@ fn each_value_help_applied_compiles() {
         let fixed = program(applied).replacen("module main\n", "module main\nimport std/array\n", 1);
         assert_accepted("applied", &fixed);
     }
+}
+
+/// No help puts `...` inside a code span, where it reads as a spread, and
+/// none names a comparator the program does not have (record 151, F5).
+#[test]
+fn helps_quote_no_elision_and_no_invented_comparator() {
+    let src = program(
+        "  let ws = [\"b\", \"a\"]\n  \
+         let _a = xs.sort()\n  \
+         let _b = ws.sort()\n  \
+         let _c = xs.sort(fn(a: number, b: number) -> number { return a - b })\n  \
+         let _d = xs.filter(fn(x: number) -> bool { return x > 1 }).reverse()\n  \
+         mut xs.filter(fn(x: number) -> bool { return x > 1 }).push(9)",
+    );
+    let found = refusals(&src);
+    assert_eq!(found.len(), 5, "{found:#?}");
+    for (_, msg, help) in &found {
+        for text in [msg, help] {
+            for span in text.split('`').skip(1).step_by(2) {
+                assert!(!span.contains("..."), "a code span holds `...`: {text}");
+            }
+        }
+        assert!(!help.contains("cmp"), "an invented comparator: {help}");
+    }
+    let help_of = |subject: &str| {
+        found
+            .iter()
+            .find(|f| f.1.starts_with(subject))
+            .map(|f| f.2.clone())
+            .unwrap_or_else(|| panic!("no refusal of {subject}: {found:#?}"))
+    };
+    assert!(
+        help_of("`xs.sort()`").contains("`array.sort(xs, fn(a: number, b: number) -> number { return a - b })`"),
+        "{found:#?}"
+    );
+    assert!(
+        help_of("`ws.sort()`").contains("`array.sort(ws, fn(a: string, b: string) -> number { return a.localeCompare(b) })`"),
+        "{found:#?}"
+    );
+    assert!(
+        help_of("the call to `xs.sort`").starts_with("`array.sort` with the same comparator returns a sorted copy"),
+        "{found:#?}"
+    );
+}
+
+/// A block's last expression is its value when the block's value is used,
+/// so a mutating call there is a value, not a statement, and `glyph fix`
+/// leaves it alone (record 151, F1). A `void` body's tail is a statement.
+#[test]
+fn a_consumed_tail_is_a_value_and_a_void_tail_is_a_statement() {
+    let returned = "module main\n\
+        fn f(ys: Array<number>) -> number {\n\
+        \x20 ys.push(4)\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 print(\"${f([1])}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, help) = one(returned, "E0240");
+    assert_eq!(msg, "`ys.push(4)` changes `ys` in place, and as the last expression of the body its value is returned");
+    assert_eq!(
+        help,
+        "write `mut ys.push(4)` as a statement, then return the value explicitly, `return array.len(ys)` (with `import std/array`)"
+    );
+    let applied = returned
+        .replace("  ys.push(4)\n", "  mut ys.push(4)\n  return array.len(ys)\n")
+        .replacen("module main\n", "module main\nimport std/array\n", 1);
+    assert_accepted("tail-applied", &applied);
+
+    let tail_match = "module main\n\
+        fn f(c: bool, ys: Array<number>) -> number {\n\
+        \x20 match c {\n\
+        \x20   true => ys.push(1),\n\
+        \x20   false => 0,\n\
+        \x20 }\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 print(\"${f(true, [1])}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, help) = one(tail_match, "E0240");
+    assert!(msg.ends_with("its value is used here"), "{msg}");
+    assert!(!help.contains("{ mut"), "a tail match arm is not a statement arm: {help}");
+
+    let lambda = program("  let _lens = array.map(xs, fn(x: number) -> number { ys.push(x) })")
+        .replacen("module main\n", "module main\nimport std/array\n", 1);
+    let (msg, _) = one(&lambda, "E0240");
+    assert!(msg.ends_with("its value is returned"), "{msg}");
+
+    let void_tail = "module main\n\
+        fn f(ys: Array<number>) -> void {\n\
+        \x20 ys.push(4)\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 f([1])\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, _) = one(void_tail, "E0240");
+    assert!(msg.ends_with("written as a `mut` statement"), "{msg}");
+
+    let arm_block = program("  let _n = match xs.length > 1 {\n    true => { xs.push(1) },\n    false => 0,\n  }");
+    let (msg, help) = one(&arm_block, "E0240");
+    assert!(msg.ends_with("as the last expression of the arm its value is used"), "{msg}");
+    assert!(help.contains("end the block with the value, `array.len(xs)`"), "{help}");
+}
+
+/// A receiver reached through an array index is judged: the element of an
+/// `Array<E>` is an `E` for this rule (record 151, F2).
+#[test]
+fn a_receiver_reached_through_an_index_is_judged() {
+    let head = "module main\n\
+        type Row = { items: Array<number>, }\n\
+        fn cmp(a: number, b: number) -> number { return a - b }\n\
+        fn first_sorted(rows: Array<Row>) -> number {\n\
+        \x20 return rows[0].items.sort(cmp)[0]\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let rows: Array<Row> = [{ items: [2, 1], }]\n\
+        \x20 let grid = [[1], [2]]\n\
+        \x20 grid[1].push(6)\n\
+        \x20 rows[0].items.push(0)\n\
+        \x20 print(\"${first_sorted(rows)} ${grid.length}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let found = refusals(head);
+    let lines: Vec<&str> = found.iter().filter(|f| f.0 == "E0240").map(|f| f.1.as_str()).collect();
+    assert_eq!(lines.len(), 3, "{found:#?}");
+    assert!(lines[0].starts_with("`rows[0].items.sort(cmp)` changes `rows[0].items`"), "{lines:?}");
+    assert!(lines[1].starts_with("`grid[1].push(6)` changes `grid[1]`"), "{lines:?}");
+    assert!(lines[2].starts_with("`rows[0].items.push(0)`"), "{lines:?}");
+    assert_accepted(
+        "index-mut",
+        "module main\n\
+         type Row = { items: Array<number>, }\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let rows: Array<Row> = [{ items: [2, 1], }]\n\
+         \x20 let grid = [[1], [2]]\n\
+         \x20 let i = 1\n\
+         \x20 mut grid[i].push(6)\n\
+         \x20 mut rows[0].items.push(0)\n\
+         \x20 print(\"${grid.length} ${rows.length}\")\n\
+         \x20 return 0\n\
+         }\n",
+    );
+}
+
+/// A write through an optional field is spelled `mut s.opt?.push(1)`, the
+/// one spelling `tsc` accepts; assignment through `?.` stays refused
+/// (record 151, F3).
+#[test]
+fn a_write_through_an_optional_field_takes_mut_before_the_optional_call() {
+    let src = "module main\n\
+        type S = { opt?: Array<number>, }\n\
+        fn f(s: S) -> void {\n\
+        \x20 s.opt?.push(1)\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let xs = [3]\n\
+        \x20 f({ opt: xs, })\n\
+        \x20 print(\"${xs.length}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, help) = one(src, "E0240");
+    assert!(msg.starts_with("`s.opt?.push(1)` changes `s.opt` in place"), "{msg}");
+    assert!(help.starts_with("write `mut s.opt?.push(1)`"), "{help}");
+    let fixed = src.replace("  s.opt?.push(1)\n", "  mut s.opt?.push(1)\n");
+    assert_accepted("optional-mut", &fixed);
+
+    let assign = src.replace("  s.opt?.push(1)\n", "  mut s.opt?.n = 1\n");
+    let v = check(&project("optional-assign", &assign), true);
+    let errs = errors(&v);
+    assert!(errs.iter().any(|e| e["code"] == "E0002"), "{v:#}");
+}
+
+/// A deferred mutating call gets the spelling that keeps it deferred: the
+/// change in a function, and `defer` calling it (record 151, F4).
+#[test]
+fn a_deferred_mutating_call_is_written_through_a_function() {
+    let (msg, help) = one(&program("  defer xs.push(1)"), "E0240");
+    assert_eq!(msg, "`xs.push(1)` is a deferred call that changes `xs`, and `defer` takes no `mut`");
+    assert_eq!(
+        help,
+        "write the change in a function and defer the call: `let undo = fn() -> void { mut xs.push(1) }`, then `defer undo()`"
+    );
+    assert_accepted(
+        "defer-applied",
+        &program("  let undo = fn() -> void {\n    mut xs.push(1)\n  }\n  defer undo()"),
+    );
 }

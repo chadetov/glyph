@@ -807,3 +807,26 @@ fn e0240_declines_every_shape_but_the_bare_statement() {
     assert!(!out.contains("E0241"), "E0241 is never repaired: {out}");
     assert_eq!(source_of(&dir), src, "nothing is rewritten");
 }
+
+/// One file is counted once when the import rule and the E0240 rule both
+/// rewrite it in the same run (record 151, F6).
+#[test]
+fn e0240_and_an_import_removal_count_one_file() {
+    let src = "module main\n\nimport std/io\n\nfn main(argv: Array<string>) -> number {\n  let xs = [1]\n  xs.push(2)\n  print(\"${xs.length}\")\n  return 0\n}\n";
+    let dir = project("e0240-count", src);
+    let out = fix(&dir);
+    assert!(out.contains("applied E0240"), "{out}");
+    assert!(out.contains("across 1 file(s)"), "{out}");
+    assert_eq!(out.matches("fixed ").count(), 1, "{out}");
+}
+
+/// A returned tail is not a statement: `glyph fix` declines it, and the
+/// file is unchanged (record 151, F1).
+#[test]
+fn e0240_declines_a_returned_tail() {
+    let src = "module main\n\nfn f(ys: Array<number>) -> number {\n  ys.push(4)\n}\n\nfn main(argv: Array<string>) -> number {\n  print(\"${f([1])}\")\n  return 0\n}\n";
+    let dir = project("e0240-tail", src);
+    let out = fix(&dir);
+    assert!(out.contains("declined E0240"), "{out}");
+    assert_eq!(source_of(&dir), src);
+}

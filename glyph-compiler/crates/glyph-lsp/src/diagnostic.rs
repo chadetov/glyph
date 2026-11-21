@@ -179,6 +179,16 @@ pub struct Diagnostic {
     /// which computes it fresh on both sides of an edit.
     #[serde(skip)]
     pub subject: Option<String>,
+    /// Text the checker has decided belongs at the start of the range, when
+    /// that insertion is the whole repair: `mut ` before an E0240 call that
+    /// stands as a statement whose value nothing reads (G380). `glyph fix`
+    /// applies it as given rather than working the shape out a second time,
+    /// so the checker and the fix cannot disagree about which calls take it
+    /// (record 151, F1).
+    ///
+    /// Never serialized, like `subject`: it is read in-process by the fix.
+    #[serde(skip)]
+    pub insert_before: Option<String>,
 }
 
 /// Where to read a diagnostic code's explanation.
@@ -310,6 +320,7 @@ impl Diagnostic {
             related: None,
             explain: explain_pointer(code),
             subject: None,
+            insert_before: None,
         }
     }
 
@@ -326,6 +337,12 @@ impl Diagnostic {
     /// E0200 misses) is not a suggestion and stays in the subject.
     pub fn subject(&self) -> &str {
         self.subject.as_deref().unwrap_or(&self.message)
+    }
+
+    /// Attach the insertion the checker decided is the whole repair.
+    fn with_insertion(mut self, text: Option<&str>) -> Self {
+        self.insert_before = text.map(str::to_string);
+        self
     }
 
     /// Attach the subject, when the message carries a suggestion.
@@ -532,6 +549,10 @@ pub fn from_type_error(
     )
     .missing_fields(err.missing_fields().map(<[String]>::to_vec))
     .with_subject(type_subject(err))
+    .with_insertion(match err {
+        TypeError::MutationOutsideMut { kind: glyph_typechecker::MutationSite::Statement, .. } => Some("mut "),
+        _ => None,
+    })
 }
 
 /// The resolver errors whose message carries a suggestion: a field the

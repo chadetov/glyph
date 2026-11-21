@@ -44,6 +44,11 @@ pub struct TypeMap {
     /// (the E0238 help's choice of rewrite) reads the slot from here, the
     /// same answer the checker typed the lambda's parameters from.
     callback_slots: HashMap<(u32, u32), Ty>,
+    /// A call that changes a built-in receiver and does not stand as the
+    /// whole call of a `mut` statement (G380). The checker records it with
+    /// what the help needs; the pending pass, whose walk knows the position
+    /// each expression stands in, decides where it stands and reports E0240.
+    mutating_calls: HashMap<(u32, u32), crate::mutation::MutatingCall>,
 }
 
 impl TypeMap {
@@ -91,6 +96,16 @@ impl TypeMap {
     /// Record the built-in method callback slot for the lambda at `span`.
     pub fn record_callback_slot(&mut self, span: Span, ty: Ty) {
         self.callback_slots.insert((span.start, span.end), ty);
+    }
+
+    /// Record a mutating call at `span` for the pending pass to place.
+    pub fn record_mutating_call(&mut self, span: Span, call: crate::mutation::MutatingCall) {
+        self.mutating_calls.insert((span.start, span.end), call);
+    }
+
+    /// The mutating call recorded at `span`, if any.
+    pub fn mutating_call(&self, span: Span) -> Option<&crate::mutation::MutatingCall> {
+        self.mutating_calls.get(&(span.start, span.end))
     }
 
     /// The built-in method callback slot recorded for the lambda at `span`.

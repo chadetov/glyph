@@ -301,16 +301,23 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
     }
 }
 
-/// Whether `e` is a call whose callee is a plain (non-optional) member read,
-/// `<expr>.method(args)`. A free-function call and a `?.` call are not. The
-/// receiver is not judged here: whether it is a place, and whether the call
-/// changes anything, are the checker's (G380).
+/// Whether `e` is a method call a `mut` statement may hold: a call whose
+/// callee is a member read, `<expr>.method(args)`. The method link may be
+/// `?.` when the receiver before it is a place, `mut s.opt?.push(1)`: that is
+/// the only spelling `tsc` accepts for a write through an optional field, and
+/// the line still starts with `mut` (record 151, F3, amending record 150).
+/// A `?.` anywhere in the receiver, and assignment through `?.`, stay
+/// refused. A free-function call is not a method call. Whether the call
+/// changes anything is the checker's (G380).
 fn is_method_call(e: &Expr) -> bool {
-    matches!(
-        e,
-        Expr::Call { callee, .. }
-            if matches!(callee.as_ref(), Expr::Member { optional: false, .. })
-    )
+    match e {
+        Expr::Call { callee, .. } => match callee.as_ref() {
+            Expr::Member { optional: false, .. } => true,
+            Expr::Member { optional: true, object, .. } => object.is_place(),
+            _ => false,
+        },
+        _ => false,
+    }
 }
 
 /// D21: `for X in expr { body }` and `for K, V in expr { body }`.

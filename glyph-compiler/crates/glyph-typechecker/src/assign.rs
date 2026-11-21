@@ -357,8 +357,6 @@ pub fn assign_types_with_relations(
             assign_target: None,
             call_callee: None,
             mut_call: None,
-            stmt_call: None,
-            arm_calls: Vec::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver,
@@ -474,8 +472,6 @@ pub fn assignability(
         assign_target: None,
         call_callee: None,
         mut_call: None,
-        stmt_call: None,
-        arm_calls: Vec::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -537,8 +533,6 @@ pub fn declared_record_fields(
         assign_target: None,
         call_callee: None,
         mut_call: None,
-        stmt_call: None,
-        arm_calls: Vec::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
         decl_ty_resolver,
@@ -1268,14 +1262,12 @@ struct Assigner<'a> {
     /// with it still set, and a flag would take the `s.trim` in
     /// `s.trim.bind(s)()` for a call.
     call_callee: Option<Span>,
-    /// Where the call being walked stands, for E0240 (G380, D5): the call of
-    /// the `mut` statement being walked, the whole expression of the
-    /// expression statement being walked, and the non-block arm values of a
-    /// `match` that is itself a statement. Spans identify the nodes, as they
-    /// do in the type map, so a nested call never matches its parent's.
+    /// The call of the `mut` statement being walked, for E0240 (G380, D5):
+    /// a mutating call there is accepted when its receiver is a place. Every
+    /// other position is placed by the pending pass, which records where
+    /// each expression stands. Spans identify the nodes, as they do in the
+    /// type map, so a nested call never matches its parent's.
     mut_call: Option<Span>,
-    stmt_call: Option<Span>,
-    arm_calls: Vec<Span>,
     /// The interface pairings the relation is in the middle of deciding, so a
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
@@ -2421,16 +2413,7 @@ impl Assigner<'_> {
             Stmt::Loop(l) => self.walk_block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
             Stmt::Defer(d) => self.walk_expr(&d.expr),
-            Stmt::Expr(e) => {
-                let outer = self.stmt_call.replace(e.span());
-                let arms = self.arm_calls.len();
-                if let Expr::Match { arms: match_arms, .. } = e {
-                    statement_arm_values(match_arms, &mut self.arm_calls);
-                }
-                self.walk_expr(e);
-                self.arm_calls.truncate(arms);
-                self.stmt_call = outer;
-            }
+            Stmt::Expr(e) => self.walk_expr(e),
         }
     }
 
@@ -6916,17 +6899,19 @@ impl Assigner<'_> {
 
     /// E0240 (G380, D5): a call to a method that changes its receiver, on a
     /// receiver Glyph types as a built-in (`Array<T>`; no `string` or
-    /// `number` method mutates), standing anywhere but as the whole call of a
-    /// `mut` statement, or standing there on a receiver that is not a place.
-    /// A receiver the checker types `Unknown` is not judged.
+    /// `number` method mutates). As the whole call of a `mut` statement it is
+    /// accepted on a place and refused on anything else. Anywhere else it is
+    /// recorded for the pending pass, which knows whether the position reads
+    /// the call's value and reports it (`pending::check_pending`). A receiver
+    /// the checker types `Unknown` is not judged.
     fn check_mutating_call(&mut self, call: &Expr) {
         let Expr::Call { callee, args, span, .. } = call else {
             return;
         };
-        let Expr::Member { object, field, .. } = callee.as_ref() else {
+        let Expr::Member { object, field, optional, .. } = callee.as_ref() else {
             return;
         };
-        let Some(receiver) = self.mutation_receiver(object) else {
+        let Some((receiver, elem)) = self.mutation_receiver(object) else {
             return;
         };
         let Some(m) = receiver.method(field.as_ref()) else {
@@ -6935,51 +6920,74 @@ impl Assigner<'_> {
         if !m.mutates {
             return;
         }
-        let site = if !object.is_place() {
-            // Under `mut` the receiver is the only fault; elsewhere a
-            // statement on a temporary is the same lost write, and `mut `
-            // before it would not keep it either.
-            match Some(*span) == self.mut_call || Some(*span) == self.stmt_call {
-                true => MutationSite::NotPlace,
-                false => MutationSite::Value,
-            }
-        } else if Some(*span) == self.mut_call {
-            return;
-        } else if Some(*span) == self.stmt_call {
-            MutationSite::Statement
-        } else if self.arm_calls.contains(span) {
-            MutationSite::ArmValue
-        } else {
-            MutationSite::Value
+        let elem = match elem {
+            Ty::Prim(Primitive::Number) => crate::mutation::ElemKind::Number,
+            Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => crate::mutation::ElemKind::String,
+            _ => crate::mutation::ElemKind::Other,
         };
+        if Some(*span) != self.mut_call {
+            self.tm.record_mutating_call(
+                *span,
+                crate::mutation::MutatingCall { method: m.name, elem, place: object.is_place() },
+            );
+            return;
+        }
+        if object.is_place() {
+            return;
+        }
         let ns = crate::mutation::ArrayNs::of(self.module);
-        let (message, help) = crate::mutation::mutation_outside_mut(site, object, m.name, args, &ns);
+        let text = crate::mutation::CallText { recv: object, method: m.name, args, optional: *optional, elem };
+        let (message, help) = crate::mutation::mutation_outside_mut(MutationSite::NotPlace, &text, &ns);
         self.errors.push(TypeError::MutationOutsideMut {
-            kind: site,
+            kind: MutationSite::NotPlace,
             message,
             help,
             span: *span,
         });
     }
 
-    /// The built-in receiver a call's object is, for E0240: its type, or,
-    /// when the checker leaves that `Unknown`, an array method known to
-    /// return a new array (`filter` is overloaded, so its row is untyped).
-    fn mutation_receiver(&self, object: &Expr) -> Option<BuiltinReceiver> {
-        if let Some((receiver, _)) = self.builtin_receiver_elem(self.tm.get(object.span())) {
-            return Some(receiver);
+    /// The built-in receiver a call's object is, with the array's element
+    /// type, for E0240 (`receiver_ty`).
+    fn mutation_receiver(&self, object: &Expr) -> Option<(BuiltinReceiver, Ty)> {
+        self.builtin_receiver_elem(&self.receiver_ty(object)?)
+    }
+
+    /// The type of a mutating call's receiver, for E0240 alone. Where the
+    /// type map has one, that. Where it is `Unknown`, two shapes the checker
+    /// still knows the type of: an element of an `Array<E>` read by index is
+    /// an `E`, and a field of it the field's type (record 151, F2), and an
+    /// array method known to return a new array returns an array (`filter`
+    /// is overloaded, so its row is untyped). The index read keeps the type
+    /// it carries everywhere else; whether `xs[i]` is `T` or `T | undefined`
+    /// is a separate decision.
+    fn receiver_ty(&self, object: &Expr) -> Option<Ty> {
+        let ty = self.tm.get(object.span());
+        if !ty.is_unknown() {
+            return Some(ty.clone());
         }
-        let Expr::Call { callee, .. } = object else {
-            return None;
-        };
-        let Expr::Member { object: inner, field, .. } = callee.as_ref() else {
-            return None;
-        };
-        let inner_array = matches!(
-            self.mutation_receiver(inner),
-            Some(BuiltinReceiver::Array)
-        );
-        (inner_array && crate::mutation::returns_new_array(field.as_ref())).then_some(BuiltinReceiver::Array)
+        match object {
+            Expr::Index { object: base, .. } => {
+                let (BuiltinReceiver::Array, elem) = self.builtin_receiver_elem(&self.receiver_ty(base)?)? else {
+                    return None;
+                };
+                (!elem.is_unknown()).then_some(elem)
+            }
+            Expr::Member { object: base, field, optional: false, .. } => {
+                let base_ty = self.receiver_ty(base)?;
+                let fields = self.record_fields_of(&base_ty)?;
+                let f = fields.into_iter().find(|f| f.name.as_ref() == field.as_ref())?;
+                (!f.ty.is_unknown()).then_some(f.ty)
+            }
+            Expr::Call { callee, .. } => {
+                let Expr::Member { object: inner, field, .. } = callee.as_ref() else {
+                    return None;
+                };
+                let inner_ty = self.receiver_ty(inner)?;
+                let is_array = matches!(self.builtin_receiver_elem(&inner_ty), Some((BuiltinReceiver::Array, _)));
+                (is_array && crate::mutation::returns_new_array(field.as_ref())).then_some(inner_ty)
+            }
+            _ => None,
+        }
     }
 
     /// E0241 (G380, D5): `mut` before a call Glyph knows changes nothing. A
@@ -10774,19 +10782,6 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
 /// A receiver as the help can write it back: a name, a member path, or a
 /// call (`load()`, with its arguments elided when it has any). Anything else
 /// is written as a placeholder.
-/// The non-block arm values of a `match` that stands as a statement, and of
-/// any `match` that is itself such an arm value, for E0240's arm site.
-fn statement_arm_values(arms: &[MatchArm], out: &mut Vec<Span>) {
-    for arm in arms {
-        if let MatchArmBody::Expr(e) = &arm.body {
-            out.push(e.span());
-            if let Expr::Match { arms: inner, .. } = e {
-                statement_arm_values(inner, out);
-            }
-        }
-    }
-}
-
 fn receiver_source(e: &Expr) -> String {
     match e {
         Expr::Ident { name, .. } => name.to_string(),
@@ -17867,8 +17862,6 @@ component View(props: { s: Status }) -> Component {
             assign_target: None,
             call_callee: None,
             mut_call: None,
-            stmt_call: None,
-            arm_calls: Vec::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
             decl_ty_resolver: resolver,

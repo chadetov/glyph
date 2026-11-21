@@ -1,7 +1,7 @@
 ---
 title: 에이전트가(또는 내가) 무엇이 어디에 정의되어 있는지 찾을 수 있나요? · Glyph
 description: Glyph의 모든 구문은 검색할 모양이 하나뿐이므로, grep(또는 에이전트의 검색)은 비슷하지만 틀린 결과 쉰 개가 아니라 정의 하나에 닿습니다.
-source_hash: cb5e3e02dc597369
+source_hash: 15511937ba2844d1
 prev: /answers/diff-stability/ | &larr; 이전 | 에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?
 next: /answers/why-typescript/ | 다음 &rarr; | 왜 Go나 새 언어가 아니라 TypeScript인가요?
 ---
@@ -12,30 +12,32 @@ next: /answers/why-typescript/ | 다음 &rarr; | 왜 Go나 새 언어가 아니�
         모든 구문은 검색할 <strong>모양이 정확히 하나</strong>입니다. 평범한 <code>grep</code>(에이전트가 실제로 코드를 탐색하는 방식)은 <strong>비슷하지만 틀린 결과 쉰 개가 아니라</strong> 정의 하나에 닿습니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">왜 중요한가</h2>
-        <p>
-          에이전트는 저장소 전체를 머릿속에 담고 있지 않습니다. <strong>검색합니다</strong>. 개념 하나를 다섯 가지 방식으로 쓸 수 있다면 검색은 일부를 놓치고, 기존 정의를 찾지 못한 자신만만한 에이전트는 두 번째 정의를 만들어 냅니다. 개념마다 모양이 하나이면 검색이 완전해지므로, 에이전트는 중복을 만들지 않고 이미 있는 것을 편집합니다.
-        </p>
-
-        <h2 class="block-label">직접 보기</h2>
-        <p>Glyph는 변경을 두 가지 형태(<code>mut x = &hellip;</code>와 <code>mut x.method(&hellip;)</code>)로 제한하므로, 상태가 바뀌는 <em>모든</em> 곳이 검색 한 번으로 나옵니다.</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/ (코드베이스의 모든 변경)</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph는 변경을 두 가지 형태(<code>mut x = &hellip;</code>와 <code>mut x.method(&hellip;)</code>)로 제한하므로, 상태가 바뀌는 <em>모든</em> 곳이 검색 한 번으로 나옵니다. 변경 세 개, 전부가 검색 한 번에 나옵니다.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          에이전트는 저장소 전체를 머릿속에 담고 있지 않습니다. <strong>검색합니다</strong>. 개념마다 모양이 하나이면 검색이 완전해지므로, 에이전트는 중복을 만들지 않고 이미 있는 것을 편집합니다.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>개념 하나를 다섯 가지 방식으로 쓸 수 있다면 검색은 일부를 놓치고, 기존 정의를 찾지 못한 자신만만한 에이전트는 두 번째 정의를 만들어 냅니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">같은 질문에 TypeScript에서는 답이 없는 이유</span></summary><div class="body">
         <p>
-          변경 세 개, 전부가 검색 한 번에 나옵니다. TypeScript에서는 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. grep할 토큰이 하나로 정해져 있지 않으므로 &ldquo;이것을 바꾸는 곳이 있는가?&rdquo;에 믿을 만한 답이 없습니다. 같은 하나의 모양 규칙 덕분에 범주 전체를 감사할 수 있습니다.
+          TypeScript에서는 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. grep할 토큰이 하나로 정해져 있지 않으므로 &ldquo;이것을 바꾸는 곳이 있는가?&rdquo;에 믿을 만한 답이 없습니다.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">검색 한 번으로 범주 전체를<a class="ak-anchor" href="#audits" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          같은 하나의 모양 규칙 덕분에 범주 전체를 감사할 수 있습니다.
+      </p>
+      <div class="code term">
         <span class="cap">검색 한 번 = 완전한 답 하나</span>
 <pre><span class="cm"># every UI component</span>
 grep -rn <span class="add">"^component "</span> src/
@@ -46,27 +48,28 @@ grep -rn <span class="add">"^fn "</span> src/
 <span class="cm"># the entire resource-ownership surface</span>
 grep -rn <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           객체 리터럴 축약 문법도, 컴포넌트를 선언하는 두 번째 방법도, 구분해야 할 오버로드 문법도 없습니다. 작성 방법이 적다는 것은 실제 제약이고, 그것이 핵심입니다. 에이전트의 검색, 그리고 여러분의 검색을 믿을 수 있게 만드는 것이 바로 이것입니다.
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           검색을 믿을 수 있도록 Glyph가 넣지 않은 구문과, lint 규칙이 같은 보장이 아닌 이유는 <a href="/pillars/greppability/">검색 용이성 기둥 페이지</a>에 있습니다.
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label">현재 상태</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p>구문마다 하나인 정해진 형태, grep할 수 있는 두 가지 모양(<code>mut</code>)으로 제한된 변경, 그리고 키워드 하나로 하는 감사(<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">그 위에 더해진 것</h3>
-          <p>언어 서버가 워크스페이스 전체의 정의로 이동과 참조 찾기를 더합니다. 같은 보장을 이제 에디터에서 대화형으로 씁니다.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">구문마다 하나인 정해진 형태.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">grep할 수 있는 두 가지 모양(<code>mut</code>)으로 제한된 변경.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">키워드 하나로 하는 감사(<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 그 위에 더해진 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">언어 서버가 워크스페이스 전체의 정의로 이동과 참조 찾기를 더합니다. 같은 보장을 이제 에디터에서 대화형으로 씁니다.</span></span></li>
+          </ul>
+        </section>
       </div>

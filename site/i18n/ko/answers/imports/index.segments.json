@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/imports/index.html",
   "locale": "ko",
-  "source_hash": "5a2ca99ba7fdb55b",
+  "source_hash": "23b2b45b7b2aff03",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,124 @@
       "tr": "네. Glyph는 <strong>평범한 TypeScript</strong>로 컴파일되고 npm 위에서 동작합니다. <code>.glyph</code> 모듈은 어떤 패키지에서든 import하고, 그 자체도 기존 <code>.ts</code>에서 import할 수 있습니다. <strong>파일 하나씩</strong> 도입하면 됩니다."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "왜 중요한가"
-    },
-    {
-      "id": "h-a0424c1d",
-      "kind": "html",
-      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it. That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
-      "tr": "언어를 시험하려고 코드베이스를 다시 쓰는 사람은 없습니다. Glyph의 출력이 <em>곧</em> TypeScript이므로, <code>.glyph</code> 파일은 기존 TS/React/Node 프로젝트의 한구석에 들어가서 같은 패키지를 import하고, 주변의 <code>.ts</code>로 export합니다. 새 런타임을 만드는 대신 TypeScript를 대상으로 삼은 이유가 바로 이 점진적인 경로입니다."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
-    },
-    {
-      "id": "h-14807471",
-      "kind": "html",
-      "en": "You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect:",
-      "tr": "패키지는 이름으로 import하며(하이픈이 들어간 이름과 npm scope가 있는 이름 포함), Glyph는 예상한 그대로의 import를 생성합니다."
-    },
-    {
       "id": "h-9ddeefdb",
       "kind": "html",
       "en": "form.ts: emitted",
       "tr": "form.ts: 생성됨"
     },
     {
-      "id": "h-6805488a",
+      "id": "h-6cf5fdbe",
       "kind": "html",
-      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file. <code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error. Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked. Here is zod used inline, with nothing hand-written:",
-      "tr": "패키지가 설치되어 있고 자체 타입을 제공하면(또는 <code>@types/...</code>가 있으면) 할 일은 그것뿐입니다. 스텁도 어댑터 파일도 없습니다. <code>glyph build</code>는 프로젝트의 <code>node_modules</code>를 찾아 타입 검사기가 이를 보게 하므로, 패키지의 실제 타입이 코드를 검사하고 잘못된 호출은 실제 오류가 됩니다. 하위 경로 import(<code>pkg/sub</code>)도 패키지의 <code>exports</code> 맵을 통해 해석되므로 하위 경로 자체의 타입이 검사됩니다. 다음은 직접 작성한 것 없이 zod를 그대로 쓴 예입니다."
+      "en": "<span>You import packages by name (including hyphenated and npm-scoped ones) and Glyph emits the import you'd expect.</span>",
+      "tr": "<span>패키지는 이름으로 import하며(하이픈이 들어간 이름과 npm scope가 있는 이름 포함), Glyph는 예상한 그대로의 import를 생성합니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-dcec54ee",
+      "kind": "html",
+      "en": "<a href=\"#installed-packages\">Installed packages</a>",
+      "tr": "<a href=\"#installed-packages\">설치된 패키지</a>"
+    },
+    {
+      "id": "h-21998576",
+      "kind": "html",
+      "en": "<a href=\"#value-derived-types\">Value-derived types</a>",
+      "tr": "<a href=\"#value-derived-types\">값 기반 타입</a>"
+    },
+    {
+      "id": "h-95007da9",
+      "kind": "html",
+      "en": "<a href=\"#when-you-need-whole-hand-written-typescript\">Hand-written TypeScript</a>",
+      "tr": "<a href=\"#when-you-need-whole-hand-written-typescript\">직접 작성한 TypeScript</a>"
+    },
+    {
+      "id": "h-d94cab8b",
+      "kind": "html",
+      "en": "<a href=\"#watching-a-subprocess-with-nothing-installed\">Subprocesses</a>",
+      "tr": "<a href=\"#watching-a-subprocess-with-nothing-installed\">하위 프로세스</a>"
+    },
+    {
+      "id": "h-481c1f41",
+      "kind": "html",
+      "en": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">Editing a shim</a>",
+      "tr": "<a href=\"#edit-the-shim-and-the-next-run-is-the-shim-you-edited\">shim 편집하기</a>"
+    },
+    {
+      "id": "h-6f151525",
+      "kind": "html",
+      "en": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">Class-based clients</a>",
+      "tr": "<a href=\"#class-based-clients-the-database-and-messaging-ones\">클래스 기반 클라이언트</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-7a9c8785",
+      "kind": "html",
+      "en": "Nobody rewrites a codebase to try a language. Because Glyph's output <em>is</em> TypeScript, a <code>.glyph</code> file drops into the corner of an existing TS/React/Node project, imports the same packages, and exports back to the <code>.ts</code> around it.",
+      "tr": "언어를 시험하려고 코드베이스를 다시 쓰는 사람은 없습니다. Glyph의 출력이 <em>곧</em> TypeScript이므로, <code>.glyph</code> 파일은 기존 TS/React/Node 프로젝트의 한구석에 들어가서 같은 패키지를 import하고, 주변의 <code>.ts</code>로 export합니다."
+    },
+    {
+      "id": "h-8f945607",
+      "kind": "html",
+      "en": "That gradual path is the whole reason to target TypeScript instead of shipping a new runtime.",
+      "tr": "새 런타임을 만드는 대신 TypeScript를 대상으로 삼은 이유가 바로 이 점진적인 경로입니다."
+    },
+    {
+      "id": "h-17e331ce",
+      "kind": "html",
+      "en": "Installed packages bring their own types",
+      "tr": "설치된 패키지는 자체 타입을 가져옵니다"
+    },
+    {
+      "id": "h-f2f27da3",
+      "kind": "html",
+      "en": "If the package is installed and ships its own types (or has an <code>@types/...</code>), that is all you do. No stub, no adapter file.",
+      "tr": "패키지가 설치되어 있고 자체 타입을 제공하면(또는 <code>@types/...</code>가 있으면) 할 일은 그것뿐입니다. 스텁도 어댑터 파일도 없습니다."
+    },
+    {
+      "id": "h-5785d33d",
+      "kind": "html",
+      "en": "<code>glyph build</code> finds your project's <code>node_modules</code> and points the type-checker at it, so the package's real types check your code and a wrong call is a real error.",
+      "tr": "<code>glyph build</code>는 프로젝트의 <code>node_modules</code>를 찾아 타입 검사기가 이를 보게 하므로, 패키지의 실제 타입이 코드를 검사하고 잘못된 호출은 실제 오류가 됩니다."
+    },
+    {
+      "id": "h-d3a4379a",
+      "kind": "html",
+      "en": "Here is zod used inline, with nothing hand-written:",
+      "tr": "다음은 직접 작성한 것 없이 zod를 그대로 쓴 예입니다."
     },
     {
       "id": "h-dc9d8579",
@@ -101,16 +185,70 @@
       "tr": "zod가 정의하지 않은 호출"
     },
     {
-      "id": "h-21f4ad4e",
+      "id": "h-d053ec00",
       "kind": "html",
-      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too. A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses). And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
-      "tr": "<code>glyph run</code>은 같은 프로그램을 설치된 zod로 실행하므로 타입 검사만 하는 것이 아닙니다. 타입 검사기를 위해 패키지를 해석하는 설정 항목 하나가 런타임을 위해서도 패키지를 해석합니다. 타입을 <em>제공하지 않고</em> <code>@types/...</code>도 없는 패키지에는 여전히 직접 작성한 선언이 필요하며, 그것이 <code>.types/</code> 폴더의 용도입니다(TypeScript가 이미 쓰는 것과 같은 <code>.d.ts</code> 방식입니다). 그리고 타입 전용 import가 아니라 라이브러리의 모양을 일급이고 <em>검증되는</em> Glyph 타입으로 쓰고 싶다면, <code>glyph gen dts</code>가 <code>.d.ts</code>를 디스크립터를 가진 실제 타입으로 실체화합니다. <a href=\"/answers/typed-apis/\">API마다 검증기를 직접 작성해야 하나요?</a>를 보세요."
+      "en": "<code>glyph run</code> executes the same program against the installed zod, so it is not only a type-check: the one config entry that resolves the package for the type-checker resolves it for the runtime too.",
+      "tr": "<code>glyph run</code>은 같은 프로그램을 설치된 zod로 실행하므로 타입 검사만 하는 것이 아닙니다. 타입 검사기를 위해 패키지를 해석하는 설정 항목 하나가 런타임을 위해서도 패키지를 해석합니다."
     },
     {
-      "id": "h-b452280f",
+      "id": "h-6c15d6d3",
       "kind": "html",
-      "en": "Value-derived types are first-class. <code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too. For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow). So a library never forces a hand-written adapter file.",
-      "tr": "값 기반 타입은 일급입니다. <code>type User = z.infer&lt;typeof user_schema&gt;</code>가 바로 동작합니다. <code>typeof user_schema</code>는 실제 값 참조에 대한 타입 쿼리이고(오타는 해석되지 않는 이름 오류입니다), <code>z.infer&lt;...&gt;</code>는 평범한 멤버 제네릭 타입입니다. 그대로 생성되고 <code>tsc</code>가 이를 풀어내므로 <code>u.name</code>은 <code>string</code>이며, 검증은 zod가 원래 동작하는 방식대로 스키마 자체의 <code>parse</code>가 합니다. JSX prop spread(<code>&lt;input {...register()} /&gt;</code>)도 일급입니다. Glyph로 아직 표현할 수 없는 드문 TypeScript 관용구에는 범위가 한정되고 grep할 수 있는 탈출구 <code>extern_ts(\"...\")</code>가 있습니다. <code>tsc</code>가 이를 검사하지만, 정확히 말하면 런타임에 검증되는 경계가 아니라 신뢰 경계입니다(Glyph에게는 불투명하며, 값은 좁혀서 써야 하는 <code>unknown</code>으로 돌아옵니다). 따라서 어떤 라이브러리도 직접 작성한 어댑터 파일을 강요하지 않습니다."
+      "en": "A package that ships <em>no</em> types and has no <code>@types/...</code> still needs a declaration you write, which is what the <code>.types/</code> folder is for (the same <code>.d.ts</code> mechanism TypeScript already uses).",
+      "tr": "타입을 <em>제공하지 않고</em> <code>@types/...</code>도 없는 패키지에는 여전히 직접 작성한 선언이 필요하며, 그것이 <code>.types/</code> 폴더의 용도입니다(TypeScript가 이미 쓰는 것과 같은 <code>.d.ts</code> 방식입니다)."
+    },
+    {
+      "id": "h-faf2dbc6",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">subpath imports, and validated types from a <code>.d.ts</code></span>",
+      "tr": "자세히 <span class=\"hint\">하위 경로 import, 그리고 <code>.d.ts</code>에서 얻는 검증되는 타입</span>"
+    },
+    {
+      "id": "h-522447b0",
+      "kind": "html",
+      "en": "Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code> map too, so a subpath's own types are checked.",
+      "tr": "하위 경로 import(<code>pkg/sub</code>)도 패키지의 <code>exports</code> 맵을 통해 해석되므로 하위 경로 자체의 타입이 검사됩니다."
+    },
+    {
+      "id": "h-1007fe54",
+      "kind": "html",
+      "en": "And when you want a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real descriptor-bearing types: see <a href=\"/answers/typed-apis/\">do I have to hand-write a validator for every API?</a>",
+      "tr": "그리고 타입 전용 import가 아니라 라이브러리의 모양을 일급이고 <em>검증되는</em> Glyph 타입으로 쓰고 싶다면, <code>glyph gen dts</code>가 <code>.d.ts</code>를 디스크립터를 가진 실제 타입으로 실체화합니다. <a href=\"/answers/typed-apis/\">API마다 검증기를 직접 작성해야 하나요?</a>를 보세요."
+    },
+    {
+      "id": "h-2db57ff2",
+      "kind": "html",
+      "en": "Value-derived types, JSX spread, and the escape hatch",
+      "tr": "값 기반 타입, JSX spread, 그리고 탈출구"
+    },
+    {
+      "id": "h-1e132a69",
+      "kind": "html",
+      "en": "Value-derived types are first-class. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) is first-class too.",
+      "tr": "값 기반 타입은 일급입니다. JSX prop spread(<code>&lt;input {...register()} /&gt;</code>)도 일급입니다."
+    },
+    {
+      "id": "h-6f2bd6e2",
+      "kind": "html",
+      "en": "So a library never forces a hand-written adapter file.",
+      "tr": "따라서 어떤 라이브러리도 직접 작성한 어댑터 파일을 강요하지 않습니다."
+    },
+    {
+      "id": "h-a6d90976",
+      "kind": "html",
+      "en": "For the rare TypeScript idiom Glyph still can't spell, <code>extern_ts(\"...\")</code> is the scoped, greppable escape hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow).",
+      "tr": "Glyph로 아직 표현할 수 없는 드문 TypeScript 관용구에는 범위가 한정되고 grep할 수 있는 탈출구 <code>extern_ts(\"...\")</code>가 있습니다. <code>tsc</code>가 이를 검사하지만, 정확히 말하면 런타임에 검증되는 경계가 아니라 신뢰 경계입니다(Glyph에게는 불투명하며, 값은 좁혀서 써야 하는 <code>unknown</code>으로 돌아옵니다)."
+    },
+    {
+      "id": "h-c137232f",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how <code>z.infer&lt;typeof s&gt;</code> resolves</span>",
+      "tr": "자세히 <span class=\"hint\"><code>z.infer&lt;typeof s&gt;</code>가 해석되는 방식</span>"
+    },
+    {
+      "id": "h-12585308",
+      "kind": "html",
+      "en": "<code>type User = z.infer&lt;typeof user_schema&gt;</code> works directly: <code>typeof user_schema</code> is a type query over a real value reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so <code>u.name</code> is a <code>string</code>; validation comes from the schema's own <code>parse</code>, which is how zod already works.",
+      "tr": "<code>type User = z.infer&lt;typeof user_schema&gt;</code>가 바로 동작합니다. <code>typeof user_schema</code>는 실제 값 참조에 대한 타입 쿼리이고(오타는 해석되지 않는 이름 오류입니다), <code>z.infer&lt;...&gt;</code>는 평범한 멤버 제네릭 타입입니다. 그대로 생성되고 <code>tsc</code>가 이를 풀어내므로 <code>u.name</code>은 <code>string</code>이며, 검증은 zod가 원래 동작하는 방식대로 스키마 자체의 <code>parse</code>가 합니다."
     },
     {
       "id": "h-933fdf8a",
@@ -125,10 +263,28 @@
       "tr": "탈출구가 타입이나 표현식이 아니라 실제 런타임 코드여야 할 때도 있습니다. node 스트림 루프, <code>new Promise</code>, 워커 스레드 같은 것입니다. <code>.ts</code>를 <code>&lt;src&gt;/extern/</code> 아래에 두고 <code>import extern/&lt;name&gt;</code>으로 가져오세요."
     },
     {
-      "id": "h-be412622",
+      "id": "h-fa79d5b6",
       "kind": "html",
-      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it. Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language. It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
-      "tr": "빌드는 <code>&lt;src&gt;/extern/**</code>를 출력에 배치하고 상대 경로 지정자를 생성하므로, <code>tsc</code>가 extern을 Glyph 코드와 함께 타입 검사하고 다시 빌드해도 지워지지 않습니다. Glyph 소스에서 상대 경로 import는 여전히 허용되지 않으므로(검색 용이성 규칙), <code>extern/*</code>가 유일하게 예약된 경로이며, <code>grep -rn 'import extern/'</code>로 언어를 벗어난 모든 곳을 찾을 수 있습니다. 쉬운 방향, 즉 <code>.ts</code> 파일이 컴파일된 Glyph를 import하는 것의 반대이며, 그쪽은 아무것도 필요 없습니다. 흔한 extern(http 서버, <code>fs</code>)은 아무것도 설치하지 않아도 함께 제공되는 node shim으로 타입 검사됩니다."
+      "en": "Relative imports stay illegal in Glyph source (a greppability rule), so <code>extern/*</code> is the one reserved path, and <code>grep -rn 'import extern/'</code> finds every place you left the language.",
+      "tr": "Glyph 소스에서 상대 경로 import는 여전히 허용되지 않으므로(검색 용이성 규칙), <code>extern/*</code>가 유일하게 예약된 경로이며, <code>grep -rn 'import extern/'</code>로 언어를 벗어난 모든 곳을 찾을 수 있습니다."
+    },
+    {
+      "id": "h-1f1e7e4e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">staging, the other direction, and the node shim</span>",
+      "tr": "자세히 <span class=\"hint\">배치, 반대 방향, 그리고 node shim</span>"
+    },
+    {
+      "id": "h-5604c230",
+      "kind": "html",
+      "en": "The build stages <code>&lt;src&gt;/extern/**</code> into the output and emits a relative specifier, so <code>tsc</code> type-checks the extern together with your Glyph code and a rebuild never prunes it.",
+      "tr": "빌드는 <code>&lt;src&gt;/extern/**</code>를 출력에 배치하고 상대 경로 지정자를 생성하므로, <code>tsc</code>가 extern을 Glyph 코드와 함께 타입 검사하고 다시 빌드해도 지워지지 않습니다."
+    },
+    {
+      "id": "h-34852d03",
+      "kind": "html",
+      "en": "It is the inverse of the easy direction, a <code>.ts</code> file importing your compiled Glyph, which needs nothing at all. A common extern (an http server, <code>fs</code>) type-checks against the bundled node shim with nothing installed.",
+      "tr": "쉬운 방향, 즉 <code>.ts</code> 파일이 컴파일된 Glyph를 import하는 것의 반대이며, 그쪽은 아무것도 필요 없습니다. 흔한 extern(http 서버, <code>fs</code>)은 아무것도 설치하지 않아도 함께 제공되는 node shim으로 타입 검사됩니다."
     },
     {
       "id": "h-71b270de",
@@ -143,10 +299,16 @@
       "tr": "함께 제공되는 node 선언에는 블로킹 쪽만이 아니라 <code>child_process</code>의 비동기 쪽도 있으므로, 오래 걸리는 명령의 출력을 실행 중에 보고하는 도구는 extern이 아니라 Glyph로 작성됩니다."
     },
     {
-      "id": "h-1b963ba3",
+      "id": "h-dd6cd86b",
       "kind": "html",
-      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them. The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
-      "tr": "<code>io.println</code>이 아니라 <code>io.print</code>입니다. 청크는 줄이 아니라 스트림의 조각이고, 한 줄이 두 청크에 걸쳐 도착할 수 있습니다. 오버로드는 <code>@types/node</code>를 따르므로, 평범한 <code>spawn(command, args)</code>에서는 파이프가 null이 아닌 값으로 돌아오고 <code>stdio</code>를 넘기면 null일 수 있게 됩니다. <code>stdio: \"inherit\"</code> 뒤에 <code>child.stdout</code>을 읽으면 여기서도 <code>TS18047</code>이고 실제 타입 정의에서도 <code>TS18047</code>이므로, 같은 값에 대해 두 가지 다른 이야기가 나오지 않습니다."
+      "en": "<code>io.print</code> and not <code>io.println</code>: a chunk is a slice of the stream, not a line, and one line can arrive across two of them.",
+      "tr": "<code>io.println</code>이 아니라 <code>io.print</code>입니다. 청크는 줄이 아니라 스트림의 조각이고, 한 줄이 두 청크에 걸쳐 도착할 수 있습니다."
+    },
+    {
+      "id": "h-a7ca9a52",
+      "kind": "html",
+      "en": "The overloads follow <code>@types/node</code>, so the pipes come back non-null from a plain <code>spawn(command, args)</code> and nullable once you pass <code>stdio</code>. Reading <code>child.stdout</code> after <code>stdio: \"inherit\"</code> is <code>TS18047</code> here and <code>TS18047</code> with the real typings, rather than two different stories about the same value:",
+      "tr": "오버로드는 <code>@types/node</code>를 따르므로, 평범한 <code>spawn(command, args)</code>에서는 파이프가 null이 아닌 값으로 돌아오고 <code>stdio</code>를 넘기면 null일 수 있게 됩니다. <code>stdio: \"inherit\"</code> 뒤에 <code>child.stdout</code>을 읽으면 여기서도 <code>TS18047</code>이고 실제 타입 정의에서도 <code>TS18047</code>이므로, 같은 값에 대해 두 가지 다른 이야기가 나오지 않습니다."
     },
     {
       "id": "h-9dde8adf",
@@ -155,10 +317,28 @@
       "tr": "shim을 편집하면 다음 실행은 편집한 shim으로"
     },
     {
-      "id": "h-452ef7e8",
+      "id": "h-d10f8be9",
       "kind": "html",
-      "en": "A shim is a file you iterate on, so it has to count as a source. <code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents. Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
-      "tr": "shim은 반복해서 고치는 파일이므로 소스로 쳐야 합니다. <code>glyph run</code>은 소스의 지문을 기준으로 빌드를 캐시하는데, 그 지문은 <code>extern/</code> 아래의 모든 <code>.ts</code>와 <code>.tsx</code>를 내용뿐 아니라 경로로도 포함합니다. 하나를 편집하거나, 이름을 바꾸거나, 추가하거나, 지우면 다음 실행은 다시 빌드하고 <code>tsc</code>를 다시 실행합니다. 심볼릭 링크로 연결된 shim도 따라가므로, 소스 트리 밖에 둔 <code>.ts</code>는 실제 내용으로 해시됩니다."
+      "en": "A shim is a file you iterate on, so it has to count as a source.",
+      "tr": "shim은 반복해서 고치는 파일이므로 소스로 쳐야 합니다."
+    },
+    {
+      "id": "h-b99f20ec",
+      "kind": "html",
+      "en": "<code>glyph run</code> caches a build under a fingerprint of your sources, and that fingerprint covers every <code>.ts</code> and <code>.tsx</code> under <code>extern/</code>, by path as well as by contents.",
+      "tr": "<code>glyph run</code>은 소스의 지문을 기준으로 빌드를 캐시하는데, 그 지문은 <code>extern/</code> 아래의 모든 <code>.ts</code>와 <code>.tsx</code>를 내용뿐 아니라 경로로도 포함합니다."
+    },
+    {
+      "id": "h-9f85f72e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what triggers a rebuild</span>",
+      "tr": "자세히 <span class=\"hint\">다시 빌드하게 만드는 것</span>"
+    },
+    {
+      "id": "h-c636c43d",
+      "kind": "html",
+      "en": "Edit one, rename one, add one, delete one, and the next run rebuilds and re-runs <code>tsc</code>. A symlinked shim is followed, so a <code>.ts</code> kept outside the source tree is hashed by what it actually contains.",
+      "tr": "하나를 편집하거나, 이름을 바꾸거나, 추가하거나, 지우면 다음 실행은 다시 빌드하고 <code>tsc</code>를 다시 실행합니다. 심볼릭 링크로 연결된 shim도 따라가므로, 소스 트리 밖에 둔 <code>.ts</code>는 실제 내용으로 해시됩니다."
     },
     {
       "id": "h-f9bad1f5",
@@ -173,6 +353,12 @@
       "tr": "shim이 필드 이름을 바꾸면 빌드가 알려 줌"
     },
     {
+      "id": "h-4c3ff3eb",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.44, and the files that do not count</span>",
+      "tr": "이력 <span class=\"hint\">0.1.44 이전, 그리고 포함되지 않는 파일</span>"
+    },
+    {
       "id": "h-82a5c1d0",
       "kind": "html",
       "en": "Until 0.1.44 the fingerprint skipped <code>extern/</code> entirely, so that rename produced a clean, type-checked build running the previous copy of the shim. Files under <code>extern/</code> that are not <code>.ts</code> or <code>.tsx</code> still do not affect the cache, which is deliberate: a <code>README.md</code> next to your shim is copied into the output along with it, but nothing type-checks or runs it, so there is nothing to rebuild.",
@@ -185,10 +371,10 @@
       "tr": "클래스 기반 클라이언트: 데이터베이스와 메시징"
     },
     {
-      "id": "h-c7898520",
+      "id": "h-42055f0b",
       "kind": "html",
-      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this. It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name. It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
-      "tr": "대부분의 데이터베이스와 메시징 클라이언트는 클래스 기반입니다. <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>처럼 씁니다. Glyph에는 정확히 이를 위한 <code>new</code>가 있습니다. TypeScript <code>new</code>를 그대로 생성하고 <code>tsc</code>가 패키지의 실제 생성자에 대해 검사하므로, 잘못된 인자는 실제 오류이고 정의되지 않은 대상은 이름으로 잡힙니다. 상호 운용 전용입니다. Glyph에는 자체 <code>class</code>가 없고, <code>new</code>는 패키지, <code>.types</code> 선언, <code>extern_ts</code>에서 온 타입만 생성합니다."
+      "en": "Most database and messaging clients are class-based: you write <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Glyph has <code>new</code> for exactly this.",
+      "tr": "대부분의 데이터베이스와 메시징 클라이언트는 클래스 기반입니다. <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>처럼 씁니다. Glyph에는 정확히 이를 위한 <code>new</code>가 있습니다."
     },
     {
       "id": "h-89f59f10",
@@ -203,6 +389,18 @@
       "tr": "팩토리 클라이언트에는 <code>new</code>가 필요 없음"
     },
     {
+      "id": "h-e340cea4",
+      "kind": "html",
+      "en": "It emits a verbatim TypeScript <code>new</code> and <code>tsc</code> checks it against the package's real constructor, so a wrong argument is a real error and an undefined callee is caught by name.",
+      "tr": "TypeScript <code>new</code>를 그대로 생성하고 <code>tsc</code>가 패키지의 실제 생성자에 대해 검사하므로, 잘못된 인자는 실제 오류이고 정의되지 않은 대상은 이름으로 잡힙니다."
+    },
+    {
+      "id": "h-bdcee871",
+      "kind": "html",
+      "en": "It stays interop-only: Glyph has no <code>class</code> of its own, and <code>new</code> only constructs a type that comes from a package, a <code>.types</code> declaration, or <code>extern_ts</code>.",
+      "tr": "상호 운용 전용입니다. Glyph에는 자체 <code>class</code>가 없고, <code>new</code>는 패키지, <code>.types</code> 선언, <code>extern_ts</code>에서 온 타입만 생성합니다."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -215,10 +413,76 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-112846a9",
+      "id": "h-27cbdd05",
       "kind": "html",
-      "en": "Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly. Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one. A declaration only your code reaches is not covered by that check yet, and a few are still wider than node. <code>.types/</code> ambient declarations for anything else, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back. When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
-      "tr": "어떤 npm 패키지든 import합니다(하이픈이 들어간 이름과 scope가 있는 이름 포함). 자체 타입을 제공하는(또는 <code>@types/...</code>가 있는) 설치된 패키지는 스텁 없이 타입 검사되고 실행됩니다. 클래스 기반 클라이언트는 <code>new</code>로 생성하며 <code>tsc</code>가 실제 생성자에 대해 검사하고, 팩토리 클라이언트는 import해서 바로 호출합니다. Node 내장 모듈(<code>fs</code>, <code>path</code>, <code>http</code>, 스트리밍 <code>spawn</code>을 포함한 <code>child_process</code> 등)은 별도 설정 없이 타입 검사되고, <code>@types/node</code>를 설치하면 자동으로 로드되며, CI가 컴파일러 자체 런타임을 그 패키지의 <code>latest</code>에 대해 빌드하므로 stdlib가 의존하는 선언이 node의 실제 선언과 어긋날 수 없습니다. 여러분의 코드만 닿는 선언은 아직 이 검사에 포함되지 않으며, 몇 개는 여전히 node보다 넓습니다. 그 밖의 것에는 <code>.types/</code> 앰비언트 선언, <code>.d.ts</code>를 검증되는 Glyph 타입으로 실체화하는 <code>glyph gen dts</code>, 그리고 기존 TypeScript가 다시 import하는 깔끔한 <code>.ts</code> 출력이 있습니다. TypeScript를 통째로 직접 작성해야 할 때는 <code>import extern/&lt;name&gt;</code>이 <code>&lt;src&gt;/extern/</code> 아래의 <code>.ts</code>에 닿으며, 이는 코드와 함께 배치되고 타입 검사되며 <code>glyph run</code> 캐시가 추적하므로 편집하면 다시 빌드됩니다."
+      "en": "Import any npm package (hyphenated and scoped names included).",
+      "tr": "어떤 npm 패키지든 import합니다(하이픈이 들어간 이름과 scope가 있는 이름 포함)."
+    },
+    {
+      "id": "h-714073e7",
+      "kind": "html",
+      "en": "An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub.",
+      "tr": "자체 타입을 제공하는(또는 <code>@types/...</code>가 있는) 설치된 패키지는 스텁 없이 타입 검사되고 실행됩니다."
+    },
+    {
+      "id": "h-06eb4461",
+      "kind": "html",
+      "en": "Class-based clients construct with <code>new</code>, checked by <code>tsc</code> against the real constructor; factory clients import and call directly.",
+      "tr": "클래스 기반 클라이언트는 <code>new</code>로 생성하며 <code>tsc</code>가 실제 생성자에 대해 검사하고, 팩토리 클라이언트는 import해서 바로 호출합니다."
+    },
+    {
+      "id": "h-b96f67b7",
+      "kind": "html",
+      "en": "Node builtins type-check out of the box",
+      "tr": "Node 내장 모듈은 별도 설정 없이 타입 검사됩니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-e6bb6cae",
+      "kind": "html",
+      "en": "Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> including the streaming <code>spawn</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it, and CI builds the compiler's own runtime against that package at <code>latest</code>, so a declaration the stdlib depends on cannot drift from node's real one.",
+      "tr": "Node 내장 모듈(<code>fs</code>, <code>path</code>, <code>http</code>, 스트리밍 <code>spawn</code>을 포함한 <code>child_process</code> 등)은 별도 설정 없이 타입 검사되고, <code>@types/node</code>를 설치하면 자동으로 로드되며, CI가 컴파일러 자체 런타임을 그 패키지의 <code>latest</code>에 대해 빌드하므로 stdlib가 의존하는 선언이 node의 실제 선언과 어긋날 수 없습니다."
+    },
+    {
+      "id": "h-0b661b92",
+      "kind": "html",
+      "en": "A declaration only your code reaches is not covered by that check yet, and a few are still wider than node.",
+      "tr": "여러분의 코드만 닿는 선언은 아직 이 검사에 포함되지 않으며, 몇 개는 여전히 node보다 넓습니다."
+    },
+    {
+      "id": "h-9c2289ad",
+      "kind": "html",
+      "en": "<code>.types/</code> ambient declarations for anything else.",
+      "tr": "그 밖의 것에는 <code>.types/</code> 앰비언트 선언."
+    },
+    {
+      "id": "h-7a450622",
+      "kind": "html",
+      "en": "<code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types.",
+      "tr": "<code>.d.ts</code>를 검증되는 Glyph 타입으로 실체화하는 <code>glyph gen dts</code>."
+    },
+    {
+      "id": "h-d10db82c",
+      "kind": "html",
+      "en": "Clean <code>.ts</code> output your existing TypeScript imports back.",
+      "tr": "기존 TypeScript가 다시 import하는 깔끔한 <code>.ts</code> 출력."
+    },
+    {
+      "id": "h-4fcbcf88",
+      "kind": "html",
+      "en": "<code>import extern/&lt;name&gt;</code> reaches hand-written TypeScript under <code>&lt;src&gt;/extern/</code>",
+      "tr": "<code>import extern/&lt;name&gt;</code>이 <code>&lt;src&gt;/extern/</code> 아래의 직접 작성한 TypeScript에 닿습니다"
+    },
+    {
+      "id": "h-679e99f1",
+      "kind": "html",
+      "en": "When you need whole hand-written TypeScript, <code>import extern/&lt;name&gt;</code> reaches a <code>.ts</code> under <code>&lt;src&gt;/extern/</code>, staged and type-checked with your code, and tracked by the <code>glyph run</code> cache so editing it rebuilds.",
+      "tr": "TypeScript를 통째로 직접 작성해야 할 때는 <code>import extern/&lt;name&gt;</code>이 <code>&lt;src&gt;/extern/</code> 아래의 <code>.ts</code>에 닿으며, 이는 코드와 함께 배치되고 타입 검사되며 <code>glyph run</code> 캐시가 추적하므로 편집하면 다시 빌드됩니다."
     },
     {
       "id": "h-b63a305d",
@@ -227,10 +491,34 @@
       "tr": "앞으로 할 것"
     },
     {
-      "id": "h-8fc5ce45",
+      "id": "h-8062c0af",
       "kind": "html",
-      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them. On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
-      "tr": "실체화는 이제 실제 SDK가 제공하는 모양(네임스페이스, 파일 간 및 별칭/네임스페이스 재export, 하위 경로 <code>exports</code>, 일급 제네릭)을 처리하고, 값 기반 타입(<code>z.infer&lt;typeof s&gt;</code>)은 일급입니다. 남은 주요 빈틈은 실체화하지 않은 패키지의 출력이 <code>.d.ts</code>에 대해 타입 검사는 되지만 실체화하지 않으면 런타임에 검증되지 않는다는 점입니다. <code>extern/</code> 쪽에서는 두 명령의 소스 루트가 다릅니다. <code>glyph run app.glyph</code>는 파일 자체의 디렉터리를 루트로 삼고, <code>glyph build src/</code>는 지정한 디렉터리를 루트로 삼습니다. 그래서 하위 디렉터리의 프로그램은 shim을 서로 다른 두 곳에서 찾으며, 루트를 하나로 정하기 전까지 그런 구조의 프로젝트는 양쪽 모두에서 shim에 닿을 수 있어야 합니다. 닿지 않으면 요란하게 실패합니다."
+      "en": "Materialization handles the shapes real SDKs ship, and value-derived types are first-class",
+      "tr": "실체화는 실제 SDK가 제공하는 모양을 처리하고, 값 기반 타입은 일급입니다"
+    },
+    {
+      "id": "h-0b1af177",
+      "kind": "html",
+      "en": "Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class.",
+      "tr": "실체화는 이제 실제 SDK가 제공하는 모양(네임스페이스, 파일 간 및 별칭/네임스페이스 재export, 하위 경로 <code>exports</code>, 일급 제네릭)을 처리하고, 값 기반 타입(<code>z.infer&lt;typeof s&gt;</code>)은 일급입니다."
+    },
+    {
+      "id": "h-4deb95e3",
+      "kind": "html",
+      "en": "The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.",
+      "tr": "남은 주요 빈틈은 실체화하지 않은 패키지의 출력이 <code>.d.ts</code>에 대해 타입 검사는 되지만 실체화하지 않으면 런타임에 검증되지 않는다는 점입니다."
+    },
+    {
+      "id": "h-edd85884",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between <code>glyph run</code> and <code>glyph build</code>",
+      "tr": "<code>extern/</code> 쪽에서는 <code>glyph run</code>과 <code>glyph build</code>의 소스 루트가 다릅니다"
+    },
+    {
+      "id": "h-2b7829a4",
+      "kind": "html",
+      "en": "On the <code>extern/</code> side, the source root differs between the two commands: <code>glyph run app.glyph</code> roots at the file's own directory, <code>glyph build src/</code> roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.",
+      "tr": "<code>extern/</code> 쪽에서는 두 명령의 소스 루트가 다릅니다. <code>glyph run app.glyph</code>는 파일 자체의 디렉터리를 루트로 삼고, <code>glyph build src/</code>는 지정한 디렉터리를 루트로 삼습니다. 그래서 하위 디렉터리의 프로그램은 shim을 서로 다른 두 곳에서 찾으며, 루트를 하나로 정하기 전까지 그런 구조의 프로젝트는 양쪽 모두에서 shim에 닿을 수 있어야 합니다. 닿지 않으면 요란하게 실패합니다."
     }
   ]
 }

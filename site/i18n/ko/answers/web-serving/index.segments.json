@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/web-serving/index.html",
   "locale": "ko",
-  "source_hash": "3919e268d4a46ec8",
+  "source_hash": "8027a10034b53500",
   "segments": [
     {
       "id": "title",
@@ -59,24 +59,6 @@
       "tr": "웹 페이지도 됩니다. <code>std/http</code>는 응답 헤더를 설정할 수 있으므로 <code>text/html</code> 페이지, 302 리다이렉트, 캐시 헤더, HTML 폼 전송이 모두 평범한 Glyph 코드입니다. Express도, 직접 작성한 TypeScript shim도 필요 없습니다."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "왜 중요한가"
-    },
-    {
-      "id": "h-a57473e4",
-      "kind": "html",
-      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders. The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
-      "tr": "0.1.46까지 응답은 <code>{ status, body }</code>였고, 서버가 본문의 모양으로 content type을 골랐습니다. 문자열이면 <code>text/plain</code>, 그 밖에는 JSON이었습니다. API에는 괜찮지만 브라우저가 렌더링하는 것에는 쓸모가 없습니다. 빠져나갈 방법은 직접 작성한 <code>.ts</code> 파일에서 <code>node:http</code>로 서버를 만드는 것이었고, 그러면 요청 경로 전체가 타입 검사기 밖에 놓였습니다. 생성자 두 개가 없어서 애플리케이션 경계 하나를 통째로 잃고 있었습니다."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
-    },
-    {
       "id": "h-f74a4195",
       "kind": "html",
       "en": "This is the router of <code>examples/apps/shortlink/main.glyph</code>, a URL shortener that ships in the repo. An HTML form creates a code, a POST answers with a redirect so a browser reload never re-posts, and following a code is a 302 to the target:",
@@ -89,22 +71,136 @@
       "tr": "shortlink.glyph: HTML 페이지, 폼 전송, 그리고 302"
     },
     {
-      "id": "h-78792ee0",
+      "id": "h-7f462672",
       "kind": "html",
-      "en": "The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>. A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500. <code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
-      "tr": "같은 앱이 한 릴리스 전에는 615줄이었고, 그중 121줄이 옆에 둔 <code>.ts</code> 파일에 직접 작성한 <code>node:http</code> 서버였습니다. <code>Location</code>과 <code>text/html</code> 본문을 표현할 방법이 없었기 때문입니다. 지금은 494줄이고 <code>std</code> 밖에서 아무것도 import하지 않습니다. 핸들러는 <code>Result&lt;Response, string&gt;</code>를 반환하므로 404는 평범한 <code>Ok</code>이고, <code>Err</code>는 앱이 답할 수 없는 경우를 위한 것이며 서버가 이를 500으로 바꿉니다. <code>serve</code>는 수신 대기하는 동안 pending 상태로 남으므로 프로세스를 직접 살려 둘 필요가 없고, 바인딩에 실패하면 값으로 돌아옵니다."
+      "en": "<span>The same app was in the repo one release ago at 615 lines, 121 of which were a hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines now and imports nothing outside <code>std</code>.</span>",
+      "tr": "<span>같은 앱이 한 릴리스 전에는 615줄이었고, 그중 121줄이 옆에 둔 <code>.ts</code> 파일에 직접 작성한 <code>node:http</code> 서버였습니다. <code>Location</code>과 <code>text/html</code> 본문을 표현할 방법이 없었기 때문입니다. 지금은 494줄이고 <code>std</code> 밖에서 아무것도 import하지 않습니다.</span>"
     },
     {
-      "id": "h-3d3a95ed",
-      "kind": "html",
-      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten. <code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation. The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
-      "tr": "<code>Response</code>에는 필수 필드 <code>headers: Record&lt;string, string&gt;</code>가 있습니다. 선택이 아니라 필수입니다. 모든 생성자가 이를 채우므로 <code>resp.headers</code>를 읽을 때 없는지 확인할 필요가 없고, 이 채널을 잊을 수도 없습니다. Glyph에는 레코드 필드 변경이 없으므로 <code>with_header(resp, \"cache-control\", \"no-store\")</code>는 응답을 바꾸지 않고 새 응답을 반환합니다. 타입 검사기는 세 생성자가 모두 <code>Response</code>를 반환한다는 것을 알기 때문에, 선언된 반환 타입이 <code>Result&lt;Response, string&gt;</code>인 핸들러는 생성된 출력에 대한 <code>tsc</code>가 아니라 Glyph에서 검사됩니다."
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
     },
     {
-      "id": "h-45380bd8",
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "Two details you would otherwise get wrong by hand. Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down. And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
-      "tr": "직접 하면 틀리기 쉬운 두 가지가 있습니다. Node가 헤더에 쓰기를 거부하는 문자는 내보낼 때 값에서 제거되므로, 쿼리 매개변수로 만든 <code>location</code>이 두 번째 헤더나 두 번째 응답을 끼워 넣을 수 없고, 단축 URL의 이모지가 서버를 멈추게 할 수도 없습니다. 그리고 <code>form(req)</code>는 퍼센트 이스케이프와 함께 <code>+</code>를 공백으로 디코딩합니다. 직접 만든 폼 파싱이 보통 놓치는 조합입니다. 원본 본문을 읽으므로 직접 파싱하는 핸들러를 위해 <code>req.body</code>는 그대로 둡니다."
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-ff3f4a0f",
+      "kind": "html",
+      "en": "<a href=\"#a-handler-returns-a-result\">A handler returns a Result</a>",
+      "tr": "<a href=\"#a-handler-returns-a-result\">핸들러는 Result를 반환합니다</a>"
+    },
+    {
+      "id": "h-2b7bb5dd",
+      "kind": "html",
+      "en": "<a href=\"#every-response-carries-headers\">Every response carries headers</a>",
+      "tr": "<a href=\"#every-response-carries-headers\">모든 응답에는 헤더가 있습니다</a>"
+    },
+    {
+      "id": "h-4fc3a27a",
+      "kind": "html",
+      "en": "<a href=\"#two-details-you-would-otherwise-get-wrong-by-hand\">Two details</a>",
+      "tr": "<a href=\"#two-details-you-would-otherwise-get-wrong-by-hand\">두 가지 세부 사항</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-ef6ebb6b",
+      "kind": "html",
+      "en": "Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the content type from the body's shape: a string was <code>text/plain</code>, anything else was JSON. That is fine for an API and useless for anything a browser renders.",
+      "tr": "0.1.46까지 응답은 <code>{ status, body }</code>였고, 서버가 본문의 모양으로 content type을 골랐습니다. 문자열이면 <code>text/plain</code>, 그 밖에는 JSON이었습니다. API에는 괜찮지만 브라우저가 렌더링하는 것에는 쓸모가 없습니다."
+    },
+    {
+      "id": "h-7a8b8e66",
+      "kind": "html",
+      "en": "The way out was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your whole request path outside the type checker. Two missing constructors were costing an entire application boundary.",
+      "tr": "빠져나갈 방법은 직접 작성한 <code>.ts</code> 파일에서 <code>node:http</code>로 서버를 만드는 것이었고, 그러면 요청 경로 전체가 타입 검사기 밖에 놓였습니다. 생성자 두 개가 없어서 애플리케이션 경계 하나를 통째로 잃고 있었습니다."
+    },
+    {
+      "id": "h-e9baf9ce",
+      "kind": "html",
+      "en": "A handler returns a <code>Result</code>",
+      "tr": "핸들러는 <code>Result</code>를 반환합니다"
+    },
+    {
+      "id": "h-77081098",
+      "kind": "html",
+      "en": "A handler returns <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an <code>Err</code> is reserved for what the app cannot answer, which the server turns into a 500.",
+      "tr": "핸들러는 <code>Result&lt;Response, string&gt;</code>를 반환하므로 404는 평범한 <code>Ok</code>이고, <code>Err</code>는 앱이 답할 수 없는 경우를 위한 것이며 서버가 이를 500으로 바꿉니다."
+    },
+    {
+      "id": "h-3b5e7a0f",
+      "kind": "html",
+      "en": "<code>serve</code> stays pending while it listens, so nothing has to keep the process alive by hand and a failed bind comes back as a value.",
+      "tr": "<code>serve</code>는 수신 대기하는 동안 pending 상태로 남으므로 프로세스를 직접 살려 둘 필요가 없고, 바인딩에 실패하면 값으로 돌아옵니다."
+    },
+    {
+      "id": "h-b2d86512",
+      "kind": "html",
+      "en": "Every response carries headers",
+      "tr": "모든 응답에는 헤더가 있습니다"
+    },
+    {
+      "id": "h-63e976c0",
+      "kind": "html",
+      "en": "<code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>. Required, not optional: every constructor fills it in, so reading <code>resp.headers</code> never needs an absence check, and the channel cannot be forgotten.",
+      "tr": "<code>Response</code>에는 필수 필드 <code>headers: Record&lt;string, string&gt;</code>가 있습니다. 선택이 아니라 필수입니다. 모든 생성자가 이를 채우므로 <code>resp.headers</code>를 읽을 때 없는지 확인할 필요가 없고, 이 채널을 잊을 수도 없습니다."
+    },
+    {
+      "id": "h-c203e854",
+      "kind": "html",
+      "en": "<b>A new response, not a mutation</b><code>with_header(resp, \"cache-control\", \"no-store\")</code> returns a new response rather than mutating one, because Glyph has no record-field mutation.",
+      "tr": "<b>변경이 아니라 새 응답</b>Glyph에는 레코드 필드 변경이 없으므로 <code>with_header(resp, \"cache-control\", \"no-store\")</code>는 응답을 바꾸지 않고 새 응답을 반환합니다."
+    },
+    {
+      "id": "h-3d6a66c4",
+      "kind": "html",
+      "en": "<b>Checked in Glyph</b>The type checker knows all three constructors return a <code>Response</code>, so a handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is checked in Glyph, not by <code>tsc</code> on generated output.",
+      "tr": "<b>Glyph에서 검사됨</b>타입 검사기는 세 생성자가 모두 <code>Response</code>를 반환한다는 것을 알기 때문에, 선언된 반환 타입이 <code>Result&lt;Response, string&gt;</code>인 핸들러는 생성된 출력에 대한 <code>tsc</code>가 아니라 Glyph에서 검사됩니다."
+    },
+    {
+      "id": "h-0c451afb",
+      "kind": "html",
+      "en": "Two details you would otherwise get wrong by hand",
+      "tr": "직접 하면 틀리기 쉬운 두 가지"
+    },
+    {
+      "id": "h-986368a4",
+      "kind": "html",
+      "en": "<b>Header values</b>Any character Node refuses to write in a header is stripped from the value on the way out, so a <code>location</code> built from a query parameter cannot inject a second header or a second response, and an emoji in a shortened URL cannot take the server down.",
+      "tr": "<b>헤더 값</b>Node가 헤더에 쓰기를 거부하는 문자는 내보낼 때 값에서 제거되므로, 쿼리 매개변수로 만든 <code>location</code>이 두 번째 헤더나 두 번째 응답을 끼워 넣을 수 없고, 단축 URL의 이모지가 서버를 멈추게 할 수도 없습니다."
+    },
+    {
+      "id": "h-490a6cd4",
+      "kind": "html",
+      "en": "<b>Form bodies</b>And <code>form(req)</code> decodes <code>+</code> as a space along with percent escapes, the pair that hand-rolled form parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for handlers that parse it themselves.",
+      "tr": "<b>폼 본문</b>그리고 <code>form(req)</code>는 퍼센트 이스케이프와 함께 <code>+</code>를 공백으로 디코딩합니다. 직접 만든 폼 파싱이 보통 놓치는 조합입니다. 원본 본문을 읽으므로 직접 파싱하는 핸들러를 위해 <code>req.body</code>는 그대로 둡니다."
     },
     {
       "id": "h-b55f380c",
@@ -119,10 +215,28 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-cc38faef",
+      "id": "h-c0206481",
       "kind": "html",
-      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.",
-      "tr": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, <code>form</code>. 응답 헤더는 그대로 전송되고 content type은 직접 설정하지 않았을 때만 추론합니다. 들어오는 쪽에서는 요청 헤더, 쿼리 매개변수, 경로 세그먼트, 원본 본문을 다루고, 클라이언트는 받은 응답 헤더를 알려 줍니다."
+      "en": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>",
+      "tr": "<code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, <code>form</code>"
+    },
+    {
+      "id": "h-03d88d87",
+      "kind": "html",
+      "en": "Response headers on the wire with the content type inferred only when you did not set one",
+      "tr": "응답 헤더는 그대로 전송되고 content type은 직접 설정하지 않았을 때만 추론"
+    },
+    {
+      "id": "h-bb33f8db",
+      "kind": "html",
+      "en": "Request headers, query parameters, path segments, and the raw body on the way in",
+      "tr": "들어오는 쪽의 요청 헤더, 쿼리 매개변수, 경로 세그먼트, 원본 본문"
+    },
+    {
+      "id": "h-524136e0",
+      "kind": "html",
+      "en": "The client reports the response headers it received.",
+      "tr": "클라이언트는 받은 응답 헤더를 알려 줍니다."
     },
     {
       "id": "h-b63a305d",
@@ -131,10 +245,34 @@
       "tr": "앞으로 할 것"
     },
     {
-      "id": "h-faa08bc9",
+      "id": "h-8837a801",
       "kind": "html",
-      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.",
-      "tr": "위 코드에서 보이는 빈틈은 퍼센트 인코딩입니다. <code>form</code>은 폼 본문을 디코딩하지만 URL을 만들기 위한 <code>encode_component</code>는 없어서 단축기가 직접 구현합니다. 클라이언트 쪽에서도 타임아웃, 리다이렉트 정책, <code>head</code>, 리다이렉트가 도착한 최종 URL이 빠져 있습니다. 정적 파일 서버와 템플릿 엔진은 없으며, 둘 다 만들 계획도 없습니다."
+      "en": "Percent encoding is the gap the snippet above shows",
+      "tr": "위 코드에서 보이는 빈틈은 퍼센트 인코딩입니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-45568864",
+      "kind": "html",
+      "en": "Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own.",
+      "tr": "위 코드에서 보이는 빈틈은 퍼센트 인코딩입니다. <code>form</code>은 폼 본문을 디코딩하지만 URL을 만들기 위한 <code>encode_component</code>는 없어서 단축기가 직접 구현합니다."
+    },
+    {
+      "id": "h-84527f52",
+      "kind": "html",
+      "en": "Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on.",
+      "tr": "클라이언트 쪽에서도 타임아웃, 리다이렉트 정책, <code>head</code>, 리다이렉트가 도착한 최종 URL이 빠져 있습니다."
+    },
+    {
+      "id": "h-bb1590b8",
+      "kind": "html",
+      "en": "There is no static-file server and no template engine, and there is no plan for either.",
+      "tr": "정적 파일 서버와 템플릿 엔진은 없으며, 둘 다 만들 계획도 없습니다."
     }
   ]
 }

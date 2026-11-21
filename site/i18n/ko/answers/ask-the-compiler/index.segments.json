@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ask-the-compiler/index.html",
   "locale": "ko",
-  "source_hash": "49fea6335f3e735f",
+  "source_hash": "074134dc5808375e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "한 번의 호출로 됩니다. <code>glyph_symbol</code>은 진단이 이미 출력한 <code>module::name</code>이나 파일 안의 위치를 받아, 레코드의 필드와 그 타입, 유니언의 variant와 payload <em>그리고 각각을 생성하는 문법</em>, 호출 가능한 것의 매개변수와 반환, 인터페이스의 멤버, 그리고 그에 대한 <code>match</code>가 망라적이어야 하는지를 답합니다."
     },
     {
+      "id": "h-5a61b662",
+      "kind": "html",
+      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
+      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+    },
+    {
+      "id": "h-1b5b4b70",
+      "kind": "html",
+      "en": "<span>A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it.</span>",
+      "tr": "<span><code>orders.glyph</code>에 <code>OrderStatus</code>가 선언된 파일 세 개짜리 프로젝트입니다. 이를 import하지 않는 <code>main.glyph</code>에서 물어봅니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-3e1b2cdf",
+      "kind": "html",
+      "en": "<a href=\"#absent\">Every null says why</a>",
+      "tr": "<a href=\"#absent\">모든 null은 이유를 말합니다</a>"
+    },
+    {
+      "id": "h-a043de17",
+      "kind": "html",
+      "en": "<a href=\"#the-second-question-an-agent-asks\">Assignable</a>",
+      "tr": "<a href=\"#the-second-question-an-agent-asks\">대입 가능 여부</a>"
+    },
+    {
+      "id": "h-df1b183a",
+      "kind": "html",
+      "en": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">Dependencies and exports</a>",
+      "tr": "<a href=\"#the-other-direction-what-does-this-depend-on-and-what-does\">의존성과 export</a>"
+    },
+    {
+      "id": "h-788b5b99",
+      "kind": "html",
+      "en": "<a href=\"#eleven-tools-and-no-client-required\">Eleven tools</a>",
+      "tr": "<a href=\"#eleven-tools-and-no-client-required\">도구 열한 개</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-219d5bd7",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-9dd95e45",
       "kind": "html",
-      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first. Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic. The compiler had the payload the whole time. The tool dropped it one line before the reply.",
-      "tr": "자신이 선언하지 않은 유니언에서 새 case를 처리하라는 요청을 받은 에이전트는 variant가 무엇을 담는지 알아야 합니다. 선언을 읽으려면 먼저 파일을 찾아야 합니다. 예전에는 심볼 검색이 이름과 바이트 범위를 주고, variant 목록은 <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>를 주었습니다. 그것만 보고 에이전트는 올바른 모양이 아닌 <code>Paid(\"tx_1\")</code>을 쓰고 진단에서야 알게 됩니다. 컴파일러는 처음부터 payload를 갖고 있었습니다. 도구가 응답 바로 앞에서 그것을 버렸을 뿐입니다."
+      "en": "An agent asked to handle a new case in a union it didn't declare has to know what the variants carry. Reading the declaration means finding the file first.",
+      "tr": "자신이 선언하지 않은 유니언에서 새 case를 처리하라는 요청을 받은 에이전트는 variant가 무엇을 담는지 알아야 합니다. 선언을 읽으려면 먼저 파일을 찾아야 합니다."
+    },
+    {
+      "id": "h-b71b5e03",
+      "kind": "html",
+      "en": "The compiler had the payload the whole time. The tool dropped it one line before the reply.",
+      "tr": "컴파일러는 처음부터 payload를 갖고 있었습니다. 도구가 응답 바로 앞에서 그것을 버렸을 뿐입니다."
+    },
+    {
+      "id": "h-80dc131b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what symbol search used to return</span>",
+      "tr": "이력 <span class=\"hint\">예전에 심볼 검색이 반환하던 것</span>"
+    },
+    {
+      "id": "h-cd6cfed4",
+      "kind": "html",
+      "en": "Symbol search used to give it a name and a byte range, and a variant listing used to give it <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>. From that an agent writes <code>Paid(\"tx_1\")</code>, which is not the shape, and finds out from a diagnostic.",
+      "tr": "예전에는 심볼 검색이 이름과 바이트 범위를 주고, variant 목록은 <code>[\"Pending\", \"Paid\", \"Cancelled\"]</code>를 주었습니다. 그것만 보고 에이전트는 올바른 모양이 아닌 <code>Paid(\"tx_1\")</code>을 쓰고 진단에서야 알게 됩니다."
     },
     {
       "id": "h-792dfc1e",
@@ -77,28 +161,34 @@
       "tr": "에이전트용 인터페이스가 없애려고 만든 것이 바로 이 패턴입니다. 컴파일러가 이미 계산하고 메모이즈하지만 어떤 도구도 넘겨주지 않는 사실들입니다. 모듈 세 개짜리 프로젝트를 감사해 보니 hover는 위치 열네 곳 중 두 곳에만 답했고, 모든 유니언이 payload 없이 도착했습니다."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-9dfde380",
       "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
+      "en": "Every null says why",
+      "tr": "모든 null은 이유를 말합니다"
     },
     {
-      "id": "h-8933304a",
+      "id": "h-51cfd156",
       "kind": "html",
-      "en": "A three-file project with <code>OrderStatus</code> declared in <code>orders.glyph</code>. Asked from <code>main.glyph</code>, which doesn't import it:",
-      "tr": "<code>orders.glyph</code>에 <code>OrderStatus</code>가 선언된 파일 세 개짜리 프로젝트입니다. 이를 import하지 않는 <code>main.glyph</code>에서 물어봅니다."
+      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair.",
+      "tr": "줄인 것입니다. 답에는 <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code>, <code>examples</code>도 들어 있습니다. 모두 쌍으로 되어 있습니다."
     },
     {
-      "id": "h-5a61b662",
+      "id": "h-2bc1e4c0",
       "kind": "html",
-      "en": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus",
-      "tr": "glyph query symbol --path src/main.glyph --entity orders::OrderStatus"
+      "en": "A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look.",
+      "tr": "키가 null이면 반드시 그 이유를 말하는 <code>&lt;key&gt;_absent</code> 문장이 함께 있으므로, 에이전트는 빠진 답이 심볼에 그것이 없다는 뜻인지 도구가 보지 않았다는 뜻인지 추측할 필요가 없습니다."
     },
     {
-      "id": "h-02fdd57a",
+      "id": "h-9d019d94",
       "kind": "html",
-      "en": "Trimmed: the answer also carries <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> and <code>examples</code>. Every one of them is a pair. A key is null only alongside a <code>&lt;key&gt;_absent</code> sentence saying why, so an agent never has to guess whether a missing answer means the symbol has none or the tool didn't look. An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
-      "tr": "줄인 것입니다. 답에는 <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code>, <code>examples</code>도 들어 있습니다. 모두 쌍으로 되어 있습니다. 키가 null이면 반드시 그 이유를 말하는 <code>&lt;key&gt;_absent</code> 문장이 함께 있으므로, 에이전트는 빠진 답이 심볼에 그것이 없다는 뜻인지 도구가 보지 않았다는 뜻인지 추측할 필요가 없습니다. 타입 표기가 없는 <code>const</code>는 이 규칙에 따라 타입을 보고하지 않습니다. 검사기는 의도적으로 초기값에서 선언의 타입을 추론하지 않으므로, 초기값의 타입을 출력하면 호출자에게 그 이름의 사용이 아무것도 검사하지 않는 무언가에 대해 검사된다고 말하는 셈이 되기 때문입니다."
+      "en": "Details <span class=\"hint\">an unannotated const</span>",
+      "tr": "자세히 <span class=\"hint\">타입 표기가 없는 const</span>"
+    },
+    {
+      "id": "h-327f00e8",
+      "kind": "html",
+      "en": "An unannotated <code>const</code> reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.",
+      "tr": "타입 표기가 없는 <code>const</code>는 이 규칙에 따라 타입을 보고하지 않습니다. 검사기는 의도적으로 초기값에서 선언의 타입을 추론하지 않으므로, 초기값의 타입을 출력하면 호출자에게 그 이름의 사용이 아무것도 검사하지 않는 무언가에 대해 검사된다고 말하는 셈이 되기 때문입니다."
     },
     {
       "id": "h-cc83e6b0",
@@ -107,10 +197,10 @@
       "tr": "에이전트가 묻는 두 번째 질문"
     },
     {
-      "id": "h-2a8e6b09",
+      "id": "h-f8cc6140",
       "kind": "html",
-      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison. Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
-      "tr": "모양을 알고 나면 다음으로 알고 싶은 것은 들고 있는 값을 넣으려는 곳에 넣을 수 있는지입니다. <code>glyph_assignable</code>은 검사기 자체의 비교를 묻습니다. 양쪽은 각각 <code>module::name</code>이나 Glyph 타입 표기이고, 지정한 파일의 스코프에서 읽히며, 판정은 세 가지 중 무엇이 일어났는지 알려 줍니다."
+      "en": "Having the shape, the next thing it wants to know is whether the value it holds can go where it's about to put it. <code>glyph_assignable</code> asks the checker's own comparison.",
+      "tr": "모양을 알고 나면 다음으로 알고 싶은 것은 들고 있는 값을 넣으려는 곳에 넣을 수 있는지입니다. <code>glyph_assignable</code>은 검사기 자체의 비교를 묻습니다."
     },
     {
       "id": "h-e37be644",
@@ -125,6 +215,30 @@
       "tr": "--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'"
     },
     {
+      "id": "h-c17d3a79",
+      "kind": "html",
+      "en": "COMPATIBLE",
+      "tr": "COMPATIBLE"
+    },
+    {
+      "id": "h-72566458",
+      "kind": "html",
+      "en": "UNDETERMINED",
+      "tr": "UNDETERMINED"
+    },
+    {
+      "id": "h-880e6791",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the three verdicts, and why not SAFE</span>",
+      "tr": "자세히 <span class=\"hint\">세 가지 판정, 그리고 SAFE가 아닌 이유</span>"
+    },
+    {
+      "id": "h-afce8128",
+      "kind": "html",
+      "en": "Each side is a <code>module::name</code> or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.",
+      "tr": "양쪽은 각각 <code>module::name</code>이나 Glyph 타입 표기이고, 지정한 파일의 스코프에서 읽히며, 판정은 세 가지 중 무엇이 일어났는지 알려 줍니다."
+    },
+    {
       "id": "h-0215b8b5",
       "kind": "html",
       "en": "The word is <code>COMPATIBLE</code>, not <code>SAFE</code>, and the difference is worth a sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed whenever no rule covers the pairing: two function types come back that way, because the relation underneath compares the returns and says nothing about the parameters. Its silence there is not an acceptance, and the tool won't report it as one.",
@@ -137,10 +251,34 @@
       "tr": "반대 방향: 이것은 무엇에 의존하고, 저 모듈은 무엇을 주는가"
     },
     {
-      "id": "h-9ebb8917",
+      "id": "h-101d2e6c",
       "kind": "html",
-      "en": "<code>glyph_references</code> answers who uses a symbol. <code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits. <code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature. An agent about to write an import can ask what is on the other side instead of opening the file.",
-      "tr": "<code>glyph_references</code>는 누가 심볼을 쓰는지 답합니다. <code>glyph_dependencies</code>는 같은 테이블을 반대쪽에서 읽은 것입니다. 선언 하나가 무엇에 의존하는지, 즉 그 소스가 언급하는 모든 선언을 <code>CALLS</code>, <code>REFERENCES</code>, <code>FIELD_ACCESS</code>로 나누고, 각 간선에 양 끝과 위치를 담습니다. <code>glyph_exports</code>는 모듈이 import하는 쪽에 무엇을 보여 주는지를 스캔이 아니라 컴파일러 자체의 export 쿼리로 답합니다. 모든 <code>pub</code> 선언과 <code>pub</code> 유니언이 끌어올리는 모든 variant가 식별자, 종류, 시그니처를 가진 항목으로 나옵니다. import를 쓰려는 에이전트는 파일을 여는 대신 반대편에 무엇이 있는지 물어볼 수 있습니다."
+      "en": "An agent about to write an import can ask what is on the other side instead of opening the file.",
+      "tr": "import를 쓰려는 에이전트는 파일을 여는 대신 반대편에 무엇이 있는지 물어볼 수 있습니다."
+    },
+    {
+      "id": "h-7e43a45c",
+      "kind": "html",
+      "en": "<b>glyph_references</b><code>glyph_references</code> answers who uses a symbol.",
+      "tr": "<b>glyph_references</b><code>glyph_references</code>는 누가 심볼을 쓰는지 답합니다."
+    },
+    {
+      "id": "h-ea895ac1",
+      "kind": "html",
+      "en": "<b>glyph_dependencies</b><code>glyph_dependencies</code> is the same tables read from the other end: what one declaration depends on, every declaration its own source names, split into <code>CALLS</code>, <code>REFERENCES</code> and <code>FIELD_ACCESS</code>, each edge carrying both ends and where it sits.",
+      "tr": "<b>glyph_dependencies</b><code>glyph_dependencies</code>는 같은 테이블을 반대쪽에서 읽은 것입니다. 선언 하나가 무엇에 의존하는지, 즉 그 소스가 언급하는 모든 선언을 <code>CALLS</code>, <code>REFERENCES</code>, <code>FIELD_ACCESS</code>로 나누고, 각 간선에 양 끝과 위치를 담습니다."
+    },
+    {
+      "id": "h-1649710e",
+      "kind": "html",
+      "en": "<b>glyph_exports</b><code>glyph_exports</code> answers what a module makes visible to an importer, from the compiler's own export query rather than from a scan: every <code>pub</code> declaration and every variant a <code>pub</code> union hoists, each as an entry with its identity, kind and signature.",
+      "tr": "<b>glyph_exports</b><code>glyph_exports</code>는 모듈이 import하는 쪽에 무엇을 보여 주는지를 스캔이 아니라 컴파일러 자체의 export 쿼리로 답합니다. 모든 <code>pub</code> 선언과 <code>pub</code> 유니언이 끌어올리는 모든 variant가 식별자, 종류, 시그니처를 가진 항목으로 나옵니다."
+    },
+    {
+      "id": "h-fccb5493",
+      "kind": "html",
+      "en": "History <span class=\"hint\">the PROVED bug the mirror caught</span>",
+      "tr": "이력 <span class=\"hint\">반대 방향 구현이 잡아낸 PROVED 버그</span>"
     },
     {
       "id": "h-09a3c3e6",
@@ -155,10 +293,28 @@
       "tr": "도구 열한 개, 클라이언트는 필요 없음"
     },
     {
-      "id": "h-20c89689",
+      "id": "h-0479f586",
       "kind": "html",
-      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>. Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions. <code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
-      "tr": "<code>glyph mcp</code>는 열한 개를 제공합니다: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>. 각각에는 같은 인자를 플래그로 받고 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있고, 클라이언트가 닿는 것과 같은 진입점을 거치므로, 셸 명령만 실행하는 에이전트도 같은 질문을 할 수 있습니다. <code>glyph_diagnostics</code>는 파일을 프로젝트 안에서 검사하고 <code>glyph check --json</code>이 출력하는 진단을 같은 Rust 타입으로 반환하며, 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교합니다. 자세한 내용은 <a href=\"/mcp/\">MCP 페이지</a>에 있습니다."
+      "en": "<code>glyph mcp</code> serves eleven: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> and <code>glyph_exports</code>.",
+      "tr": "<code>glyph mcp</code>는 열한 개를 제공합니다: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>."
+    },
+    {
+      "id": "h-9abd68c7",
+      "kind": "html",
+      "en": "Each has a <code>glyph query</code> verb taking the same arguments as flags and printing the same JSON, routed through the same entry point a client reaches, so an agent that only runs shell commands asks the same questions.",
+      "tr": "각각에는 같은 인자를 플래그로 받고 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있고, 클라이언트가 닿는 것과 같은 진입점을 거치므로, 셸 명령만 실행하는 에이전트도 같은 질문을 할 수 있습니다."
+    },
+    {
+      "id": "h-9bf2bb9c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">diagnostics, and what comes after an edit</span>",
+      "tr": "자세히 <span class=\"hint\">진단, 그리고 편집 뒤에 오는 것</span>"
+    },
+    {
+      "id": "h-5a225513",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> checks a file inside its project and returns the diagnostic <code>glyph check --json</code> prints, from the same Rust type, with a test that runs both surfaces on six projects and compares the JSON key for key. Full details on the <a href=\"/mcp/\">MCP page</a>.",
+      "tr": "<code>glyph_diagnostics</code>는 파일을 프로젝트 안에서 검사하고 <code>glyph check --json</code>이 출력하는 진단을 같은 Rust 타입으로 반환하며, 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교합니다. 자세한 내용은 <a href=\"/mcp/\">MCP 페이지</a>에 있습니다."
     },
     {
       "id": "h-8c970d25",
@@ -179,10 +335,70 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-ee58dc62",
+      "id": "h-a4983ea8",
       "kind": "html",
-      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb. <code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why. The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing. Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type. <code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for. <code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything. <code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
-      "tr": "MCP로 제공되는 읽기 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다. <code>glyph_symbol</code>은 식별자나 위치로 답하고, 갖고 있지 않은 사실은 모두 null이며 그 옆에 이유를 말하는 문장이 있습니다. 식별은 stdlib까지 닿습니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 <code>glyph query symbol --entity std/result::Result</code>는 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>glyph query exports --module std/result</code>는 그 공개 표면을 나열하며, 이에 대한 <code>E0200</code>은 <code>cause</code>에 그 식별자를 담습니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다. hover는 모듈 세 개짜리 프로젝트에서 감사가 확인한 위치 열네 곳 모두에 답하며, 이 작업을 시작하기 전에는 두 곳이었습니다. 다른 모듈에서 선언된 이름은 그 모듈 자체의 선언에서 답하므로, import 바인딩, 호출 위치의 import한 함수, 값으로 쓴 import한 variant, import한 레코드에서 읽은 필드 모두 타입을 가집니다. <code>glyph_dependencies</code>와 <code>glyph_exports</code>로 G221이 요청한 세트가 완성되었습니다. <code>glyph_variants</code>는 각 payload와 그 생성 문법을 담고, <code>glyph_definition</code>과 <code>glyph_symbols</code>는 <code>module::name</code>을 담으므로, 답을 아무것도 다시 계산하지 않고 <code>glyph_impact</code>로 이어 갈 수 있습니다. <code>glyph_impact</code>의 시그니처 타입 테이블은 컨테이너 대 컨테이너, 구조적 레코드 대 구조적이거나 선언된 레코드(로컬, import, 제네릭, 또는 다른 이름), 변환된 호출로서의 JSX 요소, 그리고 어느 쪽이든 문자열 리터럴 유니언을 <code>glyph_assignable</code>과 같은 비교로 판정하므로, 두 도구가 하나의 짝에 대해 서로 다른 답을 낼 수 없습니다. 관계가 짝을 완전히 읽는 인자는 비교 결과가 어떻든 <code>WILL_FAIL</code>입니다. <code>change_signature_type</code>은 대체 타입을 지정하지 않고, 허용된 짝은 대체 타입이 거부될 수 있는 짝이기 때문입니다. 관계가 판정을 거절하는 짝만 <code>UNDETERMINED</code>입니다."
+      "en": "Eleven read tools over MCP, each with a <code>glyph query</code> verb.",
+      "tr": "MCP로 제공되는 읽기 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다."
+    },
+    {
+      "id": "h-eaf09bfb",
+      "kind": "html",
+      "en": "<code>glyph_symbol</code> answers by identity or by position, and every fact it doesn't hold is null beside the sentence saying why.",
+      "tr": "<code>glyph_symbol</code>은 식별자나 위치로 답하고, 갖고 있지 않은 사실은 모두 null이며 그 옆에 이유를 말하는 문장이 있습니다."
+    },
+    {
+      "id": "h-26d3cf6c",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: <code>std/result::Result</code>",
+      "tr": "식별은 stdlib까지 닿습니다: <code>std/result::Result</code>"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-c6a79276",
+      "kind": "html",
+      "en": "The identity reaches the stdlib: the prelude <code>Result</code> is <code>std/result::Result</code>, which is the module the resolver registers it under and the module the emitter writes the import from, so <code>glyph query symbol --entity std/result::Result</code> answers with <code>Ok(T)</code> and <code>Err(E)</code>, <code>glyph query exports --module std/result</code> lists the surface, and an <code>E0200</code> over it carries that identity in <code>cause</code>. There is no Glyph source behind it, so <code>path</code> and <code>range</code> are null with that reason rather than missing.",
+      "tr": "식별은 stdlib까지 닿습니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 <code>glyph query symbol --entity std/result::Result</code>는 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>glyph query exports --module std/result</code>는 그 공개 표면을 나열하며, 이에 대한 <code>E0200</code>은 <code>cause</code>에 그 식별자를 담습니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다."
+    },
+    {
+      "id": "h-a239fdbd",
+      "kind": "html",
+      "en": "Hover answers fourteen of fourteen probed positions",
+      "tr": "hover는 확인한 위치 열네 곳 중 열네 곳 모두에 답합니다"
+    },
+    {
+      "id": "h-12f1a0b3",
+      "kind": "html",
+      "en": "Hover answers all fourteen of the positions an audit probed on a three-module project, against two before this work started: a name declared in another module answers from that module's own declaration, so the import binding, an imported function at a call, an imported variant used as a value and a field read off an imported record all have a type.",
+      "tr": "hover는 모듈 세 개짜리 프로젝트에서 감사가 확인한 위치 열네 곳 모두에 답하며, 이 작업을 시작하기 전에는 두 곳이었습니다. 다른 모듈에서 선언된 이름은 그 모듈 자체의 선언에서 답하므로, import 바인딩, 호출 위치의 import한 함수, 값으로 쓴 import한 variant, import한 레코드에서 읽은 필드 모두 타입을 가집니다."
+    },
+    {
+      "id": "h-21213f2b",
+      "kind": "html",
+      "en": "<code>glyph_dependencies</code> and <code>glyph_exports</code> close the set G221 asked for.",
+      "tr": "<code>glyph_dependencies</code>와 <code>glyph_exports</code>로 G221이 요청한 세트가 완성되었습니다."
+    },
+    {
+      "id": "h-b365fc61",
+      "kind": "html",
+      "en": "<code>glyph_variants</code> carries each payload and its construction syntax; <code>glyph_definition</code> and <code>glyph_symbols</code> carry the <code>module::name</code>, so an answer chains into <code>glyph_impact</code> without re-deriving anything.",
+      "tr": "<code>glyph_variants</code>는 각 payload와 그 생성 문법을 담고, <code>glyph_definition</code>과 <code>glyph_symbols</code>는 <code>module::name</code>을 담으므로, 답을 아무것도 다시 계산하지 않고 <code>glyph_impact</code>로 이어 갈 수 있습니다."
+    },
+    {
+      "id": "h-02aeeb71",
+      "kind": "html",
+      "en": "<code>glyph_impact</code> and <code>glyph_assignable</code> make the same comparison",
+      "tr": "<code>glyph_impact</code>와 <code>glyph_assignable</code>은 같은 비교를 합니다"
+    },
+    {
+      "id": "h-55755ba6",
+      "kind": "html",
+      "en": "<code>glyph_impact</code>'s signature-type table decides a container against a container, a structural record against a structural or declared record (local, imported, generic or a second name), a JSX element as the call it lowers to, and a string-literal union on either side with the same comparison <code>glyph_assignable</code> makes, so the two tools cannot disagree about one pairing. An argument whose pairing the relation reads in full is <code>WILL_FAIL</code> whichever way the comparison came out, because <code>change_signature_type</code> names no replacement type and an accepted pairing is one a replacement can be refused at; only a pairing the relation declines is <code>UNDETERMINED</code>.",
+      "tr": "<code>glyph_impact</code>의 시그니처 타입 테이블은 컨테이너 대 컨테이너, 구조적 레코드 대 구조적이거나 선언된 레코드(로컬, import, 제네릭, 또는 다른 이름), 변환된 호출로서의 JSX 요소, 그리고 어느 쪽이든 문자열 리터럴 유니언을 <code>glyph_assignable</code>과 같은 비교로 판정하므로, 두 도구가 하나의 짝에 대해 서로 다른 답을 낼 수 없습니다. 관계가 짝을 완전히 읽는 인자는 비교 결과가 어떻든 <code>WILL_FAIL</code>입니다. <code>change_signature_type</code>은 대체 타입을 지정하지 않고, 허용된 짝은 대체 타입이 거부될 수 있는 짝이기 때문입니다. 관계가 판정을 거절하는 짝만 <code>UNDETERMINED</code>입니다."
     },
     {
       "id": "h-c647197d",
@@ -191,10 +407,46 @@
       "tr": "한계"
     },
     {
-      "id": "h-10bbc9ca",
+      "id": "h-a76df265",
       "kind": "html",
-      "en": "No tool here writes: no rename, no applied edit. The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field. A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads. <code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
-      "tr": "여기 있는 어떤 도구도 쓰지 않습니다. 이름 바꾸기도, 편집 적용도 없습니다. 쓰기 쪽은 명령줄의 <code>glyph fix</code>이며, 요청하는 무엇이든이 아니라 세 가지만 고칩니다. 사용하지 않는 import, 검사기가 정확히 하나의 제안을 가진 arm 머리, 그리고 선언된 필드 중 정확히 하나와 한 글자 차이인 필드 이름입니다. 컴파일러가 선언도 시그니처도 모델링하지 않는 stdlib export는 이유와 함께 <code>kind: null</code>로 답합니다. <code>std/result::all</code>과 <code>std/io::println</code>은 컴파일러가 배치하고 어떤 Glyph 단계도 읽지 않는 TypeScript에서 타입이 지정됩니다. <code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뜁니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code> 검사, 그리고 생성된 프로젝트를 실행해야 하는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 이를 실행한 것처럼 답하지 않고 <code>not_run</code>에 세 가지를 모두 적습니다."
+      "en": "No tool here writes: no rename, no applied edit.",
+      "tr": "여기 있는 어떤 도구도 쓰지 않습니다. 이름 바꾸기도, 편집 적용도 없습니다."
+    },
+    {
+      "id": "h-59d7723c",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code>, and it repairs three things",
+      "tr": "쓰기 쪽은 <code>glyph fix</code>이며, 세 가지를 고칩니다"
+    },
+    {
+      "id": "h-33bb06a4",
+      "kind": "html",
+      "en": "The write side is <code>glyph fix</code> on the command line, and it repairs three things rather than anything you ask for: unused imports, an arm head the checker has exactly one suggestion for, and a field name one character from exactly one declared field.",
+      "tr": "쓰기 쪽은 명령줄의 <code>glyph fix</code>이며, 요청하는 무엇이든이 아니라 세 가지만 고칩니다. 사용하지 않는 import, 검사기가 정확히 하나의 제안을 가진 arm 머리, 그리고 선언된 필드 중 정확히 하나와 한 글자 차이인 필드 이름입니다."
+    },
+    {
+      "id": "h-54ebfe52",
+      "kind": "html",
+      "en": "Some stdlib exports answer <code>kind: null</code>",
+      "tr": "일부 stdlib export는 <code>kind: null</code>로 답합니다"
+    },
+    {
+      "id": "h-6945e06c",
+      "kind": "html",
+      "en": "A stdlib export the compiler models neither a declaration nor a signature for answers <code>kind: null</code> with the reason: <code>std/result::all</code> and <code>std/io::println</code> are typed in TypeScript the compiler stages and no Glyph pass reads.",
+      "tr": "컴파일러가 선언도 시그니처도 모델링하지 않는 stdlib export는 이유와 함께 <code>kind: null</code>로 답합니다. <code>std/result::all</code>과 <code>std/io::println</code>은 컴파일러가 배치하고 어떤 Glyph 단계도 읽지 않는 TypeScript에서 타입이 지정됩니다."
+    },
+    {
+      "id": "h-58622937",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes, and names them in <code>not_run</code>",
+      "tr": "<code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뛰고, <code>not_run</code>에 그것을 적습니다"
+    },
+    {
+      "id": "h-66a285a5",
+      "kind": "html",
+      "en": "<code>glyph_diagnostics</code> skips three checks <code>glyph check</code> makes: <code>tsc</code>, the <code>E0104</code> check for an import naming no module, which needs the build's view of <code>node_modules</code>, and <code>E0400</code> for a failing <code>@example</code>, which needs the emitted project run. It names all three in <code>not_run</code> instead of answering as though it had.",
+      "tr": "<code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뜁니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code> 검사, 그리고 생성된 프로젝트를 실행해야 하는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 이를 실행한 것처럼 답하지 않고 <code>not_run</code>에 세 가지를 모두 적습니다."
     }
   ]
 }

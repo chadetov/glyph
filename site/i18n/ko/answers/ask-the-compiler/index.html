@@ -1,7 +1,7 @@
 ---
 title: 에이전트가 먼저 컴파일러에게 심볼에 대해 물어볼 수 있나요? · Glyph
 description: glyph_symbol은 한 번의 호출로 답합니다. 유니언의 variant, 레코드의 필드, 함수의 시그니처, 그리고 그에 대한 match가 망라적이어야 하는지.
-source_hash: 49fea6335f3e735f
+source_hash: 074134dc5808375e
 prev: /answers/impact/ | &larr; 이전 | 변경하기 전에 그 변경이 무엇을 깨뜨릴지 컴파일러가 알려 줄 수 있나요?
 next: /answers/repair-protocol/ | 다음 &rarr; | 빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?
 ---
@@ -12,22 +12,8 @@ next: /answers/repair-protocol/ | 다음 &rarr; | 빌드가 실패하면 컴파�
         한 번의 호출로 됩니다. <code>glyph_symbol</code>은 진단이 이미 출력한 <code>module::name</code>이나 파일 안의 위치를 받아, 레코드의 필드와 그 타입, 유니언의 variant와 payload <em>그리고 각각을 생성하는 문법</em>, 호출 가능한 것의 매개변수와 반환, 인터페이스의 멤버, 그리고 그에 대한 <code>match</code>가 망라적이어야 하는지를 답합니다.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">왜 중요한가</h2>
-        <p>
-          자신이 선언하지 않은 유니언에서 새 case를 처리하라는 요청을 받은 에이전트는 variant가 무엇을 담는지 알아야 합니다. 선언을 읽으려면 먼저 파일을 찾아야 합니다. 예전에는 심볼 검색이 이름과 바이트 범위를 주고, variant 목록은 <code>["Pending", "Paid", "Cancelled"]</code>를 주었습니다. 그것만 보고 에이전트는 올바른 모양이 아닌 <code>Paid("tx_1")</code>을 쓰고 진단에서야 알게 됩니다. 컴파일러는 처음부터 payload를 갖고 있었습니다. 도구가 응답 바로 앞에서 그것을 버렸을 뿐입니다.
-        </p>
-        <p>
-          에이전트용 인터페이스가 없애려고 만든 것이 바로 이 패턴입니다. 컴파일러가 이미 계산하고 메모이즈하지만 어떤 도구도 넘겨주지 않는 사실들입니다. 모듈 세 개짜리 프로젝트를 감사해 보니 hover는 위치 열네 곳 중 두 곳에만 답했고, 모든 유니언이 payload 없이 도착했습니다.
-        </p>
-
-        <h2 class="block-label">직접 보기</h2>
-        <p>
-          <code>orders.glyph</code>에 <code>OrderStatus</code>가 선언된 파일 세 개짜리 프로젝트입니다. 이를 import하지 않는 <code>main.glyph</code>에서 물어봅니다.
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   "entity": "orders::OrderStatus",
@@ -53,20 +39,52 @@ next: /answers/repair-protocol/ | 다음 &rarr; | 빌드가 실패하면 컴파�
     module this project holds, and the compiler parsed and resolved that declaration"
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span><code>orders.glyph</code>에 <code>OrderStatus</code>가 선언된 파일 세 개짜리 프로젝트입니다. 이를 import하지 않는 <code>main.glyph</code>에서 물어봅니다.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="이 페이지의 내용">
+        <p>이 페이지의 내용</p>
+        <ol>
+          <li><a href="#why-it-matters">왜 중요한가</a></li>
+          <li><a href="#absent">모든 null은 이유를 말합니다</a></li>
+          <li><a href="#the-second-question-an-agent-asks">대입 가능 여부</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">의존성과 export</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">도구 열한 개</a></li>
+          <li><a href="#where-it-stands">현재 상태</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">왜 중요한가<a class="ak-anchor" href="#why-it-matters" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        자신이 선언하지 않은 유니언에서 새 case를 처리하라는 요청을 받은 에이전트는 variant가 무엇을 담는지 알아야 합니다. 선언을 읽으려면 먼저 파일을 찾아야 합니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>컴파일러는 처음부터 payload를 갖고 있었습니다. 도구가 응답 바로 앞에서 그것을 버렸을 뿐입니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">예전에 심볼 검색이 반환하던 것</span></summary><div class="body">
         <p>
-          줄인 것입니다. 답에는 <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code>, <code>examples</code>도 들어 있습니다. 모두 쌍으로 되어 있습니다. 키가 null이면 반드시 그 이유를 말하는 <code>&lt;key&gt;_absent</code> 문장이 함께 있으므로, 에이전트는 빠진 답이 심볼에 그것이 없다는 뜻인지 도구가 보지 않았다는 뜻인지 추측할 필요가 없습니다. 타입 표기가 없는 <code>const</code>는 이 규칙에 따라 타입을 보고하지 않습니다. 검사기는 의도적으로 초기값에서 선언의 타입을 추론하지 않으므로, 초기값의 타입을 출력하면 호출자에게 그 이름의 사용이 아무것도 검사하지 않는 무언가에 대해 검사된다고 말하는 셈이 되기 때문입니다.
+          예전에는 심볼 검색이 이름과 바이트 범위를 주고, variant 목록은 <code>["Pending", "Paid", "Cancelled"]</code>를 주었습니다. 그것만 보고 에이전트는 올바른 모양이 아닌 <code>Paid("tx_1")</code>을 쓰고 진단에서야 알게 됩니다.
         </p>
-
-        <h2 class="block-label">에이전트가 묻는 두 번째 질문</h2>
         <p>
-          모양을 알고 나면 다음으로 알고 싶은 것은 들고 있는 값을 넣으려는 곳에 넣을 수 있는지입니다. <code>glyph_assignable</code>은 검사기 자체의 비교를 묻습니다. 양쪽은 각각 <code>module::name</code>이나 Glyph 타입 표기이고, 지정한 파일의 스코프에서 읽히며, 판정은 세 가지 중 무엇이 일어났는지 알려 줍니다.
+          에이전트용 인터페이스가 없애려고 만든 것이 바로 이 패턴입니다. 컴파일러가 이미 계산하고 메모이즈하지만 어떤 도구도 넘겨주지 않는 사실들입니다. 모듈 세 개짜리 프로젝트를 감사해 보니 hover는 위치 열네 곳 중 두 곳에만 답했고, 모든 유니언이 payload 없이 도착했습니다.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="absent">모든 null은 이유를 말합니다<a class="ak-anchor" href="#absent" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        줄인 것입니다. 답에는 <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code>, <code>examples</code>도 들어 있습니다. 모두 쌍으로 되어 있습니다.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>키가 null이면 반드시 그 이유를 말하는 <code>&lt;key&gt;_absent</code> 문장이 함께 있으므로, 에이전트는 빠진 답이 심볼에 그것이 없다는 뜻인지 도구가 보지 않았다는 뜻인지 추측할 필요가 없습니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">타입 표기가 없는 const</span></summary><div class="body">
+        <p>
+          타입 표기가 없는 <code>const</code>는 이 규칙에 따라 타입을 보고하지 않습니다. 검사기는 의도적으로 초기값에서 선언의 타입을 추론하지 않으므로, 초기값의 타입을 출력하면 호출자에게 그 이름의 사용이 아무것도 검사하지 않는 무언가에 대해 검사된다고 말하는 셈이 되기 때문입니다.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">에이전트가 묻는 두 번째 질문<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        모양을 알고 나면 다음으로 알고 싶은 것은 들고 있는 값을 넣으려는 곳에 넣을 수 있는지입니다. <code>glyph_assignable</code>은 검사기 자체의 비교를 묻습니다.
+      </p>
       <div class="two-up">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   "verdict": "WILL_FAIL",
@@ -87,7 +105,7 @@ next: /answers/repair-protocol/ | 다음 &rarr; | 빌드가 실패하면 컴파�
             "read_as": "number" }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   "verdict": "COMPATIBLE",
@@ -105,37 +123,91 @@ next: /answers/repair-protocol/ | 다음 &rarr; | 빌드가 실패하면 컴파�
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">세 가지 판정, 그리고 SAFE가 아닌 이유</span></summary><div class="body">
+        <p>
+          양쪽은 각각 <code>module::name</code>이나 Glyph 타입 표기이고, 지정한 파일의 스코프에서 읽히며, 판정은 세 가지 중 무엇이 일어났는지 알려 줍니다.
+        </p>
         <p>
           단어는 <code>SAFE</code>가 아니라 <code>COMPATIBLE</code>이며, 그 차이는 한 문장으로 설명할 만합니다. <code>SAFE</code>는 <code>glyph_impact</code>의 단어로, 특정 위치가 특정 편집 뒤에도 올바르게 유지된다는 뜻입니다. 이 답은 위치도 편집도 없는 질문에서의 두 타입에 관한 것입니다. 세 번째 판정은 <code>UNDETERMINED</code>이며, 그 짝을 다루는 규칙이 없을 때마다 이렇게 답합니다. 두 함수 타입은 이렇게 돌아오는데, 그 아래의 관계가 반환 타입은 비교하지만 매개변수에 대해서는 아무 말도 하지 않기 때문입니다. 거기서의 침묵은 허용이 아니며, 도구는 이를 허용으로 보고하지 않습니다.
         </p>
+      </div></details>
 
-        <h2 class="block-label">반대 방향: 이것은 무엇에 의존하고, 저 모듈은 무엇을 주는가</h2>
-        <p>
-          <code>glyph_references</code>는 누가 심볼을 쓰는지 답합니다. <code>glyph_dependencies</code>는 같은 테이블을 반대쪽에서 읽은 것입니다. 선언 하나가 무엇에 의존하는지, 즉 그 소스가 언급하는 모든 선언을 <code>CALLS</code>, <code>REFERENCES</code>, <code>FIELD_ACCESS</code>로 나누고, 각 간선에 양 끝과 위치를 담습니다. <code>glyph_exports</code>는 모듈이 import하는 쪽에 무엇을 보여 주는지를 스캔이 아니라 컴파일러 자체의 export 쿼리로 답합니다. 모든 <code>pub</code> 선언과 <code>pub</code> 유니언이 끌어올리는 모든 variant가 식별자, 종류, 시그니처를 가진 항목으로 나옵니다. import를 쓰려는 에이전트는 파일을 여는 대신 반대편에 무엇이 있는지 물어볼 수 있습니다.
-        </p>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">반대 방향: 이것은 무엇에 의존하고, 저 모듈은 무엇을 주는가<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        import를 쓰려는 에이전트는 파일을 여는 대신 반대편에 무엇이 있는지 물어볼 수 있습니다.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code>는 누가 심볼을 쓰는지 답합니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code>는 같은 테이블을 반대쪽에서 읽은 것입니다. 선언 하나가 무엇에 의존하는지, 즉 그 소스가 언급하는 모든 선언을 <code>CALLS</code>, <code>REFERENCES</code>, <code>FIELD_ACCESS</code>로 나누고, 각 간선에 양 끝과 위치를 담습니다.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code>는 모듈이 import하는 쪽에 무엇을 보여 주는지를 스캔이 아니라 컴파일러 자체의 export 쿼리로 답합니다. 모든 <code>pub</code> 선언과 <code>pub</code> 유니언이 끌어올리는 모든 variant가 식별자, 종류, 시그니처를 가진 항목으로 나옵니다.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">반대 방향 구현이 잡아낸 PROVED 버그</span></summary><div class="body">
         <p>
           관계의 거울을 만들다가 원래 쪽의 버그를 잡았습니다. 모든 간선에는 출처가 있고, <code>PROVED</code>는 컴파일러가 양 끝을 모두 읽었다는 뜻입니다. 그런데 파싱되지 않는, 아무것도 읽지 않은 모듈로 향하는 간선에 대해 <code>PROVED</code>라고 답하고 있었습니다. 이제는 이유와 함께 <code>UNDETERMINED</code>라고 답하며, <code>glyph_references</code>와 <code>glyph_impact</code>가 같은 함수를 호출하므로 둘 다 같은 방식으로 틀렸고 둘 다 고쳐졌습니다.
         </p>
+      </div></details>
 
-        <h2 class="block-label">도구 열한 개, 클라이언트는 필요 없음</h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">도구 열한 개, 클라이언트는 필요 없음<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code>는 열한 개를 제공합니다: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>각각에는 같은 인자를 플래그로 받고 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있고, 클라이언트가 닿는 것과 같은 진입점을 거치므로, 셸 명령만 실행하는 에이전트도 같은 질문을 할 수 있습니다.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">진단, 그리고 편집 뒤에 오는 것</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code>는 열한 개를 제공합니다: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code>, <code>glyph_exports</code>. 각각에는 같은 인자를 플래그로 받고 같은 JSON을 출력하는 <code>glyph query</code> 동사가 있고, 클라이언트가 닿는 것과 같은 진입점을 거치므로, 셸 명령만 실행하는 에이전트도 같은 질문을 할 수 있습니다. <code>glyph_diagnostics</code>는 파일을 프로젝트 안에서 검사하고 <code>glyph check --json</code>이 출력하는 진단을 같은 Rust 타입으로 반환하며, 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교합니다. 자세한 내용은 <a href="/mcp/">MCP 페이지</a>에 있습니다.
+          <code>glyph_diagnostics</code>는 파일을 프로젝트 안에서 검사하고 <code>glyph check --json</code>이 출력하는 진단을 같은 Rust 타입으로 반환하며, 테스트가 프로젝트 여섯 개에서 두 경로를 모두 실행하고 JSON을 키 단위로 비교합니다. 자세한 내용은 <a href="/mcp/">MCP 페이지</a>에 있습니다.
         </p>
         <p>
           이 모두는 편집하기 전에 묻는 것입니다. 편집한 뒤에는 컴파일러가 반대 방향으로 답합니다. <code>glyph check --agent</code>는 각 진단을 수정하는 편집이 지켜야 할 불변식, 그리고 진단이 언급한 모든 심볼의 <code>glyph_symbol</code> 설명과 함께 출력하므로, 에이전트에게 필요한 모양이 그것을 요구한 오류와 함께 도착합니다. 이에 대해서는 <a href="/answers/repair-protocol/">별도 페이지</a>가 있습니다.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">현재 상태</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">지금 제공되는 것</h3>
-          <p>MCP로 제공되는 읽기 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다. <code>glyph_symbol</code>은 식별자나 위치로 답하고, 갖고 있지 않은 사실은 모두 null이며 그 옆에 이유를 말하는 문장이 있습니다. 식별은 stdlib까지 닿습니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 <code>glyph query symbol --entity std/result::Result</code>는 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>glyph query exports --module std/result</code>는 그 공개 표면을 나열하며, 이에 대한 <code>E0200</code>은 <code>cause</code>에 그 식별자를 담습니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다. hover는 모듈 세 개짜리 프로젝트에서 감사가 확인한 위치 열네 곳 모두에 답하며, 이 작업을 시작하기 전에는 두 곳이었습니다. 다른 모듈에서 선언된 이름은 그 모듈 자체의 선언에서 답하므로, import 바인딩, 호출 위치의 import한 함수, 값으로 쓴 import한 variant, import한 레코드에서 읽은 필드 모두 타입을 가집니다. <code>glyph_dependencies</code>와 <code>glyph_exports</code>로 G221이 요청한 세트가 완성되었습니다. <code>glyph_variants</code>는 각 payload와 그 생성 문법을 담고, <code>glyph_definition</code>과 <code>glyph_symbols</code>는 <code>module::name</code>을 담으므로, 답을 아무것도 다시 계산하지 않고 <code>glyph_impact</code>로 이어 갈 수 있습니다. <code>glyph_impact</code>의 시그니처 타입 테이블은 컨테이너 대 컨테이너, 구조적 레코드 대 구조적이거나 선언된 레코드(로컬, import, 제네릭, 또는 다른 이름), 변환된 호출로서의 JSX 요소, 그리고 어느 쪽이든 문자열 리터럴 유니언을 <code>glyph_assignable</code>과 같은 비교로 판정하므로, 두 도구가 하나의 짝에 대해 서로 다른 답을 낼 수 없습니다. 관계가 짝을 완전히 읽는 인자는 비교 결과가 어떻든 <code>WILL_FAIL</code>입니다. <code>change_signature_type</code>은 대체 타입을 지정하지 않고, 허용된 짝은 대체 타입이 거부될 수 있는 짝이기 때문입니다. 관계가 판정을 거절하는 짝만 <code>UNDETERMINED</code>입니다.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">한계</h3>
-          <p>여기 있는 어떤 도구도 쓰지 않습니다. 이름 바꾸기도, 편집 적용도 없습니다. 쓰기 쪽은 명령줄의 <code>glyph fix</code>이며, 요청하는 무엇이든이 아니라 세 가지만 고칩니다. 사용하지 않는 import, 검사기가 정확히 하나의 제안을 가진 arm 머리, 그리고 선언된 필드 중 정확히 하나와 한 글자 차이인 필드 이름입니다. 컴파일러가 선언도 시그니처도 모델링하지 않는 stdlib export는 이유와 함께 <code>kind: null</code>로 답합니다. <code>std/result::all</code>과 <code>std/io::println</code>은 컴파일러가 배치하고 어떤 Glyph 단계도 읽지 않는 TypeScript에서 타입이 지정됩니다. <code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뜁니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code> 검사, 그리고 생성된 프로젝트를 실행해야 하는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 이를 실행한 것처럼 답하지 않고 <code>not_run</code>에 세 가지를 모두 적습니다.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">MCP로 제공되는 읽기 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code>은 식별자나 위치로 답하고, 갖고 있지 않은 사실은 모두 null이며 그 옆에 이유를 말하는 문장이 있습니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">식별은 stdlib까지 닿습니다: <code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>식별은 stdlib까지 닿습니다. prelude의 <code>Result</code>는 <code>std/result::Result</code>이며, 이는 resolver가 등록하는 모듈이자 emitter가 import를 쓰는 모듈입니다. 그래서 <code>glyph query symbol --entity std/result::Result</code>는 <code>Ok(T)</code>와 <code>Err(E)</code>로 답하고, <code>glyph query exports --module std/result</code>는 그 공개 표면을 나열하며, 이에 대한 <code>E0200</code>은 <code>cause</code>에 그 식별자를 담습니다. 그 뒤에는 Glyph 소스가 없으므로 <code>path</code>와 <code>range</code>는 빠지는 대신 그 이유와 함께 null입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">hover는 확인한 위치 열네 곳 중 열네 곳 모두에 답합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>hover는 모듈 세 개짜리 프로젝트에서 감사가 확인한 위치 열네 곳 모두에 답하며, 이 작업을 시작하기 전에는 두 곳이었습니다. 다른 모듈에서 선언된 이름은 그 모듈 자체의 선언에서 답하므로, import 바인딩, 호출 위치의 import한 함수, 값으로 쓴 import한 variant, import한 레코드에서 읽은 필드 모두 타입을 가집니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code>와 <code>glyph_exports</code>로 G221이 요청한 세트가 완성되었습니다.</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code>는 각 payload와 그 생성 문법을 담고, <code>glyph_definition</code>과 <code>glyph_symbols</code>는 <code>module::name</code>을 담으므로, 답을 아무것도 다시 계산하지 않고 <code>glyph_impact</code>로 이어 갈 수 있습니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code>와 <code>glyph_assignable</code>은 같은 비교를 합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>glyph_impact</code>의 시그니처 타입 테이블은 컨테이너 대 컨테이너, 구조적 레코드 대 구조적이거나 선언된 레코드(로컬, import, 제네릭, 또는 다른 이름), 변환된 호출로서의 JSX 요소, 그리고 어느 쪽이든 문자열 리터럴 유니언을 <code>glyph_assignable</code>과 같은 비교로 판정하므로, 두 도구가 하나의 짝에 대해 서로 다른 답을 낼 수 없습니다. 관계가 짝을 완전히 읽는 인자는 비교 결과가 어떻든 <code>WILL_FAIL</code>입니다. <code>change_signature_type</code>은 대체 타입을 지정하지 않고, 허용된 짝은 대체 타입이 거부될 수 있는 짝이기 때문입니다. 관계가 판정을 거절하는 짝만 <code>UNDETERMINED</code>입니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 한계</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">여기 있는 어떤 도구도 쓰지 않습니다. 이름 바꾸기도, 편집 적용도 없습니다.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">쓰기 쪽은 <code>glyph fix</code>이며, 세 가지를 고칩니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>쓰기 쪽은 명령줄의 <code>glyph fix</code>이며, 요청하는 무엇이든이 아니라 세 가지만 고칩니다. 사용하지 않는 import, 검사기가 정확히 하나의 제안을 가진 arm 머리, 그리고 선언된 필드 중 정확히 하나와 한 글자 차이인 필드 이름입니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">일부 stdlib export는 <code>kind: null</code>로 답합니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p>컴파일러가 선언도 시그니처도 모델링하지 않는 stdlib export는 이유와 함께 <code>kind: null</code>로 답합니다. <code>std/result::all</code>과 <code>std/io::println</code>은 컴파일러가 배치하고 어떤 Glyph 단계도 읽지 않는 TypeScript에서 타입이 지정됩니다.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뛰고, <code>not_run</code>에 그것을 적습니다</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
+                <p><code>glyph_diagnostics</code>는 <code>glyph check</code>가 하는 검사 세 가지를 건너뜁니다. <code>tsc</code>, 빌드가 보는 <code>node_modules</code>가 필요한, 존재하지 않는 모듈을 import할 때의 <code>E0104</code> 검사, 그리고 생성된 프로젝트를 실행해야 하는, 실패하는 <code>@example</code>에 대한 <code>E0400</code>입니다. 이를 실행한 것처럼 답하지 않고 <code>not_run</code>에 세 가지를 모두 적습니다.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

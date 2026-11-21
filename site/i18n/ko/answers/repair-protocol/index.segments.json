@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/repair-protocol/index.html",
   "locale": "ko",
-  "source_hash": "4b15cc7a1cc4e288",
+  "source_hash": "777385c3f729126e",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,100 @@
       "tr": "무엇이 잘못됐는지를 파싱해야 할 문장이 아니라 데이터로 알려 줍니다. 두 타입, <code>module::name</code> 형태의 문제가 된 심볼, 그리고 잘못된 것이 있는 자리에 올 수 있는 유한한 목록입니다. <code>glyph check --agent</code>는 수정하는 편집이 깨뜨리면 안 되는 것을 더합니다. 답이 완전히 정해지는 경우에는 <code>glyph fix</code>가 직접 씁니다."
     },
     {
+      "id": "h-22f8192a",
+      "kind": "html",
+      "en": "glyph check --agent --no-tsc src",
+      "tr": "glyph check --agent --no-tsc src"
+    },
+    {
+      "id": "h-a5a0c846",
+      "kind": "html",
+      "en": "<span>A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here.</span>",
+      "tr": "<span>모듈 두 개짜리 프로젝트입니다. <code>orders</code>가 유니언을 선언하고, <code>main</code>은 그에 대한 <code>match</code>를 쓰면서 case 하나만 처리합니다. 여기서 중요한 키만 남긴 <code>glyph check --agent</code> 출력입니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-ea8d754a",
+      "kind": "html",
+      "en": "<a href=\"#reading-the-answer\">Reading the answer</a>",
+      "tr": "<a href=\"#reading-the-answer\">답 읽기</a>"
+    },
+    {
+      "id": "h-8a7ac9be",
+      "kind": "html",
+      "en": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">What glyph fix writes</a>",
+      "tr": "<a href=\"#where-the-answer-is-determined-the-compiler-writes-it\">glyph fix가 쓰는 것</a>"
+    },
+    {
+      "id": "h-aa030552",
+      "kind": "html",
+      "en": "<a href=\"#the-code-s-own-explanation-as-data\">Explanations as data</a>",
+      "tr": "<a href=\"#the-code-s-own-explanation-as-data\">데이터로서의 설명</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-26bdb633",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-11db4724",
       "kind": "html",
-      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string. An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
-      "tr": "컴파일러를 둘러싼 에이전트의 루프는 오류를 읽고, 편집을 추측하고, 다시 빌드하는 것입니다. 피해는 추측 단계에서 생기고, 오류가 문자열이기 때문에 생깁니다. \"<code>OrderStatus</code>에 대한 비망라적 match\"를 읽은 에이전트는 match에 arm이 몇 개 빠졌다는 것은 압니다. 빠진 variant가 무엇을 담는지는 모르므로 <code>Paid(\"tx_1\")</code>을 쓰고 다음 진단에서야 알게 됩니다. 아니면 \"exhaustive\"라는 단어를 읽고 <code>else</code> arm을 추가하며, 빌드는 진단이 지키려던 보장을 버린 채 통과합니다."
+      "en": "An agent's loop around a compiler is read the error, guess the edit, rebuild. The guessing step is where the damage happens, and it happens because the error is a string.",
+      "tr": "컴파일러를 둘러싼 에이전트의 루프는 오류를 읽고, 편집을 추측하고, 다시 빌드하는 것입니다. 피해는 추측 단계에서 생기고, 오류가 문자열이기 때문에 생깁니다."
+    },
+    {
+      "id": "a-a1a30995",
+      "kind": "attr:aria-label",
+      "en": "The agent's loop",
+      "tr": "에이전트의 루프"
+    },
+    {
+      "id": "h-384ff278",
+      "kind": "html",
+      "en": "<span>read the error</span>",
+      "tr": "<span>오류 읽기</span>"
+    },
+    {
+      "id": "h-7d4d8401",
+      "kind": "html",
+      "en": "<span>guess the edit</span>",
+      "tr": "<span>편집 추측하기</span>"
+    },
+    {
+      "id": "h-691bbc3c",
+      "kind": "html",
+      "en": "<span>rebuild</span>",
+      "tr": "<span>다시 빌드하기</span>"
     },
     {
       "id": "h-07118770",
@@ -77,46 +161,76 @@
       "tr": "컴파일러는 그 모두를 알고 있었습니다. 유니언의 variant와 payload를 알았고, <code>else</code>가 봉인을 포기하게 만든다는 것도 알았는데, 응답 바로 앞에서 둘 다 버렸습니다."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-03055152",
       "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
+      "en": "Details <span class=\"hint\">the two wrong edits a string invites</span>",
+      "tr": "자세히 <span class=\"hint\">문자열이 부르는 두 가지 잘못된 편집</span>"
     },
     {
-      "id": "h-1dc2ec59",
+      "id": "h-5053ff58",
       "kind": "html",
-      "en": "A two-module project. <code>orders</code> declares the union; <code>main</code> writes a <code>match</code> over it and handles one case. <code>glyph check --agent</code>, trimmed to the keys that matter here:",
-      "tr": "모듈 두 개짜리 프로젝트입니다. <code>orders</code>가 유니언을 선언하고, <code>main</code>은 그에 대한 <code>match</code>를 쓰면서 case 하나만 처리합니다. 여기서 중요한 키만 남긴 <code>glyph check --agent</code> 출력입니다."
+      "en": "An agent that reads \"non-exhaustive match on <code>OrderStatus</code>\" knows a match is short some arms. It does not know what the missing variants carry, so it writes <code>Paid(\"tx_1\")</code> and finds out from the next diagnostic. Or it reads the word \"exhaustive\", adds an <code>else</code> arm, and the build goes green having thrown away the guarantee that the diagnostic existed to protect.",
+      "tr": "\"<code>OrderStatus</code>에 대한 비망라적 match\"를 읽은 에이전트는 match에 arm이 몇 개 빠졌다는 것은 압니다. 빠진 variant가 무엇을 담는지는 모르므로 <code>Paid(\"tx_1\")</code>을 쓰고 다음 진단에서야 알게 됩니다. 아니면 \"exhaustive\"라는 단어를 읽고 <code>else</code> arm을 추가하며, 빌드는 진단이 지키려던 보장을 버린 채 통과합니다."
     },
     {
-      "id": "h-22f8192a",
+      "id": "h-cdb153ae",
       "kind": "html",
-      "en": "glyph check --agent --no-tsc src",
-      "tr": "glyph check --agent --no-tsc src"
+      "en": "Reading the answer",
+      "tr": "답 읽기"
     },
     {
-      "id": "h-e83558c5",
+      "id": "h-70dd500b",
       "kind": "html",
-      "en": "Three things are worth pulling out. <code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>. Both are addresses the other tools take, so an answer chains without re-deriving anything.",
-      "tr": "짚어 볼 것이 세 가지 있습니다. <code>cause</code>는 문제가 된 심볼이며, 진단이 위치한 선언인 <code>entity</code>와는 다릅니다. 여기서 편집은 <code>main::describe</code>에서 일어나고, 맞춰야 할 모양은 <code>orders::OrderStatus</code>에서 옵니다. 둘 다 다른 도구가 받는 주소이므로, 아무것도 다시 계산하지 않고 답을 이어 갈 수 있습니다."
+      "en": "Three things are worth pulling out.",
+      "tr": "짚어 볼 것이 세 가지 있습니다."
     },
     {
-      "id": "h-24cad838",
+      "id": "h-3fae8dae",
       "kind": "html",
-      "en": "<code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it. The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
-      "tr": "<code>constraints</code>는 수정 방법이 아닙니다. 각각은 컴파일러가 이미 강제하는 것이며, 진단을 만족시키는 편집이 그 뒤의 보장을 깨뜨리지 않도록 적어 둔 것입니다. 이 키가 있는 이유는 두 번째 제약 때문입니다. <code>else</code> arm은 허용되고 빌드를 통과시키지만, 제약은 그것을 택했을 때 무엇을 잃는지 말해 줍니다."
+      "en": "<b><code>cause</code></b><code>cause</code> is the symbol at fault, and it is a different thing from <code>entity</code>, which is the declaration the diagnostic sits in: here the edit happens in <code>main::describe</code> and the shape it has to match comes from <code>orders::OrderStatus</code>.",
+      "tr": "<b><code>cause</code></b><code>cause</code>는 문제가 된 심볼이며, 진단이 위치한 선언인 <code>entity</code>와는 다릅니다. 여기서 편집은 <code>main::describe</code>에서 일어나고, 맞춰야 할 모양은 <code>orders::OrderStatus</code>에서 옵니다."
     },
     {
-      "id": "h-c78e85ef",
+      "id": "h-861b2ca6",
       "kind": "html",
-      "en": "<code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call. A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
-      "tr": "<code>symbols</code>는 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답이므로, 에이전트의 다음 편집에 두 번째 호출이 필요 없습니다. 도구가 거부한 심볼은 이유와 함께 <code>symbols_absent</code>에 나오므로, \"보지 않았다\"와 \"봤는데 없다\"가 구분됩니다."
+      "en": "<b><code>constraints</code></b><code>constraints</code> are not the repair. Each one is something the compiler already enforces, written out so the edit that satisfies the diagnostic does not break the guarantee behind it.",
+      "tr": "<b><code>constraints</code></b><code>constraints</code>는 수정 방법이 아닙니다. 각각은 컴파일러가 이미 강제하는 것이며, 진단을 만족시키는 편집이 그 뒤의 보장을 깨뜨리지 않도록 적어 둔 것입니다."
+    },
+    {
+      "id": "h-a017cea3",
+      "kind": "html",
+      "en": "<b><code>symbols</code></b><code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the diagnostic names, so the agent's next edit needs no second call.",
+      "tr": "<b><code>symbols</code></b><code>symbols</code>는 진단이 언급한 모든 심볼에 대한 <code>glyph_symbol</code> 응답이므로, 에이전트의 다음 편집에 두 번째 호출이 필요 없습니다."
     },
     {
       "id": "h-e9482ec6",
       "kind": "html",
       "en": "Every key is always present. A fact the compiler does not hold arrives as an explicit <code>null</code>, never as a missing key, so absence has one spelling on every code and on both the CLI and the MCP surface.",
       "tr": "모든 키는 항상 있습니다. 컴파일러가 갖고 있지 않은 사실은 키가 빠지는 대신 명시적인 <code>null</code>로 오므로, 없음은 모든 코드에서, CLI와 MCP 모두에서 한 가지로만 표기됩니다."
+    },
+    {
+      "id": "h-fc85bbcb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">addresses that chain, the else constraint, symbols_absent</span>",
+      "tr": "자세히 <span class=\"hint\">이어지는 주소, else 제약, symbols_absent</span>"
+    },
+    {
+      "id": "h-59c52ef6",
+      "kind": "html",
+      "en": "Both are addresses the other tools take, so an answer chains without re-deriving anything.",
+      "tr": "둘 다 다른 도구가 받는 주소이므로, 아무것도 다시 계산하지 않고 답을 이어 갈 수 있습니다."
+    },
+    {
+      "id": "h-88250e38",
+      "kind": "html",
+      "en": "The second constraint is why the key exists: an <code>else</code> arm is legal, it would turn the build green, and the constraint says what taking it costs.",
+      "tr": "이 키가 있는 이유는 두 번째 제약 때문입니다. <code>else</code> arm은 허용되고 빌드를 통과시키지만, 제약은 그것을 택했을 때 무엇을 잃는지 말해 줍니다."
+    },
+    {
+      "id": "h-4bdb41da",
+      "kind": "html",
+      "en": "A symbol the tool refuses appears in <code>symbols_absent</code> with the reason, which keeps \"we did not look\" apart from \"we looked and it is not there\".",
+      "tr": "도구가 거부한 심볼은 이유와 함께 <code>symbols_absent</code>에 나오므로, \"보지 않았다\"와 \"봤는데 없다\"가 구분됩니다."
     },
     {
       "id": "h-d838480e",
@@ -137,10 +251,28 @@
       "tr": "glyph fix src, 위의 match에 대해"
     },
     {
-      "id": "h-2f820b6c",
+      "id": "h-84f7cc18",
       "kind": "html",
-      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
-      "tr": "컴파일러는 어떤 case가 빠졌는지와 각각의 패턴을 압니다. 주문이 <code>Paid</code>일 때 프로그램이 무엇을 해야 하는지는 모르며, 컴파일러가 쓰는 본문은 무엇이든 컴파일되는 추측일 것입니다. 0.1.128까지 <code>glyph fix</code>는 그 추측을 썼습니다. case마다 arm 하나를 만들고, 본문은 case를 출력하고 <code>process.exit(1)</code>을 호출했습니다. 그러면 프로그램은 <code>check</code>, <code>tsc</code>, <code>build</code>를 통과했고 <code>glyph query variants</code>는 match가 망라적이라고 보고했으므로, 빠진 case가 컴파일 오류에서 런타임 충돌로 옮겨 갔고 이를 표시할 것은 아무것도 남지 않았습니다."
+      "en": "The compiler knows which cases are missing and the pattern each one takes. It does not know what the program should do when an order is <code>Paid</code>, and any body it wrote would be a guess that compiles.",
+      "tr": "컴파일러는 어떤 case가 빠졌는지와 각각의 패턴을 압니다. 주문이 <code>Paid</code>일 때 프로그램이 무엇을 해야 하는지는 모르며, 컴파일러가 쓰는 본문은 무엇이든 컴파일되는 추측일 것입니다."
+    },
+    {
+      "id": "h-51e346df",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what glyph fix wrote up to 0.1.128</span>",
+      "tr": "이력 <span class=\"hint\">0.1.128까지 glyph fix가 쓰던 것</span>"
+    },
+    {
+      "id": "h-69045eed",
+      "kind": "html",
+      "en": "Up to 0.1.128 <code>glyph fix</code> wrote that guess: one arm per case whose body printed the case and called <code>process.exit(1)</code>. The program then passed <code>check</code>, <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code> reported the match as exhaustive, so the missing case had moved from a compile error to a crash at run time with nothing left to flag it.",
+      "tr": "0.1.128까지 <code>glyph fix</code>는 그 추측을 썼습니다. case마다 arm 하나를 만들고, 본문은 case를 출력하고 <code>process.exit(1)</code>을 호출했습니다. 그러면 프로그램은 <code>check</code>, <code>tsc</code>, <code>build</code>를 통과했고 <code>glyph query variants</code>는 match가 망라적이라고 보고했으므로, 빠진 case가 컴파일 오류에서 런타임 충돌로 옮겨 갔고 이를 표시할 것은 아무것도 남지 않았습니다."
+    },
+    {
+      "id": "h-8aef4a74",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the arms come from, and how declines are reported</span>",
+      "tr": "자세히 <span class=\"hint\">arm이 어디서 오는지, 그리고 거절을 보고하는 방식</span>"
     },
     {
       "id": "h-3f1cdc48",
@@ -161,10 +293,16 @@
       "tr": "코드 자체의 설명을 데이터로"
     },
     {
-      "id": "h-c5081b0e",
+      "id": "h-f86088ac",
       "kind": "html",
-      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it. The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
-      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code>은 자세한 설명, 한 줄짜리 <code>help</code>, 문서 URL, 그리고 컴파일러의 negative 코퍼스에 있는 잘못된 프로그램과 이 컴파일러가 그 프로그램에 대해 내는 진단을 짝지어 답합니다. 진단은 저장된 것이 아니라 요청할 때 컴파일되므로, 컴파일러가 실제로 하는 말과 어긋날 수 없습니다."
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form explanation, the one-line <code>help</code>, the docs URL, and a wrong program from the compiler's negative corpus paired with the diagnostic this compiler draws for it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code>은 자세한 설명, 한 줄짜리 <code>help</code>, 문서 URL, 그리고 컴파일러의 negative 코퍼스에 있는 잘못된 프로그램과 이 컴파일러가 그 프로그램에 대해 내는 진단을 짝지어 답합니다."
+    },
+    {
+      "id": "h-44a60dec",
+      "kind": "html",
+      "en": "The diagnostic is compiled when you ask, not stored, so it cannot drift from what the compiler actually says.",
+      "tr": "진단은 저장된 것이 아니라 요청할 때 컴파일되므로, 컴파일러가 실제로 하는 말과 어긋날 수 없습니다."
     },
     {
       "id": "h-da4c5d63",
@@ -177,6 +315,12 @@
       "kind": "html",
       "en": "A code the corpus does not cover comes back with <code>counter_example: null</code> and a sentence saying the corpus holds no case for it, rather than a made-up example. The corpus claims what it covers and nothing about the rest.",
       "tr": "코퍼스가 다루지 않는 코드는 지어낸 예제 대신 <code>counter_example: null</code>과 코퍼스에 해당 사례가 없다는 문장과 함께 돌아옵니다. 코퍼스는 자신이 다루는 것만 주장하고 나머지에 대해서는 아무것도 주장하지 않습니다."
+    },
+    {
+      "id": "h-05573974",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the whole corpus, through glyph llms --negative</span>",
+      "tr": "자세히 <span class=\"hint\">glyph llms --negative로 보는 코퍼스 전체</span>"
     },
     {
       "id": "h-dee8d5de",
@@ -197,10 +341,46 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-206d5f58",
+      "id": "h-2f0c125d",
       "kind": "html",
-      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
-      "tr": "모든 진단에는 <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>(오류가 발생한 곳에서 설정되며, <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code>, <code>exports</code> 중 무엇을 나열하는지 <code>alternatives_kind</code>가 알려 줍니다), <code>related</code>, <code>module</code>, <code>file</code>, <code>explain</code>이 있으며, 다시 계산하지 않고 컴파일러가 낸 오류에서 채우고, 컴파일러가 그런 사실을 갖고 있지 않으면 각각 명시적인 <code>null</code>입니다. <code>file</code>은 해석 루트 기준의 상대 경로이고 보고서가 <code>project_root</code>에 그 루트를 담으므로 바로 열 수 있습니다. <code>glyph check --agent</code>는 진단마다 <code>constraints</code>와 <code>symbols</code>를 더합니다. <code>glyph fix</code>는 규칙 세 가지(<code>E0106</code>, <code>E0210</code>, <code>E0220</code>)를 적용하고 모든 거절을 이유와 함께 밝히며, 여기에는 보고만 하고 절대 쓰지 않는 모든 <code>E0200</code>이 포함됩니다. <code>glyph --explain &lt;CODE&gt; --json</code>은 컴파일된 반례와 함께 설명을 반환하고, <code>glyph llms --negative &lt;CODE&gt;</code>는 그 코드를 일으키는 잘못된 프로그램 코퍼스 전체를 반환합니다."
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, each an explicit <code>null</code> when the compiler holds no such fact",
+      "tr": "모든 진단에는 <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code>, <code>explain</code>이 있으며, 컴파일러가 그런 사실을 갖고 있지 않으면 각각 명시적인 <code>null</code>입니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-27a772ba",
+      "kind": "html",
+      "en": "Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact.",
+      "tr": "모든 진단에는 <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>(오류가 발생한 곳에서 설정되며, <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code>, <code>exports</code> 중 무엇을 나열하는지 <code>alternatives_kind</code>가 알려 줍니다), <code>related</code>, <code>module</code>, <code>file</code>, <code>explain</code>이 있으며, 다시 계산하지 않고 컴파일러가 낸 오류에서 채우고, 컴파일러가 그런 사실을 갖고 있지 않으면 각각 명시적인 <code>null</code>입니다."
+    },
+    {
+      "id": "h-0e417299",
+      "kind": "html",
+      "en": "<code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens.",
+      "tr": "<code>file</code>은 해석 루트 기준의 상대 경로이고 보고서가 <code>project_root</code>에 그 루트를 담으므로 바로 열 수 있습니다."
+    },
+    {
+      "id": "h-b9563801",
+      "kind": "html",
+      "en": "<code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic.",
+      "tr": "<code>glyph check --agent</code>는 진단마다 <code>constraints</code>와 <code>symbols</code>를 더합니다."
+    },
+    {
+      "id": "h-d9265b6f",
+      "kind": "html",
+      "en": "<code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes.",
+      "tr": "<code>glyph fix</code>는 규칙 세 가지(<code>E0106</code>, <code>E0210</code>, <code>E0220</code>)를 적용하고 모든 거절을 이유와 함께 밝히며, 여기에는 보고만 하고 절대 쓰지 않는 모든 <code>E0200</code>이 포함됩니다."
+    },
+    {
+      "id": "h-f47e2a59",
+      "kind": "html",
+      "en": "<code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.",
+      "tr": "<code>glyph --explain &lt;CODE&gt; --json</code>은 컴파일된 반례와 함께 설명을 반환하고, <code>glyph llms --negative &lt;CODE&gt;</code>는 그 코드를 일으키는 잘못된 프로그램 코퍼스 전체를 반환합니다."
     },
     {
       "id": "h-c647197d",
@@ -209,10 +389,28 @@
       "tr": "한계"
     },
     {
-      "id": "h-a46b5ce4",
+      "id": "h-8e863d3f",
       "kind": "html",
-      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.",
-      "tr": "<code>E0211</code>의 <code>cause</code>는 <code>null</code>입니다. 호출 인자에서 문제가 된 심볼은 매개변수인데, <code>module::fn.param</code>은 식별자 어휘로 표현할 수 없으므로 null은 누락이 아니라 의도한 것입니다. 반례의 <code>corrected</code>는 항상 <code>null</code>입니다. negative 코퍼스는 사례에 수정된 프로그램을 짝짓지 않고, 코드 70개 중 24개에는 사례가 아예 없기 때문입니다. <code>glyph fix</code>는 규칙 세 가지만 쓰고, 비망라적 <code>match</code>에 대해서는 arm을 쓰지 않습니다. 그것은 진단에 담긴 case와 패턴을 가지고 여러분이나 에이전트가 쓰도록 남겨 둡니다. 거절하는 것은 모두 분명히 밝힙니다."
+      "en": "<code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission.",
+      "tr": "<code>E0211</code>의 <code>cause</code>는 <code>null</code>입니다. 호출 인자에서 문제가 된 심볼은 매개변수인데, <code>module::fn.param</code>은 식별자 어휘로 표현할 수 없으므로 null은 누락이 아니라 의도한 것입니다."
+    },
+    {
+      "id": "h-672cdb61",
+      "kind": "html",
+      "en": "<code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all.",
+      "tr": "반례의 <code>corrected</code>는 항상 <code>null</code>입니다. negative 코퍼스는 사례에 수정된 프로그램을 짝짓지 않고, 코드 70개 중 24개에는 사례가 아예 없기 때문입니다."
+    },
+    {
+      "id": "h-03335405",
+      "kind": "html",
+      "en": "<code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic.",
+      "tr": "<code>glyph fix</code>는 규칙 세 가지만 쓰고, 비망라적 <code>match</code>에 대해서는 arm을 쓰지 않습니다. 그것은 진단에 담긴 case와 패턴을 가지고 여러분이나 에이전트가 쓰도록 남겨 둡니다."
+    },
+    {
+      "id": "h-d0d18970",
+      "kind": "html",
+      "en": "Everything it declines, it declines out loud.",
+      "tr": "거절하는 것은 모두 분명히 밝힙니다."
     }
   ]
 }

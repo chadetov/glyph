@@ -1,9 +1,9 @@
 ---
 title: Abstraktion · ein kleiner, orthogonaler Kern · Glyph
 description: Glyphs vierte Säule: ein Weg pro Konzept. Pattern Matching statt switch-Kaskaden, Result statt Exceptions, Records statt Tupel und match als Bedingung.
-source_hash: 01e075d4f0eca884
-prev: /pillars/greppability/ | &larr; Vorherige Säule | Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff
-next: /pillars/diff-stability/ | Zurück zum Anfang &rarr; | Überprüfbarkeit: wahr zur Laufzeit
+source_hash: 20ee19449bc530dd
+prev: /pillars/greppability/ | &larr; Vorherige Säule | Durchsuchbarkeit: ein Name, eine Stelle
+next: /pillars/diff-stability/ | Nächste Säule &rarr; | Stabile Diffs: Eine einzeilige Änderung ist ein einzeiliger Diff
 ---
       <p class="q-eyebrow">Säule 03 &middot; <span class="polish">Der Feinschliff</span></p>
       <h1 class="q-title">Abstraktion</h1>
@@ -12,21 +12,7 @@ next: /pillars/diff-stability/ | Zurück zum Anfang &rarr; | Überprüfbarkeit: 
         Sag, was du meinst, mit einem <strong>kleinen, orthogonalen Kern</strong>: Pattern Matching statt switch-Kaskaden, <code>Result</code> statt geworfener Exceptions, benannte Records statt Tupel. Ein guter Weg pro Konzept, nicht die angesammelten Schichten von TypeScript.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Zu viele Wege, dasselbe zu sagen</h2>
-        <p class="lede">
-          TypeScript ist durch Anlagerung gewachsen und hat jede Schicht behalten. Eine feste Menge von Fällen kannst du als <code>enum</code>, als Union von String-Literalen oder als <code>const</code>-Objekt modellieren. Eine Form kannst du mit einem <code>interface</code>, einem <code>type</code> oder einer <code>class</code> beschreiben. Es gibt <code>namespace</code>s und Module, Decorators und Funktionen höherer Ordnung, fünf Idiome für fast alles, jedes mit eigenen Sonderfällen.
-        </p>
-        <p class="lede">
-          Für einen Menschen ist das Flexibilität. Für einen <strong>Agenten</strong> ist es ein Minenfeld: Mehr Wege, etwas auszudrücken, heißt mehr Wege, den mit der Falle zu erwischen, und mehr Idiome, die man dabei auseinanderhalten muss. Glyphs Säule Abstraktion ist eine bewusste Subtraktion: ein scharfes Werkzeug pro Aufgabe, so gewählt, dass der naheliegende Weg auch der sichere ist.
-        </p>
-
-        <h2 class="block-label"><span class="ex-label">01</span> <code>match</code> ist die einzige Bedingung</h2>
-        <p>
-          Es gibt keine <code>if</code>/<code>else</code>-Anweisung. Verzweigen ist überall <code>match</code>, und <code>match</code> ist ein Ausdruck: Es erzeugt einen Wert. Ein Konstrukt deckt einen Boolean-Test, eine Union-Verzweigung und eine Wertetabelle ab, also musst du nicht entscheiden, <em>welche</em> Form der Verzweigung du nimmst.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: Anweisung, kein Wert</span>
@@ -48,14 +34,47 @@ else label = "C";</pre>
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">02</span> Tagged Unions und Pattern Matching</h2>
-        <p>
-          "Eine dieser Formen" modelliert man mit einer Tagged Union, und zerlegt wird sie mit <code>match</code>, das den Payload im selben Schritt destrukturiert, in dem es den Fall auswählt. Kein Diskriminator-Feld, das von Hand gepflegt werden muss, keine <code>switch</code>-Kaskade über einen String-Tag, kein Cast in jedem Zweig, um die Form zurückzugewinnen.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">Zu viele Wege</a></li>
+          <li><a href="#match-is-the-only-conditional"><code>match</code> als Bedingung</a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">Tagged Unions</a></li>
+          <li><a href="#result-over-exceptions"><code>Result</code> statt Exceptions</a></li>
+          <li><a href="#named-records-over-positional-tuples">Benannte Records</a></li>
+          <li><a href="#one-primitive-per-job">Ein Grundbaustein pro Aufgabe</a></li>
+          <li><a href="#the-benchmark-coming">Der Benchmark</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">Zu viele Wege, dasselbe zu sagen<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript ist durch Anlagerung gewachsen und hat jede Schicht behalten.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Feste Fälle</b>Eine feste Menge von Fällen kannst du als <code>enum</code>, als Union von String-Literalen oder als <code>const</code>-Objekt modellieren.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Formen</b>Eine Form kannst du mit einem <code>interface</code>, einem <code>type</code> oder einer <code>class</code> beschreiben.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>Alles andere</b>Es gibt <code>namespace</code>s und Module, Decorators und Funktionen höherer Ordnung, fünf Idiome für fast alles, jedes mit eigenen Sonderfällen.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          Für einen Menschen ist das Flexibilität. Für einen <strong>Agenten</strong> ist es ein Minenfeld: Mehr Wege, etwas auszudrücken, heißt mehr Wege, den mit der Falle zu erwischen, und mehr Idiome, die man dabei auseinanderhalten muss.
+      </p></div>
+      <p class="ak-lede">
+          Glyphs Säule Abstraktion ist eine bewusste Subtraktion: ein scharfes Werkzeug pro Aufgabe, so gewählt, dass der naheliegende Weg auch der sichere ist.
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> ist die einzige Bedingung<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Es gibt keine <code>if</code>/<code>else</code>-Anweisung. Verzweigen ist überall <code>match</code>, und <code>match</code> ist ein Ausdruck: Es erzeugt einen Wert.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ein Konstrukt deckt einen Boolean-Test, eine Union-Verzweigung und eine Wertetabelle ab, also musst du nicht entscheiden, <em>welche</em> Form der Verzweigung du nimmst.</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged Unions und Pattern Matching<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          "Eine dieser Formen" modelliert man mit einer Tagged Union, und zerlegt wird sie mit <code>match</code>, das den Payload im selben Schritt destrukturiert, in dem es den Fall auswählt.
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre>type Feed =
@@ -71,19 +90,22 @@ fn view(feed: Feed) -&gt; string {
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">03</span> <code>Result</code> statt Exceptions</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was du nicht mehr von Hand schreibst</span></summary><div class="body">
         <p>
-          Ein Fehlschlag ist ein Wert, kein versteckter Sprung im Kontrollfluss. Eine Funktion, die fehlschlagen kann, sagt das in ihrem Rückgabetyp (<code>Result&lt;T, E&gt;</code>), und du setzt Fehlschläge mit dem Operator <code>?</code> zusammen, statt Aufrufstellen in <code>try</code>/<code>catch</code> zu packen und zu hoffen, dass das Richtige die richtige Klasse wirft. Der Fehlerpfad ist so sichtbar wie der Normalfall.
+          Kein Diskriminator-Feld, das von Hand gepflegt werden muss, keine <code>switch</code>-Kaskade über einen String-Tag, kein Cast in jedem Zweig, um die Form zurückzugewinnen.
         </p>
+      </div></details>
 
-        <h2 class="block-label"><span class="ex-label">04</span> Benannte Records statt positionaler Tupel</h2>
-        <p>
-          Daten werden immer mit benannten Feldern beschrieben. Es gibt keine Kurzschreibweise für Objektliterale und kein anonymes Tupel, bei dem du dir merken musst, was <code>[0]</code> und <code>[1]</code> sind. Die Form liest sich an der Definition, bei der Konstruktion und bei der Verwendung gleich.
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> statt Exceptions<a class="ak-anchor" href="#result-over-exceptions" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Ein Fehlschlag ist ein Wert, kein versteckter Sprung im Kontrollfluss. Eine Funktion, die fehlschlagen kann, sagt das in ihrem Rückgabetyp (<code>Result&lt;T, E&gt;</code>), und du setzt Fehlschläge mit dem Operator <code>?</code> zusammen, statt Aufrufstellen in <code>try</code>/<code>catch</code> zu packen und zu hoffen, dass das Richtige die richtige Klasse wirft.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Der Fehlerpfad ist so sichtbar wie der Normalfall.</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Benannte Records statt positionaler Tupel<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Daten werden immer mit benannten Feldern beschrieben. Die Form liest sich an der Definition, bei der Konstruktion und bei der Verwendung gleich.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: Was sind [0] und [1]?</span>
@@ -104,23 +126,34 @@ fn origin() -&gt; Point {
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label"><span class="ex-label">05</span> Ein Grundbaustein pro Aufgabe</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">keine Kurzschreibweise, keine anonymen Tupel</span></summary><div class="body">
         <p>
-          Wenn ein Konzept ein eigenes Werkzeug braucht, gibt Glyph ihm genau eins. Gemeinsamer veränderlicher Zustand lebt in einem <code>std/store</code>. Ein Datei- oder Socket-Handle, das genau einmal geschlossen werden muss, ist eine <code>owned</code>-Ressource. Iteration ist <code>for x in xs</code>. Jedes ist ein einzelner, benannter, zweckgebauter Grundbaustein, kein Muster, das du dir aus einer Kiste allgemeiner Teile neu herleitest und dabei subtil falsch machst.
+          Es gibt keine Kurzschreibweise für Objektliterale und kein anonymes Tupel, bei dem du dir merken musst, was <code>[0]</code> und <code>[1]</code> sind.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> Ein Grundbaustein pro Aufgabe<a class="ak-anchor" href="#one-primitive-per-job" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Wenn ein Konzept ein eigenes Werkzeug braucht, gibt Glyph ihm genau eins.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>Gemeinsamer Zustand</b>Gemeinsamer veränderlicher Zustand lebt in einem <code>std/store</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Handles</b>Ein Datei- oder Socket-Handle, das genau einmal geschlossen werden muss, ist eine <code>owned</code>-Ressource.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>Iteration</b>Iteration ist <code>for x in xs</code>.</li>
+      </ul>
+      <p class="ak-lede">
+          Jedes ist ein einzelner, benannter, zweckgebauter Grundbaustein, kein Muster, das du dir aus einer Kiste allgemeiner Teile neu herleitest und dabei subtil falsch machst.
+      </p>
 
         <p class="pull-quote">
           Abstraktion heißt hier <strong>weniger, schärfere Werkzeuge</strong>, nicht mehr. Jedes Konzept hat eine naheliegende Form, und die naheliegende Form ist die, die du verwenden sollst.
         </p>
 
-        <h2 class="block-label">Der Benchmark: kommt noch</h2>
-        <p>
-          Gemessen wird das über die Oberfläche: wie viele verschiedene Konzepte ein Leser im Kopf behalten muss, um ein Programm zu verstehen, und wie viel Code es braucht, eine übliche Aufgabe sauber auszudrücken. Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es genug echte Programme zum Vergleichen gibt.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">Der Benchmark: kommt noch<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Gemessen wird das über die Oberfläche: wie viele verschiedene Konzepte ein Leser im Kopf behalten muss, um ein Programm zu verstehen, und wie viel Code es braucht, eine übliche Aufgabe sauber auszudrücken.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es genug echte Programme zum Vergleichen gibt.</p></div>
       <div class="chart">
         <span class="label">Verschiedene Konzepte, um ein typisches Modul zu lesen &middot; weniger ist besser</span>
         <h3>TypeScript gegen Glyph</h3>
@@ -137,8 +170,6 @@ fn origin() -&gt; Point {
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           Ein kleinerer Kern ist für einen Menschen leichter einmal zu lernen und für ein Modell leichter jedes Mal richtig zu treffen. Das ist die ganze Feinschliff-Schicht in einem Satz: Nimm die Wahlmöglichkeiten weg, die nur Risiko hinzugefügt haben, und übrig bleibt eine Sprache, die sagt, was sie meint.
-        </p>
-      </div>
+      </p></div>

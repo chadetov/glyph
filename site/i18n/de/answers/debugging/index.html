@@ -1,7 +1,7 @@
 ---
 title: Was sieht die Rufbereitschaft, wenn es um 3 Uhr nachts kaputtgeht? · Glyph
 description: Glyph kompiliert zu lesbarem TypeScript mit einer v3-Source-Map zurück zu jeder .glyph-Datei, also zeigen Stacktraces und tsc-Fehler auf das Glyph, das du geschrieben hast.
-source_hash: 23c0350a6befa9fd
+source_hash: 4049ecaf7d564dbf
 prev: /answers/parse-errors/ | &larr; Zurück | Wenn das Parsen fehlschlägt, erfahre ich warum?
 next: /playground/ | Du hast es gesehen &rarr; | Jetzt schreib etwas Glyph im Playground
 ---
@@ -12,35 +12,51 @@ next: /playground/ | Du hast es gesehen &rarr; | Jetzt schreib etwas Glyph im Pl
         Lesbares TypeScript, das dir gehört, mit einer <strong>Source Map zurück zu deiner <code>.glyph</code></strong> neben jeder erzeugten Datei. Ein Debugger, ein Bundler oder ein Error-Tracker verfolgt den laufenden Code bis zu deinem Quellcode zurück, und selbst jemand, der Glyph nie gesehen hat, kann das erzeugte TS lesen. Vor all dem melden <code>glyph build</code> und <code>glyph run</code> dieselben Diagnosen für denselben Baum, also kann die schnelle Schleife nichts verstecken, was der Build gefunden hätte. Zwei Einschränkungen, beide auf dem Weg über <code>glyph run</code>, werden unten genannt.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">1 &middot; Das erzeugte TypeScript kannst du lesen</h2>
-        <p>
-          Glyph liefert keine undurchsichtige Laufzeit aus. Es erzeugt gewöhnliches, formatiertes TypeScript, das du committest und deployst wie jedes andere TS. Der schlimmste Fall (eine Person in Rufbereitschaft, die Glyph nicht kennt, um 3 Uhr nachts) liest also immer noch einfaches TypeScript, keinen Dialekt. Zwischen deinem Quellcode und der Produktion gibt es keine Blackbox.
-        </p>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#1-the-generated-typescript-is-yours-to-read">Lesbares TypeScript</a></li>
+          <li><a href="#2-source-maps-back-to-glyph">Source Maps</a></li>
+          <li><a href="#3-build-and-type-errors-already-point-at-glyph">Build- und Typfehler</a></li>
+          <li><a href="#4-glyph-run-tells-you-the-same-things">Diagnosen von glyph run</a></li>
+          <li><a href="#two-current-limitations">Zwei Einschränkungen</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">2 &middot; Source Maps zurück zu <code>.glyph</code></h2>
-        <p>
-          Jede erzeugte <code>.ts</code> bringt eine Standard-v3-Source-Map (<code>.ts.map</code>) daneben mit, mit einem <code>sourceMappingURL</code>-Kommentar und deinem eingebetteten Glyph-Quellcode (<code>sourcesContent</code>). Alles, was Source Maps verarbeitet (Chrome DevTools, ein Node-Debugger, ein Error-Tracker wie Sentry, dein Bundler), kann sie verketten und dir die <code>.glyph</code>-Zeile zeigen statt der erzeugten.
-        </p>
-      </div>
+      <h2 class="ak-h" id="1-the-generated-typescript-is-yours-to-read">1 &middot; Das erzeugte TypeScript kannst du lesen<a class="ak-anchor" href="#1-the-generated-typescript-is-yours-to-read" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph liefert keine undurchsichtige Laufzeit aus. Es erzeugt gewöhnliches, formatiertes TypeScript, das du committest und deployst wie jedes andere TS.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Der schlimmste Fall (eine Person in Rufbereitschaft, die Glyph nicht kennt, um 3 Uhr nachts) liest also immer noch einfaches TypeScript, keinen Dialekt. Zwischen deinem Quellcode und der Produktion gibt es keine Blackbox.</p></div>
+
+      <h2 class="ak-h" id="2-source-maps-back-to-glyph">2 &middot; Source Maps zurück zu <code>.glyph</code><a class="ak-anchor" href="#2-source-maps-back-to-glyph" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Jede erzeugte <code>.ts</code> bringt eine Standard-v3-Source-Map (<code>.ts.map</code>) daneben mit, mit einem <code>sourceMappingURL</code>-Kommentar und deinem eingebetteten Glyph-Quellcode (<code>sourcesContent</code>).
+      </p>
       <div class="code">
         <span class="cap">dist/main.ts (Ende)</span>
 <pre>// ...emitted TypeScript...
 //# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Alles, was Source Maps verarbeitet (Chrome DevTools, ein Node-Debugger, ein Error-Tracker wie Sentry, dein Bundler), kann sie verketten und dir die <code>.glyph</code>-Zeile zeigen statt der erzeugten.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">3 &middot; Build- und Typfehler zeigen schon auf Glyph</h2>
+      <h2 class="ak-h" id="3-build-and-type-errors-already-point-at-glyph">3 &middot; Build- und Typfehler zeigen schon auf Glyph<a class="ak-anchor" href="#3-build-and-type-errors-already-point-at-glyph" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Mit einem Typfehler kommst du selten bis in die Produktion, weil <code>glyph build</code> <code>tsc --strict</code> ausführt und jeden <code>tsc</code>-Fehler zurück auf deine <code>.glyph</code>-Quelle abbildet (derselbe Caret, der TypeScript-Fehlercode bleibt erhalten).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Und <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus (Code, Schweregrad, Datei, 1-basierte Zeile/Spalte, Hilfe), damit deine CI oder dein Tooling darauf reagieren kann.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wo der Caret landet</span></summary><div class="body">
         <p>
-          Mit einem Typfehler kommst du selten bis in die Produktion, weil <code>glyph build</code> <code>tsc --strict</code> ausführt und <strong>jeden <code>tsc</code>-Fehler zurück auf deine <code>.glyph</code>-Quelle abbildet</strong> (derselbe Caret, der TypeScript-Fehlercode bleibt erhalten). Der Caret steht auf dem kleinsten Glyph-Ausdruck, dessen Code <code>tsc</code> abgelehnt hat: Ein falsches Argument unterstreicht dieses Argument, ein falsch geschriebenes Feld in einem JSX-Event-Handler unterstreicht diesen Member-Zugriff, nicht das ganze <code>return</code> drumherum. Und <code>glyph build --json</code> gibt jede Diagnose als strukturiertes JSON aus (Code, Schweregrad, Datei, 1-basierte Zeile/Spalte, Hilfe), damit deine CI oder dein Tooling darauf reagieren kann.
+          Der Caret steht auf dem kleinsten Glyph-Ausdruck, dessen Code <code>tsc</code> abgelehnt hat: Ein falsches Argument unterstreicht dieses Argument, ein falsch geschriebenes Feld in einem JSX-Event-Handler unterstreicht diesen Member-Zugriff, nicht das ganze <code>return</code> drumherum.
         </p>
+      </div></details>
 
-        <h2 class="block-label">4 &middot; <code>glyph run</code> sagt dir dasselbe</h2>
-        <p>
-          Der Befehl, den du den ganzen Tag tippst, ist <code>glyph run</code>, und bis 0.1.40 war er stiller als der Build. Er kompilierte das ganze Verzeichnis, nahm die Liste der erzeugten Dateien aus dem Bericht und warf die Diagnosen weg. Ein Baum, den <code>glyph build</code> bemängelte, lief sauber und endete mit 0. Jetzt meldet er dieselbe Menge: Warnungen eingeschlossen, für die Datei, die du genannt hast, und für ihre Geschwister, nach der Ausgabe des Programms, mit einer einzeiligen Zählung. Der Run-Cache speichert sie, also sagt ein zweiter Lauf über unveränderte Quellen dasselbe wie der erste, statt zu verstummen, und ein Cache-Eintrag ohne Diagnosen zählt als Fehltreffer und wird neu gebaut.
-        </p>
-      </div>
-      <div class="code">
+      <h2 class="ak-h" id="4-glyph-run-tells-you-the-same-things">4 &middot; <code>glyph run</code> sagt dir dasselbe<a class="ak-anchor" href="#4-glyph-run-tells-you-the-same-things" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Der Befehl, den du den ganzen Tag tippst, ist <code>glyph run</code>, und bis 0.1.40 war er stiller als der Build. Jetzt meldet er dieselbe Menge: Warnungen eingeschlossen, für die Datei, die du genannt hast, und für ihre Geschwister, nach der Ausgabe des Programms, mit einer einzeiligen Zählung.
+      </p>
+      <div class="code term">
         <span class="cap">ein unbenutzter Import, einen Schritt vor dem Code hinzugefügt, der ihn verwendet hätte</span>
 <pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
 <span class="cm">...the game plays and exits 0...</span>
@@ -54,25 +70,51 @@ next: /playground/ | Du hast es gesehen &rarr; | Jetzt schreib etwas Glyph im Pl
 
 glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">Zwei aktuelle Einschränkungen</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Run-Cache</span></summary><div class="body">
         <p>
-          <strong>Der eigene Absturz-Stack von <code>glyph run</code> zeigt noch <code>.ts</code>-Zeilennummern.</strong> <code>glyph run</code> führt über <code>tsx</code> aus, und <code>tsx</code> verkettet die Source Map nicht durch seine eigene Transformation <code>.ts</code>&rarr;<code>.js</code>, also meldet ein nicht abgefangener Throw während <code>glyph run</code> die erzeugte Zeile. Diesen Stack umzurechnen ist ein Folgeschritt. Es betrifft die lokale <code>run</code>-Schleife; in einem echten Deployment machst du <code>glyph build</code> zu <code>.ts</code>, bundelst es mit deiner normalen Toolchain, und die <code>.ts.map</code> wird wie üblich verkettet, also zeigt der Produktions-Stack, wegen dem du tatsächlich alarmiert wirst, zurück auf <code>.glyph</code>.
+          Der Run-Cache speichert sie, also sagt ein zweiter Lauf über unveränderte Quellen dasselbe wie der erste, statt zu verstummen, und ein Cache-Eintrag ohne Diagnosen zählt als Fehltreffer und wird neu gebaut.
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">vor 0.1.40</span></summary><div class="body">
+        <p>
+          Er kompilierte das ganze Verzeichnis, nahm die Liste der erzeugten Dateien aus dem Bericht und warf die Diagnosen weg. Ein Baum, den <code>glyph build</code> bemängelte, lief sauber und endete mit 0.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="two-current-limitations">Zwei aktuelle Einschränkungen<a class="ak-anchor" href="#two-current-limitations" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Der eigene Absturz-Stack von <code>glyph run</code> zeigt noch <code>.ts</code>-Zeilennummern.</b><code>glyph run</code> führt über <code>tsx</code> aus, und <code>tsx</code> verkettet die Source Map nicht durch seine eigene Transformation <code>.ts</code>&rarr;<code>.js</code>, also meldet ein nicht abgefangener Throw während <code>glyph run</code> die erzeugte Zeile. Diesen Stack umzurechnen ist ein Folgeschritt.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Ein Fehler in einem Geschwistermodul ändert den Exit-Code von <code>glyph run</code> nicht.</b>Ein Modul, das nicht kompiliert werden konnte, lässt sich nicht importieren, und ein Programm, das es nie importiert hat, läuft trotzdem. Du siehst den Fehler jetzt, aber der Prozess endet weiterhin mit dem, was <code>main</code> zurückgegeben hat.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Produktions-Stacks, und warum der Exit-Code bleibt</span></summary><div class="body">
+        <p>
+          Es betrifft die lokale <code>run</code>-Schleife; in einem echten Deployment machst du <code>glyph build</code> zu <code>.ts</code>, bundelst es mit deiner normalen Toolchain, und die <code>.ts.map</code> wird wie üblich verkettet, also zeigt der Produktions-Stack, wegen dem du tatsächlich alarmiert wirst, zurück auf <code>.glyph</code>.
         </p>
         <p>
-          <strong>Ein Fehler in einem Geschwistermodul ändert den Exit-Code von <code>glyph run</code> nicht.</strong> Ein Modul, das nicht kompiliert werden konnte, lässt sich nicht importieren, und ein Programm, das es nie importiert hat, läuft trotzdem. Du siehst den Fehler jetzt, aber der Prozess endet weiterhin mit dem, was <code>main</code> zurückgegeben hat. Ihn mit einem Wert ungleich null enden zu lassen, würde Bäume scheitern lassen, die heute problemlos laufen, also ist das eine offene Entscheidung und kein Versehen. Wenn der Zustand des Baums über den Exit-Code entscheiden soll, ist das <code>glyph build</code>.
+          Ihn mit einem Wert ungleich null enden zu lassen, würde Bäume scheitern lassen, die heute problemlos laufen, also ist das eine offene Entscheidung und kein Versehen. Wenn der Zustand des Baums über den Exit-Code entscheiden soll, ist das <code>glyph build</code>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Wo es steht</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Lesbares, committetes TS, eine v3-<code>.ts.map</code> pro Datei, <code>tsc</code>-Fehler auf <code>.glyph</code> zurückgebildet und Diagnosen per <code>--json</code>. <code>glyph run</code> meldet, was <code>glyph build</code> meldet, auch mit warmem Cache. Die Source-Map-Kette deiner Deployment-Toolchain reicht bis <code>.glyph</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">In Arbeit</h3>
-          <p>Den Absturz-Stack von <code>glyph run</code> selbst umzurechnen (damit auch die lokale Run-Schleife <code>.glyph</code>-Frames zeigt), eine Entscheidung, ob der Fehler eines Geschwistermoduls <code>glyph run</code> mit einem Wert ungleich null enden lassen soll, und besseres Debugging im Editor über den LSP.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Lesbares, committetes TS.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine v3-<code>.ts.map</code> pro Datei.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>tsc</code>-Fehler auf <code>.glyph</code> zurückgebildet.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Diagnosen per <code>--json</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph run</code> meldet, was <code>glyph build</code> meldet, auch mit warmem Cache.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die Source-Map-Kette deiner Deployment-Toolchain reicht bis <code>.glyph</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Den Absturz-Stack von <code>glyph run</code> selbst umrechnen (damit auch die lokale Run-Schleife <code>.glyph</code>-Frames zeigt).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Eine Entscheidung, ob der Fehler eines Geschwistermoduls <code>glyph run</code> mit einem Wert ungleich null enden lassen soll.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Besseres Debugging im Editor über den LSP.</span></span></li>
+          </ul>
+        </section>
       </div>

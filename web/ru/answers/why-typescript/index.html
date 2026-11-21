@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему TypeScript, а не Go или новый язык?","item":"https://glyphlang.io/ru/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/why-typescript/#article","headline":"Почему TypeScript, а не Go или новый язык?","description":"TypeScript это язык, на котором агенты уже пишут больше всего кода, и там живут npm, React и Node. Glyph можно внедрять по одному файлу только потому, что он компилируется в TS.","url":"https://glyphlang.io/ru/answers/why-typescript/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/why-typescript/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/why-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему TypeScript, а не Go или новый язык?","item":"https://glyphlang.io/ru/answers/why-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/why-typescript/#article","headline":"Почему TypeScript, а не Go или новый язык?","description":"TypeScript это язык, на котором агенты уже пишут больше всего кода, и там живут npm, React и Node. Glyph можно внедрять по одному файлу только потому, что он компилируется в TS.","url":"https://glyphlang.io/ru/answers/why-typescript/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/why-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/why-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/why-typescript/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">04 &middot; Позиционирование</p>
       <h1 class="q-title">Почему TypeScript, а не Go или новый язык?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,43 +478,49 @@
         Потому что на TypeScript агенты уже пишут больше всего кода, и там живёт ваша экосистема (npm, React, Node). Glyph можно внедрять по одному файлу <strong>только потому, что он компилируется в TS</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Новый язык живёт или умирает в зависимости от того, как дойти от нуля до продакшена. Компиляция в TypeScript означает, что вы не уходите из своей кодовой базы, своего бандлера, своего тест-раннера и своего деплоя. Glyph встаёт рядом с уже имеющимися файлами <code>.ts</code>, и импорт чисто работает в обе стороны:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">один проект: .glyph и .ts рядом</span>
+      <figure class="ak-hero">
+        <div class="code">
+          <span class="cap">один проект: .glyph и .ts рядом</span>
 <pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 <span class="k">import</span> { formatPrice } <span class="k">from</span> <span class="s">"./format.ts"</span>
 
 <span class="cm">// checkout.ts: existing, untouched</span>
 <span class="k">import</span> { total } <span class="k">from</span> <span class="s">"./cart.glyph"</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Go нельзя внедрить в кодовую базу на TypeScript пофайлово: это другой рантайм, другая система модулей и другая экосистема. Именно поэтому целевой язык TS.
-        </p>
-        <p>
-          <strong>Справедливое замечание о Go:</strong> небольшой и стабильный набор ключевых слов оставляет агенту меньше способов ошибиться. Мы согласны, и именно поэтому у Glyph намеренно маленькое ядро с одним способом сделать каждую вещь. Go есть в нашем <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">бенчмарке</a> плотности для прямого сравнения.
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Чистый TypeScript на выходе, импорт в обе стороны с вашими существующими <code>.ts</code> и маленькое ядро, которое работает везде, где работает Node или браузерный бандл.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Измеряется</h3>
-          <p>Межъязыковой бенчмарк (Glyph, TS, Go, Python, Rust) растёт вместе с корпусом, поэтому утверждение о «небольшой поверхности» остаётся числом, а не голословным заявлением.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph встаёт рядом с уже имеющимися файлами <code>.ts</code>, и импорт чисто работает в обе стороны.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Новый язык живёт или умирает в зависимости от того, как дойти от нуля до продакшена. Компиляция в TypeScript означает, что вы не уходите из своей кодовой базы, своего бандлера, своего тест-раннера и своего деплоя.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go нельзя внедрить в кодовую базу на TypeScript пофайлово: это другой рантайм, другая система модулей и другая экосистема. Именно поэтому целевой язык TS.</p></div>
+
+      <h2 class="ak-h" id="go">Справедливое замечание о Go<a class="ak-anchor" href="#go" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Небольшой и стабильный набор ключевых слов оставляет агенту меньше способов ошибиться. Мы согласны, и именно поэтому у Glyph намеренно маленькое ядро с одним способом сделать каждую вещь.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go есть в нашем <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">бенчмарке</a> плотности для прямого сравнения.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чистый TypeScript на выходе.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Импорт в обе стороны с вашими существующими <code>.ts</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Маленькое ядро, которое работает везде, где работает Node или браузерный бандл.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Измеряется <span class="count">1</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Межъязыковой бенчмарк (Glyph, TS, Go, Python, Rust) растёт вместе с корпусом, поэтому утверждение о «небольшой поверхности» остаётся числом, а не голословным заявлением.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/greppability/">
           <span class="dir">&larr; Назад</span>

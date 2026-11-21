@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Does the compiler tell my agent how to fix it?","item":"https://glyphlang.io/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/repair-protocol/#article","headline":"Does the compiler tell my agent how to fix it?","description":"Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.","url":"https://glyphlang.io/answers/repair-protocol/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/repair-protocol/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Does the compiler tell my agent how to fix it?","item":"https://glyphlang.io/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/repair-protocol/#article","headline":"Does the compiler tell my agent how to fix it?","description":"Each diagnostic carries the types, the symbol at fault and the legal alternatives, and glyph fix writes the repairs the compiler can settle on its own.","url":"https://glyphlang.io/answers/repair-protocol/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/repair-protocol/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/repair-protocol/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/repair-protocol/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">23 &middot; Fixing a red build</p>
       <h1 class="q-title">When the build fails, does the compiler tell my agent how to fix it?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -489,34 +489,9 @@
         <code>glyph fix</code> writes it.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          An agent's loop around a compiler is read the error, guess the edit, rebuild. The
-          guessing step is where the damage happens, and it happens because the error is a
-          string. An agent that reads "non-exhaustive match on <code>OrderStatus</code>"
-          knows a match is short some arms. It does not know what the missing variants
-          carry, so it writes <code>Paid("tx_1")</code> and finds out from the next
-          diagnostic. Or it reads the word "exhaustive", adds an <code>else</code> arm, and
-          the build goes green having thrown away the guarantee that the diagnostic existed
-          to protect.
-        </p>
-        <p>
-          The compiler knew all of it. It knew the union's variants and their payloads, it
-          knew an <code>else</code> would forfeit the seal, and it dropped both one line
-          before the reply.
-        </p>
-
-        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
-        <p>
-          A two-module project. <code>orders</code> declares the union;
-          <code>main</code> writes a <code>match</code> over it and handles one case.
-          <code>glyph check --agent</code>, trimmed to the keys that matter here:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph check --agent --no-tsc src</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph check --agent --no-tsc src</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
   <span class="pk">"severity"</span>: <span class="s">"error"</span>,
@@ -556,45 +531,85 @@
   <span class="pk">"explain"</span>: { <span class="pk">"command"</span>: <span class="s">"glyph --explain E0200"</span>,
                <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span> }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>A two-module project. <code>orders</code> declares the union;
+          <code>main</code> writes a <code>match</code> over it and handles one case.
+          <code>glyph check --agent</code>, trimmed to the keys that matter here.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#reading-the-answer">Reading the answer</a></li>
+          <li><a href="#where-the-answer-is-determined-the-compiler-writes-it">What glyph fix writes</a></li>
+          <li><a href="#the-code-s-own-explanation-as-data">Explanations as data</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        An agent's loop around a compiler is read the error, guess the edit, rebuild. The
+        guessing step is where the damage happens, and it happens because the error is a
+        string.
+      </p>
+      <ol class="ak-path" aria-label="The agent's loop"><li><span>read the error</span></li><li><span>guess the edit</span></li><li><span>rebuild</span></li></ol>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The compiler knew all of it. It knew the union's variants and their payloads, it
+          knew an <code>else</code> would forfeit the seal, and it dropped both one line
+          before the reply.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the two wrong edits a string invites</span></summary><div class="body">
         <p>
-          Three things are worth pulling out. <code>cause</code> is the symbol at fault, and
+          An agent that reads "non-exhaustive match on <code>OrderStatus</code>"
+          knows a match is short some arms. It does not know what the missing variants
+          carry, so it writes <code>Paid("tx_1")</code> and finds out from the next
+          diagnostic. Or it reads the word "exhaustive", adds an <code>else</code> arm, and
+          the build goes green having thrown away the guarantee that the diagnostic existed
+          to protect.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="reading-the-answer">Reading the answer<a class="ak-anchor" href="#reading-the-answer" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">Three things are worth pulling out.</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="3"/><path d="M8 10v4.5M5.5 14.5h5"/></svg></span><b><code>cause</code></b><code>cause</code> is the symbol at fault, and
           it is a different thing from <code>entity</code>, which is the declaration the
           diagnostic sits in: here the edit happens in <code>main::describe</code> and the
-          shape it has to match comes from <code>orders::OrderStatus</code>. Both are
+          shape it has to match comes from <code>orders::OrderStatus</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>constraints</code></b><code>constraints</code> are not the repair. Each one is something the compiler
+          already enforces, written out so the edit that satisfies the diagnostic does not
+          break the guarantee behind it.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>symbols</code></b><code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the
+          diagnostic names, so the agent's next edit needs no second call.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Every key is always present. A fact the compiler does not hold arrives as an
+          explicit <code>null</code>, never as a missing key, so absence has one spelling on
+          every code and on both the CLI and the MCP surface.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">addresses that chain, the else constraint, symbols_absent</span></summary><div class="body">
+        <p>
+          Both are
           addresses the other tools take, so an answer chains without re-deriving anything.
         </p>
         <p>
-          <code>constraints</code> are not the repair. Each one is something the compiler
-          already enforces, written out so the edit that satisfies the diagnostic does not
-          break the guarantee behind it. The second constraint is why the key exists: an
+          The second constraint is why the key exists: an
           <code>else</code> arm is legal, it would turn the build green, and the constraint
           says what taking it costs.
         </p>
         <p>
-          <code>symbols</code> is the <code>glyph_symbol</code> answer for every symbol the
-          diagnostic names, so the agent's next edit needs no second call. A symbol the tool
+          A symbol the tool
           refuses appears in <code>symbols_absent</code> with the reason, which keeps "we did
           not look" apart from "we looked and it is not there".
         </p>
-        <p>
-          Every key is always present. A fact the compiler does not hold arrives as an
-          explicit <code>null</code>, never as a missing key, so absence has one spelling on
-          every code and on both the CLI and the MCP surface.
-        </p>
+      </div></details>
 
-        <h2 class="block-label" id="where-the-answer-is-determined-the-compiler-writes-it">Where the answer is determined, the compiler writes it<a class="h-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Link to this section">#</a></h2>
-        <p>
-          <code>glyph fix</code> applies only the repairs the compiler settles on its own:
-          unused imports, an arm head that is not a variant when the checker computed exactly
-          one suggestion, and a field the record does not declare when exactly one declared
-          field is a character away. The <code>match</code> above is not one of them.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="where-the-answer-is-determined-the-compiler-writes-it">Where the answer is determined, the compiler writes it<a class="ak-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fix</code> applies only the repairs the compiler settles on its own:
+        unused imports, an arm head that is not a variant when the checker computed exactly
+        one suggestion, and a field the record does not declare when exactly one declared
+        field is a character away. The <code>match</code> above is not one of them.
+      </p>
+      <div class="code term">
         <span class="cap">glyph fix src, on the match above</span>
 <pre>glyph fix: removed 0 unused import(s) across 0 file(s).
 glyph fix: declined E0200 in src/main.glyph: the compiler does not
@@ -604,18 +619,20 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
 
 <span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
       </div>
-
-      <div class="detail">
-        <p>
-          The compiler knows which cases are missing and the pattern each one takes. It does
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The compiler knows which cases are missing and the pattern each one takes. It does
           not know what the program should do when an order is <code>Paid</code>, and any
-          body it wrote would be a guess that compiles. Up to 0.1.128 <code>glyph fix</code>
+          body it wrote would be a guess that compiles.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what glyph fix wrote up to 0.1.128</span></summary><div class="body">
+        <p>
+          Up to 0.1.128 <code>glyph fix</code>
           wrote that guess: one arm per case whose body printed the case and called
           <code>process.exit(1)</code>. The program then passed <code>check</code>,
           <code>tsc</code> and <code>build</code>, and <code>glyph query variants</code>
           reported the match as exhaustive, so the missing case had moved from a compile error
           to a crash at run time with nothing left to flag it.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where the arms come from, and how declines are reported</span></summary><div class="body">
         <p>
           So the rule declines, and names the cases. Everything needed to write the arms is
           already in the <code>--agent</code> answer above: <code>missing_variants</code>, and
@@ -629,18 +646,18 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
           what it applied. Two fields a character away from a typo are two, not one, and it
           says so rather than picking.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-code-s-own-explanation-as-data">The code's own explanation, as data<a class="h-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Link to this section">#</a></h2>
-        <p>
-          <code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form
-          explanation, the one-line <code>help</code>, the docs URL, and a wrong program from
-          the compiler's negative corpus paired with the diagnostic this compiler draws for
-          it. The diagnostic is compiled when you ask, not stored, so it cannot drift from
-          what the compiler actually says.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-code-s-own-explanation-as-data">The code's own explanation, as data<a class="ak-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph --explain &lt;CODE&gt; --json</code> answers with the long-form
+        explanation, the one-line <code>help</code>, the docs URL, and a wrong program from
+        the compiler's negative corpus paired with the diagnostic this compiler draws for
+        it.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The diagnostic is compiled when you ask, not stored, so it cannot drift from
+        what the compiler actually says.</p></div>
+      <div class="code term">
         <span class="cap">glyph --explain E0200 --json</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
@@ -667,13 +684,10 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <p>
-          A code the corpus does not cover comes back with <code>counter_example: null</code>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>A code the corpus does not cover comes back with <code>counter_example: null</code>
           and a sentence saying the corpus holds no case for it, rather than a made-up
-          example. The corpus claims what it covers and nothing about the rest.
-        </p>
+          example. The corpus claims what it covers and nothing about the rest.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the whole corpus, through glyph llms --negative</span></summary><div class="body">
         <p>
           <code>glyph --explain</code> hands over one case per code. The whole corpus is readable
           too: <code>glyph llms --negative E0200</code> prints every wrong program that draws the
@@ -684,20 +698,36 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
           of what the compiler publishes about itself is
           <a href="/answers/generated-docs/">its own page</a>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact. <code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens. <code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic. <code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes. <code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Where it stops</h3>
-          <p><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission. <code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all. <code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic. Everything it declines, it declines out loud.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, each an explicit <code>null</code> when the compiler holds no such fact</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Every diagnostic carries <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (with <code>alternatives_kind</code> saying whether it lists <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> or <code>exports</code>, set where the error is raised), <code>related</code>, <code>module</code>, <code>file</code> and <code>explain</code>, populated from the error the compiler raised rather than re-derived, and each is an explicit <code>null</code> when the compiler holds no such fact.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>file</code> is a path relative to the resolution root, and the report names that root in <code>project_root</code>, so it opens.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check --agent</code> adds <code>constraints</code> and <code>symbols</code> per diagnostic.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fix</code> applies three rules (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) and states every decline with its reason, including every <code>E0200</code>, which it reports and never writes.</span><span class="chip code">E0106</span><span class="chip code">E0210</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --explain &lt;CODE&gt; --json</code> returns the explanation with a compiled counter-example, and <code>glyph llms --negative &lt;CODE&gt;</code> returns the whole corpus of wrong programs that draw it.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Where it stops</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>cause</code> on <code>E0211</code> is <code>null</code>: the symbol at fault at a call argument is a parameter, and <code>module::fn.param</code> is not something the identity vocabulary can spell, so the null is deliberate rather than an omission.</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>corrected</code> on a counter-example is always <code>null</code>, because the negative corpus pairs no repaired program with a case, and 24 of the 70 codes have no case at all.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph fix</code> writes three rules and nothing else, and it writes no arm for a non-exhaustive <code>match</code>: those are left for you or your agent, with the cases and their patterns in the diagnostic.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Everything it declines, it declines out loud.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/ask-the-compiler/">
           <span class="dir">&larr; Previous</span>

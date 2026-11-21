@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли агент сначала спросить компилятор о символе?","item":"https://glyphlang.io/ru/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#article","headline":"Может ли агент сначала спросить компилятор о символе?","description":"glyph_symbol отвечает за один вызов: варианты union, поля записи, сигнатура функции и то, должен ли match по ней быть исчерпывающим.","url":"https://glyphlang.io/ru/answers/ask-the-compiler/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли агент сначала спросить компилятор о символе?","item":"https://glyphlang.io/ru/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#article","headline":"Может ли агент сначала спросить компилятор о символе?","description":"glyph_symbol отвечает за один вызов: варианты union, поля записи, сигнатура функции и то, должен ли match по ней быть исчерпывающим.","url":"https://glyphlang.io/ru/answers/ask-the-compiler/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/ask-the-compiler/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/ask-the-compiler/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/ask-the-compiler/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">22 &middot; Спросите компилятор</p>
       <h1 class="q-title">Может ли агент спросить у компилятора, что такое символ, до того как писать код?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,22 +478,8 @@
         За один вызов. <code>glyph_symbol</code> принимает <code>module::name</code>, который уже напечатала диагностика, или позицию в файле, и отвечает полями записи с их типами, вариантами union с их данными <em>и синтаксисом, который создаёт каждый из них</em>, параметрами и возвращаемым типом вызываемого объекта, членами интерфейса и тем, должен ли <code>match</code> по нему быть исчерпывающим.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Агент, которому поручили обработать новый случай в union, объявленном не им, должен знать, что несут варианты. Чтобы прочитать объявление, сначала нужно найти файл. Поиск символов раньше давал ему имя и диапазон байтов, а список вариантов давал <code>["Pending", "Paid", "Cancelled"]</code>. Исходя из этого, агент пишет <code>Paid("tx_1")</code>, что не соответствует форме, и узнаёт об этом из диагностики. Данные варианта у компилятора были с самого начала. Инструмент выбрасывал их за строку до ответа.
-        </p>
-        <p>
-          Именно этот паттерн и должна была убрать поверхность для агентов: факты, которые компилятор уже вычисляет и кэширует, но которые не отдаёт ни один инструмент. Аудит проекта из трёх модулей показал, что hover отвечал на две позиции из четырнадцати, а каждый union приходил без данных вариантов.
-        </p>
-
-        <h2 class="block-label" id="see-it">Посмотрите сами<a class="h-anchor" href="#see-it" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Проект из трёх файлов, в котором <code>OrderStatus</code> объявлен в <code>orders.glyph</code>. Запрос из <code>main.glyph</code>, который его не импортирует:
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>,
@@ -519,20 +505,52 @@
     module this project holds, and the compiler parsed and resolved that declaration"</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Проект из трёх файлов, в котором <code>OrderStatus</code> объявлен в <code>orders.glyph</code>. Запрос из <code>main.glyph</code>, который его не импортирует.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#absent">Каждый null объясняет почему</a></li>
+          <li><a href="#the-second-question-an-agent-asks">Совместимость типов</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">Зависимости и экспорты</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">Одиннадцать инструментов</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Агент, которому поручили обработать новый случай в union, объявленном не им, должен знать, что несут варианты. Чтобы прочитать объявление, сначала нужно найти файл.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Данные варианта у компилятора были с самого начала. Инструмент выбрасывал их за строку до ответа.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">что раньше возвращал поиск символов</span></summary><div class="body">
         <p>
-          Сокращено: в ответе есть также <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> и <code>examples</code>. Каждый из них идёт в паре. Ключ равен null только вместе с фразой <code>&lt;key&gt;_absent</code>, объясняющей почему, поэтому агенту никогда не приходится гадать, значит ли пустой ответ, что у символа этого нет, или что инструмент не смотрел. <code>const</code> без аннотации по этому правилу не сообщает тип: проверка типов намеренно не выводит тип объявления из инициализатора, так что напечатать тип инициализатора значило бы сказать вызывающему, что использования имени проверяются относительно того, что ничего не проверяет.
+          Поиск символов раньше давал ему имя и диапазон байтов, а список вариантов давал <code>["Pending", "Paid", "Cancelled"]</code>. Исходя из этого, агент пишет <code>Paid("tx_1")</code>, что не соответствует форме, и узнаёт об этом из диагностики.
         </p>
-
-        <h2 class="block-label" id="the-second-question-an-agent-asks">Второй вопрос, который задаёт агент<a class="h-anchor" href="#the-second-question-an-agent-asks" aria-label="Ссылка на этот раздел">#</a></h2>
         <p>
-          Получив форму, агент дальше хочет знать, можно ли поставить значение, которое у него есть, туда, куда он собирается. <code>glyph_assignable</code> обращается к собственному сравнению проверки типов. Каждая сторона это <code>module::name</code> или запись типа на Glyph, прочитанная в области видимости указанного файла, а вердикт говорит, какой из трёх исходов получился.
+          Именно этот паттерн и должна была убрать поверхность для агентов: факты, которые компилятор уже вычисляет и кэширует, но которые не отдаёт ни один инструмент. Аудит проекта из трёх модулей показал, что hover отвечал на две позиции из четырнадцати, а каждый union приходил без данных вариантов.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="absent">Каждый null объясняет почему<a class="ak-anchor" href="#absent" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Сокращено: в ответе есть также <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> и <code>examples</code>. Каждый из них идёт в паре.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Ключ равен null только вместе с фразой <code>&lt;key&gt;_absent</code>, объясняющей почему, поэтому агенту никогда не приходится гадать, значит ли пустой ответ, что у символа этого нет, или что инструмент не смотрел.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">const без аннотации</span></summary><div class="body">
+        <p>
+          <code>const</code> без аннотации по этому правилу не сообщает тип: проверка типов намеренно не выводит тип объявления из инициализатора, так что напечатать тип инициализатора значило бы сказать вызывающему, что использования имени проверяются относительно того, что ничего не проверяет.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">Второй вопрос, который задаёт агент<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Получив форму, агент дальше хочет знать, можно ли поставить значение, которое у него есть, туда, куда он собирается. <code>glyph_assignable</code> обращается к собственному сравнению проверки типов.
+      </p>
       <div class="two-up stack">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
@@ -553,7 +571,7 @@
             <span class="pk">"read_as"</span>: <span class="s">"number"</span> }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"COMPATIBLE"</span>,
@@ -571,41 +589,95 @@
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">три вердикта и почему не SAFE</span></summary><div class="body">
+        <p>
+          Каждая сторона это <code>module::name</code> или запись типа на Glyph, прочитанная в области видимости указанного файла, а вердикт говорит, какой из трёх исходов получился.
+        </p>
         <p>
           Слово здесь <code>COMPATIBLE</code>, а не <code>SAFE</code>, и разница стоит пояснения. <code>SAFE</code> это слово <code>glyph_impact</code>, и оно значит, что конкретное место остаётся корректным после конкретной правки. Этот ответ касается двух типов, и ни места, ни правки в вопросе нет. Третий вердикт <code>UNDETERMINED</code>, и он выдаётся всякий раз, когда ни одно правило не покрывает пару: так возвращаются два типа функций, потому что лежащее в основе отношение сравнивает возвращаемые типы и ничего не говорит о параметрах. Его молчание здесь не означает согласия, и инструмент не выдаст его за согласие.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-other-direction-what-does-this-depend-on-and-what-does">В обратную сторону: от чего это зависит и что даёт мне тот модуль<a class="h-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          <code>glyph_references</code> отвечает, кто использует символ. <code>glyph_dependencies</code> читает те же таблицы с другого конца: от чего зависит одно объявление, то есть каждое объявление, которое называет его исходный код, с разбивкой на <code>CALLS</code>, <code>REFERENCES</code> и <code>FIELD_ACCESS</code>, и каждое ребро несёт оба конца и своё местоположение. <code>glyph_exports</code> отвечает, что модуль делает видимым для импортирующего, по собственному запросу экспорта компилятора, а не по сканированию: каждое объявление <code>pub</code> и каждый вариант, который поднимает <code>pub</code> union, каждое как запись с идентичностью, видом и сигнатурой. Агент, который собирается написать импорт, может спросить, что находится на другой стороне, вместо того чтобы открывать файл.
-        </p>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">В обратную сторону: от чего это зависит и что даёт мне тот модуль<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Агент, который собирается написать импорт, может спросить, что находится на другой стороне, вместо того чтобы открывать файл.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code> отвечает, кто использует символ.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code> читает те же таблицы с другого конца: от чего зависит одно объявление, то есть каждое объявление, которое называет его исходный код, с разбивкой на <code>CALLS</code>, <code>REFERENCES</code> и <code>FIELD_ACCESS</code>, и каждое ребро несёт оба конца и своё местоположение.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code> отвечает, что модуль делает видимым для импортирующего, по собственному запросу экспорта компилятора, а не по сканированию: каждое объявление <code>pub</code> и каждый вариант, который поднимает <code>pub</code> union, каждое как запись с идентичностью, видом и сигнатурой.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">ошибка с PROVED, которую поймало зеркало</span></summary><div class="body">
         <p>
           Построение зеркального отношения как раз и выявило ошибку в исходном. Каждое ребро несёт происхождение, и <code>PROVED</code> должно означать, что компилятор прочитал оба конца. Он отвечал <code>PROVED</code> для ребра в модуль, который не разбирается, где ничего прочитано не было. Теперь он отвечает <code>UNDETERMINED</code> с причиной, а поскольку <code>glyph_references</code> и <code>glyph_impact</code> вызывают одну и ту же функцию, оба ошибались одинаково и оба исправлены.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="eleven-tools-and-no-client-required">Одиннадцать инструментов, и клиент не обязателен<a class="h-anchor" href="#eleven-tools-and-no-client-required" aria-label="Ссылка на этот раздел">#</a></h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">Одиннадцать инструментов, и клиент не обязателен<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code> отдаёт одиннадцать: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>У каждого есть команда <code>glyph query</code>, которая принимает те же аргументы в виде флагов и печатает тот же JSON, проходя через ту же точку входа, что и клиент, поэтому агент, который умеет только запускать команды оболочки, задаёт те же вопросы.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">диагностика и что идёт после правки</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code> отдаёт одиннадцать: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> и <code>glyph_exports</code>. У каждого есть команда <code>glyph query</code>, которая принимает те же аргументы в виде флагов и печатает тот же JSON, проходя через ту же точку входа, что и клиент, поэтому агент, который умеет только запускать команды оболочки, задаёт те же вопросы. <code>glyph_diagnostics</code> проверяет файл внутри его проекта и возвращает ту же диагностику, что печатает <code>glyph check --json</code>, из того же типа Rust, а тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом. Подробности на <a href="/ru/mcp/">странице MCP</a>.
+          <code>glyph_diagnostics</code> проверяет файл внутри его проекта и возвращает ту же диагностику, что печатает <code>glyph check --json</code>, из того же типа Rust, а тест запускает обе поверхности на шести проектах и сравнивает JSON ключ за ключом. Подробности на <a href="/ru/mcp/">странице MCP</a>.
         </p>
         <p>
           Всё это спрашивается до правки. После неё компилятор отвечает в обратную сторону: <code>glyph check --agent</code> печатает каждую диагностику с инвариантами, которые исправляющая правка должна сохранить, и описанием <code>glyph_symbol</code> для каждого символа, который она называет, так что форма, нужная агенту, приходит вместе с ошибкой, которая её потребовала. Об этом есть <a href="/ru/answers/repair-protocol/">отдельная страница</a>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Одиннадцать инструментов чтения через MCP, у каждого есть команда <code>glyph query</code>. <code>glyph_symbol</code> отвечает по идентичности или по позиции, и каждый факт, которого у него нет, равен null рядом с фразой, объясняющей почему. Идентичность доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph query symbol --entity std/result::Result</code> отвечает <code>Ok(T)</code> и <code>Err(E)</code>, <code>glyph query exports --module std/result</code> перечисляет поверхность, а <code>E0200</code> по нему несёт эту идентичность в <code>cause</code>. За ним нет исходного кода на Glyph, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют. Hover отвечает на все четырнадцать позиций, которые проверил аудит на проекте из трёх модулей, против двух до начала этой работы: имя, объявленное в другом модуле, отвечает по собственному объявлению этого модуля, так что тип есть у привязки импорта, у импортированной функции в вызове, у импортированного варианта, использованного как значение, и у поля, прочитанного из импортированной записи. <code>glyph_dependencies</code> и <code>glyph_exports</code> закрывают набор, который запрашивал G221. <code>glyph_variants</code> несёт данные каждого варианта и синтаксис его создания; <code>glyph_definition</code> и <code>glyph_symbols</code> несут <code>module::name</code>, так что ответ выстраивается в цепочку с <code>glyph_impact</code> без повторного вывода. Таблица типов сигнатур <code>glyph_impact</code> сопоставляет контейнер с контейнером, структурную запись со структурной или объявленной записью (локальной, импортированной, обобщённой или под вторым именем), JSX-элемент как вызов, в который он опускается, и union строковых литералов с любой стороны тем же сравнением, что и <code>glyph_assignable</code>, так что два инструмента не могут разойтись в оценке одной пары. Аргумент, пару которого отношение читает полностью, получает <code>WILL_FAIL</code> независимо от исхода сравнения, потому что <code>change_signature_type</code> не называет тип замены, а принятая пара может быть отклонена при какой-то замене; <code>UNDETERMINED</code> получает только пара, от которой отношение отказывается.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Где он останавливается</h3>
-          <p>Ни один инструмент здесь не пишет: нет переименования, нет применяемых правок. Сторона записи это <code>glyph fix</code> в командной строке, и он исправляет три вещи, а не всё, что вы попросите: неиспользуемые импорты, заголовок ветки, для которого у проверки типов ровно одна подсказка, и имя поля, отличающееся на один символ ровно от одного объявленного поля. Экспорт стандартной библиотеки, для которого компилятор не моделирует ни объявления, ни сигнатуры, отвечает <code>kind: null</code> с причиной: <code>std/result::all</code> и <code>std/io::println</code> типизированы в TypeScript, который компилятор подкладывает в сборку и который не читает ни один проход Glyph. <code>glyph_diagnostics</code> пропускает три проверки, которые делает <code>glyph check</code>: <code>tsc</code>, проверку <code>E0104</code> на импорт, не называющий модуль (ей нужно представление сборки о <code>node_modules</code>), и <code>E0400</code> для упавшего <code>@example</code> (ей нужен запуск сгенерированного проекта). Он перечисляет все три в <code>not_run</code>, а не отвечает так, будто их выполнил.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Одиннадцать инструментов чтения через MCP, у каждого есть команда <code>glyph query</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code> отвечает по идентичности или по позиции, и каждый факт, которого у него нет, равен null рядом с фразой, объясняющей почему.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Идентичность доходит до стандартной библиотеки: <code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Идентичность доходит до стандартной библиотеки: <code>Result</code> из прелюдии это <code>std/result::Result</code>, то есть модуль, под которым его регистрирует резолвер и из которого эмиттер пишет импорт, поэтому <code>glyph query symbol --entity std/result::Result</code> отвечает <code>Ok(T)</code> и <code>Err(E)</code>, <code>glyph query exports --module std/result</code> перечисляет поверхность, а <code>E0200</code> по нему несёт эту идентичность в <code>cause</code>. За ним нет исходного кода на Glyph, поэтому <code>path</code> и <code>range</code> равны null с этой причиной, а не отсутствуют.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Hover отвечает на четырнадцать из четырнадцати проверенных позиций</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Hover отвечает на все четырнадцать позиций, которые проверил аудит на проекте из трёх модулей, против двух до начала этой работы: имя, объявленное в другом модуле, отвечает по собственному объявлению этого модуля, так что тип есть у привязки импорта, у импортированной функции в вызове, у импортированного варианта, использованного как значение, и у поля, прочитанного из импортированной записи.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code> и <code>glyph_exports</code> закрывают набор, который запрашивал G221.</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code> несёт данные каждого варианта и синтаксис его создания; <code>glyph_definition</code> и <code>glyph_symbols</code> несут <code>module::name</code>, так что ответ выстраивается в цепочку с <code>glyph_impact</code> без повторного вывода.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code> и <code>glyph_assignable</code> делают одно и то же сравнение</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Таблица типов сигнатур <code>glyph_impact</code> сопоставляет контейнер с контейнером, структурную запись со структурной или объявленной записью (локальной, импортированной, обобщённой или под вторым именем), JSX-элемент как вызов, в который он опускается, и union строковых литералов с любой стороны тем же сравнением, что и <code>glyph_assignable</code>, так что два инструмента не могут разойтись в оценке одной пары. Аргумент, пару которого отношение читает полностью, получает <code>WILL_FAIL</code> независимо от исхода сравнения, потому что <code>change_signature_type</code> не называет тип замены, а принятая пара может быть отклонена при какой-то замене; <code>UNDETERMINED</code> получает только пара, от которой отношение отказывается.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Где он останавливается</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ни один инструмент здесь не пишет: нет переименования, нет применяемых правок.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Сторона записи это <code>glyph fix</code>, и он исправляет три вещи</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Сторона записи это <code>glyph fix</code> в командной строке, и он исправляет три вещи, а не всё, что вы попросите: неиспользуемые импорты, заголовок ветки, для которого у проверки типов ровно одна подсказка, и имя поля, отличающееся на один символ ровно от одного объявленного поля.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Некоторые экспорты стандартной библиотеки отвечают <code>kind: null</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Экспорт стандартной библиотеки, для которого компилятор не моделирует ни объявления, ни сигнатуры, отвечает <code>kind: null</code> с причиной: <code>std/result::all</code> и <code>std/io::println</code> типизированы в TypeScript, который компилятор подкладывает в сборку и который не читает ни один проход Glyph.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code> пропускает три проверки, которые делает <code>glyph check</code>, и перечисляет их в <code>not_run</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>glyph_diagnostics</code> пропускает три проверки, которые делает <code>glyph check</code>: <code>tsc</code>, проверку <code>E0104</code> на импорт, не называющий модуль (ей нужно представление сборки о <code>node_modules</code>), и <code>E0400</code> для упавшего <code>@example</code> (ей нужен запуск сгенерированного проекта). Он перечисляет все три в <code>not_run</code>, а не отвечает так, будто их выполнил.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/impact/">
           <span class="dir">&larr; Назад</span>

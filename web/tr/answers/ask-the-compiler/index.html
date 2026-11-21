@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ajanım önce derleyiciye bir sembolü sorabilir mi?","item":"https://glyphlang.io/tr/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#article","headline":"Ajanım önce derleyiciye bir sembolü sorabilir mi?","description":"glyph_symbol tek çağrıda yanıt verir: bir union'ın variant'ları, bir record'un alanları, bir fonksiyonun imzası ve onun üzerindeki bir match'in kapsamının tam olması gerekip gerekmediği.","url":"https://glyphlang.io/tr/answers/ask-the-compiler/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ajanım önce derleyiciye bir sembolü sorabilir mi?","item":"https://glyphlang.io/tr/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#article","headline":"Ajanım önce derleyiciye bir sembolü sorabilir mi?","description":"glyph_symbol tek çağrıda yanıt verir: bir union'ın variant'ları, bir record'un alanları, bir fonksiyonun imzası ve onun üzerindeki bir match'in kapsamının tam olması gerekip gerekmediği.","url":"https://glyphlang.io/tr/answers/ask-the-compiler/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/ask-the-compiler/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/ask-the-compiler/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/ask-the-compiler/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">22 &middot; Derleyiciye sorun</p>
       <h1 class="q-title">Ajanım kod yazmadan önce derleyiciye bir sembolün ne olduğunu sorabilir mi?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,22 +478,8 @@
         Tek çağrıda. <code>glyph_symbol</code>, bir diagnostic'in zaten yazdırdığı <code>module::name</code>'i ya da bir dosyadaki bir konumu alır ve şunlarla yanıt verir: bir record'un alanları ve tipleri, bir union'ın variant'ları, payload'ları <em>ve her birini oluşturan sözdizimi</em>, çağrılabilir bir yapının parametreleri ve dönüşü, bir interface'in üyeleri ve onun üzerindeki bir <code>match</code>'in kapsamının tam olması gerekip gerekmediği.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Kendisinin tanımlamadığı bir union'da yeni bir durumu ele alması istenen bir ajanın variant'ların ne taşıdığını bilmesi gerekir. Tanımı okumak önce dosyayı bulmak demektir. Sembol araması eskiden ona bir isim ve bir byte aralığı veriyordu, bir variant listesi de <code>["Pending", "Paid", "Cancelled"]</code> veriyordu. Bundan yola çıkan bir ajan doğru şekil olmayan <code>Paid("tx_1")</code>'i yazar ve bunu bir diagnostic'ten öğrenir. Payload baştan beri derleyicideydi. Araç onu yanıttan bir satır önce düşürüyordu.
-        </p>
-        <p>
-          Ajan yüzeyi tam da bu kalıbı ortadan kaldırmak için kuruldu: derleyicinin zaten hesapladığı ve memoize ettiği ama hiçbir aracın teslim etmediği bilgiler. Üç modüllü bir proje üzerinde yapılan bir denetim, hover'ın on dört konumdan yalnızca ikisine yanıt verdiğini ve her union'ın payload'ları olmadan geldiğini buldu.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>OrderStatus</code>'un <code>orders.glyph</code>'te tanımlandığı üç dosyalı bir proje. Onu import etmeyen <code>main.glyph</code>'ten sorulduğunda:
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>,
@@ -519,20 +505,52 @@
     module this project holds, and the compiler parsed and resolved that declaration"</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span><code>OrderStatus</code>'un <code>orders.glyph</code>'te tanımlandığı üç dosyalı bir proje. Onu import etmeyen <code>main.glyph</code>'ten sorulduğunda.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#absent">Her null nedenini söyler</a></li>
+          <li><a href="#the-second-question-an-agent-asks">Atanabilirlik</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">Bağımlılıklar ve export'lar</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">On bir araç</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Kendisinin tanımlamadığı bir union'da yeni bir durumu ele alması istenen bir ajanın variant'ların ne taşıdığını bilmesi gerekir. Tanımı okumak önce dosyayı bulmak demektir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Payload baştan beri derleyicideydi. Araç onu yanıttan bir satır önce düşürüyordu.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">sembol aramasının eskiden döndürdüğü şey</span></summary><div class="body">
         <p>
-          Kısaltılmıştır: yanıt ayrıca <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> ve <code>examples</code> da taşır. Bunların her biri bir çifttir. Bir anahtar yalnızca nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesiyle birlikte null olur; böylece bir ajan, eksik bir yanıtın sembolün buna sahip olmadığı mı yoksa aracın bakmadığı mı anlamına geldiğini asla tahmin etmek zorunda kalmaz. Annotation'sız bir <code>const</code> bu kural gereği tip raporlamaz: checker bir tanımın tipini bilerek başlatıcısından çıkarmaz; dolayısıyla başlatıcının tipini yazdırmak, çağırana ismin kullanımlarının aslında hiçbir şeyi kontrol etmeyen bir şeye karşı kontrol edildiğini söylemek olurdu.
+          Sembol araması eskiden ona bir isim ve bir byte aralığı veriyordu, bir variant listesi de <code>["Pending", "Paid", "Cancelled"]</code> veriyordu. Bundan yola çıkan bir ajan doğru şekil olmayan <code>Paid("tx_1")</code>'i yazar ve bunu bir diagnostic'ten öğrenir.
         </p>
-
-        <h2 class="block-label" id="the-second-question-an-agent-asks">Bir ajanın sorduğu ikinci soru<a class="h-anchor" href="#the-second-question-an-agent-asks" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Şekli öğrendikten sonra bilmek istediği bir sonraki şey, elindeki değerin koymak üzere olduğu yere gidip gidemeyeceğidir. <code>glyph_assignable</code>, checker'ın kendi karşılaştırmasına sorar. Her taraf bir <code>module::name</code> ya da bir Glyph tip yazımıdır, adını verdiğiniz dosyanın kapsamında okunur ve hüküm üç şeyden hangisinin olduğunu söyler.
+          Ajan yüzeyi tam da bu kalıbı ortadan kaldırmak için kuruldu: derleyicinin zaten hesapladığı ve memoize ettiği ama hiçbir aracın teslim etmediği bilgiler. Üç modüllü bir proje üzerinde yapılan bir denetim, hover'ın on dört konumdan yalnızca ikisine yanıt verdiğini ve her union'ın payload'ları olmadan geldiğini buldu.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="absent">Her null nedenini söyler<a class="ak-anchor" href="#absent" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Kısaltılmıştır: yanıt ayrıca <code>generics</code>, <code>parameters</code>, <code>returns</code>, <code>members</code>, <code>literals</code>, <code>owner</code>, <code>async</code> ve <code>examples</code> da taşır. Bunların her biri bir çifttir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir anahtar yalnızca nedenini söyleyen bir <code>&lt;key&gt;_absent</code> cümlesiyle birlikte null olur; böylece bir ajan, eksik bir yanıtın sembolün buna sahip olmadığı mı yoksa aracın bakmadığı mı anlamına geldiğini asla tahmin etmek zorunda kalmaz.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">annotation'sız bir const</span></summary><div class="body">
+        <p>
+          Annotation'sız bir <code>const</code> bu kural gereği tip raporlamaz: checker bir tanımın tipini bilerek başlatıcısından çıkarmaz; dolayısıyla başlatıcının tipini yazdırmak, çağırana ismin kullanımlarının aslında hiçbir şeyi kontrol etmeyen bir şeye karşı kontrol edildiğini söylemek olurdu.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">Bir ajanın sorduğu ikinci soru<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Şekli öğrendikten sonra bilmek istediği bir sonraki şey, elindeki değerin koymak üzere olduğu yere gidip gidemeyeceğidir. <code>glyph_assignable</code>, checker'ın kendi karşılaştırmasına sorar.
+      </p>
       <div class="two-up stack">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
@@ -553,7 +571,7 @@
             <span class="pk">"read_as"</span>: <span class="s">"number"</span> }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"COMPATIBLE"</span>,
@@ -571,41 +589,95 @@
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">üç hüküm ve neden SAFE değil</span></summary><div class="body">
+        <p>
+          Her taraf bir <code>module::name</code> ya da bir Glyph tip yazımıdır, adını verdiğiniz dosyanın kapsamında okunur ve hüküm üç şeyden hangisinin olduğunu söyler.
+        </p>
         <p>
           Kelime <code>SAFE</code> değil <code>COMPATIBLE</code> ve aradaki fark bir cümleyi hak ediyor. <code>SAFE</code>, <code>glyph_impact</code>'in kelimesidir ve belirli bir yerin belirli bir düzenlemeden sonra doğru kaldığı anlamına gelir. Bu yanıt ise soruda hiçbir yer ve hiçbir düzenleme olmayan iki tip hakkındadır. Üçüncü hüküm <code>UNDETERMINED</code>'dir ve hiçbir kural eşleşmeyi kapsamadığında verilir: iki fonksiyon tipi bu şekilde döner, çünkü alttaki ilişki dönüşleri karşılaştırır ve parametreler hakkında hiçbir şey söylemez. Oradaki sessizliği bir kabul değildir ve araç onu kabulmüş gibi raporlamaz.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-other-direction-what-does-this-depend-on-and-what-does">Diğer yön: bu neye bağımlı ve o modül bana ne veriyor<a class="h-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>glyph_references</code> bir sembolü kimin kullandığını yanıtlar. <code>glyph_dependencies</code> aynı tabloların diğer uçtan okunmuş hâlidir: bir tanımın neye bağımlı olduğu, yani kendi kaynağının adlandırdığı her tanım; <code>CALLS</code>, <code>REFERENCES</code> ve <code>FIELD_ACCESS</code> olarak ayrılmış, her kenar iki ucunu ve nerede durduğunu taşır. <code>glyph_exports</code>, bir modülün import edene neyi görünür kıldığını bir taramadan değil derleyicinin kendi export sorgusundan yanıtlar: her <code>pub</code> tanım ve bir <code>pub</code> union'ın yukarı taşıdığı her variant, kimliği, türü ve imzasıyla birer girdi olarak. Bir import yazmak üzere olan bir ajan dosyayı açmak yerine karşı tarafta ne olduğunu sorabilir.
-        </p>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">Diğer yön: bu neye bağımlı ve o modül bana ne veriyor<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir import yazmak üzere olan bir ajan dosyayı açmak yerine karşı tarafta ne olduğunu sorabilir.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code> bir sembolü kimin kullandığını yanıtlar.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code> aynı tabloların diğer uçtan okunmuş hâlidir: bir tanımın neye bağımlı olduğu, yani kendi kaynağının adlandırdığı her tanım; <code>CALLS</code>, <code>REFERENCES</code> ve <code>FIELD_ACCESS</code> olarak ayrılmış, her kenar iki ucunu ve nerede durduğunu taşır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code>, bir modülün import edene neyi görünür kıldığını bir taramadan değil derleyicinin kendi export sorgusundan yanıtlar: her <code>pub</code> tanım ve bir <code>pub</code> union'ın yukarı taşıdığı her variant, kimliği, türü ve imzasıyla birer girdi olarak.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">aynanın yakaladığı PROVED hatası</span></summary><div class="body">
         <p>
           Bir ilişkinin aynasını kurmak, orijinaldeki bir hatayı yakaladı. Her kenar bir köken taşır ve <code>PROVED</code>, derleyicinin iki ucu da okuduğunu söylemek içindir. Parse edilemeyen, hiçbir şeyin okunmadığı bir modüle giden bir kenar için <code>PROVED</code> yanıtı veriyordu. Artık nedeniyle birlikte <code>UNDETERMINED</code> yanıtı veriyor ve <code>glyph_references</code> ile <code>glyph_impact</code> aynı fonksiyonu çağırdığından, ikisi de aynı şekilde yanlıştı ve ikisi de düzeltildi.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="eleven-tools-and-no-client-required">On bir araç ve istemci gerekmiyor<a class="h-anchor" href="#eleven-tools-and-no-client-required" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">On bir araç ve istemci gerekmiyor<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code> on bir araç sunar: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Her birinin, aynı argümanları flag olarak alan ve aynı JSON'u yazdıran, bir istemcinin ulaştığı giriş noktasının aynısından geçen bir <code>glyph query</code> fiili vardır; böylece yalnızca shell komutları çalıştıran bir ajan da aynı soruları sorar.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">diagnostic'ler ve bir düzenlemeden sonra gelenler</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code> on bir araç sunar: <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code>, <code>glyph_variants</code>, <code>glyph_symbols</code>, <code>glyph_dependencies</code> ve <code>glyph_exports</code>. Her birinin, aynı argümanları flag olarak alan ve aynı JSON'u yazdıran, bir istemcinin ulaştığı giriş noktasının aynısından geçen bir <code>glyph query</code> fiili vardır; böylece yalnızca shell komutları çalıştıran bir ajan da aynı soruları sorar. <code>glyph_diagnostics</code> bir dosyayı kendi projesi içinde kontrol eder ve <code>glyph check --json</code>'un yazdırdığı diagnostic'i aynı Rust tipinden döndürür; iki yüzeyi altı proje üzerinde çalıştırıp JSON'u anahtar anahtar karşılaştıran bir test de vardır. Tüm ayrıntılar <a href="/tr/mcp/">MCP sayfasında</a>.
+          <code>glyph_diagnostics</code> bir dosyayı kendi projesi içinde kontrol eder ve <code>glyph check --json</code>'un yazdırdığı diagnostic'i aynı Rust tipinden döndürür; iki yüzeyi altı proje üzerinde çalıştırıp JSON'u anahtar anahtar karşılaştıran bir test de vardır. Tüm ayrıntılar <a href="/tr/mcp/">MCP sayfasında</a>.
         </p>
         <p>
           Bunların hepsi bir düzenlemeden önce sorulur. Düzenlemeden sonra derleyici diğer yönde yanıt verir: <code>glyph check --agent</code> her diagnostic'i, onarıcı bir düzenlemenin koruması gereken değişmezlerle ve adlandırdığı her sembolün <code>glyph_symbol</code> açıklamasıyla birlikte yazdırır; böylece bir ajanın ihtiyaç duyduğu şekil, onu gerektiren hatayla birlikte gelir. Bunun <a href="/tr/answers/repair-protocol/">kendi sayfası</a> var.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>MCP üzerinden, her biri bir <code>glyph query</code> fiiline sahip on bir okuma aracı. <code>glyph_symbol</code> kimliğe ya da konuma göre yanıt verir ve sahip olmadığı her bilgi, nedenini söyleyen cümlenin yanında null'dır. Kimlik stdlib'e de uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; resolver onu bu modül altında kaydeder ve emitter import'u bu modülden yazar. Böylece <code>glyph query symbol --entity std/result::Result</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>glyph query exports --module std/result</code> yüzeyi listeler ve onun üzerindeki bir <code>E0200</code> bu kimliği <code>cause</code> içinde taşır. Arkasında Glyph kaynağı olmadığından <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null'dır. Hover, bir denetimin üç modüllü bir proje üzerinde yokladığı on dört konumun hepsine yanıt veriyor; bu çalışma başlamadan önce ikiydi: başka bir modülde tanımlanmış bir isim o modülün kendi tanımından yanıtlanır; böylece import binding'i, bir çağrıdaki import edilmiş fonksiyon, değer olarak kullanılan import edilmiş bir variant ve import edilmiş bir record'dan okunan bir alanın hepsinin bir tipi vardır. <code>glyph_dependencies</code> ve <code>glyph_exports</code>, G221'in istediği kümeyi tamamlar. <code>glyph_variants</code> her payload'ı ve oluşturma sözdizimini taşır; <code>glyph_definition</code> ve <code>glyph_symbols</code> <code>module::name</code>'i taşır; böylece bir yanıt hiçbir şeyi yeniden türetmeden <code>glyph_impact</code>'e zincirlenir. <code>glyph_impact</code>'in imza tipi tablosu bir container'ı bir container'a karşı, yapısal bir record'u yapısal ya da tanımlanmış bir record'a karşı (yerel, import edilmiş, generic ya da ikinci bir isim), bir JSX elemanını dönüştüğü çağrı olarak ve iki taraftan birindeki bir string-literal union'ı <code>glyph_assignable</code>'ın yaptığı karşılaştırmanın aynısıyla karara bağlar; böylece iki araç tek bir eşleşme hakkında çelişemez. İlişkinin eşleşmesini tam olarak okuduğu bir argüman, karşılaştırma nasıl sonuçlanırsa sonuçlansın <code>WILL_FAIL</code>'dır, çünkü <code>change_signature_type</code> hiçbir yeni tip adlandırmaz ve kabul edilen bir eşleşme, bir yeni tipin reddedilebileceği bir eşleşmedir; yalnızca ilişkinin geri çevirdiği bir eşleşme <code>UNDETERMINED</code>'dir.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p>Buradaki hiçbir araç yazmaz: yeniden adlandırma yok, uygulanmış düzenleme yok. Yazma tarafı komut satırındaki <code>glyph fix</code>'tir ve istediğiniz herhangi bir şeyi değil, üç şeyi onarır: kullanılmayan import'lar, checker'ın tam olarak tek bir önerisi olan bir arm başı ve tam olarak tek bir tanımlı alandan bir karakter uzaktaki bir alan adı. Derleyicinin ne tanımını ne de imzasını modellediği bir stdlib export'u, nedeniyle birlikte <code>kind: null</code> yanıtı verir: <code>std/result::all</code> ve <code>std/io::println</code>, derleyicinin hazırladığı ve hiçbir Glyph geçişinin okumadığı TypeScript'te tiplenir. <code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar: <code>tsc</code>, build'in <code>node_modules</code> görünümüne ihtiyaç duyan, hiçbir modülü adlandırmayan bir import için <code>E0104</code> kontrolü ve üretilen projenin çalıştırılmasını gerektiren, başarısız bir <code>@example</code> için <code>E0400</code>. Üçünü de yapmış gibi yanıt vermek yerine <code>not_run</code> içinde adlandırır.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">MCP üzerinden, her biri bir <code>glyph query</code> fiiline sahip on bir okuma aracı.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code> kimliğe ya da konuma göre yanıt verir ve sahip olmadığı her bilgi, nedenini söyleyen cümlenin yanında null'dır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kimlik stdlib'e de uzanır: <code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Kimlik stdlib'e de uzanır: prelude'daki <code>Result</code>, <code>std/result::Result</code>'tır; resolver onu bu modül altında kaydeder ve emitter import'u bu modülden yazar. Böylece <code>glyph query symbol --entity std/result::Result</code>, <code>Ok(T)</code> ve <code>Err(E)</code> ile yanıt verir, <code>glyph query exports --module std/result</code> yüzeyi listeler ve onun üzerindeki bir <code>E0200</code> bu kimliği <code>cause</code> içinde taşır. Arkasında Glyph kaynağı olmadığından <code>path</code> ve <code>range</code> eksik değil, bu nedenle birlikte null'dır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Hover, yoklanan on dört konumun on dördüne yanıt verir</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Hover, bir denetimin üç modüllü bir proje üzerinde yokladığı on dört konumun hepsine yanıt veriyor; bu çalışma başlamadan önce ikiydi: başka bir modülde tanımlanmış bir isim o modülün kendi tanımından yanıtlanır; böylece import binding'i, bir çağrıdaki import edilmiş fonksiyon, değer olarak kullanılan import edilmiş bir variant ve import edilmiş bir record'dan okunan bir alanın hepsinin bir tipi vardır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code> ve <code>glyph_exports</code>, G221'in istediği kümeyi tamamlar.</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code> her payload'ı ve oluşturma sözdizimini taşır; <code>glyph_definition</code> ve <code>glyph_symbols</code> <code>module::name</code>'i taşır; böylece bir yanıt hiçbir şeyi yeniden türetmeden <code>glyph_impact</code>'e zincirlenir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code> ve <code>glyph_assignable</code> aynı karşılaştırmayı yapar</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>glyph_impact</code>'in imza tipi tablosu bir container'ı bir container'a karşı, yapısal bir record'u yapısal ya da tanımlanmış bir record'a karşı (yerel, import edilmiş, generic ya da ikinci bir isim), bir JSX elemanını dönüştüğü çağrı olarak ve iki taraftan birindeki bir string-literal union'ı <code>glyph_assignable</code>'ın yaptığı karşılaştırmanın aynısıyla karara bağlar; böylece iki araç tek bir eşleşme hakkında çelişemez. İlişkinin eşleşmesini tam olarak okuduğu bir argüman, karşılaştırma nasıl sonuçlanırsa sonuçlansın <code>WILL_FAIL</code>'dır, çünkü <code>change_signature_type</code> hiçbir yeni tip adlandırmaz ve kabul edilen bir eşleşme, bir yeni tipin reddedilebileceği bir eşleşmedir; yalnızca ilişkinin geri çevirdiği bir eşleşme <code>UNDETERMINED</code>'dir.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Buradaki hiçbir araç yazmaz: yeniden adlandırma yok, uygulanmış düzenleme yok.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Yazma tarafı <code>glyph fix</code>'tir ve üç şeyi onarır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Yazma tarafı komut satırındaki <code>glyph fix</code>'tir ve istediğiniz herhangi bir şeyi değil, üç şeyi onarır: kullanılmayan import'lar, checker'ın tam olarak tek bir önerisi olan bir arm başı ve tam olarak tek bir tanımlı alandan bir karakter uzaktaki bir alan adı.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bazı stdlib export'ları <code>kind: null</code> yanıtı verir</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Derleyicinin ne tanımını ne de imzasını modellediği bir stdlib export'u, nedeniyle birlikte <code>kind: null</code> yanıtı verir: <code>std/result::all</code> ve <code>std/io::println</code>, derleyicinin hazırladığı ve hiçbir Glyph geçişinin okumadığı TypeScript'te tiplenir.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar ve onları <code>not_run</code> içinde adlandırır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>glyph_diagnostics</code>, <code>glyph check</code>'in yaptığı üç kontrolü atlar: <code>tsc</code>, build'in <code>node_modules</code> görünümüne ihtiyaç duyan, hiçbir modülü adlandırmayan bir import için <code>E0104</code> kontrolü ve üretilen projenin çalıştırılmasını gerektiren, başarısız bir <code>@example</code> için <code>E0400</code>. Üçünü de yapmış gibi yanıt vermek yerine <code>not_run</code> içinde adlandırır.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/impact/">
           <span class="dir">&larr; Önceki</span>

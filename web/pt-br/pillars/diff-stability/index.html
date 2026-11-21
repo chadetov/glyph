@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/pillars/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Estabilidade dos diffs","item":"https://glyphlang.io/pt-br/pillars/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/pillars/diff-stability/#article","headline":"Estabilidade dos diffs · mudança de uma linha, diff de uma linha","description":"O terceiro pilar do Glyph: um formato canônico, vírgulas finais, listas que nunca são reempacotadas, sem barrel files e codegen idempotente. O diff mostra a mudança, não ruído.","url":"https://glyphlang.io/pt-br/pillars/diff-stability/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/pillars/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/diff-stability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">Pilar 04 &middot; <span class="polish">O acabamento</span></p>
       <h1 class="q-title">Estabilidade dos diffs</h1>
 
@@ -433,65 +433,85 @@
         Uma mudança de uma linha é um <strong>diff de uma linha</strong>. Um formato canônico, vírgulas finais e listas que ficam inteiras em uma linha ou com um elemento por linha, nunca reempacotadas. Assim o review mostra a mudança que foi feita, não o ruído em volta dela.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="review-is-reading-diffs">Review é ler diffs<a class="h-anchor" href="#review-is-reading-diffs" aria-label="Link para esta seção">#</a></h2>
-        <p class="lede">
-          Quase tudo em que confiamos numa mudança (o review, o blame, o revert, o bisect) se apoia no diff. Então a relação sinal/ruído do diff é o que vale. Na maioria dos codebases ela é péssima: um formatter refaz a quebra de uma linha, um ordenador de imports embaralha um bloco, um rename mexe no espaçamento de cada chamada, e a única linha que <em>importa</em> fica enterrada entre cinquenta que não importam.
-        </p>
-        <p class="lede">
-          Agentes pioram muito isso. Diante de uma tarefa pequena, um modelo reescreve sem cerimônia uma função inteira, ou um arquivo inteiro, para mudar uma coisa, porque regenerar é mais fácil para ele do que editar com precisão. Quem revisa fica comparando uma reescrita com o original e <em>torcendo</em> para que a única mudança de verdade seja a pretendida. O Glyph é feito para que o layout não dê ao modelo nada para remexer.
-        </p>
-
-        <h2 class="block-label" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Um layout canônico, sem escolhas<a class="h-anchor" href="#one-canonical-layout-no-choices" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          <code>glyph fmt</code> reimprime cada arquivo num único layout fixo: indentação de dois espaços, vírgula final em toda lista de várias linhas, e uma lista que fica numa linha enquanto couber em 100 colunas e passa a um elemento por linha quando não cabe. É tudo ou nada. O formatter nunca reempacota seus elementos para preencher uma linha, então uma lista nunca fica metade numa linha e metade na seguinte, e adicionar um campo é uma única linha adicionada. Como existe exatamente uma forma válida, não há o que discutir nem nada para uma ferramenta "consertar" por fora.
-        </p>
-        <p>
-          O custo disso é o limite de largura. Renomeie um binding de modo que uma chamada passe de 100 colunas e a chamada se expande para um argumento por linha: uma edição de um token, um diff de quatro linhas. A contrapartida é que o layout depende só do código e da coluna em que ele começa, então dois agentes editando o mesmo arquivo chegam aos mesmos bytes.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">Estilo com reflow: uma mudança, três linhas tocadas</span>
-          <span class="cap">git diff (formatação empacotada)</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">Estilo com reflow: uma mudança, três linhas tocadas</span>
+            <span class="cap">git diff (formatação empacotada)</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: uma mudança, uma linha adicionada</span>
-          <span class="cap">git diff (canônico)</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: uma mudança, uma linha adicionada</span>
+            <span class="cap">git diff (canônico)</span>
 <pre>  <span class="k">type</span> <span class="t">User</span> = {
     id: <span class="t">number</span>,
     name: <span class="t">string</span>,
 <span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          A vírgula final faz um trabalho discreto: como o último elemento já termina em vírgula, adicionar um irmão <strong>nunca edita a linha de cima.</strong> Uma inserção, uma linha.
-        </p>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">Revisar é ler diffs</a></li>
+          <li><a href="#one-canonical-layout-no-choices">Um layout canônico</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">Ordem estável</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">Sem barrel files</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">Geração idempotente</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">O benchmark</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> A ordem é estável, então o histórico é legível<a class="h-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Link para esta seção">#</a></h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">Review é ler diffs<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Quase tudo em que confiamos numa mudança (o review, o blame, o revert, o bisect) se apoia no diff. Então a relação sinal/ruído do diff é o que vale.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">de onde vem o ruído</span></summary><div class="body">
         <p>
-          Um elemento por linha significa que reordenar, inserir ou remover um item toca só as linhas desse item, nunca as vizinhas. O <code>git blame</code> continua útil: o último commit que tocou cada linha é o commit que de fato mudou <em>aquele</em> elemento, não a passada de formatação que reempacotou a linha que ele dividia com outros.
+          Na maioria dos codebases ela é péssima: um formatter refaz a quebra de uma linha, um ordenador de imports embaralha um bloco, um rename mexe no espaçamento de cada chamada, e a única linha que <em>importa</em> fica enterrada entre cinquenta que não importam.
         </p>
-
-        <h2 class="block-label" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Sem barrel files: sem ruído nos imports<a class="h-anchor" href="#no-barrel-files-no-import-churn" aria-label="Link para esta seção">#</a></h2>
         <p>
-          Como imports nunca reexportam e não existem camadas de agregação <code>index.ts</code> (<code>E0102</code>), adicionar ou mover um símbolo não se propaga por um barrel que todo consumidor importa. As dependências que você edita são as que você quis editar; o resto do grafo de imports não se mexe.
+          Agentes pioram muito isso. Diante de uma tarefa pequena, um modelo reescreve sem cerimônia uma função inteira, ou um arquivo inteiro, para mudar uma coisa, porque regenerar é mais fácil para ele do que editar com precisão. Quem revisa fica comparando uma reescrita com o original e <em>torcendo</em> para que a única mudança de verdade seja a pretendida.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O Glyph é feito para que o layout não dê ao modelo nada para remexer.</p></div>
 
-        <h2 class="block-label" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> A geração é idempotente, não um bloco opaco<a class="h-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Link para esta seção">#</a></h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Um layout canônico, sem escolhas<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> reimprime cada arquivo num único layout fixo: indentação de dois espaços, vírgula final em toda lista de várias linhas, e uma lista que fica numa linha enquanto couber em 100 colunas e passa a um elemento por linha quando não cabe. É tudo ou nada.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">sem reempacotar, uma única forma válida</span></summary><div class="body">
         <p>
-          A mesma disciplina vale para código gerado. <code>glyph gen</code> e <code>glyph regen</code> reimprimem a saída pelo formatter canônico, então regenerar depois de uma mudança na spec produz um diff <em>mínimo</em> que dá para revisar, umas poucas linhas alteradas, e não a substituição inteira de um arquivo escrito por máquina. E todo <code>.ts</code> emitido vem com source map, então até a saída compilada aponta direto para a linha que você mudou.
+          O formatter nunca reempacota seus elementos para preencher uma linha, então uma lista nunca fica metade numa linha e metade na seguinte, e adicionar um campo é uma única linha adicionada. Como existe exatamente uma forma válida, não há o que discutir nem nada para uma ferramenta "consertar" por fora.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>O custo disso é o limite de largura. Renomeie um binding de modo que uma chamada passe de 100 colunas e a chamada se expande para um argumento por linha: uma edição de um token, um diff de quatro linhas. A contrapartida é que o layout depende só do código e da coluna em que ele começa, então dois agentes editando o mesmo arquivo chegam aos mesmos bytes.</p></div>
+      <p class="pull-quote">
+        A vírgula final faz um trabalho discreto: como o último elemento já termina em vírgula, adicionar um irmão <strong>nunca edita a linha de cima.</strong> Uma inserção, uma linha.
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> A ordem é estável, então o histórico é legível<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Um elemento por linha significa que reordenar, inserir ou remover um item toca só as linhas desse item, nunca as vizinhas.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O <code>git blame</code> continua útil: o último commit que tocou cada linha é o commit que de fato mudou <em>aquele</em> elemento, não a passada de formatação que reempacotou a linha que ele dividia com outros.</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Sem barrel files: sem ruído nos imports<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Como imports nunca reexportam e não existem camadas de agregação <code>index.ts</code> (<code>E0102</code>), adicionar ou mover um símbolo não se propaga por um barrel que todo consumidor importa. As dependências que você edita são as que você quis editar; o resto do grafo de imports não se mexe.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> A geração é idempotente, não um bloco opaco<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A mesma disciplina vale para código gerado. <code>glyph gen</code> e <code>glyph regen</code> reimprimem a saída pelo formatter canônico, então regenerar depois de uma mudança na spec produz um diff <em>mínimo</em> que dá para revisar, umas poucas linhas alteradas, e não a substituição inteira de um arquivo escrito por máquina.
+      </p>
       <div class="code">
         <span class="cap">um campo adicionado à spec &rarr; o diff regenerado</span>
 <pre>  <span class="k">type</span> <span class="t">Task</span> = {
@@ -501,36 +521,27 @@
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>E todo <code>.ts</code> emitido vem com source map, então até a saída compilada aponta direto para a linha que você mudou.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript faz isso com Prettier"<a class="h-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Em boa parte da formatação, faz. Prettier com <code>trailingComma: "all"</code> põe vírgula no último elemento e imprime listas longas com um item por linha, e isso cobre a maior parte da seção 01. As diferenças estão em três pontos.
-        </p>
-        <p>
-          <strong>O layout depende só do código.</strong> O Prettier mantém um objeto literal expandido se o autor pôs uma quebra de linha depois do <code>{</code>, e o recolhe se não pôs, então o mesmo objeto pode sair de dois jeitos dependendo de como foi digitado da primeira vez. Dois agentes escrevendo a mesma coisa produzem dois layouts, e a próxima edição em um deles aparece como reflow. <code>glyph fmt</code> imprime <code>{ a: 1, b: 2 }</code> do mesmo jeito, não importa como a entrada estava quebrada.
-        </p>
-        <p>
-          <strong>Não há nada para configurar.</strong> A saída do Prettier é o que o arquivo de config do repositório disser, e alguns repositórios nem têm um. Um agente que passa de um projeto TypeScript para outro encontra um layout diferente em cada um. Um arquivo Glyph tem o mesmo layout em todo projeto, porque o formatter não tem opções.
-        </p>
-        <p>
-          <strong>O formatter não muda o que um arquivo diz.</strong> <code>glyph fmt</code> é testado fazendo o parse da própria saída e comparando a árvore sintática com a da entrada, em todos os exemplos do repositório e sob um fuzzer. Quando um comentário fica num lugar onde o layout não tem linha para ele, o formatter recusa o arquivo (<code>E0500</code>) em vez de mover o comentário para perto de código que ele não descreve.
-        </p>
-        <p>
-          Uma coisa da lista ainda não está pronta: <code>glyph fmt</code> não ordena imports, então dois agentes adicionando um import em lugares diferentes ainda produzem blocos de import diferentes (G358).
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript faz isso com Prettier"<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Em boa parte da formatação, faz. Prettier com <code>trailingComma: "all"</code> põe vírgula no último elemento e imprime listas longas com um item por linha, e isso cobre a maior parte da seção 01. As diferenças estão em três pontos.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>O layout depende só do código.</b>O Prettier mantém um objeto literal expandido se o autor pôs uma quebra de linha depois do <code>{</code>, e o recolhe se não pôs, então o mesmo objeto pode sair de dois jeitos dependendo de como foi digitado da primeira vez. Dois agentes escrevendo a mesma coisa produzem dois layouts, e a próxima edição em um deles aparece como reflow. <code>glyph fmt</code> imprime <code>{ a: 1, b: 2 }</code> do mesmo jeito, não importa como a entrada estava quebrada.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>Não há nada para configurar.</b>A saída do Prettier é o que o arquivo de config do repositório disser, e alguns repositórios nem têm um. Um agente que passa de um projeto TypeScript para outro encontra um layout diferente em cada um. Um arquivo Glyph tem o mesmo layout em todo projeto, porque o formatter não tem opções.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>O formatter não muda o que um arquivo diz.</b><code>glyph fmt</code> é testado fazendo o parse da própria saída e comparando a árvore sintática com a da entrada, em todos os exemplos do repositório e sob um fuzzer. Quando um comentário fica num lugar onde o layout não tem linha para ele, o formatter recusa o arquivo (<code>E0500</code>) em vez de mover o comentário para perto de código que ele não descreve.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Uma coisa da lista ainda não está pronta: <code>glyph fmt</code> não ordena imports, então dois agentes adicionando um import em lugares diferentes ainda produzem blocos de import diferentes (G358).</p></div>
+      <p class="pull-quote">
+        A estabilidade dos diffs é o que transforma "o agente mudou alguma coisa" em "o agente mudou <strong>exatamente isto</strong>". Quando o ruído de fundo é zero, o review é rápido e a confiança sai barata.
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          A estabilidade dos diffs é o que transforma "o agente mudou alguma coisa" em "o agente mudou <strong>exatamente isto</strong>". Quando o ruído de fundo é zero, o review é rápido e a confiança sai barata.
-        </p>
-
-        <h2 class="block-label" id="the-benchmark-coming">O benchmark: em breve<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          O número que mede isso é o tamanho do diff por mudança lógica: quantas linhas se mexem quando você faz uma edição pretendida, em Glyph contra uma mudança equivalente em TypeScript passada por um formatter típico. O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um placeholder que será preenchido com medições reais quando houver histórico de verdade para usar.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">O benchmark: em breve<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O número que mede isso é o tamanho do diff por mudança lógica: quantas linhas se mexem quando você faz uma edição pretendida, em Glyph contra uma mudança equivalente em TypeScript passada por um formatter típico.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um placeholder que será preenchido com medições reais quando houver histórico de verdade para usar.</p></div>
 
       <div class="chart">
         <span class="label">Linhas de diff por mudança de um campo &middot; menor é melhor</span>
@@ -548,17 +559,13 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Custa um pouco de liberdade (você não pode empacotar uma linha à mão do jeito que gosta) e em troca compra muita legibilidade. Essa é a troca que todo pilar de acabamento faz: abrir mão de uma escolha que não importava para manter um sinal que importa.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Custa um pouco de liberdade (você não pode empacotar uma linha à mão do jeito que gosta) e em troca compra muita legibilidade. Essa é a troca que todo pilar de acabamento faz: abrir mão de uma escolha que não importava para manter um sinal que importa.
+      </p>
 
-      <div class="detail">
-        <p>
-          Para ver o que isso significa nas edições de um agente durante o review, com um diff de antes e depois, veja <a href="/pt-br/answers/diff-stability/">As edições do agente ficam limpas ou reformatam meu arquivo inteiro?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        Para ver o que isso significa nas edições de um agente durante o review, com um diff de antes e depois, veja <a href="/pt-br/answers/diff-stability/">As edições do agente ficam limpas ou reformatam meu arquivo inteiro?</a>
+      </p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/pillars/abstraction/">
           <span class="dir">&larr; Pilar anterior</span>

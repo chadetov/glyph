@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Uma IA consegue escrever uma linguagem que mal viu?","item":"https://glyphlang.io/pt-br/answers/ai-authoring/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#article","headline":"Uma IA consegue escrever uma linguagem que mal viu?","description":"O Glyph se lê como TypeScript, mas não é um subconjunto dele. A maior parte do que um modelo sabe de TypeScript vale aqui também, e o compilador aponta os lugares onde não vale.","url":"https://glyphlang.io/pt-br/answers/ai-authoring/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"Uma IA consegue escrever uma linguagem que mal viu?","item":"https://glyphlang.io/pt-br/answers/ai-authoring/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#article","headline":"Uma IA consegue escrever uma linguagem que mal viu?","description":"O Glyph se lê como TypeScript, mas não é um subconjunto dele. A maior parte do que um modelo sabe de TypeScript vale aqui também, e o compilador aponta os lugares onde não vale.","url":"https://glyphlang.io/pt-br/answers/ai-authoring/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/ai-authoring/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/ai-authoring/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/ai-authoring/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">07 &middot; A premissa</p>
       <h1 class="q-title">Uma IA consegue escrever de forma confiável uma linguagem que mal viu?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respostas">
@@ -478,44 +478,50 @@
         Na maior parte, sim. O Glyph se lê como TypeScript: os mesmos tipos primitivos e genéricos (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), a maioria das mesmas expressões e pacotes do npm importados pelo nome. Ele não é um subconjunto de TypeScript: <code>match</code>, <code>Result</code> e <code>fn name(x: T) -&gt; R</code> são sintaxe que o TypeScript não tem, e <code>if</code>, o ternário e os casts não existem em Glyph. A maior parte do que um modelo já sabe vale aqui também, e o compilador aponta os lugares onde não vale.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por que isso importa<a class="h-anchor" href="#why-it-matters" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          É a pergunta do cético justo: um LLM prevê o próximo token a partir do enorme volume de código em linguagens que já existem, então uma linguagem quase sem dados de treino deveria ser difícil de escrever. A resposta é estrutural: o Glyph não é estranho. Ele se parece com TypeScript, então o modelo já conhece a maior parte; as diferenças são poucas, dá para listá-las, e cada uma falha <em>cedo</em>, na compilação, em vez de passar em silêncio.
-        </p>
-
-        <h2 class="block-label" id="see-it">Veja na prática<a class="h-anchor" href="#see-it" aria-label="Link para esta seção">#</a></h2>
-        <p>Um agente que chuta errado não manda o chute para produção. Ele recebe um erro preciso, que dá para corrigir, e corrige no mesmo ciclo:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">o ciclo de correção, em um passo</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">o ciclo de correção, em um passo</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del"><span class="e">[E0006]</span> Glyph has no <span class="q">`if`</span></span>
    <span class="bx">╰─</span> <span class="q">`match`</span> is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          O erro nomeia a construção do Glyph e mostra o formato, então a correção está a uma edição de distância: sem cavar o código-fonte, sem chutar. Esse ciclo curto é o que compensa a falta de dados de treino. Um único documento, <a href="/llms.txt">llms.txt</a>, dá ao agente o formato de um programa, a biblioteca padrão e todos os diagnósticos com a correção de cada um, e <code>glyph llms</code> imprime a mesma referência offline.
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">Situação atual<a class="h-anchor" href="#where-it-stands" aria-label="Link para esta seção">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Uma sintaxe no formato de TypeScript, erros com um código estável que indicam a correção, e <code>llms.txt</code> / <code>glyph llms</code> como um único documento de referência para qualquer agente.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Em comprovação</h3>
-          <p>Um benchmark de taxa de sucesso (tentativas até acertar, comparado com TypeScript na mesma tarefa) para transformar &ldquo;funcionou bem&rdquo; em um número medido.</p>
-        </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Um agente que chuta errado não manda o chute para produção. Ele recebe um erro preciso, que dá para corrigir, e corrige no mesmo ciclo.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        É a pergunta do cético justo: um LLM prevê o próximo token a partir do enorme volume de código em linguagens que já existem, então uma linguagem quase sem dados de treino deveria ser difícil de escrever.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A resposta é estrutural: o Glyph não é estranho. Ele se parece com TypeScript, então o modelo já conhece a maior parte; as diferenças são poucas, dá para listá-las, e cada uma falha <em>cedo</em>, na compilação, em vez de passar em silêncio.</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">A correção está a uma edição de distância<a class="ak-anchor" href="#one-edit-away" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O erro nomeia a construção do Glyph e mostra o formato, então a correção está a uma edição de distância: sem cavar o código-fonte, sem chutar. Esse ciclo curto é o que compensa a falta de dados de treino.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Um único documento, <a href="/llms.txt">llms.txt</a>, dá ao agente o formato de um programa, a biblioteca padrão e todos os diagnósticos com a correção de cada um, e <code>glyph llms</code> imprime a mesma referência offline.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma sintaxe no formato de TypeScript.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Erros com um código estável que indicam a correção.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>llms.txt</code> / <code>glyph llms</code> como um único documento de referência para qualquer agente.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Em comprovação</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um benchmark de taxa de sucesso (tentativas até acertar, comparado com TypeScript na mesma tarefa) para transformar &ldquo;funcionou bem&rdquo; em um número medido.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/human-value/">
           <span class="dir">&larr; Anterior</span>

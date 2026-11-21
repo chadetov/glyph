@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?","item":"https://glyphlang.io/th/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/tooling/#article","headline":"ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?","description":"language server สำหรับทุก editor, extension ของ VS Code, ข้อความ error ที่มีรหัสคงที่ และ glyph --explain คุณดีบัก TypeScript ที่อ่านได้ซึ่งมัน emit ออกมา","url":"https://glyphlang.io/th/answers/tooling/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/tooling/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?","item":"https://glyphlang.io/th/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/tooling/#article","headline":"ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?","description":"language server สำหรับทุก editor, extension ของ VS Code, ข้อความ error ที่มีรหัสคงที่ และ glyph --explain คุณดีบัก TypeScript ที่อ่านได้ซึ่งมัน emit ออกมา","url":"https://glyphlang.io/th/answers/tooling/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/tooling/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/tooling/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/tooling/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">25 &middot; การใช้งานประจำวัน</p>
       <h1 class="q-title">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,71 +480,157 @@
         <code>glyph lsp</code> สื่อสาร Language Server Protocol ผ่าน stdio ทุก editor ที่มี LSP client จึงได้ diagnostic, type ตอน hover, go-to-definition, completion และ format-on-save มี extension ของ VS Code อยู่ใน repository ยังไม่ได้ขึ้น Marketplace คุณจึงต้อง build จากซอร์ส ทุก error มีรหัสคงที่ วิธีแก้ และเหตุผล
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          การแก้ภาษาที่ editor ไม่เข้าใจให้ความรู้สึกเหมือนถอยหลัง และช่วงแรกนั่นเป็นข้อตำหนิที่ยุติธรรม ตอนนี้ไม่ใช่แล้ว: editor ให้ความสะดวกสมัยใหม่ครบ และ error ถูกเขียนมาเพื่อสอน ไม่ใช่แค่ปฏิเสธ
-        </p>
-
-        <h2 class="block-label" id="is-it-a-real-lsp-or-just-a-vs-code-plugin">เป็น LSP จริง หรือแค่ plugin ของ VS Code?<a class="h-anchor" href="#is-it-a-real-lsp-or-just-a-vs-code-plugin" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เป็นของจริง คอมไพเลอร์มาพร้อม language server ที่คุณเปิดด้วย <code>glyph lsp</code> ซึ่งสื่อสาร Language Server Protocol ผ่าน stdio (transport JSON-RPC มาตรฐานที่ LSP client ทุกตัวเข้าใจ) extension ของ VS Code ที่มาด้วยเป็นแค่ client บางๆ ครอบมัน แต่ไม่มีอะไรผูกกับ VS Code: ชี้ editor <strong>ใดก็ได้</strong>ที่รองรับ LSP เช่น Neovim, Helix, Zed, Emacs (eglot) ไปที่ <code>glyph lsp</code> แล้วมันทำงานเหมือนกัน มันคือ binary ตัวเดียวกับที่คุณติดตั้งไว้แล้ว (<code>npx @glyphlang/glyph lsp</code>) จึงไม่มี server แยกให้ดึงมา
-        </p>
-        <p>
-          server ทำสิ่งที่ editor ต้องการ: diagnostic สดพร้อมรหัสคงที่ด้านล่าง, type ตอน hover, go-to-definition (ข้าม module ผ่าน import ด้วยชื่อ ส่วนผ่าน namespace อย่าง <code>ui.Button</code> ยังไม่ตอบอะไร), completion, symbol ของเอกสารและของ workspace สำหรับ outline และการค้นหาสัญลักษณ์, find-references ทั้ง workspace, rename และการจัดรูปแบบตาม layout มาตรฐานของ <code>glyph fmt</code> สำหรับ format-on-save rename ครบถ้วน: การเปลี่ยนชื่อ declaration ระดับ module แก้นิยามของมัน ทุก reference และ binding ของ <code>import</code> ในแต่ละ module ที่ import มันทั่ว workspace และตรวจชื่อใหม่ (ต้องเป็น identifier จริง ไม่ใช่ keyword) ก่อนจะแตะอะไร มีสองข้อจำกัดที่ควรรู้: index ข้ามไฟล์ถูกสร้างใหม่ทุก request แทนที่จะ cache ไว้ (ใช้ได้ดีกับโปรเจกต์ปกติ ควรทำให้เร็วขึ้นทีหลัง) และไฟล์ที่ตอนนี้ parse ไม่ผ่านจะถูกข้าม rename จึงไปไม่ถึง reference ในไฟล์ที่พังอยู่เอง
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>ทุก diagnostic มีรหัสคงที่ วิธีแก้หนึ่งบรรทัด และบ่อยครั้งมีเหตุผลด้านการออกแบบ <code>glyph --explain</code> พิมพ์ฉบับยาวของตัวไหนก็ได้:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre class="wraps"><span class="del">[E0203]</span> the <span class="q">`?`</span> operator propagates <span class="e">error</span> type <span class="q">`HttpError`</span>,
         but this function returns <span class="q">`Result&lt;_, string&gt;`</span>
    <span class="bx">╰─</span> <span class="cm">Help: map the error first, e.g. `.map_err(...)`,</span>
       <span class="cm">so its `E` matches the function's.</span></pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          เราปรับข้อความให้คมขึ้นตรงจุดที่เอเจนต์และคนใหม่สะดุดบ่อยที่สุด: การเขียน <code>if</code> ตอนนี้ชี้คุณไปที่ <code>match</code> แทนที่จะเป็น &ldquo;unexpected token&rdquo; ทั่วไป และจำนวน argument ที่ผิด <code>match</code> ที่ไม่ครบ หรือ variant ที่พิมพ์ผิด ต่างก็ได้ error ที่มีรหัสและแก้ได้ของตัวเอง
-        </p>
-        <p>
-          type error ที่ back-end TypeScript เท่านั้นจับได้เคยชี้ไปที่ <code>.ts</code> ที่ generate ตอนนี้มัน<strong>ถูก map กลับไปยัง <code>.glyph</code> ของคุณ</strong> (เครื่องหมายชี้ของ ariadne แบบเดียวกัน รหัสคงที่เดียวกัน) error ของ <code>tsc</code> จึงอ่านเหมือนเป็นของ Glyph เอง
-        </p>
-        <p>
-          <strong>การดีบัก:</strong> คุณดีบัก TypeScript ที่ emit ออกมาด้วยเครื่องมือที่ใช้อยู่แล้ว อย่าง inspector ของ Node, devtools ของเบราว์เซอร์ หรือ debugger JS/TS ของ IDE ทุก build มี<strong>source map มาตรฐาน v3</strong>ข้างแต่ละ <code>.ts</code> (พร้อมฝังซอร์ส Glyph) debugger หรือ bundler ที่ไล่ map ต่อกันจึงก้าวกลับไปยังเลขบรรทัดใน <code>.glyph</code> ได้ มีอย่างหนึ่งที่ยังไม่ครอบคลุม: stack ตอน crash ของ <code>glyph run</code> เองยังพิมพ์บรรทัดของ <code>.ts</code> เพราะ <code>tsx</code> ไม่ได้ไล่ map ต่อผ่านการแปลงของมัน การ remap stack นั้นคือสิ่งถัดไป
-        </p>
-        <p>
-          <strong>ถามว่า &ldquo;มันคอมไพล์ผ่านไหม?&rdquo; โดยไม่ต้องรัน:</strong> <code>glyph check path.glyph</code> ตรวจ type ไฟล์เดียวหรือทั้งไดเรกทอรีแล้วจบ มันไม่เขียนอะไรลง tree ของคุณ ซึ่ง <code>glyph run</code> สัญญาไม่ได้ และ <code>glyph build</code> ก็ไม่ทำเลย (มันปฏิเสธทุกอย่างที่ไม่ใช่ไดเรกทอรี) มันรัน pipeline เดียวกับที่ build รัน รวมถึง <code>tsc --strict</code> บน TypeScript ที่ emit ออกมา ลงในไดเรกทอรีชั่วคราวที่มันลบตอนออก <code>--no-tsc</code> หยุดหลังขั้นของ Glyph เมื่อคุณต้องการคำตอบเร็ว <code>--json</code> ให้เอเจนต์ได้รูปแบบ diagnostic เดียวกับที่ <code>glyph build --json</code> ให้ ไฟล์ถูกตรวจในบริบทของไดเรกทอรีของมันเอง ไฟล์ข้างเคียงที่พังจึงยังทำให้การตรวจ fail เทสต์ <code>@example</code> และ <code>@doc @run</code> ก็รันที่นี่ด้วย เป็น gate เดียวกับที่ <code>glyph build</code> ใช้ การตรวจจึงรายงานว่า tree สะอาดในขณะที่ build จะ fail ไม่ได้ <code>--no-test</code> ข้ามมันเมื่อคุณต้องการคำตอบที่ไม่รันอะไรเลย
-        </p>
-        <p>
-          <strong>transcript ก็ไม่โกหกคุณเช่นกัน</strong> build ที่ fail เคยเปิดด้วย &ldquo;no diagnostics&rdquo; แล้วพิมพ์ error ของ <code>tsc</code> ข้างใต้ เพราะสรุปของขั้น Glyph ถูกเขียนก่อนที่ขั้น TypeScript จะรัน ตอนนี้สรุปพิมพ์หลังทุกขั้นที่อาจทำให้ build แดง build ที่แดงจึงไม่มีวันแสดงบรรทัดสีเขียว ในรอบเดียวกัน <code>glyph run app.glyph --min -12.50</code> ก็เริ่มใช้ได้: ขีดนำหน้าเคยทำให้ clap ปฏิเสธ argument ก่อนที่ <code>main</code> ของคุณจะได้เห็น flag ที่ glyph เป็นเจ้าของยังผูกกับ glyph จึงต้องใส่ <code>--</code> หน้า flag ของโปรแกรมที่ชนกับตัวใดตัวหนึ่ง
-        </p>
-        <p>
-          <strong>และสำหรับเอเจนต์ใน loop:</strong> <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง: รหัสคงที่ severity ข้อความ ไฟล์ และช่วง line/column เริ่มจาก 1 พร้อม help และ note รวมถึง error ของ <code>tsc</code> ที่ map ไปยังซอร์ส Glyph เอเจนต์อ่านและใช้ได้โดยตรงแทนที่จะขูดข้อความจาก terminal
-        </p>
-        <p>
-          สำหรับเอเจนต์แบบโต้ตอบ มีมากกว่า diagnostic แบบ batch: <a href="/th/mcp/"><code>glyph mcp</code></a> รัน<strong>เซิร์ฟเวอร์ Model Context Protocol</strong>ผ่าน stdio (binary ตัวเดียวกัน การวิเคราะห์เดียวกับที่ editor ใช้) เปิดคิวรีของ language server ให้เป็นเครื่องมือ MCP เอเจนต์ถามได้ทั้ง<strong>diagnostic</strong>ของไฟล์, <strong>type</strong>ที่ตำแหน่งหนึ่ง, ชื่อหนึ่ง<strong>ถูกนิยาม</strong>ไว้ที่ไหน (ตาม import ไป), ทุก<strong>การอ้างอิง</strong>ถึงสัญลักษณ์ทั่วทั้งโปรเจกต์ หรือ<strong>การค้นหาสัญลักษณ์</strong> โดยไม่ต้องรัน build เต็มหรืออ่านทุกไฟล์ มันเป็น adapter บางๆ บนชั้นวิเคราะห์ที่บริสุทธิ์ชั้นเดียวกัน ไม่ใช่ implementation ตัวที่สอง จึงเพี้ยนจากสิ่งที่คอมไพเลอร์และ editor เห็นไม่ได้
-        </p>
-        <p>
-          <strong>ไม่ใช่ทุกอย่างเป็น error ที่หยุด build</strong> Glyph มีระดับคำเตือนที่ชี้ส่วนที่ไม่มีประโยชน์โดยไม่ทำให้ build fail: <em>import ที่ไม่ได้ใช้</em> (<code>E0106</code>), <code>let</code> <em>ที่ไม่ได้ใช้</em> (<code>E0107</code> ยกเว้นชื่อที่ขึ้นต้นด้วย <code>_</code>) และ<em>โค้ดที่ไปไม่ถึง</em>หลัง <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>) สิ่งเหล่านี้รักษา module ให้ซื่อตรง: import ที่ไม่ได้ใช้คือความรกที่ขัดกับการค้นหาด้วย grep ซึ่งทำให้คนอ่านต้องไล่หา dependency ที่โค้ดไม่ได้มีจริง คำเตือนแสดงใน output แบบ render และแบบ <code>--json</code> เหมือนกัน ทำเครื่องหมายด้วย severity และยัง emit TypeScript ออกมา
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>language server (<code>glyph lsp</code> ผ่าน stdio ใช้ได้กับทุก editor มี extension ของ VS Code มาด้วย) ที่มี highlighting, diagnostic, hover, go-to-def, completion, symbol, find-references และ rename ทั้ง workspace และ format-on-save ตอบข้ามขอบเขต module ได้ตั้งแต่ 0.1.124: server ถือ database หนึ่งชุดต่อโปรเจกต์ โดยมี buffer ที่เปิดอยู่ซ้อนบนไฟล์ในดิสก์ การ hover ฟังก์ชันที่ import มาหรือ field ของ record ที่ import มาจึงได้คำตอบเดียวกับ <code>glyph query hover</code> การแก้ที่ยังไม่บันทึกในไฟล์หนึ่งมองเห็นได้จากอีกไฟล์ และการกดแป้นแต่ละครั้งใช้เวลามากขึ้นหนึ่งถึงเก้าเปอร์เซ็นต์จากตอนที่ทำงานไฟล์เดียว; เซิร์ฟเวอร์ Model Context Protocol <code>glyph mcp</code> ที่มีสิบเอ็ดเครื่องมือ คือคิวรีของ editor บวก <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่พิมพ์ JSON เดียวกันให้เอเจนต์ที่ไม่มี MCP client; รหัส error ที่คงที่, <code>glyph --explain</code>, error จาก back-end <code>tsc</code> ที่ map ไปยังซอร์ส <code>.glyph</code>, ระดับคำเตือน (import/binding ที่ไม่ได้ใช้, โค้ดที่ไปไม่ถึง) และ diagnostic แบบมีโครงสร้าง <code>--json</code> <code>glyph check [path]</code> ตรวจ type ไฟล์เดียวหรือทั้ง tree โดยไม่รันและไม่เขียน output <code>glyph fmt --check</code> เป็น gate การจัดรูปแบบใน CI: ไม่เขียนอะไรและ exit ไม่เป็นศูนย์เมื่อไฟล์ยังไม่อยู่ใน layout มาตรฐานแบบเดียว</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>cache index ข้ามไฟล์แทนที่จะสร้างใหม่ทุก request (เร็วขึ้นบน tree ขนาดใหญ่) และ remap stack ตอน crash ของ <code>glyph run</code> เอง เพราะ <code>tsx</code> ไม่ได้ไล่ map ที่ emit ต่อผ่านการแปลงของมัน stack นั้นจึงยังอ้างถึง <code>.ts</code> ที่ emit แทนที่จะเป็น <code>.glyph</code> ของคุณ</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ดูของจริง: ทุก diagnostic มีรหัสคงที่ วิธีแก้หนึ่งบรรทัด และบ่อยครั้งมีเหตุผลด้านการออกแบบ <code>glyph --explain</code> พิมพ์ฉบับยาวของตัวไหนก็ได้</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#is-it-a-real-lsp-or-just-a-vs-code-plugin">language server</a></li>
+          <li><a href="#error-messages">ข้อความ error</a></li>
+          <li><a href="#debugging">การดีบัก</a></li>
+          <li><a href="#checking-without-running">ตรวจโดยไม่ต้องรัน</a></li>
+          <li><a href="#an-honest-transcript">transcript ของ build</a></li>
+          <li><a href="#for-the-agent-in-the-loop">สำหรับเอเจนต์</a></li>
+          <li><a href="#warnings">คำเตือน</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        การแก้ภาษาที่ editor ไม่เข้าใจให้ความรู้สึกเหมือนถอยหลัง และช่วงแรกนั่นเป็นข้อตำหนิที่ยุติธรรม ตอนนี้ไม่ใช่แล้ว: editor ให้ความสะดวกสมัยใหม่ครบ และ error ถูกเขียนมาเพื่อสอน ไม่ใช่แค่ปฏิเสธ
+      </p>
+
+      <h2 class="ak-h" id="is-it-a-real-lsp-or-just-a-vs-code-plugin">เป็น LSP จริง หรือแค่ plugin ของ VS Code?<a class="ak-anchor" href="#is-it-a-real-lsp-or-just-a-vs-code-plugin" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เป็นของจริง คอมไพเลอร์มาพร้อม language server ที่คุณเปิดด้วย <code>glyph lsp</code> ซึ่งสื่อสาร Language Server Protocol ผ่าน stdio (transport JSON-RPC มาตรฐานที่ LSP client ทุกตัวเข้าใจ)
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        extension ของ VS Code ที่มาด้วยเป็นแค่ client บางๆ ครอบมัน แต่ไม่มีอะไรผูกกับ VS Code: ชี้ editor <strong>ใดก็ได้</strong>ที่รองรับ LSP เช่น Neovim, Helix, Zed, Emacs (eglot) ไปที่ <code>glyph lsp</code> แล้วมันทำงานเหมือนกัน
+      </p></div>
+      <p>
+        มันคือ binary ตัวเดียวกับที่คุณติดตั้งไว้แล้ว (<code>npx @glyphlang/glyph lsp</code>) จึงไม่มี server แยกให้ดึงมา
+      </p>
+
+      <h3 class="ak-h3" id="what-the-server-implements">สิ่งที่ server ทำได้<a class="ak-anchor" href="#what-the-server-implements" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        server ทำสิ่งที่ editor ต้องการ: diagnostic สดพร้อมรหัสคงที่ด้านล่าง, type ตอน hover, go-to-definition (ข้าม module ผ่าน import ด้วยชื่อ ส่วนผ่าน namespace อย่าง <code>ui.Button</code> ยังไม่ตอบอะไร), completion, symbol ของเอกสารและของ workspace สำหรับ outline และการค้นหาสัญลักษณ์, find-references ทั้ง workspace, rename และการจัดรูปแบบตาม layout มาตรฐานของ <code>glyph fmt</code> สำหรับ format-on-save
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        rename ครบถ้วน: การเปลี่ยนชื่อ declaration ระดับ module แก้นิยามของมัน ทุก reference และ binding ของ <code>import</code> ในแต่ละ module ที่ import มันทั่ว workspace และตรวจชื่อใหม่ (ต้องเป็น identifier จริง ไม่ใช่ keyword) ก่อนจะแตะอะไร
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        มีสองข้อจำกัดที่ควรรู้: index ข้ามไฟล์ถูกสร้างใหม่ทุก request แทนที่จะ cache ไว้ (ใช้ได้ดีกับโปรเจกต์ปกติ ควรทำให้เร็วขึ้นทีหลัง) และไฟล์ที่ตอนนี้ parse ไม่ผ่านจะถูกข้าม rename จึงไปไม่ถึง reference ในไฟล์ที่พังอยู่เอง
+      </p></div>
+
+      <h2 class="ak-h" id="error-messages">ข้อความ error<a class="ak-anchor" href="#error-messages" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เราปรับข้อความให้คมขึ้นตรงจุดที่เอเจนต์และคนใหม่สะดุดบ่อยที่สุด: การเขียน <code>if</code> ตอนนี้ชี้คุณไปที่ <code>match</code> แทนที่จะเป็น &ldquo;unexpected token&rdquo; ทั่วไป และจำนวน argument ที่ผิด <code>match</code> ที่ไม่ครบ หรือ variant ที่พิมพ์ผิด ต่างก็ได้ error ที่มีรหัสและแก้ได้ของตัวเอง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        type error ที่ back-end TypeScript เท่านั้นจับได้เคยชี้ไปที่ <code>.ts</code> ที่ generate ตอนนี้มันถูก map กลับไปยัง <code>.glyph</code> ของคุณ (เครื่องหมายชี้ของ ariadne แบบเดียวกัน รหัสคงที่เดียวกัน) error ของ <code>tsc</code> จึงอ่านเหมือนเป็นของ Glyph เอง
+      </p></div>
+
+      <h2 class="ak-h" id="debugging">การดีบัก<a class="ak-anchor" href="#debugging" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        คุณดีบัก TypeScript ที่ emit ออกมาด้วยเครื่องมือที่ใช้อยู่แล้ว อย่าง inspector ของ Node, devtools ของเบราว์เซอร์ หรือ debugger JS/TS ของ IDE
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ทุก build มี source map มาตรฐาน v3 ข้างแต่ละ <code>.ts</code> (พร้อมฝังซอร์ส Glyph) debugger หรือ bundler ที่ไล่ map ต่อกันจึงก้าวกลับไปยังเลขบรรทัดใน <code>.glyph</code> ได้
+      </p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        มีอย่างหนึ่งที่ยังไม่ครอบคลุม: stack ตอน crash ของ <code>glyph run</code> เองยังพิมพ์บรรทัดของ <code>.ts</code> เพราะ <code>tsx</code> ไม่ได้ไล่ map ต่อผ่านการแปลงของมัน การ remap stack นั้นคือสิ่งถัดไป
+      </p></div>
+
+      <h2 class="ak-h" id="checking-without-running">ถามว่า &ldquo;มันคอมไพล์ผ่านไหม?&rdquo; โดยไม่ต้องรัน<a class="ak-anchor" href="#checking-without-running" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph check path.glyph</code> ตรวจ type ไฟล์เดียวหรือทั้งไดเรกทอรีแล้วจบ มันไม่เขียนอะไรลง tree ของคุณ ซึ่ง <code>glyph run</code> สัญญาไม่ได้ และ <code>glyph build</code> ก็ไม่ทำเลย (มันปฏิเสธทุกอย่างที่ไม่ใช่ไดเรกทอรี)
+      </p>
+      <div class="ak-chips"><span class="chip code">--no-tsc</span><span class="chip code">--json</span><span class="chip code">--no-test</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">มันรันอะไร และ flag ต่างๆ</span></summary><div class="body">
+        <p>
+          มันรัน pipeline เดียวกับที่ build รัน รวมถึง <code>tsc --strict</code> บน TypeScript ที่ emit ออกมา ลงในไดเรกทอรีชั่วคราวที่มันลบตอนออก <code>--no-tsc</code> หยุดหลังขั้นของ Glyph เมื่อคุณต้องการคำตอบเร็ว <code>--json</code> ให้เอเจนต์ได้รูปแบบ diagnostic เดียวกับที่ <code>glyph build --json</code> ให้ ไฟล์ถูกตรวจในบริบทของไดเรกทอรีของมันเอง ไฟล์ข้างเคียงที่พังจึงยังทำให้การตรวจ fail เทสต์ <code>@example</code> และ <code>@doc @run</code> ก็รันที่นี่ด้วย เป็น gate เดียวกับที่ <code>glyph build</code> ใช้ การตรวจจึงรายงานว่า tree สะอาดในขณะที่ build จะ fail ไม่ได้ <code>--no-test</code> ข้ามมันเมื่อคุณต้องการคำตอบที่ไม่รันอะไรเลย
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="an-honest-transcript">transcript ก็ไม่โกหกคุณเช่นกัน<a class="ak-anchor" href="#an-honest-transcript" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตอนนี้สรุปพิมพ์หลังทุกขั้นที่อาจทำให้ build แดง build ที่แดงจึงไม่มีวันแสดงบรรทัดสีเขียว
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">สรุปที่มาเร็วเกินไป</span></summary><div class="body">
+        <p>
+          build ที่ fail เคยเปิดด้วย &ldquo;no diagnostics&rdquo; แล้วพิมพ์ error ของ <code>tsc</code> ข้างใต้ เพราะสรุปของขั้น Glyph ถูกเขียนก่อนที่ขั้น TypeScript จะรัน
+        </p>
+      </div></details>
+      <p>
+        ในรอบเดียวกัน <code>glyph run app.glyph --min -12.50</code> ก็เริ่มใช้ได้: ขีดนำหน้าเคยทำให้ clap ปฏิเสธ argument ก่อนที่ <code>main</code> ของคุณจะได้เห็น
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        flag ที่ glyph เป็นเจ้าของยังผูกกับ glyph จึงต้องใส่ <code>--</code> หน้า flag ของโปรแกรมที่ชนกับตัวใดตัวหนึ่ง
+      </p></div>
+
+      <h2 class="ak-h" id="for-the-agent-in-the-loop">และสำหรับเอเจนต์ใน loop<a class="ak-anchor" href="#for-the-agent-in-the-loop" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph build --json</code> emit ทุก diagnostic เป็น JSON ที่มีโครงสร้าง: รหัสคงที่ severity ข้อความ ไฟล์ และช่วง line/column เริ่มจาก 1 พร้อม help และ note รวมถึง error ของ <code>tsc</code> ที่ map ไปยังซอร์ส Glyph เอเจนต์อ่านและใช้ได้โดยตรงแทนที่จะขูดข้อความจาก terminal
+      </p>
+
+      <h3 class="ak-h3" id="glyph-mcp"><code>glyph mcp</code> สำหรับเอเจนต์แบบโต้ตอบ<a class="ak-anchor" href="#glyph-mcp" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p>
+        สำหรับเอเจนต์แบบโต้ตอบ มีมากกว่า diagnostic แบบ batch: <a href="/th/mcp/"><code>glyph mcp</code></a> รันเซิร์ฟเวอร์ Model Context Protocol ผ่าน stdio (binary ตัวเดียวกัน การวิเคราะห์เดียวกับที่ editor ใช้) เปิดคิวรีของ language server ให้เป็นเครื่องมือ MCP เอเจนต์ถามได้ทั้ง diagnostic ของไฟล์, type ที่ตำแหน่งหนึ่ง, ชื่อหนึ่งถูกนิยามไว้ที่ไหน (ตาม import ไป), ทุกการอ้างอิงถึงสัญลักษณ์ทั่วทั้งโปรเจกต์ หรือการค้นหาสัญลักษณ์ โดยไม่ต้องรัน build เต็มหรืออ่านทุกไฟล์
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        มันเป็น adapter บางๆ บนชั้นวิเคราะห์ที่บริสุทธิ์ชั้นเดียวกัน ไม่ใช่ implementation ตัวที่สอง จึงเพี้ยนจากสิ่งที่คอมไพเลอร์และ editor เห็นไม่ได้
+      </p></div>
+
+      <h2 class="ak-h" id="warnings">ไม่ใช่ทุกอย่างเป็น error ที่หยุด build<a class="ak-anchor" href="#warnings" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph มีระดับคำเตือนที่ชี้ส่วนที่ไม่มีประโยชน์โดยไม่ทำให้ build fail: <em>import ที่ไม่ได้ใช้</em> (<code>E0106</code>), <code>let</code> <em>ที่ไม่ได้ใช้</em> (<code>E0107</code> ยกเว้นชื่อที่ขึ้นต้นด้วย <code>_</code>) และ<em>โค้ดที่ไปไม่ถึง</em>หลัง <code>return</code>/<code>break</code>/<code>continue</code> (<code>E0108</code>)
+      </p>
+      <div class="ak-chips"><span class="chip code">E0106</span><span class="chip code">E0107</span><span class="chip code">E0108</span></div>
+      <p>
+        สิ่งเหล่านี้รักษา module ให้ซื่อตรง: import ที่ไม่ได้ใช้คือความรกที่ขัดกับการค้นหาด้วย grep ซึ่งทำให้คนอ่านต้องไล่หา dependency ที่โค้ดไม่ได้มีจริง คำเตือนแสดงใน output แบบ render และแบบ <code>--json</code> เหมือนกัน ทำเครื่องหมายด้วย severity และยัง emit TypeScript ออกมา
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">language server สำหรับทุก editor ที่ตอบข้ามขอบเขต module<span class="chip since">ตั้งแต่ 0.1.124</span></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>language server (<code>glyph lsp</code> ผ่าน stdio ใช้ได้กับทุก editor มี extension ของ VS Code มาด้วย) ที่มี highlighting, diagnostic, hover, go-to-def, completion, symbol, find-references และ rename ทั้ง workspace และ format-on-save ตอบข้ามขอบเขต module ได้ตั้งแต่ 0.1.124: server ถือ database หนึ่งชุดต่อโปรเจกต์ โดยมี buffer ที่เปิดอยู่ซ้อนบนไฟล์ในดิสก์ การ hover ฟังก์ชันที่ import มาหรือ field ของ record ที่ import มาจึงได้คำตอบเดียวกับ <code>glyph query hover</code> การแก้ที่ยังไม่บันทึกในไฟล์หนึ่งมองเห็นได้จากอีกไฟล์ และการกดแป้นแต่ละครั้งใช้เวลามากขึ้นหนึ่งถึงเก้าเปอร์เซ็นต์จากตอนที่ทำงานไฟล์เดียว;</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">เซิร์ฟเวอร์ Model Context Protocol <code>glyph mcp</code> ที่มีสิบเอ็ดเครื่องมือ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>เซิร์ฟเวอร์ Model Context Protocol <code>glyph mcp</code> ที่มีสิบเอ็ดเครื่องมือ คือคิวรีของ editor บวก <code>glyph_symbol</code>, <code>glyph_impact</code>, <code>glyph_assignable</code>, <code>glyph_dependencies</code> และ <code>glyph_exports</code> แต่ละตัวมีคำสั่งย่อยของ <code>glyph query</code> ที่พิมพ์ JSON เดียวกันให้เอเจนต์ที่ไม่มี MCP client;</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">รหัส error ที่คงที่, <code>glyph --explain</code>, error จาก back-end <code>tsc</code> ที่ map ไปยังซอร์ส <code>.glyph</code>, ระดับคำเตือน (import/binding ที่ไม่ได้ใช้, โค้ดที่ไปไม่ถึง) และ diagnostic แบบมีโครงสร้าง <code>--json</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check [path]</code> ตรวจ type ไฟล์เดียวหรือทั้ง tree โดยไม่รันและไม่เขียน output</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt --check</code> เป็น gate การจัดรูปแบบใน CI: ไม่เขียนอะไรและ exit ไม่เป็นศูนย์เมื่อไฟล์ยังไม่อยู่ใน layout มาตรฐานแบบเดียว</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">cache index ข้ามไฟล์แทนที่จะสร้างใหม่ทุก request (เร็วขึ้นบน tree ขนาดใหญ่)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">remap stack ตอน crash ของ <code>glyph run</code> เอง เพราะ <code>tsx</code> ไม่ได้ไล่ map ที่ emit ต่อผ่านการแปลงของมัน stack นั้นจึงยังอ้างถึง <code>.ts</code> ที่ emit แทนที่จะเป็น <code>.glyph</code> ของคุณ</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/generated-docs/">
           <span class="dir">&larr; ก่อนหน้า</span>

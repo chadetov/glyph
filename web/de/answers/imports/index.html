@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich meinen TypeScript-, JavaScript- und npm-Code verwenden?","item":"https://glyphlang.io/de/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/imports/#article","headline":"Kann ich meinen TypeScript-, JavaScript- und npm-Code verwenden?","description":"Glyph kompiliert zu gewöhnlichem TypeScript und läuft über npm: Ein .glyph-Modul importiert jedes Paket und lässt sich aus deinem bestehenden .ts importieren. Du führst es Datei für Datei ein.","url":"https://glyphlang.io/de/answers/imports/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/imports/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich meinen TypeScript-, JavaScript- und npm-Code verwenden?","item":"https://glyphlang.io/de/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/imports/#article","headline":"Kann ich meinen TypeScript-, JavaScript- und npm-Code verwenden?","description":"Glyph kompiliert zu gewöhnlichem TypeScript und läuft über npm: Ein .glyph-Modul importiert jedes Paket und lässt sich aus deinem bestehenden .ts importieren. Du führst es Datei für Datei ein.","url":"https://glyphlang.io/de/answers/imports/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/imports/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/imports/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/imports/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">09 &middot; Einführung</p>
       <h1 class="q-title">Kann ich meine bestehenden TypeScript-, JavaScript- und npm-Bibliotheken verwenden?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,17 +478,8 @@
         Ja. Glyph kompiliert zu <strong>gewöhnlichem TypeScript</strong> und läuft über npm: Ein <code>.glyph</code>-Modul importiert aus jedem Paket und lässt sich selbst aus deinem bestehenden <code>.ts</code> importieren. Du führst es <strong>Datei für Datei</strong> ein.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Niemand schreibt eine Codebasis neu, um eine Sprache auszuprobieren. Weil Glyphs Ausgabe TypeScript <em>ist</em>, passt eine <code>.glyph</code>-Datei in eine Ecke eines bestehenden TS/React/Node-Projekts, importiert dieselben Pakete und exportiert zurück an das <code>.ts</code> drumherum. Dieser schrittweise Weg ist der ganze Grund, TypeScript als Ziel zu nehmen, statt eine neue Laufzeit auszuliefern.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>Du importierst Pakete über ihren Namen (auch solche mit Bindestrich und mit npm-Scope), und Glyph erzeugt den Import, den du erwarten würdest:</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre><span class="k">import</span> react { useState }
@@ -504,14 +495,36 @@
 <span class="k">import</span> { zodResolver }
   <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Du importierst Pakete über ihren Namen (auch solche mit Bindestrich und mit npm-Scope), und Glyph erzeugt den Import, den du erwarten würdest.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Wenn das Paket installiert ist und eigene Typen mitbringt (oder ein <code>@types/...</code> hat), ist das alles, was du tun musst. Kein Stub, keine Adapter-Datei. <code>glyph build</code> findet das <code>node_modules</code> deines Projekts und richtet den Typchecker darauf aus, also prüfen die echten Typen des Pakets deinen Code, und ein falscher Aufruf ist ein echter Fehler. Subpath-Imports (<code>pkg/sub</code>) werden ebenfalls über die <code>exports</code>-Map des Pakets aufgelöst, also werden die eigenen Typen eines Subpaths geprüft. Hier wird zod inline verwendet, ohne etwas Handgeschriebenes:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#installed-packages">Installierte Pakete</a></li>
+          <li><a href="#value-derived-types">Aus Werten abgeleitete Typen</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">Handgeschriebenes TypeScript</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">Unterprozesse</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">Einen Shim bearbeiten</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">Klassenbasierte Clients</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Niemand schreibt eine Codebasis neu, um eine Sprache auszuprobieren. Weil Glyphs Ausgabe TypeScript <em>ist</em>, passt eine <code>.glyph</code>-Datei in eine Ecke eines bestehenden TS/React/Node-Projekts, importiert dieselben Pakete und exportiert zurück an das <code>.ts</code> drumherum.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Dieser schrittweise Weg ist der ganze Grund, TypeScript als Ziel zu nehmen, statt eine neue Laufzeit auszuliefern.</p></div>
+
+      <h2 class="ak-h" id="installed-packages">Installierte Pakete bringen ihre eigenen Typen mit<a class="ak-anchor" href="#installed-packages" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Wenn das Paket installiert ist und eigene Typen mitbringt (oder ein <code>@types/...</code> hat), ist das alles, was du tun musst. Kein Stub, keine Adapter-Datei.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> findet das <code>node_modules</code> deines Projekts und richtet den Typchecker darauf aus, also prüfen die echten Typen des Pakets deinen Code, und ein falscher Aufruf ist ein echter Fehler.</p></div>
+      <p>Hier wird zod inline verwendet, ohne etwas Handgeschriebenes:</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -541,34 +554,55 @@ print(user.name)</pre>
 <span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> führt dasselbe Programm gegen das installierte zod aus, es ist also nicht nur eine Typprüfung: Der eine Konfigurationseintrag, der das Paket für den Typchecker auflöst, löst es auch für die Laufzeit auf.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Ein Paket, das <em>keine</em> Typen mitbringt und kein <code>@types/...</code> hat, braucht weiterhin eine Deklaration, die du schreibst, und dafür ist der Ordner <code>.types/</code> da (derselbe <code>.d.ts</code>-Mechanismus, den TypeScript schon verwendet).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Subpath-Imports und validierte Typen aus einer <code>.d.ts</code></span></summary><div class="body">
         <p>
-          <code>glyph run</code> führt dasselbe Programm gegen das installierte zod aus, es ist also nicht nur eine Typprüfung: Der eine Konfigurationseintrag, der das Paket für den Typchecker auflöst, löst es auch für die Laufzeit auf. Ein Paket, das <em>keine</em> Typen mitbringt und kein <code>@types/...</code> hat, braucht weiterhin eine Deklaration, die du schreibst, und dafür ist der Ordner <code>.types/</code> da (derselbe <code>.d.ts</code>-Mechanismus, den TypeScript schon verwendet). Und wenn du die Form einer Bibliothek als vollwertigen, <em>validierten</em> Glyph-Typ statt als reinen Typ-Import willst, macht <code>glyph gen dts</code> aus einer <code>.d.ts</code> echte Typen mit Deskriptoren: siehe <a href="/de/answers/typed-apis/">Muss ich für jede API einen Validator von Hand schreiben?</a>
+          Subpath-Imports (<code>pkg/sub</code>) werden ebenfalls über die <code>exports</code>-Map des Pakets aufgelöst, also werden die eigenen Typen eines Subpaths geprüft.
         </p>
         <p>
-          Aus Werten abgeleitete Typen sind vollwertig. <code>type User = z.infer&lt;typeof user_schema&gt;</code> funktioniert direkt: <code>typeof user_schema</code> ist eine Typabfrage über eine echte Wertreferenz (ein Tippfehler ist ein Fehler wegen eines nicht aufgelösten Namens), und <code>z.infer&lt;...&gt;</code> ist ein gewöhnlicher generischer Member-Typ. Er wird wörtlich ausgegeben, und <code>tsc</code> löst ihn auf, also ist <code>u.name</code> ein <code>string</code>; die Validierung kommt aus dem eigenen <code>parse</code> des Schemas, so wie zod ohnehin funktioniert. Prop-Spread in JSX (<code>&lt;input {...register()} /&gt;</code>) ist ebenfalls vollwertig. Für das seltene TypeScript-Idiom, das Glyph noch nicht ausdrücken kann, ist <code>extern_ts("...")</code> die abgegrenzte, durchsuchbare Hintertür: <code>tsc</code> prüft es, aber genau genommen ist es eine Vertrauensgrenze, keine zur Laufzeit validierte (undurchsichtig für Glyph, ein Wert kommt als <code>unknown</code> zurück, das du einengen musst). Eine Bibliothek zwingt dich also nie zu einer handgeschriebenen Adapter-Datei.
+          Und wenn du die Form einer Bibliothek als vollwertigen, <em>validierten</em> Glyph-Typ statt als reinen Typ-Import willst, macht <code>glyph gen dts</code> aus einer <code>.d.ts</code> echte Typen mit Deskriptoren: siehe <a href="/de/answers/typed-apis/">Muss ich für jede API einen Validator von Hand schreiben?</a>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">Wenn du ganzes handgeschriebenes TypeScript brauchst<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <h2 class="ak-h" id="value-derived-types">Aus Werten abgeleitete Typen, JSX-Spread und die Hintertür<a class="ak-anchor" href="#value-derived-types" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Aus Werten abgeleitete Typen sind vollwertig. Prop-Spread in JSX (<code>&lt;input {...register()} /&gt;</code>) ist ebenfalls vollwertig.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Eine Bibliothek zwingt dich also nie zu einer handgeschriebenen Adapter-Datei.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Für das seltene TypeScript-Idiom, das Glyph noch nicht ausdrücken kann, ist <code>extern_ts("...")</code> die abgegrenzte, durchsuchbare Hintertür: <code>tsc</code> prüft es, aber genau genommen ist es eine Vertrauensgrenze, keine zur Laufzeit validierte (undurchsichtig für Glyph, ein Wert kommt als <code>unknown</code> zurück, das du einengen musst).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wie <code>z.infer&lt;typeof s&gt;</code> aufgelöst wird</span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> funktioniert direkt: <code>typeof user_schema</code> ist eine Typabfrage über eine echte Wertreferenz (ein Tippfehler ist ein Fehler wegen eines nicht aufgelösten Namens), und <code>z.infer&lt;...&gt;</code> ist ein gewöhnlicher generischer Member-Typ. Er wird wörtlich ausgegeben, und <code>tsc</code> löst ihn auf, also ist <code>u.name</code> ein <code>string</code>; die Validierung kommt aus dem eigenen <code>parse</code> des Schemas, so wie zod ohnehin funktioniert.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">Wenn du ganzes handgeschriebenes TypeScript brauchst<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Manchmal ist die Hintertür kein Typ oder Ausdruck, sondern echter Laufzeitcode: eine Schleife über einen Node-Stream, ein <code>new Promise</code>, ein Worker-Thread. Leg die <code>.ts</code> unter <code>&lt;src&gt;/extern/</code> ab und erreiche sie mit <code>import extern/&lt;name&gt;</code>.
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
 <span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
 <span class="c">// src/main.glyph</span>
 <span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Relative Imports bleiben im Glyph-Quellcode verboten (eine Regel der Durchsuchbarkeit), also ist <code>extern/*</code> der einzige reservierte Pfad, und <code>grep -rn 'import extern/'</code> findet jede Stelle, an der du die Sprache verlassen hast.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Bereitstellung, die andere Richtung und der Node-Shim</span></summary><div class="body">
         <p>
-          Der Build kopiert <code>&lt;src&gt;/extern/**</code> in die Ausgabe und erzeugt einen relativen Specifier, also prüft <code>tsc</code> das Extern zusammen mit deinem Glyph-Code, und ein Neubau entfernt es nie. Relative Imports bleiben im Glyph-Quellcode verboten (eine Regel der Durchsuchbarkeit), also ist <code>extern/*</code> der einzige reservierte Pfad, und <code>grep -rn 'import extern/'</code> findet jede Stelle, an der du die Sprache verlassen hast. Es ist das Gegenstück zur einfachen Richtung, einer <code>.ts</code>-Datei, die dein kompiliertes Glyph importiert, was überhaupt nichts braucht. Ein übliches Extern (ein HTTP-Server, <code>fs</code>) wird ohne Installation gegen den mitgelieferten Node-Shim typgeprüft.
+          Der Build kopiert <code>&lt;src&gt;/extern/**</code> in die Ausgabe und erzeugt einen relativen Specifier, also prüft <code>tsc</code> das Extern zusammen mit deinem Glyph-Code, und ein Neubau entfernt es nie.
         </p>
+        <p>
+          Es ist das Gegenstück zur einfachen Richtung, einer <code>.ts</code>-Datei, die dein kompiliertes Glyph importiert, was überhaupt nichts braucht. Ein übliches Extern (ein HTTP-Server, <code>fs</code>) wird ohne Installation gegen den mitgelieferten Node-Shim typgeprüft.
+        </p>
+      </div></details>
 
-        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">Einen Unterprozess beobachten, ohne etwas zu installieren<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">Einen Unterprozess beobachten, ohne etwas zu installieren<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Die mitgelieferten Node-Deklarationen enthalten die asynchrone Hälfte von <code>child_process</code>, nicht nur die blockierende, also ist ein Tool, das die Ausgabe eines langen Befehls meldet, während er läuft, Glyph und kein Extern:
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -588,9 +622,12 @@ print(user.name)</pre>
   })
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
-        <p>
-          <code>io.print</code> und nicht <code>io.println</code>: Ein Chunk ist ein Ausschnitt aus dem Stream, keine Zeile, und eine Zeile kann über zwei davon verteilt ankommen. Die Overloads folgen <code>@types/node</code>, also kommen die Pipes bei einem einfachen <code>spawn(command, args)</code> als nicht-null zurück und als nullbar, sobald du <code>stdio</code> übergibst. <code>child.stdout</code> nach <code>stdio: "inherit"</code> zu lesen ist hier <code>TS18047</code> und mit den echten Typings <code>TS18047</code>, statt zwei verschiedener Geschichten über denselben Wert:
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>io.print</code> und nicht <code>io.println</code>: Ein Chunk ist ein Ausschnitt aus dem Stream, keine Zeile, und eine Zeile kann über zwei davon verteilt ankommen.</p></div>
+      <p>
+          Die Overloads folgen <code>@types/node</code>, also kommen die Pipes bei einem einfachen <code>spawn(command, args)</code> als nicht-null zurück und als nullbar, sobald du <code>stdio</code> übergibst. <code>child.stdout</code> nach <code>stdio: "inherit"</code> zu lesen ist hier <code>TS18047</code> und mit den echten Typings <code>TS18047</code>, statt zwei verschiedener Geschichten über denselben Wert:
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047"><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -600,16 +637,21 @@ print(user.name)</pre>
   <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
   child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
-
-        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Bearbeite den Shim, und der nächste Lauf verwendet den bearbeiteten<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein Shim ist eine Datei, an der du iterierst, also muss sie als Quelle zählen. <code>glyph run</code> cacht einen Build unter einem Fingerprint deiner Quellen, und dieser Fingerprint umfasst jede <code>.ts</code> und <code>.tsx</code> unter <code>extern/</code>, nach Pfad und nach Inhalt. Bearbeite eine, benenne eine um, füge eine hinzu, lösche eine, und der nächste Lauf baut neu und führt <code>tsc</code> erneut aus. Einem verlinkten Shim wird gefolgt, also wird eine <code>.ts</code>, die außerhalb des Quellbaums liegt, nach ihrem tatsächlichen Inhalt gehasht.
-        </p>
-        <p>
-          Deshalb kann der Shim einen Typ besitzen, statt dass beide Dateien ihre eigene Kopie davon deklarieren. Exportiere die Form aus dem Shim, importiere sie im Glyph-Modul, und der Compiler hält die beiden bei jedem Lauf zusammen:
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Bearbeite den Shim, und der nächste Lauf verwendet den bearbeiteten<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Ein Shim ist eine Datei, an der du iterierst, also muss sie als Quelle zählen.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> cacht einen Build unter einem Fingerprint deiner Quellen, und dieser Fingerprint umfasst jede <code>.ts</code> und <code>.tsx</code> unter <code>extern/</code>, nach Pfad und nach Inhalt.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">was einen Neubau auslöst</span></summary><div class="body">
+        <p>
+          Bearbeite eine, benenne eine um, füge eine hinzu, lösche eine, und der nächste Lauf baut neu und führt <code>tsc</code> erneut aus. Einem verlinkten Shim wird gefolgt, also wird eine <code>.ts</code>, die außerhalb des Quellbaums liegt, nach ihrem tatsächlichen Inhalt gehasht.
+        </p>
+      </div></details>
+      <p>
+          Deshalb kann der Shim einen Typ besitzen, statt dass beide Dateien ihre eigene Kopie davon deklarieren. Exportiere die Form aus dem Shim, importiere sie im Glyph-Modul, und der Compiler hält die beiden bei jedem Lauf zusammen:
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -632,20 +674,16 @@ exist in type 'WebResponse'.
    <span class="bx">╰─</span> server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">vor 0.1.44, und die Dateien, die nicht zählen</span></summary><div class="body">
         <p>
           Bis 0.1.44 übersprang der Fingerprint <code>extern/</code> vollständig, also erzeugte diese Umbenennung einen sauberen, typgeprüften Build, der die vorherige Kopie des Shims ausführte. Dateien unter <code>extern/</code>, die keine <code>.ts</code> oder <code>.tsx</code> sind, beeinflussen den Cache weiterhin nicht, und das ist Absicht: Eine <code>README.md</code> neben deinem Shim wird mit ihm in die Ausgabe kopiert, aber nichts prüft oder führt sie aus, also gibt es nichts neu zu bauen.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">Klassenbasierte Clients: die für Datenbanken und Messaging<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Die meisten Clients für Datenbanken und Messaging sind klassenbasiert: Du schreibst <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Genau dafür hat Glyph <code>new</code>. Es erzeugt ein wörtliches TypeScript-<code>new</code>, und <code>tsc</code> prüft es gegen den echten Konstruktor des Pakets, also ist ein falsches Argument ein echter Fehler, und ein undefinierter Aufgerufener wird mit Namen erkannt. Es bleibt auf Interop beschränkt: Glyph hat keine eigene <code>class</code>, und <code>new</code> konstruiert nur einen Typ, der aus einem Paket, einer <code>.types</code>-Deklaration oder <code>extern_ts</code> kommt.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">Klassenbasierte Clients: die für Datenbanken und Messaging<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Die meisten Clients für Datenbanken und Messaging sind klassenbasiert: Du schreibst <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Genau dafür hat Glyph <code>new</code>.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">ein klassenbasierter Client (kafkajs)</span>
@@ -669,19 +707,52 @@ exist in type 'WebResponse'.
 <span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Es erzeugt ein wörtliches TypeScript-<code>new</code>, und <code>tsc</code> prüft es gegen den echten Konstruktor des Pakets, also ist ein falsches Argument ein echter Fehler, und ein undefinierter Aufgerufener wird mit Namen erkannt.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Es bleibt auf Interop beschränkt: Glyph hat keine eigene <code>class</code>, und <code>new</code> konstruiert nur einen Typ, der aus einem Paket, einer <code>.types</code>-Deklaration oder <code>extern_ts</code> kommt.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Importiere jedes npm-Paket (auch Namen mit Bindestrich und Scope). Ein installiertes Paket, das eigene Typen mitbringt (oder <code>@types/...</code> hat), wird ohne Stub typgeprüft und ausgeführt. Klassenbasierte Clients werden mit <code>new</code> konstruiert, von <code>tsc</code> gegen den echten Konstruktor geprüft; Factory-Clients werden importiert und direkt aufgerufen. Node-Builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> einschließlich des streamenden <code>spawn</code> und der Rest) werden ohne Weiteres typgeprüft, wobei <code>@types/node</code> automatisch geladen wird, wenn du es installierst, und CI baut die eigene Laufzeit des Compilers gegen dieses Paket in der Version <code>latest</code>, sodass eine Deklaration, von der die Stdlib abhängt, nicht von der echten von Node abweichen kann. Eine Deklaration, die nur dein Code erreicht, deckt diese Prüfung noch nicht ab, und einige sind noch weiter gefasst als bei Node. Ambiente <code>.types/</code>-Deklarationen für alles andere, <code>glyph gen dts</code>, um aus einer <code>.d.ts</code> validierte Glyph-Typen zu machen, und saubere <code>.ts</code>-Ausgabe, die dein bestehendes TypeScript zurückimportiert. Wenn du ganzes handgeschriebenes TypeScript brauchst, erreicht <code>import extern/&lt;name&gt;</code> eine <code>.ts</code> unter <code>&lt;src&gt;/extern/</code>, mit deinem Code bereitgestellt und typgeprüft und vom Cache von <code>glyph run</code> verfolgt, sodass eine Änderung daran einen Neubau auslöst.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">In Arbeit</h3>
-          <p>Die Materialisierung kommt jetzt mit den Formen zurecht, die echte SDKs mitbringen (Namespaces, dateiübergreifende und per Alias oder Namespace laufende Re-Exports, Subpath-<code>exports</code> und vollwertige Generics), und aus Werten abgeleitete Typen (<code>z.infer&lt;typeof s&gt;</code>) sind vollwertig. Die größte verbleibende Lücke ist, dass die Ausgaben eines nicht materialisierten Pakets gegen seine <code>.d.ts</code> typgeprüft, aber nicht zur Laufzeit validiert werden, solange du sie nicht materialisierst. Auf der Seite von <code>extern/</code> unterscheidet sich das Quell-Root zwischen den beiden Befehlen: <code>glyph run app.glyph</code> nimmt das eigene Verzeichnis der Datei als Root, <code>glyph build src/</code> das Verzeichnis, das du nennst. Ein Programm in einem Unterverzeichnis sucht seinen Shim deshalb an zwei verschiedenen Stellen, und bis wir uns auf ein Root festlegen, braucht ein so aufgebautes Projekt den Shim von beiden aus erreichbar. Wenn er es nicht ist, schlägt es laut fehl.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Importiere jedes npm-Paket (auch Namen mit Bindestrich und Scope).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein installiertes Paket, das eigene Typen mitbringt (oder <code>@types/...</code> hat), wird ohne Stub typgeprüft und ausgeführt.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Klassenbasierte Clients werden mit <code>new</code> konstruiert, von <code>tsc</code> gegen den echten Konstruktor geprüft; Factory-Clients werden importiert und direkt aufgerufen.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node-Builtins werden ohne Weiteres typgeprüft</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Node-Builtins (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code> einschließlich des streamenden <code>spawn</code> und der Rest) werden ohne Weiteres typgeprüft, wobei <code>@types/node</code> automatisch geladen wird, wenn du es installierst, und CI baut die eigene Laufzeit des Compilers gegen dieses Paket in der Version <code>latest</code>, sodass eine Deklaration, von der die Stdlib abhängt, nicht von der echten von Node abweichen kann.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Deklaration, die nur dein Code erreicht, deckt diese Prüfung noch nicht ab, und einige sind noch weiter gefasst als bei Node.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ambiente <code>.types/</code>-Deklarationen für alles andere.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen dts</code>, um aus einer <code>.d.ts</code> validierte Glyph-Typen zu machen.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Saubere <code>.ts</code>-Ausgabe, die dein bestehendes TypeScript zurückimportiert.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code> erreicht handgeschriebenes TypeScript unter <code>&lt;src&gt;/extern/</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Wenn du ganzes handgeschriebenes TypeScript brauchst, erreicht <code>import extern/&lt;name&gt;</code> eine <code>.ts</code> unter <code>&lt;src&gt;/extern/</code>, mit deinem Code bereitgestellt und typgeprüft und vom Cache von <code>glyph run</code> verfolgt, sodass eine Änderung daran einen Neubau auslöst.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Materialisierung kommt mit den Formen echter SDKs zurecht, und aus Werten abgeleitete Typen sind vollwertig</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Materialisierung kommt jetzt mit den Formen zurecht, die echte SDKs mitbringen (Namespaces, dateiübergreifende und per Alias oder Namespace laufende Re-Exports, Subpath-<code>exports</code> und vollwertige Generics), und aus Werten abgeleitete Typen (<code>z.infer&lt;typeof s&gt;</code>) sind vollwertig.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die größte verbleibende Lücke ist, dass die Ausgaben eines nicht materialisierten Pakets gegen seine <code>.d.ts</code> typgeprüft, aber nicht zur Laufzeit validiert werden, solange du sie nicht materialisierst.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Auf der Seite von <code>extern/</code> unterscheidet sich das Quell-Root zwischen <code>glyph run</code> und <code>glyph build</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Auf der Seite von <code>extern/</code> unterscheidet sich das Quell-Root zwischen den beiden Befehlen: <code>glyph run app.glyph</code> nimmt das eigene Verzeichnis der Datei als Root, <code>glyph build src/</code> das Verzeichnis, das du nennst. Ein Programm in einem Unterverzeichnis sucht seinen Shim deshalb an zwei verschiedenen Stellen, und bis wir uns auf ein Root festlegen, braucht ein so aufgebautes Projekt den Shim von beiden aus erreichbar. Wenn er es nicht ist, schlägt es laut fehl.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/upgrades/">
           <span class="dir">&larr; Zurück</span>

@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"コンパイラはエージェントに直し方を教えてくれるか？","item":"https://glyphlang.io/ja/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/repair-protocol/#article","headline":"コンパイラはエージェントに直し方を教えてくれるか？","description":"各診断には、型、問題のシンボル、正しい代替案が含まれます。コンパイラが自力で決められる修正は glyph fix が書き込みます。","url":"https://glyphlang.io/ja/answers/repair-protocol/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/repair-protocol/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"コンパイラはエージェントに直し方を教えてくれるか？","item":"https://glyphlang.io/ja/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/repair-protocol/#article","headline":"コンパイラはエージェントに直し方を教えてくれるか？","description":"各診断には、型、問題のシンボル、正しい代替案が含まれます。コンパイラが自力で決められる修正は glyph fix が書き込みます。","url":"https://glyphlang.io/ja/answers/repair-protocol/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/repair-protocol/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/repair-protocol/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/repair-protocol/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">23 &middot; 赤いビルドを直す</p>
       <h1 class="q-title">ビルドが失敗したとき、コンパイラはエージェントに直し方を教えてくれるか？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,23 +480,9 @@
         何が間違っているかを、パースが必要な文章ではなくデータとして伝えます。2 つの型、<code>module::name</code> の形の問題のシンボル、そして誤ったものの代わりに正しく置けるものの有限のリストです。<code>glyph check --agent</code> は、修正の編集が壊してはならないものも加えます。答えが完全に決まる場合は、<code>glyph fix</code> がそれを書き込みます。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          コンパイラを相手にしたエージェントのループは、エラーを読み、編集を推測し、ビルドし直す、の繰り返しです。被害が生じるのは推測の段階で、それはエラーが文字列だから起きます。「<code>OrderStatus</code> に対する網羅的でない match」と読んだエージェントは、match にアームが足りないことはわかります。しかし欠けているバリアントが何を持つかはわからないので、<code>Paid("tx_1")</code> と書いて、次の診断で間違いを知ります。あるいは「網羅的」という言葉を読んで <code>else</code> のアームを追加し、診断が守るために存在していた保証を捨てたままビルドを通してしまいます。
-        </p>
-        <p>
-          コンパイラはそのすべてを知っていました。ユニオンのバリアントとそのペイロードを知っていて、<code>else</code> を足せば網羅性の保証を失うことも知っていて、返答の 1 行手前でその両方を捨てていたのです。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          2 つのモジュールからなるプロジェクトです。<code>orders</code> がユニオンを宣言し、<code>main</code> はそれに対する <code>match</code> を書いて 1 つのケースだけを扱います。<code>glyph check --agent</code> の出力を、ここで重要なキーだけに絞って示します：
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph check --agent --no-tsc src</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph check --agent --no-tsc src</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
   <span class="pk">"severity"</span>: <span class="s">"error"</span>,
@@ -536,29 +522,58 @@
   <span class="pk">"explain"</span>: { <span class="pk">"command"</span>: <span class="s">"glyph --explain E0200"</span>,
                <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span> }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>2 つのモジュールからなるプロジェクトです。<code>orders</code> がユニオンを宣言し、<code>main</code> はそれに対する <code>match</code> を書いて 1 つのケースだけを扱います。<code>glyph check --agent</code> の出力を、ここで重要なキーだけに絞って示します。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          取り上げるべき点が 3 つあります。<code>cause</code> は問題のシンボルで、診断が置かれている宣言である <code>entity</code> とは別のものです。ここでは編集は <code>main::describe</code> で行われ、合わせるべき形は <code>orders::OrderStatus</code> から来ています。どちらも他のツールが受け取るアドレスなので、何も導き直さずに答えをつなげられます。
-        </p>
-        <p>
-          <code>constraints</code> は修正ではありません。それぞれはコンパイラがすでに強制していることで、診断を満たす編集がその背後にある保証を壊さないように書き出されています。2 つ目の制約こそ、このキーが存在する理由です。<code>else</code> のアームは正当で、ビルドを通すことはできますが、制約はそれを選んだときに何を失うかを述べています。
-        </p>
-        <p>
-          <code>symbols</code> は、診断が名前を挙げたすべてのシンボルに対する <code>glyph_symbol</code> の答えなので、エージェントの次の編集に 2 回目の呼び出しは要りません。ツールが拒否したシンボルは理由とともに <code>symbols_absent</code> に入るので、「調べなかった」と「調べたが存在しない」が区別されます。
-        </p>
-        <p>
-          キーは常にすべてそろっています。コンパイラが持っていない情報は、キーの欠落ではなく明示的な <code>null</code> として届くので、「ない」ことの表し方はどのコードでも、CLI と MCP のどちらでも 1 つだけです。
-        </p>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#reading-the-answer">答えの読み方</a></li>
+          <li><a href="#where-the-answer-is-determined-the-compiler-writes-it">glyph fix が書くもの</a></li>
+          <li><a href="#the-code-s-own-explanation-as-data">データとしての説明</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="where-the-answer-is-determined-the-compiler-writes-it">答えが決まる場合は、コンパイラが書き込む<a class="h-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="このセクションへのリンク">#</a></h2>
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        コンパイラを相手にしたエージェントのループは、エラーを読み、編集を推測し、ビルドし直す、の繰り返しです。被害が生じるのは推測の段階で、それはエラーが文字列だから起きます。
+      </p>
+      <ol class="ak-path" aria-label="エージェントのループ"><li><span>エラーを読む</span></li><li><span>編集を推測する</span></li><li><span>ビルドし直す</span></li></ol>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>コンパイラはそのすべてを知っていました。ユニオンのバリアントとそのペイロードを知っていて、<code>else</code> を足せば網羅性の保証を失うことも知っていて、返答の 1 行手前でその両方を捨てていたのです。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">文字列が招く 2 つの間違った編集</span></summary><div class="body">
         <p>
-          <code>glyph fix</code> が適用するのは、コンパイラが自力で決められる修正だけです。使われていない import、型検査器がちょうど 1 つの候補を算出した、バリアントでないアームの先頭、そしてちょうど 1 つの宣言済みフィールドと 1 文字違いの、レコードが宣言していないフィールドです。上の <code>match</code> はこれに当たりません。
+          「<code>OrderStatus</code> に対する網羅的でない match」と読んだエージェントは、match にアームが足りないことはわかります。しかし欠けているバリアントが何を持つかはわからないので、<code>Paid("tx_1")</code> と書いて、次の診断で間違いを知ります。あるいは「網羅的」という言葉を読んで <code>else</code> のアームを追加し、診断が守るために存在していた保証を捨てたままビルドを通してしまいます。
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="reading-the-answer">答えの読み方<a class="ak-anchor" href="#reading-the-answer" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">取り上げるべき点が 3 つあります。</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="3"/><path d="M8 10v4.5M5.5 14.5h5"/></svg></span><b><code>cause</code></b><code>cause</code> は問題のシンボルで、診断が置かれている宣言である <code>entity</code> とは別のものです。ここでは編集は <code>main::describe</code> で行われ、合わせるべき形は <code>orders::OrderStatus</code> から来ています。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>constraints</code></b><code>constraints</code> は修正ではありません。それぞれはコンパイラがすでに強制していることで、診断を満たす編集がその背後にある保証を壊さないように書き出されています。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>symbols</code></b><code>symbols</code> は、診断が名前を挙げたすべてのシンボルに対する <code>glyph_symbol</code> の答えなので、エージェントの次の編集に 2 回目の呼び出しは要りません。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>キーは常にすべてそろっています。コンパイラが持っていない情報は、キーの欠落ではなく明示的な <code>null</code> として届くので、「ない」ことの表し方はどのコードでも、CLI と MCP のどちらでも 1 つだけです。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">つながるアドレス、else の制約、symbols_absent</span></summary><div class="body">
+        <p>
+          どちらも他のツールが受け取るアドレスなので、何も導き直さずに答えをつなげられます。
+        </p>
+        <p>
+          2 つ目の制約こそ、このキーが存在する理由です。<code>else</code> のアームは正当で、ビルドを通すことはできますが、制約はそれを選んだときに何を失うかを述べています。
+        </p>
+        <p>
+          ツールが拒否したシンボルは理由とともに <code>symbols_absent</code> に入るので、「調べなかった」と「調べたが存在しない」が区別されます。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-the-answer-is-determined-the-compiler-writes-it">答えが決まる場合は、コンパイラが書き込む<a class="ak-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fix</code> が適用するのは、コンパイラが自力で決められる修正だけです。使われていない import、型検査器がちょうど 1 つの候補を算出した、バリアントでないアームの先頭、そしてちょうど 1 つの宣言済みフィールドと 1 文字違いの、レコードが宣言していないフィールドです。上の <code>match</code> はこれに当たりません。
+      </p>
+      <div class="code term">
         <span class="cap">上の match に対する glyph fix src</span>
 <pre>glyph fix: removed 0 unused import(s) across 0 file(s).
 glyph fix: declined E0200 in src/main.glyph: the compiler does not
@@ -568,25 +583,27 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
 
 <span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>コンパイラは、どのケースが欠けていて、それぞれがどんなパターンになるかを知っています。しかし注文が <code>Paid</code> のときにプログラムが何をすべきかは知りません。コンパイラが書く本体は、どれもコンパイルが通るだけの推測になります。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.128 までの glyph fix が書いていたもの</span></summary><div class="body">
         <p>
-          コンパイラは、どのケースが欠けていて、それぞれがどんなパターンになるかを知っています。しかし注文が <code>Paid</code> のときにプログラムが何をすべきかは知りません。コンパイラが書く本体は、どれもコンパイルが通るだけの推測になります。0.1.128 までの <code>glyph fix</code> はその推測を書いていました。ケースごとに 1 つのアームを追加し、その本体はケースを出力して <code>process.exit(1)</code> を呼ぶものでした。するとプログラムは <code>check</code>、<code>tsc</code>、<code>build</code> を通り、<code>glyph query variants</code> は match を網羅的と報告したので、欠けたケースはコンパイルエラーから実行時のクラッシュに変わり、それを指摘するものは何も残りませんでした。
+          0.1.128 までの <code>glyph fix</code> はその推測を書いていました。ケースごとに 1 つのアームを追加し、その本体はケースを出力して <code>process.exit(1)</code> を呼ぶものでした。するとプログラムは <code>check</code>、<code>tsc</code>、<code>build</code> を通り、<code>glyph query variants</code> は match を網羅的と報告したので、欠けたケースはコンパイルエラーから実行時のクラッシュに変わり、それを指摘するものは何も残りませんでした。
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">アームの出どころと、見送りの報告のしかた</span></summary><div class="body">
         <p>
           そこでこのルールは修正を見送り、ケースの名前を挙げます。アームを書くのに必要なものは、すべて上の <code>--agent</code> の答えにあります。<code>missing_variants</code> と、<code>symbols</code> の下にある各バリアントの <code>construct</code> の書き方です。アームを書くのはあなたかエージェントです。コンパイラが振る舞いを推論できない他のコードと同じです。
         </p>
         <p>
           <code>glyph fix</code> が書くものは、推測なしで書かれます。答えを決められないルールはすべて、見送ったことと理由を、適用した内容と同じ出力に表示します。タイポから 1 文字違いのフィールドが 2 つあれば、それは 1 つではなく 2 つであり、どちらかを選ぶのではなくそう伝えます。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-code-s-own-explanation-as-data">コード自身の説明を、データとして<a class="h-anchor" href="#the-code-s-own-explanation-as-data" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>glyph --explain &lt;CODE&gt; --json</code> は、詳しい説明、1 行の <code>help</code>、ドキュメントの URL、そしてコンパイラのネガティブコーパスにある誤ったプログラムと、それに対してこのコンパイラが出す診断の組を返します。診断は保存されたものではなく問い合わせのたびにコンパイルされるので、コンパイラが実際に言う内容からずれることはありません。
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-code-s-own-explanation-as-data">コード自身の説明を、データとして<a class="ak-anchor" href="#the-code-s-own-explanation-as-data" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph --explain &lt;CODE&gt; --json</code> は、詳しい説明、1 行の <code>help</code>、ドキュメントの URL、そしてコンパイラのネガティブコーパスにある誤ったプログラムと、それに対してこのコンパイラが出す診断の組を返します。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>診断は保存されたものではなく問い合わせのたびにコンパイルされるので、コンパイラが実際に言う内容からずれることはありません。</p></div>
+      <div class="code term">
         <span class="cap">glyph --explain E0200 --json</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
@@ -613,28 +630,41 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <p>
-          コーパスが扱っていないコードには、作り話の例ではなく、<code>counter_example: null</code> と、コーパスにそのケースがないことを述べる文が返ります。コーパスは扱っている範囲を主張し、それ以外については何も主張しません。
-        </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>コーパスが扱っていないコードには、作り話の例ではなく、<code>counter_example: null</code> と、コーパスにそのケースがないことを述べる文が返ります。コーパスは扱っている範囲を主張し、それ以外については何も主張しません。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">glyph llms --negative で得られるコーパス全体</span></summary><div class="body">
         <p>
           <code>glyph --explain</code> が渡すのはコードごとに 1 ケースです。コーパス全体も読めます。<code>glyph llms --negative E0200</code> はそのコードを出す誤ったプログラムをすべて、問い合わせのたびにコンパイルして表示します。<code>tsc --strict</code> が受け入れるプログラムと、それを拒否する Glyph を組にした 2 つ目のコーパスがあれば、それも並べて返します。コードを指定しなければ、70 個のコードのうち 46 個にわたる 102 ケースを一覧し、ケースのない 24 個の名前を挙げます。カバー率は返ってきたものから推測するのではなく、明記されます。これを含め、コンパイラが自分自身について公開する内容は<a href="/ja/answers/generated-docs/">専用のページ</a>にあります。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>すべての診断は <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（<code>alternatives_kind</code> が、それが <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code>、<code>exports</code> のどれを並べたものかを示し、エラーが発生した場所で設定されます）、<code>related</code>、<code>module</code>、<code>file</code>、<code>explain</code> を持ちます。これらは導き直したものではなく、コンパイラが発生させたエラーから埋められ、コンパイラがその情報を持たない場合はそれぞれ明示的な <code>null</code> になります。<code>file</code> は解決ルートからの相対パスで、レポートはそのルートを <code>project_root</code> に記すので、そのまま開けます。<code>glyph check --agent</code> は診断ごとに <code>constraints</code> と <code>symbols</code> を加えます。<code>glyph fix</code> は 3 つのルール（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>）を適用し、見送ったものはすべて理由とともに示します。<code>E0200</code> もすべてそうで、報告はしますが書き込みはしません。<code>glyph --explain &lt;CODE&gt; --json</code> はコンパイル済みの反例付きで説明を返し、<code>glyph llms --negative &lt;CODE&gt;</code> はそのコードを出す誤ったプログラムのコーパス全体を返します。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">限界</h3>
-          <p><code>E0211</code> の <code>cause</code> は <code>null</code> です。呼び出しの引数で問題となるシンボルはパラメータで、<code>module::fn.param</code> は識別子の語彙で表せないため、この null は抜け漏れではなく意図的なものです。反例の <code>corrected</code> は常に <code>null</code> です。ネガティブコーパスはケースに修正済みのプログラムを組み合わせておらず、70 個のコードのうち 24 個にはケースがまったくないからです。<code>glyph fix</code> が書くのは 3 つのルールだけで、網羅的でない <code>match</code> のアームは書きません。それはケースとそのパターンを診断に載せたうえで、あなたかエージェントに任されます。見送るものは、すべてはっきりと見送ったと伝えます。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">すべての診断は <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>、<code>related</code>、<code>module</code>、<code>file</code>、<code>explain</code> を持ち、コンパイラがその情報を持たない場合はそれぞれ明示的な <code>null</code> になる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>すべての診断は <code>expected</code>、<code>actual</code>、<code>cause</code>、<code>alternatives</code>（<code>alternatives_kind</code> が、それが <code>fields</code>、<code>members</code>、<code>variants</code>、<code>literals</code>、<code>exports</code> のどれを並べたものかを示し、エラーが発生した場所で設定されます）、<code>related</code>、<code>module</code>、<code>file</code>、<code>explain</code> を持ちます。これらは導き直したものではなく、コンパイラが発生させたエラーから埋められ、コンパイラがその情報を持たない場合はそれぞれ明示的な <code>null</code> になります。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>file</code> は解決ルートからの相対パスで、レポートはそのルートを <code>project_root</code> に記すので、そのまま開けます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check --agent</code> は診断ごとに <code>constraints</code> と <code>symbols</code> を加えます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fix</code> は 3 つのルール（<code>E0106</code>、<code>E0210</code>、<code>E0220</code>）を適用し、見送ったものはすべて理由とともに示します。<code>E0200</code> もすべてそうで、報告はしますが書き込みはしません。</span><span class="chip code">E0106</span><span class="chip code">E0210</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --explain &lt;CODE&gt; --json</code> はコンパイル済みの反例付きで説明を返し、<code>glyph llms --negative &lt;CODE&gt;</code> はそのコードを出す誤ったプログラムのコーパス全体を返します。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 限界</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0211</code> の <code>cause</code> は <code>null</code> です。呼び出しの引数で問題となるシンボルはパラメータで、<code>module::fn.param</code> は識別子の語彙で表せないため、この null は抜け漏れではなく意図的なものです。</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">反例の <code>corrected</code> は常に <code>null</code> です。ネガティブコーパスはケースに修正済みのプログラムを組み合わせておらず、70 個のコードのうち 24 個にはケースがまったくないからです。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph fix</code> が書くのは 3 つのルールだけで、網羅的でない <code>match</code> のアームは書きません。それはケースとそのパターンを診断に載せたうえで、あなたかエージェントに任されます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">見送るものは、すべてはっきりと見送ったと伝えます。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/ask-the-compiler/">
           <span class="dir">&larr; 前へ</span>

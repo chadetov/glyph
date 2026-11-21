@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?","item":"https://glyphlang.io/th/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/human-value/#article","headline":"Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?","description":"คุ้ม เอเจนต์ AI เป็นหัวข้อหลัก แต่การรับประกันทุกข้อ (match ที่ครบทุกกรณี ไม่มี any type ที่ตรวจตอนรัน โค้ดที่ grep หาได้ diff ที่คงที่) ก็ช่วยคนด้วย","url":"https://glyphlang.io/th/answers/human-value/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/human-value/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/human-value/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?","item":"https://glyphlang.io/th/answers/human-value/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/human-value/#article","headline":"Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?","description":"คุ้ม เอเจนต์ AI เป็นหัวข้อหลัก แต่การรับประกันทุกข้อ (match ที่ครบทุกกรณี ไม่มี any type ที่ตรวจตอนรัน โค้ดที่ grep หาได้ diff ที่คงที่) ก็ช่วยคนด้วย","url":"https://glyphlang.io/th/answers/human-value/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/human-value/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/human-value/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/human-value/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">06 &middot; สำหรับคนด้วย</p>
       <h1 class="q-title">Glyph คุ้มไหมถ้าฉันไม่ได้ใช้ AI?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,42 +480,59 @@
         คุ้ม การวางกรอบเรื่องเอเจนต์ AI เป็นหัวข้อหลักเพราะเอเจนต์ทำสิ่งเหล่านี้พังอยู่ตลอด แต่การรับประกันทุกข้อที่อยู่เบื้องหลังเป็น<strong>ประโยชน์ทางวิศวกรรมตรงๆ ที่คนได้รับโดยตรง</strong> เจอเรื่องไม่คาดคิดตอนรันน้อยลง diff เล็กลง และโค้ดที่ grep หาได้จริง ไม่มีข้อไหนต้องใช้ LLM
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="these-are-language-features-not-ai-features">นี่คือฟีเจอร์ของภาษา ไม่ใช่ฟีเจอร์ของ AI<a class="h-anchor" href="#these-are-language-features-not-ai-features" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#these-are-language-features-not-ai-features">ฟีเจอร์ของภาษา</a></li>
+          <li><a href="#what-you-get-solo">สิ่งที่คุณได้ แม้ทำงานคนเดียว</a></li>
+          <li><a href="#so-why-lead-with-agents">ทำไมเปิดด้วยเรื่องเอเจนต์</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="these-are-language-features-not-ai-features">นี่คือฟีเจอร์ของภาษา ไม่ใช่ฟีเจอร์ของ AI<a class="ak-anchor" href="#these-are-language-features-not-ai-features" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัดคำว่า "เอเจนต์" ออกแล้วอ่านรายการ: ไม่มี <code>any</code>, <code>match</code> ที่ครบทุกกรณี, error เป็นค่า, type ที่ถูกตรวจตอนรัน, รูปแบบ declaration เดียวต่อชื่อ, รูปแบบมาตรฐานที่ diff คงที่
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ใครที่เคยเขียน Rust, Elm หรือ OCaml จะจำได้ว่านี่คือสิ่งที่ทำให้ codebase ดูแลง่าย มันเป็นความคิดที่ดีมานานก่อนที่ AI จะเขียนโค้ด Glyph แค่นำมาใส่ในภาษาที่หน้าตาแบบ TypeScript ซึ่งนำมาใช้ทีละไฟล์ได้</p></div>
+
+      <h2 class="ak-h" id="what-you-get-solo">สิ่งที่คุณได้ แม้ทำงานคนเดียว<a class="ak-anchor" href="#what-you-get-solo" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>ถูกปลุกตอนตีสามน้อยลง</b>ข้อมูลที่ขอบเขตถูก validate โดยการออกแบบ (<code>User.parse</code>) และ case ที่ขาดไปเป็น compile error ไม่ใช่ <code>undefined</code> ที่โผล่บน production</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>รีวิวเร็วขึ้น</b>การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด คนรีวิวจึงอ่านการเปลี่ยนแปลง ไม่ใช่การจัดรูปแบบที่วุ่นวายรอบๆ</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4l3.6 3.6"/></svg></span><b>หาอะไรก็เจอ</b><code>grep "fn parseUser"</code> เจอนิยามเลย ไม่มี overload, barrel หรือ decorator ทำให้กระจัดกระจาย</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="6" cy="5.5" r="2.3"/><path d="M2 13.5c0-2.3 1.8-4 4-4s4 1.7 4 4"/><path d="M10.5 3.4a2.3 2.3 0 010 4.4M12 9.8c1.2.6 2 1.9 2 3.7"/></svg></span><b>รับคนใหม่ได้ง่ายขึ้น</b>core เล็กๆ ที่มีวิธีเดียวในการทำแต่ละอย่าง หมายถึงความรู้เฉพาะกลุ่มที่คนต่อไปต้องเรียนน้อยลง</li>
+      </ul>
+
+      <h2 class="ak-h" id="so-why-lead-with-agents">แล้วทำไมถึงเปิดด้วยเรื่องเอเจนต์?<a class="ak-anchor" href="#so-why-lead-with-agents" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เพราะผลตอบแทนตรงนั้น<em>ใหญ่กว่า</em> คนจะเรียนรู้ที่จะรัน linter และจัดการ case ในที่สุด ส่วนเอเจนต์หยิบ <code>any</code> มาใช้ ลืม arm แล้ว merge ไปทั้งที่เขียว และไว้ใจไม่ได้ว่าจะเปิดเครื่องมือที่ต้องเลือกเปิดไว้
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">พื้นฐานยังอยู่ไม่ว่าทางไหน</span></summary><div class="body">
         <p>
-          ตัดคำว่า "เอเจนต์" ออกแล้วอ่านรายการ: ไม่มี <code>any</code>, <code>match</code> ที่ครบทุกกรณี, error เป็นค่า, type ที่ถูกตรวจตอนรัน, รูปแบบ declaration เดียวต่อชื่อ, รูปแบบมาตรฐานที่ diff คงที่ ใครที่เคยเขียน Rust, Elm หรือ OCaml จะจำได้ว่านี่คือสิ่งที่ทำให้ codebase ดูแลง่าย มันเป็นความคิดที่ดีมานานก่อนที่ AI จะเขียนโค้ด Glyph แค่นำมาใส่ในภาษาที่หน้าตาแบบ TypeScript ซึ่งนำมาใช้ทีละไฟล์ได้
+          คุณค่าของการทำให้ความเข้มงวด<em>ไม่ใช่ตัวเลือก</em>ทวีขึ้นเมื่อเครื่องเป็นคนเขียนโค้ด แต่พื้นฐาน (ประโยชน์ข้างบน) ก็ยังอยู่ไม่ว่าคุณจะใช้เอเจนต์หรือไม่
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ให้มองว่าเป็น TypeScript ที่เข้มกว่า ซึ่งบังเอิญเหมาะกับเอเจนต์มาก ไม่ใช่เครื่องมือสำหรับเอเจนต์ที่จะคุ้มก็ต่อเมื่อคุณใช้เอเจนต์</p></div>
 
-        <h2 class="block-label" id="what-you-get-solo">สิ่งที่คุณได้ แม้ทำงานคนเดียว<a class="h-anchor" href="#what-you-get-solo" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>ถูกปลุกตอนตีสามน้อยลง</strong> ข้อมูลที่ขอบเขตถูก validate โดยการออกแบบ (<code>User.parse</code>) และ case ที่ขาดไปเป็น compile error ไม่ใช่ <code>undefined</code> ที่โผล่บน production</li>
-          <li><strong>รีวิวเร็วขึ้น</strong> การแก้หนึ่งบรรทัดคือ diff หนึ่งบรรทัด คนรีวิวจึงอ่านการเปลี่ยนแปลง ไม่ใช่การจัดรูปแบบที่วุ่นวายรอบๆ</li>
-          <li><strong>หาอะไรก็เจอ</strong> <code>grep "fn parseUser"</code> เจอนิยามเลย ไม่มี overload, barrel หรือ decorator ทำให้กระจัดกระจาย</li>
-          <li><strong>รับคนใหม่ได้ง่ายขึ้น</strong> core เล็กๆ ที่มีวิธีเดียวในการทำแต่ละอย่าง หมายถึงความรู้เฉพาะกลุ่มที่คนต่อไปต้องเรียนน้อยลง</li>
-        </ul>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> สิ่งที่ต้องแลก</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ถ้าคุณกำลังเริ่มของใหม่ หรือทีมของคุณให้คุณค่ากับวินัยแบบภาษาตระกูล ML อยู่แล้ว ประโยชน์จะมาทันที</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ถ้าคุณทำคนเดียวบน TS stack ที่โตเต็มที่และมีเครื่องมือครบ การตัดสินใจจะก้ำกึ่งกว่า: Glyph ยังเป็นพรีวิวช่วงแรก และนั่นเป็นต้นทุนจริงที่ต้องชั่งน้ำหนัก</span></span></li>
+          </ul>
+        </section>
 
-        <h2 class="block-label" id="so-why-lead-with-agents">แล้วทำไมถึงเปิดด้วยเรื่องเอเจนต์?<a class="h-anchor" href="#so-why-lead-with-agents" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          เพราะผลตอบแทนตรงนั้น<em>ใหญ่กว่า</em> คนจะเรียนรู้ที่จะรัน linter และจัดการ case ในที่สุด ส่วนเอเจนต์หยิบ <code>any</code> มาใช้ ลืม arm แล้ว merge ไปทั้งที่เขียว และไว้ใจไม่ได้ว่าจะเปิดเครื่องมือที่ต้องเลือกเปิดไว้ คุณค่าของการทำให้ความเข้มงวด<em>ไม่ใช่ตัวเลือก</em>ทวีขึ้นเมื่อเครื่องเป็นคนเขียนโค้ด แต่พื้นฐาน (ประโยชน์ข้างบน) ก็ยังอยู่ไม่ว่าคุณจะใช้เอเจนต์หรือไม่
-        </p>
-
-        <p class="callout">
-          ให้มองว่าเป็น TypeScript ที่เข้มกว่า ซึ่งบังเอิญเหมาะกับเอเจนต์มาก ไม่ใช่เครื่องมือสำหรับเอเจนต์ที่จะคุ้มก็ต่อเมื่อคุณใช้เอเจนต์
-        </p>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> ไม่ว่าทางไหน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ทางออกมีอยู่เสมอ: มันคอมไพล์เป็น TypeScript ที่อ่านได้และเป็นของคุณ การลองกับ module เดียวจึงถูกและย้อนกลับได้</span></span></li>
+          </ul>
+        </section>
       </div>
-
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">สิ่งที่ต้องแลก</h3>
-          <p>ถ้าคุณกำลังเริ่มของใหม่ หรือทีมของคุณให้คุณค่ากับวินัยแบบภาษาตระกูล ML อยู่แล้ว ประโยชน์จะมาทันที ถ้าคุณทำคนเดียวบน TS stack ที่โตเต็มที่และมีเครื่องมือครบ การตัดสินใจจะก้ำกึ่งกว่า: Glyph ยังเป็นพรีวิวช่วงแรก และนั่นเป็นต้นทุนจริงที่ต้องชั่งน้ำหนัก</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">ไม่ว่าทางไหน</h3>
-          <p>ทางออกมีอยู่เสมอ: มันคอมไพล์เป็น TypeScript ที่อ่านได้และเป็นของคุณ การลองกับ module เดียวจึงถูกและย้อนกลับได้</p>
-        </div>
-        <p class="page-stamp">แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
-      </div>
+      <p class="page-stamp">แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/vs-tooled-ts/">
           <span class="dir">&larr; ก่อนหน้า</span>

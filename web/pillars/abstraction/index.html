@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pillars/abstraction/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Abstraction","item":"https://glyphlang.io/pillars/abstraction/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pillars/abstraction/#article","headline":"Abstraction · a small, orthogonal core","description":"Glyph's fourth pillar: one way per concept. Pattern matching over switch ladders, Result over exceptions, records over tuples, and match as the conditional.","url":"https://glyphlang.io/pillars/abstraction/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pillars/abstraction/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/abstraction/" />
@@ -431,7 +431,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">Pillar 03 &middot; <span class="polish">The polish</span></p>
       <h1 class="q-title">Abstraction</h1>
 
@@ -441,32 +441,7 @@
         tuples. One good way per concept, not TypeScript's accreted layers.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="too-many-ways-to-say-the-same-thing">Too many ways to say the same thing<a class="h-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Link to this section">#</a></h2>
-        <p class="lede">
-          TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as
-          an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can
-          describe a shape with an <code>interface</code>, a <code>type</code>, or a
-          <code>class</code>. There are <code>namespace</code>s and modules, decorators and
-          higher-order functions, five idioms for nearly everything, each with its own edge
-          cases.
-        </p>
-        <p class="lede">
-          For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to
-          express a thing means more ways to pick the one with the footgun, and more idioms to keep
-          straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one
-          sharp tool per job, chosen so the obvious way is also the safe way.
-        </p>
-
-        <h2 class="block-label" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> is the only conditional<a class="h-anchor" href="#match-is-the-only-conditional" aria-label="Link to this section">#</a></h2>
-        <p>
-          There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>,
-          everywhere, and <code>match</code> is an expression: it produces a value. One
-          construct covers a boolean test, a union dispatch, and a value table, so there's no decision
-          to make about <em>which</em> branching form to reach for.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: statement, not a value</span>
@@ -488,17 +463,58 @@
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged unions and pattern matching<a class="h-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Link to this section">#</a></h2>
-        <p>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">Too many ways</a></li>
+          <li><a href="#match-is-the-only-conditional"><code>match</code> as the conditional</a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">Tagged unions</a></li>
+          <li><a href="#result-over-exceptions"><code>Result</code> over exceptions</a></li>
+          <li><a href="#named-records-over-positional-tuples">Named records</a></li>
+          <li><a href="#one-primitive-per-job">One primitive per job</a></li>
+          <li><a href="#the-benchmark-coming">The benchmark</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">Too many ways to say the same thing<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript grew by accretion, and it kept every layer.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Fixed cases</b>You can model a fixed set of cases as
+          an <code>enum</code>, a union of string literals, or a <code>const</code> object.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Shapes</b>You can
+          describe a shape with an <code>interface</code>, a <code>type</code>, or a
+          <code>class</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>Everything else</b>There are <code>namespace</code>s and modules, decorators and
+          higher-order functions, five idioms for nearly everything, each with its own edge
+          cases.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to
+          express a thing means more ways to pick the one with the footgun, and more idioms to keep
+          straight while doing it.
+      </p></div>
+      <p class="ak-lede">
+          Glyph's abstraction pillar is a deliberate subtraction: one
+          sharp tool per job, chosen so the obvious way is also the safe way.
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> <code>match</code> is the only conditional<a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>,
+          everywhere, and <code>match</code> is an expression: it produces a value.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>One construct covers a boolean test, a union dispatch, and a value table, so there's no decision
+          to make about <em>which</em> branching form to reach for.</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged unions and pattern matching<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           The way to model "one of these shapes" is a tagged union, and the way to take it apart is
-          <code>match</code>, which destructures the payload in the same step it selects the case. No
-          discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast
-          inside each branch to recover the shape.
-        </p>
-      </div>
-
+          <code>match</code>, which destructures the payload in the same step it selects the case.
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre><span class="k">type</span> <span class="t">Feed</span> =
@@ -514,25 +530,28 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> over exceptions<a class="h-anchor" href="#result-over-exceptions" aria-label="Link to this section">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what you no longer write by hand</span></summary><div class="body">
         <p>
+          No
+          discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast
+          inside each branch to recover the shape.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> <code>Result</code> over exceptions<a class="ak-anchor" href="#result-over-exceptions" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Failure is a value, not a hidden control-flow jump. A function that can fail says so in its
           return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the
           <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code>
-          and hoping the right thing throws the right class. The error path is as visible as the happy
-          path.
-        </p>
+          and hoping the right thing throws the right class.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The error path is as visible as the happy
+          path.</p></div>
 
-        <h2 class="block-label" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Named records over positional tuples<a class="h-anchor" href="#named-records-over-positional-tuples" aria-label="Link to this section">#</a></h2>
-        <p>
-          Data is described with named fields, always. There's no object-literal shorthand and no
-          reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to
-          remember. The shape reads the same at the definition, the construction, and the use.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Named records over positional tuples<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Data is described with named fields, always. The shape reads the same at the definition, the construction, and the use.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: what are [0] and [1]?</span>
@@ -553,31 +572,44 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="one-primitive-per-job"><span class="ex-label">05</span> One primitive per job<a class="h-anchor" href="#one-primitive-per-job" aria-label="Link to this section">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">no shorthand, no anonymous tuples</span></summary><div class="body">
         <p>
-          When a concept needs its own tool, Glyph gives it exactly one. Shared mutable
-          state lives in a <code>std/store</code>. A file or socket handle that must be closed once is
-          an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single,
+          There's no object-literal shorthand and no
+          reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to
+          remember.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> One primitive per job<a class="ak-anchor" href="#one-primitive-per-job" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          When a concept needs its own tool, Glyph gives it exactly one.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>Shared state</b>Shared mutable
+          state lives in a <code>std/store</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Handles</b>A file or socket handle that must be closed once is
+          an <code>owned</code> resource.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>Iteration</b>Iteration is <code>for x in xs</code>.</li>
+      </ul>
+      <p class="ak-lede">
+          Each is a single,
           named, purpose-built primitive, not a pattern you re-derive from a grab-bag of
           general parts and get subtly wrong.
-        </p>
+      </p>
 
         <p class="pull-quote">
           Abstraction here means <strong>fewer, sharper tools</strong>, not more. Every concept
           has an obvious form, and the obvious form is the one you're meant to use.
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">The benchmark: coming<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link to this section">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="the-benchmark-coming">The benchmark: coming<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           The way to measure this is surface area: how many distinct concepts a reader has to hold to
-          understand a program, and how much code it takes to express a common task cleanly. Glyph
+          understand a program, and how much code it takes to express a common task cleanly.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph
           isn't in real-world use yet, so the chart below is a placeholder that fills in with real
-          measurements once there's a body of real programs to compare.
-        </p>
-      </div>
-
+          measurements once there's a body of real programs to compare.</p></div>
       <div class="chart">
         <span class="label">Distinct concepts to read a typical module &middot; lower is better</span>
         <h3>TypeScript vs Glyph</h3>
@@ -596,13 +628,11 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           A smaller core is easier for a person to learn once and easier for a model to get right every
           time. That's the whole polish layer in one sentence: take away the choices that only added
           risk, and what's left is a language that says what it means.
-        </p>
-      </div>
+      </p></div>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/pillars/greppability/">
           <span class="dir">&larr; Previous pillar</span>

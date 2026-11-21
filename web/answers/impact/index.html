@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can the compiler tell me what a change will break?","item":"https://glyphlang.io/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/impact/#article","headline":"Can the compiler tell me what a change will break?","description":"glyph_impact takes the declaration you are about to change and the edit, and answers with a verdict and a reason for every site, before you touch the file.","url":"https://glyphlang.io/answers/impact/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/impact/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can the compiler tell me what a change will break?","item":"https://glyphlang.io/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/impact/#article","headline":"Can the compiler tell me what a change will break?","description":"glyph_impact takes the declaration you are about to change and the edit, and answers with a verdict and a reason for every site, before you touch the file.","url":"https://glyphlang.io/answers/impact/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">21 &middot; Before you edit</p>
       <h1 class="q-title">Can the compiler tell me what a change will break before I make it?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -488,49 +488,17 @@
         a closed list, each with the reason that verdict and no other.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          Renaming a function, widening a union, or changing what a parameter accepts, you either
-          grep for the old name and hope you found every call, or you make the edit and read what
-          the compiler says afterward. Neither approach tells you which sites will keep compiling
-          while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when
-          you add a variant, it just starts routing the new case somewhere nobody chose. That
-          site never shows up in a build. <code>glyph_impact</code> answers before the edit, over
-          the same analysis the compiler runs.
-        </p>
-
-        <h2 class="block-label" id="what-comes-back">What comes back<a class="h-anchor" href="#what-comes-back" aria-label="Link to this section">#</a></h2>
-        <p>
-          The request names an entity by its <code>module::name</code> identity and a change from
-          a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>,
-          <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The
-          change is required, because a verdict is a fact about an edit; with no edit named, every
-          site would come back as a bare reference instead of a consequence. The answer names the
-          entity, the change, and an <code>impact</code> list: one entry per site, each with the
-          declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a
-          <code>because</code>, and the diagnostic code the compiler raises when there is exactly
-          one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the
-          compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the
-          change is taken here silently), <code>SAFE</code> (it can prove the site stays correct),
-          <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence),
-          and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at
-          all).
-        </p>
-
-        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one
           passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and
           one reads <code>label</code> as a value and never calls it. Asking what
           <code>change_signature_type</code> does to each gets three different verdicts, because
           they're three different claims:
         </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">request</span>
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">request</span>
 <pre>{
   <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
   <span class="pk">"params"</span>: {
@@ -541,9 +509,9 @@
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">result, trimmed to the three sites</span>
+          </div>
+          <div class="code term">
+            <span class="cap">result, trimmed to the three sites</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
   <span class="pk">"impact"</span>: [
@@ -582,46 +550,135 @@
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Same edit, three sites, three verdicts, and the <code>because</code> on each is the
+          actual sentence the compiler produces, not a category label.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">the compiler test this mirrors</span></summary><div class="body">
+          <p>
+            This mirrors the compiler's
+            own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>
+            in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and
+            checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the
+            compiler stays silent at the other two.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#what-comes-back">What comes back</a></li>
+          <li><a href="#on-a-real-application">On a real application</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Renaming a function, widening a union, or changing what a parameter accepts, you either
+        grep for the old name and hope you found every call, or you make the edit and read what
+        the compiler says afterward.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Neither approach tells you which sites will keep compiling
+        while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when
+        you add a variant, it just starts routing the new case somewhere nobody chose. That
+        site never shows up in a build. <code>glyph_impact</code> answers before the edit, over
+        the same analysis the compiler runs.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">What comes back<a class="ak-anchor" href="#what-comes-back" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The request names an entity by its <code>module::name</code> identity and a change from
+        a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>,
+        <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The
+        verdicts are closed and each means one thing:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>Verdict</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">the compiler can prove the site stops compiling</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">it can prove the change is taken here silently</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">it can prove the site stays correct</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">it looked at this site and can't establish the consequence</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">the question isn't askable for a site of this shape at all</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why the change is required, and what each entry holds</span></summary><div class="body">
         <p>
-          Same edit, three sites, three verdicts, and the <code>because</code> on each is the
-          actual sentence the compiler produces, not a category label. This mirrors the compiler's
-          own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>
-          in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and
-          checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the
-          compiler stays silent at the other two.
+          The
+          change is required, because a verdict is a fact about an edit; with no edit named, every
+          site would come back as a bare reference instead of a consequence. The answer names the
+          entity, the change, and an <code>impact</code> list: one entry per site, each with the
+          declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a
+          <code>because</code>, and the diagnostic code the compiler raises when there is exactly
+          one.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="on-a-real-application">On a real application<a class="h-anchor" href="#on-a-real-application" aria-label="Link to this section">#</a></h2>
-        <p>
-          <code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository,
-          has one tagged union, <code>Value</code>, with four variants today. Asking
-          <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match
-          sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will
-          silently absorb the new variant. Adding the variant for real, the compiler reports
+      <h2 class="ak-h" id="on-a-real-application">On a real application<a class="ak-anchor" href="#on-a-real-application" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository,
+        has one tagged union, <code>Value</code>, with four variants today. Asking
+        <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match
+        sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will
+        silently absorb the new variant.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Checked by the build</b>Adding the variant for real, the compiler reports
           exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing
-          at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms
+          at the 2 <code>ABSORBS</code> sites, before or after.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>A text search instead</b>A text search for catch-all arms
           across the same app, the thing you'd do without the tool, finds those same 2 real sites
           buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail,
-          because it has no notion of which type a <code>match</code> scrutinizes.
-        </p>
-      </div>
+          because it has no notion of which type a <code>match</code> scrutinizes.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title="x" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Where it stops</h3>
-          <p>Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A JSX element is decided as the call it lowers to</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A JSX element is decided as the call it lowers to: <code>&lt;Card title="x" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Coverage is stated per search, and every node carries where it came from</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Where it stops</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Depth is exact at one hop and empty past it</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/binary/">
           <span class="dir">&larr; Previous</span>

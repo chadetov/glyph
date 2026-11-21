@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/abstraction/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Soyutlama","item":"https://glyphlang.io/tr/pillars/abstraction/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/abstraction/#article","headline":"Soyutlama · küçük, ortogonal bir çekirdek","description":"Glyph'in dördüncü temel ilkesi: her kavram için tek yol. switch merdivenleri yerine pattern matching, exception yerine Result, tuple yerine record ve koşul yapısı olarak match.","url":"https://glyphlang.io/tr/pillars/abstraction/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/abstraction/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/abstraction/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">İlke 03 &middot; <span class="polish">Cila</span></p>
       <h1 class="q-title">Soyutlama</h1>
 
@@ -433,21 +433,7 @@
         Ne demek istediğinizi <strong>küçük, ortogonal bir çekirdekle</strong> söyleyin: switch merdivenleri yerine pattern matching, fırlatılan exception'lar yerine <code>Result</code>, tuple'lar yerine isimli record'lar. TypeScript'in üst üste birikmiş katmanları değil, her kavram için tek bir iyi yol.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="too-many-ways-to-say-the-same-thing">Aynı şeyi söylemenin fazla yolu<a class="h-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p class="lede">
-          TypeScript birikerek büyüdü ve her katmanı korudu. Sabit bir durum kümesini bir <code>enum</code>, string literal'lerden oluşan bir union ya da bir <code>const</code> nesne olarak modelleyebilirsiniz. Bir biçimi bir <code>interface</code>, bir <code>type</code> ya da bir <code>class</code> ile tarif edebilirsiniz. <code>namespace</code>'ler ve modüller, decorator'lar ve yüksek mertebeden fonksiyonlar var; neredeyse her şey için, her birinin kendi uç durumları olan beş deyim.
-        </p>
-        <p class="lede">
-          Bir insan için bu esnekliktir. Bir <strong>ajan</strong> için ise mayın tarlasıdır: bir şeyi ifade etmenin daha fazla yolu, ayağınıza sıkacağınız yolu seçmenin daha fazla yolu demektir ve bunu yaparken akılda tutulması gereken daha fazla deyim demektir. Glyph'in soyutlama ilkesi bilinçli bir çıkarmadır: her iş için tek bir keskin araç, bariz yol aynı zamanda güvenli yol olacak şekilde seçilmiş.
-        </p>
-
-        <h2 class="block-label" id="match-is-the-only-conditional"><span class="ex-label">01</span> Tek koşul yapısı <code>match</code><a class="h-anchor" href="#match-is-the-only-conditional" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>if</code>/<code>else</code> ifadesi yoktur. Dallanma her yerde <code>match</code>'tir ve <code>match</code> bir ifadedir: bir değer üretir. Tek bir yapı bir boolean testini, bir union dağıtımını ve bir değer tablosunu karşılar; bu yüzden <em>hangi</em> dallanma biçimine başvuracağınıza dair verilecek bir karar yoktur.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: değer değil, deyim</span>
@@ -469,14 +455,47 @@
 }</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged union'lar ve pattern matching<a class="h-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          "Bu biçimlerden biri"ni modellemenin yolu bir tagged union'dır, onu parçalarına ayırmanın yolu ise durumu seçtiği adımda payload'u da açan <code>match</code>'tir. Elle bakımı yapılacak bir ayırt edici alan, string bir tag üzerinde <code>switch</code> merdiveni ya da biçimi geri kazanmak için her dalın içinde bir cast yoktur.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#too-many-ways-to-say-the-same-thing">Çok fazla yol</a></li>
+          <li><a href="#match-is-the-only-conditional">Koşul olarak <code>match</code></a></li>
+          <li><a href="#tagged-unions-and-pattern-matching">Tagged union'lar</a></li>
+          <li><a href="#result-over-exceptions">Exception yerine <code>Result</code></a></li>
+          <li><a href="#named-records-over-positional-tuples">İsimli record'lar</a></li>
+          <li><a href="#one-primitive-per-job">Her iş için tek temel yapı</a></li>
+          <li><a href="#the-benchmark-coming">Benchmark</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="too-many-ways-to-say-the-same-thing">Aynı şeyi söylemenin fazla yolu<a class="ak-anchor" href="#too-many-ways-to-say-the-same-thing" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript birikerek büyüdü ve her katmanı korudu.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Sabit durumlar</b>Sabit bir durum kümesini bir <code>enum</code>, string literal'lerden oluşan bir union ya da bir <code>const</code> nesne olarak modelleyebilirsiniz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Biçimler</b>Bir biçimi bir <code>interface</code>, bir <code>type</code> ya da bir <code>class</code> ile tarif edebilirsiniz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 4h10M3 8h10M3 12h10"/></svg></span><b>Geri kalan her şey</b><code>namespace</code>'ler ve modüller, decorator'lar ve yüksek mertebeden fonksiyonlar var; neredeyse her şey için, her birinin kendi uç durumları olan beş deyim.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          Bir insan için bu esnekliktir. Bir <strong>ajan</strong> için ise mayın tarlasıdır: bir şeyi ifade etmenin daha fazla yolu, ayağınıza sıkacağınız yolu seçmenin daha fazla yolu demektir ve bunu yaparken akılda tutulması gereken daha fazla deyim demektir.
+      </p></div>
+      <p class="ak-lede">
+          Glyph'in soyutlama ilkesi bilinçli bir çıkarmadır: her iş için tek bir keskin araç, bariz yol aynı zamanda güvenli yol olacak şekilde seçilmiş.
+      </p>
+
+      <h2 class="ak-h" id="match-is-the-only-conditional"><span class="ex-label">01</span> Tek koşul yapısı <code>match</code><a class="ak-anchor" href="#match-is-the-only-conditional" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          <code>if</code>/<code>else</code> ifadesi yoktur. Dallanma her yerde <code>match</code>'tir ve <code>match</code> bir ifadedir: bir değer üretir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Tek bir yapı bir boolean testini, bir union dağıtımını ve bir değer tablosunu karşılar; bu yüzden <em>hangi</em> dallanma biçimine başvuracağınıza dair verilecek bir karar yoktur.</p></div>
+
+      <h2 class="ak-h" id="tagged-unions-and-pattern-matching"><span class="ex-label">02</span> Tagged union'lar ve pattern matching<a class="ak-anchor" href="#tagged-unions-and-pattern-matching" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          "Bu biçimlerden biri"ni modellemenin yolu bir tagged union'dır, onu parçalarına ayırmanın yolu ise durumu seçtiği adımda payload'u da açan <code>match</code>'tir.
+      </p>
       <div class="code">
         <span class="cap">feed.glyph</span>
 <pre><span class="k">type</span> <span class="t">Feed</span> =
@@ -492,19 +511,22 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="result-over-exceptions"><span class="ex-label">03</span> Exception yerine <code>Result</code><a class="h-anchor" href="#result-over-exceptions" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">artık elle yazmadığınız şeyler</span></summary><div class="body">
         <p>
-          Başarısızlık gizli bir kontrol akışı sıçraması değil, bir değerdir. Başarısız olabilen bir fonksiyon bunu dönüş tipinde söyler (<code>Result&lt;T, E&gt;</code>) ve çağrı yerlerini <code>try</code>/<code>catch</code> içine sarıp doğru şeyin doğru sınıfı fırlatmasını ummak yerine başarısızlıkları <code>?</code> operatörüyle birleştirirsiniz. Hata yolu, mutlu yol kadar görünürdür.
+          Elle bakımı yapılacak bir ayırt edici alan, string bir tag üzerinde <code>switch</code> merdiveni ya da biçimi geri kazanmak için her dalın içinde bir cast yoktur.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Konumsal tuple'lar yerine isimli record'lar<a class="h-anchor" href="#named-records-over-positional-tuples" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Veri her zaman isimli alanlarla tarif edilir. Nesne literal kısaltması yoktur ve <code>[0]</code> ile <code>[1]</code>'in ne olduğunu hatırlamanız gereken anonim bir tuple'a başvurulmaz. Biçim tanımda, oluşturmada ve kullanımda aynı okunur.
-        </p>
-      </div>
+      <h2 class="ak-h" id="result-over-exceptions"><span class="ex-label">03</span> Exception yerine <code>Result</code><a class="ak-anchor" href="#result-over-exceptions" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Başarısızlık gizli bir kontrol akışı sıçraması değil, bir değerdir. Başarısız olabilen bir fonksiyon bunu dönüş tipinde söyler (<code>Result&lt;T, E&gt;</code>) ve çağrı yerlerini <code>try</code>/<code>catch</code> içine sarıp doğru şeyin doğru sınıfı fırlatmasını ummak yerine başarısızlıkları <code>?</code> operatörüyle birleştirirsiniz.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Hata yolu, mutlu yol kadar görünürdür.</p></div>
 
+      <h2 class="ak-h" id="named-records-over-positional-tuples"><span class="ex-label">04</span> Konumsal tuple'lar yerine isimli record'lar<a class="ak-anchor" href="#named-records-over-positional-tuples" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Veri her zaman isimli alanlarla tarif edilir. Biçim tanımda, oluşturmada ve kullanımda aynı okunur.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: [0] ve [1] nedir?</span>
@@ -525,23 +547,34 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="one-primitive-per-job"><span class="ex-label">05</span> Her iş için tek bir temel yapı<a class="h-anchor" href="#one-primitive-per-job" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kısaltma yok, anonim tuple yok</span></summary><div class="body">
         <p>
-          Bir kavram kendi aracına ihtiyaç duyduğunda Glyph ona tam olarak bir tane verir. Paylaşılan değiştirilebilir durum bir <code>std/store</code>'da yaşar. Bir kez kapatılması gereken bir dosya ya da socket tutamacı bir <code>owned</code> kaynaktır. Yineleme <code>for x in xs</code> ile yapılır. Her biri, genel parçalardan oluşan bir karışık torbadan yeniden türetip ince bir şekilde yanlış yaptığınız bir kalıp değil, tek, isimli, amaca özel bir temel yapıdır.
+          Nesne literal kısaltması yoktur ve <code>[0]</code> ile <code>[1]</code>'in ne olduğunu hatırlamanız gereken anonim bir tuple'a başvurulmaz.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="one-primitive-per-job"><span class="ex-label">05</span> Her iş için tek bir temel yapı<a class="ak-anchor" href="#one-primitive-per-job" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bir kavram kendi aracına ihtiyaç duyduğunda Glyph ona tam olarak bir tane verir.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><ellipse cx="8" cy="4" rx="5" ry="2"/><path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4"/></svg></span><b>Paylaşılan durum</b>Paylaşılan değiştirilebilir durum bir <code>std/store</code>'da yaşar.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Tutamaçlar</b>Bir kez kapatılması gereken bir dosya ya da socket tutamacı bir <code>owned</code> kaynaktır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.5 5.5A5 5 0 103 9"/><path d="M12.8 2.5v3.2H9.6"/></svg></span><b>Yineleme</b>Yineleme <code>for x in xs</code> ile yapılır.</li>
+      </ul>
+      <p class="ak-lede">
+          Her biri, genel parçalardan oluşan bir karışık torbadan yeniden türetip ince bir şekilde yanlış yaptığınız bir kalıp değil, tek, isimli, amaca özel bir temel yapıdır.
+      </p>
 
         <p class="pull-quote">
           Burada soyutlama, daha fazla değil, <strong>daha az ve daha keskin araç</strong> demektir. Her kavramın bariz bir biçimi vardır ve bariz biçim, kullanmanız gereken biçimdir.
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">Benchmark: yakında<a class="h-anchor" href="#the-benchmark-coming" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bunu ölçmenin yolu yüzey alanıdır: bir okuyucunun bir programı anlamak için aklında tutması gereken farklı kavram sayısı ve sık yapılan bir işi temiz şekilde ifade etmek için gereken kod miktarı. Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, karşılaştırılacak yeterli sayıda gerçek program olduğunda gerçek ölçümlerle dolacak bir yer tutucudur.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">Benchmark: yakında<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bunu ölçmenin yolu yüzey alanıdır: bir okuyucunun bir programı anlamak için aklında tutması gereken farklı kavram sayısı ve sık yapılan bir işi temiz şekilde ifade etmek için gereken kod miktarı.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik, karşılaştırılacak yeterli sayıda gerçek program olduğunda gerçek ölçümlerle dolacak bir yer tutucudur.</p></div>
       <div class="chart">
         <span class="label">Tipik bir modülü okumak için gereken farklı kavram sayısı &middot; düşük olan daha iyi</span>
         <h3>TypeScript ve Glyph</h3>
@@ -558,11 +591,9 @@ p[<span class="n">0</span>]; p[<span class="n">1</span>];  <span class="cm">// x
         </div>
       </div>
 
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           Daha küçük bir çekirdeği bir insan bir kez öğrenir ve bir model onu her seferinde daha kolay doğru yapar. Cila katmanının tamamı tek cümlede şu: yalnızca risk ekleyen seçenekleri kaldırın, geriye ne demek istediğini söyleyen bir dil kalır.
-        </p>
-      </div>
+      </p></div>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/pillars/greppability/">
           <span class="dir">&larr; Önceki ilke</span>

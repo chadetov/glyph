@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Можно ли использовать мой код на TypeScript, JavaScript и из npm?","item":"https://glyphlang.io/ru/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/imports/#article","headline":"Можно ли использовать мой код на TypeScript, JavaScript и из npm?","description":"Glyph компилируется в обычный TypeScript и работает поверх npm: модуль .glyph импортирует любой пакет и сам импортируется из ваших .ts. Внедряйте его пофайлово.","url":"https://glyphlang.io/ru/answers/imports/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/imports/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Можно ли использовать мой код на TypeScript, JavaScript и из npm?","item":"https://glyphlang.io/ru/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/imports/#article","headline":"Можно ли использовать мой код на TypeScript, JavaScript и из npm?","description":"Glyph компилируется в обычный TypeScript и работает поверх npm: модуль .glyph импортирует любой пакет и сам импортируется из ваших .ts. Внедряйте его пофайлово.","url":"https://glyphlang.io/ru/answers/imports/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/imports/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/imports/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/imports/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">09 &middot; Внедрение</p>
       <h1 class="q-title">Можно ли использовать мой существующий TypeScript, JavaScript и библиотеки из npm?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,17 +478,8 @@
         Да. Glyph компилируется в <strong>обычный TypeScript</strong> и работает поверх npm: модуль <code>.glyph</code> импортирует из любого пакета и сам импортируется из ваших существующих <code>.ts</code>. Внедрять его можно <strong>по одному файлу</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Почему это важно<a class="h-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Никто не переписывает кодовую базу, чтобы попробовать язык. Поскольку результат работы Glyph <em>и есть</em> TypeScript, файл <code>.glyph</code> встаёт в уголок существующего проекта на TS/React/Node, импортирует те же пакеты и экспортирует обратно в окружающие его <code>.ts</code>. Этот постепенный путь и есть причина целиться в TypeScript, а не выпускать новую среду выполнения.
-        </p>
-
-        <h2 class="block-label" id="see-it">Посмотрите сами<a class="h-anchor" href="#see-it" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>Пакеты импортируются по имени (включая имена с дефисом и пакеты со scope в npm), и Glyph генерирует тот импорт, которого вы ожидаете:</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre><span class="k">import</span> react { useState }
@@ -504,14 +495,36 @@
 <span class="k">import</span> { zodResolver }
   <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Пакеты импортируются по имени (включая имена с дефисом и пакеты со scope в npm), и Glyph генерирует тот импорт, которого вы ожидаете.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Если пакет установлен и поставляется со своими типами (или для него есть <code>@types/...</code>), больше ничего делать не нужно. Ни заглушки, ни файла-адаптера. <code>glyph build</code> находит <code>node_modules</code> вашего проекта и направляет на него проверку типов, так что настоящие типы пакета проверяют ваш код, а неправильный вызов становится настоящей ошибкой. Импорты подпутей (<code>pkg/sub</code>) тоже разрешаются через карту <code>exports</code> пакета, поэтому собственные типы подпути проверяются. Вот zod, используемый напрямую, без единой рукописной строки:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#installed-packages">Установленные пакеты</a></li>
+          <li><a href="#value-derived-types">Типы из значений</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">Рукописный TypeScript</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">Подпроцессы</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">Правка прослойки</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">Клиенты на классах</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Никто не переписывает кодовую базу, чтобы попробовать язык. Поскольку результат работы Glyph <em>и есть</em> TypeScript, файл <code>.glyph</code> встаёт в уголок существующего проекта на TS/React/Node, импортирует те же пакеты и экспортирует обратно в окружающие его <code>.ts</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Этот постепенный путь и есть причина целиться в TypeScript, а не выпускать новую среду выполнения.</p></div>
+
+      <h2 class="ak-h" id="installed-packages">Установленные пакеты приносят свои типы<a class="ak-anchor" href="#installed-packages" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Если пакет установлен и поставляется со своими типами (или для него есть <code>@types/...</code>), больше ничего делать не нужно. Ни заглушки, ни файла-адаптера.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> находит <code>node_modules</code> вашего проекта и направляет на него проверку типов, так что настоящие типы пакета проверяют ваш код, а неправильный вызов становится настоящей ошибкой.</p></div>
+      <p>Вот zod, используемый напрямую, без единой рукописной строки:</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -541,34 +554,55 @@ print(user.name)</pre>
 <span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> выполняет ту же программу с установленным zod, так что это не только проверка типов: одна запись в конфигурации, которая разрешает пакет для проверки типов, разрешает его и для среды выполнения.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Пакету, у которого <em>нет</em> типов и нет <code>@types/...</code>, по-прежнему нужно объявление, которое пишете вы, и для этого есть папка <code>.types/</code> (тот же механизм <code>.d.ts</code>, который уже использует TypeScript).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">импорты подпутей и типы с валидацией из <code>.d.ts</code></span></summary><div class="body">
         <p>
-          <code>glyph run</code> выполняет ту же программу с установленным zod, так что это не только проверка типов: одна запись в конфигурации, которая разрешает пакет для проверки типов, разрешает его и для среды выполнения. Пакету, у которого <em>нет</em> типов и нет <code>@types/...</code>, по-прежнему нужно объявление, которое пишете вы, и для этого есть папка <code>.types/</code> (тот же механизм <code>.d.ts</code>, который уже использует TypeScript). А если форма библиотеки нужна вам как полноценный тип Glyph <em>с валидацией</em>, а не как импорт только типов, <code>glyph gen dts</code> превращает <code>.d.ts</code> в настоящие типы с дескрипторами: см. <a href="/ru/answers/typed-apis/">нужно ли писать валидатор для каждого API вручную?</a>
+          Импорты подпутей (<code>pkg/sub</code>) тоже разрешаются через карту <code>exports</code> пакета, поэтому собственные типы подпути проверяются.
         </p>
         <p>
-          Типы, выведенные из значений, поддерживаются полноценно. <code>type User = z.infer&lt;typeof user_schema&gt;</code> работает напрямую: <code>typeof user_schema</code> это запрос типа по ссылке на настоящее значение (опечатка даёт ошибку неразрешённого имени), а <code>z.infer&lt;...&gt;</code> это обычный обобщённый тип-член. Он генерируется дословно, а <code>tsc</code> его сводит, так что <code>u.name</code> имеет тип <code>string</code>; валидацию обеспечивает собственный <code>parse</code> схемы, как zod и так работает. Spread пропсов в JSX (<code>&lt;input {...register()} /&gt;</code>) тоже поддерживается полноценно. Для редкой идиомы TypeScript, которую Glyph пока не может записать, есть <code>extern_ts("...")</code>, ограниченная лазейка, которую легко найти поиском: <code>tsc</code> её проверяет, но тут важно быть точным, это граница доверия, а не граница с проверкой во время выполнения (для Glyph она непрозрачна, значение возвращается как <code>unknown</code>, которое надо сузить). Так что библиотека никогда не вынуждает писать файл-адаптер вручную.
+          А если форма библиотеки нужна вам как полноценный тип Glyph <em>с валидацией</em>, а не как импорт только типов, <code>glyph gen dts</code> превращает <code>.d.ts</code> в настоящие типы с дескрипторами: см. <a href="/ru/answers/typed-apis/">нужно ли писать валидатор для каждого API вручную?</a>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">Когда нужен целый рукописный TypeScript<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Ссылка на этот раздел">#</a></h2>
+      <h2 class="ak-h" id="value-derived-types">Типы из значений, spread в JSX и лазейка<a class="ak-anchor" href="#value-derived-types" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Типы, выведенные из значений, поддерживаются полноценно. Spread пропсов в JSX (<code>&lt;input {...register()} /&gt;</code>) тоже поддерживается полноценно.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Так что библиотека никогда не вынуждает писать файл-адаптер вручную.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Для редкой идиомы TypeScript, которую Glyph пока не может записать, есть <code>extern_ts("...")</code>, ограниченная лазейка, которую легко найти поиском: <code>tsc</code> её проверяет, но тут важно быть точным, это граница доверия, а не граница с проверкой во время выполнения (для Glyph она непрозрачна, значение возвращается как <code>unknown</code>, которое надо сузить).</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как разрешается <code>z.infer&lt;typeof s&gt;</code></span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> работает напрямую: <code>typeof user_schema</code> это запрос типа по ссылке на настоящее значение (опечатка даёт ошибку неразрешённого имени), а <code>z.infer&lt;...&gt;</code> это обычный обобщённый тип-член. Он генерируется дословно, а <code>tsc</code> его сводит, так что <code>u.name</code> имеет тип <code>string</code>; валидацию обеспечивает собственный <code>parse</code> схемы, как zod и так работает.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">Когда нужен целый рукописный TypeScript<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Иногда лазейка нужна не для типа или выражения, а для настоящего кода времени выполнения: цикла по потоку node, <code>new Promise</code>, рабочего потока. Положите <code>.ts</code> в <code>&lt;src&gt;/extern/</code> и обращайтесь к нему через <code>import extern/&lt;name&gt;</code>.
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
 <span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
 <span class="c">// src/main.glyph</span>
 <span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Относительные импорты в исходниках Glyph по-прежнему запрещены (это правило удобства поиска), поэтому <code>extern/*</code> единственный зарезервированный путь, и <code>grep -rn 'import extern/'</code> находит каждое место, где вы вышли за пределы языка.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">копирование в сборку, обратное направление и прослойка для node</span></summary><div class="body">
         <p>
-          Сборка копирует <code>&lt;src&gt;/extern/**</code> в выходной каталог и генерирует относительный спецификатор, так что <code>tsc</code> проверяет extern вместе с вашим кодом на Glyph, а пересборка никогда его не удаляет. Относительные импорты в исходниках Glyph по-прежнему запрещены (это правило удобства поиска), поэтому <code>extern/*</code> единственный зарезервированный путь, и <code>grep -rn 'import extern/'</code> находит каждое место, где вы вышли за пределы языка. Это обратная сторона простого направления, когда файл <code>.ts</code> импортирует ваш скомпилированный Glyph, для чего не нужно вообще ничего. Типичный extern (HTTP-сервер, <code>fs</code>) проходит проверку типов против встроенной прослойки для node, ничего не устанавливая.
+          Сборка копирует <code>&lt;src&gt;/extern/**</code> в выходной каталог и генерирует относительный спецификатор, так что <code>tsc</code> проверяет extern вместе с вашим кодом на Glyph, а пересборка никогда его не удаляет.
         </p>
+        <p>
+          Это обратная сторона простого направления, когда файл <code>.ts</code> импортирует ваш скомпилированный Glyph, для чего не нужно вообще ничего. Типичный extern (HTTP-сервер, <code>fs</code>) проходит проверку типов против встроенной прослойки для node, ничего не устанавливая.
+        </p>
+      </div></details>
 
-        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">Наблюдение за подпроцессом без установки чего-либо<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">Наблюдение за подпроцессом без установки чего-либо<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           Встроенные объявления node включают асинхронную половину <code>child_process</code>, а не только блокирующую, так что инструмент, который показывает вывод долгой команды во время её работы, пишется на Glyph, а не через extern:
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -588,9 +622,12 @@ print(user.name)</pre>
   })
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
-        <p>
-          <code>io.print</code>, а не <code>io.println</code>: фрагмент это кусок потока, а не строка, и одна строка может прийти в двух фрагментах. Перегрузки следуют <code>@types/node</code>, так что каналы возвращаются ненулевыми при простом <code>spawn(command, args)</code> и допускающими null, как только вы передаёте <code>stdio</code>. Чтение <code>child.stdout</code> после <code>stdio: "inherit"</code> даёт <code>TS18047</code> здесь и <code>TS18047</code> с настоящими типами, а не две разные истории об одном и том же значении:
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>io.print</code>, а не <code>io.println</code>: фрагмент это кусок потока, а не строка, и одна строка может прийти в двух фрагментах.</p></div>
+      <p>
+          Перегрузки следуют <code>@types/node</code>, так что каналы возвращаются ненулевыми при простом <code>spawn(command, args)</code> и допускающими null, как только вы передаёте <code>stdio</code>. Чтение <code>child.stdout</code> после <code>stdio: "inherit"</code> даёт <code>TS18047</code> здесь и <code>TS18047</code> с настоящими типами, а не две разные истории об одном и том же значении:
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047"><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -600,16 +637,21 @@ print(user.name)</pre>
   <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
   child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
-
-        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Отредактируйте прослойку, и следующий запуск использует отредактированную<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Прослойка это файл, над которым вы работаете итеративно, поэтому он должен считаться исходником. <code>glyph run</code> кэширует сборку под отпечатком ваших исходников, и этот отпечаток охватывает каждый <code>.ts</code> и <code>.tsx</code> в <code>extern/</code>, и по пути, и по содержимому. Отредактируйте один, переименуйте, добавьте или удалите, и следующий запуск пересоберёт проект и заново запустит <code>tsc</code>. Прослойка-симлинк разыменовывается, так что <code>.ts</code>, лежащий вне дерева исходников, хэшируется по тому, что он на самом деле содержит.
-        </p>
-        <p>
-          Именно это позволяет прослойке владеть типом, вместо того чтобы оба файла объявляли свою копию. Экспортируйте форму из прослойки, импортируйте её в модуле Glyph, и компилятор держит их согласованными при каждом запуске:
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">Отредактируйте прослойку, и следующий запуск использует отредактированную<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Прослойка это файл, над которым вы работаете итеративно, поэтому он должен считаться исходником.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> кэширует сборку под отпечатком ваших исходников, и этот отпечаток охватывает каждый <code>.ts</code> и <code>.tsx</code> в <code>extern/</code>, и по пути, и по содержимому.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что вызывает пересборку</span></summary><div class="body">
+        <p>
+          Отредактируйте один, переименуйте, добавьте или удалите, и следующий запуск пересоберёт проект и заново запустит <code>tsc</code>. Прослойка-симлинк разыменовывается, так что <code>.ts</code>, лежащий вне дерева исходников, хэшируется по тому, что он на самом деле содержит.
+        </p>
+      </div></details>
+      <p>
+          Именно это позволяет прослойке владеть типом, вместо того чтобы оба файла объявляли свою копию. Экспортируйте форму из прослойки, импортируйте её в модуле Glyph, и компилятор держит их согласованными при каждом запуске:
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -632,20 +674,16 @@ exist in type 'WebResponse'.
    <span class="bx">╰─</span> server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">до 0.1.44 и файлы, которые не учитываются</span></summary><div class="body">
         <p>
           До 0.1.44 отпечаток полностью пропускал <code>extern/</code>, так что такое переименование давало чистую, прошедшую проверку типов сборку, которая запускала предыдущую копию прослойки. Файлы в <code>extern/</code>, не являющиеся <code>.ts</code> или <code>.tsx</code>, по-прежнему не влияют на кэш, и это намеренно: <code>README.md</code> рядом с прослойкой копируется в выходной каталог вместе с ней, но его никто не проверяет и не запускает, так что пересобирать нечего.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">Клиенты на классах: базы данных и очереди сообщений<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Большинство клиентов баз данных и систем сообщений построены на классах: вы пишете <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Именно для этого в Glyph есть <code>new</code>. Он генерирует дословный <code>new</code> на TypeScript, а <code>tsc</code> проверяет его против настоящего конструктора пакета, так что неправильный аргумент становится настоящей ошибкой, а неопределённый вызываемый объект ловится по имени. Это остаётся только для взаимодействия: своего <code>class</code> в Glyph нет, а <code>new</code> создаёт только тип, который пришёл из пакета, из объявления в <code>.types</code> или из <code>extern_ts</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">Клиенты на классах: базы данных и очереди сообщений<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Большинство клиентов баз данных и систем сообщений построены на классах: вы пишете <code>new Kafka(...)</code>, <code>new MongoClient(url)</code>, <code>new Redis()</code>, <code>new Pool(cfg)</code>. Именно для этого в Glyph есть <code>new</code>.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">клиент на классе (kafkajs)</span>
@@ -669,19 +707,52 @@ exist in type 'WebResponse'.
 <span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Он генерирует дословный <code>new</code> на TypeScript, а <code>tsc</code> проверяет его против настоящего конструктора пакета, так что неправильный аргумент становится настоящей ошибкой, а неопределённый вызываемый объект ловится по имени.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Это остаётся только для взаимодействия: своего <code>class</code> в Glyph нет, а <code>new</code> создаёт только тип, который пришёл из пакета, из объявления в <code>.types</code> или из <code>extern_ts</code>.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Импорт любого пакета из npm (включая имена с дефисом и со scope). Установленный пакет, который поставляется со своими типами (или имеет <code>@types/...</code>), проходит проверку типов и запускается без заглушки. Клиенты на классах создаются через <code>new</code>, который <code>tsc</code> проверяет против настоящего конструктора; клиенты-фабрики импортируются и вызываются напрямую. Встроенные модули node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code>, включая потоковый <code>spawn</code>, и остальные) проходят проверку типов сразу, причём <code>@types/node</code> подгружается автоматически, если вы его установите, а CI собирает собственную среду выполнения компилятора против этого пакета в версии <code>latest</code>, так что объявление, от которого зависит стандартная библиотека, не может разойтись с настоящим объявлением node. Объявления, до которых доходит только ваш код, эта проверка пока не покрывает, и некоторые из них всё ещё шире, чем в node. Окружающие объявления в <code>.types/</code> для всего остального, <code>glyph gen dts</code>, чтобы превратить <code>.d.ts</code> в типы Glyph с валидацией, и чистый вывод в <code>.ts</code>, который ваш существующий TypeScript импортирует обратно. Когда нужен целый рукописный TypeScript, <code>import extern/&lt;name&gt;</code> обращается к <code>.ts</code> в <code>&lt;src&gt;/extern/</code>, который копируется в сборку и проверяется вместе с вашим кодом, а кэш <code>glyph run</code> его отслеживает, так что правка вызывает пересборку.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">В работе</h3>
-          <p>Материализация теперь справляется с формами, которые реально встречаются в SDK (пространства имён, реэкспорты между файлами, через псевдонимы и пространства имён, <code>exports</code> подпутей и полноценные обобщённые типы), а типы, выведенные из значений (<code>z.infer&lt;typeof s&gt;</code>), поддерживаются полноценно. Главный оставшийся пробел: результаты нематериализованного пакета проверяются по типам против его <code>.d.ts</code>, но не валидируются во время выполнения, пока вы их не материализуете. Со стороны <code>extern/</code> корень исходников у двух команд разный: <code>glyph run app.glyph</code> берёт за корень каталог самого файла, а <code>glyph build src/</code> каталог, который вы указали. Поэтому программа в подкаталоге ищет свою прослойку в двух разных местах, и пока мы не выберем один корень, в проекте с такой структурой прослойка должна быть доступна из обоих. Если это не так, сборка падает с явной ошибкой.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Импорт любого пакета из npm (включая имена с дефисом и со scope).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Установленный пакет, который поставляется со своими типами (или имеет <code>@types/...</code>), проходит проверку типов и запускается без заглушки.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Клиенты на классах создаются через <code>new</code>, который <code>tsc</code> проверяет против настоящего конструктора; клиенты-фабрики импортируются и вызываются напрямую.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Встроенные модули node проходят проверку типов сразу</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Встроенные модули node (<code>fs</code>, <code>path</code>, <code>http</code>, <code>child_process</code>, включая потоковый <code>spawn</code>, и остальные) проходят проверку типов сразу, причём <code>@types/node</code> подгружается автоматически, если вы его установите, а CI собирает собственную среду выполнения компилятора против этого пакета в версии <code>latest</code>, так что объявление, от которого зависит стандартная библиотека, не может разойтись с настоящим объявлением node.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объявления, до которых доходит только ваш код, эта проверка пока не покрывает, и некоторые из них всё ещё шире, чем в node.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Окружающие объявления в <code>.types/</code> для всего остального.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen dts</code>, чтобы превратить <code>.d.ts</code> в типы Glyph с валидацией.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чистый вывод в <code>.ts</code>, который ваш существующий TypeScript импортирует обратно.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code> обращается к рукописному TypeScript в <code>&lt;src&gt;/extern/</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Когда нужен целый рукописный TypeScript, <code>import extern/&lt;name&gt;</code> обращается к <code>.ts</code> в <code>&lt;src&gt;/extern/</code>, который копируется в сборку и проверяется вместе с вашим кодом, а кэш <code>glyph run</code> его отслеживает, так что правка вызывает пересборку.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Материализация справляется с формами, которые реально встречаются в SDK, а типы, выведенные из значений, поддерживаются полноценно</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Материализация теперь справляется с формами, которые реально встречаются в SDK (пространства имён, реэкспорты между файлами, через псевдонимы и пространства имён, <code>exports</code> подпутей и полноценные обобщённые типы), а типы, выведенные из значений (<code>z.infer&lt;typeof s&gt;</code>), поддерживаются полноценно.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Главный оставшийся пробел: результаты нематериализованного пакета проверяются по типам против его <code>.d.ts</code>, но не валидируются во время выполнения, пока вы их не материализуете.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Со стороны <code>extern/</code> корень исходников у <code>glyph run</code> и <code>glyph build</code> разный</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Со стороны <code>extern/</code> корень исходников у двух команд разный: <code>glyph run app.glyph</code> берёт за корень каталог самого файла, а <code>glyph build src/</code> каталог, который вы указали. Поэтому программа в подкаталоге ищет свою прослойку в двух разных местах, и пока мы не выберем один корень, в проекте с такой структурой прослойка должна быть доступна из обоих. Если это не так, сборка падает с явной ошибкой.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/upgrades/">
           <span class="dir">&larr; Назад</span>

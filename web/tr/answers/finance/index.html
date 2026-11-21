@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ona parayla ve güvenilmeyen girdilerle güvenebilir miyim?","item":"https://glyphlang.io/tr/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/finance/#article","headline":"Ona parayla ve güvenilmeyen girdilerle güvenebilir miyim?","description":"Para hesapları kesindir (ondalık sayılar ve 2^53'ü aşan tam sayılar), değişmezler sınırda zorlanan tiplerdir ve güvenilmeyen girdi temizlenmeden bir SQL ya da shell hedefine ulaşamaz.","url":"https://glyphlang.io/tr/answers/finance/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/finance/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Ona parayla ve güvenilmeyen girdilerle güvenebilir miyim?","item":"https://glyphlang.io/tr/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/finance/#article","headline":"Ona parayla ve güvenilmeyen girdilerle güvenebilir miyim?","description":"Para hesapları kesindir (ondalık sayılar ve 2^53'ü aşan tam sayılar), değişmezler sınırda zorlanan tiplerdir ve güvenilmeyen girdi temizlenmeden bir SQL ya da shell hedefine ulaşamaz.","url":"https://glyphlang.io/tr/answers/finance/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/finance/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/finance/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/finance/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">16 &middot; Para ve güvenlik</p>
       <h1 class="q-title">Ona parayla ve kontrol etmediğim girdilerle güvenebilir miyim?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,47 +478,62 @@
         Evet. Para hesapları <strong>kesindir</strong>, negatif olmama gibi bir değişmez <strong>sınırda zorlanan bir tiptir</strong> ve güvenilmeyen girdi temizlenmeden <strong>bir SQL ya da shell hedefine ulaşamaz</strong>. Bunların her biri, yanlış yaparsanız bir derleme ya da parse hatasıdır; birinin üç fonksiyon ötede hatırlaması gereken bir gelenek değil.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-is-not-a-float">Para bir float değildir<a class="h-anchor" href="#money-is-not-a-float" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          IEEE-754 <code>number</code> üzerine kurulmuş bir finans sistemi, bildirilmeyi bekleyen bir bug'dır: <code>0.1 + 0.2</code>, <code>0.3</code> değildir ve 2<sup>53</sup>'ü aşan değerler sessizce hassasiyet kaybeder. <code>std/decimal</code>, BigInt üzerinde kesin, 10 tabanlı sabit noktalı aritmetiktir. Toplama, çıkarma ve çarpma kesindir; bölme açık bir ölçek alır ve yarımı sıfırdan uzağa yuvarlar; hatalı bir tutar sessiz bir <code>NaN</code>'a değil, bir <code>Err</code>'e parse edilir.
-        </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
 <span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">ortadan kaldırdığı bug</span>
+          </div>
+          <div class="code">
+            <span class="cap">ortadan kaldırdığı bug</span>
 <pre><span class="c">// JS number, the default everywhere:</span>
 <span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
 <span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
 <span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
 <span class="c">// None of these are your money anymore.</span></pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>IEEE-754 <code>number</code> üzerine kurulmuş bir finans sistemi, bildirilmeyi bekleyen bir bug'dır: <code>0.1 + 0.2</code>, <code>0.3</code> değildir ve 2<sup>53</sup>'ü aşan değerler sessizce hassasiyet kaybeder.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="ids-and-counters-stay-exact-past-253">Id'ler ve sayaçlar 2<sup>53</sup>'ü aştığında da kesin kalır<a class="h-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Float aralığını aşıp yuvarlanan bir hesap id'si ya da defter sayacı, başka türden bir felakettir. <code>bigint</code>, <code>123n</code> literal'leri olan, kesin ve keyfi hassasiyetli bir tam sayıdır; <code>bigint</code> olarak tiplenmiş bir record alanı sınırda <code>typeof === "bigint"</code> doğrulaması yapar, böylece JSON <code>number</code> olarak gelen bir id sessizce kırpılmak yerine reddedilir.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">Para bir float değildir</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">Id'ler ve sayaçlar</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">Tip olarak değişmezler</a></li>
+          <li><a href="#injection-is-a-compile-error">Injection</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-invariant-is-a-type-not-a-comment">Bir değişmez yorum değil, tiptir<a class="h-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          "Tutar negatif değildir" ve "puan 1 ile 5 arasındadır", bir kez yazılıp sonra unutulan kontrollerdir. Bir <code>where</code> daraltması değişmezi tipin içine koyar ve tanımlayıcı onu sınırda zorlar. Koşulu sağlamayan bir değer hiçbir zaman bir <code>Amount</code> olmaz.
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">Para bir float değildir<a class="ak-anchor" href="#money-is-not-a-float" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code>, BigInt üzerinde kesin, 10 tabanlı sabit noktalı aritmetiktir.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Kesin aritmetik</b>Toplama, çıkarma ve çarpma kesindir.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Bölme</b>Bölme açık bir ölçek alır ve yarımı sıfırdan uzağa yuvarlar.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>Hatalı girdi</b>Hatalı bir tutar sessiz bir <code>NaN</code>'a değil, bir <code>Err</code>'e parse edilir.</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">Id'ler ve sayaçlar 2<sup>53</sup>'ü aştığında da kesin kalır<a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Float aralığını aşıp yuvarlanan bir hesap id'si ya da defter sayacı, başka türden bir felakettir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code>, <code>123n</code> literal'leri olan, kesin ve keyfi hassasiyetli bir tam sayıdır; <code>bigint</code> olarak tiplenmiş bir record alanı sınırda <code>typeof === "bigint"</code> doğrulaması yapar, böylece JSON <code>number</code> olarak gelen bir id sessizce kırpılmak yerine reddedilir.
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">Bir değişmez yorum değil, tiptir<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "Tutar negatif değildir" ve "puan 1 ile 5 arasındadır", bir kez yazılıp sonra unutulan kontrollerdir. Bir <code>where</code> daraltması değişmezi tipin içine koyar ve tanımlayıcı onu sınırda zorlar.
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
@@ -528,14 +543,18 @@ decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span c
 <span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
 <span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Koşulu sağlamayan bir değer hiçbir zaman bir <code>Amount</code> olmaz.
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="injection-is-a-compile-error">Injection bir derleme hatasıdır<a class="h-anchor" href="#injection-is-a-compile-error" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Klasik uzaktan kod çalıştırma yolu, güvenilmeyen girdinin bir SQL sorgusuna, bir shell komutuna ya da bir HTML şablonuna ulaşmasıdır. <code>std/taint</code> bunu bir tip hatası yapar. Dışarıdan gelen bir değer <code>Tainted</code>'dır; korumak istediğiniz bir hedef <code>Trusted</code> alır. İkisi yapısal olarak farklıdır, bu yüzden birinden diğerine geçmenin tek yolu açık bir <code>sanitize</code>'dır. Bir hedefe tainted değeri doğrudan verirseniz <code>tsc</code> derlemeyi reddeder.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">Injection bir derleme hatasıdır<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Klasik uzaktan kod çalıştırma yolu, güvenilmeyen girdinin bir SQL sorgusuna, bir shell komutuna ya da bir HTML şablonuna ulaşmasıdır. <code>std/taint</code> bunu bir tip hatası yapar.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>İki tip</b>Dışarıdan gelen bir değer <code>Tainted</code>'dır; korumak istediğiniz bir hedef <code>Trusted</code> alır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Tek geçiş yolu</b>İkisi yapısal olarak farklıdır, bu yüzden birinden diğerine geçmenin tek yolu açık bir <code>sanitize</code>'dır.</li>
+      </ul>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">güvenli yol derlenir</span>
@@ -564,19 +583,36 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
 <span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Bir hedefe tainted değeri doğrudan verirseniz <code>tsc</code> derlemeyi reddeder.
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Kesin para hesapları için <code>std/decimal</code>, kesin büyük tam sayılar için <code>bigint</code>, bir değişmezin sınırda doğrulanması için <code>where</code> daraltmaları ve güvenilmeyen girdinin açık bir <code>sanitize</code> olmadan korunan bir hedefe ulaşamaması için <code>std/taint</code>. Her biri kontrol edilir: hatalı bir tutar ya da id <code>parse</code>'da başarısız olur, ihlal edilen bir değişmez <code>parse</code>'da başarısız olur, temizlenmemiş bir değer <code>tsc</code>'de başarısız olur.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p>Bir <code>where</code> daraltması bugün temel ilkel tipleri kapsar; record ve alanlar arası değişmezler (<code>where value.paid &lt;= value.total</code>) planlanan bir genişletmedir. Taint, bir hedefi <code>Trusted</code> olarak tipleyerek isteğe bağlı olarak benimsediğiniz bir disiplindir, otomatik bir akış analizi değil: derleyici sizin tanımladığınız sınırı zorlar, taint'i tüm program boyunca sizin için çıkarmaz.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kesin para hesapları için <code>std/decimal</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Kesin büyük tam sayılar için <code>bigint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir değişmezin sınırda doğrulanması için <code>where</code> daraltmaları</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Güvenilmeyen girdinin açık bir <code>sanitize</code> olmadan korunan bir hedefe ulaşamaması için <code>std/taint</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her biri kontrol edilir: hatalı bir tutar ya da id <code>parse</code>'da başarısız olur, ihlal edilen bir değişmez <code>parse</code>'da başarısız olur, temizlenmemiş bir değer <code>tsc</code>'de başarısız olur.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir <code>where</code> daraltması bugün temel ilkel tipleri kapsar; record ve alanlar arası değişmezler (<code>where value.paid &lt;= value.total</code>) planlanan bir genişletmedir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Taint, bir hedefi <code>Trusted</code> olarak tipleyerek benimsediğiniz bir disiplindir, otomatik bir akış analizi değil</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Taint, bir hedefi <code>Trusted</code> olarak tipleyerek isteğe bağlı olarak benimsediğiniz bir disiplindir, otomatik bir akış analizi değil: derleyici sizin tanımladığınız sınırı zorlar, taint'i tüm program boyunca sizin için çıkarmaz.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/language/">
           <span class="dir">&larr; Önceki</span>

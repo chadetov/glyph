@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントはまずシンボルについてコンパイラに聞けますか？","item":"https://glyphlang.io/ja/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#article","headline":"エージェントはまずシンボルについてコンパイラに聞けますか？","description":"glyph_symbol は 1 回の呼び出しで答えます。ユニオンのバリアント、レコードのフィールド、関数のシグネチャ、そしてそれに対する match が網羅的でなければならないかどうかです。","url":"https://glyphlang.io/ja/answers/ask-the-compiler/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェントはまずシンボルについてコンパイラに聞けますか？","item":"https://glyphlang.io/ja/answers/ask-the-compiler/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#article","headline":"エージェントはまずシンボルについてコンパイラに聞けますか？","description":"glyph_symbol は 1 回の呼び出しで答えます。ユニオンのバリアント、レコードのフィールド、関数のシグネチャ、そしてそれに対する match が網羅的でなければならないかどうかです。","url":"https://glyphlang.io/ja/answers/ask-the-compiler/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/ask-the-compiler/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/ask-the-compiler/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/ask-the-compiler/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">22 &middot; コンパイラに聞く</p>
       <h1 class="q-title">エージェントは、コードを書く前にシンボルが何なのかをコンパイラに聞けますか？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,22 +480,8 @@
         1 回の呼び出しで聞けます。<code>glyph_symbol</code> は、診断がすでに出力した <code>module::name</code> か、ファイル内の位置を受け取り、次のことを答えます。レコードのフィールドとその型、ユニオンのバリアントとそのペイロード<em>、そしてそれぞれを構築する構文</em>、呼び出し可能なものの引数と戻り値、インターフェースのメンバー、そしてそれに対する <code>match</code> が網羅的でなければならないかどうかです。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          自分が宣言していないユニオンに新しいケースを扱うよう頼まれたエージェントは、各バリアントが何を持っているかを知る必要があります。宣言を読むには、まずファイルを探さなければなりません。以前のシンボル検索が返すのは名前とバイト範囲だけで、バリアントの一覧は <code>["Pending", "Paid", "Cancelled"]</code> だけでした。そこからエージェントは <code>Paid("tx_1")</code> と書きますが、これは正しい形ではなく、診断で初めてそれに気づきます。コンパイラはその間ずっとペイロードを持っていました。ツールが返答の 1 行手前でそれを捨てていたのです。
-        </p>
-        <p>
-          エージェント向けの機能は、まさにこのパターンをなくすために作られました。コンパイラがすでに計算してメモ化しているのに、どのツールも渡していない事実です。3 モジュールのプロジェクトを監査したところ、hover が答えられたのは 14 か所中 2 か所だけで、どのユニオンもペイロードなしで返ってきていました。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>OrderStatus</code> を <code>orders.glyph</code> で宣言している 3 ファイルのプロジェクトです。それを import していない <code>main.glyph</code> から聞きます。
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">glyph query symbol --path src/main.glyph --entity orders::OrderStatus</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"orders::OrderStatus"</span>,
@@ -521,20 +507,52 @@
     module this project holds, and the compiler parsed and resolved that declaration"</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span><code>OrderStatus</code> を <code>orders.glyph</code> で宣言している 3 ファイルのプロジェクトです。それを import していない <code>main.glyph</code> から聞きます。</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#absent">どの null も理由を示す</a></li>
+          <li><a href="#the-second-question-an-agent-asks">代入できるか</a></li>
+          <li><a href="#the-other-direction-what-does-this-depend-on-and-what-does">依存関係と export</a></li>
+          <li><a href="#eleven-tools-and-no-client-required">11 のツール</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        自分が宣言していないユニオンに新しいケースを扱うよう頼まれたエージェントは、各バリアントが何を持っているかを知る必要があります。宣言を読むには、まずファイルを探さなければなりません。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>コンパイラはその間ずっとペイロードを持っていました。ツールが返答の 1 行手前でそれを捨てていたのです。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">以前のシンボル検索が返していたもの</span></summary><div class="body">
         <p>
-          一部省略しています。実際の回答には <code>generics</code>、<code>parameters</code>、<code>returns</code>、<code>members</code>、<code>literals</code>、<code>owner</code>、<code>async</code>、<code>examples</code> も含まれます。どれもペアになっています。キーが null になるのは、その理由を述べる <code>&lt;key&gt;_absent</code> の文が横にあるときだけです。そのため、答えがないことが「シンボルにそれがない」のか「ツールが調べなかった」のかを、エージェントが推測する必要はありません。型注釈のない <code>const</code> は、このルールに従って型を報告しません。チェッカーは宣言の型を初期化式から推論しないようにしています。そこで初期化式の型を出力すると、その名前の使用箇所が何かに対して検査されていると呼び出し側に伝えることになりますが、実際には何も検査していないからです。
+          以前のシンボル検索が返すのは名前とバイト範囲だけで、バリアントの一覧は <code>["Pending", "Paid", "Cancelled"]</code> だけでした。そこからエージェントは <code>Paid("tx_1")</code> と書きますが、これは正しい形ではなく、診断で初めてそれに気づきます。
         </p>
-
-        <h2 class="block-label" id="the-second-question-an-agent-asks">エージェントが次に聞くこと<a class="h-anchor" href="#the-second-question-an-agent-asks" aria-label="このセクションへのリンク">#</a></h2>
         <p>
-          形がわかったら、次に知りたいのは、手元の値をこれから置こうとしている場所に置けるかどうかです。<code>glyph_assignable</code> はチェッカー自身の比較に問い合わせます。両辺はそれぞれ <code>module::name</code> か Glyph の型表記で、指定したファイルのスコープで読まれます。判定結果は、3 つのうちどれが起きたかを示します。
+          エージェント向けの機能は、まさにこのパターンをなくすために作られました。コンパイラがすでに計算してメモ化しているのに、どのツールも渡していない事実です。3 モジュールのプロジェクトを監査したところ、hover が答えられたのは 14 か所中 2 か所だけで、どのユニオンもペイロードなしで返ってきていました。
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="absent">どの null も理由を示す<a class="ak-anchor" href="#absent" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        一部省略しています。実際の回答には <code>generics</code>、<code>parameters</code>、<code>returns</code>、<code>members</code>、<code>literals</code>、<code>owner</code>、<code>async</code>、<code>examples</code> も含まれます。どれもペアになっています。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>キーが null になるのは、その理由を述べる <code>&lt;key&gt;_absent</code> の文が横にあるときだけです。そのため、答えがないことが「シンボルにそれがない」のか「ツールが調べなかった」のかを、エージェントが推測する必要はありません。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">型注釈のない const</span></summary><div class="body">
+        <p>
+          型注釈のない <code>const</code> は、このルールに従って型を報告しません。チェッカーは宣言の型を初期化式から推論しないようにしています。そこで初期化式の型を出力すると、その名前の使用箇所が何かに対して検査されていると呼び出し側に伝えることになりますが、実際には何も検査していないからです。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="the-second-question-an-agent-asks">エージェントが次に聞くこと<a class="ak-anchor" href="#the-second-question-an-agent-asks" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        形がわかったら、次に知りたいのは、手元の値をこれから置こうとしている場所に置けるかどうかです。<code>glyph_assignable</code> はチェッカー自身の比較に問い合わせます。
+      </p>
       <div class="two-up stack">
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Nullable&lt;int&gt;' --to int</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"WILL_FAIL"</span>,
@@ -555,7 +573,7 @@
             <span class="pk">"read_as"</span>: <span class="s">"number"</span> }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="cap">--from 'Option&lt;int&gt;' --to 'Option&lt;int&gt;'</span>
 <pre>{
   <span class="pk">"verdict"</span>: <span class="s">"COMPATIBLE"</span>,
@@ -573,41 +591,95 @@
 }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">WILL_FAIL</span><span class="chip code">COMPATIBLE</span><span class="chip code">UNDETERMINED</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">3 つの判定と、SAFE ではない理由</span></summary><div class="body">
+        <p>
+          両辺はそれぞれ <code>module::name</code> か Glyph の型表記で、指定したファイルのスコープで読まれます。判定結果は、3 つのうちどれが起きたかを示します。
+        </p>
         <p>
           語は <code>SAFE</code> ではなく <code>COMPATIBLE</code> です。この違いは一言説明しておく価値があります。<code>SAFE</code> は <code>glyph_impact</code> の用語で、ある特定の箇所が特定の編集のあとも正しいままであることを意味します。こちらの回答は 2 つの型についてのもので、問いには箇所も編集も含まれません。3 つ目の判定は <code>UNDETERMINED</code> で、その組み合わせを扱うルールがないときに返ります。2 つの関数型はこの判定になります。根底にある関係は戻り値を比較しますが、引数については何も言わないからです。そこで何も言わないことは受け入れたことを意味せず、ツールもそれを受け入れとして報告しません。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-other-direction-what-does-this-depend-on-and-what-does">逆方向：これは何に依存していて、あのモジュールは何を提供しているのか<a class="h-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>glyph_references</code> は、誰がシンボルを使っているかに答えます。<code>glyph_dependencies</code> は同じテーブルを反対側から読んだものです。1 つの宣言が何に依存しているか、つまりそのソースが名前を挙げているすべての宣言を、<code>CALLS</code>、<code>REFERENCES</code>、<code>FIELD_ACCESS</code> に分けて返します。各エッジは両端と、その位置を持っています。<code>glyph_exports</code> は、モジュールが import する側に何を公開しているかに答えます。スキャンではなくコンパイラ自身の export クエリから求め、すべての <code>pub</code> 宣言と、<code>pub</code> なユニオンが引き上げるすべてのバリアントを、識別子、種類、シグネチャ付きのエントリとして返します。import を書こうとしているエージェントは、ファイルを開かずに向こう側に何があるかを聞けます。
-        </p>
+      <h2 class="ak-h" id="the-other-direction-what-does-this-depend-on-and-what-does">逆方向：これは何に依存していて、あのモジュールは何を提供しているのか<a class="ak-anchor" href="#the-other-direction-what-does-this-depend-on-and-what-does" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        import を書こうとしているエージェントは、ファイルを開かずに向こう側に何があるかを聞けます。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13.5 8h-9M7.5 4.5L4 8l3.5 3.5"/></svg></span><b>glyph_references</b><code>glyph_references</code> は、誰がシンボルを使っているかに答えます。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></span><b>glyph_dependencies</b><code>glyph_dependencies</code> は同じテーブルを反対側から読んだものです。1 つの宣言が何に依存しているか、つまりそのソースが名前を挙げているすべての宣言を、<code>CALLS</code>、<code>REFERENCES</code>、<code>FIELD_ACCESS</code> に分けて返します。各エッジは両端と、その位置を持っています。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>glyph_exports</b><code>glyph_exports</code> は、モジュールが import する側に何を公開しているかに答えます。スキャンではなくコンパイラ自身の export クエリから求め、すべての <code>pub</code> 宣言と、<code>pub</code> なユニオンが引き上げるすべてのバリアントを、識別子、種類、シグネチャ付きのエントリとして返します。</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">ミラーが捕まえた PROVED のバグ</span></summary><div class="body">
         <p>
           関係の逆向きを作ったことで、元の実装のバグが見つかりました。各エッジは出自（provenance）を持ち、<code>PROVED</code> はコンパイラが両端を読んだことを意味するはずです。ところが、パースできないモジュールへのエッジに対しても <code>PROVED</code> を返していました。そこでは何も読まれていません。今は理由付きで <code>UNDETERMINED</code> を返します。<code>glyph_references</code> と <code>glyph_impact</code> は同じ関数を呼んでいるので、どちらも同じように間違っていて、どちらも修正されました。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="eleven-tools-and-no-client-required">11 のツール、クライアントは不要<a class="h-anchor" href="#eleven-tools-and-no-client-required" aria-label="このセクションへのリンク">#</a></h2>
+      <h2 class="ak-h" id="eleven-tools-and-no-client-required">11 のツール、クライアントは不要<a class="ak-anchor" href="#eleven-tools-and-no-client-required" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph mcp</code> は 11 のツールを提供します。<code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_diagnostics</code>、<code>glyph_hover</code>、<code>glyph_definition</code>、<code>glyph_references</code>、<code>glyph_variants</code>、<code>glyph_symbols</code>、<code>glyph_dependencies</code>、<code>glyph_exports</code> です。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>それぞれに対応する <code>glyph query</code> のサブコマンドがあり、同じ引数をフラグで受け取って同じ JSON を出力します。クライアントが到達するのと同じエントリポイントを通るので、シェルコマンドしか実行しないエージェントも同じ質問ができます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">診断と、編集のあとに来るもの</span></summary><div class="body">
         <p>
-          <code>glyph mcp</code> は 11 のツールを提供します。<code>glyph_symbol</code>、<code>glyph_impact</code>、<code>glyph_assignable</code>、<code>glyph_diagnostics</code>、<code>glyph_hover</code>、<code>glyph_definition</code>、<code>glyph_references</code>、<code>glyph_variants</code>、<code>glyph_symbols</code>、<code>glyph_dependencies</code>、<code>glyph_exports</code> です。それぞれに対応する <code>glyph query</code> のサブコマンドがあり、同じ引数をフラグで受け取って同じ JSON を出力します。クライアントが到達するのと同じエントリポイントを通るので、シェルコマンドしか実行しないエージェントも同じ質問ができます。<code>glyph_diagnostics</code> はプロジェクト内のファイルを検査し、<code>glyph check --json</code> が出力するのと同じ Rust の型から作った診断を返します。6 つのプロジェクトで両方の経路を実行し、JSON をキーごとに比較するテストもあります。詳しくは <a href="/ja/mcp/">MCP のページ</a>を参照してください。
+          <code>glyph_diagnostics</code> はプロジェクト内のファイルを検査し、<code>glyph check --json</code> が出力するのと同じ Rust の型から作った診断を返します。6 つのプロジェクトで両方の経路を実行し、JSON をキーごとに比較するテストもあります。詳しくは <a href="/ja/mcp/">MCP のページ</a>を参照してください。
         </p>
         <p>
           ここまではすべて編集の前に聞くものです。編集のあとは、コンパイラが逆方向に答えます。<code>glyph check --agent</code> は各診断を、修正の編集が守るべき不変条件と、その診断が名前を挙げるすべてのシンボルの <code>glyph_symbol</code> による説明付きで出力します。エージェントが必要とする形は、それを求めたエラーと一緒に届きます。これについては<a href="/ja/answers/repair-protocol/">専用のページ</a>があります。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p>MCP 上の読み取り専用ツールが 11 個あり、それぞれに <code>glyph query</code> のサブコマンドがあります。<code>glyph_symbol</code> は識別子でも位置でも答え、持っていない事実はすべて、その理由を述べる文の横で null になります。識別子は stdlib にも届きます。prelude の <code>Result</code> は <code>std/result::Result</code> で、これはリゾルバがそれを登録するモジュールであり、エミッタが import を書き出すモジュールでもあります。そのため <code>glyph query symbol --entity std/result::Result</code> は <code>Ok(T)</code> と <code>Err(E)</code> を答え、<code>glyph query exports --module std/result</code> は公開されているものを一覧し、それに関する <code>E0200</code> は <code>cause</code> にその識別子を持ちます。背後に Glyph のソースはないので、<code>path</code> と <code>range</code> は欠けているのではなく、その理由付きで null になります。hover は、3 モジュールのプロジェクトで監査が調べた 14 か所すべてに答えます。この作業を始める前は 2 か所でした。別のモジュールで宣言された名前は、そのモジュール自身の宣言から答えるので、import の束縛、呼び出し箇所の import した関数、値として使われた import したバリアント、import したレコードから読んだフィールドのどれにも型が付きます。<code>glyph_dependencies</code> と <code>glyph_exports</code> で、G221 が求めていたセットがそろいました。<code>glyph_variants</code> は各ペイロードとその構築構文を持ち、<code>glyph_definition</code> と <code>glyph_symbols</code> は <code>module::name</code> を持つので、答えを何も導き直さずに <code>glyph_impact</code> へつなげられます。<code>glyph_impact</code> のシグネチャ型テーブルは、コンテナ同士、構造的レコードと構造的レコードまたは宣言されたレコード（ローカル、import したもの、ジェネリック、別名）、JSX 要素を変換先の呼び出しとして、そしてどちらかの側にある文字列リテラルユニオンを、<code>glyph_assignable</code> と同じ比較で判定します。そのため、1 つの組み合わせについて 2 つのツールの意見が食い違うことはありません。関係が完全に読み取れる組み合わせの引数は、比較の結果がどちらであっても <code>WILL_FAIL</code> です。<code>change_signature_type</code> は置き換え先の型を指定しないので、受け入れられた組み合わせも、置き換え次第で拒否されうるからです。<code>UNDETERMINED</code> になるのは、関係が判定を辞退した組み合わせだけです。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">限界</h3>
-          <p>ここにあるツールはどれも書き込みません。リネームも、編集の適用もありません。書き込み側はコマンドラインの <code>glyph fix</code> で、頼んだことを何でも直すわけではなく、3 つのことだけを修復します。未使用の import、チェッカーが候補をちょうど 1 つだけ持っているアームの先頭、そして宣言されたフィールドのうちちょうど 1 つと 1 文字違いのフィールド名です。コンパイラが宣言もシグネチャもモデル化していない stdlib の export は、理由付きで <code>kind: null</code> を返します。<code>std/result::all</code> と <code>std/io::println</code> は、コンパイラが配置する TypeScript で型付けされており、Glyph のどのパスもそれを読みません。<code>glyph_diagnostics</code> は、<code>glyph check</code> が行う検査のうち 3 つを省きます。<code>tsc</code>、どのモジュールも指していない import に対する <code>E0104</code> の検査（ビルドから見た <code>node_modules</code> が必要です）、そして失敗する <code>@example</code> に対する <code>E0400</code>（出力したプロジェクトを実行する必要があります）です。これらを実行したかのように答えるのではなく、3 つとも <code>not_run</code> に挙げます。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">MCP 上の読み取り専用ツールが 11 個あり、それぞれに <code>glyph query</code> のサブコマンドがあります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_symbol</code> は識別子でも位置でも答え、持っていない事実はすべて、その理由を述べる文の横で null になります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">識別子は stdlib にも届く：<code>std/result::Result</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>識別子は stdlib にも届きます。prelude の <code>Result</code> は <code>std/result::Result</code> で、これはリゾルバがそれを登録するモジュールであり、エミッタが import を書き出すモジュールでもあります。そのため <code>glyph query symbol --entity std/result::Result</code> は <code>Ok(T)</code> と <code>Err(E)</code> を答え、<code>glyph query exports --module std/result</code> は公開されているものを一覧し、それに関する <code>E0200</code> は <code>cause</code> にその識別子を持ちます。背後に Glyph のソースはないので、<code>path</code> と <code>range</code> は欠けているのではなく、その理由付きで null になります。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">hover は調べた 14 か所のすべてに答える</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>hover は、3 モジュールのプロジェクトで監査が調べた 14 か所すべてに答えます。この作業を始める前は 2 か所でした。別のモジュールで宣言された名前は、そのモジュール自身の宣言から答えるので、import の束縛、呼び出し箇所の import した関数、値として使われた import したバリアント、import したレコードから読んだフィールドのどれにも型が付きます。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_dependencies</code> と <code>glyph_exports</code> で、G221 が求めていたセットがそろいました。</span><span class="chip gap">G221</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_variants</code> は各ペイロードとその構築構文を持ち、<code>glyph_definition</code> と <code>glyph_symbols</code> は <code>module::name</code> を持つので、答えを何も導き直さずに <code>glyph_impact</code> へつなげられます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph_impact</code> と <code>glyph_assignable</code> は同じ比較を行う</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>glyph_impact</code> のシグネチャ型テーブルは、コンテナ同士、構造的レコードと構造的レコードまたは宣言されたレコード（ローカル、import したもの、ジェネリック、別名）、JSX 要素を変換先の呼び出しとして、そしてどちらかの側にある文字列リテラルユニオンを、<code>glyph_assignable</code> と同じ比較で判定します。そのため、1 つの組み合わせについて 2 つのツールの意見が食い違うことはありません。関係が完全に読み取れる組み合わせの引数は、比較の結果がどちらであっても <code>WILL_FAIL</code> です。<code>change_signature_type</code> は置き換え先の型を指定しないので、受け入れられた組み合わせも、置き換え次第で拒否されうるからです。<code>UNDETERMINED</code> になるのは、関係が判定を辞退した組み合わせだけです。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 限界</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ここにあるツールはどれも書き込みません。リネームも、編集の適用もありません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">書き込み側は <code>glyph fix</code> で、修復するのは 3 つのことだけ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>書き込み側はコマンドラインの <code>glyph fix</code> で、頼んだことを何でも直すわけではなく、3 つのことだけを修復します。未使用の import、チェッカーが候補をちょうど 1 つだけ持っているアームの先頭、そして宣言されたフィールドのうちちょうど 1 つと 1 文字違いのフィールド名です。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">一部の stdlib の export は <code>kind: null</code> を返す</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>コンパイラが宣言もシグネチャもモデル化していない stdlib の export は、理由付きで <code>kind: null</code> を返します。<code>std/result::all</code> と <code>std/io::println</code> は、コンパイラが配置する TypeScript で型付けされており、Glyph のどのパスもそれを読みません。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph_diagnostics</code> は <code>glyph check</code> が行う検査のうち 3 つを省き、それを <code>not_run</code> に挙げる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>glyph_diagnostics</code> は、<code>glyph check</code> が行う検査のうち 3 つを省きます。<code>tsc</code>、どのモジュールも指していない import に対する <code>E0104</code> の検査（ビルドから見た <code>node_modules</code> が必要です）、そして失敗する <code>@example</code> に対する <code>E0400</code>（出力したプロジェクトを実行する必要があります）です。これらを実行したかのように答えるのではなく、3 つとも <code>not_run</code> に挙げます。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/impact/">
           <span class="dir">&larr; 前へ</span>

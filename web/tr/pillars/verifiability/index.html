@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Doğrulanabilirlik","item":"https://glyphlang.io/tr/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/verifiability/#article","headline":"Doğrulanabilirlik · any yok, kapsamı tam match","description":"Glyph'in ilk temel ilkesi: any ya da as yok, kapsamı tam match ve tanımladığınız tipler için çalışma zamanı validator'ları; tsc'nin üzerinde katı bir katman, sınırları açıkça belirtilmiş.","url":"https://glyphlang.io/tr/pillars/verifiability/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/verifiability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Doğrulanabilirlik","item":"https://glyphlang.io/tr/pillars/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/verifiability/#article","headline":"Doğrulanabilirlik · any yok, kapsamı tam match","description":"Glyph'in ilk temel ilkesi: any ya da as yok, kapsamı tam match ve tanımladığınız tipler için çalışma zamanı validator'ları; tsc'nin üzerinde katı bir katman, sınırları açıkça belirtilmiş.","url":"https://glyphlang.io/tr/pillars/verifiability/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/verifiability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">İlke 01 &middot; <span class="wedge">Asıl mesele</span></p>
       <h1 class="q-title">Doğrulanabilirlik</h1>
 
@@ -433,54 +433,71 @@
         Glyph, bir ajanın içine düştüğü açıkları kapatır: <strong>yazabileceğiniz bir <code>any</code> ya da <code>as</code> yoktur</strong>, <code>match</code>'in <strong>kapsamının tam olduğu kanıtlanabilir</strong> ve tanımladığınız tipler <strong>katı çalışma zamanı validator'ları</strong> alır; bunların hepsi <code>tsc</code>'nin üzerinde katı bir katman olarak uygulanır. Her şeyi kendisi doğrulamaz ve garantinin tam olarak nerede bittiğini aşağıda açıkça söyler.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-lie-a-type-can-tell">Bir tipin söyleyebileceği yalan<a class="h-anchor" href="#the-lie-a-type-can-tell" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p class="lede">
-          TypeScript'te bir tip, kodunuz çalışmadan önce buharlaşan bir derleme zamanı sözüdür. Bir <code>User</code> tip bildirimi silinip hiçbir şeye dönüşür; bir ağ çağrısından, bir JSON parse işleminden ya da bir form alanından gerçekte aldığınız nesne herhangi bir biçimde olabilir. Daha kötüsü, dil size bu konuda checker'a yalan söylemenin üç geçerli yolunu verir: <code>any</code>, bir <code>as</code> cast'i ve non-null <code>!</code>. Hızlı çalışan bir ajan üçüne de başvurur ve hata production'a giderken <code>tsc --strict</code> yeşil kalır.
-        </p>
-        <p class="lede">
-          Glyph'in ilk işi bu açıkları kapatmaktır. Daha fazla tip bildirimiyle değil, kaçış kapılarını kaldırarak ve her tipin kanıtını çalışma zamanına taşımasını sağlayarak. Bunun ne anlama geldiğini her seferinde bir garanti olmak üzere aşağıda görebilirsiniz.
-        </p>
-
-        <h2 class="block-label" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code> yok<a class="h-anchor" href="#there-is-no-any" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>any</code>, TypeScript'teki en pahalı anahtar kelimedir: bir değer <em>ve o değerin dokunduğu her şey</em> için tip sistemini kapatır. Bir sınırdaki tek bir <code>any</code>, aşağı akıştaki çağrı grafiğini sessizce zehirler. Glyph'te o yoktur. En üst tip <code>unknown</code>'dır ve <code>unknown</code> etkisizdir: ne olduğunu <em>kanıtlayana</em> kadar onu çağıramaz, indeksleyemez ya da tipli herhangi bir yere geçiremezsiniz.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">TypeScript: derlenir, sonra çöker</span>
-          <span class="cap">handler.ts</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">TypeScript: derlenir, sonra çöker</span>
+            <span class="cap">handler.ts</span>
 <pre><span class="k">function</span> handle(body: <span class="t">any</span>) {
   <span class="cm">// tsc --strict: fine.</span>
   <span class="cm">// runtime: throws on {}.</span>
   <span class="k">return</span> body.user.name.toUpperCase();
 }</pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: daraltmanın kendisi kanıttır</span>
-          <span class="cap">handler.glyph</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: daraltmanın kendisi kanıttır</span>
+            <span class="cap">handler.glyph</span>
 <pre><span class="k">fn</span> handle(body: <span class="t">unknown</span>) <span class="op">-&gt;</span> <span class="t">string</span> {
   <span class="k">return</span> <span class="k">match</span> <span class="t">User</span>.parse(body) {
     <span class="t">Ok</span>(u) <span class="op">=&gt;</span> <span class="t">string</span>.upper(u.name),
     <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="s">"unknown"</span>,
   }
 }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkaramazsınız. Glyph'te daraltma, çalışma zamanı kanıtının <strong>kendisidir</strong>. Onu atlamak için bir sözdizimi yoktur.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#the-lie-a-type-can-tell">Bir tipin söyleyebileceği yalan</a></li>
+          <li><a href="#there-is-no-any">any yok</a></li>
+          <li><a href="#types-are-real-at-runtime">Çalışma zamanında tipler</a></li>
+          <li><a href="#every-case-or-it-doesn-t-compile">Her durum</a></li>
+          <li><a href="#errors-are-values-not-surprises">Değer olarak hatalar</a></li>
+          <li><a href="#even-pii-is-type-level">PII</a></li>
+          <li><a href="#how-it-s-enforced-and-where-the-guarantee-stops">Garantinin bittiği yer</a></li>
+          <li><a href="#the-benchmark-coming">Benchmark</a></li>
+          <li><a href="#strict-typescript-and-a-lint-config-do-this">Strict TS ve lint</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="types-are-real-at-runtime"><span class="ex-label">02</span> Tipler çalışma zamanında gerçektir<a class="h-anchor" href="#types-are-real-at-runtime" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="the-lie-a-type-can-tell">Bir tipin söyleyebileceği yalan<a class="ak-anchor" href="#the-lie-a-type-can-tell" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        TypeScript'te bir tip, kodunuz çalışmadan önce buharlaşan bir derleme zamanı sözüdür. Bir <code>User</code> tip bildirimi silinip hiçbir şeye dönüşür; bir ağ çağrısından, bir JSON parse işleminden ya da bir form alanından gerçekte aldığınız nesne herhangi bir biçimde olabilir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Daha kötüsü, dil size bu konuda checker'a yalan söylemenin üç geçerli yolunu verir: <code>any</code>, bir <code>as</code> cast'i ve non-null <code>!</code>. Hızlı çalışan bir ajan üçüne de başvurur ve hata production'a giderken <code>tsc --strict</code> yeşil kalır.</p></div>
+      <p class="ak-lede">
+        Glyph'in ilk işi bu açıkları kapatmaktır. Daha fazla tip bildirimiyle değil, kaçış kapılarını kaldırarak ve her tipin kanıtını çalışma zamanına taşımasını sağlayarak. Bunun ne anlama geldiğini her seferinde bir garanti olmak üzere aşağıda görebilirsiniz.
+      </p>
+
+      <h2 class="ak-h" id="there-is-no-any"><span class="ex-label">01</span> <code>any</code> yok<a class="ak-anchor" href="#there-is-no-any" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph'te o yoktur. En üst tip <code>unknown</code>'dır ve <code>unknown</code> etkisizdir: ne olduğunu <em>kanıtlayana</em> kadar onu çağıramaz, indeksleyemez ya da tipli herhangi bir yere geçiremezsiniz.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">tek bir any neden bu kadar pahalı</span></summary><div class="body">
         <p>
-          <code>User.parse</code> nasıl var oluyor? Çünkü her record tipi ve generic olmayan her tagged union, yanında bir <strong>çalışma zamanı tanımlayıcısı</strong> üretir: bir <code>is</code> guard'ı, bir <code>unknown</code>'u doğrulayıp <code>Result</code>'a çeviren bir <code>parse</code> ve birleştirilebilir bir <code>schema</code>. Record'un biçimi varsayılmaz, çalışma zamanında gerçekten incelenir; bu yüzden bir <code>is User</code> kontrolü silinmiş bir no-op değil, gerçek bir kontroldür.
+          <code>any</code>, TypeScript'teki en pahalı anahtar kelimedir: bir değer <em>ve o değerin dokunduğu her şey</em> için tip sistemini kapatır. Bir sınırdaki tek bir <code>any</code>, aşağı akıştaki çağrı grafiğini sessizce zehirler.
         </p>
-      </div>
+      </div></details>
+      <p class="pull-quote">
+        Derleyicinin görebileceği bir kontrol olmadan <code>unknown</code>'dan tipli bir değer çıkaramazsınız. Glyph'te daraltma, çalışma zamanı kanıtının <strong>kendisidir</strong>. Onu atlamak için bir sözdizimi yoktur.
+      </p>
 
+      <h2 class="ak-h" id="types-are-real-at-runtime"><span class="ex-label">02</span> Tipler çalışma zamanında gerçektir<a class="ak-anchor" href="#types-are-real-at-runtime" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>User.parse</code> nasıl var oluyor? Çünkü her record tipi ve generic olmayan her tagged union, yanında bir <strong>çalışma zamanı tanımlayıcısı</strong> üretir: bir <code>is</code> guard'ı, bir <code>unknown</code>'u doğrulayıp <code>Result</code>'a çeviren bir <code>parse</code> ve birleştirilebilir bir <code>schema</code>.
+      </p>
       <div class="code">
         <span class="cap">yazdığınız tip ve ondan üretilen tanımlayıcı</span>
 <pre><span class="k">type</span> <span class="t">User</span> = {
@@ -498,21 +515,24 @@
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>"Her API elle yazılmış bir validator ister" sorununun yanıtı budur. Tipin kendisi validator'dır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">tanımlayıcının neyi kontrol ettiği</span></summary><div class="body">
         <p>
-          "Her API elle yazılmış bir validator ister" sorununun yanıtı budur. Tipin kendisi validator'dır. Bir sınır (bir istek gövdesi, bir yapılandırma dosyası, üçüncü taraf bir yanıt), ancak kötü veriyi gerçekten reddedebilen bir kontrolden geçerek tipli hale gelir.
+          Record'un biçimi varsayılmaz, çalışma zamanında gerçekten incelenir; bu yüzden bir <code>is User</code> kontrolü silinmiş bir no-op değil, gerçek bir kontroldür.
         </p>
         <p>
-          Bunun bittiği yer: bir record'un tanımlayıcısı varsayılan olarak katıdır. Tanımlanan alanları doğrular ve tanımlanmamış anahtarlar taşıyan bir değeri reddeder (fazlalıklara izin vermek için tipe <code>@open</code> ekleyin). Generic olanlar dahil record tipleri bir tanımlayıcı alır; böylece <code>Paginated&lt;User&gt;</code> her elemanı bir <code>User</code> olarak kontrol eder. Bir tagged union'ın tanımlayıcısı önce tag'i, sonra o variant'ın payload alanlarını kontrol eder. Hâlâ tanımlayıcı almayanlar: generic bir tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> için <code>Box.parse</code> yoktur) ve yalnızca referans verdiğiniz bir <code>.d.ts</code>'den import edilen bir tip. Bir kontrolün bir biçimin yalnızca bir kısmını kanıtlayabildiği yerde derleyici, veremeyeceği bir garantiyi ima etmek yerine bunu söyler.
+          Bir sınır (bir istek gövdesi, bir yapılandırma dosyası, üçüncü taraf bir yanıt), ancak kötü veriyi gerçekten reddedebilen bir kontrolden geçerek tipli hale gelir.
         </p>
-
-        <h2 class="block-label" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> Her durum, yoksa derlenmez<a class="h-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Mühürlü bir union üzerindeki bir <code>match</code> her variant'ı ele almak zorundadır. Sonradan bir variant ekleyin, onu hesaba katmayan <em>her</em> match derlenmeyi bırakır (<code>E0200</code>). Yeni durum, unutulmuş bir <code>switch</code> dalının yaptığı gibi sessizce <code>undefined</code>'a düşemez. Bu yalnızca union'lar için de geçerli değil: bir <code>number</code> ya da <code>string</code>'i literal değerler üzerinden eşleştirmek bir <code>else</code> gerektirir (<code>E0218</code>), çünkü bu alanlar sınırsızdır ve bir literal kümesi asla tam olamaz.
+          Bunun bittiği yer: bir record'un tanımlayıcısı varsayılan olarak katıdır. Tanımlanan alanları doğrular ve tanımlanmamış anahtarlar taşıyan bir değeri reddeder (fazlalıklara izin vermek için tipe <code>@open</code> ekleyin). Generic olanlar dahil record tipleri bir tanımlayıcı alır; böylece <code>Paginated&lt;User&gt;</code> her elemanı bir <code>User</code> olarak kontrol eder. Bir tagged union'ın tanımlayıcısı önce tag'i, sonra o variant'ın payload alanlarını kontrol eder.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Hâlâ tanımlayıcı almayanlar: generic bir tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> için <code>Box.parse</code> yoktur) ve yalnızca referans verdiğiniz bir <code>.d.ts</code>'den import edilen bir tip. Bir kontrolün bir biçimin yalnızca bir kısmını kanıtlayabildiği yerde derleyici, veremeyeceği bir garantiyi ima etmek yerine bunu söyler.</p></div>
 
+      <h2 class="ak-h" id="every-case-or-it-doesn-t-compile"><span class="ex-label">03</span> Her durum, yoksa derlenmez<a class="ak-anchor" href="#every-case-or-it-doesn-t-compile" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Mühürlü bir union üzerindeki bir <code>match</code> her variant'ı ele almak zorundadır. Sonradan bir variant ekleyin, onu hesaba katmayan <em>her</em> match derlenmeyi bırakır (<code>E0200</code>).
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">status.glyph</span>
@@ -526,7 +546,7 @@
   }
 }</pre>
         </div>
-        <div class="code">
+        <div class="code term">
           <span class="tag-bad">çalışma zamanında bir undefined değil, derleme hatası</span>
           <span class="cap">$ glyph build</span>
 <pre class="wraps"><span class="del"><span class="e">[E0200]</span> non-exhaustive match on
@@ -537,14 +557,17 @@
 # clean. here it does not build.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label" id="errors-are-values-not-surprises"><span class="ex-label">04</span> Hatalar sürpriz değil, değerdir<a class="h-anchor" href="#errors-are-values-not-surprises" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0218</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">number ve string match'leri</span></summary><div class="body">
         <p>
-          Başarısız olabilen bir fonksiyon <code>Result&lt;T, E&gt;</code> döndürür. Onu <code>match</code> ile ele alırsınız ya da <code>?</code> operatörüyle yukarı iletirsiniz ve hata tipinin uyması gerekir (bir uyumsuzluğu gizleyen örtük bir dönüşüm yoktur). Bir <code>Result</code>'ı tamamen yok sayarsanız (yan etkisi için çağırıp döndürdüğünü atarsanız) Glyph sizi uyarır (<code>E0217</code>), çünkü atılan bir hata yutulmuş bir başarısızlıktır. Onu kazara değil, bilerek <code>let _ = ...</code> ile susturursunuz.
+          Yeni durum, unutulmuş bir <code>switch</code> dalının yaptığı gibi sessizce <code>undefined</code>'a düşemez. Bu yalnızca union'lar için de geçerli değil: bir <code>number</code> ya da <code>string</code>'i literal değerler üzerinden eşleştirmek bir <code>else</code> gerektirir (<code>E0218</code>), çünkü bu alanlar sınırsızdır ve bir literal kümesi asla tam olamaz.
         </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="errors-are-values-not-surprises"><span class="ex-label">04</span> Hatalar sürpriz değil, değerdir<a class="ak-anchor" href="#errors-are-values-not-surprises" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Başarısız olabilen bir fonksiyon <code>Result&lt;T, E&gt;</code> döndürür. Onu <code>match</code> ile ele alırsınız ya da <code>?</code> operatörüyle yukarı iletirsiniz ve hata tipinin uyması gerekir (bir uyumsuzluğu gizleyen örtük bir dönüşüm yoktur).
+      </p>
       <div class="code">
         <span class="cap">pipeline.glyph</span>
 <pre><span class="k">fn</span> load(id: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">AppError</span>&gt; {
@@ -558,14 +581,12 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir <code>Result</code>'ı tamamen yok sayarsanız (yan etkisi için çağırıp döndürdüğünü atarsanız) Glyph sizi uyarır (<code>E0217</code>), çünkü atılan bir hata yutulmuş bir başarısızlıktır. Onu kazara değil, bilerek <code>let _ = ...</code> ile susturursunuz.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="even-pii-is-type-level"><span class="ex-label">05</span> Kişisel veri (PII) bile tip düzeyinde<a class="h-anchor" href="#even-pii-is-type-level" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          "Bunu bir gelenek değil, derleyicinin işi yap" içgüdüsü hassas veriye kadar uzanır. Bir tipe <code>@redact</code> koyun, tanımlayıcısı o alanları maskeleyen bir <code>redact()</code> kazanır; böylece başıboş bir <code>json.stringify(User.redact(u))</code> onları sızdıramaz. Tipte olmayan bir alanı adlandırırsanız bu, sessizce hiçbir şeyi korumayan bir maskeleme değil, bir derleme hatasıdır (<code>E0219</code>).
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="even-pii-is-type-level"><span class="ex-label">05</span> Kişisel veri (PII) bile tip düzeyinde<a class="ak-anchor" href="#even-pii-is-type-level" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "Bunu bir gelenek değil, derleyicinin işi yap" içgüdüsü hassas veriye kadar uzanır. Bir tipe <code>@redact</code> koyun, tanımlayıcısı o alanları maskeleyen bir <code>redact()</code> kazanır; böylece başıboş bir <code>json.stringify(User.redact(u))</code> onları sızdıramaz.
+      </p>
       <div class="code">
         <span class="cap">patient.glyph</span>
 <pre><span class="k">@redact</span> fields: [diagnosis, notes]
@@ -578,28 +599,35 @@
 <span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
 <span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Tipte olmayan bir alanı adlandırırsanız bu, sessizce hiçbir şeyi korumayan bir maskeleme değil, bir derleme hatasıdır (<code>E0219</code>).</p></div>
+      <p class="pull-quote">
+        Beş farklı başarısızlık biçimi (kontrol edilmemiş girdi, kaçırılmış bir durum, atılmış bir hata, sızdırılmış bir sır, doğrulanmamış bir anahtar) ve hepsinde düzeltme aynı biçimdedir: <strong>derleyici öyleymiş gibi yapmayı reddeder.</strong>
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Beş farklı başarısızlık biçimi (kontrol edilmemiş girdi, kaçırılmış bir durum, atılmış bir hata, sızdırılmış bir sır, doğrulanmamış bir anahtar) ve hepsinde düzeltme aynı biçimdedir: <strong>derleyici öyleymiş gibi yapmayı reddeder.</strong>
-        </p>
-
-        <h2 class="block-label" id="how-it-s-enforced-and-where-the-guarantee-stops">Nasıl uygulanıyor ve garanti nerede bitiyor<a class="h-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Kesin konuşalım, çünkü fark önemli: Glyph bağımsız bir doğrulayıcı değil, <strong><code>tsc</code>'nin üzerinde katı ve zorunlu bir lehçedir</strong>. Bazı şeyleri kendisi kanıtlar: kapsamın tamlığı, <code>?</code> hata tipi, kaynağınızda <code>any</code>/<code>as</code> bulunmaması, katı anahtar doğrulaması. Tip uyumluluğunun geri kalanını TypeScript üreterek ve build'i başarısız kılan <code>tsc --strict</code>'i çalıştırarak uygular. Asıl mesele, Glyph'in bir tip denetleyicisini yeniden yazması değil, bu kontrollerin ajanın kapatabileceği isteğe bağlı bir lint değil, <em>dilin kendisi</em> olmasıdır.
-        </p>
+      <h2 class="ak-h" id="how-it-s-enforced-and-where-the-guarantee-stops">Nasıl uygulanıyor ve garanti nerede bitiyor<a class="ak-anchor" href="#how-it-s-enforced-and-where-the-guarantee-stops" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Kesin konuşalım, çünkü fark önemli: Glyph bağımsız bir doğrulayıcı değil, <strong><code>tsc</code>'nin üzerinde katı ve zorunlu bir lehçedir</strong>.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Glyph'in kanıtladıkları</b>Bazı şeyleri kendisi kanıtlar: kapsamın tamlığı, <code>?</code> hata tipi, kaynağınızda <code>any</code>/<code>as</code> bulunmaması, katı anahtar doğrulaması.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>tsc üzerinden uygulananlar</b>Tip uyumluluğunun geri kalanını TypeScript üreterek ve build'i başarısız kılan <code>tsc --strict</code>'i çalıştırarak uygular.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Asıl mesele, Glyph'in bir tip denetleyicisini yeniden yazması değil, bu kontrollerin ajanın kapatabileceği isteğe bağlı bir lint değil, <em>dilin kendisi</em> olmasıdır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.10'da kapatılan sınırlar, derin generic doğrulama</span></summary><div class="body">
         <p>
           Buradaki iki eski sınır 0.1.10'da kapatıldı. Emitter eskiden <em>her</em> generic fonksiyona, <code>tsc</code>'nin değil Glyph'in kontrol ettiği bir dönüş cast'i ekliyordu; artık yalnızca bir validator birleştiricisinin biçimden türetilen bir tipte (<code>infer_output&lt;Shape&gt;</code>) değer oluşturduğu yerde devreye giriyor ve dürüst her generic hiç cast olmadan üretiliyor. Ayrıca bir validator'ın çıktı tipine artık körü körüne güvenilmiyor: <code>infer_output</code> onu verdiğiniz biçimden türetir ve <code>tsc</code> tip bildiriminizi buna karşı kontrol eder; iddia ettiğiniz tipin bir alanı eksik olan bir biçim artık derlenmez.
         </p>
         <p>
-          Generic tipler de artık derinlemesine doğrulanıyor: bir <code>Paginated&lt;User&gt;</code> tanımlayıcısı her elemanı yalnızca var olup olmadığına bakarak değil, <em>bir <code>User</code> olarak</em> kontrol eder. Açıkça söyleyelim, bir sınır kalıyor: yalnızca referans verdiğiniz harici bir <code>.d.ts</code>'den <em>import edilen</em> bir tip, <code>glyph gen dts</code> ile somutlaştırana kadar tanımlayıcı taşımaz; bu yüzden o tipteki bir alanın biçimi değil, yalnızca varlığı kontrol edilir. Bu sınır bilerek konmuştur (Glyph'in üretmediği bir tip çalışma zamanı doğrulaması vaat edemez) ve onu somutlaştırmak sınırı kapatır.
+          Generic tipler de artık derinlemesine doğrulanıyor: bir <code>Paginated&lt;User&gt;</code> tanımlayıcısı her elemanı yalnızca var olup olmadığına bakarak değil, <em>bir <code>User</code> olarak</em> kontrol eder.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Açıkça söyleyelim, bir sınır kalıyor: yalnızca referans verdiğiniz harici bir <code>.d.ts</code>'den <em>import edilen</em> bir tip, <code>glyph gen dts</code> ile somutlaştırana kadar tanımlayıcı taşımaz; bu yüzden o tipteki bir alanın biçimi değil, yalnızca varlığı kontrol edilir. Bu sınır bilerek konmuştur (Glyph'in üretmediği bir tip çalışma zamanı doğrulaması vaat edemez) ve onu somutlaştırmak sınırı kapatır.</p></div>
 
-        <h2 class="block-label" id="the-benchmark-coming">Benchmark: yakında<a class="h-anchor" href="#the-benchmark-coming" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bu iddia deneysel, bu yüzden onu ölçmeyi amaçlıyoruz: ajanların yazdığı gerçek değişikliklerden bir derlem alıp her birini <code>tsc --strict</code>'ten ve Glyph'ten geçirmek ve her birinin gerçekte neyi yakaladığını saymak. Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden bildirilecek bir rakam yok. Aşağıdaki grafik yer tutucudur ve gerçek kullanım olduğu anda gerçek verilerle dolacak.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">Benchmark: yakında<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bu iddia deneysel, bu yüzden onu ölçmeyi amaçlıyoruz: ajanların yazdığı gerçek değişikliklerden bir derlem alıp her birini <code>tsc --strict</code>'ten ve Glyph'ten geçirmek ve her birinin gerçekte neyi yakaladığını saymak.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden bildirilecek bir rakam yok. Aşağıdaki grafik yer tutucudur ve gerçek kullanım olduğu anda gerçek verilerle dolacak.</p></div>
 
       <div class="chart">
         <span class="label">Ajanların production'a gönderdiği yakalanan hatalar &middot; yüksek olan daha iyi</span>
@@ -617,27 +645,22 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Bunların hiçbiri tören karşılığında gelmiyor. Kanıt bildirimleri, kontratlar, tatmin edilmesi gereken bir doğrulayıcı yok. Yukarıdaki kod sıradan Glyph. Doğrulanabilirlik açtığınız bir özellik değil; yalan söylemenin yolları ortadan kalktığında geriye kalan şeydir.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Bunların hiçbiri tören karşılığında gelmiyor. Kanıt bildirimleri, kontratlar, tatmin edilmesi gereken bir doğrulayıcı yok. Yukarıdaki kod sıradan Glyph. Doğrulanabilirlik açtığınız bir özellik değil; yalan söylemenin yolları ortadan kalktığında geriye kalan şeydir.
+      </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="strict-typescript-and-a-lint-config-do-this">"Strict TypeScript ve bir lint yapılandırması bunu yapıyor"<a class="h-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir programın içinde yaklaşıyorlar. <code>strict</code>, <code>noUncheckedIndexedAccess</code> ve açık <code>any</code>'ye karşı bir kural, bir ajanın aksi halde kaçıracağı şeylerin çoğunu yakalar. Kenarlarda dururlar. <code>JSON.parse(body) as User</code> var olan her ayarda derlenir ve olağan çözüm olan bir zod şeması, <code>User</code>'ın ilkiyle elle uyumlu tutulması gereken ikinci bir tanımıdır. Glyph'te tipin kendisi validator'dır: <code>json.parse&lt;User&gt;(body)</code> doğrudan <code>User</code>'a karşı kontrol edilir ve Glyph'in çalışma zamanında kontrol edemeyeceği bir tipe güvenilmez, o tip reddedilir.
-        </p>
-        <p>
-          Diğer fark, ona kimin güvenebileceğidir. Bir lint yapılandırması bir deponun yaptığı bir seçimdir. Tanımadığı bir TypeScript kod tabanını açan bir ajan, orada <code>any</code>'nin yasak olduğunu varsayamaz; Glyph'te ise hiçbir yerde yazılamaz.
-        </p>
-      </div>
+      <h2 class="ak-h" id="strict-typescript-and-a-lint-config-do-this">"Strict TypeScript ve bir lint yapılandırması bunu yapıyor"<a class="ak-anchor" href="#strict-typescript-and-a-lint-config-do-this" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir programın içinde yaklaşıyorlar. <code>strict</code>, <code>noUncheckedIndexedAccess</code> ve açık <code>any</code>'ye karşı bir kural, bir ajanın aksi halde kaçıracağı şeylerin çoğunu yakalar. Kenarlarda dururlar.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Sınırda</b><code>JSON.parse(body) as User</code> var olan her ayarda derlenir ve olağan çözüm olan bir zod şeması, <code>User</code>'ın ilkiyle elle uyumlu tutulması gereken ikinci bir tanımıdır. Glyph'te tipin kendisi validator'dır: <code>json.parse&lt;User&gt;(body)</code> doğrudan <code>User</code>'a karşı kontrol edilir ve Glyph'in çalışma zamanında kontrol edemeyeceği bir tipe güvenilmez, o tip reddedilir.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Depolar arasında</b>Diğer fark, ona kimin güvenebileceğidir. Bir lint yapılandırması bir deponun yaptığı bir seçimdir. Tanımadığı bir TypeScript kod tabanını açan bir ajan, orada <code>any</code>'nin yasak olduğunu varsayamaz; Glyph'te ise hiçbir yerde yazılamaz.</li>
+      </ul>
 
-      <div class="detail">
-        <p>
-          Aynı garanti, bir ajanın yaptığı hatalar ve onları durduran hata mesajları olarak, <a href="/tr/answers/verifiability/">Bir ajanın kodumu sessizce bozmasını ne engelliyor?</a> sayfasında yanıtlanıyor.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Aynı garanti, bir ajanın yaptığı hatalar ve onları durduran hata mesajları olarak, <a href="/tr/answers/verifiability/">Bir ajanın kodumu sessizce bozmasını ne engelliyor?</a> sayfasında yanıtlanıyor.
+      </p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/">
           <span class="dir">&larr; Ana sayfa</span>

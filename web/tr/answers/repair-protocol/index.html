@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","item":"https://glyphlang.io/tr/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/repair-protocol/#article","headline":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","description":"Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar.","url":"https://glyphlang.io/tr/answers/repair-protocol/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","item":"https://glyphlang.io/tr/answers/repair-protocol/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/repair-protocol/#article","headline":"Derleyici ajanıma nasıl düzelteceğini söylüyor mu?","description":"Her diagnostic tipleri, hatalı sembolü ve geçerli alternatifleri taşır; glyph fix de derleyicinin kendi başına karara bağlayabildiği onarımları yazar.","url":"https://glyphlang.io/tr/answers/repair-protocol/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/repair-protocol/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/repair-protocol/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/repair-protocol/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">23 &middot; Kırmızı bir build'i düzeltmek</p>
       <h1 class="q-title">Build başarısız olduğunda derleyici ajanıma nasıl düzelteceğini söylüyor mu?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,23 +478,9 @@
         Neyin yanlış olduğunu parse edilecek bir cümle olarak değil, veri olarak söyler: iki tip, <code>module::name</code> biçiminde hatalı sembol ve yanlış şeyin durduğu yerde geçerli olarak durabilecek şeylerin sonlu listesi. <code>glyph check --agent</code>, onarıcı düzenlemenin bozmaması gerekenleri ekler. Yanıtın tamamen belirli olduğu yerde <code>glyph fix</code> onu yazar.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir ajanın derleyici etrafındaki döngüsü şudur: hatayı oku, düzenlemeyi tahmin et, yeniden build et. Hasar tahmin adımında olur ve hata bir string olduğu için olur. "<code>OrderStatus</code> üzerinde kapsamı eksik match" okuyan bir ajan, bir match'te bazı arm'ların eksik olduğunu bilir. Eksik variant'ların ne taşıdığını bilmez, bu yüzden <code>Paid("tx_1")</code> yazar ve bunu bir sonraki diagnostic'ten öğrenir. Ya da "exhaustive" kelimesini okur, bir <code>else</code> arm'ı ekler ve build, diagnostic'in korumak için var olduğu garantiyi atmış olarak yeşile döner.
-        </p>
-        <p>
-          Derleyici bunların hepsini biliyordu. Union'ın variant'larını ve payload'larını biliyordu, bir <code>else</code>'in mührü kaybettireceğini biliyordu ve ikisini de yanıttan bir satır önce atıyordu.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          İki modüllü bir proje. <code>orders</code> union'ı tanımlar; <code>main</code> onun üzerinde bir <code>match</code> yazar ve bir durumu ele alır. <code>glyph check --agent</code>, burada önemli olan anahtarlara kısaltılmış hâliyle:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph check --agent --no-tsc src</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph check --agent --no-tsc src</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
   <span class="pk">"severity"</span>: <span class="s">"error"</span>,
@@ -534,29 +520,58 @@
   <span class="pk">"explain"</span>: { <span class="pk">"command"</span>: <span class="s">"glyph --explain E0200"</span>,
                <span class="pk">"docs"</span>: <span class="s">"https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200"</span> }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>İki modüllü bir proje. <code>orders</code> union'ı tanımlar; <code>main</code> onun üzerinde bir <code>match</code> yazar ve bir durumu ele alır. <code>glyph check --agent</code>, burada önemli olan anahtarlara kısaltılmış hâliyle.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Öne çıkarmaya değer üç şey var. <code>cause</code> hatalı semboldür ve diagnostic'in içinde bulunduğu tanım olan <code>entity</code>'den farklı bir şeydir: burada düzenleme <code>main::describe</code> içinde yapılır ve uyması gereken yapı <code>orders::OrderStatus</code>'tan gelir. İkisi de diğer araçların aldığı adreslerdir, yani bir yanıt hiçbir şeyi yeniden türetmeden zincirlenir.
-        </p>
-        <p>
-          <code>constraints</code> onarımın kendisi değildir. Her biri derleyicinin zaten zorladığı bir şeydir ve diagnostic'i karşılayan düzenleme arkasındaki garantiyi bozmasın diye açıkça yazılmıştır. İkinci kısıt, anahtarın var olma nedenidir: bir <code>else</code> arm'ı geçerlidir, build'i yeşile çevirir ve kısıt bunu seçmenin bedelini söyler.
-        </p>
-        <p>
-          <code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtıdır; böylece ajanın bir sonraki düzenlemesi ikinci bir çağrıya ihtiyaç duymaz. Aracın reddettiği bir sembol gerekçesiyle birlikte <code>symbols_absent</code>'ta görünür; bu da "bakmadık" ile "baktık ve orada değil"i birbirinden ayırır.
-        </p>
-        <p>
-          Her anahtar her zaman mevcuttur. Derleyicinin sahip olmadığı bir bilgi, eksik bir anahtar olarak değil, açık bir <code>null</code> olarak gelir; böylece yokluğun her kodda ve hem CLI hem MCP yüzeyinde tek bir yazılışı vardır.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#reading-the-answer">Yanıtı okumak</a></li>
+          <li><a href="#where-the-answer-is-determined-the-compiler-writes-it">glyph fix ne yazar</a></li>
+          <li><a href="#the-code-s-own-explanation-as-data">Veri olarak açıklamalar</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="where-the-answer-is-determined-the-compiler-writes-it">Yanıtın belirli olduğu yerde derleyici onu yazar<a class="h-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir ajanın derleyici etrafındaki döngüsü şudur: hatayı oku, düzenlemeyi tahmin et, yeniden build et. Hasar tahmin adımında olur ve hata bir string olduğu için olur.
+      </p>
+      <ol class="ak-path" aria-label="Ajanın döngüsü"><li><span>hatayı oku</span></li><li><span>düzenlemeyi tahmin et</span></li><li><span>yeniden build et</span></li></ol>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Derleyici bunların hepsini biliyordu. Union'ın variant'larını ve payload'larını biliyordu, bir <code>else</code>'in mührü kaybettireceğini biliyordu ve ikisini de yanıttan bir satır önce atıyordu.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bir string'in davet ettiği iki yanlış düzenleme</span></summary><div class="body">
         <p>
-          <code>glyph fix</code> yalnızca derleyicinin kendi başına karara bağladığı onarımları uygular: kullanılmayan import'lar, checker'ın tam olarak tek bir öneri hesapladığı durumda variant olmayan bir arm başı ve record'un tanımlamadığı, tam olarak bir tanımlı alanın bir karakter uzağında olduğu bir alan. Yukarıdaki <code>match</code> bunlardan biri değil.
+          "<code>OrderStatus</code> üzerinde kapsamı eksik match" okuyan bir ajan, bir match'te bazı arm'ların eksik olduğunu bilir. Eksik variant'ların ne taşıdığını bilmez, bu yüzden <code>Paid("tx_1")</code> yazar ve bunu bir sonraki diagnostic'ten öğrenir. Ya da "exhaustive" kelimesini okur, bir <code>else</code> arm'ı ekler ve build, diagnostic'in korumak için var olduğu garantiyi atmış olarak yeşile döner.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="reading-the-answer">Yanıtı okumak<a class="ak-anchor" href="#reading-the-answer" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">Öne çıkarmaya değer üç şey var.</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="3"/><path d="M8 10v4.5M5.5 14.5h5"/></svg></span><b><code>cause</code></b><code>cause</code> hatalı semboldür ve diagnostic'in içinde bulunduğu tanım olan <code>entity</code>'den farklı bir şeydir: burada düzenleme <code>main::describe</code> içinde yapılır ve uyması gereken yapı <code>orders::OrderStatus</code>'tan gelir.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>constraints</code></b><code>constraints</code> onarımın kendisi değildir. Her biri derleyicinin zaten zorladığı bir şeydir ve diagnostic'i karşılayan düzenleme arkasındaki garantiyi bozmasın diye açıkça yazılmıştır.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>symbols</code></b><code>symbols</code>, diagnostic'in adını verdiği her sembol için <code>glyph_symbol</code> yanıtıdır; böylece ajanın bir sonraki düzenlemesi ikinci bir çağrıya ihtiyaç duymaz.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Her anahtar her zaman mevcuttur. Derleyicinin sahip olmadığı bir bilgi, eksik bir anahtar olarak değil, açık bir <code>null</code> olarak gelir; böylece yokluğun her kodda ve hem CLI hem MCP yüzeyinde tek bir yazılışı vardır.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">zincirlenen adresler, else kısıtı, symbols_absent</span></summary><div class="body">
+        <p>
+          İkisi de diğer araçların aldığı adreslerdir, yani bir yanıt hiçbir şeyi yeniden türetmeden zincirlenir.
+        </p>
+        <p>
+          İkinci kısıt, anahtarın var olma nedenidir: bir <code>else</code> arm'ı geçerlidir, build'i yeşile çevirir ve kısıt bunu seçmenin bedelini söyler.
+        </p>
+        <p>
+          Aracın reddettiği bir sembol gerekçesiyle birlikte <code>symbols_absent</code>'ta görünür; bu da "bakmadık" ile "baktık ve orada değil"i birbirinden ayırır.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-the-answer-is-determined-the-compiler-writes-it">Yanıtın belirli olduğu yerde derleyici onu yazar<a class="ak-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fix</code> yalnızca derleyicinin kendi başına karara bağladığı onarımları uygular: kullanılmayan import'lar, checker'ın tam olarak tek bir öneri hesapladığı durumda variant olmayan bir arm başı ve record'un tanımlamadığı, tam olarak bir tanımlı alanın bir karakter uzağında olduğu bir alan. Yukarıdaki <code>match</code> bunlardan biri değil.
+      </p>
+      <div class="code term">
         <span class="cap">yukarıdaki match üzerinde glyph fix src</span>
 <pre>glyph fix: removed 0 unused import(s) across 0 file(s).
 glyph fix: declined E0200 in src/main.glyph: the compiler does not
@@ -566,25 +581,27 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
 
 <span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Derleyici hangi durumların eksik olduğunu ve her birinin hangi pattern'i aldığını bilir. Bir sipariş <code>Paid</code> olduğunda programın ne yapması gerektiğini bilmez ve yazacağı her gövde derlenen bir tahmin olur.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">glyph fix'in 0.1.128'e kadar yazdığı şey</span></summary><div class="body">
         <p>
-          Derleyici hangi durumların eksik olduğunu ve her birinin hangi pattern'i aldığını bilir. Bir sipariş <code>Paid</code> olduğunda programın ne yapması gerektiğini bilmez ve yazacağı her gövde derlenen bir tahmin olur. 0.1.128'e kadar <code>glyph fix</code> o tahmini yazıyordu: her durum için gövdesi durumu yazdırıp <code>process.exit(1)</code>'i çağıran bir arm. Program bundan sonra <code>check</code>, <code>tsc</code> ve <code>build</code>'den geçiyordu ve <code>glyph query variants</code> match'i kapsamı tam olarak bildiriyordu; yani eksik durum bir derleme hatasından çalışma zamanında bir çökmeye taşınmıştı ve onu işaretleyecek hiçbir şey kalmamıştı.
+          0.1.128'e kadar <code>glyph fix</code> o tahmini yazıyordu: her durum için gövdesi durumu yazdırıp <code>process.exit(1)</code>'i çağıran bir arm. Program bundan sonra <code>check</code>, <code>tsc</code> ve <code>build</code>'den geçiyordu ve <code>glyph query variants</code> match'i kapsamı tam olarak bildiriyordu; yani eksik durum bir derleme hatasından çalışma zamanında bir çökmeye taşınmıştı ve onu işaretleyecek hiçbir şey kalmamıştı.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">arm'ların nereden geldiği ve retlerin nasıl bildirildiği</span></summary><div class="body">
         <p>
           Bu yüzden kural reddeder ve durumları adıyla söyler. Arm'ları yazmak için gereken her şey zaten yukarıdaki <code>--agent</code> yanıtında var: <code>missing_variants</code> ve <code>symbols</code> altında her variant'ın <code>construct</code> yazılışı. Arm'ları yazmak, davranışını derleyicinin çıkaramadığı diğer her kod gibi size ya da ajanınıza kalır.
         </p>
         <p>
           <code>glyph fix</code> yazdığını tahmin etmeden yazar ve bir yanıtı karara bağlayamayan her kural, reddi ve gerekçesini uyguladıklarıyla aynı çıktıda yazdırır. Bir yazım hatasından bir karakter uzaktaki iki alan bir değil iki alandır ve seçim yapmak yerine bunu söyler.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-code-s-own-explanation-as-data">Kodun kendi açıklaması, veri olarak<a class="h-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          <code>glyph --explain &lt;CODE&gt; --json</code>, uzun açıklamayı, tek satırlık <code>help</code>'i, doküman URL'sini ve derleyicinin negatif derleminden alınmış yanlış bir programı, bu derleyicinin onun için ürettiği diagnostic'le eşleştirilmiş olarak döndürür. Diagnostic saklanmaz, siz sorduğunuzda derlenir; bu yüzden derleyicinin gerçekte söylediğinden sapamaz.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-code-s-own-explanation-as-data">Kodun kendi açıklaması, veri olarak<a class="ak-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph --explain &lt;CODE&gt; --json</code>, uzun açıklamayı, tek satırlık <code>help</code>'i, doküman URL'sini ve derleyicinin negatif derleminden alınmış yanlış bir programı, bu derleyicinin onun için ürettiği diagnostic'le eşleştirilmiş olarak döndürür.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Diagnostic saklanmaz, siz sorduğunuzda derlenir; bu yüzden derleyicinin gerçekte söylediğinden sapamaz.</p></div>
+      <div class="code term">
         <span class="cap">glyph --explain E0200 --json</span>
 <pre>{
   <span class="pk">"code"</span>: <span class="s">"E0200"</span>,
@@ -611,28 +628,41 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <p>
-          Derlemin kapsamadığı bir kod, uydurulmuş bir örnek yerine <code>counter_example: null</code> ve derlemde onun için bir durum olmadığını söyleyen bir cümleyle döner. Derlem kapsadığı şeyler hakkında iddiada bulunur, gerisi hakkında hiçbir şey söylemez.
-        </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Derlemin kapsamadığı bir kod, uydurulmuş bir örnek yerine <code>counter_example: null</code> ve derlemde onun için bir durum olmadığını söyleyen bir cümleyle döner. Derlem kapsadığı şeyler hakkında iddiada bulunur, gerisi hakkında hiçbir şey söylemez.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">glyph llms --negative ile tüm derlem</span></summary><div class="body">
         <p>
           <code>glyph --explain</code> kod başına bir durum verir. Derlemin tamamı da okunabilir: <code>glyph llms --negative E0200</code> o kodu tetikleyen her yanlış programı, her birini siz sorduğunuzda derleyerek yazdırır; ikinci bir derlemin <code>tsc --strict</code>'in kabul ettiği bir programı onu reddeden Glyph ile eşleştirdiği yerde o da yanında gelir. Kod verilmezse 70 kodun 46'sı üzerinde 102 durum listeler ve hiç durumu olmayan 24 kodu adıyla söyler; böylece kapsam, dönenlerden çıkarılmak yerine açıkça belirtilir. Bu ve derleyicinin kendisi hakkında yayımladığı geri kalan her şey <a href="/tr/answers/generated-docs/">ayrı bir sayfada</a>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (<code>alternatives_kind</code> ile listenin <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> ya da <code>exports</code> olup olmadığı belirtilir ve hatanın üretildiği yerde ayarlanır), <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; bunlar yeniden türetilmek yerine derleyicinin ürettiği hatadan doldurulur ve derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur. <code>file</code>, çözümleme köküne göreli bir yoldur ve rapor o kökü <code>project_root</code>'ta belirtir, yani yol açılabilir. <code>glyph check --agent</code> her diagnostic için <code>constraints</code> ve <code>symbols</code> ekler. <code>glyph fix</code> üç kural uygular (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) ve her reddi gerekçesiyle belirtir; bildirdiği ama hiçbir zaman yazmadığı her <code>E0200</code> dahil. <code>glyph --explain &lt;CODE&gt; --json</code> açıklamayı derlenmiş bir karşı örnekle döndürür, <code>glyph llms --negative &lt;CODE&gt;</code> ise o kodu tetikleyen yanlış programların tüm derlemini döndürür.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Nerede duruyor</h3>
-          <p><code>E0211</code>'de <code>cause</code> <code>null</code>'dır: bir çağrı argümanındaki hatalı sembol bir parametredir ve <code>module::fn.param</code> kimlik sözlüğünün yazabildiği bir şey değildir; yani bu null bir eksiklik değil, bilinçli bir tercihtir. Bir karşı örnekteki <code>corrected</code> her zaman <code>null</code>'dır, çünkü negatif derlem bir durumla onarılmış bir programı eşleştirmez ve 70 kodun 24'ünün hiç durumu yoktur. <code>glyph fix</code> üç kural yazar, başka hiçbir şey yazmaz ve kapsamı eksik bir <code>match</code> için arm yazmaz: bunlar, durumlar ve pattern'leri diagnostic'te olacak şekilde size ya da ajanınıza bırakılır. Reddettiği her şeyi açıkça reddeder.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Her diagnostic <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (<code>alternatives_kind</code> ile listenin <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> ya da <code>exports</code> olup olmadığı belirtilir ve hatanın üretildiği yerde ayarlanır), <code>related</code>, <code>module</code>, <code>file</code> ve <code>explain</code> taşır; bunlar yeniden türetilmek yerine derleyicinin ürettiği hatadan doldurulur ve derleyici böyle bir bilgiye sahip değilse her biri açık bir <code>null</code> olur.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>file</code>, çözümleme köküne göreli bir yoldur ve rapor o kökü <code>project_root</code>'ta belirtir, yani yol açılabilir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check --agent</code> her diagnostic için <code>constraints</code> ve <code>symbols</code> ekler.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fix</code> üç kural uygular (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) ve her reddi gerekçesiyle belirtir; bildirdiği ama hiçbir zaman yazmadığı her <code>E0200</code> dahil.</span><span class="chip code">E0106</span><span class="chip code">E0210</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --explain &lt;CODE&gt; --json</code> açıklamayı derlenmiş bir karşı örnekle döndürür, <code>glyph llms --negative &lt;CODE&gt;</code> ise o kodu tetikleyen yanlış programların tüm derlemini döndürür.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Nerede duruyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0211</code>'de <code>cause</code> <code>null</code>'dır: bir çağrı argümanındaki hatalı sembol bir parametredir ve <code>module::fn.param</code> kimlik sözlüğünün yazabildiği bir şey değildir; yani bu null bir eksiklik değil, bilinçli bir tercihtir.</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir karşı örnekteki <code>corrected</code> her zaman <code>null</code>'dır, çünkü negatif derlem bir durumla onarılmış bir programı eşleştirmez ve 70 kodun 24'ünün hiç durumu yoktur.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph fix</code> üç kural yazar, başka hiçbir şey yazmaz ve kapsamı eksik bir <code>match</code> için arm yazmaz: bunlar, durumlar ve pattern'leri diagnostic'te olacak şekilde size ya da ajanınıza bırakılır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Reddettiği her şeyi açıkça reddeder.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/ask-the-compiler/">
           <span class="dir">&larr; Önceki</span>

@@ -42,7 +42,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/answer-kit.css" />
     <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/pillars/diff-stability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Stabile Diffs","item":"https://glyphlang.io/de/pillars/diff-stability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/pillars/diff-stability/#article","headline":"Stabile Diffs · einzeilige Änderung, einzeiliger Diff","description":"Glyphs dritte Säule: ein kanonisches Format, Trailing Commas, Listen, die nie neu umbrochen werden, keine Barrel-Dateien und idempotente Codegenerierung. Der Diff zeigt die Änderung, nicht das Rauschen.","url":"https://glyphlang.io/de/pillars/diff-stability/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/pillars/diff-stability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/diff-stability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">Säule 04 &middot; <span class="polish">Der Feinschliff</span></p>
       <h1 class="q-title">Stabile Diffs</h1>
 
@@ -433,65 +433,85 @@
         Eine einzeilige Änderung ist ein <strong>einzeiliger Diff</strong>. Ein kanonisches Format, Trailing Commas und eine Liste, die entweder ganz in einer Zeile oder ganz mit einem Element pro Zeile steht, nie neu umbrochen, sodass ein Review die Änderung zeigt, die gemacht wurde, und nicht das Rauschen drumherum.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="review-is-reading-diffs">Review heißt Diffs lesen<a class="h-anchor" href="#review-is-reading-diffs" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p class="lede">
-          Fast alles, worauf wir uns bei einer Änderung verlassen (das Review, blame, revert, bisect), baut auf dem Diff auf. Das Verhältnis von Signal zu Rauschen im Diff ist also die eigentliche Währung. In den meisten Codebasen ist es furchtbar: Ein Formatter bricht eine umbrochene Zeile neu um, ein Import-Sortierer mischt einen Block durch, eine Umbenennung berührt den Leerraum jeder Aufrufstelle, und die eine Zeile, auf die es <em>ankommt</em>, ist unter fünfzig begraben, auf die es nicht ankommt.
-        </p>
-        <p class="lede">
-          Agenten machen das deutlich schlimmer. Bei einer kleinen Aufgabe schreibt ein Modell bereitwillig eine ganze Funktion oder eine ganze Datei neu, um eine Sache zu ändern, weil Neugenerieren für es leichter ist als chirurgisches Bearbeiten. Dem Reviewer bleibt, einen Rewrite mit dem Original zu vergleichen und zu <em>hoffen</em>, dass die einzige echte Änderung die beabsichtigte ist. Glyph ist so gebaut, dass das Layout dem Modell nichts zum Umrühren gibt.
-        </p>
-
-        <h2 class="block-label" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Ein kanonisches Layout, keine Wahl<a class="h-anchor" href="#one-canonical-layout-no-choices" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          <code>glyph fmt</code> gibt jede Datei in einem einzigen festen Layout neu aus: zwei Leerzeichen Einrückung, ein Trailing Comma an jeder mehrzeiligen Liste und eine Liste, die in einer Zeile bleibt, solange sie in 100 Spalten passt, und ein Element pro Zeile bekommt, wenn nicht. Die Wahl ist alles oder nichts. Der Formatter packt deine Elemente nie neu, um eine Zeile zu füllen, also steht eine Liste nie teils in einer Zeile und teils in der nächsten, und ein neues Feld ist eine einzige hinzugefügte Zeile. Weil es genau eine zulässige Form gibt, gibt es nichts zu diskutieren und nichts, was ein Tool nebenbei "reparieren" könnte.
-        </p>
-        <p>
-          Der Preis dafür ist die Breitenschwelle. Benenne ein Binding so um, dass ein Aufruf über 100 Spalten geht, und der Aufruf wird auf ein Argument pro Zeile aufgeklappt: eine Änderung an einem Token, ein Diff über vier Zeilen. Der Ausgleich ist, dass das Layout vom Code und der Spalte, in der er beginnt, abhängt und von nichts anderem, also landen zwei Agenten, die dieselbe Datei bearbeiten, bei denselben Bytes.
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="tag-bad">Neu umbrochener Stil: eine Änderung, drei berührte Zeilen</span>
-          <span class="cap">git diff (gepackte Formatierung)</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+          <div class="code">
+            <span class="tag-bad">Neu umbrochener Stil: eine Änderung, drei berührte Zeilen</span>
+            <span class="cap">git diff (gepackte Formatierung)</span>
 <pre><span class="del">- type User = { id: number, name:</span>
 <span class="del">-   string }</span>
 <span class="add">+ type User = { id: number, name:</span>
 <span class="add">+   string, email: string }</span></pre>
-        </div>
-        <div class="code">
-          <span class="tag-good">Glyph: eine Änderung, eine hinzugefügte Zeile</span>
-          <span class="cap">git diff (kanonisch)</span>
+          </div>
+          <div class="code">
+            <span class="tag-good">Glyph: eine Änderung, eine hinzugefügte Zeile</span>
+            <span class="cap">git diff (kanonisch)</span>
 <pre>  <span class="k">type</span> <span class="t">User</span> = {
     id: <span class="t">number</span>,
     name: <span class="t">string</span>,
 <span class="add">+   email: <span class="t">string</span>,</span>
   }</pre>
+          </div>
         </div>
-      </div>
+      </figure>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Das Trailing Comma leistet stille Arbeit: Weil das letzte Element schon mit einem Komma endet, <strong>verändert ein neues Geschwisterelement nie die Zeile darüber.</strong> Eine Einfügung, eine Zeile.
-        </p>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#review-is-reading-diffs">Review heißt Diffs lesen</a></li>
+          <li><a href="#one-canonical-layout-no-choices">Ein kanonisches Layout</a></li>
+          <li><a href="#order-is-stable-so-history-is-legible">Stabile Reihenfolge</a></li>
+          <li><a href="#no-barrel-files-no-import-churn">Keine Barrel-Dateien</a></li>
+          <li><a href="#generation-is-idempotent-not-a-blob">Idempotente Generierung</a></li>
+          <li><a href="#typescript-can-do-this-with-prettier">Prettier</a></li>
+          <li><a href="#the-benchmark-coming">Der Benchmark</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> Die Reihenfolge ist stabil, also bleibt die Historie lesbar<a class="h-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <h2 class="ak-h" id="review-is-reading-diffs">Review heißt Diffs lesen<a class="ak-anchor" href="#review-is-reading-diffs" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Fast alles, worauf wir uns bei einer Änderung verlassen (das Review, blame, revert, bisect), baut auf dem Diff auf. Das Verhältnis von Signal zu Rauschen im Diff ist also die eigentliche Währung.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">woher das Rauschen kommt</span></summary><div class="body">
         <p>
-          Ein Element pro Zeile heißt, dass Umordnen, Einfügen oder Entfernen eines Eintrags nur die Zeilen dieses Eintrags berührt, nie die seiner Nachbarn. <code>git blame</code> bleibt aussagekräftig: Der letzte Commit, der eine Zeile berührt hat, ist der Commit, der <em>dieses</em> Element tatsächlich geändert hat, nicht der Formatierungsdurchlauf, der zufällig die Zeile neu gepackt hat, die es sich mit anderen teilte.
+          In den meisten Codebasen ist es furchtbar: Ein Formatter bricht eine umbrochene Zeile neu um, ein Import-Sortierer mischt einen Block durch, eine Umbenennung berührt den Leerraum jeder Aufrufstelle, und die eine Zeile, auf die es <em>ankommt</em>, ist unter fünfzig begraben, auf die es nicht ankommt.
         </p>
-
-        <h2 class="block-label" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Keine Barrel-Dateien: kein Import-Rauschen<a class="h-anchor" href="#no-barrel-files-no-import-churn" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Weil Imports nie re-exportieren und es keine aggregierenden <code>index.ts</code>-Schichten gibt (<code>E0102</code>), zieht das Hinzufügen oder Verschieben eines Symbols keine Kreise durch ein Barrel, das jeder Konsument importiert. Die Abhängigkeitskanten, die du bearbeitest, sind die, die du gemeint hast; der Rest des Importgraphen bewegt sich nicht.
+          Agenten machen das deutlich schlimmer. Bei einer kleinen Aufgabe schreibt ein Modell bereitwillig eine ganze Funktion oder eine ganze Datei neu, um eine Sache zu ändern, weil Neugenerieren für es leichter ist als chirurgisches Bearbeiten. Dem Reviewer bleibt, einen Rewrite mit dem Original zu vergleichen und zu <em>hoffen</em>, dass die einzige echte Änderung die beabsichtigte ist.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph ist so gebaut, dass das Layout dem Modell nichts zum Umrühren gibt.</p></div>
 
-        <h2 class="block-label" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> Generierung ist idempotent, kein Klumpen<a class="h-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Link zu diesem Abschnitt">#</a></h2>
+      <h2 class="ak-h" id="one-canonical-layout-no-choices"><span class="ex-label">01</span> Ein kanonisches Layout, keine Wahl<a class="ak-anchor" href="#one-canonical-layout-no-choices" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fmt</code> gibt jede Datei in einem einzigen festen Layout neu aus: zwei Leerzeichen Einrückung, ein Trailing Comma an jeder mehrzeiligen Liste und eine Liste, die in einer Zeile bleibt, solange sie in 100 Spalten passt, und ein Element pro Zeile bekommt, wenn nicht. Die Wahl ist alles oder nichts.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">kein Neupacken, eine zulässige Form</span></summary><div class="body">
         <p>
-          Dieselbe Disziplin gilt für generierten Code. <code>glyph gen</code> und <code>glyph regen</code> geben ihre Ausgabe über den kanonischen Formatter aus, also erzeugt das Neugenerieren nach einer Änderung der Spezifikation einen <em>minimalen</em> Diff, den du tatsächlich reviewen kannst, ein paar geänderte Zeilen statt eines vollständigen Austauschs einer maschinell geschriebenen Datei. Und jede erzeugte <code>.ts</code> bringt eine Source Map mit, also führt selbst die kompilierte Ausgabe sauber zurück zu der Zeile, die du geändert hast.
+          Der Formatter packt deine Elemente nie neu, um eine Zeile zu füllen, also steht eine Liste nie teils in einer Zeile und teils in der nächsten, und ein neues Feld ist eine einzige hinzugefügte Zeile. Weil es genau eine zulässige Form gibt, gibt es nichts zu diskutieren und nichts, was ein Tool nebenbei "reparieren" könnte.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Der Preis dafür ist die Breitenschwelle. Benenne ein Binding so um, dass ein Aufruf über 100 Spalten geht, und der Aufruf wird auf ein Argument pro Zeile aufgeklappt: eine Änderung an einem Token, ein Diff über vier Zeilen. Der Ausgleich ist, dass das Layout vom Code und der Spalte, in der er beginnt, abhängt und von nichts anderem, also landen zwei Agenten, die dieselbe Datei bearbeiten, bei denselben Bytes.</p></div>
+      <p class="pull-quote">
+        Das Trailing Comma leistet stille Arbeit: Weil das letzte Element schon mit einem Komma endet, <strong>verändert ein neues Geschwisterelement nie die Zeile darüber.</strong> Eine Einfügung, eine Zeile.
+      </p>
 
+      <h2 class="ak-h" id="order-is-stable-so-history-is-legible"><span class="ex-label">02</span> Die Reihenfolge ist stabil, also bleibt die Historie lesbar<a class="ak-anchor" href="#order-is-stable-so-history-is-legible" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Element pro Zeile heißt, dass Umordnen, Einfügen oder Entfernen eines Eintrags nur die Zeilen dieses Eintrags berührt, nie die seiner Nachbarn.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>git blame</code> bleibt aussagekräftig: Der letzte Commit, der eine Zeile berührt hat, ist der Commit, der <em>dieses</em> Element tatsächlich geändert hat, nicht der Formatierungsdurchlauf, der zufällig die Zeile neu gepackt hat, die es sich mit anderen teilte.</p></div>
+
+      <h2 class="ak-h" id="no-barrel-files-no-import-churn"><span class="ex-label">03</span> Keine Barrel-Dateien: kein Import-Rauschen<a class="ak-anchor" href="#no-barrel-files-no-import-churn" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Weil Imports nie re-exportieren und es keine aggregierenden <code>index.ts</code>-Schichten gibt (<code>E0102</code>), zieht das Hinzufügen oder Verschieben eines Symbols keine Kreise durch ein Barrel, das jeder Konsument importiert. Die Abhängigkeitskanten, die du bearbeitest, sind die, die du gemeint hast; der Rest des Importgraphen bewegt sich nicht.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+
+      <h2 class="ak-h" id="generation-is-idempotent-not-a-blob"><span class="ex-label">04</span> Generierung ist idempotent, kein Klumpen<a class="ak-anchor" href="#generation-is-idempotent-not-a-blob" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Dieselbe Disziplin gilt für generierten Code. <code>glyph gen</code> und <code>glyph regen</code> geben ihre Ausgabe über den kanonischen Formatter aus, also erzeugt das Neugenerieren nach einer Änderung der Spezifikation einen <em>minimalen</em> Diff, den du tatsächlich reviewen kannst, ein paar geänderte Zeilen statt eines vollständigen Austauschs einer maschinell geschriebenen Datei.
+      </p>
       <div class="code">
         <span class="cap">ein Feld zur Spezifikation hinzugefügt &rarr; der neu generierte Diff</span>
 <pre>  <span class="k">type</span> <span class="t">Task</span> = {
@@ -501,36 +521,27 @@
   }
 <span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Und jede erzeugte <code>.ts</code> bringt eine Source Map mit, also führt selbst die kompilierte Ausgabe sauber zurück zu der Zeile, die du geändert hast.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript kann das mit Prettier"<a class="h-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Bei vielem an der Formatierung, ja. Prettier mit <code>trailingComma: "all"</code> setzt ein Komma ans letzte Element und gibt lange Listen mit einem Element pro Zeile aus, und das bringt dich durch den Großteil von Abschnitt 01. Die Unterschiede liegen an drei Stellen.
-        </p>
-        <p>
-          <strong>Das Layout hängt nur vom Code ab.</strong> Prettier lässt ein Objektliteral aufgeklappt, wenn sein Autor nach der <code>{</code> einen Zeilenumbruch gesetzt hat, und klappt es zu, wenn nicht, also kann dasselbe Objekt auf zwei Arten ausgegeben werden, je nachdem, wie es zuerst getippt wurde. Zwei Agenten, die dasselbe schreiben, erzeugen zwei Layouts, und die nächste Änderung an einem davon taucht als Umbruch auf. <code>glyph fmt</code> gibt <code>{ a: 1, b: 2 }</code> gleich aus, egal wie die Eingabe umbrochen war.
-        </p>
-        <p>
-          <strong>Es gibt nichts zu konfigurieren.</strong> Prettiers Ausgabe ist das, was die Konfigurationsdatei des Repositorys sagt, und manche Repositorys haben keine. Ein Agent, der zwischen TypeScript-Projekten wechselt, trifft in jedem auf ein anderes Layout. Eine Glyph-Datei hat in jedem Projekt dasselbe Layout, weil der Formatter keine Optionen hat.
-        </p>
-        <p>
-          <strong>Der Formatter kann nicht ändern, was eine Datei sagt.</strong> <code>glyph fmt</code> wird getestet, indem seine eigene Ausgabe geparst und der Syntaxbaum mit dem der Eingabe verglichen wird, an jedem Beispiel im Repository und unter einem Fuzzer. Wenn ein Kommentar an einer Stelle steht, für die das Layout keine Zeile hat, lehnt er die Datei ab (<code>E0500</code>), statt den Kommentar neben Code zu verschieben, den er nicht beschreibt.
-        </p>
-        <p>
-          Ein Punkt auf der Liste ist noch nicht erledigt: <code>glyph fmt</code> sortiert keine Imports, also erzeugen zwei Agenten, die an verschiedenen Stellen einen Import hinzufügen, weiterhin verschiedene Import-Blöcke (G358).
-        </p>
-      </div>
+      <h2 class="ak-h" id="typescript-can-do-this-with-prettier"><span class="ex-label">05</span> "TypeScript kann das mit Prettier"<a class="ak-anchor" href="#typescript-can-do-this-with-prettier" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bei vielem an der Formatierung, ja. Prettier mit <code>trailingComma: "all"</code> setzt ein Komma ans letzte Element und gibt lange Listen mit einem Element pro Zeile aus, und das bringt dich durch den Großteil von Abschnitt 01. Die Unterschiede liegen an drei Stellen.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v5M5.5 5h5M5.5 12.5h5"/></svg></span><b>Das Layout hängt nur vom Code ab.</b>Prettier lässt ein Objektliteral aufgeklappt, wenn sein Autor nach der <code>{</code> einen Zeilenumbruch gesetzt hat, und klappt es zu, wenn nicht, also kann dasselbe Objekt auf zwei Arten ausgegeben werden, je nachdem, wie es zuerst getippt wurde. Zwei Agenten, die dasselbe schreiben, erzeugen zwei Layouts, und die nächste Änderung an einem davon taucht als Umbruch auf. <code>glyph fmt</code> gibt <code>{ a: 1, b: 2 }</code> gleich aus, egal wie die Eingabe umbrochen war.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.3"/><path d="M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M3.6 12.4L5 11M11 5l1.4-1.4"/></svg></span><b>Es gibt nichts zu konfigurieren.</b>Prettiers Ausgabe ist das, was die Konfigurationsdatei des Repositorys sagt, und manche Repositorys haben keine. Ein Agent, der zwischen TypeScript-Projekten wechselt, trifft in jedem auf ein anderes Layout. Eine Glyph-Datei hat in jedem Projekt dasselbe Layout, weil der Formatter keine Optionen hat.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Der Formatter kann nicht ändern, was eine Datei sagt.</b><code>glyph fmt</code> wird getestet, indem seine eigene Ausgabe geparst und der Syntaxbaum mit dem der Eingabe verglichen wird, an jedem Beispiel im Repository und unter einem Fuzzer. Wenn ein Kommentar an einer Stelle steht, für die das Layout keine Zeile hat, lehnt er die Datei ab (<code>E0500</code>), statt den Kommentar neben Code zu verschieben, den er nicht beschreibt.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Ein Punkt auf der Liste ist noch nicht erledigt: <code>glyph fmt</code> sortiert keine Imports, also erzeugen zwei Agenten, die an verschiedenen Stellen einen Import hinzufügen, weiterhin verschiedene Import-Blöcke (G358).</p></div>
+      <p class="pull-quote">
+        Stabile Diffs machen aus "der Agent hat etwas geändert" ein "der Agent hat <strong>genau das</strong> geändert". Wenn das Grundrauschen null ist, geht das Review schnell und Vertrauen ist billig.
+      </p>
 
-      <div class="detail">
-        <p class="pull-quote">
-          Stabile Diffs machen aus "der Agent hat etwas geändert" ein "der Agent hat <strong>genau das</strong> geändert". Wenn das Grundrauschen null ist, geht das Review schnell und Vertrauen ist billig.
-        </p>
-
-        <h2 class="block-label" id="the-benchmark-coming">Der Benchmark: kommt noch<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Die Zahl, die das erfasst, ist die Diff-Größe pro logischer Änderung: wie viele Zeilen sich bewegen, wenn du eine beabsichtigte Änderung machst, in Glyph im Vergleich zu einer gleichwertigen TypeScript-Änderung, die durch einen üblichen Formatter läuft. Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es eine echte Historie gibt, aus der man schöpfen kann.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-benchmark-coming">Der Benchmark: kommt noch<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die Zahl, die das erfasst, ist die Diff-Größe pro logischer Änderung: wie viele Zeilen sich bewegen, wenn du eine beabsichtigte Änderung machst, in Glyph im Vergleich zu einer gleichwertigen TypeScript-Änderung, die durch einen üblichen Formatter läuft.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph ist noch nicht im echten Einsatz, also ist das Diagramm unten ein Platzhalter, der sich mit echten Messungen füllt, sobald es eine echte Historie gibt, aus der man schöpfen kann.</p></div>
 
       <div class="chart">
         <span class="label">Diff-Zeilen pro Änderung an einem Feld &middot; weniger ist besser</span>
@@ -548,17 +559,13 @@
         </div>
       </div>
 
-      <div class="detail">
-        <p>
-          Es kostet ein wenig Freiheit (du darfst eine Zeile nicht von Hand so packen, wie es dir gefällt) und bringt dafür viel Lesbarkeit. Das ist der Tausch, den jede Feinschliff-Säule macht: eine Wahl aufgeben, die keine Rolle spielte, um ein Signal zu behalten, das eine spielt.
-        </p>
-      </div>
+      <p class="ak-lede">
+        Es kostet ein wenig Freiheit (du darfst eine Zeile nicht von Hand so packen, wie es dir gefällt) und bringt dafür viel Lesbarkeit. Das ist der Tausch, den jede Feinschliff-Säule macht: eine Wahl aufgeben, die keine Rolle spielte, um ein Signal zu behalten, das eine spielt.
+      </p>
 
-      <div class="detail">
-        <p>
-          Was das für die Änderungen eines Agenten im Review bedeutet, mit einem Diff vorher und nachher, steht unter <a href="/de/answers/diff-stability/">Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?</a>
-        </p>
-      </div>
+      <p class="ak-lede">
+        Was das für die Änderungen eines Agenten im Review bedeutet, mit einem Diff vorher und nachher, steht unter <a href="/de/answers/diff-stability/">Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?</a>
+      </p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/pillars/abstraction/">
           <span class="dir">&larr; Vorherige Säule</span>

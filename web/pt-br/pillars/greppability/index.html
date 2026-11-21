@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Buscabilidade","item":"https://glyphlang.io/pt-br/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/pillars/greppability/#article","headline":"Buscabilidade · um nome, um lugar","description":"O segundo pilar do Glyph: todo símbolo tem uma única forma na sua declaração. Sem overloads, decorators, namespace merging ou re-exports em barrel, então o grep encontra.","url":"https://glyphlang.io/pt-br/pillars/greppability/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/pillars/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Buscabilidade","item":"https://glyphlang.io/pt-br/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/pillars/greppability/#article","headline":"Buscabilidade · um nome, um lugar","description":"O segundo pilar do Glyph: todo símbolo tem uma única forma na sua declaração. Sem overloads, decorators, namespace merging ou re-exports em barrel, então o grep encontra.","url":"https://glyphlang.io/pt-br/pillars/greppability/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/pillars/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/greppability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">Pilar 02 &middot; <span class="wedge">A cunha</span></p>
       <h1 class="q-title">Buscabilidade</h1>
 
@@ -433,21 +433,7 @@
         <strong>Um nome, um lugar.</strong> Todo símbolo tem exatamente uma forma sintática no ponto onde é declarado, então um <code>grep</code> simples encontra a definição, sempre, sem índice, sem language server e sem depender de sorte.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-where-is-this-defined-is-hard">Por que "onde isso está definido?" é difícil<a class="h-anchor" href="#why-where-is-this-defined-is-hard" aria-label="Link para esta seção">#</a></h2>
-        <p class="lede">
-          Num codebase TypeScript maduro, a pergunta mais simples, <em>de onde vem esse nome?</em>, costuma ser a mais difícil. A linguagem oferece meia dúzia de jeitos de espalhar um símbolo por vários lugares: overloads dividem uma função em várias assinaturas, decorators a embrulham em outra coisa, o merging de <code>namespace</code> e <code>interface</code> espalha um tipo por vários arquivos, <code>declare module</code> estende código que não é seu, e arquivos barrel <code>index.ts</code> re-exportam tudo, então o caminho de onde você importa não é onde algo de fato está.
-        </p>
-        <p class="lede">
-          Uma pessoa se vira com um LSP e memória muscular. Um <strong>agente</strong> usa grep: lê o repositório como texto, e cada uma dessas construções é um lugar onde o texto mente sobre onde o código está. O Glyph remove todas elas. O resultado é uma linguagem em que a busca é uma primitiva confiável, não uma heurística.
-        </p>
-
-        <h2 class="block-label" id="one-declaration-one-form"><span class="ex-label">01</span> Uma declaração, uma forma<a class="h-anchor" href="#one-declaration-one-form" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Uma função, um tipo ou um componente é declarado exatamente uma vez, com uma sintaxe. Não existem overloads para dividir uma assinatura nem como redeclarar um nome: duas coisas de nível superior com o mesmo nome são um erro (<code>E0100</code>). Então a busca por uma definição tem exatamente uma resposta.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: quatro resultados, um deles é o corpo</span>
@@ -465,56 +451,88 @@
 ) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">string</span>&gt; {</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-where-is-this-defined-is-hard">Por que é difícil</a></li>
+          <li><a href="#one-declaration-one-form">Uma declaração, uma forma</a></li>
+          <li><a href="#no-barrel-files-the-import-path-is-the-location">Sem barrel files</a></li>
+          <li><a href="#no-hidden-ways-to-attach-behavior">Sem comportamento escondido</a></li>
+          <li><a href="#even-mutation-is-greppable">Mutação buscável</a></li>
+          <li><a href="#the-benchmark-coming">O benchmark</a></li>
+          <li><a href="#a-lint-rule-can-ban-overloads-and-decorators">"Uma regra de lint resolve isso"</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-where-is-this-defined-is-hard">Por que "onde isso está definido?" é difícil<a class="ak-anchor" href="#why-where-is-this-defined-is-hard" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Num codebase TypeScript maduro, a pergunta mais simples, <em>de onde vem esse nome?</em>, costuma ser a mais difícil.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">overloads, decorators, merging, augmentation, barrels</span></summary><div class="body">
+        <p>
+          A linguagem oferece meia dúzia de jeitos de espalhar um símbolo por vários lugares: overloads dividem uma função em várias assinaturas, decorators a embrulham em outra coisa, o merging de <code>namespace</code> e <code>interface</code> espalha um tipo por vários arquivos, <code>declare module</code> estende código que não é seu, e arquivos barrel <code>index.ts</code> re-exportam tudo, então o caminho de onde você importa não é onde algo de fato está.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          Uma pessoa se vira com um LSP e memória muscular. Um <strong>agente</strong> usa grep: lê o repositório como texto, e cada uma dessas construções é um lugar onde o texto mente sobre onde o código está.
+      </p></div>
+      <p class="ak-lede">
+          O Glyph remove todas elas. O resultado é uma linguagem em que a busca é uma primitiva confiável, não uma heurística.
+      </p>
+
+      <h2 class="ak-h" id="one-declaration-one-form"><span class="ex-label">01</span> Uma declaração, uma forma<a class="ak-anchor" href="#one-declaration-one-form" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Uma função, um tipo ou um componente é declarado exatamente uma vez, com uma sintaxe. Não existem overloads para dividir uma assinatura nem como redeclarar um nome: duas coisas de nível superior com o mesmo nome são um erro (<code>E0100</code>).
+      </p>
+      <div class="ak-chips"><span class="chip code">E0100</span></div>
         <p class="pull-quote">
           A palavra-chave da declaração faz parte do nome que você busca. <code>grep "fn parseUser"</code> não casa com uma chamada, um import ou um re-export, só com o único lugar onde ela é <strong>definida</strong>.
         </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Então a busca por uma definição tem exatamente uma resposta.</p></div>
 
-        <h2 class="block-label" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> Sem arquivos barrel: o caminho do import é a localização<a class="h-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Imports do Glyph nunca re-exportam, e um módulo cujo único conteúdo são imports é recusado (<code>E0102</code>). Não existe uma camada <code>index.ts</code> lavando a origem. Então um import nomeia o módulo onde o símbolo de fato mora: o caminho <em>é</em> o endereço.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> Sem arquivos barrel: o caminho do import é a localização<a class="ak-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Imports do Glyph nunca re-exportam, e um módulo cujo único conteúdo são imports é recusado (<code>E0102</code>). Não existe uma camada <code>index.ts</code> lavando a origem.
+      </p>
       <div class="code">
         <span class="cap">o import diz exatamente onde procurar</span>
 <pre><span class="k">import</span> myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Então um import nomeia o módulo onde o símbolo de fato mora: o caminho <em>é</em> o endereço.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> Nenhum jeito escondido de acoplar comportamento<a class="h-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Não há decorators embrulhando uma função numa camada invisível, nem merging de <code>namespace</code> juntando membros de toda a árvore, nem <code>declare module</code> estendendo um tipo de terceiros a partir de um arquivo que você nunca pensaria em abrir, nem <code>this</code> implícito mudando aquilo a que um método se refere. Um nome resolve para uma declaração, e tudo o que o molda está visível nessa declaração.
-        </p>
+      <h2 class="ak-h" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> Nenhum jeito escondido de acoplar comportamento<a class="ak-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Não há decorators embrulhando uma função numa camada invisível, nem merging de <code>namespace</code> juntando membros de toda a árvore, nem <code>declare module</code> estendendo um tipo de terceiros a partir de um arquivo que você nunca pensaria em abrir, nem <code>this</code> implícito mudando aquilo a que um método se refere.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Um nome resolve para uma declaração, e tudo o que o molda está visível nessa declaração.</p></div>
 
-        <h2 class="block-label" id="even-mutation-is-greppable"><span class="ex-label">04</span> Até a mutação é buscável<a class="h-anchor" href="#even-mutation-is-greppable" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Buscabilidade não é só achar definições, é achar <em>efeitos</em>. Estado compartilhado vive em um <code>std/store</code>, e toda mudança nele é uma chamada literal a <code>.set(</code> ou <code>.update(</code>. Então uma busca lista toda a superfície de escrita de um pedaço de estado, em vez de você caçar atribuições espalhadas pelo arquivo.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="even-mutation-is-greppable"><span class="ex-label">04</span> Até a mutação é buscável<a class="ak-anchor" href="#even-mutation-is-greppable" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Buscabilidade não é só achar definições, é achar <em>efeitos</em>. Estado compartilhado vive em um <code>std/store</code>, e toda mudança nele é uma chamada literal a <code>.set(</code> ou <code>.update(</code>.
+      </p>
+      <div class="code term">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
 <pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(<span class="k">fn</span>(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Então uma busca lista toda a superfície de escrita de um pedaço de estado, em vez de você caçar atribuições espalhadas pelo arquivo.</p></div>
 
-      <div class="detail">
         <p class="pull-quote">
           Um codebase é buscável quando o <strong>texto diz a verdade sobre a estrutura.</strong> Cada restrição aqui (uma forma por nome, sem re-exports, sem merging) existe para que uma busca devolva a resposta, não uma pista.
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">O benchmark: em breve<a class="h-anchor" href="#the-benchmark-coming" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          A versão mensurável dessa afirmação é a precisão: para um dado símbolo, que fração dos resultados de um grep simples é aquilo que você estava procurando, e quantos passos um agente leva para chegar a uma definição? O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um placeholder; ele vai ser preenchido com números reais quando houver um codebase real para medir.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">O benchmark: em breve<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          A versão mensurável dessa afirmação é a precisão: para um dado símbolo, que fração dos resultados de um grep simples é aquilo que você estava procurando, e quantos passos um agente leva para chegar a uma definição?
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>O Glyph ainda não está em uso no mundo real, então o gráfico abaixo é um placeholder; ele vai ser preenchido com números reais quando houver um codebase real para medir.</p></div>
       <div class="chart">
         <span class="label">Precisão do grep para uma definição &middot; quanto maior, melhor</span>
         <h3>TypeScript vs Glyph</h3>
@@ -530,25 +548,20 @@
           <span class="h">Ainda não medido</span> Vamos reportar a precisão do grep e os passos até a definição em um codebase Glyph real assim que existir um, e publicar os números aqui, sejam eles quais forem.
         </div>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           O ganho cresce com a escala e com a autonomia. Uma pessoa aprende os esconderijos de um codebase; um agente começando do zero não. A buscabilidade é o que permite a uma ferramenta (ou a alguém novo no time) navegar lendo, do jeito que o repositório realmente é.
-        </p>
-      </div>
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-lint-rule-can-ban-overloads-and-decorators">"Uma regra de lint pode proibir overloads e decorators"<a class="h-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          No seu próprio repositório, sim. O ESLint pode proibir namespaces, e um time pode combinar de não usar overload. A linguagem ainda permite tudo isso, então a garantia dura enquanto durar a config e cobre só o código em que ela roda. Um <code>grep</code> numa dependência, num arquivo gerado ou no repositório de outra pessoa não pode contar com isso. No Glyph essas construções não existem, então o <code>grep</code> funciona igual em todo arquivo Glyph, inclusive nos que ninguém do seu time configurou.
-        </p>
-      </div>
+      <h2 class="ak-h" id="a-lint-rule-can-ban-overloads-and-decorators">"Uma regra de lint pode proibir overloads e decorators"<a class="ak-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          No seu próprio repositório, sim. O ESLint pode proibir namespaces, e um time pode combinar de não usar overload.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>A linguagem ainda permite tudo isso, então a garantia dura enquanto durar a config e cobre só o código em que ela roda. Um <code>grep</code> numa dependência, num arquivo gerado ou no repositório de outra pessoa não pode contar com isso.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>No Glyph essas construções não existem, então o <code>grep</code> funciona igual em todo arquivo Glyph, inclusive nos que ninguém do seu time configurou.</p></div>
 
-      <div class="detail">
-        <p>
+      <p class="ak-lede">
           Como isso fica do lado do agente, achar uma definição ou toda escrita em um valor com uma busca, está respondido em <a href="/pt-br/answers/greppability/">Um agente (ou eu) consegue achar onde qualquer coisa está definida?</a>
-        </p>
-      </div>
+      </p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/pillars/verifiability/">
           <span class="dir">&larr; Pilar anterior</span>

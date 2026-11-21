@@ -43,8 +43,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I adopt Glyph inside my existing app?","item":"https://glyphlang.io/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/embedding/#article","headline":"Can I adopt Glyph inside my existing app?","description":"No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. It works under stock Vite.","url":"https://glyphlang.io/answers/embedding/","inLanguage":"en","dateModified":"2026-11-19","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/embedding/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can I adopt Glyph inside my existing app?","item":"https://glyphlang.io/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/embedding/#article","headline":"Can I adopt Glyph inside my existing app?","description":"No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. It works under stock Vite.","url":"https://glyphlang.io/answers/embedding/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/embedding/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/embedding/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/embedding/" />
@@ -432,7 +432,7 @@
       </div>
     </nav>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">10 &middot; Inside your app</p>
       <h1 class="q-title">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Answers">
@@ -488,20 +488,7 @@
         config and no path aliases.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Why it matters<a class="h-anchor" href="#why-it-matters" aria-label="Link to this section">#</a></h2>
-        <p>
-          Most teams can't rewrite an application, and most of an application doesn't need Glyph.
-          The part that does is the domain core: the rules an AI agent will edit next month and
-          nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive
-          <code>match</code>, no casts, and validated boundaries exactly where they pay, while the
-          React components, the styling, and the infrastructure stay plain TypeScript.
-        </p>
-
-        <h2 class="block-label" id="see-it">See it<a class="h-anchor" href="#see-it" aria-label="Link to this section">#</a></h2>
-        <p>One directory of Glyph sources, compiled into the app, imported by the UI:</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">A hybrid layout: Glyph domain core, TypeScript everything else</span>
 <pre>src/
@@ -514,33 +501,57 @@
 
 <span class="k">const</span> parsed = <span class="t">TaskCard</span>.parse(payload);  <span class="c">// Result, not an exception</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>One directory of Glyph sources, compiled into the app, imported by the UI.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Everything the emitted code needs travels with it. Imports are relative, including the
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Most teams can't rewrite an application, and most of an application doesn't need Glyph.
+          The part that does is the domain core: the rules an AI agent will edit next month and
+          nobody wants silently wrong.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Keeping that core in Glyph gives you exhaustive
+          <code>match</code>, no casts, and validated boundaries exactly where they pay, while the
+          React components, the styling, and the infrastructure stay plain TypeScript.</p></div>
+
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">Nothing to add in the host<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Everything the emitted code needs travels with it.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>Relative imports</b>Imports are relative, including the
           bundled standard library, so your project's <code>tsconfig.json</code> and bundler need
           nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same
-          files pass a host <code>tsc --strict</code>. Mark what the app imports with
-          <code>pub</code>; a declaration without it is private to its module. This isn't a
+          files pass a host <code>tsc --strict</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>pub</code> exports</b>Mark what the app imports with
+          <code>pub</code>; a declaration without it is private to its module.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>This isn't a
           hypothetical: an outside engineer
           <a href="https://github.com/yildizadem/glyph-kanban">built a React Kanban board this
           way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in
-          four Glyph modules under a hand-written React UI.
-        </p>
-      </div>
+          four Glyph modules under a hand-written React UI.</p></div>
 
-      <h2 class="block-label" id="where-it-stands">Where it stands<a class="h-anchor" href="#where-it-stands" aria-label="Link to this section">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment guide</a> documents the hybrid layout.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">On the way</h3>
-          <p>No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.</p>
-        </div>
-        <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-19">19 Nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment guide</a> documents the hybrid layout.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.153 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/imports/">
           <span class="dir">&larr; Previous</span>

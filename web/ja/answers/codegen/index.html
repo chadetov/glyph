@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"API の仕様から型付きクライアントを生成できるか","item":"https://glyphlang.io/ja/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/codegen/#article","headline":"API の仕様から型付きクライアントを生成できるか","description":"できます。glyph gen openapi は仕様を型付きの HTTP クライアント、またはルーター付きのサーバースタブに変換し、gen zod は zod スキーマから生成します。出力は普通の Glyph です。","url":"https://glyphlang.io/ja/answers/codegen/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/codegen/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"API の仕様から型付きクライアントを生成できるか","item":"https://glyphlang.io/ja/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/codegen/#article","headline":"API の仕様から型付きクライアントを生成できるか","description":"できます。glyph gen openapi は仕様を型付きの HTTP クライアント、またはルーター付きのサーバースタブに変換し、gen zod は zod スキーマから生成します。出力は普通の Glyph です。","url":"https://glyphlang.io/ja/answers/codegen/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/codegen/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Fcodegen%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Fcodegen%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fcodegen%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
-      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/codegen/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -428,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">12 &middot; 仕様から</p>
       <h1 class="q-title">API の仕様から型付きのクライアントとサーバーを生成できるか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -481,21 +480,10 @@
         できます。<code>glyph gen openapi</code> に OpenAPI の仕様を渡します。<code>--client</code> は型付きの HTTP クライアントを、オペレーションごとに 1 つの関数として出力します。<code>--handlers</code> はサーバースタブと、実際に動く <code>route</code> ディスパッチャを出力します。信頼できる情報源が <code>zod</code> スキーマなら、<code>glyph gen zod</code> が同じことをします。出力はすべて、自分のものとして編集できる<strong>コミットされた、grep できる Glyph</strong> で、隠れたコード生成ステップにはなりません。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          手書きの API クライアントと DTO は仕様からずれていきます。このずれは誰にとっても楽しくない種類のバグです。Glyph は<em>本物の</em>コード（型付きの関数、実行時ディスクリプタを持つ本物の <code>type</code> 宣言）を生成するので、仕様が信頼できる情報源であり続け、再生成はブラックボックスではなく、冪等でレビューできる差分になります。
-        </p>
-
-        <h2 class="block-label" id="see-it-the-client">実例：クライアント<a class="h-anchor" href="#see-it-the-client" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          各オペレーションは、型付きのパスパラメータと型付きのリクエストボディを持ち、HTTP の <code>Response</code> を返す <code>async fn</code> になります：
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+      <figure class="ak-hero" id="see-it-the-client">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
 <pre class="wraps"><span class="k">async</span> <span class="k">fn</span> createTask(
   base: <span class="t">string</span>,
   body: <span class="t">NewTask</span>,
@@ -510,9 +498,9 @@
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
   <span class="k">return</span> <span class="k">await</span> get(<span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks/</span><span class="ip">${</span>id<span class="ip">}</span><span class="s">"</span>)
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+          </div>
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
 <pre class="wraps"><span class="k">fn</span> route(req: <span class="t">Request</span>)
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="k">match</span> req.method {
@@ -529,18 +517,48 @@
     })),
   }
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>実例：クライアント。各オペレーションは、型付きのパスパラメータと型付きのリクエストボディを持ち、HTTP の <code>Response</code> を返す <code>async fn</code> になります。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>--handlers</code> のルーターは配列パターンでパスにマッチするので、<code>/tasks/{id}</code> は <code>["tasks", id]</code> になり、パラメータを束縛してくれます。各スタブは最初、ボディのパース方法を示すコメント付きの <code>501</code> になっています。中身を埋めて、<code>await serve(PORT, route)</code> でつなぎます。
-        </p>
-        <h2 class="block-label" id="from-a-zod-schema-instead">zod スキーマから生成する<a class="h-anchor" href="#from-a-zod-schema-instead" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          チームがすでに <code>zod</code> で形を定義しているなら、そこから直接生成できます。スキーマは独自のディスクリプタを持つ、Glyph の第一級の型になります：
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">生成する理由</a></li>
+          <li><a href="#the-handlers-router">サーバーのルーター</a></li>
+          <li><a href="#from-a-zod-schema-instead">zod のスキーマから</a></li>
+          <li><a href="#what-it-maps">マッピングするもの</a></li>
+          <li><a href="#keeping-it-in-sync">同期を保つ</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        手書きの API クライアントと DTO は仕様からずれていきます。このずれは誰にとっても楽しくない種類のバグです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Glyph は<em>本物の</em>コード（型付きの関数、実行時ディスクリプタを持つ本物の <code>type</code> 宣言）を生成するので、仕様が信頼できる情報源であり続け、再生成はブラックボックスではなく、冪等でレビューできる差分になります。
+      </p></div>
+
+      <h2 class="ak-h" id="the-handlers-router"><code>--handlers</code> のルーター<a class="ak-anchor" href="#the-handlers-router" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>--handlers</code> のルーターは配列パターンでパスにマッチするので、<code>/tasks/{id}</code> は <code>["tasks", id]</code> になり、パラメータを束縛してくれます。
+      </p>
+      <ol class="ak-path" aria-label="パスがハンドラに届くまで">
+        <li><span>/tasks/{id}</span></li>
+        <li><span>["tasks", id]</span></li>
+        <li><span>getTask(req, id)</span></li>
+      </ol>
+      <p>
+        各スタブは最初、ボディのパース方法を示すコメント付きの <code>501</code> になっています。中身を埋めて、<code>await serve(PORT, route)</code> でつなぎます。
+      </p>
+
+      <h2 class="ak-h" id="from-a-zod-schema-instead">zod スキーマから生成する<a class="ak-anchor" href="#from-a-zod-schema-instead" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        チームがすでに <code>zod</code> で形を定義しているなら、そこから直接生成できます。スキーマは独自のディスクリプタを持つ、Glyph の第一級の型になります：
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -563,34 +581,55 @@
         </div>
       </div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="what-it-maps">マッピングするもの<a class="ak-anchor" href="#what-it-maps" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        多相的な<strong>判別可能ユニオン</strong>（OpenAPI の <code>discriminator</code>）は、本物の Glyph のタグ付きユニオンと、生成された <code>parse_&lt;Name&gt;</code> になります。この関数は判別用のプロパティを読み、正しいバリアントとして検証します。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ディスパッチャが生成される理由</span></summary><div class="body">
         <p>
-          多相的な<strong>判別可能ユニオン</strong>（OpenAPI の <code>discriminator</code>）は、本物の Glyph のタグ付きユニオンと、生成された <code>parse_&lt;Name&gt;</code> になります。この関数は判別用のプロパティを読み、正しいバリアントとして検証します。Glyph は任意のプロパティではなくコンストラクタ名でタグ付けするので、生成されたディスパッチャが通信上のオブジェクトとユニオンの間を橋渡しします。
+          Glyph は任意のプロパティではなくコンストラクタ名でタグ付けするので、生成されたディスパッチャが通信上のオブジェクトとユニオンの間を橋渡しします。
         </p>
-        <p>
-          足りない点：生成は通信上の形に忠実なので、よくある 80% をマッピングします。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと nullable なフィールド、判別可能ユニオンです。正確に表せないもの（文字列の enum、判別子の<em>ない</em>ユニオン）は、実データを拒否してしまうバリデータを作る代わりに、注記を出力したうえで型を狭めます。より豊かな enum が次の対応対象です。また、ツールには実際の依存関係があります。<code>gen dts</code>/<code>gen zod</code> には Node と <code>typescript</code>/<code>zod</code> が必要です。<code>gen dts</code> はどの TypeScript（5、6、7.x のネイティブ移植版）でも動き、まずプロジェクトから解決します。足りないものがあれば、何をインストールすればよいかを正確に教えてくれます。
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="keeping-it-in-sync">同期を保つ<a class="h-anchor" href="#keeping-it-in-sync" aria-label="このセクションへのリンク">#</a></h2>
+      <h3 class="ak-h3" id="where-it-falls-short">足りない点<a class="ak-anchor" href="#where-it-falls-short" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        生成は通信上の形に忠実なので、よくある 80% をマッピングします。オブジェクト、プリミティブ、配列、参照、省略可能なフィールドと nullable なフィールド（両者は区別されます。nullable なフィールドは <code>Nullable&lt;T&gt;</code> になり、スキーマが必須としていないフィールドには <code>?</code> が付きます。こちらは <code>null</code> を受け付けません）、判別可能ユニオンです。正確に表せないもの（文字列の enum、判別子の<em>ない</em>ユニオン）は、実データを拒否してしまうバリデータを作る代わりに、注記を出力したうえで型を狭めます。より豊かな enum が次の対応対象です。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">ジェネレータに必要なインストール</span></summary><div class="body">
         <p>
-          生成されたファイルは、それを作った正確なコマンドをヘッダに記録しています。仕様が変わっても、どのコマンドを再実行すればよいかを探す必要はありません。<code>glyph regen</code> がそのヘッダを探して各コマンドを再実行し、出力を書き換えます。冪等なので、仕様に変更がなければ何も変わりません。pre-commit フックにも、コミットされたコードが仕様からずれていたら失敗する CI のチェックにも、そのまま組み込めます。
+          また、ツールには実際の依存関係があります。<code>gen dts</code>/<code>gen zod</code> には Node と <code>typescript</code>/<code>zod</code> が必要です。<code>gen dts</code> はどの TypeScript（5、6、7.x のネイティブ移植版）でも動き、まずプロジェクトから解決します。足りないものがあれば、何をインストールすればよいかを正確に教えてくれます。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p><code>glyph gen openapi</code>（型、<code>--client</code>、本物のルーター付きの <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>、そしてソースからすべてを更新する <code>glyph regen</code>。どのコマンドも、コミットされ、ディスクリプタを持ち、冪等に再生成される Glyph を出力します。</p>
-         Glyph で同じ名前になってしまう 2 つの型があると、ジェネレータはコンパイルできないファイルを作る代わりに停止します。衝突しているソースをすべて名指しし、何も書き出さず、<code>--rename Source=GlyphName</code> で解決できます。この選択は生成されたヘッダに記録されるので、<code>glyph regen</code> でも再現されます。</div>
-        <div class="status-card next">
-          <h3 class="h">予定</h3>
-          <p>より豊かな enum のマッピングと、より広い OpenAPI の対応範囲。どちらも、通信上の形に忠実で、型を狭めるときは注記するという同じルールのもとで導入されます。パッケージ自身の <code>.d.ts</code> からの生成は <code>interface</code> と <code>type</code> の宣言を読むので、API がクラスで構成されていたり、フィールドに <code>Omit</code> のような計算された型を使っていたりするライブラリでは、参照が残ります。ジェネレータはそれを注記で名指しし、<code>glyph build</code> は未解決として報告します。そのようなクラスを import して <code>new</code> で生成する場合は生成が不要で、<code>tsc</code> が検査するので、その経路には影響しません。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="keeping-it-in-sync">同期を保つ<a class="ak-anchor" href="#keeping-it-in-sync" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        生成されたファイルは、それを作った正確なコマンドをヘッダに記録しています。仕様が変わっても、どのコマンドを再実行すればよいかを探す必要はありません。<code>glyph regen</code> がそのヘッダを探して各コマンドを再実行し、出力を書き換えます。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        冪等なので、仕様に変更がなければ何も変わりません。pre-commit フックにも、コミットされたコードが仕様からずれていたら失敗する CI のチェックにも、そのまま組み込めます。
+      </p></div>
+
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code>（型、<code>--client</code>、本物のルーター付きの <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>、そしてソースからすべてを更新する <code>glyph regen</code>。どのコマンドも、コミットされ、ディスクリプタを持ち、冪等に再生成される Glyph を出力します。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Glyph で同じ名前になってしまう 2 つの型があると、ジェネレータはコンパイルできないファイルを作る代わりに停止します。衝突しているソースをすべて名指しし、何も書き出さず、<code>--rename Source=GlyphName</code> で解決できます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">この選択は生成されたヘッダに記録されるので、<code>glyph regen</code> でも再現されます。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">より豊かな enum のマッピングと、より広い OpenAPI の対応範囲。どちらも、通信上の形に忠実で、型を狭めるときは注記するという同じルールのもとで導入されます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">パッケージ自身の <code>.d.ts</code> からの生成は <code>interface</code> と <code>type</code> の宣言を読むので、API がクラスで構成されていたり、フィールドに <code>Omit</code> のような計算された型を使っていたりするライブラリでは、参照が残ります。ジェネレータはそれを注記で名指しし、<code>glyph build</code> は未解決として報告します。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">そのようなクラスを import して <code>new</code> で生成する場合は生成が不要で、<code>tsc</code> が検査するので、その経路には影響しません。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/typed-apis/">
           <span class="dir">&larr; 前へ</span>

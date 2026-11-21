@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Funktioniert es mit React, Hooks und Context?","item":"https://glyphlang.io/de/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/react/#article","headline":"Funktioniert es mit React, Hooks und Context?","description":"React ist eingebaut: Eine Komponente kompiliert zu einer Function Component, JSX wird zu createElement übersetzt, und die Actions eines Reducers werden erschöpfend gematcht.","url":"https://glyphlang.io/de/answers/react/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/react/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/react/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Funktioniert es mit React, Hooks und Context?","item":"https://glyphlang.io/de/answers/react/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/react/#article","headline":"Funktioniert es mit React, Hooks und Context?","description":"React ist eingebaut: Eine Komponente kompiliert zu einer Function Component, JSX wird zu createElement übersetzt, und die Actions eines Reducers werden erschöpfend gematcht.","url":"https://glyphlang.io/de/answers/react/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/react/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/react/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/react/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">13 &middot; Frontend</p>
       <h1 class="q-title">Funktioniert es mit React: Komponenten, Hooks und Context?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,18 +478,9 @@
         Ja. Eine <code>component</code> kompiliert zu einer React-Function-Component, JSX wird zu <code>createElement</code> übersetzt, die eigenen Hooks von React werden über ihren Namen importiert und ihre Paare destrukturiert, und Reducer-Zustand bekommt eine Erschöpfendheitsprüfung, die einfaches TypeScript nicht hat. Die Seite selbst (ihr Titel, der Mount-Punkt, gespeicherter Zustand) wird über <code>std/dom</code> und <code>std/storage</code> erreicht. Die Lücke, die du zuerst kennen solltest: Glyphs eigener Checker typisiert nicht, was ein Hook zurückgibt, also prüft <code>tsc</code> diese Werte.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein großer Teil des Codes, den Agenten schreiben, ist React. Glyph behandelt es als vollwertiges Ziel, nicht als Anbau: <code>component</code> ist ein eigenes Schlüsselwort (also prüft <code>grep "^component "</code> deine ganze UI). Die Hooks von React werden aus <code>react</code> importiert und mit ihren echten Namen und Typen aufgerufen, von <code>tsc</code> gegen Reacts eigene Deklarationen geprüft.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>Reacts echtes <code>useReducer</code> mit einem Reducer über einer Tagged Union. Jede Action muss behandelt werden, und der Compiler prüft das:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">counter.glyph, gegen react@18 und seine Typen</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">counter.glyph, gegen react@18 und seine Typen</span>
 <pre><span class="k">import</span> react { useReducer }
 
 <span class="k">type</span> <span class="t">Action</span> = <span class="t">Inc</span> | <span class="t">Dec</span> | <span class="t">Reset</span>
@@ -507,24 +498,55 @@
   <span class="k">let</span> [count, dispatch] = useReducer(reducer, <span class="n">0</span>)
   <span class="k">return</span> &lt;<span class="t">button</span> on_click={<span class="k">fn</span>() { dispatch(<span class="t">Inc</span>) }}&gt;<span class="ip">{</span>count<span class="ip">}</span>&lt;/<span class="t">button</span>&gt;
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Reacts echtes <code>useReducer</code> mit einem Reducer über einer Tagged Union. Jede Action muss behandelt werden, und der Compiler prüft das.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Füg eine Action <code>Double</code> hinzu, und der Reducer kompiliert nicht mehr, mit <code>E0200</code>, das sie nennt, was ein einfacher TypeScript-<code>switch</code> durchgehen lassen würde. Das Paar wird mit <code>let [count, dispatch]</code> destrukturiert, und das erzeugte TypeScript fügt <code>satisfies readonly [unknown, unknown]</code> hinzu, also beweist <code>tsc</code>, dass der Hook ein Paar zurückgegeben hat, und leitet trotzdem den Typ jedes Elements ab. Glyphs eigener Checker typisiert keine Werte, die aus React kommen, also wird ein falsches Argument an <code>dispatch</code> oder einen State-Setter von <code>tsc</code> im Build gemeldet, nicht vom Editor oder von <code>--no-tsc</code>. React-<strong>Context</strong> funktioniert heute über <code>createContext</code> / <code>useContext</code>, und Elementnamen als Member-Ausdruck (<code>&lt;ThemeContext.Provider&gt;</code>) funktionieren direkt: kein Workaround.
-        </p>
-        <p>
-          Prop-Spreading in JSX funktioniert auch: <code>&lt;input {...register("email")} /&gt;</code> wird zu einem Objekt-Spread in den Props übersetzt, also braucht das Idiom von react-hook-form keinen Adapter. Die aus Werten abgeleiteten Typen von Zod sind vollwertig: <code>type FormData = z.infer&lt;typeof schema&gt;</code> funktioniert direkt, ohne Hintertür. Der eine Unterschied: Eine Komponente nimmt einen einzigen Props-Record, nicht mehrere positionale Parameter. Siehe <a href="/de/answers/imports/">deine Bibliotheken verwenden</a> und die <a href="/de/hardening/">Härtungsseite</a> dazu, wo genau diese Grenze liegt.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#reducers-and-hooks">Reducer und Hooks</a></li>
+          <li><a href="#context-and-libraries">Context und Bibliotheken</a></li>
+          <li><a href="#are-props-checked-before-tsc">Props vor tsc</a></li>
+          <li><a href="#is-a-match-in-jsx-checked-like-a-match">&lt;match&gt; in JSX</a></li>
+          <li><a href="#how-does-a-page-start-it">Eine Seite starten</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="are-props-checked-before-tsc">Werden Props vor tsc geprüft?<a class="h-anchor" href="#are-props-checked-before-tsc" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ja. Glyph vergleicht jedes Element selbst mit dem Props-Record seiner Komponente, also sind ein falscher Wert, ein falsch geschriebenes Prop und ein fehlendes Pflicht-Prop Glyph-Fehler, die das Prop nennen. Du siehst sie im Editor und über MCP, nicht nur in einem vollständigen Build. Es funktioniert gleich, ob die Komponente über ihren Namen oder über ihr Modul importiert wurde:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein großer Teil des Codes, den Agenten schreiben, ist React. Glyph behandelt es als vollwertiges Ziel, nicht als Anbau: <code>component</code> ist ein eigenes Schlüsselwort (also prüft <code>grep "^component "</code> deine ganze UI).
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Die Hooks von React werden aus <code>react</code> importiert und mit ihren echten Namen und Typen aufgerufen, von <code>tsc</code> gegen Reacts eigene Deklarationen geprüft.</p></div>
 
+      <h2 class="ak-h" id="reducers-and-hooks">Reducer und Hooks<a class="ak-anchor" href="#reducers-and-hooks" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Füg eine Action <code>Double</code> hinzu, und der Reducer kompiliert nicht mehr, mit <code>E0200</code>, das sie nennt, was ein einfacher TypeScript-<code>switch</code> durchgehen lassen würde.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0200</span></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyphs eigener Checker typisiert keine Werte, die aus React kommen, also wird ein falsches Argument an <code>dispatch</code> oder einen State-Setter von <code>tsc</code> im Build gemeldet, nicht vom Editor oder von <code>--no-tsc</code>.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">wie das Paar des Hooks destrukturiert wird</span></summary><div class="body">
+        <p>
+          Das Paar wird mit <code>let [count, dispatch]</code> destrukturiert, und das erzeugte TypeScript fügt <code>satisfies readonly [unknown, unknown]</code> hinzu, also beweist <code>tsc</code>, dass der Hook ein Paar zurückgegeben hat, und leitet trotzdem den Typ jedes Elements ab.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="context-and-libraries">Context und Bibliotheken<a class="ak-anchor" href="#context-and-libraries" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        React-<strong>Context</strong> funktioniert heute über <code>createContext</code> / <code>useContext</code>, und Elementnamen als Member-Ausdruck (<code>&lt;ThemeContext.Provider&gt;</code>) funktionieren direkt: kein Workaround.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3.5L2.5 8l3 4.5M10.5 3.5l3 4.5-3 4.5"/></svg></span><b>Prop-Spread</b>Prop-Spreading in JSX funktioniert auch: <code>&lt;input {...register("email")} /&gt;</code> wird zu einem Objekt-Spread in den Props übersetzt, also braucht das Idiom von react-hook-form keinen Adapter.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Zod-Typen</b>Die aus Werten abgeleiteten Typen von Zod sind vollwertig: <code>type FormData = z.infer&lt;typeof schema&gt;</code> funktioniert direkt, ohne Hintertür.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Der eine Unterschied: Eine Komponente nimmt einen einzigen Props-Record, nicht mehrere positionale Parameter. Siehe <a href="/de/answers/imports/">deine Bibliotheken verwenden</a> und die <a href="/de/hardening/">Härtungsseite</a> dazu, wo genau diese Grenze liegt.</p></div>
+
+      <h2 class="ak-h" id="are-props-checked-before-tsc">Werden Props vor tsc geprüft?<a class="ak-anchor" href="#are-props-checked-before-tsc" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ja. Glyph vergleicht jedes Element selbst mit dem Props-Record seiner Komponente, also sind ein falscher Wert, ein falsch geschriebenes Prop und ein fehlendes Pflicht-Prop Glyph-Fehler, die das Prop nennen. Es funktioniert gleich, ob die Komponente über ihren Namen oder über ihr Modul importiert wurde:
+      </p>
       <div class="code">
         <span class="cap">main.glyph, mit <code>Card</code> deklariert in <code>ui.glyph</code></span>
 <pre><span class="k">import</span> ui
@@ -540,20 +562,21 @@
 <span class="c">// E0210 type `CardProps` has no field `cout`; did you mean `count`?</span>
 <span class="c">// E0211 argument type mismatch: expected `CardProps`, found `record`: missing field `count`</span></span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Du siehst sie im Editor und über MCP, nicht nur in einem vollständigen Build.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">missing_fields in --json, und ein einziger Props-Record (E0229)</span></summary><div class="body">
         <p>
           <code>--json</code> liefert die fehlenden Namen als Liste <code>missing_fields</code>, also kann ein Agent die Props hinzufügen, ohne die Meldung zu parsen. Eine Komponente muss ihre Props außerdem als einen Record nehmen: <code>component Greeting(name: string)</code> ist E0229 am Parameter, weil React immer nur das Props-Objekt übergibt und dieses Element nie die Typprüfung bestehen könnte. Wenn du sie als Funktion aufrufst, statt sie zu rendern, deklariere sie mit <code>fn</code>.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="is-a-match-in-jsx-checked-like-a-match">Wird ein &lt;match&gt; in JSX wie ein match geprüft?<a class="h-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Es ist dasselbe. Jeder <code>&lt;case&gt;</code> nimmt das Pattern, das ein <code>match</code>-Arm nimmt, und der Compiler schickt es durch den Code, den er für den Arm verwendet. Die Namen, die ein Case bindet, haben die Typen des Payloads, ein Feld, das der Payload-Record nicht hat, ist E0210, und eine fehlende Variante ist E0200. Ein Case, der einen Wert testet, deckt nur einen Teil seiner Variante ab, also braucht er einen Geschwister-Case oder ein <code>&lt;case else&gt;</code>, das den Rest nimmt:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="is-a-match-in-jsx-checked-like-a-match">Wird ein &lt;match&gt; in JSX wie ein match geprüft?<a class="ak-anchor" href="#is-a-match-in-jsx-checked-like-a-match" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Es ist dasselbe. Jeder <code>&lt;case&gt;</code> nimmt das Pattern, das ein <code>match</code>-Arm nimmt, und der Compiler schickt es durch den Code, den er für den Arm verwendet.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Payload-Typen</b>Die Namen, die ein Case bindet, haben die Typen des Payloads, ein Feld, das der Payload-Record nicht hat, ist E0210, und eine fehlende Variante ist E0200.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13"/></svg></span><b>Teilweise Cases</b>Ein Case, der einen Wert testet, deckt nur einen Teil seiner Variante ab, also braucht er einen Geschwister-Case oder ein <code>&lt;case else&gt;</code>, das den Rest nimmt.</li>
+      </ul>
       <div class="code">
         <span class="cap">results.glyph</span>
 <pre><span class="k">type</span> <span class="t">Page</span> =
@@ -572,13 +595,11 @@
 <span class="add"><span class="c">// E0210 type `{ users: Array&lt;User&gt;, total: number }` has no field `totl`; did you mean `total`?</span></span></pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="how-does-a-page-start-it">Wie startet eine Seite es?<a class="h-anchor" href="#how-does-a-page-start-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Glyph hat keine Anweisungen auf oberster Ebene, also ruft die Seite selbst ein exportiertes <code>main</code> auf. Die App besteht aus zwei Modulen: eins mit den Komponenten und eins, das sie über <code>std/dom</code> und <code>createRoot</code> von react-dom auf <code>#root</code> mountet. Event-Attribute sind in snake_case (<code>on_change</code> erzeugt Reacts <code>onChange</code>), ein Handler ist ein Lambda, und der Text eines Inputs ist <code>e.currentTarget.value</code>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="how-does-a-page-start-it">Wie startet eine Seite es?<a class="ak-anchor" href="#how-does-a-page-start-it" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph hat keine Anweisungen auf oberster Ebene, also ruft die Seite selbst ein exportiertes <code>main</code> auf. Die App besteht aus zwei Modulen: eins mit den Komponenten und eins, das sie über <code>std/dom</code> und <code>createRoot</code> von react-dom auf <code>#root</code> mountet.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Event-Attribute sind in snake_case (<code>on_change</code> erzeugt Reacts <code>onChange</code>), ein Handler ist ein Lambda, und der Text eines Inputs ist <code>e.currentTarget.value</code>.</p></div>
       <div class="code">
         <span class="cap">app.glyph</span>
 <pre data-check="needs-react"><span class="k">module</span> app
@@ -620,25 +641,45 @@
   main();
 &lt;/<span class="t">script</span>&gt;</pre>
       </div>
-
-      <div class="detail">
+      <ol class="ak-path" aria-label="Von Modulen zu einem Bundle"><li><span><code>npx glyph build . --out dist/gen</code></span></li><li><span><code>tsc --strict</code></span></li><li><span><code>npx vite build --outDir dist/web</code></span></li></ol>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Build, warum dieses main nichts nimmt, die Schritt-für-Schritt-Anleitung</span></summary><div class="body">
         <p>
           <code>npx glyph build . --out dist/gen</code> prüft die Module, führt <code>tsc --strict</code> gegen Reacts Deklarationen aus und schreibt TypeScript nach <code>dist/gen</code>. <code>npx vite build --outDir dist/web</code> liest dann <code>index.html</code>, folgt dem Import und bundelt es mit React. Dieses <code>main</code> nimmt nichts und gibt nichts zurück, weil das Skript es ohne Argumente aufruft; das <code>main(argv) -&gt; number</code>, das <code>glyph init</code> schreibt, ist das, was <code>glyph run</code> unter Node aufruft. Die vollständige Anleitung, mit der <code>package.json</code> und der Installationszeile, ist <a href="https://github.com/chadetov/glyph/blob/main/AGENTS.md#running-glyph-in-a-browser-page">Glyph in einer Browserseite ausführen</a> in der Referenz, die <code>glyph llms</code> ausgibt. CI baut <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> auf dieselbe Weise und rendert es in einem Headless-Chromium.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Komponenten, JSX, Fragmente (<code>&lt;&gt;...&lt;/&gt;</code>), Elementnamen als Member-Ausdruck (<code>&lt;Ctx.Provider&gt;</code>), Prop-Spread in JSX (<code>{...register()}</code>), Props, die bei jeder Import-Schreibweise vor <code>tsc</code> gegen die Komponente geprüft werden, Reacts eigene Hooks über ihren Namen importiert (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>), wobei tsc ihre Typen prüft und ihre Paare destrukturiert werden (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> mit erschöpfenden Tagged-Union-Actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> geprüft und als <code>match</code> mit den Patterns des Arms übersetzt, Context über <code>createContext</code>/<code>useContext</code> und die Seite über <code>std/dom</code> (Titel, Mount-Punkt, Adresse), <code>std/storage</code> und <code>std/console</code>. JSX-Text wird gelesen wie TSX ihn liest, also ist <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> einfacher Text; <code>}</code>, <code>&gt;</code>, <code>//</code> und eine HTML-Entity wie <code>&amp;amp;</code> werden im Text abgelehnt (E0012), mit der Schreibweise, die stattdessen zu verwenden ist. Ein Member-Zugriff auf ein Array wird geprüft, also ist <code>{items.foo}</code> auf einem <code>Array&lt;string&gt;</code> E0210. <a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> ist eine ganze App auf React 18, die mit Vite gebundelt wird und im Browser rendert.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">In Arbeit</h3>
-          <p>Glyphs Checker typisiert das Ergebnis eines Hooks nicht, also ist <code>set_count("x")</code> auf einem Zahlen-State ein <code>tsc</code>-Fehler im Build statt eines Glyph-Fehlers im Editor. <code>std/dom</code> hört beim Lesen der Seite und Setzen ihres Titels auf: React gehört das DOM, das es rendert, also gibt es keine Element-Setter oder Event-Listener. Ein Effect muss als <code>fn() -&gt; void { ... }</code> geschrieben werden, weil ein Lambda seinen letzten Ausdruck zurückgibt und React ihn als Cleanup aufrufen würde. Ein inline geschriebener Props-Typ erscheint in diesen Meldungen weiterhin als <code>record</code>; ein benannter zeigt seinen Namen. Die Glyph-Ausgabe in eine bestehende Vite-App mit UI in TypeScript einzubetten, steht im <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deployment-Guide</a>.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Komponenten, JSX, Fragmente (<code>&lt;&gt;...&lt;/&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Elementnamen als Member-Ausdruck (<code>&lt;Ctx.Provider&gt;</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Prop-Spread in JSX (<code>{...register()}</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Props, die bei jeder Import-Schreibweise vor <code>tsc</code> gegen die Komponente geprüft werden</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Reacts eigene Hooks über ihren Namen importiert (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>), wobei tsc ihre Typen prüft und ihre Paare destrukturiert werden (<code>let [count, set_count] = useState(0)</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>useReducer</code> mit erschöpfenden Tagged-Union-Actions</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> geprüft und als <code>match</code> mit den Patterns des Arms übersetzt</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Context über <code>createContext</code>/<code>useContext</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die Seite über <code>std/dom</code> (Titel, Mount-Punkt, Adresse), <code>std/storage</code> und <code>std/console</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX-Text wird gelesen wie TSX ihn liest, also ist <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> einfacher Text; <code>}</code>, <code>&gt;</code>, <code>//</code> und eine HTML-Entity wie <code>&amp;amp;</code> werden im Text abgelehnt (E0012), mit der Schreibweise, die stattdessen zu verwenden ist.</span><span class="chip code">E0012</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Member-Zugriff auf ein Array wird geprüft, also ist <code>{items.foo}</code> auf einem <code>Array&lt;string&gt;</code> E0210.</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/tree/main/examples/apps/todo">examples/apps/todo</a> ist eine ganze App auf React 18, die mit Vite gebundelt wird und im Browser rendert.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Glyphs Checker typisiert das Ergebnis eines Hooks nicht, also ist <code>set_count("x")</code> auf einem Zahlen-State ein <code>tsc</code>-Fehler im Build statt eines Glyph-Fehlers im Editor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/dom</code> hört beim Lesen der Seite und Setzen ihres Titels auf: React gehört das DOM, das es rendert, also gibt es keine Element-Setter oder Event-Listener.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Effect muss als <code>fn() -&gt; void { ... }</code> geschrieben werden, weil ein Lambda seinen letzten Ausdruck zurückgibt und React ihn als Cleanup aufrufen würde.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein inline geschriebener Props-Typ erscheint in diesen Meldungen weiterhin als <code>record</code>; ein benannter zeigt seinen Namen.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Glyph-Ausgabe in eine bestehende Vite-App mit UI in TypeScript einzubetten, steht im <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deployment-Guide</a>.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/codegen/">
           <span class="dir">&larr; Zurück</span>

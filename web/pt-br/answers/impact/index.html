@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"O compilador consegue dizer o que uma mudança vai quebrar?","item":"https://glyphlang.io/pt-br/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/impact/#article","headline":"O compilador consegue dizer o que uma mudança vai quebrar?","description":"glyph_impact recebe a declaração que você está prestes a mudar e a edição, e responde com um veredito e um motivo para cada ponto de uso, antes de você mexer no arquivo.","url":"https://glyphlang.io/pt-br/answers/impact/","inLanguage":"pt-BR","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"O compilador consegue dizer o que uma mudança vai quebrar?","item":"https://glyphlang.io/pt-br/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/impact/#article","headline":"O compilador consegue dizer o que uma mudança vai quebrar?","description":"glyph_impact recebe a declaração que você está prestes a mudar e a edição, e responde com um veredito e um motivo para cada ponto de uso, antes de você mexer no arquivo.","url":"https://glyphlang.io/pt-br/answers/impact/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">21 &middot; Antes de editar</p>
       <h1 class="q-title">O compilador consegue me dizer o que uma mudança vai quebrar antes de eu fazê-la?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respostas">
@@ -478,26 +478,13 @@
         Para seis tipos de edição, sim. <code>glyph_impact</code> recebe a declaração que você está prestes a mudar e a própria mudança (renomear, remover uma variante, mudar o tipo de um parâmetro, mudar a aridade, remover a declaração) e responde com <strong>um veredito por ponto de uso</strong>, tirado de uma lista fechada, cada um com o motivo daquele veredito e de nenhum outro.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Por que isso importa<a class="h-anchor" href="#why-it-matters" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          Ao renomear uma função, ampliar uma union ou mudar o que um parâmetro aceita, ou você faz grep pelo nome antigo e torce para ter achado todas as chamadas, ou faz a edição e lê o que o compilador diz depois. Nenhum dos dois diz quais pontos vão continuar compilando enquanto ficam errados em silêncio: um <code>match</code> com um braço catch-all não falha quando você adiciona uma variante, ele só começa a mandar o caso novo para um lugar que ninguém escolheu. Esse ponto nunca aparece num build. <code>glyph_impact</code> responde antes da edição, sobre a mesma análise que o compilador roda.
-        </p>
-
-        <h2 class="block-label" id="what-comes-back">O que volta<a class="h-anchor" href="#what-comes-back" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          O pedido nomeia uma entidade pela sua identidade <code>module::name</code> e uma mudança de uma lista fechada: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. A mudança é obrigatória, porque um veredito é um fato sobre uma edição; sem nenhuma edição nomeada, cada ponto voltaria como uma simples referência em vez de uma consequência. A resposta nomeia a entidade, a mudança e uma lista <code>impact</code>: uma entrada por ponto, cada uma com a declaração em que ele está, uma <code>relation</code>, um <code>verdict</code>, um <code>because</code> e o código de diagnóstico que o compilador emite quando há exatamente um. Os vereditos são fechados e cada um significa uma coisa: <code>WILL_FAIL</code> (o compilador consegue provar que o ponto deixa de compilar), <code>ABSORBS</code> (consegue provar que a mudança é absorvida ali em silêncio), <code>SAFE</code> (consegue provar que o ponto continua correto), <code>UNDETERMINED</code> (olhou esse ponto e não consegue determinar a consequência) e <code>NOT_INDEXED</code> (a pergunta nem pode ser feita para um ponto desse formato).
-        </p>
-
-        <h2 class="block-label" id="see-it">Veja na prática<a class="h-anchor" href="#see-it" aria-label="Link para esta seção">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Um módulo declara <code>label(s: string) -&gt; number</code>. Três chamadores chegam até ela: um passa uma string literal, um passa um valor cujo tipo é um alias de <code>string</code> importado de outro módulo, e um lê <code>label</code> como valor e nunca a chama. Perguntar o que <code>change_signature_type</code> faz com cada um dá três vereditos diferentes, porque são três afirmações diferentes:
         </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">requisição</span>
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">requisição</span>
 <pre>{
   <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
   <span class="pk">"params"</span>: {
@@ -508,9 +495,9 @@
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">resultado, reduzido aos três pontos</span>
+          </div>
+          <div class="code term">
+            <span class="cap">resultado, reduzido aos três pontos</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
   <span class="pk">"impact"</span>: [
@@ -549,32 +536,106 @@
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>A mesma edição, três pontos, três vereditos, e o <code>because</code> de cada um é a frase que o compilador de fato produz, não um rótulo de categoria.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o teste do compilador que isso espelha</span></summary><div class="body">
+          <p>
+            Isso espelha o teste do próprio compilador para essa mudança (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> em <code>glyph-cli/tests/agent_loop.rs</code>): o teste faz a edição depois e confere que o E0211 aparece exatamente onde <code>WILL_FAIL</code> disse que apareceria, e que o compilador fica em silêncio nos outros dois.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que isso importa</a></li>
+          <li><a href="#what-comes-back">O que volta</a></li>
+          <li><a href="#on-a-real-application">Numa aplicação real</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ao renomear uma função, ampliar uma union ou mudar o que um parâmetro aceita, ou você faz grep pelo nome antigo e torce para ter achado todas as chamadas, ou faz a edição e lê o que o compilador diz depois.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Nenhum dos dois diz quais pontos vão continuar compilando enquanto ficam errados em silêncio: um <code>match</code> com um braço catch-all não falha quando você adiciona uma variante, ele só começa a mandar o caso novo para um lugar que ninguém escolheu. Esse ponto nunca aparece num build. <code>glyph_impact</code> responde antes da edição, sobre a mesma análise que o compilador roda.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">O que volta<a class="ak-anchor" href="#what-comes-back" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O pedido nomeia uma entidade pela sua identidade <code>module::name</code> e uma mudança de uma lista fechada: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Os vereditos são fechados e cada um significa uma coisa:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>Veredito</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">o compilador consegue provar que o ponto deixa de compilar</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">consegue provar que a mudança é absorvida ali em silêncio</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">consegue provar que o ponto continua correto</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">olhou esse ponto e não consegue determinar a consequência</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">a pergunta nem pode ser feita para um ponto desse formato</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">por que a mudança é obrigatória, e o que cada entrada contém</span></summary><div class="body">
         <p>
-          A mesma edição, três pontos, três vereditos, e o <code>because</code> de cada um é a frase que o compilador de fato produz, não um rótulo de categoria. Isso espelha o teste do próprio compilador para essa mudança (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> em <code>glyph-cli/tests/agent_loop.rs</code>): o teste faz a edição depois e confere que o E0211 aparece exatamente onde <code>WILL_FAIL</code> disse que apareceria, e que o compilador fica em silêncio nos outros dois.
+          A mudança é obrigatória, porque um veredito é um fato sobre uma edição; sem nenhuma edição nomeada, cada ponto voltaria como uma simples referência em vez de uma consequência. A resposta nomeia a entidade, a mudança e uma lista <code>impact</code>: uma entrada por ponto, cada uma com a declaração em que ele está, uma <code>relation</code>, um <code>verdict</code>, um <code>because</code> e o código de diagnóstico que o compilador emite quando há exatamente um.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="on-a-real-application">Numa aplicação real<a class="h-anchor" href="#on-a-real-application" aria-label="Link para esta seção">#</a></h2>
-        <p>
-          <code>examples/apps/csvql</code>, um motor de consultas sobre CSV com onze arquivos neste repositório, tem uma union etiquetada, <code>Value</code>, hoje com quatro variantes. Perguntar ao <code>glyph_impact</code> o que acontece ao adicionar uma quinta (<code>Blob</code>) encontra 10 pontos de match em 4 arquivos: 8 vão falhar na compilação e 2 têm um braço catch-all que vai absorver a variante nova em silêncio. Adicionando a variante de verdade, o compilador reporta exatamente 8 falhas <code>E0200</code>, exatamente nos 8 pontos previstos, e não diz nada nos 2 pontos <code>ABSORBS</code>, nem antes nem depois. Uma busca textual por braços catch-all no mesmo app, o que você faria sem a ferramenta, encontra esses mesmos 2 pontos reais enterrados em 20 resultados (precisão 0.10), e não diz nada sobre os 8 que falham, porque não tem noção de qual tipo um <code>match</code> examina.
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">Numa aplicação real<a class="ak-anchor" href="#on-a-real-application" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/csvql</code>, um motor de consultas sobre CSV com onze arquivos neste repositório, tem uma union etiquetada, <code>Value</code>, hoje com quatro variantes. Perguntar ao <code>glyph_impact</code> o que acontece ao adicionar uma quinta (<code>Blob</code>) encontra 10 pontos de match em 4 arquivos: 8 vão falhar na compilação e 2 têm um braço catch-all que vai absorver a variante nova em silêncio.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Conferido pelo build</b>Adicionando a variante de verdade, o compilador reporta exatamente 8 falhas <code>E0200</code>, exatamente nos 8 pontos previstos, e não diz nada nos 2 pontos <code>ABSORBS</code>, nem antes nem depois.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>Uma busca textual no lugar</b>Uma busca textual por braços catch-all no mesmo app, o que você faria sem a ferramenta, encontra esses mesmos 2 pontos reais enterrados em 20 resultados (precisão 0.10), e não diz nada sobre os 8 que falham, porque não tem noção de qual tipo um <code>match</code> examina.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Situação atual<a class="h-anchor" href="#where-it-stands" aria-label="Link para esta seção">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Seis tipos fechados de mudança (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) e cinco vereditos fechados, uma entrada por ponto afetado com seu motivo e código de diagnóstico. <code>change_signature_type</code> é decidido por argumento de chamada, segundo as próprias regras de comparação do checker, e um ponto vale o mais fraco dos seus argumentos. Um elemento JSX é decidido como a chamada para a qual ele é traduzido: <code>&lt;Card title="x" /&gt;</code> é um record de props passado para <code>Card</code>, e cada atributo é listado contra o campo com que é comparado, com o veredito que um argumento de chamada do mesmo tipo receberia. A cobertura (o que uma busca conseguiu ou não ler) é informada por busca, e não uma vez para a resposta inteira, e cada nó diz se veio de código Glyph, de um escape <code>extern_ts</code> ou de um <code>.d.ts</code> opaco.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Onde para</h3>
-          <p>A profundidade é exata em um salto e vazia depois disso: o Glyph nunca infere o tipo de uma declaração a partir do corpo, então o tipo de uma função chamada não chega à assinatura de quem chama, e uma mudança em X só pode invalidar expressões que nomeiam X. Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar, porque o que um segundo salto precisa é o conserto que alguém der ao primeiro ponto, e esse conserto ainda não existe. <code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes: um argumento para o qual o checker não tem tipo, ou um pareamento de record com um campo que nenhuma regra lê, é <code>UNDETERMINED</code> (olhou e não conseguiu decidir); uma função lida como valor em vez de chamada é <code>NOT_INDEXED</code> (a pergunta nunca pôde ser feita ali). <code>ABSORBS</code> é o que merece atenção: o ponto continua compilando e mesmo assim está provadamente errado, algo que um build verde nunca vai mostrar.</p>
-        </div>
-        <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Seis tipos fechados de mudança (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) e cinco vereditos fechados, uma entrada por ponto afetado com seu motivo e código de diagnóstico.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code> é decidido por argumento de chamada, segundo as próprias regras de comparação do checker, e um ponto vale o mais fraco dos seus argumentos.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um elemento JSX é decidido como a chamada para a qual ele é traduzido</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Um elemento JSX é decidido como a chamada para a qual ele é traduzido: <code>&lt;Card title="x" /&gt;</code> é um record de props passado para <code>Card</code>, e cada atributo é listado contra o campo com que é comparado, com o veredito que um argumento de chamada do mesmo tipo receberia.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A cobertura é informada por busca, e cada nó diz de onde veio</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A cobertura (o que uma busca conseguiu ou não ler) é informada por busca, e não uma vez para a resposta inteira, e cada nó diz se veio de código Glyph, de um escape <code>extern_ts</code> ou de um <code>.d.ts</code> opaco.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Onde para</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A profundidade é exata em um salto e vazia depois disso</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A profundidade é exata em um salto e vazia depois disso: o Glyph nunca infere o tipo de uma declaração a partir do corpo, então o tipo de uma função chamada não chega à assinatura de quem chama, e uma mudança em X só pode invalidar expressões que nomeiam X.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Peça profundidade 2 e a resposta volta com <code>next_query</code> nomeando a pergunta exata no lugar, porque o que um segundo salto precisa é o conserto que alguém der ao primeiro ponto, e esse conserto ainda não existe.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p><code>UNDETERMINED</code> e <code>NOT_INDEXED</code> são afirmações diferentes: um argumento para o qual o checker não tem tipo, ou um pareamento de record com um campo que nenhuma regra lê, é <code>UNDETERMINED</code> (olhou e não conseguiu decidir); uma função lida como valor em vez de chamada é <code>NOT_INDEXED</code> (a pergunta nunca pôde ser feita ali).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>ABSORBS</code> é o que merece atenção: o ponto continua compilando e mesmo assim está provadamente errado, algo que um build verde nunca vai mostrar.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.153 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/binary/">
           <span class="dir">&larr; Anterior</span>

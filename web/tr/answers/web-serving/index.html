@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/web-serving/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?","item":"https://glyphlang.io/tr/answers/web-serving/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/web-serving/#article","headline":"Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?","description":"std/http yalnızca JSON değil; HTML sayfaları, yönlendirmeler, özel yanıt header'ları ve form gönderimleri de sunar ve yanıt header'ları tip denetleyicisinde modellenmiştir.","url":"https://glyphlang.io/tr/answers/web-serving/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/web-serving/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/web-serving/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?","item":"https://glyphlang.io/tr/answers/web-serving/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/web-serving/#article","headline":"Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?","description":"std/http yalnızca JSON değil; HTML sayfaları, yönlendirmeler, özel yanıt header'ları ve form gönderimleri de sunar ve yanıt header'ları tip denetleyicisinde modellenmiştir.","url":"https://glyphlang.io/tr/answers/web-serving/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/web-serving/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/web-serving/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/web-serving/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">17 &middot; Web sunmak</p>
       <h1 class="q-title">Bir web sayfası sunabilir miyim, yoksa yalnızca JSON API mi?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Yanıtlar">
@@ -478,20 +478,12 @@
         Bir web sayfası. <code>std/http</code> yanıt header'larını ayarlar; böylece bir <code>text/html</code> sayfası, bir 302 yönlendirmesi, bir cache header'ı ve bir HTML form gönderimi sıradan Glyph kodudur. Express yok, elle yazılmış TypeScript shim'i yok.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Neden önemli<a class="h-anchor" href="#why-it-matters" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          0.1.46'ya kadar bir yanıt <code>{ status, body }</code> idi ve sunucu içerik tipini gövdenin yapısından seçiyordu: string <code>text/plain</code>, diğer her şey JSON'du. Bir API için bu yeterli, ama bir tarayıcının görüntülediği hiçbir şey için işe yaramaz. Çıkış yolu, elle yazılmış bir <code>.ts</code> dosyasında <code>node:http</code> üzerine kendi sunucunuzu yazmaktı; bu da tüm istek yolunuzu tip denetleyicisinin dışına koyar. Eksik iki constructor, bütün bir uygulama sınırına mal oluyordu.
-        </p>
-
-        <h2 class="block-label" id="see-it">Görün<a class="h-anchor" href="#see-it" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Bu, repoda bulunan bir URL kısaltıcı olan <code>examples/apps/shortlink/main.glyph</code>'in router'ıdır. Bir HTML formu bir kod oluşturur, bir POST yönlendirmeyle yanıt verir (böylece tarayıcıyı yenilemek formu tekrar göndermez) ve bir kodu takip etmek hedefe giden bir 302'dir:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">shortlink.glyph: bir HTML sayfası, bir form gönderimi ve 302</span>
+        <div class="code">
+          <span class="cap">shortlink.glyph: bir HTML sayfası, bir form gönderimi ve 302</span>
 <pre><span class="k">fn</span> handle_home(req: <span class="t">Request</span>) <span class="op">-&gt;</span> <span class="t">Response</span> {
   <span class="k">return</span> <span class="k">match</span> req.method {
     <span class="s">"GET"</span> <span class="op">=&gt;</span> html(<span class="n">200</span>, home_page(links.get(), query_param(req, <span class="s">"error"</span>))),
@@ -521,35 +513,78 @@
   <span class="k">let</span> outcome = <span class="k">await</span> serve(<span class="n">8138</span>, route)
   <span class="k">return</span> <span class="k">match</span> outcome { <span class="t">Ok</span>(_) <span class="op">=&gt;</span> <span class="n">0</span>, <span class="t">Err</span>(_) <span class="op">=&gt;</span> <span class="n">1</span>, }
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          Aynı uygulama bir sürüm önce repoda 615 satırdı; bunun 121'i yanındaki bir <code>.ts</code> dosyasında elle yazılmış bir <code>node:http</code> sunucusuydu, çünkü bir <code>Location</code>'ı ve bir <code>text/html</code> gövdesini yazmanın bir yolu yoktu. Şimdi 494 satır ve <code>std</code> dışında hiçbir şey import etmiyor. Bir handler <code>Result&lt;Response, string&gt;</code> döndürür; böylece bir 404 sıradan bir <code>Ok</code>'tur ve <code>Err</code>, uygulamanın yanıtlayamadığı durumlara ayrılmıştır, sunucu da onu bir 500'e çevirir. <code>serve</code> dinlediği sürece bekler; böylece süreci elle ayakta tutmak gerekmez ve başarısız bir bind bir değer olarak geri döner.
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
-          <code>Response</code> zorunlu bir <code>headers: Record&lt;string, string&gt;</code> taşır. İsteğe bağlı değil, zorunlu: her constructor onu doldurur, böylece <code>resp.headers</code>'ı okumak hiçbir zaman bir yokluk kontrolü gerektirmez ve bu kanal unutulamaz. <code>with_header(resp, "cache-control", "no-store")</code> bir yanıtı değiştirmek yerine yeni bir yanıt döndürür, çünkü Glyph'te record alanı değiştirme yoktur. Tip denetleyicisi üç constructor'ın da bir <code>Response</code> döndürdüğünü bilir; bu yüzden tanımlı dönüş tipi <code>Result&lt;Response, string&gt;</code> olan bir handler, üretilen çıktı üzerinde <code>tsc</code> tarafından değil, Glyph'te kontrol edilir.
-        </p>
-        <p>
-          Elle yapsaydınız yanlış yapacağınız iki ayrıntı. Node'un bir header'a yazmayı reddettiği her karakter çıkışta değerden temizlenir; böylece bir query parametresinden oluşturulan bir <code>location</code> ikinci bir header ya da ikinci bir yanıt enjekte edemez ve kısaltılmış bir URL'deki bir emoji sunucuyu çökertemez. Ayrıca <code>form(req)</code>, yüzde kaçışlarıyla birlikte <code>+</code>'yı da boşluk olarak çözer; elle yazılan form parse işlemlerinin genellikle kaçırdığı ikili budur. Ham gövdeyi okur, yani <code>req.body</code>, onu kendisi parse eden handler'lar için dokunulmadan kalır.
-        </p>
-      </div>
-
-      <h2 class="block-label" id="where-it-stands">Şu anki durum<a class="h-anchor" href="#where-it-stands" aria-label="Bu bölümün bağlantısı">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> ve <code>form</code>; içerik tipi yalnızca siz ayarlamadığınızda çıkarılan, hatta gönderilen yanıt header'ları; gelen tarafta istek header'ları, query parametreleri, path segmentleri ve ham gövde; istemci ise aldığı yanıt header'larını bildirir.</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p>Yukarıdaki kod parçasının gösterdiği eksik, yüzde kodlamasıdır: <code>form</code> bir form gövdesini çözer, ama bir URL oluşturmak için <code>encode_component</code> yoktur, bu yüzden kısaltıcı kendi fonksiyonunu yazar. İstemci tarafında da eksik olanlar: bir timeout, bir yönlendirme politikası, <code>head</code> ve bir yönlendirmenin vardığı son URL. Statik dosya sunucusu ve şablon motoru yok ve ikisi için de bir plan yok.</p>
-        </div>
-        <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Aynı uygulama bir sürüm önce repoda 615 satırdı; bunun 121'i yanındaki bir <code>.ts</code> dosyasında elle yazılmış bir <code>node:http</code> sunucusuydu, çünkü bir <code>Location</code>'ı ve bir <code>text/html</code> gövdesini yazmanın bir yolu yoktu. Şimdi 494 satır ve <code>std</code> dışında hiçbir şey import etmiyor.</span></figcaption>
+      </figure>
+
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#a-handler-returns-a-result">Handler bir Result döndürür</a></li>
+          <li><a href="#every-response-carries-headers">Her yanıt header taşır</a></li>
+          <li><a href="#two-details-you-would-otherwise-get-wrong-by-hand">İki ayrıntı</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        0.1.46'ya kadar bir yanıt <code>{ status, body }</code> idi ve sunucu içerik tipini gövdenin yapısından seçiyordu: string <code>text/plain</code>, diğer her şey JSON'du. Bir API için bu yeterli, ama bir tarayıcının görüntülediği hiçbir şey için işe yaramaz.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Çıkış yolu, elle yazılmış bir <code>.ts</code> dosyasında <code>node:http</code> üzerine kendi sunucunuzu yazmaktı; bu da tüm istek yolunuzu tip denetleyicisinin dışına koyar. Eksik iki constructor, bütün bir uygulama sınırına mal oluyordu.
+      </p></div>
+
+      <h2 class="ak-h" id="a-handler-returns-a-result">Bir handler bir <code>Result</code> döndürür<a class="ak-anchor" href="#a-handler-returns-a-result" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bir handler <code>Result&lt;Response, string&gt;</code> döndürür; böylece bir 404 sıradan bir <code>Ok</code>'tur ve <code>Err</code>, uygulamanın yanıtlayamadığı durumlara ayrılmıştır, sunucu da onu bir 500'e çevirir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>serve</code> dinlediği sürece bekler; böylece süreci elle ayakta tutmak gerekmez ve başarısız bir bind bir değer olarak geri döner.
+      </p></div>
+
+      <h2 class="ak-h" id="every-response-carries-headers">Her yanıt header taşır<a class="ak-anchor" href="#every-response-carries-headers" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Response</code> zorunlu bir <code>headers: Record&lt;string, string&gt;</code> taşır. İsteğe bağlı değil, zorunlu: her constructor onu doldurur, böylece <code>resp.headers</code>'ı okumak hiçbir zaman bir yokluk kontrolü gerektirmez ve bu kanal unutulamaz.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Değiştirme değil, yeni bir yanıt</b><code>with_header(resp, "cache-control", "no-store")</code> bir yanıtı değiştirmek yerine yeni bir yanıt döndürür, çünkü Glyph'te record alanı değiştirme yoktur.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Glyph'te kontrol edilir</b>Tip denetleyicisi üç constructor'ın da bir <code>Response</code> döndürdüğünü bilir; bu yüzden tanımlı dönüş tipi <code>Result&lt;Response, string&gt;</code> olan bir handler, üretilen çıktı üzerinde <code>tsc</code> tarafından değil, Glyph'te kontrol edilir.</li>
+      </ul>
+
+      <h2 class="ak-h" id="two-details-you-would-otherwise-get-wrong-by-hand">Elle yapsaydınız yanlış yapacağınız iki ayrıntı<a class="ak-anchor" href="#two-details-you-would-otherwise-get-wrong-by-hand" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Header değerleri</b>Node'un bir header'a yazmayı reddettiği her karakter çıkışta değerden temizlenir; böylece bir query parametresinden oluşturulan bir <code>location</code> ikinci bir header ya da ikinci bir yanıt enjekte edemez ve kısaltılmış bir URL'deki bir emoji sunucuyu çökertemez.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Form gövdeleri</b><code>form(req)</code>, yüzde kaçışlarıyla birlikte <code>+</code>'yı da boşluk olarak çözer; elle yazılan form parse işlemlerinin genellikle kaçırdığı ikili budur. Ham gövdeyi okur, yani <code>req.body</code>, onu kendisi parse eden handler'lar için dokunulmadan kalır.</li>
+      </ul>
+
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code> ve <code>form</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İçerik tipi yalnızca siz ayarlamadığınızda çıkarılan, hatta gönderilen yanıt header'ları</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Gelen tarafta istek header'ları, query parametreleri, path segmentleri ve ham gövde</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İstemci aldığı yanıt header'larını bildirir.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Yukarıdaki kod parçasının gösterdiği eksik, yüzde kodlamasıdır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Yukarıdaki kod parçasının gösterdiği eksik, yüzde kodlamasıdır: <code>form</code> bir form gövdesini çözer, ama bir URL oluşturmak için <code>encode_component</code> yoktur, bu yüzden kısaltıcı kendi fonksiyonunu yazar.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">İstemci tarafında da eksik olanlar: bir timeout, bir yönlendirme politikası, <code>head</code> ve bir yönlendirmenin vardığı son URL.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Statik dosya sunucusu ve şablon motoru yok ve ikisi için de bir plan yok.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.153 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/finance/">
           <span class="dir">&larr; Önceki</span>

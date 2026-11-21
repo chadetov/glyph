@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"generate client ที่มี type จากสเปก API ได้ไหม?","item":"https://glyphlang.io/th/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/codegen/#article","headline":"generate client ที่มี type จากสเปก API ได้ไหม?","description":"ได้ glyph gen openapi เปลี่ยนสเปกเป็น HTTP client ที่มี type หรือเป็น server stub พร้อม router และ gen zod ทำงานจาก schema ของ zod output เป็น Glyph ธรรมดา","url":"https://glyphlang.io/th/answers/codegen/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/codegen/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"generate client ที่มี type จากสเปก API ได้ไหม?","item":"https://glyphlang.io/th/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/codegen/#article","headline":"generate client ที่มี type จากสเปก API ได้ไหม?","description":"ได้ glyph gen openapi เปลี่ยนสเปกเป็น HTTP client ที่มี type หรือเป็น server stub พร้อม router และ gen zod ทำงานจาก schema ของ zod output เป็น Glyph ธรรมดา","url":"https://glyphlang.io/th/answers/codegen/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/codegen/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>หน้านี้เป็นฉบับแปล ฉบับภาษาอังกฤษคือฉบับอ้างอิง <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28th%29%3A+%2Fth%2Fanswers%2Fcodegen%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fth%2Fanswers%2Fcodegen%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fcodegen%2F%0A%0AWhat+is+wrong%3A%0A">แจ้งปัญหาเกี่ยวกับคำแปล</a></p>
-      <p class="i18n-stale">ฉบับภาษาอังกฤษของหน้านี้มีการเปลี่ยนแปลงหลังจากที่แปลไว้ <a href="/answers/codegen/" hreflang="en" data-lang="en">อ่านฉบับภาษาอังกฤษล่าสุด</a></p>
     </div>
     <script>
       (function () {
@@ -428,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">12 &middot; จากสเปกของคุณ</p>
       <h1 class="q-title">generate client และ server ที่มี type จากสเปก API ได้ไหม?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -481,21 +480,10 @@
         ได้ ชี้ <code>glyph gen openapi</code> ไปที่สเปก OpenAPI: <code>--client</code> emit HTTP client ที่มี type หนึ่งฟังก์ชันต่อหนึ่ง operation ส่วน <code>--handlers</code> emit server stub และ dispatcher <code>route</code> ที่ใช้งานได้ ถ้าแหล่งความจริงของคุณคือ schema ของ <code>zod</code> <code>glyph gen zod</code> ก็ทำแบบเดียวกัน ทุกอย่างออกมาเป็น<strong>Glyph ที่ commit ได้และ grep หาได้</strong> ซึ่งคุณเป็นเจ้าของและแก้ได้ ไม่ใช่ขั้นตอน codegen ที่ซ่อนอยู่
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          API client ที่เขียนเองและ DTO ของมันเพี้ยนไปจากสเปก และความเพี้ยนนั้นเป็นบั๊กประเภทที่ไม่มีใครชอบ เพราะ Glyph generate โค้ด<em>จริง</em> (ฟังก์ชันที่มี type, declaration <code>type</code> จริงพร้อม runtime descriptor) สเปกจึงยังเป็นแหล่งความจริง และการ generate ใหม่คือ diff ที่ให้ผลเท่าเดิมเมื่อรันซ้ำและรีวิวได้ ไม่ใช่กล่องดำ
-        </p>
-
-        <h2 class="block-label" id="see-it-the-client">ดูของจริง: client<a class="h-anchor" href="#see-it-the-client" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          แต่ละ operation กลายเป็น <code>async fn</code> ที่มี path parameter และ request body แบบมี type และคืนค่าเป็น HTTP <code>Response</code>:
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+      <figure class="ak-hero" id="see-it-the-client">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
 <pre class="wraps"><span class="k">async</span> <span class="k">fn</span> createTask(
   base: <span class="t">string</span>,
   body: <span class="t">NewTask</span>,
@@ -510,9 +498,9 @@
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
   <span class="k">return</span> <span class="k">await</span> get(<span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks/</span><span class="ip">${</span>id<span class="ip">}</span><span class="s">"</span>)
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+          </div>
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
 <pre class="wraps"><span class="k">fn</span> route(req: <span class="t">Request</span>)
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="k">match</span> req.method {
@@ -529,18 +517,48 @@
     })),
   }
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ดูของจริง: client แต่ละ operation กลายเป็น <code>async fn</code> ที่มี path parameter และ request body แบบมี type และคืนค่าเป็น HTTP <code>Response</code></span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          router ของ <code>--handlers</code> match path ด้วย array pattern <code>/tasks/{id}</code> จึงกลายเป็น <code>["tasks", id]</code> และ bind parameter ให้คุณ stub แต่ละตัวเริ่มเป็น <code>501</code> พร้อม comment ที่แสดงการ parse body คุณเติมให้ครบแล้วผูกด้วย <code>await serve(PORT, route)</code>
-        </p>
-        <h2 class="block-label" id="from-a-zod-schema-instead">generate จาก schema ของ zod แทน<a class="h-anchor" href="#from-a-zod-schema-instead" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ถ้าทีมของคุณนิยามรูปร่างด้วย <code>zod</code> อยู่แล้ว ก็ generate จากตรงนั้นได้เลย schema จะกลายเป็น type ของ Glyph เต็มตัวพร้อม descriptor ของตัวเอง:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมต้อง generate</a></li>
+          <li><a href="#the-handlers-router">router ฝั่ง server</a></li>
+          <li><a href="#from-a-zod-schema-instead">จาก schema ของ zod</a></li>
+          <li><a href="#what-it-maps">สิ่งที่มัน map</a></li>
+          <li><a href="#keeping-it-in-sync">การรักษาให้ตรงกัน</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        API client ที่เขียนเองและ DTO ของมันเพี้ยนไปจากสเปก และความเพี้ยนนั้นเป็นบั๊กประเภทที่ไม่มีใครชอบ
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        เพราะ Glyph generate โค้ด<em>จริง</em> (ฟังก์ชันที่มี type, declaration <code>type</code> จริงพร้อม runtime descriptor) สเปกจึงยังเป็นแหล่งความจริง และการ generate ใหม่คือ diff ที่ให้ผลเท่าเดิมเมื่อรันซ้ำและรีวิวได้ ไม่ใช่กล่องดำ
+      </p></div>
+
+      <h2 class="ak-h" id="the-handlers-router">router ของ <code>--handlers</code><a class="ak-anchor" href="#the-handlers-router" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        router ของ <code>--handlers</code> match path ด้วย array pattern <code>/tasks/{id}</code> จึงกลายเป็น <code>["tasks", id]</code> และ bind parameter ให้คุณ
+      </p>
+      <ol class="ak-path" aria-label="path ไปถึง handler อย่างไร">
+        <li><span>/tasks/{id}</span></li>
+        <li><span>["tasks", id]</span></li>
+        <li><span>getTask(req, id)</span></li>
+      </ol>
+      <p>
+        stub แต่ละตัวเริ่มเป็น <code>501</code> พร้อม comment ที่แสดงการ parse body คุณเติมให้ครบแล้วผูกด้วย <code>await serve(PORT, route)</code>
+      </p>
+
+      <h2 class="ak-h" id="from-a-zod-schema-instead">generate จาก schema ของ zod แทน<a class="ak-anchor" href="#from-a-zod-schema-instead" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ถ้าทีมของคุณนิยามรูปร่างด้วย <code>zod</code> อยู่แล้ว ก็ generate จากตรงนั้นได้เลย schema จะกลายเป็น type ของ Glyph เต็มตัวพร้อม descriptor ของตัวเอง:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -563,34 +581,55 @@
         </div>
       </div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="what-it-maps">สิ่งที่มัน map<a class="ak-anchor" href="#what-it-maps" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <strong>discriminated union</strong> แบบ polymorphic (<code>discriminator</code> ของ OpenAPI) ออกมาเป็น tagged union ของ Glyph จริงๆ บวกกับ <code>parse_&lt;Name&gt;</code> ที่ generate ขึ้นมาเพื่ออ่าน property ที่เป็น discriminator และ validate เข้า variant ที่ถูกต้อง
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมต้อง generate dispatcher</span></summary><div class="body">
         <p>
-          <strong>discriminated union</strong> แบบ polymorphic (<code>discriminator</code> ของ OpenAPI) ออกมาเป็น tagged union ของ Glyph จริงๆ บวกกับ <code>parse_&lt;Name&gt;</code> ที่ generate ขึ้นมาเพื่ออ่าน property ที่เป็น discriminator และ validate เข้า variant ที่ถูกต้อง เพราะ Glyph ใช้ชื่อ constructor เป็น tag ไม่ใช่ property ใดก็ได้ dispatcher ที่ generate จึงเชื่อม object จาก wire เข้ากับ union ให้คุณ
+          เพราะ Glyph ใช้ชื่อ constructor เป็น tag ไม่ใช่ property ใดก็ได้ dispatcher ที่ generate จึงเชื่อม object จาก wire เข้ากับ union ให้คุณ
         </p>
-        <p>
-          จุดที่ยังไม่พอ: การ generate ซื่อตรงต่อข้อมูลบน wire จึง map ส่วนที่พบบ่อย 80%: object, primitive, array, reference, field ที่ไม่บังคับและ nullable และ discriminated union สิ่งที่มันแทนได้ไม่ตรงทั้งหมด (string enum, union ที่<em>ไม่มี</em> discriminator) จะถูกทำให้แคบลงพร้อมพิมพ์หมายเหตุ แทนที่จะสร้าง validator ที่ปฏิเสธข้อมูลจริง enum ที่ละเอียดกว่านี้คือสิ่งถัดไป และเครื่องมือมี dependency จริง: <code>gen dts</code>/<code>gen zod</code> ต้องใช้ Node และ <code>typescript</code>/<code>zod</code> <code>gen dts</code> ใช้ได้กับ TypeScript ทุกรุ่น (5, 6 หรือ native port 7.x) โดย resolve จากโปรเจกต์ของคุณก่อน และจะบอกชัดเจนว่าต้องติดตั้งอะไรถ้าขาด
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="keeping-it-in-sync">รักษาให้ตรงกัน<a class="h-anchor" href="#keeping-it-in-sync" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h3 class="ak-h3" id="where-it-falls-short">จุดที่ยังไม่พอ<a class="ak-anchor" href="#where-it-falls-short" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        การ generate ซื่อตรงต่อข้อมูลบน wire จึง map ส่วนที่พบบ่อย 80%: object, primitive, array, reference, field ที่ไม่บังคับและ nullable (แยกกัน: field ที่ nullable กลายเป็น <code>Nullable&lt;T&gt;</code> และ field ที่ schema ไม่ได้บังคับได้ <code>?</code> ซึ่งไม่รับ <code>null</code>) และ discriminated union สิ่งที่มันแทนได้ไม่ตรงทั้งหมด (string enum, union ที่<em>ไม่มี</em> discriminator) จะถูกทำให้แคบลงพร้อมพิมพ์หมายเหตุ แทนที่จะสร้าง validator ที่ปฏิเสธข้อมูลจริง enum ที่ละเอียดกว่านี้คือสิ่งถัดไป
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">generator ต้องติดตั้งอะไรบ้าง</span></summary><div class="body">
         <p>
-          ทุกไฟล์ที่ generate บันทึกคำสั่งที่สร้างมันไว้ใน header เมื่อสเปกเปลี่ยน คุณไม่ต้องไล่หาว่าต้องรันคำสั่งไหนซ้ำ: <code>glyph regen</code> สแกนหา header เหล่านั้นและรันแต่ละคำสั่งซ้ำ เขียน output ทับ มันให้ผลเท่าเดิมเมื่อรันซ้ำ regen ที่สเปกไม่เปลี่ยนจึงไม่แตะอะไรเลย และใส่ใน pre-commit hook หรือ CI check ที่ fail เมื่อโค้ดที่ commit ไว้เพี้ยนจากสเปกได้ง่าย
+          และเครื่องมือมี dependency จริง: <code>gen dts</code>/<code>gen zod</code> ต้องใช้ Node และ <code>typescript</code>/<code>zod</code> <code>gen dts</code> ใช้ได้กับ TypeScript ทุกรุ่น (5, 6 หรือ native port 7.x) โดย resolve จากโปรเจกต์ของคุณก่อน และจะบอกชัดเจนว่าต้องติดตั้งอะไรถ้าขาด
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>glyph gen openapi</code> (type, <code>--client</code>, <code>--handlers</code> พร้อม router จริง), <code>glyph gen dts</code>, <code>glyph gen zod</code> และ <code>glyph regen</code> สำหรับรีเฟรชทั้งหมดจากต้นทาง: ทุกคำสั่ง emit Glyph ที่ commit ได้ มี descriptor และ generate ใหม่ได้ผลเท่าเดิม</p>
-         type สองตัวที่จะถูกเขียนใต้ชื่อ Glyph เดียวกันจะหยุด generator แทนที่จะสร้างไฟล์ที่คอมไพล์ไม่ได้: มันระบุทุกต้นทางที่ชนกัน ไม่เขียนอะไรเลย และ <code>--rename Source=GlyphName</code> แก้ได้ ตัวเลือกนั้นถูกบันทึกไว้ใน header ที่ generate <code>glyph regen</code> จึงเล่นซ้ำได้</div>
-        <div class="status-card next">
-          <h3 class="h">กำลังมา</h3>
-          <p>การ map enum ที่ละเอียดขึ้นและการครอบคลุม OpenAPI ที่กว้างขึ้น แต่ละอย่างมาภายใต้กฎเดียวกันคือซื่อตรงต่อ wire และมีหมายเหตุเมื่อทำให้แคบลง การ generate จาก <code>.d.ts</code> ของแพ็กเกจอ่าน declaration <code>interface</code> และ <code>type</code> ของมัน ไลบรารีที่ API เป็น class หรือที่ field ใช้ type ที่คำนวณอย่าง <code>Omit</code> จึงเหลือ reference ที่ generator ระบุไว้ในหมายเหตุ และ <code>glyph build</code> รายงานว่า resolve ไม่ได้ การ import class แบบนั้นแล้วสร้างด้วย <code>new</code> ไม่ต้อง generate และถูกตรวจโดย <code>tsc</code> เส้นทางนั้นจึงไม่ได้รับผลกระทบ</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="keeping-it-in-sync">รักษาให้ตรงกัน<a class="ak-anchor" href="#keeping-it-in-sync" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ทุกไฟล์ที่ generate บันทึกคำสั่งที่สร้างมันไว้ใน header เมื่อสเปกเปลี่ยน คุณไม่ต้องไล่หาว่าต้องรันคำสั่งไหนซ้ำ: <code>glyph regen</code> สแกนหา header เหล่านั้นและรันแต่ละคำสั่งซ้ำ เขียน output ทับ
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        มันให้ผลเท่าเดิมเมื่อรันซ้ำ regen ที่สเปกไม่เปลี่ยนจึงไม่แตะอะไรเลย และใส่ใน pre-commit hook หรือ CI check ที่ fail เมื่อโค้ดที่ commit ไว้เพี้ยนจากสเปกได้ง่าย
+      </p></div>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> (type, <code>--client</code>, <code>--handlers</code> พร้อม router จริง), <code>glyph gen dts</code>, <code>glyph gen zod</code> และ <code>glyph regen</code> สำหรับรีเฟรชทั้งหมดจากต้นทาง: ทุกคำสั่ง emit Glyph ที่ commit ได้ มี descriptor และ generate ใหม่ได้ผลเท่าเดิม</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">type สองตัวที่จะถูกเขียนใต้ชื่อ Glyph เดียวกันจะหยุด generator แทนที่จะสร้างไฟล์ที่คอมไพล์ไม่ได้: มันระบุทุกต้นทางที่ชนกัน ไม่เขียนอะไรเลย และ <code>--rename Source=GlyphName</code> แก้ได้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตัวเลือกนั้นถูกบันทึกไว้ใน header ที่ generate <code>glyph regen</code> จึงเล่นซ้ำได้</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังมา</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การ map enum ที่ละเอียดขึ้นและการครอบคลุม OpenAPI ที่กว้างขึ้น แต่ละอย่างมาภายใต้กฎเดียวกันคือซื่อตรงต่อ wire และมีหมายเหตุเมื่อทำให้แคบลง</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การ generate จาก <code>.d.ts</code> ของแพ็กเกจอ่าน declaration <code>interface</code> และ <code>type</code> ของมัน ไลบรารีที่ API เป็น class หรือที่ field ใช้ type ที่คำนวณอย่าง <code>Omit</code> จึงเหลือ reference ที่ generator ระบุไว้ในหมายเหตุ และ <code>glyph build</code> รายงานว่า resolve ไม่ได้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การ import class แบบนั้นแล้วสร้างด้วย <code>new</code> ไม่ต้อง generate และถูกตรวจโดย <code>tsc</code> เส้นทางนั้นจึงไม่ได้รับผลกระทบ</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/typed-apis/">
           <span class="dir">&larr; ก่อนหน้า</span>

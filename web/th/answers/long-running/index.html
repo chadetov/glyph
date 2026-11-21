@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เขียน server ได้ไหม หรือ process จะจบไปเลย?","item":"https://glyphlang.io/th/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/long-running/#article","headline":"เขียน server ได้ไหม หรือ process จะจบไปเลย?","description":"โปรแกรม Glyph เป็น server ที่ทำงานยาวได้ main เตรียมการแล้ว return และ process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ เหมือนที่ Node ทำ","url":"https://glyphlang.io/th/answers/long-running/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/long-running/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เขียน server ได้ไหม หรือ process จะจบไปเลย?","item":"https://glyphlang.io/th/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/long-running/#article","headline":"เขียน server ได้ไหม หรือ process จะจบไปเลย?","description":"โปรแกรม Glyph เป็น server ที่ทำงานยาวได้ main เตรียมการแล้ว return และ process ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่ เหมือนที่ Node ทำ","url":"https://glyphlang.io/th/answers/long-running/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/long-running/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/long-running/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/long-running/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">19 &middot; server และ daemon</p>
       <h1 class="q-title">เขียน server ได้ไหม หรือ process จะจบไปเลย?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,21 +480,7 @@
         คุณเขียน server ได้ <code>main</code> เตรียมการแล้ว return และ process <strong>ยังทำงานต่อตราบที่ยังมี socket และ timer ค้างอยู่</strong> ซึ่งเป็นกฎเดียวกับที่ Node ใช้ จนถึง 0.1.63 ยังไม่ใช่แบบนี้: ตัวรันปิด process ทันทีที่ <code>main</code> return server จึง bind port แล้วตายใน tick เดียวกัน
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          นี่คือความต่างระหว่างภาษาที่รันสคริปต์ได้กับภาษาที่รัน service ได้ server, file watcher, bot ที่ถือ connection กับ gateway, job runner ไม่มีตัวไหนจบภายใน <code>main</code> พวกมันตั้ง handler แล้วส่ง process ต่อให้ event
-        </p>
-        <p>
-          พฤติกรรมเดิมล้มเหลวในแบบที่แย่ที่สุด คือแบบเงียบๆ <code>glyph run app.glyph --serve 4100</code> ไม่พิมพ์อะไรเลย แม้แต่บรรทัดใน callback ของ <code>listen</code> แล้ว exit 0 ไม่มีอะไรในซอร์สดูผิด และตรวจ type ผ่าน เอเจนต์ที่เจอแบบนั้นไม่มี error ให้รายงาน และไม่มีเหตุผลให้คิดว่าอะไรล้มเหลว
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          TCP server แบบเต็ม <code>main</code> return ทันที callback รันไปตลอดที่ process ยังอยู่:
-        </p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">server ตั้งแต่ต้นจนจบ</span>
 <pre><span class="k">module</span> main
@@ -520,22 +506,46 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>ดูของจริง: TCP server แบบเต็ม <code>main</code> return ทันที callback รันไปตลอดที่ process ยังอยู่</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#after-main-returns">หลัง main return</a></li>
+          <li><a href="#a-real-one">chat server</a></li>
+          <li><a href="#the-other-direction-a-long-running-client">client ที่รันยาว</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        นี่คือความต่างระหว่างภาษาที่รันสคริปต์ได้กับภาษาที่รัน service ได้ server, file watcher, bot ที่ถือ connection กับ gateway, job runner ไม่มีตัวไหนจบภายใน <code>main</code> พวกมันตั้ง handler แล้วส่ง process ต่อให้ event
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">มันล้มเหลวอย่างไรก่อน 0.1.63</span></summary><div class="body">
+        <p>
+          พฤติกรรมเดิมล้มเหลวในแบบที่แย่ที่สุด คือแบบเงียบๆ <code>glyph run app.glyph --serve 4100</code> ไม่พิมพ์อะไรเลย แม้แต่บรรทัดใน callback ของ <code>listen</code> แล้ว exit 0 ไม่มีอะไรในซอร์สดูผิด และตรวจ type ผ่าน เอเจนต์ที่เจอแบบนั้นไม่มี error ให้รายงาน และไม่มีเหตุผลให้คิดว่าอะไรล้มเหลว
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="after-main-returns">หลัง <code>main</code> return<a class="ak-anchor" href="#after-main-returns" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        สองเรื่องที่ควรรู้ <code>return 0</code> รันก่อนที่ client แรกจะเชื่อมต่อด้วยซ้ำ: มันคือรหัสที่ process จะใช้ตอนออกในที่สุด ไม่ใช่การบอกว่าจะออกเมื่อไร
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>และอะไรก็ตามที่ล้มเหลว<em>หลัง</em> <code>main</code> return ไปแล้วต้องตั้ง exit code เอง เพราะค่าที่ <code>main</code> return ถูกใช้ไปแล้ว นั่นคือหน้าที่ของ handler <code>error</code> ถ้าไม่มี server ที่ bind port ไม่ได้จะปล่อย event loop ให้ว่างแล้ว exit 0 รายงานว่าสำเร็จ</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">type สำหรับ import ของ net</span></summary><div class="body">
         <p>
           <code>net</code> เป็น builtin ของ Node จึงเป็น import ธรรมดา แต่มันไม่ใช่หนึ่งในหกตัวที่คอมไพเลอร์มี type แบบ ambient มาให้ (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>) ให้ติดตั้ง <code>@types/node</code> แล้ว build จะเลือกใช้มัน หรือวาง declaration ไว้ใน <code>.types/net.d.ts</code> ข้างซอร์ส ซึ่งเป็นสิ่งที่แอป chat ทำเพื่อไม่ต้องมี dependency เลย
         </p>
-        <p>
-          สองเรื่องที่ควรรู้ <code>return 0</code> รันก่อนที่ client แรกจะเชื่อมต่อด้วยซ้ำ: มันคือรหัสที่ process จะใช้ตอนออกในที่สุด ไม่ใช่การบอกว่าจะออกเมื่อไร และอะไรก็ตามที่ล้มเหลว<em>หลัง</em> <code>main</code> return ไปแล้วต้องตั้ง exit code เอง เพราะค่าที่ <code>main</code> return ถูกใช้ไปแล้ว นั่นคือหน้าที่ของ handler <code>error</code> ถ้าไม่มี server ที่ bind port ไม่ได้จะปล่อย event loop ให้ว่างแล้ว exit 0 รายงานว่าสำเร็จ
-        </p>
+      </div></details>
 
-        <h2 class="block-label" id="a-real-one">ตัวจริง<a class="h-anchor" href="#a-real-one" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          <code>examples/apps/chat</code> คือ chat server ที่ถือ TCP client หลายตัวพร้อมกัน ส่วนที่ไม่แตะ network แยกไว้และทดสอบได้: การต่อบรรทัด การ route และ engine ของห้อง เป็น pure function ที่ตรวจด้วย <code>@example</code> และมีไฟล์เดียวที่คุยกับ socket
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-real-one">ตัวจริง<a class="ak-anchor" href="#a-real-one" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/chat</code> คือ chat server ที่ถือ TCP client หลายตัวพร้อมกัน ส่วนที่ไม่แตะ network แยกไว้และทดสอบได้: การต่อบรรทัด การ route และ engine ของห้อง เป็น pure function ที่ตรวจด้วย <code>@example</code> และมีไฟล์เดียวที่คุยกับ socket
+      </p>
+      <div class="code term">
         <span class="cap">client สามตัวเชื่อมต่อพร้อมกัน</span>
 <pre><span class="cm">alice&gt;</span> /join #general
 <span class="cm">bob&gt;</span>   /join #general
@@ -547,12 +557,10 @@ bob sees:    1  #general &lt;alice&gt; hello everyone
 carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
       </div>
 
-      <div class="detail">
-        <p>
-          TCP ไม่ได้ส่งข้อความ มันส่งไบต์ ท้าย chunk จึงมักเป็นครึ่งบรรทัด การต่อบรรทัดเป็น pure function ที่เขียนกรณียุ่งยากไว้เป็นตัวอย่าง แทนที่จะไปกระตุ้นให้เกิดผ่าน socket:
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="framing">การประกอบบรรทัดกลับ<a class="ak-anchor" href="#framing" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        TCP ไม่ได้ส่งข้อความ มันส่งไบต์ ท้าย chunk จึงมักเป็นครึ่งบรรทัด การต่อบรรทัดเป็น pure function ที่เขียนกรณียุ่งยากไว้เป็นตัวอย่าง แทนที่จะไปกระตุ้นให้เกิดผ่าน socket:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
 <pre><span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"hel"</span>).lines == []
@@ -563,16 +571,14 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">pub</span> <span class="k">fn</span> feed(buffered: <span class="t">string</span>, chunk: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Framed</span> {</pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-other-direction-a-long-running-client">อีกทิศทาง: client ที่ทำงานยาว<a class="h-anchor" href="#the-other-direction-a-long-running-client" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          bot คือรูปแบบเดียวกันที่หันออกไปข้างนอก <code>examples/apps/discord</code> คือ client ของ Discord gateway: เชื่อมต่อผ่าน WebSocket ยืนยันตัว ส่ง heartbeat ตามช่วงที่ server กำหนด ติดตามเลขลำดับเพื่อให้ connection ที่หลุดกลับมาต่อได้แทนที่จะเริ่มใหม่ สังเกตเมื่อ connection เปิดอยู่แต่ตายแล้ว และถอยรอระหว่างการเชื่อมต่อใหม่
-        </p>
-        <p>
-          ส่วนที่ควรลอกไปคือที่ที่ logic อยู่ การตัดสินว่าจะทำอะไรกับ <code>RECONNECT</code>, heartbeat ที่พลาด หรือ token ที่ถูกปฏิเสธ เป็น pure function จาก session กับ event หนึ่งตัว ไปเป็น session ใหม่และรายการ action มี module เดียวที่ทำ action เหล่านั้นบน socket จริง นั่นคือเหตุผลที่ logic การเชื่อมต่อใหม่ ซึ่งเป็นส่วนที่ทำให้ถูกยาก ถูกตรวจด้วย <code>@example</code> แทนที่จะต้องถอดสาย network:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-other-direction-a-long-running-client">อีกทิศทาง: client ที่ทำงานยาว<a class="ak-anchor" href="#the-other-direction-a-long-running-client" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        bot คือรูปแบบเดียวกันที่หันออกไปข้างนอก <code>examples/apps/discord</code> คือ client ของ Discord gateway: เชื่อมต่อผ่าน WebSocket ยืนยันตัว ส่ง heartbeat ตามช่วงที่ server กำหนด ติดตามเลขลำดับเพื่อให้ connection ที่หลุดกลับมาต่อได้แทนที่จะเริ่มใหม่ สังเกตเมื่อ connection เปิดอยู่แต่ตายแล้ว และถอยรอระหว่างการเชื่อมต่อใหม่
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ส่วนที่ควรลอกไปคือที่ที่ logic อยู่ การตัดสินว่าจะทำอะไรกับ <code>RECONNECT</code>, heartbeat ที่พลาด หรือ token ที่ถูกปฏิเสธ เป็น pure function จาก session กับ event หนึ่งตัว ไปเป็น session ใหม่และรายการ action มี module เดียวที่ทำ action เหล่านั้นบน socket จริง</p></div>
+      <p class="ak-lede">
+        นั่นคือเหตุผลที่ logic การเชื่อมต่อใหม่ ซึ่งเป็นส่วนที่ทำให้ถูกยาก ถูกตรวจด้วย <code>@example</code> แทนที่จะต้องถอดสาย network:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
 <pre><span class="k">@example</span> a_close_while_a_reconnect_is_pending_is_ignored()
@@ -580,25 +586,42 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">@example</span> a_rejected_token_stops_rather_than_retrying()
 <span class="k">pub</span> <span class="k">fn</span> disconnected(current: <span class="t">Session</span>, code: <span class="t">int</span>, reason: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Step</span> {</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">บั๊กสามตัว mock สองตัว</span></summary><div class="body">
         <p>
           ตัวอย่างทั้งสามนี้แต่ละตัวคือบั๊กที่อยู่ในโค้ดมาก่อน การเขียน gateway จำลองแล้วชี้ bot ไปที่มันจับได้หนึ่งตัว อีกสองตัวถูกจับโดย mock ตัวที่สองซึ่งเขียนจากเอกสารของ Discord แทนที่จะเขียนจาก client มันส่งสิ่งที่ mock ที่ให้ความร่วมมือไม่เคยส่ง: คำขอ heartbeat ที่ไม่มีใครขอ และ close code ที่หมายถึง "token ของคุณผิด เลิกถามได้แล้ว" mock ที่เขียนโดยคนเขียน client ทดสอบได้แค่ส่วนของ protocol ที่คนเขียนอ่านมา
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>การ return จาก <code>main</code> ตั้ง exit code โดยไม่หยุด process server, watcher และ event loop จึงรันได้ โปรแกรมที่แค่คำนวณยังออกทันทีที่ <code>main</code> return ด้วยรหัสเดิม จึงไม่มีอะไรเปลี่ยนสำหรับโปรแกรมสั้นๆ builtin ของ Node อย่าง <code>net</code> เป็น import ธรรมดา และโปรแกรมที่ throw ระหว่างเตรียมการยังจบการทำงาน โดยตอนนี้จบหลังจากที่ diagnostic ไปถึง stderr ที่ pipe ไว้แล้ว แทนที่จะอาจถูกตัดทิ้งตอน exit <code>std/timers</code> ตั้งเวลางาน (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) และ <code>std/websocket</code> เปิด connection ทั้งสองจึงไม่ต้องมี declaration ที่เขียนเอง</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังคมขึ้น</h3>
-          <p>listener ที่ bind ไม่ได้หลัง <code>main</code> return ไปแล้วจะ exit 0 ถ้าโปรแกรมไม่ได้บอกเป็นอย่างอื่น: <code>process.set_exit_code(1)</code> บันทึกความล้มเหลวโดยไม่ทิ้งงานที่ยังทำอยู่ และ <code>process.exit(1)</code> หยุดทันที คอมไพเลอร์ยังเตือนไม่ได้ว่าคุณลืม และยังไม่มีวิธีเขียนบอกว่าฟังก์ชันไม่ return <code>main</code> ของ server จึงมี <code>return 0</code> ที่ไม่มีวันไปถึง</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การ return จาก <code>main</code> ตั้ง exit code โดยไม่หยุด process server, watcher และ event loop จึงรันได้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">โปรแกรมที่แค่คำนวณยังออกทันทีที่ <code>main</code> return ด้วยรหัสเดิม จึงไม่มีอะไรเปลี่ยนสำหรับโปรแกรมสั้นๆ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">builtin ของ Node อย่าง <code>net</code> เป็น import ธรรมดา และการ throw ระหว่างเตรียมการยังจบการทำงาน</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>builtin ของ Node อย่าง <code>net</code> เป็น import ธรรมดา และโปรแกรมที่ throw ระหว่างเตรียมการยังจบการทำงาน โดยตอนนี้จบหลังจากที่ diagnostic ไปถึง stderr ที่ pipe ไว้แล้ว แทนที่จะอาจถูกตัดทิ้งตอน exit</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/timers</code> ตั้งเวลางาน (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) และ <code>std/websocket</code> เปิด connection ทั้งสองจึงไม่ต้องมี declaration ที่เขียนเอง</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">listener ที่ bind ไม่ได้หลัง <code>main</code> return ไปแล้วจะ exit 0 ถ้าโปรแกรมไม่ได้บอกเป็นอย่างอื่น</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>listener ที่ bind ไม่ได้หลัง <code>main</code> return ไปแล้วจะ exit 0 ถ้าโปรแกรมไม่ได้บอกเป็นอย่างอื่น: <code>process.set_exit_code(1)</code> บันทึกความล้มเหลวโดยไม่ทิ้งงานที่ยังทำอยู่ และ <code>process.exit(1)</code> หยุดทันที</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">คอมไพเลอร์ยังเตือนไม่ได้ว่าคุณลืม</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">และยังไม่มีวิธีเขียนบอกว่าฟังก์ชันไม่ return <code>main</code> ของ server จึงมี <code>return 0</code> ที่ไม่มีวันไปถึง</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/interactive-cli/">
           <span class="dir">&larr; ก่อนหน้า</span>

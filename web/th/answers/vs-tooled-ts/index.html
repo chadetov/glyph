@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ: tsc, zod, eslint?","item":"https://glyphlang.io/th/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#article","headline":"ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ: tsc, zod, eslint?","description":"TypeScript ที่ใส่เครื่องมือครบไปได้ไกล แต่การรับประกันแต่ละข้อต้องเลือกเปิดเอง และเอเจนต์หลบมันได้ ใน Glyph ความเข้มงวดคือตัวภาษา ไม่ใช่ไฟล์ config","url":"https://glyphlang.io/th/answers/vs-tooled-ts/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ: tsc, zod, eslint?","item":"https://glyphlang.io/th/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#article","headline":"ทำไมไม่ใช้ TypeScript ที่ใส่เครื่องมือครบ: tsc, zod, eslint?","description":"TypeScript ที่ใส่เครื่องมือครบไปได้ไกล แต่การรับประกันแต่ละข้อต้องเลือกเปิดเอง และเอเจนต์หลบมันได้ ใน Glyph ความเข้มงวดคือตัวภาษา ไม่ใช่ไฟล์ config","url":"https://glyphlang.io/th/answers/vs-tooled-ts/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/vs-tooled-ts/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/vs-tooled-ts/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">05 &middot; การเปรียบเทียบ</p>
       <h1 class="q-title">ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,13 +480,10 @@
         เพราะการรับประกันทุกข้อในนั้น<strong>ต้องเลือกเปิดเอง</strong> และเอเจนต์หลบแต่ละข้อได้ในบรรทัดเดียว ความเข้มงวดของ Glyph ไม่ใช่ไฟล์ config ที่เอเจนต์แก้ได้ มันคือตัวภาษา จุดบังคับใช้ย้ายจาก "เราจำได้ไหมว่าต้อง lint ไฟล์นี้" มาเป็น "มันคอมไพล์ผ่านไหม"
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="what-tooled-typescript-already-covers">สิ่งที่ TypeScript ที่ใส่เครื่องมือครบครอบคลุมอยู่แล้ว<a class="h-anchor" href="#what-tooled-typescript-already-covers" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          การตั้งค่า TypeScript ที่ดีพาคุณไปได้ไกล และถ้าทีมของคุณรันทั้งหมดใน CI คุณก็ปิดช่องโหว่ส่วนใหญ่ที่ Glyph มุ่งเป้าไปแล้ว มันเป็นทางเลือกที่ควรพิจารณาอย่างจริงจัง นี่คือการเทียบกัน:
-        </p>
-      </div>
-
+      <p class="ak-lede">
+        การตั้งค่า TypeScript ที่ดีพาคุณไปได้ไกล และถ้าทีมของคุณรันทั้งหมดใน CI คุณก็ปิดช่องโหว่ส่วนใหญ่ที่ Glyph มุ่งเป้าไปแล้ว มันเป็นทางเลือกที่ควรพิจารณาอย่างจริงจัง นี่คือการเทียบกัน:
+      </p>
+      <figure class="ak-hero" id="what-tooled-typescript-already-covers">
       <div class="code">
         <span class="cap">สิ่งที่ TypeScript ที่ใส่เครื่องมือครบให้คุณอยู่แล้ว</span>
 <pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
@@ -496,18 +493,25 @@ runtime validation  <span class="cm">→ zod at every boundary</span>
 must-handle errors  <span class="cm">→ an eslint rule</span>
 deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>สิ่งที่ TypeScript ที่ใส่เครื่องมือครบครอบคลุมอยู่แล้ว ถ้าคุณผูกทั้งหมดนั้นไว้และบังคับใช้จริง คุณก็มาได้เกือบครบแล้ว TypeScript มีแนวคิดเหล่านี้ สิ่งที่ภาษาเพิ่มให้ด้วยการทำให้มันไม่ใช่ตัวเลือก สรุปได้สามข้อ</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          ถ้าคุณผูกทั้งหมดนั้นไว้และบังคับใช้จริง คุณก็มาได้เกือบครบแล้ว TypeScript มีแนวคิดเหล่านี้ สิ่งที่ภาษาเพิ่มให้ด้วยการทำให้มันไม่ใช่ตัวเลือก สรุปได้สามข้อ
-        </p>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#non-optional-beats-opt-in">บังคับดีกว่าเลือกเปิดเอง</a></li>
+          <li><a href="#the-type-is-the-validator-no-second-artifact">type คือ validator</a></li>
+          <li><a href="#greppable-mutation">การแก้ค่าที่ grep เจอ</a></li>
+          <li><a href="#the-failure-mode-diff">ความต่างของรูปแบบความล้มเหลว</a></li>
+          <li><a href="#where-tooled-typescript-is-still-ahead">จุดที่ TypeScript นำอยู่</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="non-optional-beats-opt-in"><span class="ex-label">01</span> ไม่ใช่ตัวเลือก ชนะ ต้องเลือกเปิดเอง<a class="h-anchor" href="#non-optional-beats-opt-in" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          config ของ eslint ป้องกันได้เฉพาะโค้ดที่เอเจนต์ส่ง<em>ผ่าน</em>มัน และเอเจนต์เขียน <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> หรือแค่ลืม <code>.exhaustive()</code> ได้ แล้วมันก็ยังคอมไพล์และ merge ได้ ทางหนีทีไล่ทุกทางเป็น config ที่เอเจนต์แก้ได้ Glyph ไม่มีทางหนีแบบนั้นให้หยิบ: ไม่มี <code>as</code> ไม่มี pragma สำหรับ ignore ไม่มีทางได้ค่าที่มี type ออกมาจาก <code>unknown</code> โดยไม่มีการตรวจที่คอมไพเลอร์มองเห็น
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="non-optional-beats-opt-in"><span class="ex-label">01</span> ไม่ใช่ตัวเลือก ชนะ ต้องเลือกเปิดเอง<a class="ak-anchor" href="#non-optional-beats-opt-in" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ทางหนีทีไล่ทุกทางเป็น config ที่เอเจนต์แก้ได้ Glyph ไม่มีทางหนีแบบนั้นให้หยิบ: ไม่มี <code>as</code> ไม่มี pragma สำหรับ ignore ไม่มีทางได้ค่าที่มี type ออกมาจาก <code>unknown</code> โดยไม่มีการตรวจที่คอมไพเลอร์มองเห็น
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: มีทางหนีอยู่</span>
@@ -529,30 +533,36 @@ doThing(user.mispelled);
 <span class="cm">// no lint to switch off.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <p class="callout">
-          ความเข้มงวดที่เอเจนต์<strong>ปิดผ่าน config ไม่ได้</strong>อยู่ที่จุดบังคับใช้คนละจุดกับความเข้มงวดที่มันปิดได้ Glyph สร้างขึ้นบนความต่างนั้น
-        </p>
-
-        <h2 class="block-label" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> type คือ validator: ไม่มีสิ่งที่สองให้ดูแล<a class="h-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ความเข้มงวดที่เอเจนต์ปิดผ่าน config ไม่ได้อยู่ที่จุดบังคับใช้คนละจุดกับความเข้มงวดที่มันปิดได้ Glyph สร้างขึ้นบนความต่างนั้น</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่เอเจนต์เขียนเลี่ยง eslint ได้</span></summary><div class="body">
         <p>
-          zod กลับด้านแหล่งความจริงของคุณ: คุณเขียน <em>schema</em> แล้ว derive type จากมัน จากนั้นต้องรักษา type, schema และ serializer ให้ตรงกันด้วยมือ การรักษาให้ตรงกันคือจุดที่เอเจนต์ทำให้เพี้ยน: มันเปลี่ยนชื่อ field ใน type แต่ไม่เปลี่ยนใน schema และทั้งคู่ยังคอมไพล์ผ่าน ใน Glyph type <em>คือ</em> validator: การประกาศ <code>type User = {...}</code> จะ generate <code>User.parse</code> มาด้วย สิ่งเดียว ไม่มีอะไรต้องรักษาให้ตรงกัน ไม่มีอะไรให้ลืม
+          config ของ eslint ป้องกันได้เฉพาะโค้ดที่เอเจนต์ส่ง<em>ผ่าน</em>มัน และเอเจนต์เขียน <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> หรือแค่ลืม <code>.exhaustive()</code> ได้ แล้วมันก็ยังคอมไพล์และ merge ได้
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="greppable-mutation"><span class="ex-label">03</span> การแก้ค่าที่ grep หาได้<a class="h-anchor" href="#greppable-mutation" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+      <h2 class="ak-h" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> type คือ validator: ไม่มีสิ่งที่สองให้ดูแล<a class="ak-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ใน Glyph type <em>คือ</em> validator: การประกาศ <code>type User = {...}</code> จะ generate <code>User.parse</code> มาด้วย สิ่งเดียว ไม่มีอะไรต้องรักษาให้ตรงกัน ไม่มีอะไรให้ลืม
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>zod: schema มาก่อน</b>zod กลับด้านแหล่งความจริงของคุณ: คุณเขียน <em>schema</em> แล้ว derive type จากมัน จากนั้นต้องรักษา type, schema และ serializer ให้ตรงกันด้วยมือ</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>จุดที่ความเพี้ยนเข้ามา</b>การรักษาให้ตรงกันคือจุดที่เอเจนต์ทำให้เพี้ยน: มันเปลี่ยนชื่อ field ใน type แต่ไม่เปลี่ยนใน schema และทั้งคู่ยังคอมไพล์ผ่าน</li>
+      </ul>
+
+      <h2 class="ak-h" id="greppable-mutation"><span class="ex-label">03</span> การแก้ค่าที่ grep หาได้<a class="ak-anchor" href="#greppable-mutation" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ใน Glyph state ที่ใช้ร่วมกันอยู่ใน store และทุกการเปลี่ยนคือข้อความ <code>.set(</code>/<code>.update(</code> ส่วน <code>grep 'mut '</code> เจอทุกการแก้ค่าระดับ local TypeScript ปกติไม่มีสิ่งที่เทียบเท่า
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">การเขียนค่าใน TypeScript ซ่อนอยู่ตรงไหนได้บ้าง</span></summary><div class="body">
         <p>
-          ใน TypeScript การเปลี่ยน state ซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ค้นหา และไม่มีกฎ lint ไหนแก้ได้หมด ใน Glyph state ที่ใช้ร่วมกันอยู่ใน store และทุกการเปลี่ยนคือข้อความ <code>.set(</code>/<code>.update(</code> ส่วน <code>grep 'mut '</code> เจอทุกการแก้ค่าระดับ local TypeScript ปกติไม่มีสิ่งที่เทียบเท่า
+          ใน TypeScript การเปลี่ยน state ซ่อนอยู่หลัง <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter หรือ spread ได้ ไม่มี token เดียวให้ค้นหา และไม่มีกฎ lint ไหนแก้ได้หมด
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-failure-mode-diff">diff ของรูปแบบความล้มเหลว<a class="h-anchor" href="#the-failure-mode-diff" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          งานเดียวกัน เอเจนต์เพิ่ม variant ให้ union แล้วลืมจัดการในหนึ่งจากสามจุด:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-failure-mode-diff">diff ของรูปแบบความล้มเหลว<a class="ak-anchor" href="#the-failure-mode-diff" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        งานเดียวกัน เอเจนต์เพิ่ม variant ให้ union แล้วลืมจัดการในหนึ่งจากสามจุด:
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TS ที่ใส่เครื่องมือครบ</span>
@@ -572,37 +582,49 @@ doThing(user.mispelled);
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="where-tooled-typescript-is-still-ahead">จุดที่ TypeScript ที่ใส่เครื่องมือครบยังทำได้ดีกว่า<a class="h-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          สี่จุดที่มันเหนือกว่า Glyph ในวันนี้:
-        </p>
-        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>validation ที่ละเอียดกว่า</strong> descriptor ของ Glyph เข้มโดยค่าเริ่มต้น (ปฏิเสธ key ที่ไม่ได้ประกาศ) และ refinement แบบ <code>where</code> ใส่ predicate ให้ primitive ได้ (<code>type Email = string where value.includes("@")</code>) ซึ่ง descriptor รันที่ทุกขอบเขตที่ type ไปถึง zod ยังนำอยู่สองเรื่อง: มีการตรวจสำเร็จรูปอย่าง <code>.email()</code> และ <code>.url()</code> ที่ใน Glyph คุณต้องเขียนเอง และ refine ทั้ง object ได้ ขณะที่ <code>where</code> บน record (<code>lo &lt;= hi</code> ข้ามสอง field) ตอนนี้เป็น <code>E0300</code></li>
-          <li><strong>matching ที่ลึกกว่า</strong> guard และ pattern เชิงโครงสร้างแบบลึกของ ts-pattern ไปได้ไกลกว่าที่ <code>match</code> ของ Glyph แสดงได้</li>
-          <li><strong>"การพิสูจน์ว่าไม่มี" หยุดที่ขอบเขตของ <code>.ts</code></strong> การรับประกันของ Glyph ใช้กับโค้ดที่เขียนด้วย Glyph exception ที่ throw จาก dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type จาก <code>.d.ts</code> ที่ import มาไม่มี runtime descriptor</li>
-          <li><strong>Ecosystem และการจ้างคน</strong> เครื่องมือ ชุมชน และกลุ่มคนที่จ้างได้ของ TypeScript ใหญ่กว่ามาก และมีการใช้งานจริงใน production มาหลายปี Glyph ยังเป็นพรีวิวช่วงแรก</li>
-        </ul>
-        <p>
-          ถ้าคุณผูก TypeScript ที่ใส่เครื่องมือครบไว้หมดแล้วและเอเจนต์อยู่ภายในนั้น คุณก็ได้ส่วนใหญ่ของสิ่งนี้แล้ว ข้อโต้แย้งของ Glyph คือ "อยู่ภายในนั้น" เป็นวลีที่รับน้ำหนักทั้งหมด และเป็นวลีที่เอเจนต์ทำพัง ความเป็นข้อบังคับ validation ที่มีสิ่งเดียว และการแก้ค่าที่ grep หาได้ คือส่วนที่คุณไม่ได้จากการเพิ่มเครื่องมือแบบเลือกเปิดเข้าไปอีก
-        </p>
+      <h2 class="ak-h" id="where-tooled-typescript-is-still-ahead">จุดที่ TypeScript ที่ใส่เครื่องมือครบยังทำได้ดีกว่า<a class="ak-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        สี่จุดที่มันเหนือกว่า Glyph ในวันนี้:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>validation ที่ละเอียดกว่า</b>descriptor ของ Glyph เข้มโดยค่าเริ่มต้น (ปฏิเสธ key ที่ไม่ได้ประกาศ) และ refinement แบบ <code>where</code> ใส่ predicate ให้ primitive ได้ (<code>type Email = string where value.includes("@")</code>) ซึ่ง descriptor รันที่ทุกขอบเขตที่ type ไปถึง zod ยังนำอยู่สองเรื่อง: มีการตรวจสำเร็จรูปอย่าง <code>.email()</code> และ <code>.url()</code> ที่ใน Glyph คุณต้องเขียนเอง และ refine ทั้ง object ได้ ขณะที่ <code>where</code> บน record (<code>lo &lt;= hi</code> ข้ามสอง field) ตอนนี้เป็น <code>E0300</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>matching ที่ลึกกว่า</b>guard และ pattern เชิงโครงสร้างแบบลึกของ ts-pattern ไปได้ไกลกว่าที่ <code>match</code> ของ Glyph แสดงได้</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>"การพิสูจน์ว่าไม่มี" หยุดที่ขอบเขตของ <code>.ts</code></b>การรับประกันของ Glyph ใช้กับโค้ดที่เขียนด้วย Glyph exception ที่ throw จาก dependency ของ npm ยังข้าม <code>Result</code> ไปได้ และ type จาก <code>.d.ts</code> ที่ import มาไม่มี runtime descriptor</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.5" cy="6" r="2.2"/><circle cx="11" cy="6" r="2.2"/><path d="M1.8 13c.4-2.2 1.9-3.4 3.7-3.4s3.3 1.2 3.7 3.4M7.4 13c.4-2.2 1.9-3.4 3.6-3.4s3.3 1.2 3.7 3.4"/></svg></span><b>Ecosystem และการจ้างคน</b>เครื่องมือ ชุมชน และกลุ่มคนที่จ้างได้ของ TypeScript ใหญ่กว่ามาก และมีการใช้งานจริงใน production มาหลายปี Glyph ยังเป็นพรีวิวช่วงแรก</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ถ้าคุณผูก TypeScript ที่ใส่เครื่องมือครบไว้หมดแล้วและเอเจนต์อยู่ภายในนั้น คุณก็ได้ส่วนใหญ่ของสิ่งนี้แล้ว ข้อโต้แย้งของ Glyph คือ "อยู่ภายในนั้น" เป็นวลีที่รับน้ำหนักทั้งหมด และเป็นวลีที่เอเจนต์ทำพัง ความเป็นข้อบังคับ validation ที่มีสิ่งเดียว และการแก้ค่าที่ grep หาได้ คือส่วนที่คุณไม่ได้จากการเพิ่มเครื่องมือแบบเลือกเปิดเข้าไปอีก</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ReScript, Gleam หรือ Elm</span></summary><div class="body">
         <p>
           ถ้าคุณพร้อมจะออกจาก TypeScript ไปใช้ภาษาที่มี type รุ่นเก่ากว่าที่คอมไพล์เป็น JavaScript <a href="/th/design/vs-rescript-gleam-elm/">ทำไมไม่ใช้ ReScript, Gleam หรือ Elm?</a> เปรียบเทียบ Glyph กับภาษาเหล่านั้น
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>ไม่มี <code>any</code>/<code>as</code>, <code>match</code> ที่ต้องครบทุกกรณี (<code>E0200</code>/<code>E0218</code>), คำเตือนเมื่อทิ้ง <code>Result</code> (<code>E0217</code>), validator ที่ generate จาก type และการแก้ค่าที่ grep หาได้: ทั้งหมดไม่ใช่ตัวเลือก ไม่มีข้อไหนเป็นกฎ eslint ที่คุณปิดได้</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังวัด</h3>
-          <p>ข้อกล่าวอ้างว่าเอเจนต์สร้าง defect ที่หลุดออกไปใน Glyph น้อยกว่าใน TS แบบ strict ที่<em>ตั้งค่ามาอย่างดี</em> คือ benchmark ที่เรากำลังสร้าง โดยเทียบกับ TS ที่ใส่เครื่องมือครบ ไม่ใช่ TS แบบดิบ ดู<a href="/th/benchmarks/">benchmark</a></p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ไม่มี <code>any</code>/<code>as</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code> ที่ครบทุกกรณี</span><span class="chip code">E0200</span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">คำเตือนเมื่อ <code>Result</code> ถูกทิ้ง</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">validator ที่ generate จาก type</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าที่ grep เจอ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ทั้งหมดเป็นของบังคับ ไม่มีข้อไหนเป็นกฎ eslint ที่ปิดได้</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ไม่มี <code>any</code>/<code>as</code>, <code>match</code> ที่ต้องครบทุกกรณี (<code>E0200</code>/<code>E0218</code>), คำเตือนเมื่อทิ้ง <code>Result</code> (<code>E0217</code>), validator ที่ generate จาก type และการแก้ค่าที่ grep หาได้: ทั้งหมดไม่ใช่ตัวเลือก ไม่มีข้อไหนเป็นกฎ eslint ที่คุณปิดได้</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังวัด</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ข้อกล่าวอ้างว่าเอเจนต์สร้าง defect ที่หลุดออกไปใน Glyph น้อยกว่าใน TS แบบ strict ที่<em>ตั้งค่ามาอย่างดี</em> คือ benchmark ที่เรากำลังสร้าง โดยเทียบกับ TS ที่ใส่เครื่องมือครบ ไม่ใช่ TS แบบดิบ ดู<a href="/th/benchmarks/">benchmark</a></span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/why-typescript/">
           <span class="dir">&larr; ก่อนหน้า</span>

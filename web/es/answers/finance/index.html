@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Puedo confiarle dinero y entradas no fiables?","item":"https://glyphlang.io/es/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/finance/#article","headline":"¿Puedo confiarle dinero y entradas no fiables?","description":"El dinero es exacto (decimales y enteros más allá de 2^53), los invariantes son tipos que la frontera hace cumplir, y una entrada no fiable no puede llegar sin sanear a un destino SQL o de shell.","url":"https://glyphlang.io/es/answers/finance/","inLanguage":"es","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/finance/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/finance/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Puedo confiarle dinero y entradas no fiables?","item":"https://glyphlang.io/es/answers/finance/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/finance/#article","headline":"¿Puedo confiarle dinero y entradas no fiables?","description":"El dinero es exacto (decimales y enteros más allá de 2^53), los invariantes son tipos que la frontera hace cumplir, y una entrada no fiable no puede llegar sin sanear a un destino SQL o de shell.","url":"https://glyphlang.io/es/answers/finance/","inLanguage":"es","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/finance/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/finance/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/finance/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">16 &middot; Dinero y seguridad</p>
       <h1 class="q-title">¿Puedo confiarle dinero, y entradas que no controlo?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Respuestas">
@@ -478,47 +478,62 @@
         Sí. El dinero es <strong>exacto</strong>, un invariante como "no negativo" es un <strong>tipo que la frontera hace cumplir</strong>, y una entrada no fiable <strong>no puede llegar a un destino SQL o de shell</strong> sin sanearse. Cada una de estas cosas es un error de compilación o de parseo si te equivocas, no una convención que alguien tiene que recordar tres funciones más allá.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="money-is-not-a-float">El dinero no es un float<a class="h-anchor" href="#money-is-not-a-float" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Un sistema financiero sobre el <code>number</code> IEEE-754 es un bug esperando a que alguien lo reporte: <code>0.1 + 0.2</code> no es <code>0.3</code>, y un valor por encima de 2<sup>53</sup> pierde precisión sin avisar. <code>std/decimal</code> es coma fija exacta en base 10 sobre BigInt. Sumar, restar y multiplicar son exactos; la división recibe una escala explícita y redondea la mitad alejándose de cero; una cantidad mal formada se parsea como un <code>Err</code>, nunca como un <code>NaN</code> silencioso.
-        </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">std/decimal</span>
+      <figure class="ak-hero">
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">std/decimal</span>
 <pre><span class="k">let</span> price = decimal(<span class="s">"10.50"</span>)<span class="op">?</span>
 <span class="k">let</span> tax   = decimal(<span class="s">"0.84"</span>)<span class="op">?</span>
 price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
 
 decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span class="s">"3"</span>)<span class="op">?</span>, <span class="n">2</span>)   <span class="cm"># "0.67", half away from zero</span></pre>
-        </div>
-        <div class="code">
-          <span class="cap">el bug que elimina</span>
+          </div>
+          <div class="code">
+            <span class="cap">el bug que elimina</span>
 <pre><span class="c">// JS number, the default everywhere:</span>
 <span class="n">0.1</span> + <span class="n">0.2</span>            <span class="c">// 0.30000000000000004</span>
 <span class="n">1_000_000_000_000.10</span> * <span class="n">1.07</span>   <span class="c">// rounding drift</span>
 <span class="n">9007199254740993</span>     <span class="c">// === 9007199254740992</span>
 
 <span class="c">// None of these are your money anymore.</span></pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Un sistema financiero sobre el <code>number</code> IEEE-754 es un bug esperando a que alguien lo reporte: <code>0.1 + 0.2</code> no es <code>0.3</code>, y un valor por encima de 2<sup>53</sup> pierde precisión sin avisar.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <h2 class="block-label" id="ids-and-counters-stay-exact-past-253">Los ids y los contadores siguen siendo exactos más allá de 2<sup>53</sup><a class="h-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          Un id de cuenta o un contador de un libro contable que se sale del rango de los float y se redondea es otro tipo de catástrofe. <code>bigint</code> es un entero exacto de precisión arbitraria con literales <code>123n</code>, y un campo de record tipado <code>bigint</code> valida <code>typeof === "bigint"</code> en la frontera, así que un id que llega como <code>number</code> de JSON se rechaza en lugar de truncarse sin avisar.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#money-is-not-a-float">El dinero no es un float</a></li>
+          <li><a href="#ids-and-counters-stay-exact-past-253">Ids y contadores</a></li>
+          <li><a href="#an-invariant-is-a-type-not-a-comment">Invariantes como tipos</a></li>
+          <li><a href="#injection-is-a-compile-error">Inyección</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
 
-      <div class="detail">
-        <h2 class="block-label" id="an-invariant-is-a-type-not-a-comment">Un invariante es un tipo, no un comentario<a class="h-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          "La cantidad no es negativa" y "la puntuación va de 1 a 5" son las comprobaciones que se escriben una vez y luego se olvidan. Un refinamiento <code>where</code> pone el invariante en el tipo, y el descriptor lo hace cumplir en la frontera. Un valor que no cumple el predicado nunca llega a ser un <code>Amount</code>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="money-is-not-a-float">El dinero no es un float<a class="ak-anchor" href="#money-is-not-a-float" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/decimal</code> es coma fija exacta en base 10 sobre BigInt.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Aritmética exacta</b>Sumar, restar y multiplicar son exactos.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>División</b>La división recibe una escala explícita y redondea la mitad alejándose de cero.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span><b>Entrada incorrecta</b>Una cantidad mal formada se parsea como un <code>Err</code>, nunca como un <code>NaN</code> silencioso.</li>
+      </ul>
 
+      <h2 class="ak-h" id="ids-and-counters-stay-exact-past-253">Los ids y los contadores siguen siendo exactos más allá de 2<sup>53</sup><a class="ak-anchor" href="#ids-and-counters-stay-exact-past-253" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Un id de cuenta o un contador de un libro contable que se sale del rango de los float y se redondea es otro tipo de catástrofe.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>bigint</code> es un entero exacto de precisión arbitraria con literales <code>123n</code>, y un campo de record tipado <code>bigint</code> valida <code>typeof === "bigint"</code> en la frontera, así que un id que llega como <code>number</code> de JSON se rechaza en lugar de truncarse sin avisar.
+      </p></div>
+
+      <h2 class="ak-h" id="an-invariant-is-a-type-not-a-comment">Un invariante es un tipo, no un comentario<a class="ak-anchor" href="#an-invariant-is-a-type-not-a-comment" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "La cantidad no es negativa" y "la puntuación va de 1 a 5" son las comprobaciones que se escriben una vez y luego se olvidan. Un refinamiento <code>where</code> pone el invariante en el tipo, y el descriptor lo hace cumplir en la frontera.
+      </p>
       <div class="code">
         <span class="cap">refinements.glyph</span>
 <pre><span class="k">type</span> <span class="t">Amount</span> = <span class="t">int</span> <span class="k">where</span> value &gt;= <span class="n">0</span>
@@ -528,14 +543,18 @@ decimal(<span class="s">"2"</span>)<span class="op">?.</span>div(decimal(<span c
 <span class="t">Rating</span>.parse(<span class="n">6</span>)    <span class="cm"># Err</span>
 <span class="t">Amount</span>.parse(<span class="n">3.5</span>)  <span class="cm"># Err  (int check too)</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Un valor que no cumple el predicado nunca llega a ser un <code>Amount</code>.
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="injection-is-a-compile-error">La inyección es un error de compilación<a class="h-anchor" href="#injection-is-a-compile-error" aria-label="Enlace a esta sección">#</a></h2>
-        <p>
-          El camino clásico hacia la ejecución remota de código es una entrada no fiable que llega a una consulta SQL, un comando de shell o una plantilla HTML. <code>std/taint</code> lo convierte en un error de tipos. Un valor que viene de fuera es <code>Tainted</code>; un destino que quieres proteger recibe <code>Trusted</code>. Los dos son estructuralmente distintos, así que la única forma de pasar de uno a otro es un <code>sanitize</code> explícito. Pásale a un destino el valor contaminado directamente y <code>tsc</code> se niega a compilarlo.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="injection-is-a-compile-error">La inyección es un error de compilación<a class="ak-anchor" href="#injection-is-a-compile-error" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El camino clásico hacia la ejecución remota de código es una entrada no fiable que llega a una consulta SQL, un comando de shell o una plantilla HTML. <code>std/taint</code> lo convierte en un error de tipos.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Dos tipos</b>Un valor que viene de fuera es <code>Tainted</code>; un destino que quieres proteger recibe <code>Trusted</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Un solo paso</b>Los dos son estructuralmente distintos, así que la única forma de pasar de uno a otro es un <code>sanitize</code> explícito.</li>
+      </ul>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">el camino seguro compila</span>
@@ -564,19 +583,36 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
 <span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Pásale a un destino el valor contaminado directamente y <code>tsc</code> se niega a compilarlo.
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">Dónde está<a class="h-anchor" href="#where-it-stands" aria-label="Enlace a esta sección">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p><code>std/decimal</code> para dinero exacto, <code>bigint</code> para enteros grandes exactos, refinamientos <code>where</code> para que un invariante se valide en la frontera, y <code>std/taint</code> para que una entrada no fiable no pueda llegar a un destino protegido sin un <code>sanitize</code> explícito. Cada uno se comprueba: una cantidad o un id incorrectos fallan en <code>parse</code>, un invariante incumplido falla en <code>parse</code>, y un valor sin sanear falla en <code>tsc</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Dónde se detiene</h3>
-          <p>Hoy un refinamiento <code>where</code> cubre los tipos base primitivos; los invariantes de records y entre campos (<code>where value.paid &lt;= value.total</code>) son una extensión planificada. Taint es una disciplina que adoptas al tipar un destino como <code>Trusted</code>, no un análisis de flujo automático: el compilador hace cumplir la frontera que declaras, no infiere la contaminación por ti en todo el programa.</p>
-        </div>
-        <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> para dinero exacto</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> para enteros grandes exactos</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Refinamientos <code>where</code> para que un invariante se valide en la frontera</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/taint</code> para que una entrada no fiable no pueda llegar a un destino protegido sin un <code>sanitize</code> explícito</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cada uno se comprueba: una cantidad o un id incorrectos fallan en <code>parse</code>, un invariante incumplido falla en <code>parse</code>, y un valor sin sanear falla en <code>tsc</code>.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Dónde se detiene</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Hoy un refinamiento <code>where</code> cubre los tipos base primitivos; los invariantes de records y entre campos (<code>where value.paid &lt;= value.total</code>) son una extensión planificada.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Taint es una disciplina que adoptas al tipar un destino como <code>Trusted</code>, no un análisis de flujo automático</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Taint es una disciplina que adoptas al tipar un destino como <code>Trusted</code>, no un análisis de flujo automático: el compilador hace cumplir la frontera que declaras, no infiere la contaminación por ti en todo el programa.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.153 en cada build. Último cambio: <time datetime="2026-11-21">21 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <a href="/es/answers/language/">
           <span class="dir">&larr; Anterior</span>

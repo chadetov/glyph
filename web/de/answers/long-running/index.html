@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?","item":"https://glyphlang.io/de/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/long-running/#article","headline":"Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?","description":"Ein Glyph-Programm kann ein lange laufender Server sein. main richtet alles ein und kehrt zurück; der Prozess bleibt am Leben, solange Sockets und Timer ausstehen, genau wie bei Node.","url":"https://glyphlang.io/de/answers/long-running/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/long-running/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?","item":"https://glyphlang.io/de/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/long-running/#article","headline":"Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?","description":"Ein Glyph-Programm kann ein lange laufender Server sein. main richtet alles ein und kehrt zurück; der Prozess bleibt am Leben, solange Sockets und Timer ausstehen, genau wie bei Node.","url":"https://glyphlang.io/de/answers/long-running/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/long-running/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/long-running/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/long-running/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">19 &middot; Server &amp; Daemons</p>
       <h1 class="q-title">Kann ich einen Server schreiben, oder beendet sich der Prozess einfach?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,21 +478,7 @@
         Du kannst einen Server schreiben. <code>main</code> richtet alles ein und kehrt zurück, und der Prozess <strong>bleibt am Leben, solange Sockets und Timer noch ausstehen</strong>, dieselbe Regel, die Node verwendet. Bis 0.1.63 war das nicht so: Der Runner beendete den Prozess in dem Moment, in dem <code>main</code> zurückkehrte, also band ein Server seinen Port und starb im selben Tick.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Das ist der Unterschied zwischen einer Sprache, die ein Skript ausführen kann, und einer, die einen Dienst ausführen kann. Ein Server, ein Datei-Watcher, ein Bot mit einer Gateway-Verbindung, ein Job-Runner: Keiner davon wird innerhalb von <code>main</code> fertig. Sie richten Handler ein und übergeben den Prozess an Events.
-        </p>
-        <p>
-          Das alte Verhalten scheiterte auf die schlimmstmögliche Art, nämlich still. <code>glyph run app.glyph --serve 4100</code> gab nichts aus, nicht einmal die Zeile im <code>listen</code>-Callback, und endete mit 0. Nichts im Quellcode sah falsch aus, und die Typprüfung lief durch. Ein Agent, der darauf trifft, hat keinen Fehler zu melden und keinen Grund anzunehmen, dass etwas schiefgegangen ist.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein vollständiger TCP-Server. <code>main</code> kehrt sofort zurück; die Callbacks laufen, solange der Prozess lebt:
-        </p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">Ein Server, von Anfang bis Ende</span>
 <pre><span class="k">module</span> main
@@ -518,22 +504,46 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>So sieht es aus: ein vollständiger TCP-Server. <code>main</code> kehrt sofort zurück; die Callbacks laufen, solange der Prozess lebt.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#after-main-returns">Nach der Rückkehr von main</a></li>
+          <li><a href="#a-real-one">Ein Chat-Server</a></li>
+          <li><a href="#the-other-direction-a-long-running-client">Ein lang laufender Client</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Das ist der Unterschied zwischen einer Sprache, die ein Skript ausführen kann, und einer, die einen Dienst ausführen kann. Ein Server, ein Datei-Watcher, ein Bot mit einer Gateway-Verbindung, ein Job-Runner: Keiner davon wird innerhalb von <code>main</code> fertig. Sie richten Handler ein und übergeben den Prozess an Events.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">wie es vor 0.1.63 scheiterte</span></summary><div class="body">
+        <p>
+          Das alte Verhalten scheiterte auf die schlimmstmögliche Art, nämlich still. <code>glyph run app.glyph --serve 4100</code> gab nichts aus, nicht einmal die Zeile im <code>listen</code>-Callback, und endete mit 0. Nichts im Quellcode sah falsch aus, und die Typprüfung lief durch. Ein Agent, der darauf trifft, hat keinen Fehler zu melden und keinen Grund anzunehmen, dass etwas schiefgegangen ist.
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="after-main-returns">Nach der Rückkehr von <code>main</code><a class="ak-anchor" href="#after-main-returns" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Zwei Dinge, die man wissen sollte. Das <code>return 0</code> läuft, bevor sich der erste Client überhaupt verbindet: Es ist der Code, mit dem der Prozess irgendwann endet, keine Aussage darüber, wann er endet.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Und alles, was <em>nach</em> der Rückkehr von <code>main</code> fehlschlägt, muss seinen eigenen Exit-Code setzen, weil der Rückgabewert von <code>main</code> schon verbraucht ist. Dafür ist der <code>error</code>-Handler da. Ohne ihn leert ein Server, der seinen Port nicht binden kann, seine Event-Loop und endet mit 0, also mit einer Erfolgsmeldung.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">Typen für den net-Import</span></summary><div class="body">
         <p>
           <code>net</code> ist ein Node-Builtin, also ein ganz normaler Import, aber es gehört nicht zu den sechs, für die der Compiler ambiente Typen mitliefert (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Installier entweder <code>@types/node</code>, dann bevorzugt der Build das, oder leg eine Deklaration in <code>.types/net.d.ts</code> neben deinen Quellcode, und genau das macht die Chat-App, damit sie überhaupt keine Abhängigkeiten braucht.
         </p>
-        <p>
-          Zwei Dinge, die man wissen sollte. Das <code>return 0</code> läuft, bevor sich der erste Client überhaupt verbindet: Es ist der Code, mit dem der Prozess irgendwann endet, keine Aussage darüber, wann er endet. Und alles, was <em>nach</em> der Rückkehr von <code>main</code> fehlschlägt, muss seinen eigenen Exit-Code setzen, weil der Rückgabewert von <code>main</code> schon verbraucht ist. Dafür ist der <code>error</code>-Handler da. Ohne ihn leert ein Server, der seinen Port nicht binden kann, seine Event-Loop und endet mit 0, also mit einer Erfolgsmeldung.
-        </p>
+      </div></details>
 
-        <h2 class="block-label" id="a-real-one">Ein echter<a class="h-anchor" href="#a-real-one" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          <code>examples/apps/chat</code> ist ein Chat-Server, der mehrere TCP-Clients gleichzeitig hält. Die Teile, die das Netzwerk nicht berühren, bleiben getrennt und testbar: Zeilenzusammensetzung, Routing und die Raum-Engine sind reine Funktionen, die von <code>@example</code> geprüft werden, und eine Datei spricht mit Sockets.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-real-one">Ein echter<a class="ak-anchor" href="#a-real-one" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/chat</code> ist ein Chat-Server, der mehrere TCP-Clients gleichzeitig hält. Die Teile, die das Netzwerk nicht berühren, bleiben getrennt und testbar: Zeilenzusammensetzung, Routing und die Raum-Engine sind reine Funktionen, die von <code>@example</code> geprüft werden, und eine Datei spricht mit Sockets.
+      </p>
+      <div class="code term">
         <span class="cap">Drei gleichzeitig verbundene Clients</span>
 <pre><span class="cm">alice&gt;</span> /join #general
 <span class="cm">bob&gt;</span>   /join #general
@@ -545,12 +555,10 @@ bob sees:    1  #general &lt;alice&gt; hello everyone
 carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
       </div>
 
-      <div class="detail">
-        <p>
-          TCP liefert keine Nachrichten, sondern Bytes, also ist das Ende eines Chunks meistens eine halbe Zeile. Diese Zusammensetzung ist eine reine Funktion, deren schwierige Fälle als Beispiele aufgeschrieben sind, statt sie über einen Socket zu provozieren:
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="framing">Zeilen wieder zusammensetzen<a class="ak-anchor" href="#framing" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        TCP liefert keine Nachrichten, sondern Bytes, also ist das Ende eines Chunks meistens eine halbe Zeile. Diese Zusammensetzung ist eine reine Funktion, deren schwierige Fälle als Beispiele aufgeschrieben sind, statt sie über einen Socket zu provozieren:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
 <pre><span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"hel"</span>).lines == []
@@ -561,16 +569,14 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">pub</span> <span class="k">fn</span> feed(buffered: <span class="t">string</span>, chunk: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Framed</span> {</pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-other-direction-a-long-running-client">Die andere Richtung: ein lange laufender Client<a class="h-anchor" href="#the-other-direction-a-long-running-client" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein Bot hat dieselbe Form, nur nach außen gerichtet. <code>examples/apps/discord</code> ist ein Discord-Gateway-Client: Er verbindet sich über einen WebSocket, identifiziert sich, sendet Heartbeats im Intervall, das der Server vorgibt, verfolgt eine Sequenznummer, damit eine abgebrochene Verbindung fortgesetzt statt neu begonnen wird, bemerkt, wenn die Verbindung offen, aber tot ist, und wartet zwischen Wiederverbindungen zunehmend länger.
-        </p>
-        <p>
-          Kopierenswert ist, wo die Logik lebt. Zu entscheiden, was bei einem <code>RECONNECT</code>, einem verpassten Heartbeat oder einem abgelehnten Token zu tun ist, ist eine reine Funktion von einer Session und einem Event zu einer neuen Session und einer Liste von Aktionen. Ein Modul führt diese Aktionen auf einem echten Socket aus. Deshalb wird die Wiederverbindungslogik, der schwer richtig zu machende Teil, von <code>@example</code> geprüft statt durch das Ziehen eines Netzwerkkabels:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-other-direction-a-long-running-client">Die andere Richtung: ein lange laufender Client<a class="ak-anchor" href="#the-other-direction-a-long-running-client" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Ein Bot hat dieselbe Form, nur nach außen gerichtet. <code>examples/apps/discord</code> ist ein Discord-Gateway-Client: Er verbindet sich über einen WebSocket, identifiziert sich, sendet Heartbeats im Intervall, das der Server vorgibt, verfolgt eine Sequenznummer, damit eine abgebrochene Verbindung fortgesetzt statt neu begonnen wird, bemerkt, wenn die Verbindung offen, aber tot ist, und wartet zwischen Wiederverbindungen zunehmend länger.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Kopierenswert ist, wo die Logik lebt. Zu entscheiden, was bei einem <code>RECONNECT</code>, einem verpassten Heartbeat oder einem abgelehnten Token zu tun ist, ist eine reine Funktion von einer Session und einem Event zu einer neuen Session und einer Liste von Aktionen. Ein Modul führt diese Aktionen auf einem echten Socket aus.</p></div>
+      <p class="ak-lede">
+        Deshalb wird die Wiederverbindungslogik, der schwer richtig zu machende Teil, von <code>@example</code> geprüft statt durch das Ziehen eines Netzwerkkabels:
+      </p>
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
 <pre><span class="k">@example</span> a_close_while_a_reconnect_is_pending_is_ignored()
@@ -578,25 +584,42 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">@example</span> a_rejected_token_stops_rather_than_retrying()
 <span class="k">pub</span> <span class="k">fn</span> disconnected(current: <span class="t">Session</span>, code: <span class="t">int</span>, reason: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Step</span> {</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">drei Bugs, zwei Mocks</span></summary><div class="body">
         <p>
           Diese drei Beispiele sind jeweils ein Bug, der zuerst im Code war. Ein Mock-Gateway zu schreiben und den Bot darauf zu richten, hat einen davon gefunden. Die anderen beiden wurden von einem zweiten Mock gefunden, der nach der Discord-Dokumentation statt nach dem Client geschrieben wurde und Dinge schickt, die ein kooperativer Mock nie schickt: eine unaufgeforderte Heartbeat-Anfrage und einen Close-Code, der bedeutet "dein Token ist falsch, hör auf zu fragen". Ein Mock, den der Autor des Clients schreibt, testet nur die Teile des Protokolls, die der Autor gelesen hat.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Die Rückkehr aus <code>main</code> setzt den Exit-Code, ohne den Prozess zu stoppen, also laufen Server, Watcher und Event-Loops. Ein Programm, das nur rechnet, endet weiterhin in dem Moment, in dem <code>main</code> zurückkehrt, mit demselben Code, also hat sich an kurzen Programmen nichts geändert. Node-Builtins wie <code>net</code> sind ganz normale Imports, und ein Programm, das beim Einrichten wirft, beendet sich weiterhin, jetzt aber erst, nachdem seine Diagnose ein umgeleitetes stderr erreicht hat, statt möglicherweise durch das Beenden abgeschnitten zu werden. <code>std/timers</code> plant Arbeit ein (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>), und <code>std/websocket</code> öffnet eine Verbindung, also braucht keins davon eine handgeschriebene Deklaration.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Wird schärfer</h3>
-          <p>Ein Listener, der nach der Rückkehr von <code>main</code> nicht binden kann, endet mit 0, wenn das Programm nichts anderes sagt: <code>process.set_exit_code(1)</code> hält den Fehlschlag fest, ohne laufende Arbeit abzubrechen, und <code>process.exit(1)</code> stoppt sofort. Der Compiler kann noch nicht warnen, dass du es vergessen hast. Und es gibt weiterhin keinen Weg aufzuschreiben, dass eine Funktion nicht zurückkehrt, also trägt das <code>main</code> eines Servers ein <code>return 0</code>, das nie erreicht wird.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die Rückkehr aus <code>main</code> setzt den Exit-Code, ohne den Prozess zu stoppen, also laufen Server, Watcher und Event-Loops.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Programm, das nur rechnet, endet weiterhin in dem Moment, in dem <code>main</code> zurückkehrt, mit demselben Code, also hat sich an kurzen Programmen nichts geändert.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node-Builtins wie <code>net</code> sind ganz normale Imports, und ein Wurf beim Einrichten beendet das Programm weiterhin</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Node-Builtins wie <code>net</code> sind ganz normale Imports, und ein Programm, das beim Einrichten wirft, beendet sich weiterhin, jetzt aber erst, nachdem seine Diagnose ein umgeleitetes stderr erreicht hat, statt möglicherweise durch das Beenden abgeschnitten zu werden.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/timers</code> plant Arbeit ein (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>), und <code>std/websocket</code> öffnet eine Verbindung, also braucht keins davon eine handgeschriebene Deklaration.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ein Listener, der nach der Rückkehr von <code>main</code> nicht binden kann, endet mit 0, wenn das Programm nichts anderes sagt</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein Listener, der nach der Rückkehr von <code>main</code> nicht binden kann, endet mit 0, wenn das Programm nichts anderes sagt: <code>process.set_exit_code(1)</code> hält den Fehlschlag fest, ohne laufende Arbeit abzubrechen, und <code>process.exit(1)</code> stoppt sofort.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Der Compiler kann noch nicht warnen, dass du es vergessen hast.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Und es gibt weiterhin keinen Weg aufzuschreiben, dass eine Funktion nicht zurückkehrt, also trägt das <code>main</code> eines Servers ein <code>return 0</code>, das nie erreicht wird.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/interactive-cli/">
           <span class="dir">&larr; Zurück</span>

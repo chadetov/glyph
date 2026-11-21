@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird?","item":"https://glyphlang.io/de/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/impact/#article","headline":"Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird?","description":"glyph_impact nimmt die Deklaration, die du ändern willst, und die Änderung und antwortet für jede Stelle mit einem Urteil und einer Begründung, bevor du die Datei anfasst.","url":"https://glyphlang.io/de/answers/impact/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/impact/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird?","item":"https://glyphlang.io/de/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/impact/#article","headline":"Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird?","description":"glyph_impact nimmt die Deklaration, die du ändern willst, und die Änderung und antwortet für jede Stelle mit einem Urteil und einer Begründung, bevor du die Datei anfasst.","url":"https://glyphlang.io/de/answers/impact/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">21 &middot; Vor dem Bearbeiten</p>
       <h1 class="q-title">Kann der Compiler mir sagen, was eine Änderung kaputtmachen wird, bevor ich sie mache?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,26 +478,13 @@
         Für sechs Arten von Änderungen, ja. <code>glyph_impact</code> nimmt die Deklaration, die du ändern willst, und die Änderung selbst (umbenennen, eine Variante entfernen, den Typ eines Parameters ändern, die Anzahl der Parameter ändern, sie entfernen) und antwortet mit <strong>einem Urteil pro Stelle</strong> aus einer festen Liste, jedes mit der Begründung, warum es genau dieses Urteil ist.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Wenn du eine Funktion umbenennst, eine Union erweiterst oder änderst, was ein Parameter akzeptiert, greppst du entweder nach dem alten Namen und hoffst, jeden Aufruf gefunden zu haben, oder du machst die Änderung und liest hinterher, was der Compiler sagt. Keiner der beiden Wege sagt dir, welche Stellen weiter kompilieren und dabei still falsch werden: Ein <code>match</code> mit einem Catch-all-Arm schlägt nicht fehl, wenn du eine Variante hinzufügst, er leitet den neuen Fall einfach irgendwohin, wo ihn niemand haben wollte. Diese Stelle taucht in keinem Build auf. <code>glyph_impact</code> antwortet vor der Änderung, auf derselben Analyse, die der Compiler ausführt.
-        </p>
-
-        <h2 class="block-label" id="what-comes-back">Was zurückkommt<a class="h-anchor" href="#what-comes-back" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Die Anfrage nennt eine Entität über ihre Identität <code>module::name</code> und eine Änderung aus einer festen Liste: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Die Änderung ist Pflicht, weil ein Urteil eine Aussage über eine Änderung ist; ohne benannte Änderung käme jede Stelle als bloße Referenz statt als Folge zurück. Die Antwort nennt die Entität, die Änderung und eine <code>impact</code>-Liste: ein Eintrag pro Stelle, jeder mit der Deklaration, in der er steht, einer <code>relation</code>, einem <code>verdict</code>, einem <code>because</code> und dem Diagnosecode, den der Compiler auslöst, wenn es genau einen gibt. Die Urteile sind fest, und jedes bedeutet eine Sache: <code>WILL_FAIL</code> (der Compiler kann beweisen, dass die Stelle nicht mehr kompiliert), <code>ABSORBS</code> (er kann beweisen, dass die Änderung hier still aufgenommen wird), <code>SAFE</code> (er kann beweisen, dass die Stelle korrekt bleibt), <code>UNDETERMINED</code> (er hat sich die Stelle angesehen und kann die Folge nicht feststellen) und <code>NOT_INDEXED</code> (die Frage lässt sich für eine Stelle dieser Form gar nicht stellen).
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Ein Modul deklariert <code>label(s: string) -&gt; number</code>. Drei Aufrufer erreichen es: Einer übergibt ein String-Literal, einer übergibt einen Wert, dessen Typ ein aus einem anderen Modul importierter Alias für <code>string</code> ist, und einer liest <code>label</code> als Wert und ruft es nie auf. Die Frage, was <code>change_signature_type</code> bei jedem bewirkt, ergibt drei verschiedene Urteile, weil es drei verschiedene Aussagen sind:
         </p>
-      </div>
-
-      <div class="two-up stack">
-        <div class="code">
-          <span class="cap">Request</span>
+        <div class="two-up stack">
+          <div class="code">
+            <span class="cap">Request</span>
 <pre>{
   <span class="pk">"method"</span>: <span class="s">"tools/call"</span>,
   <span class="pk">"params"</span>: {
@@ -508,9 +495,9 @@
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">Ergebnis, gekürzt auf die drei Stellen</span>
+          </div>
+          <div class="code term">
+            <span class="cap">Ergebnis, gekürzt auf die drei Stellen</span>
 <pre>{
   <span class="pk">"entity"</span>: <span class="s">"lib::label"</span>,
   <span class="pk">"impact"</span>: [
@@ -549,32 +536,106 @@
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Dieselbe Änderung, drei Stellen, drei Urteile, und das <code>because</code> bei jedem ist der tatsächliche Satz, den der Compiler erzeugt, kein Kategorie-Label.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">der Compiler-Test, dem das entspricht</span></summary><div class="body">
+          <p>
+            Das entspricht dem eigenen Test des Compilers für diese Änderung (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): Der Test macht die Änderung danach und prüft, dass E0211 genau dort landet, wo <code>WILL_FAIL</code> es angekündigt hat, und dass der Compiler an den anderen beiden still bleibt.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Auf dieser Seite">
+        <p>Auf dieser Seite</p>
+        <ol>
+          <li><a href="#why-it-matters">Warum das wichtig ist</a></li>
+          <li><a href="#what-comes-back">Was zurückkommt</a></li>
+          <li><a href="#on-a-real-application">An einer echten Anwendung</a></li>
+          <li><a href="#where-it-stands">Wo es steht</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Wenn du eine Funktion umbenennst, eine Union erweiterst oder änderst, was ein Parameter akzeptiert, greppst du entweder nach dem alten Namen und hoffst, jeden Aufruf gefunden zu haben, oder du machst die Änderung und liest hinterher, was der Compiler sagt.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Keiner der beiden Wege sagt dir, welche Stellen weiter kompilieren und dabei still falsch werden: Ein <code>match</code> mit einem Catch-all-Arm schlägt nicht fehl, wenn du eine Variante hinzufügst, er leitet den neuen Fall einfach irgendwohin, wo ihn niemand haben wollte. Diese Stelle taucht in keinem Build auf. <code>glyph_impact</code> antwortet vor der Änderung, auf derselben Analyse, die der Compiler ausführt.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">Was zurückkommt<a class="ak-anchor" href="#what-comes-back" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Die Anfrage nennt eine Entität über ihre Identität <code>module::name</code> und eine Änderung aus einer festen Liste: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Die Urteile sind fest, und jedes bedeutet eine Sache:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>Urteil</th><th>Bedeutung</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">der Compiler kann beweisen, dass die Stelle nicht mehr kompiliert</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">er kann beweisen, dass die Änderung hier still aufgenommen wird</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">er kann beweisen, dass die Stelle korrekt bleibt</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">er hat sich die Stelle angesehen und kann die Folge nicht feststellen</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">die Frage lässt sich für eine Stelle dieser Form gar nicht stellen</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum die Änderung Pflicht ist, und was jeder Eintrag enthält</span></summary><div class="body">
         <p>
-          Dieselbe Änderung, drei Stellen, drei Urteile, und das <code>because</code> bei jedem ist der tatsächliche Satz, den der Compiler erzeugt, kein Kategorie-Label. Das entspricht dem eigenen Test des Compilers für diese Änderung (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): Der Test macht die Änderung danach und prüft, dass E0211 genau dort landet, wo <code>WILL_FAIL</code> es angekündigt hat, und dass der Compiler an den anderen beiden still bleibt.
+          Die Änderung ist Pflicht, weil ein Urteil eine Aussage über eine Änderung ist; ohne benannte Änderung käme jede Stelle als bloße Referenz statt als Folge zurück. Die Antwort nennt die Entität, die Änderung und eine <code>impact</code>-Liste: ein Eintrag pro Stelle, jeder mit der Deklaration, in der er steht, einer <code>relation</code>, einem <code>verdict</code>, einem <code>because</code> und dem Diagnosecode, den der Compiler auslöst, wenn es genau einen gibt.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="on-a-real-application">An einer echten Anwendung<a class="h-anchor" href="#on-a-real-application" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          <code>examples/apps/csvql</code>, eine CSV-Abfrage-Engine aus elf Dateien in diesem Repository, hat eine Tagged Union, <code>Value</code>, mit heute vier Varianten. Auf die Frage an <code>glyph_impact</code>, was eine fünfte (<code>Blob</code>) bewirkt, findet es 10 match-Stellen in 4 Dateien: 8 werden nicht mehr kompilieren, und 2 enthalten einen Catch-all-Arm, der die neue Variante still aufnehmen wird. Fügt man die Variante tatsächlich hinzu, meldet der Compiler genau 8 <code>E0200</code>-Fehler, an genau den 8 vorhergesagten Stellen, und sagt an den 2 <code>ABSORBS</code>-Stellen nichts, weder vorher noch nachher. Eine Textsuche nach Catch-all-Armen in derselben App, das, was du ohne das Tool tun würdest, findet dieselben 2 echten Stellen unter 20 Treffern (Präzision 0.10) und sagt überhaupt nichts über die 8, die fehlschlagen, weil sie keine Ahnung hat, welchen Typ ein <code>match</code> untersucht.
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">An einer echten Anwendung<a class="ak-anchor" href="#on-a-real-application" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/csvql</code>, eine CSV-Abfrage-Engine aus elf Dateien in diesem Repository, hat eine Tagged Union, <code>Value</code>, mit heute vier Varianten. Auf die Frage an <code>glyph_impact</code>, was eine fünfte (<code>Blob</code>) bewirkt, findet es 10 match-Stellen in 4 Dateien: 8 werden nicht mehr kompilieren, und 2 enthalten einen Catch-all-Arm, der die neue Variante still aufnehmen wird.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Vom Build geprüft</b>Fügt man die Variante tatsächlich hinzu, meldet der Compiler genau 8 <code>E0200</code>-Fehler, an genau den 8 vorhergesagten Stellen, und sagt an den 2 <code>ABSORBS</code>-Stellen nichts, weder vorher noch nachher.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>Stattdessen eine Textsuche</b>Eine Textsuche nach Catch-all-Armen in derselben App, das, was du ohne das Tool tun würdest, findet dieselben 2 echten Stellen unter 20 Treffern (Präzision 0.10) und sagt überhaupt nichts über die 8, die fehlschlagen, weil sie keine Ahnung hat, welchen Typ ein <code>match</code> untersucht.</li>
+      </ul>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Sechs feste Arten von Änderungen (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) und fünf feste Urteile, ein Eintrag pro betroffener Stelle mit Begründung und Diagnosecode. <code>change_signature_type</code> wird pro Aufrufargument anhand der eigenen Vergleichsregeln des Checkers entschieden, und eine Stelle ist so schwach wie ihr schwächstes Argument. Ein JSX-Element wird als der Aufruf entschieden, zu dem es übersetzt wird: <code>&lt;Card title="x" /&gt;</code> ist ein Props-Record, der an <code>Card</code> übergeben wird, und jedes Attribut wird gegen das Feld aufgeführt, gegen das es geprüft wird, mit dem Urteil, das ein Aufrufargument desselben Typs bekäme. Die Abdeckung (was eine Suche lesen konnte und was nicht) wird pro Suche angegeben statt einmal für die ganze Antwort, und jeder Knoten sagt, ob er aus Glyph-Quellcode, einer <code>extern_ts</code>-Hintertür oder einer undurchsichtigen <code>.d.ts</code> stammt.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Wo es aufhört</h3>
-          <p>Die Tiefe ist bei einem Schritt exakt und darüber hinaus leer: Glyph leitet den Typ einer Deklaration nie aus ihrem Rumpf ab, also kann der Typ eines Aufgerufenen nicht die Signatur eines Aufrufers erreichen, und eine Änderung an X kann nur Ausdrücke ungültig machen, die X nennen. Fragst du nach Tiefe 2, kommt die Antwort mit <code>next_query</code> zurück, das stattdessen die genaue Frage nennt, weil das, was ein zweiter Schritt braucht, die Reparatur ist, die jemand an der ersten Stelle vornimmt, und diese Reparatur gibt es noch nicht. <code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen: Ein Argument, für das der Checker keinen Typ hat, oder eine Record-Zuordnung mit einem Feld, das keine Regel liest, ist <code>UNDETERMINED</code> (er hat nachgesehen und konnte nicht entscheiden); eine Funktion, die als Wert gelesen statt aufgerufen wird, ist <code>NOT_INDEXED</code> (die Frage ließ sich dort nie stellen). Auf <code>ABSORBS</code> solltest du achten: Die Stelle kompiliert weiter und ist trotzdem nachweislich falsch, was dir ein grüner Build nie zeigen wird.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Sechs feste Arten von Änderungen (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) und fünf feste Urteile, ein Eintrag pro betroffener Stelle mit Begründung und Diagnosecode.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code> wird pro Aufrufargument anhand der eigenen Vergleichsregeln des Checkers entschieden, und eine Stelle ist so schwach wie ihr schwächstes Argument.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein JSX-Element wird als der Aufruf entschieden, zu dem es übersetzt wird</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Ein JSX-Element wird als der Aufruf entschieden, zu dem es übersetzt wird: <code>&lt;Card title="x" /&gt;</code> ist ein Props-Record, der an <code>Card</code> übergeben wird, und jedes Attribut wird gegen das Feld aufgeführt, gegen das es geprüft wird, mit dem Urteil, das ein Aufrufargument desselben Typs bekäme.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Die Abdeckung wird pro Suche angegeben, und jeder Knoten sagt, woher er stammt</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Abdeckung (was eine Suche lesen konnte und was nicht) wird pro Suche angegeben statt einmal für die ganze Antwort, und jeder Knoten sagt, ob er aus Glyph-Quellcode, einer <code>extern_ts</code>-Hintertür oder einer undurchsichtigen <code>.d.ts</code> stammt.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wo es aufhört</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Die Tiefe ist bei einem Schritt exakt und darüber hinaus leer</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Die Tiefe ist bei einem Schritt exakt und darüber hinaus leer: Glyph leitet den Typ einer Deklaration nie aus ihrem Rumpf ab, also kann der Typ eines Aufgerufenen nicht die Signatur eines Aufrufers erreichen, und eine Änderung an X kann nur Ausdrücke ungültig machen, die X nennen.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Fragst du nach Tiefe 2, kommt die Antwort mit <code>next_query</code> zurück, das stattdessen die genaue Frage nennt</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Fragst du nach Tiefe 2, kommt die Antwort mit <code>next_query</code> zurück, das stattdessen die genaue Frage nennt, weil das, was ein zweiter Schritt braucht, die Reparatur ist, die jemand an der ersten Stelle vornimmt, und diese Reparatur gibt es noch nicht.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>UNDETERMINED</code> und <code>NOT_INDEXED</code> sind verschiedene Aussagen: Ein Argument, für das der Checker keinen Typ hat, oder eine Record-Zuordnung mit einem Feld, das keine Regel liest, ist <code>UNDETERMINED</code> (er hat nachgesehen und konnte nicht entscheiden); eine Funktion, die als Wert gelesen statt aufgerufen wird, ist <code>NOT_INDEXED</code> (die Frage ließ sich dort nie stellen).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Auf <code>ABSORBS</code> solltest du achten: Die Stelle kompiliert weiter und ist trotzdem nachweislich falsch, was dir ein grüner Build nie zeigen wird.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/binary/">
           <span class="dir">&larr; Zurück</span>

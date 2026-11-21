@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"能根据 API 规范生成类型化的客户端吗？","item":"https://glyphlang.io/zh-cn/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/codegen/#article","headline":"能根据 API 规范生成类型化的客户端吗？","description":"能。glyph gen openapi 把规范转换为类型化的 HTTP 客户端，或者带路由的服务端桩代码，gen zod 则从 zod schema 生成。输出是普通的 Glyph 代码。","url":"https://glyphlang.io/zh-cn/answers/codegen/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/codegen/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/codegen/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"能根据 API 规范生成类型化的客户端吗？","item":"https://glyphlang.io/zh-cn/answers/codegen/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/codegen/#article","headline":"能根据 API 规范生成类型化的客户端吗？","description":"能。glyph gen openapi 把规范转换为类型化的 HTTP 客户端，或者带路由的服务端桩代码，gen zod 则从 zod schema 生成。输出是普通的 Glyph 代码。","url":"https://glyphlang.io/zh-cn/answers/codegen/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/codegen/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/codegen/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/codegen/" />
@@ -411,7 +411,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>本页是译文，以英文版为准。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28zh-cn%29%3A+%2Fzh-cn%2Fanswers%2Fcodegen%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fzh-cn%2Fanswers%2Fcodegen%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fcodegen%2F%0A%0AWhat+is+wrong%3A%0A">报告翻译问题</a></p>
-      <p class="i18n-stale">本页翻译之后，英文版已有更新。 <a href="/answers/codegen/" hreflang="en" data-lang="en">阅读最新的英文版</a></p>
     </div>
     <script>
       (function () {
@@ -428,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">12 &middot; 从你的规范生成</p>
       <h1 class="q-title">能根据 API 规范生成类型化的客户端和服务端吗？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -481,21 +480,10 @@
         能。把 <code>glyph gen openapi</code> 指向一份 OpenAPI 规范：<code>--client</code> 生成类型化的 HTTP 客户端，每个操作一个函数；<code>--handlers</code> 生成服务端桩代码和一个可用的 <code>route</code> 分派器。如果你的权威数据源是 <code>zod</code> schema，<code>glyph gen zod</code> 也能做同样的事。所有输出都是<strong>提交到仓库、可以 grep 的 Glyph 代码</strong>，归你所有，由你编辑，而不是一个隐藏的代码生成步骤。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">为什么这很重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
-        <p>
-          手写的 API 客户端及其 DTO 会与规范逐渐偏离，这种偏离是一类没人喜欢的 bug。由于 Glyph 生成的是<em>真正的</em>代码（类型化的函数、带运行时描述符的真正 <code>type</code> 声明），规范始终是权威来源，重新生成是一个幂等、可审查的 diff，而不是一个黑盒。
-        </p>
-
-        <h2 class="block-label" id="see-it-the-client">看看实际效果：客户端<a class="h-anchor" href="#see-it-the-client" aria-label="链接到本节">#</a></h2>
-        <p>
-          每个操作都会变成一个 <code>async fn</code>，带有类型化的路径参数和类型化的请求体，返回 HTTP <code>Response</code>：
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+      <figure class="ak-hero" id="see-it-the-client">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
 <pre class="wraps"><span class="k">async</span> <span class="k">fn</span> createTask(
   base: <span class="t">string</span>,
   body: <span class="t">NewTask</span>,
@@ -510,9 +498,9 @@
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">HttpError</span>&gt; {
   <span class="k">return</span> <span class="k">await</span> get(<span class="s">"</span><span class="ip">${</span>base<span class="ip">}</span><span class="s">/tasks/</span><span class="ip">${</span>id<span class="ip">}</span><span class="s">"</span>)
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+          </div>
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
 <pre class="wraps"><span class="k">fn</span> route(req: <span class="t">Request</span>)
   <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">Response</span>, <span class="t">string</span>&gt; {
   <span class="k">return</span> <span class="k">match</span> req.method {
@@ -529,18 +517,48 @@
     })),
   }
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>看看实际效果：客户端。每个操作都会变成一个 <code>async fn</code>，带有类型化的路径参数和类型化的请求体，返回 HTTP <code>Response</code>。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>--handlers</code> 生成的路由器用数组模式匹配路径，所以 <code>/tasks/{id}</code> 变成 <code>["tasks", id]</code>，并替你绑定参数。每个桩函数一开始返回 <code>501</code>，并带有一段展示如何解析请求体的注释；你把它们填写完整，再用 <code>await serve(PORT, route)</code> 接上即可。
-        </p>
-        <h2 class="block-label" id="from-a-zod-schema-instead">改为从 zod schema 生成<a class="h-anchor" href="#from-a-zod-schema-instead" aria-label="链接到本节">#</a></h2>
-        <p>
-          如果你的团队已经用 <code>zod</code> 定义数据形态，可以直接从它们生成。schema 会变成一个一等的 Glyph 类型，带有自己的描述符：
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么要生成</a></li>
+          <li><a href="#the-handlers-router">服务端路由器</a></li>
+          <li><a href="#from-a-zod-schema-instead">从 zod schema 生成</a></li>
+          <li><a href="#what-it-maps">它映射什么</a></li>
+          <li><a href="#keeping-it-in-sync">保持同步</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">为什么这很重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        手写的 API 客户端及其 DTO 会与规范逐渐偏离，这种偏离是一类没人喜欢的 bug。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        由于 Glyph 生成的是<em>真正的</em>代码（类型化的函数、带运行时描述符的真正 <code>type</code> 声明），规范始终是权威来源，重新生成是一个幂等、可审查的 diff，而不是一个黑盒。
+      </p></div>
+
+      <h2 class="ak-h" id="the-handlers-router"><code>--handlers</code> 路由器<a class="ak-anchor" href="#the-handlers-router" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>--handlers</code> 生成的路由器用数组模式匹配路径，所以 <code>/tasks/{id}</code> 变成 <code>["tasks", id]</code>，并替你绑定参数。
+      </p>
+      <ol class="ak-path" aria-label="路径如何到达处理函数">
+        <li><span>/tasks/{id}</span></li>
+        <li><span>["tasks", id]</span></li>
+        <li><span>getTask(req, id)</span></li>
+      </ol>
+      <p>
+        每个桩函数一开始返回 <code>501</code>，并带有一段展示如何解析请求体的注释；你把它们填写完整，再用 <code>await serve(PORT, route)</code> 接上即可。
+      </p>
+
+      <h2 class="ak-h" id="from-a-zod-schema-instead">改为从 zod schema 生成<a class="ak-anchor" href="#from-a-zod-schema-instead" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        如果你的团队已经用 <code>zod</code> 定义数据形态，可以直接从它们生成。schema 会变成一个一等的 Glyph 类型，带有自己的描述符：
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -563,34 +581,55 @@
         </div>
       </div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="what-it-maps">它映射什么<a class="ak-anchor" href="#what-it-maps" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        多态的<strong>可辨识联合</strong>（OpenAPI 的 <code>discriminator</code>）会生成一个真正的 Glyph 标签联合，外加一个生成的 <code>parse_&lt;Name&gt;</code>，它读取判别属性并校验为正确的变体。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">为什么要生成分派器</span></summary><div class="body">
         <p>
-          多态的<strong>可辨识联合</strong>（OpenAPI 的 <code>discriminator</code>）会生成一个真正的 Glyph 标签联合，外加一个生成的 <code>parse_&lt;Name&gt;</code>，它读取判别属性并校验为正确的变体。由于 Glyph 按构造函数名而不是任意属性来打标签，生成的分派器会替你把传输对象桥接到联合类型。
+          由于 Glyph 按构造函数名而不是任意属性来打标签，生成的分派器会替你把传输对象桥接到联合类型。
         </p>
-        <p>
-          不足之处：生成忠实于传输格式，所以它映射的是常见的 80%：对象、原始类型、数组、引用、可选和可为空的字段，以及可辨识联合。对于无法精确表示的内容（字符串枚举、<em>不</em>可辨识的联合），它会收窄处理并打印一条说明，而不是生成一个会拒绝真实数据的校验器。下一步是更丰富的枚举。工具链也有实际的依赖：<code>gen dts</code>/<code>gen zod</code> 需要 Node 加上 <code>typescript</code>/<code>zod</code>。<code>gen dts</code> 支持任何 TypeScript（5、6 或 7.x 原生移植版），优先从你的项目中解析，缺少时会明确告诉你需要安装什么。
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="keeping-it-in-sync">保持同步<a class="h-anchor" href="#keeping-it-in-sync" aria-label="链接到本节">#</a></h2>
+      <h3 class="ak-h3" id="where-it-falls-short">不足之处<a class="ak-anchor" href="#where-it-falls-short" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        生成忠实于传输格式，所以它映射的是常见的 80%：对象、原始类型、数组、引用、可选和可为空的字段（两者分开处理：可为空的字段变成 <code>Nullable&lt;T&gt;</code>，schema 不要求的字段带 <code>?</code>，它不接受 <code>null</code>），以及可辨识联合。对于无法精确表示的内容（字符串枚举、<em>不</em>可辨识的联合），它会收窄处理并打印一条说明，而不是生成一个会拒绝真实数据的校验器。下一步是更丰富的枚举。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">生成器需要安装什么</span></summary><div class="body">
         <p>
-          每个生成的文件都会在文件头中记录生成它的确切命令。规范变化时，你不需要去找该重新运行哪些命令：<code>glyph regen</code> 会扫描这些文件头，逐个重新运行并重写输出。它是幂等的，所以规范没有变化时 regen 不会改动任何东西；它可以直接放进 pre-commit hook，或者放进一个在提交的代码偏离规范时失败的 CI 检查。
+          工具链也有实际的依赖：<code>gen dts</code>/<code>gen zod</code> 需要 Node 加上 <code>typescript</code>/<code>zod</code>。<code>gen dts</code> 支持任何 TypeScript（5、6 或 7.x 原生移植版），优先从你的项目中解析，缺少时会明确告诉你需要安装什么。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p><code>glyph gen openapi</code>（类型、<code>--client</code>、带真正路由器的 <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>，以及从源头刷新全部生成代码的 <code>glyph regen</code>：每个命令生成的都是提交到仓库、带描述符、可幂等重新生成的 Glyph 代码。</p>
-         如果两个类型会以同一个 Glyph 名字写出，生成器会停下，而不是产出一个无法编译的文件：它列出每个冲突的来源，不写任何文件，用 <code>--rename Source=GlyphName</code> 即可解决。这个选择会记录在生成的文件头中，所以 <code>glyph regen</code> 会重放它。</div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>更丰富的枚举映射和更广的 OpenAPI 覆盖，每一项都遵循同样的规则：忠实于传输格式，收窄时给出说明。从包自带的 <code>.d.ts</code> 生成时，读取的是其中的 <code>interface</code> 和 <code>type</code> 声明，所以如果一个库的 API 是类，或者字段使用了 <code>Omit</code> 这样的计算类型，就会留下一些引用，生成器会在说明中列出它们，<code>glyph build</code> 会把它们报告为未解析。导入这样的类并用 <code>new</code> 构造它不需要生成，由 <code>tsc</code> 检查，所以这条路径不受影响。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="keeping-it-in-sync">保持同步<a class="ak-anchor" href="#keeping-it-in-sync" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        每个生成的文件都会在文件头中记录生成它的确切命令。规范变化时，你不需要去找该重新运行哪些命令：<code>glyph regen</code> 会扫描这些文件头，逐个重新运行并重写输出。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        它是幂等的，所以规范没有变化时 regen 不会改动任何东西；它可以直接放进 pre-commit hook，或者放进一个在提交的代码偏离规范时失败的 CI 检查。
+      </p></div>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code>（类型、<code>--client</code>、带真正路由器的 <code>--handlers</code>）、<code>glyph gen dts</code>、<code>glyph gen zod</code>，以及从源头刷新全部生成代码的 <code>glyph regen</code>：每个命令生成的都是提交到仓库、带描述符、可幂等重新生成的 Glyph 代码。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">如果两个类型会以同一个 Glyph 名字写出，生成器会停下，而不是产出一个无法编译的文件：它列出每个冲突的来源，不写任何文件，用 <code>--rename Source=GlyphName</code> 即可解决。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">这个选择会记录在生成的文件头中，所以 <code>glyph regen</code> 会重放它。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">更丰富的枚举映射和更广的 OpenAPI 覆盖，每一项都遵循同样的规则：忠实于传输格式，收窄时给出说明。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">从包自带的 <code>.d.ts</code> 生成时，读取的是其中的 <code>interface</code> 和 <code>type</code> 声明，所以如果一个库的 API 是类，或者字段使用了 <code>Omit</code> 这样的计算类型，就会留下一些引用，生成器会在说明中列出它们，<code>glyph build</code> 会把它们报告为未解析。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">导入这样的类并用 <code>new</code> 构造它不需要生成，由 <code>tsc</code> 检查，所以这条路径不受影响。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/typed-apis/">
           <span class="dir">&larr; 上一篇</span>

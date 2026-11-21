@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"サーバーは書けるのか、それともプロセスはすぐ終了するのか","item":"https://glyphlang.io/ja/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/long-running/#article","headline":"サーバーは書けるのか、それともプロセスはすぐ終了するのか","description":"Glyph のプログラムは、長時間動き続けるサーバーにできます。main は準備をして return し、ソケットやタイマーが待機中の間はプロセスが生き続けます。Node とまったく同じです。","url":"https://glyphlang.io/ja/answers/long-running/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/long-running/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/long-running/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"サーバーは書けるのか、それともプロセスはすぐ終了するのか","item":"https://glyphlang.io/ja/answers/long-running/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/long-running/#article","headline":"サーバーは書けるのか、それともプロセスはすぐ終了するのか","description":"Glyph のプログラムは、長時間動き続けるサーバーにできます。main は準備をして return し、ソケットやタイマーが待機中の間はプロセスが生き続けます。Node とまったく同じです。","url":"https://glyphlang.io/ja/answers/long-running/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/long-running/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/long-running/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/long-running/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">19 &middot; サーバーとデーモン</p>
       <h1 class="q-title">サーバーは書けるのか、それともプロセスはすぐ終了するのか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,21 +480,7 @@
         サーバーは書けます。<code>main</code> が準備をして return し、<strong>ソケットやタイマーが待機中の間はプロセスが生き続けます</strong>。Node と同じルールです。0.1.63 より前はそうではありませんでした。<code>main</code> が return した瞬間にランナーがプロセスを終了させていたので、サーバーはポートをバインドしたその tick のうちに終了していました。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          これは、スクリプトを実行できる言語とサービスを実行できる言語の違いです。サーバー、ファイルウォッチャー、ゲートウェイ接続を保持するボット、ジョブランナー。どれも <code>main</code> の中では終わりません。ハンドラを用意し、プロセスをイベントに引き渡します。
-        </p>
-        <p>
-          以前の挙動は最悪の形で失敗していました。黙って失敗するのです。<code>glyph run app.glyph --serve 4100</code> は何も出力せず、<code>listen</code> コールバック内の行すら出さずに、終了コード 0 で終わりました。ソースにはおかしなところがなく、型検査も通りました。これに当たったエージェントには、報告すべきエラーも、何かが失敗したと考える理由もありません。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          TCP サーバーの全体です。<code>main</code> はすぐに return し、コールバックはプロセスが生きている間ずっと実行されます：
-        </p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">サーバーの最初から最後まで</span>
 <pre><span class="k">module</span> main
@@ -520,22 +506,46 @@
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>実例：TCP サーバーの全体です。<code>main</code> はすぐに return し、コールバックはプロセスが生きている間ずっと実行されます。</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="このページの内容">
+        <p>このページの内容</p>
+        <ol>
+          <li><a href="#why-it-matters">なぜ重要か</a></li>
+          <li><a href="#after-main-returns">main が return した後</a></li>
+          <li><a href="#a-real-one">チャットサーバー</a></li>
+          <li><a href="#the-other-direction-a-long-running-client">長時間動くクライアント</a></li>
+          <li><a href="#where-it-stands">現状</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        これは、スクリプトを実行できる言語とサービスを実行できる言語の違いです。サーバー、ファイルウォッチャー、ゲートウェイ接続を保持するボット、ジョブランナー。どれも <code>main</code> の中では終わりません。ハンドラを用意し、プロセスをイベントに引き渡します。
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">0.1.63 より前の失敗の仕方</span></summary><div class="body">
+        <p>
+          以前の挙動は最悪の形で失敗していました。黙って失敗するのです。<code>glyph run app.glyph --serve 4100</code> は何も出力せず、<code>listen</code> コールバック内の行すら出さずに、終了コード 0 で終わりました。ソースにはおかしなところがなく、型検査も通りました。これに当たったエージェントには、報告すべきエラーも、何かが失敗したと考える理由もありません。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="after-main-returns"><code>main</code> が return した後<a class="ak-anchor" href="#after-main-returns" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        知っておくべきことが 2 つあります。<code>return 0</code> は最初のクライアントが接続するより前に実行されます。これはプロセスが最終的に終了するときのコードであって、いつ終了するかを表すものではありません。
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>また、<code>main</code> が return した<em>後</em>に失敗した処理は、自分で終了コードを設定しなければなりません。<code>main</code> の戻り値はもう使われてしまっているからです。<code>error</code> ハンドラはそのためにあります。これがないと、ポートをバインドできなかったサーバーはイベントループを空にして終了コード 0 で終わり、成功を報告してしまいます。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">net の import の型</span></summary><div class="body">
         <p>
           <code>net</code> は Node の組み込みモジュールなので普通に import できますが、コンパイラがアンビエント型を同梱している 6 つ（<code>fs</code>、<code>http</code>、<code>path</code>、<code>os</code>、<code>crypto</code>、<code>url</code>）には含まれません。<code>@types/node</code> をインストールすればビルドはそちらを優先します。あるいはソースの隣の <code>.types/net.d.ts</code> に宣言を置きます。チャットアプリは後者の方法で、依存関係を一切持たずに済ませています。
         </p>
-        <p>
-          知っておくべきことが 2 つあります。<code>return 0</code> は最初のクライアントが接続するより前に実行されます。これはプロセスが最終的に終了するときのコードであって、いつ終了するかを表すものではありません。また、<code>main</code> が return した<em>後</em>に失敗した処理は、自分で終了コードを設定しなければなりません。<code>main</code> の戻り値はもう使われてしまっているからです。<code>error</code> ハンドラはそのためにあります。これがないと、ポートをバインドできなかったサーバーはイベントループを空にして終了コード 0 で終わり、成功を報告してしまいます。
-        </p>
+      </div></details>
 
-        <h2 class="block-label" id="a-real-one">実際のアプリ<a class="h-anchor" href="#a-real-one" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          <code>examples/apps/chat</code> は、複数の TCP クライアントを同時に保持するチャットサーバーです。ネットワークに触れない部分は分離され、テスト可能になっています。行の再組み立て、ルーティング、ルームエンジンは <code>@example</code> で検査される純粋関数で、ソケットとやり取りするのは 1 つのファイルだけです。
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-real-one">実際のアプリ<a class="ak-anchor" href="#a-real-one" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>examples/apps/chat</code> は、複数の TCP クライアントを同時に保持するチャットサーバーです。ネットワークに触れない部分は分離され、テスト可能になっています。行の再組み立て、ルーティング、ルームエンジンは <code>@example</code> で検査される純粋関数で、ソケットとやり取りするのは 1 つのファイルだけです。
+      </p>
+      <div class="code term">
         <span class="cap">3 つのクライアントが同時に接続した状態</span>
 <pre><span class="cm">alice&gt;</span> /join #general
 <span class="cm">bob&gt;</span>   /join #general
@@ -547,12 +557,10 @@ bob sees:    1  #general &lt;alice&gt; hello everyone
 carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
       </div>
 
-      <div class="detail">
-        <p>
-          TCP が届けるのはメッセージではなくバイトなので、チャンクの末尾はたいてい行の途中で切れています。この再組み立ては純粋関数で、扱いにくいケースはソケット越しに起こすのではなく、例として書き留めてあります：
-        </p>
-      </div>
-
+      <h3 class="ak-h3" id="framing">行の組み立て直し<a class="ak-anchor" href="#framing" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        TCP が届けるのはメッセージではなくバイトなので、チャンクの末尾はたいてい行の途中で切れています。この再組み立ては純粋関数で、扱いにくいケースはソケット越しに起こすのではなく、例として書き留めてあります：
+      </p>
       <div class="code">
         <span class="cap">examples/apps/chat/framing.glyph</span>
 <pre><span class="k">@example</span> feed(<span class="s">""</span>, <span class="s">"hel"</span>).lines == []
@@ -563,16 +571,14 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">pub</span> <span class="k">fn</span> feed(buffered: <span class="t">string</span>, chunk: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Framed</span> {</pre>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-other-direction-a-long-running-client">逆方向：長時間動くクライアント<a class="h-anchor" href="#the-other-direction-a-long-running-client" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          ボットは同じ形を外向きにしたものです。<code>examples/apps/discord</code> は Discord のゲートウェイクライアントです。WebSocket で接続して identify し、サーバーが指定する間隔でハートビートを送り、シーケンス番号を追跡して接続が切れても最初からではなく resume で再開し、接続が開いているのに死んでいる状態を検知し、再接続の間にバックオフします。
-        </p>
-        <p>
-          真似する価値があるのは、ロジックの置き場所です。<code>RECONNECT</code>、ハートビートの欠落、拒否されたトークンにどう対処するかの判断は、セッションと 1 つのイベントから、新しいセッションとアクションのリストを返す純粋関数です。それらのアクションを実際のソケットで実行するのは 1 つのモジュールです。だからこそ、正しく書くのが難しい再接続ロジックを、ネットワークケーブルを抜くのではなく <code>@example</code> で検査できます：
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-other-direction-a-long-running-client">逆方向：長時間動くクライアント<a class="ak-anchor" href="#the-other-direction-a-long-running-client" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ボットは同じ形を外向きにしたものです。<code>examples/apps/discord</code> は Discord のゲートウェイクライアントです。WebSocket で接続して identify し、サーバーが指定する間隔でハートビートを送り、シーケンス番号を追跡して接続が切れても最初からではなく resume で再開し、接続が開いているのに死んでいる状態を検知し、再接続の間にバックオフします。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>真似する価値があるのは、ロジックの置き場所です。<code>RECONNECT</code>、ハートビートの欠落、拒否されたトークンにどう対処するかの判断は、セッションと 1 つのイベントから、新しいセッションとアクションのリストを返す純粋関数です。それらのアクションを実際のソケットで実行するのは 1 つのモジュールです。</p></div>
+      <p class="ak-lede">
+        だからこそ、正しく書くのが難しい再接続ロジックを、ネットワークケーブルを抜くのではなく <code>@example</code> で検査できます：
+      </p>
       <div class="code">
         <span class="cap">examples/apps/discord/session.glyph</span>
 <pre><span class="k">@example</span> a_close_while_a_reconnect_is_pending_is_ignored()
@@ -580,25 +586,42 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 <span class="k">@example</span> a_rejected_token_stops_rather_than_retrying()
 <span class="k">pub</span> <span class="k">fn</span> disconnected(current: <span class="t">Session</span>, code: <span class="t">int</span>, reason: <span class="t">string</span>) <span class="op">-&gt;</span> <span class="t">Step</span> {</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">3 つのバグと 2 つのモック</span></summary><div class="body">
         <p>
           この 3 つの例は、どれも最初はコードに存在したバグです。モックのゲートウェイを書いてボットを向けたところ、そのうち 1 つが見つかりました。残りの 2 つは、クライアントからではなく Discord のドキュメントから書いた 2 つ目のモックで見つかりました。このモックは、協力的なモックなら決して送らないものを送ります。求めていないハートビート要求や、「トークンが間違っているので、もう要求しないでください」という意味のクローズコードです。クライアントの作者が書いたモックは、作者が読んだ部分のプロトコルしかテストしません。
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p><code>main</code> から return すると、プロセスを止めずに終了コードが設定されるので、サーバー、ウォッチャー、イベントループが動き続けます。計算するだけのプログラムは従来どおり <code>main</code> が return した瞬間に同じコードで終了するので、短いプログラムの挙動は何も変わっていません。<code>net</code> のような Node の組み込みモジュールは普通に import でき、セットアップ中に throw したプログラムは引き続き終了します。ただし今は、診断がパイプされた stderr に届いてから終了するので、終了によって途中で切れることはありません。<code>std/timers</code> は処理をスケジュールし（<code>after</code>、<code>every</code>、<code>cancel</code>、<code>unref</code>）、<code>std/websocket</code> は接続を開くので、どちらも手書きの宣言は不要です。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">改善中</h3>
-          <p><code>main</code> が return した後にバインドに失敗したリスナーは、プログラムが何も指定しなければ終了コード 0 で終わります。<code>process.set_exit_code(1)</code> は実行中の処理を止めずに失敗を記録し、<code>process.exit(1)</code> は即座に終了します。指定し忘れたことをコンパイラが警告することはまだできません。また、関数が return しないことを書き表す方法もまだないので、サーバーの <code>main</code> には決して到達しない <code>return 0</code> が残ります。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>main</code> から return すると、プロセスを止めずに終了コードが設定されるので、サーバー、ウォッチャー、イベントループが動き続けます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">計算するだけのプログラムは従来どおり <code>main</code> が return した瞬間に同じコードで終了するので、短いプログラムの挙動は何も変わっていません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>net</code> のような Node の組み込みモジュールは普通に import でき、セットアップ中の throw は引き続き終了させる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>net</code> のような Node の組み込みモジュールは普通に import でき、セットアップ中に throw したプログラムは引き続き終了します。ただし今は、診断がパイプされた stderr に届いてから終了するので、終了によって途中で切れることはありません。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/timers</code> は処理をスケジュールし（<code>after</code>、<code>every</code>、<code>cancel</code>、<code>unref</code>）、<code>std/websocket</code> は接続を開くので、どちらも手書きの宣言は不要です。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>main</code> が return した後にバインドに失敗したリスナーは、プログラムが何も指定しなければ終了コード 0 で終わる</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>main</code> が return した後にバインドに失敗したリスナーは、プログラムが何も指定しなければ終了コード 0 で終わります。<code>process.set_exit_code(1)</code> は実行中の処理を止めずに失敗を記録し、<code>process.exit(1)</code> は即座に終了します。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">指定し忘れたことをコンパイラが警告することはまだできません。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">また、関数が return しないことを書き表す方法もまだないので、サーバーの <code>main</code> には決して到達しない <code>return 0</code> が残ります。</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/interactive-cli/">
           <span class="dir">&larr; 前へ</span>

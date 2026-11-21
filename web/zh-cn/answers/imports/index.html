@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"我能使用现有的 TypeScript、JavaScript 和 npm 代码吗？","item":"https://glyphlang.io/zh-cn/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/imports/#article","headline":"我能使用现有的 TypeScript、JavaScript 和 npm 代码吗？","description":"Glyph 编译成普通的 TypeScript 并基于 npm：.glyph 模块可以导入任何包，也可以被你现有的 .ts 导入。可以一次一个文件地引入。","url":"https://glyphlang.io/zh-cn/answers/imports/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/imports/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/imports/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"我能使用现有的 TypeScript、JavaScript 和 npm 代码吗？","item":"https://glyphlang.io/zh-cn/answers/imports/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/imports/#article","headline":"我能使用现有的 TypeScript、JavaScript 和 npm 代码吗？","description":"Glyph 编译成普通的 TypeScript 并基于 npm：.glyph 模块可以导入任何包，也可以被你现有的 .ts 导入。可以一次一个文件地引入。","url":"https://glyphlang.io/zh-cn/answers/imports/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/imports/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/imports/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/imports/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">09 &middot; 引入</p>
       <h1 class="q-title">我能使用现有的 TypeScript、JavaScript 和 npm 库吗？</h1>
       <nav class="ans-side" id="ans-nav" aria-label="问答">
@@ -480,17 +480,8 @@
         能。Glyph 编译成<strong>普通的 TypeScript</strong>，并基于 npm：<code>.glyph</code> 模块可以从任何包导入，自身也能被你现有的 <code>.ts</code> 导入。你可以<strong>一次一个文件</strong>地引入它。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">为什么重要<a class="h-anchor" href="#why-it-matters" aria-label="链接到本节">#</a></h2>
-        <p>
-          没有人会为了试一门语言而重写代码库。因为 Glyph 的输出<em>就是</em> TypeScript，一个 <code>.glyph</code> 文件可以放进现有 TS/React/Node 项目的某个角落，导入同样的包，并导出给周围的 <code>.ts</code> 使用。正是这条渐进的路径，让我们选择以 TypeScript 为目标，而不是发布一个新的运行时。
-        </p>
-
-        <h2 class="block-label" id="see-it">看看实际效果<a class="h-anchor" href="#see-it" aria-label="链接到本节">#</a></h2>
-        <p>按名字导入包（包括带连字符的和 npm 作用域包），Glyph 会生成你预期的导入语句：</p>
-      </div>
-
-      <div class="two-up">
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
         <div class="code">
           <span class="cap">form.glyph</span>
 <pre><span class="k">import</span> react { useState }
@@ -506,14 +497,36 @@
 <span class="k">import</span> { zodResolver }
   <span class="k">from</span> <span class="s">"@hookform/resolvers/zod"</span>;</pre>
         </div>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>按名字导入包（包括带连字符的和 npm 作用域包），Glyph 会生成你预期的导入语句。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          如果包已经安装，并且自带类型（或者有 <code>@types/...</code>），你要做的就只有这些。不需要存根，也不需要适配文件。<code>glyph build</code> 会找到项目的 <code>node_modules</code>，并让类型检查器使用它，所以检查你代码的是这个包的真实类型，错误的调用就是真正的错误。子路径导入（<code>pkg/sub</code>）也会通过包的 <code>exports</code> 映射解析，所以子路径自己的类型也会被检查。下面是直接使用 zod 的例子，没有任何手写的东西：
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="本页内容">
+        <p>本页内容</p>
+        <ol>
+          <li><a href="#why-it-matters">为什么重要</a></li>
+          <li><a href="#installed-packages">已安装的包</a></li>
+          <li><a href="#value-derived-types">由值派生的类型</a></li>
+          <li><a href="#when-you-need-whole-hand-written-typescript">手写 TypeScript</a></li>
+          <li><a href="#watching-a-subprocess-with-nothing-installed">子进程</a></li>
+          <li><a href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited">修改适配层</a></li>
+          <li><a href="#class-based-clients-the-database-and-messaging-ones">基于类的客户端</a></li>
+          <li><a href="#where-it-stands">当前状态</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        没有人会为了试一门语言而重写代码库。因为 Glyph 的输出<em>就是</em> TypeScript，一个 <code>.glyph</code> 文件可以放进现有 TS/React/Node 项目的某个角落，导入同样的包，并导出给周围的 <code>.ts</code> 使用。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>正是这条渐进的路径，让我们选择以 TypeScript 为目标，而不是发布一个新的运行时。</p></div>
+
+      <h2 class="ak-h" id="installed-packages">已安装的包自带类型<a class="ak-anchor" href="#installed-packages" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        如果包已经安装，并且自带类型（或者有 <code>@types/...</code>），你要做的就只有这些。不需要存根，也不需要适配文件。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> 会找到项目的 <code>node_modules</code>，并让类型检查器使用它，所以检查你代码的是这个包的真实类型，错误的调用就是真正的错误。</p></div>
+      <p>下面是直接使用 zod 的例子，没有任何手写的东西：</p>
       <div class="two-up">
         <div class="code">
           <span class="cap">main.glyph</span>
@@ -543,34 +556,55 @@ print(user.name)</pre>
 <span class="c">//   mapped back onto main.glyph:7</span></pre>
         </div>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> 会针对已安装的 zod 执行同一个程序，所以这不只是类型检查：为类型检查器解析这个包的那一项配置，同样为运行时解析它。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p><em>不</em>带类型、也没有 <code>@types/...</code> 的包，仍然需要你写一份声明，这就是 <code>.types/</code> 文件夹的用途（与 TypeScript 已有的 <code>.d.ts</code> 机制相同）。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">子路径导入，以及从 <code>.d.ts</code> 得到经过校验的类型</span></summary><div class="body">
         <p>
-          <code>glyph run</code> 会针对已安装的 zod 执行同一个程序，所以这不只是类型检查：为类型检查器解析这个包的那一项配置，同样为运行时解析它。<em>不</em>带类型、也没有 <code>@types/...</code> 的包，仍然需要你写一份声明，这就是 <code>.types/</code> 文件夹的用途（与 TypeScript 已有的 <code>.d.ts</code> 机制相同）。如果你想把一个库的形状变成一等的、<em>经过校验的</em> Glyph 类型，而不是只做类型导入，<code>glyph gen dts</code> 可以把 <code>.d.ts</code> 实化为带描述符的真实类型：见<a href="/zh-cn/answers/typed-apis/">每个 API 都要手写校验器吗？</a>
+          子路径导入（<code>pkg/sub</code>）也会通过包的 <code>exports</code> 映射解析，所以子路径自己的类型也会被检查。
         </p>
         <p>
-          由值派生的类型是一等的。<code>type User = z.infer&lt;typeof user_schema&gt;</code> 可以直接使用：<code>typeof user_schema</code> 是对一个真实值引用的类型查询（拼错了会报未解析名字的错误），<code>z.infer&lt;...&gt;</code> 是普通的成员泛型类型。它会原样生成，由 <code>tsc</code> 化简，所以 <code>u.name</code> 是 <code>string</code>；校验来自 schema 自己的 <code>parse</code>，zod 本来就是这样工作的。JSX 属性展开（<code>&lt;input {...register()} /&gt;</code>）也是一等的。对于 Glyph 仍然写不出来的少数 TypeScript 惯用法，<code>extern_ts("...")</code> 是作用域受限、可以 grep 的逃生口：<code>tsc</code> 会检查它，但要说清楚，它是信任边界，而不是经过运行时校验的边界（对 Glyph 不透明，返回的值是 <code>unknown</code>，需要自己收窄）。所以库永远不会迫使你手写适配文件。
+          如果你想把一个库的形状变成一等的、<em>经过校验的</em> Glyph 类型，而不是只做类型导入，<code>glyph gen dts</code> 可以把 <code>.d.ts</code> 实化为带描述符的真实类型：见<a href="/zh-cn/answers/typed-apis/">每个 API 都要手写校验器吗？</a>
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="when-you-need-whole-hand-written-typescript">需要整段手写 TypeScript 时<a class="h-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="链接到本节">#</a></h2>
+      <h2 class="ak-h" id="value-derived-types">由值派生的类型、JSX 展开和逃生口<a class="ak-anchor" href="#value-derived-types" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        由值派生的类型是一等的。JSX 属性展开（<code>&lt;input {...register()} /&gt;</code>）也是一等的。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>所以库永远不会迫使你手写适配文件。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>对于 Glyph 仍然写不出来的少数 TypeScript 惯用法，<code>extern_ts("...")</code> 是作用域受限、可以 grep 的逃生口：<code>tsc</code> 会检查它，但要说清楚，它是信任边界，而不是经过运行时校验的边界（对 Glyph 不透明，返回的值是 <code>unknown</code>，需要自己收窄）。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint"><code>z.infer&lt;typeof s&gt;</code> 是如何解析的</span></summary><div class="body">
         <p>
+          <code>type User = z.infer&lt;typeof user_schema&gt;</code> 可以直接使用：<code>typeof user_schema</code> 是对一个真实值引用的类型查询（拼错了会报未解析名字的错误），<code>z.infer&lt;...&gt;</code> 是普通的成员泛型类型。它会原样生成，由 <code>tsc</code> 化简，所以 <code>u.name</code> 是 <code>string</code>；校验来自 schema 自己的 <code>parse</code>，zod 本来就是这样工作的。
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="when-you-need-whole-hand-written-typescript">需要整段手写 TypeScript 时<a class="ak-anchor" href="#when-you-need-whole-hand-written-typescript" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           有时逃生口不是一个类型或表达式，而是真正的运行时代码：一个 node stream 循环、一个 <code>new Promise</code>、一个 worker 线程。把 <code>.ts</code> 放在 <code>&lt;src&gt;/extern/</code> 下，然后用 <code>import extern/&lt;name&gt;</code> 引用它。
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="c">// src/extern/raw_server.ts   (hand-written TypeScript)</span>
 <span class="k">export</span> <span class="k">function</span> serve_raw(port: <span class="t">number</span>, handler: (raw: <span class="t">string</span>) <span class="op">=&gt;</span> <span class="t">string</span>): <span class="k">void</span> { ... }
 
 <span class="c">// src/main.glyph</span>
 <span class="k">import</span> extern/raw_server { serve_raw }   <span class="c">// typed from the .ts; a wrong arg is a real tsc error</span></pre>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>相对导入在 Glyph 源码中仍然是非法的（这是一条可检索性规则），所以 <code>extern/*</code> 是唯一保留的路径，<code>grep -rn 'import extern/'</code> 能找出你离开这门语言的每一处。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">放入输出、另一个方向，以及 node 适配层</span></summary><div class="body">
         <p>
-          构建会把 <code>&lt;src&gt;/extern/**</code> 放进输出目录并生成相对路径的导入，所以 <code>tsc</code> 会把 extern 和你的 Glyph 代码一起做类型检查，重新构建也不会把它清理掉。相对导入在 Glyph 源码中仍然是非法的（这是一条可检索性规则），所以 <code>extern/*</code> 是唯一保留的路径，<code>grep -rn 'import extern/'</code> 能找出你离开这门语言的每一处。它和简单的那个方向正好相反：<code>.ts</code> 文件导入编译后的 Glyph 代码，什么都不需要。常见的 extern（http 服务器、<code>fs</code>）不用安装任何东西，就能针对内置的 node 适配层做类型检查。
+          构建会把 <code>&lt;src&gt;/extern/**</code> 放进输出目录并生成相对路径的导入，所以 <code>tsc</code> 会把 extern 和你的 Glyph 代码一起做类型检查，重新构建也不会把它清理掉。
         </p>
+        <p>
+          它和简单的那个方向正好相反：<code>.ts</code> 文件导入编译后的 Glyph 代码，什么都不需要。常见的 extern（http 服务器、<code>fs</code>）不用安装任何东西，就能针对内置的 node 适配层做类型检查。
+        </p>
+      </div></details>
 
-        <h2 class="block-label" id="watching-a-subprocess-with-nothing-installed">监视子进程，无需安装任何东西<a class="h-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="链接到本节">#</a></h2>
-        <p>
+      <h2 class="ak-h" id="watching-a-subprocess-with-nothing-installed">监视子进程，无需安装任何东西<a class="ak-anchor" href="#watching-a-subprocess-with-nothing-installed" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
           内置的 node 声明包含了 <code>child_process</code> 的异步部分，而不只是阻塞的部分，所以一个在长命令运行时报告其输出的工具，可以用 Glyph 写，而不必写成 extern：
-        </p>
+      </p>
+      <div class="code">
 <pre><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -590,9 +624,12 @@ print(user.name)</pre>
   })
   <span class="k">return</span> <span class="n">0</span>
 }</pre>
-        <p>
-          用 <code>io.print</code> 而不是 <code>io.println</code>：一个数据块是流的一个片段，而不是一行，一行可能分成两个数据块到达。重载遵循 <code>@types/node</code>，所以普通的 <code>spawn(command, args)</code> 返回的管道不为 null，传入 <code>stdio</code> 后则可能为 null。在 <code>stdio: "inherit"</code> 之后读取 <code>child.stdout</code>，在这里是 <code>TS18047</code>，使用真实类型定义时也是 <code>TS18047</code>，而不是对同一个值给出两种说法：
-        </p>
+      </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>用 <code>io.print</code> 而不是 <code>io.println</code>：一个数据块是流的一个片段，而不是一行，一行可能分成两个数据块到达。</p></div>
+      <p>
+          重载遵循 <code>@types/node</code>，所以普通的 <code>spawn(command, args)</code> 返回的管道不为 null，传入 <code>stdio</code> 后则可能为 null。在 <code>stdio: "inherit"</code> 之后读取 <code>child.stdout</code>，在这里是 <code>TS18047</code>，使用真实类型定义时也是 <code>TS18047</code>，而不是对同一个值给出两种说法：
+      </p>
+      <div class="code">
 <pre data-check="expect-error TS18047"><span class="k">module</span> main
 
 <span class="k">import</span> child_process { spawn }
@@ -602,16 +639,21 @@ print(user.name)</pre>
   <span class="c">// [TS18047] 'child.stdout' is possibly 'null'.</span>
   child.stdout.setEncoding(<span class="s">"utf8"</span>)
 }</pre>
-
-        <h2 class="block-label" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">修改适配层，下一次运行用的就是你改过的适配层<a class="h-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="链接到本节">#</a></h2>
-        <p>
-          适配层是你会反复修改的文件，所以它必须算作源码。<code>glyph run</code> 按源码的指纹缓存构建结果，这个指纹覆盖 <code>extern/</code> 下的每个 <code>.ts</code> 和 <code>.tsx</code>，既看路径也看内容。修改、重命名、新增或删除其中一个，下一次运行都会重新构建并重新运行 <code>tsc</code>。符号链接的适配层会被跟随，所以放在源码树之外的 <code>.ts</code> 会按它的实际内容计算哈希。
-        </p>
-        <p>
-          正因如此，类型可以由适配层持有，而不必两个文件各自声明一份。从适配层导出这个形状，在 Glyph 模块中导入它，编译器在每次运行时都会让两者保持一致：
-        </p>
       </div>
 
+      <h2 class="ak-h" id="edit-the-shim-and-the-next-run-is-the-shim-you-edited">修改适配层，下一次运行用的就是你改过的适配层<a class="ak-anchor" href="#edit-the-shim-and-the-next-run-is-the-shim-you-edited" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          适配层是你会反复修改的文件，所以它必须算作源码。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph run</code> 按源码的指纹缓存构建结果，这个指纹覆盖 <code>extern/</code> 下的每个 <code>.ts</code> 和 <code>.tsx</code>，既看路径也看内容。</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">什么会触发重新构建</span></summary><div class="body">
+        <p>
+          修改、重命名、新增或删除其中一个，下一次运行都会重新构建并重新运行 <code>tsc</code>。符号链接的适配层会被跟随，所以放在源码树之外的 <code>.ts</code> 会按它的实际内容计算哈希。
+        </p>
+      </div></details>
+      <p>
+          正因如此，类型可以由适配层持有，而不必两个文件各自声明一份。从适配层导出这个形状，在 Glyph 模块中导入它，编译器在每次运行时都会让两者保持一致：
+      </p>
       <div class="two-up stack">
         <div class="code">
           <span class="cap">src/extern/web.ts</span>
@@ -634,20 +676,16 @@ exist in type 'WebResponse'.
    <span class="bx">╰─</span> server:53:3</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">0.1.44 之前的情况，以及不算数的文件</span></summary><div class="body">
         <p>
           在 0.1.44 之前，指纹完全跳过 <code>extern/</code>，所以那次重命名会得到一次干净、通过类型检查的构建，运行的却是旧版本的适配层。<code>extern/</code> 下不是 <code>.ts</code> 或 <code>.tsx</code> 的文件仍然不影响缓存，这是有意为之：适配层旁边的 <code>README.md</code> 会随它一起复制到输出目录，但没有任何东西会对它做类型检查或运行它，所以没有什么需要重新构建。
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="class-based-clients-the-database-and-messaging-ones">基于类的客户端：数据库和消息队列客户端<a class="h-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="链接到本节">#</a></h2>
-        <p>
-          大多数数据库和消息队列客户端都是基于类的：你要写 <code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code>。Glyph 的 <code>new</code> 正是为此准备的。它原样生成 TypeScript 的 <code>new</code>，由 <code>tsc</code> 对照包的真实构造函数检查，所以错误的参数就是真正的错误，未定义的被调用者会按名字报出来。它只用于互操作：Glyph 自己没有 <code>class</code>，<code>new</code> 只能构造来自包、<code>.types</code> 声明或 <code>extern_ts</code> 的类型。
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="class-based-clients-the-database-and-messaging-ones">基于类的客户端：数据库和消息队列客户端<a class="ak-anchor" href="#class-based-clients-the-database-and-messaging-ones" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          大多数数据库和消息队列客户端都是基于类的：你要写 <code>new Kafka(...)</code>、<code>new MongoClient(url)</code>、<code>new Redis()</code>、<code>new Pool(cfg)</code>。Glyph 的 <code>new</code> 正是为此准备的。
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">基于类的客户端（kafkajs）</span>
@@ -671,19 +709,52 @@ exist in type 'WebResponse'.
 <span class="k">await</span> client.set(<span class="s">"k"</span>, <span class="s">"v"</span>)</pre>
         </div>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>它原样生成 TypeScript 的 <code>new</code>，由 <code>tsc</code> 对照包的真实构造函数检查，所以错误的参数就是真正的错误，未定义的被调用者会按名字报出来。</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>它只用于互操作：Glyph 自己没有 <code>class</code>，<code>new</code> 只能构造来自包、<code>.types</code> 声明或 <code>extern_ts</code> 的类型。</p></div>
 
-      <h2 class="block-label" id="where-it-stands">当前状态<a class="h-anchor" href="#where-it-stands" aria-label="链接到本节">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>导入任何 npm 包（包括带连字符的名字和作用域包）。已安装并自带类型（或有 <code>@types/...</code>）的包，不需要存根就能做类型检查和运行。基于类的客户端用 <code>new</code> 构造，由 <code>tsc</code> 对照真实构造函数检查；工厂函数式客户端直接导入并调用。Node 内置模块（<code>fs</code>、<code>path</code>、<code>http</code>、包含流式 <code>spawn</code> 的 <code>child_process</code>，以及其他模块）开箱即可做类型检查，安装 <code>@types/node</code> 后会自动加载它；CI 会针对该包的 <code>latest</code> 版本构建编译器自己的运行时，所以标准库依赖的声明不会与 node 的真实声明产生偏差。只有你的代码用到的声明暂时还不在这项检查的覆盖范围内，还有少数声明仍比 node 的更宽松。其他任何东西都可以用 <code>.types/</code> 环境声明；<code>glyph gen dts</code> 把 <code>.d.ts</code> 实化为经过校验的 Glyph 类型；输出干净的 <code>.ts</code>，你现有的 TypeScript 可以反过来导入。需要整段手写 TypeScript 时，<code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下的 <code>.ts</code>，它会和你的代码一起放入输出并做类型检查，并被 <code>glyph run</code> 的缓存跟踪，修改后会重新构建。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>实化现在可以处理真实 SDK 中出现的各种形状（命名空间、跨文件以及别名/命名空间形式的重导出、子路径 <code>exports</code>、一等泛型），由值派生的类型（<code>z.infer&lt;typeof s&gt;</code>）也是一等的。剩下的主要 gap 是：未实化的包，其输出会对照它的 <code>.d.ts</code> 做类型检查，但除非你把它实化，否则不会做运行时校验。在 <code>extern/</code> 这一边，两个命令的源码根目录不同：<code>glyph run app.glyph</code> 以文件自己所在的目录为根，<code>glyph build src/</code> 以你指定的目录为根。因此位于子目录中的程序会在两个不同的位置寻找它的适配层，在我们确定使用哪一个根目录之前，这样布局的项目需要让两个位置都能找到适配层。找不到时会明确报错。</p>
-        </div>
-        <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">导入任何 npm 包（包括带连字符的名字和作用域包）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">已安装并自带类型（或有 <code>@types/...</code>）的包，不需要存根就能做类型检查和运行。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">基于类的客户端用 <code>new</code> 构造，由 <code>tsc</code> 对照真实构造函数检查；工厂函数式客户端直接导入并调用。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Node 内置模块开箱即可做类型检查</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>Node 内置模块（<code>fs</code>、<code>path</code>、<code>http</code>、包含流式 <code>spawn</code> 的 <code>child_process</code>，以及其他模块）开箱即可做类型检查，安装 <code>@types/node</code> 后会自动加载它；CI 会针对该包的 <code>latest</code> 版本构建编译器自己的运行时，所以标准库依赖的声明不会与 node 的真实声明产生偏差。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">只有你的代码用到的声明暂时还不在这项检查的覆盖范围内，还有少数声明仍比 node 的更宽松。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">其他任何东西都可以用 <code>.types/</code> 环境声明。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen dts</code> 把 <code>.d.ts</code> 实化为经过校验的 Glyph 类型。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">输出干净的 <code>.ts</code>，你现有的 TypeScript 可以反过来导入。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下手写的 TypeScript</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>需要整段手写 TypeScript 时，<code>import extern/&lt;name&gt;</code> 引用 <code>&lt;src&gt;/extern/</code> 下的 <code>.ts</code>，它会和你的代码一起放入输出并做类型检查，并被 <code>glyph run</code> 的缓存跟踪，修改后会重新构建。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">实化可以处理真实 SDK 中出现的各种形状，由值派生的类型也是一等的</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>实化现在可以处理真实 SDK 中出现的各种形状（命名空间、跨文件以及别名/命名空间形式的重导出、子路径 <code>exports</code>、一等泛型），由值派生的类型（<code>z.infer&lt;typeof s&gt;</code>）也是一等的。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">剩下的主要 gap 是：未实化的包，其输出会对照它的 <code>.d.ts</code> 做类型检查，但除非你把它实化，否则不会做运行时校验。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">在 <code>extern/</code> 这一边，<code>glyph run</code> 和 <code>glyph build</code> 的源码根目录不同</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
+                <p>在 <code>extern/</code> 这一边，两个命令的源码根目录不同：<code>glyph run app.glyph</code> 以文件自己所在的目录为根，<code>glyph build src/</code> 以你指定的目录为根。因此位于子目录中的程序会在两个不同的位置寻找它的适配层，在我们确定使用哪一个根目录之前，这样布局的项目需要让两个位置都能找到适配层。找不到时会明确报错。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.153 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/upgrades/">
           <span class="dir">&larr; 上一篇</span>

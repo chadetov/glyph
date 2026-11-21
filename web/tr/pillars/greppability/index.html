@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Aranabilirlik","item":"https://glyphlang.io/tr/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/greppability/#article","headline":"Aranabilirlik · tek isim, tek yer","description":"Glyph'in ikinci temel ilkesi: her sembolün tanımında tek bir biçimi vardır. Overload, decorator, namespace birleştirme ya da barrel re-export yok, bu yüzden grep onu bulur.","url":"https://glyphlang.io/tr/pillars/greppability/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/pillars/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Aranabilirlik","item":"https://glyphlang.io/tr/pillars/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/pillars/greppability/#article","headline":"Aranabilirlik · tek isim, tek yer","description":"Glyph'in ikinci temel ilkesi: her sembolün tanımında tek bir biçimi vardır. Overload, decorator, namespace birleştirme ya da barrel re-export yok, bu yüzden grep onu bulur.","url":"https://glyphlang.io/tr/pillars/greppability/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/pillars/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/pillars/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/pillars/greppability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page answer-page pillar-page">
+    <article class="answer-page answer-page pillar-page ak">
       <p class="q-eyebrow">İlke 02 &middot; <span class="wedge">Asıl mesele</span></p>
       <h1 class="q-title">Aranabilirlik</h1>
 
@@ -433,21 +433,7 @@
         <strong>Tek isim, tek yer.</strong> Her sembolün tanımlandığı yerde tam olarak tek bir sözdizimsel biçimi vardır; bu yüzden düz bir <code>grep</code> tanımı her zaman bulur, indeks, dil sunucusu ya da şans gerekmeden.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-where-is-this-defined-is-hard">"Bu nerede tanımlı?" sorusu neden zor<a class="h-anchor" href="#why-where-is-this-defined-is-hard" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p class="lede">
-          Olgun bir TypeScript kod tabanında en basit soru, yani <em>bu isim nereden geliyor?</em>, çoğu zaman en zorudur. Dil, tek bir sembolü birçok yere dağıtmanın yarım düzine yolunu sunar: overload'lar bir fonksiyonu birkaç imzaya böler, decorator'lar onu başka bir şeyle sarar, <code>namespace</code> ve <code>interface</code> birleştirme bir tipi dosyalara dağıtır, <code>declare module</code> sahibi olmadığınız kodu genişletir ve barrel <code>index.ts</code> dosyaları her şeyi yeniden export eder; böylece import ettiğiniz yol, aslında hiçbir şeyin bulunduğu yer değildir.
-        </p>
-        <p class="lede">
-          Bir insan bunu bir LSP ve alışkanlıkla idare eder. Bir <strong>ajan</strong> ise grep kullanır: depoyu metin olarak okur ve bu yapıların her biri, metnin kodun yeri hakkında yalan söylediği bir yerdir. Glyph bunları kaldırır. Sonuç, aramanın bir sezgisel yöntem değil, güvenilir bir temel işlem olduğu bir dildir.
-        </p>
-
-        <h2 class="block-label" id="one-declaration-one-form"><span class="ex-label">01</span> Tek tanım, tek biçim<a class="h-anchor" href="#one-declaration-one-form" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir fonksiyon, tip ya da component tam olarak bir kez, tek bir sözdizimiyle tanımlanır. Bir imzayı bölecek overload yoktur ve bir ismi yeniden tanımlamanın yolu yoktur: aynı ada sahip iki üst düzey öğe kesin bir hatadır (<code>E0100</code>). Bu yüzden bir tanım aramasının tam olarak tek bir yanıtı vardır.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: dört eşleşme, biri gövde</span>
@@ -465,56 +451,88 @@
 ) <span class="op">-&gt;</span> <span class="t">Result</span>&lt;<span class="t">User</span>, <span class="t">string</span>&gt; {</pre>
         </div>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-where-is-this-defined-is-hard">Neden zor</a></li>
+          <li><a href="#one-declaration-one-form">Tek tanım, tek biçim</a></li>
+          <li><a href="#no-barrel-files-the-import-path-is-the-location">Barrel dosyası yok</a></li>
+          <li><a href="#no-hidden-ways-to-attach-behavior">Gizli davranış yok</a></li>
+          <li><a href="#even-mutation-is-greppable">Grep'lenebilir değişiklik</a></li>
+          <li><a href="#the-benchmark-coming">Benchmark</a></li>
+          <li><a href="#a-lint-rule-can-ban-overloads-and-decorators">"Bunu bir lint kuralı da yapar"</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-where-is-this-defined-is-hard">"Bu nerede tanımlı?" sorusu neden zor<a class="ak-anchor" href="#why-where-is-this-defined-is-hard" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Olgun bir TypeScript kod tabanında en basit soru, yani <em>bu isim nereden geliyor?</em>, çoğu zaman en zorudur.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">overload'lar, decorator'lar, birleştirme, genişletme, barrel'lar</span></summary><div class="body">
+        <p>
+          Dil, tek bir sembolü birçok yere dağıtmanın yarım düzine yolunu sunar: overload'lar bir fonksiyonu birkaç imzaya böler, decorator'lar onu başka bir şeyle sarar, <code>namespace</code> ve <code>interface</code> birleştirme bir tipi dosyalara dağıtır, <code>declare module</code> sahibi olmadığınız kodu genişletir ve barrel <code>index.ts</code> dosyaları her şeyi yeniden export eder; böylece import ettiğiniz yol, aslında hiçbir şeyin bulunduğu yer değildir.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+          Bir insan bunu bir LSP ve alışkanlıkla idare eder. Bir <strong>ajan</strong> ise grep kullanır: depoyu metin olarak okur ve bu yapıların her biri, metnin kodun yeri hakkında yalan söylediği bir yerdir.
+      </p></div>
+      <p class="ak-lede">
+          Glyph bunları kaldırır. Sonuç, aramanın bir sezgisel yöntem değil, güvenilir bir temel işlem olduğu bir dildir.
+      </p>
+
+      <h2 class="ak-h" id="one-declaration-one-form"><span class="ex-label">01</span> Tek tanım, tek biçim<a class="ak-anchor" href="#one-declaration-one-form" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bir fonksiyon, tip ya da component tam olarak bir kez, tek bir sözdizimiyle tanımlanır. Bir imzayı bölecek overload yoktur ve bir ismi yeniden tanımlamanın yolu yoktur: aynı ada sahip iki üst düzey öğe kesin bir hatadır (<code>E0100</code>).
+      </p>
+      <div class="ak-chips"><span class="chip code">E0100</span></div>
         <p class="pull-quote">
           Tanım anahtar kelimesi, aradığınız ismin bir parçasıdır. <code>grep "fn parseUser"</code> bir çağrıyla, bir import'la ya da bir re-export'la eşleşemez; yalnızca <strong>tanımlandığı</strong> tek yerle eşleşir.
         </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu yüzden bir tanım aramasının tam olarak tek bir yanıtı vardır.</p></div>
 
-        <h2 class="block-label" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> Barrel dosyası yok: import yolu, konumun kendisidir<a class="h-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Glyph import'ları asla yeniden export etmez ve yalnızca import'lardan oluşan bir modül reddedilir (<code>E0102</code>). Arada bir <code>index.ts</code> aklama katmanı yoktur. Bu yüzden bir import, sembolün gerçekten bulunduğu modülü adlandırır: yol, adresin <em>kendisidir</em>.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="no-barrel-files-the-import-path-is-the-location"><span class="ex-label">02</span> Barrel dosyası yok: import yolu, konumun kendisidir<a class="ak-anchor" href="#no-barrel-files-the-import-path-is-the-location" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Glyph import'ları asla yeniden export etmez ve yalnızca import'lardan oluşan bir modül reddedilir (<code>E0102</code>). Arada bir <code>index.ts</code> aklama katmanı yoktur.
+      </p>
       <div class="code">
         <span class="cap">import size tam olarak nereye bakacağınızı söyler</span>
 <pre><span class="k">import</span> myapp/users { parseUser }
 <span class="cm">//     ^^^^^^^^^^^ the file is src/myapp/users.glyph.</span>
 <span class="cm">//     not a re-export of a re-export of a barrel.</span></pre>
       </div>
+      <div class="ak-chips"><span class="chip code">E0102</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu yüzden bir import, sembolün gerçekten bulunduğu modülü adlandırır: yol, adresin <em>kendisidir</em>.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> Davranış eklemenin gizli yolları yok<a class="h-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bir fonksiyonu görünmeyen bir katmana saran decorator'lar, ağacın her yerinden üye toplayan <code>namespace</code> birleştirme, açmayı asla düşünmeyeceğiniz bir dosyadan üçüncü taraf bir tipi genişleten <code>declare module</code> ve bir metodun neye referans verdiğini yeniden bağlayan örtük <code>this</code> yoktur. Bir isim tek bir tanıma çözülür ve onu şekillendiren her şey o tanımda görünür.
-        </p>
+      <h2 class="ak-h" id="no-hidden-ways-to-attach-behavior"><span class="ex-label">03</span> Davranış eklemenin gizli yolları yok<a class="ak-anchor" href="#no-hidden-ways-to-attach-behavior" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bir fonksiyonu görünmeyen bir katmana saran decorator'lar, ağacın her yerinden üye toplayan <code>namespace</code> birleştirme, açmayı asla düşünmeyeceğiniz bir dosyadan üçüncü taraf bir tipi genişleten <code>declare module</code> ve bir metodun neye referans verdiğini yeniden bağlayan örtük <code>this</code> yoktur.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir isim tek bir tanıma çözülür ve onu şekillendiren her şey o tanımda görünür.</p></div>
 
-        <h2 class="block-label" id="even-mutation-is-greppable"><span class="ex-label">04</span> Değişiklikler bile grep'lenebilir<a class="h-anchor" href="#even-mutation-is-greppable" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Aranabilirlik yalnızca tanımları bulmakla ilgili değildir, <em>etkileri</em> bulmakla da ilgilidir. Paylaşılan durum bir <code>std/store</code>'da yaşar ve ona yapılan her değişiklik, düz bir <code>.set(</code> ya da <code>.update(</code> çağrısıdır. Bu yüzden tek bir arama, dosyaya dağılmış atamaları kovalamak yerine bir durumun tüm yazma yüzeyini listeler.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="even-mutation-is-greppable"><span class="ex-label">04</span> Değişiklikler bile grep'lenebilir<a class="ak-anchor" href="#even-mutation-is-greppable" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Aranabilirlik yalnızca tanımları bulmakla ilgili değildir, <em>etkileri</em> bulmakla da ilgilidir. Paylaşılan durum bir <code>std/store</code>'da yaşar ve ona yapılan her değişiklik, düz bir <code>.set(</code> ya da <code>.update(</code> çağrısıdır.
+      </p>
+      <div class="code term">
         <span class="cap">$ grep -rn 'tasks\.\(set\|update\)' src/</span>
 <pre class="wraps"><span class="ln-no">src/tasks.glyph:16:</span>  tasks.update(<span class="k">fn</span>(cur) { ... })
 <span class="ln-no">src/tasks.glyph:24:</span>  tasks.set([])
 <span class="cm"># every place the task list can change, enumerated.</span>
 <span class="cm"># nothing hides in an ordinary `x = ...` elsewhere.</span></pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu yüzden tek bir arama, dosyaya dağılmış atamaları kovalamak yerine bir durumun tüm yazma yüzeyini listeler.</p></div>
 
-      <div class="detail">
         <p class="pull-quote">
           Bir kod tabanı, <strong>metni yapısı hakkında doğruyu söylediğinde</strong> grep'lenebilirdir. Buradaki her kısıtlama (isim başına tek biçim, re-export yok, birleştirme yok), bir aramanın bir ipucu değil, yanıtın kendisini döndürmesi için vardır.
         </p>
 
-        <h2 class="block-label" id="the-benchmark-coming">Benchmark: yakında<a class="h-anchor" href="#the-benchmark-coming" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Bu iddianın ölçülebilir hali isabettir: belirli bir sembol için düz bir grep'in eşleşmelerinin ne kadarı gerçekten aradığınız şeydir ve bir ajanın bir tanıma ulaşması kaç adım sürer? Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik yer tutucudur; ölçülecek gerçek bir kod tabanı olduğunda gerçek rakamlarla dolacak.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-benchmark-coming">Benchmark: yakında<a class="ak-anchor" href="#the-benchmark-coming" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Bu iddianın ölçülebilir hali isabettir: belirli bir sembol için düz bir grep'in eşleşmelerinin ne kadarı gerçekten aradığınız şeydir ve bir ajanın bir tanıma ulaşması kaç adım sürer?
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph henüz gerçek dünyada kullanılmıyor, bu yüzden aşağıdaki grafik yer tutucudur; ölçülecek gerçek bir kod tabanı olduğunda gerçek rakamlarla dolacak.</p></div>
       <div class="chart">
         <span class="label">Bir tanım için grep isabeti &middot; yüksek olan daha iyi</span>
         <h3>TypeScript ve Glyph</h3>
@@ -530,25 +548,20 @@
           <span class="h">Henüz ölçülmedi</span> Gerçek bir Glyph kod tabanı olur olmaz ondan grep isabetini ve tanıma kadar geçen adım sayısını bildireceğiz ve rakamlar ne çıkarsa çıksın burada yayımlayacağız.
         </div>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           Kazanç, ölçek ve özerklikle birlikte katlanır. Bir insan bir kod tabanının saklanma yerlerini öğrenir; sıfırdan başlayan bir ajan öğrenmez. Aranabilirlik, bir aracın (ya da yeni bir ekip arkadaşının) depoda olduğu haliyle, okuyarak yolunu bulmasını sağlayan şeydir.
-        </p>
-      </div>
+      </p></div>
 
-      <div class="detail">
-        <h2 class="block-label" id="a-lint-rule-can-ban-overloads-and-decorators">"Bir lint kuralı overload'ları ve decorator'ları yasaklayabilir"<a class="h-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="Bu bölümün bağlantısı">#</a></h2>
-        <p>
-          Kendi deponuzda evet. ESLint namespace'leri yasaklayabilir ve bir ekip overload kullanmamakta anlaşabilir. Dil yine de hepsine izin verir; bu yüzden garanti, yapılandırma ne kadar sürerse o kadar sürer ve yalnızca üzerinde çalıştığı kodu kapsar. Bir bağımlılık, üretilmiş bir dosya ya da başka birinin deposu üzerindeki bir <code>grep</code> buna güvenemez. Glyph'te bu yapılar yoktur; bu yüzden <code>grep</code>, ekibinizden kimsenin yapılandırmadığı dosyalar dahil her Glyph dosyasında aynı şekilde çalışır.
-        </p>
-      </div>
+      <h2 class="ak-h" id="a-lint-rule-can-ban-overloads-and-decorators">"Bir lint kuralı overload'ları ve decorator'ları yasaklayabilir"<a class="ak-anchor" href="#a-lint-rule-can-ban-overloads-and-decorators" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Kendi deponuzda evet. ESLint namespace'leri yasaklayabilir ve bir ekip overload kullanmamakta anlaşabilir.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Dil yine de hepsine izin verir; bu yüzden garanti, yapılandırma ne kadar sürerse o kadar sürer ve yalnızca üzerinde çalıştığı kodu kapsar. Bir bağımlılık, üretilmiş bir dosya ya da başka birinin deposu üzerindeki bir <code>grep</code> buna güvenemez.</p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph'te bu yapılar yoktur; bu yüzden <code>grep</code>, ekibinizden kimsenin yapılandırmadığı dosyalar dahil her Glyph dosyasında aynı şekilde çalışır.</p></div>
 
-      <div class="detail">
-        <p>
+      <p class="ak-lede">
           Bunun ajanın tarafından nasıl göründüğü, yani bir tanımı ya da bir değere yapılan her yazmayı tek bir aramayla bulmak, <a href="/tr/answers/greppability/">Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi?</a> sayfasında yanıtlanıyor.
-        </p>
-      </div>
+      </p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/pillars/verifiability/">
           <span class="dir">&larr; Önceki ilke</span>

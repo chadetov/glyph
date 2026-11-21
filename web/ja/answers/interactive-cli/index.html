@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"人が入力するプログラムは書けるか","item":"https://glyphlang.io/ja/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/interactive-cli/#article","headline":"人が入力するプログラムは書けるか","description":"io.read_line は stdin が閉じるのを待たず、行が届いた時点で return するので、REPL、ゲームループ、チャットクライアントは入力しながら応答できます。","url":"https://glyphlang.io/ja/answers/interactive-cli/","inLanguage":"ja","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/interactive-cli/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"人が入力するプログラムは書けるか","item":"https://glyphlang.io/ja/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/interactive-cli/#article","headline":"人が入力するプログラムは書けるか","description":"io.read_line は stdin が閉じるのを待たず、行が届いた時点で return するので、REPL、ゲームループ、チャットクライアントは入力しながら応答できます。","url":"https://glyphlang.io/ja/answers/interactive-cli/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/interactive-cli/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/interactive-cli/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/interactive-cli/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">18 &middot; 対話型プログラム</p>
       <h1 class="q-title">人が入力するプログラムは書けるか</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Q&amp;A">
@@ -480,21 +480,10 @@
         書けます。<code>io.read_line</code> は <strong>1 行が届いた時点で</strong> return し、stdin が閉じるのを待ちません。そのため REPL、ゲームループ、チャットクライアントは、次の行を読む前に各行に応答します。0.1.62 までは待っていました。これははっきり書いておく価値があります。それが原因で、対話型のプログラムはどれも書けなかったからです。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">なぜ重要か<a class="h-anchor" href="#why-it-matters" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          入力の終わりでしか return しない行リーダーは、行リーダーの名前を付けたファイルリーダーです。ファイルをパイプで通すと完璧に動くので、誰も気づきませんでした。リポジトリで stdin を読むアプリはどれもパイプから読んでいたのです。そこへ誰かがチャットクライアントを書いたところ、入力している間は黙ったままで、Ctrl-D を押した後にすべての応答を一度に出力しました。
-        </p>
-        <p>
-          そのアプリは、記録した JSON ファイルを再生するセッションリプレイヤーとしてリリースされ、ソースにはその理由を説明するコメントが付いていました。ほかに 3 つのアプリが、誰もそれと名指ししないまま、同じ問題に合わせた形になっていました。マインスイーパーは手番の間に再描画できず、テキストアドベンチャーは <code>look</code> に応答できず、REPL は入力を終えるまで何も評価しませんでした。
-        </p>
-
-        <h2 class="block-label" id="see-it">実例<a class="h-anchor" href="#see-it" aria-label="このセクションへのリンク">#</a></h2>
-        <p>チャットアプリのライブセッションのループ全体です。読み、適用し、出力し、繰り返す：</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">チャットアプリのライブセッションのループ全体です。読み、適用し、出力し、繰り返す：</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre><span class="k">fn</span> converse(limit: <span class="t">Option</span>&lt;<span class="t">int</span>&gt;) <span class="op">-&gt;</span> <span class="t">Server</span> {
   <span class="k">let</span> state = server.empty()
   io.println(<span class="t">LIVE_BANNER</span>)
@@ -514,16 +503,12 @@
   }
   <span class="k">return</span> state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           実際のターミナルで、各行を約 0.6 秒間隔で入力し、stdin を開いたままにして動かしたものです。左の列はプロセス開始からのミリ秒です：
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -532,40 +517,81 @@
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>入力した行から応答まで 1 から 2 ミリ秒です。</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">修正前の様子と、最初の 1.6 秒の内訳</span></summary><div class="body">
+          <p>
+            修正前は、stdin が閉じた 6460ms まで何も出力されませんでした。通しで実行したときの最初の応答は約 1.6 秒後ですが、これは <code>tsx</code> の起動時間で、読み取りの遅延ではありません。
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        入力の終わりでしか return しない行リーダーは、行リーダーの名前を付けたファイルリーダーです。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        ファイルをパイプで通すと完璧に動くので、誰も気づきませんでした。リポジトリで stdin を読むアプリはどれもパイプから読んでいたのです。そこへ誰かがチャットクライアントを書いたところ、入力している間は黙ったままで、Ctrl-D を押した後にすべての応答を一度に出力しました。
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">この問題に合わせて形を変えたアプリ</span></summary><div class="body">
         <p>
-          入力した行から応答まで 1 から 2 ミリ秒です。修正前は、stdin が閉じた 6460ms まで何も出力されませんでした。通しで実行したときの最初の応答は約 1.6 秒後ですが、これは <code>tsx</code> の起動時間で、読み取りの遅延ではありません。
+          そのアプリは、記録した JSON ファイルを再生するセッションリプレイヤーとしてリリースされ、ソースにはその理由を説明するコメントが付いていました。ほかに 3 つのアプリが、誰もそれと名指ししないまま、同じ問題に合わせた形になっていました。マインスイーパーは手番の間に再描画できず、テキストアドベンチャーは <code>look</code> に応答できず、REPL は入力を終えるまで何も評価しませんでした。
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-parts-that-bite-in-practice">実際につまずきやすい点<a class="h-anchor" href="#the-parts-that-bite-in-practice" aria-label="このセクションへのリンク">#</a></h2>
-        <p>
-          末尾の <code>\r</code> は取り除かれるので、CRLF のファイルでも LF のファイルでも同じ行が得られ、Windows からの入力で見えない文字をデバッグする羽目にはなりません。最後の改行なしで終わる入力も、<code>None</code> の前にその最後の行を一度返すので、末尾に改行のないファイルの最終行が黙って捨てられることはありません。読み取りの境界をまたいで分割されたマルチバイトの UTF-8 は、置換文字にならずに保持されて完成させられます。
-        </p>
-        <p>
-          <code>read_to_string</code> は同じバッファから読み出すので、2 つは組み合わせられます。ヘッダを <code>read_line</code> で読んでからボディを <code>read_to_string</code> で読むと、2 つ目のコピーでも空文字列でもなく、残りの部分が得られます。最初に呼べば、従来どおり stdin 全体を返します。パイプで渡した 200,000 行を数えるのに約 20ms しかかからないので、1 行ずつ読んでもスループットが犠牲になることはありません。
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">実際につまずきやすい点<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b>末尾の <code>\r</code> は取り除かれるので、CRLF のファイルでも LF のファイルでも同じ行が得られ、Windows からの入力で見えない文字をデバッグする羽目にはなりません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>最後の改行なし</b>最後の改行なしで終わる入力も、<code>None</code> の前にその最後の行を一度返すので、末尾に改行のないファイルの最終行が黙って捨てられることはありません。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>分割された UTF-8</b>読み取りの境界をまたいで分割されたマルチバイトの UTF-8 は、置換文字にならずに保持されて完成させられます。</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer"><code>read_line</code> のあとに <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> は同じバッファから読み出すので、2 つは組み合わせられます。ヘッダを <code>read_line</code> で読んでからボディを <code>read_to_string</code> で読むと、2 つ目のコピーでも空文字列でもなく、残りの部分が得られます。最初に呼べば、従来どおり stdin 全体を返します。
+      </p>
       <div class="code">
         <span class="cap">ヘッダ行を読み、続いてボディを読む</span>
 <pre><span class="k">let</span> header = io.read_line()
 <span class="k">let</span> body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        パイプで渡した 200,000 行を数えるのに約 20ms しかかからないので、1 行ずつ読んでもスループットが犠牲になることはありません。
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">現状<a class="h-anchor" href="#where-it-stands" aria-label="このセクションへのリンク">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">提供中</h3>
-          <p><code>io.read_line</code> はストリームが閉じたときではなく行が届いたときに return するので、プロンプト、読み取り、応答のループはターミナルでもパイプでも同じように動きます。CRLF は正規化され、終端のない最後の行は一度だけ渡され、マルチバイト文字はチャンクの境界をまたいでも壊れず、<code>read_to_string</code> は同じバッファの残りを受け取ります。リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求します。ファイルをパイプで渡すテストは、壊れた実装に対しても通ってしまうからです。<code>io.print</code> と <code>io.eprint</code> は改行なしで書き込むので、REPL の <code>&gt; </code> プロンプトは答えを入力する行に表示されます。<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教えるので、チャットアプリの <code>--stdin</code> のようなフラグだけが判断の手段ではなくなりました。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">まだ粗い点</h3>
-          <p>画面を再描画したいプログラムには、カーソル制御の手段がありません。<code>std/io</code> にはカーソルや画面の関数がなく、ほかの標準ライブラリのモジュールにもないので、全画面のターミナル UI を作るには、今もエスケープコードを自分で書く必要があります。</p>
-        </div>
-        <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-20">2026年11月20日</time>。</p>
+      <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code> はストリームが閉じたときではなく行が届いたときに return するので、プロンプト、読み取り、応答のループはターミナルでもパイプでも同じように動きます。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF は正規化され、終端のない最後の行は一度だけ渡され、マルチバイト文字はチャンクの境界をまたいでも壊れず、<code>read_to_string</code> は同じバッファの残りを受け取ります。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求する</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>リグレッションテストは stdin を開いたままにしてエコーが返ってくることを要求します。ファイルをパイプで渡すテストは、壊れた実装に対しても通ってしまうからです。</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> と <code>io.eprint</code> は改行なしで書き込む</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教える</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>io.print</code> と <code>io.eprint</code> は改行なしで書き込むので、REPL の <code>&gt; </code> プロンプトは答えを入力する行に表示されます。<code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> は、相手が人かパイプかをプログラムに教えるので、チャットアプリの <code>--stdin</code> のようなフラグだけが判断の手段ではなくなりました。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> まだ粗い点</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">画面を再描画したいプログラムには、カーソル制御の手段がない</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>画面を再描画したいプログラムには、カーソル制御の手段がありません。<code>std/io</code> にはカーソルや画面の関数がなく、ほかの標準ライブラリのモジュールにもないので、全画面のターミナル UI を作るには、今もエスケープコードを自分で書く必要があります。</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/web-serving/">
           <span class="dir">&larr; 前へ</span>

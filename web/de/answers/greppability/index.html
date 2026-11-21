@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ein Agent (oder ich) finden, wo etwas definiert ist?","item":"https://glyphlang.io/de/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/greppability/#article","headline":"Kann ein Agent (oder ich) finden, wo etwas definiert ist?","description":"Jedes Konstrukt in Glyph hat eine einzige Form, nach der man sucht, also landet grep (oder die Suche eines Agenten) auf der einen Definition statt auf fünfzig Beinahe-Treffern.","url":"https://glyphlang.io/de/answers/greppability/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/greppability/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Antworten","item":"https://glyphlang.io/de/answers/"},{"@type":"ListItem","position":3,"name":"Kann ein Agent (oder ich) finden, wo etwas definiert ist?","item":"https://glyphlang.io/de/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/answers/greppability/#article","headline":"Kann ein Agent (oder ich) finden, wo etwas definiert ist?","description":"Jedes Konstrukt in Glyph hat eine einzige Form, nach der man sucht, also landet grep (oder die Suche eines Agenten) auf der einen Definition statt auf fünfzig Beinahe-Treffern.","url":"https://glyphlang.io/de/answers/greppability/","inLanguage":"de","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">03 &middot; Navigation per Suche</p>
       <h1 class="q-title">Kann ein Agent (oder ich) finden, wo etwas definiert ist?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Antworten">
@@ -478,30 +478,32 @@
         Jedes Konstrukt hat <strong>genau eine Form</strong>, nach der man sucht. Ein einfaches <code>grep</code> (so navigieren Agenten tatsächlich) landet auf der einen Definition, <strong>nicht auf fünfzig Beinahe-Treffern</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">Warum das wichtig ist<a class="h-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>
-          Ein Agent hat nicht dein ganzes Repo im Kopf; er <strong>sucht</strong>. Wenn sich ein Konzept auf fünf verschiedene Arten schreiben lässt, übersieht die Suche Fälle, und ein selbstsicherer Agent, der die bestehende Definition nicht findet, erfindet eine zweite. Eine Form pro Konzept heißt, die Suche ist vollständig, also bearbeitet der Agent, was da ist, statt es zu duplizieren.
-        </p>
-
-        <h2 class="block-label" id="see-it">So sieht es aus<a class="h-anchor" href="#see-it" aria-label="Link zu diesem Abschnitt">#</a></h2>
-        <p>Glyph beschränkt Mutation auf zwei Formen (<code>mut x = &hellip;</code> und <code>mut x.method(&hellip;)</code>), also beantwortet eine einzige Suche <em>jede</em> Stelle, an der sich Zustand ändert:</p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+      <div class="code term">
         <span class="cap">grep -rn "mut " src/ (jede Mutation in der Codebasis)</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph beschränkt Mutation auf zwei Formen (<code>mut x = &hellip;</code> und <code>mut x.method(&hellip;)</code>), also beantwortet eine einzige Suche <em>jede</em> Stelle, an der sich Zustand ändert. Drei Mutationen, alle davon, in einer Suche.</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Warum das wichtig ist<a class="ak-anchor" href="#why-it-matters" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Ein Agent hat nicht dein ganzes Repo im Kopf; er <strong>sucht</strong>. Eine Form pro Konzept heißt, die Suche ist vollständig, also bearbeitet der Agent, was da ist, statt es zu duplizieren.
+      </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Wenn sich ein Konzept auf fünf verschiedene Arten schreiben lässt, übersieht die Suche Fälle, und ein selbstsicherer Agent, der die bestehende Definition nicht findet, erfindet eine zweite.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">warum dieselbe Frage in TypeScript keine Antwort hat</span></summary><div class="body">
         <p>
-          Drei Mutationen, alle davon, in einer Suche. In TypeScript kann sich eine Mutation hinter <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, einem Setter oder einem Spread verstecken. Es gibt kein einzelnes Token zum Greppen, also hat &ldquo;ändert irgendetwas das hier?&rdquo; keine verlässliche Antwort. Dieselbe Regel einer einzigen Form macht ganze Kategorien prüfbar:
+          In TypeScript kann sich eine Mutation hinter <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, einem Setter oder einem Spread verstecken. Es gibt kein einzelnes Token zum Greppen, also hat &ldquo;ändert irgendetwas das hier?&rdquo; keine verlässliche Antwort.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="audits">Ganze Kategorien in einer Suche<a class="ak-anchor" href="#audits" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Dieselbe Regel einer einzigen Form macht ganze Kategorien prüfbar:
+      </p>
+      <div class="code term">
         <span class="cap">eine Suche = eine vollständige Antwort</span>
 <pre><span class="cm"># every UI component</span>
 <span class="f">grep</span> <span class="fl">-rn</span> <span class="add">"^component "</span> src/
@@ -512,31 +514,32 @@
 <span class="cm"># the entire resource-ownership surface</span>
 <span class="f">grep</span> <span class="fl">-rn</span> <span class="add">"owned"</span> src/</pre>
       </div>
-
-      <div class="detail">
-        <p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
           Es gibt keine Kurzschreibweise für Objektliterale, keinen zweiten Weg, eine Komponente zu deklarieren, keine überladene Syntax, die man auflösen müsste. Weniger Wege, etwas zu schreiben, ist eine echte Einschränkung, und genau darum geht es: Das macht die Suche eines Agenten, und deine, vertrauenswürdig.
-        </p>
-      </div>
-
-      <div class="detail">
-        <p>
+      </p></div>
+      <p class="ak-lede">
           Die Konstrukte, die Glyph weglässt, damit man einer Suche vertrauen kann, und warum eine Lint-Regel nicht dieselbe Garantie ist, stehen auf der <a href="/de/pillars/greppability/">Seite zur Säule Durchsuchbarkeit</a>.
-        </p>
-      </div>
+      </p>
 
-      <h2 class="block-label" id="where-it-stands">Wo es steht<a class="h-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Heute verfügbar</h3>
-          <p>Eine kanonische Form pro Konstrukt, Mutation auf zwei durchsuchbare Formen beschränkt (<code>mut</code>), und Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Darauf aufbauend</h3>
-          <p>Der Language Server ergänzt Go-to-Definition und Find-References über den ganzen Workspace: dieselbe Garantie, jetzt interaktiv in deinem Editor.</p>
-        </div>
-        <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-20">20. Nov. 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine kanonische Form pro Konstrukt.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation auf zwei durchsuchbare Formen beschränkt (<code>mut</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Darauf aufbauend</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Der Language Server ergänzt Go-to-Definition und Find-References über den ganzen Workspace: dieselbe Garantie, jetzt interaktiv in deinem Editor.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Die Codebeispiele auf dieser Seite werden bei jedem Build mit Glyph 0.1.153 geprüft. Zuletzt geändert: <time datetime="2026-11-21">21. Nov. 2026</time>.</p>
       <nav class="prevnext" aria-label="Zurück und weiter">
         <a href="/de/answers/diff-stability/">
           <span class="dir">&larr; Zurück</span>

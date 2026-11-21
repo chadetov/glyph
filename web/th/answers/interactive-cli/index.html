@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?","item":"https://glyphlang.io/th/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/interactive-cli/#article","headline":"เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?","description":"io.read_line คืนค่าทันทีที่มีบรรทัดเข้ามา แทนที่จะรอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบกลับขณะที่คุณพิมพ์","url":"https://glyphlang.io/th/answers/interactive-cli/","inLanguage":"th","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/interactive-cli/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/interactive-cli/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?","item":"https://glyphlang.io/th/answers/interactive-cli/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/interactive-cli/#article","headline":"เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?","description":"io.read_line คืนค่าทันทีที่มีบรรทัดเข้ามา แทนที่จะรอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบกลับขณะที่คุณพิมพ์","url":"https://glyphlang.io/th/answers/interactive-cli/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/interactive-cli/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/interactive-cli/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/interactive-cli/" />
@@ -427,7 +427,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">18 &middot; โปรแกรมที่พิมพ์โต้ตอบ</p>
       <h1 class="q-title">เขียนโปรแกรมที่ผู้ใช้พิมพ์โต้ตอบได้ไหม?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="คำตอบ">
@@ -480,21 +480,10 @@
         ได้ <code>io.read_line</code> คืนค่า<strong>ทันทีที่บรรทัดเต็มเข้ามา</strong> และไม่รอให้ stdin ปิด REPL, game loop หรือ chat client จึงตอบแต่ละบรรทัดก่อนอ่านบรรทัดถัดไป จนถึง 0.1.62 มันเคยรอ และเรื่องนี้ควรพูดออกมาตรงๆ เพราะมันทำให้โปรแกรมแบบโต้ตอบทุกตัวเป็นไปไม่ได้
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="h-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          ตัวอ่านบรรทัดที่คืนค่าเฉพาะตอนจบ input คือตัวอ่านไฟล์ที่ใช้ชื่อตัวอ่านบรรทัด การ pipe ไฟล์ผ่านมันใช้ได้สมบูรณ์ ซึ่งเป็นเหตุผลที่ไม่มีอะไรจับได้: ทุกแอปใน repository ที่อ่าน stdin อ่านจาก pipe แล้ววันหนึ่งมีคนเขียน chat client และมันเงียบไปขณะที่เขาพิมพ์ แล้วพิมพ์คำตอบทั้งหมดออกมาพร้อมกันหลัง Ctrl-D
-        </p>
-        <p>
-          แอปนั้นถูกปล่อยออกไปเป็นตัวเล่นซ้ำ session จากไฟล์ JSON ที่บันทึกไว้ พร้อม comment ในซอร์สบอกเหตุผล อีกสามแอปถูกปรับรูปให้หลบเรื่องเดียวกันโดยไม่มีใครเรียกชื่อมัน: minesweeper วาดใหม่ระหว่างการเดินไม่ได้ เกมผจญภัยแบบข้อความตอบ <code>look</code> ไม่ได้ และ REPL ไม่ประมวลผลอะไรเลยจนกว่าคุณจะวางสาย
-        </p>
-
-        <h2 class="block-label" id="see-it">ดูของจริง<a class="h-anchor" href="#see-it" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>loop ของ session สดทั้งหมดของแอป chat อ่าน ประมวลผล พิมพ์ ทำซ้ำ:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">loop ของ session สดทั้งหมดของแอป chat อ่าน ประมวลผล พิมพ์ ทำซ้ำ:</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre><span class="k">fn</span> converse(limit: <span class="t">Option</span>&lt;<span class="t">int</span>&gt;) <span class="op">-&gt;</span> <span class="t">Server</span> {
   <span class="k">let</span> state = server.empty()
   io.println(<span class="t">LIVE_BANNER</span>)
@@ -514,16 +503,12 @@
   }
   <span class="k">return</span> state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           ขับด้วย terminal จริง พิมพ์แต่ละบรรทัดห่างกันประมาณ 0.6 วินาที และเปิด stdin ค้างไว้ คอลัมน์ซ้ายคือมิลลิวินาทีนับจาก process เริ่ม:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -532,40 +517,81 @@
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>หนึ่งถึงสองมิลลิวินาทีจากบรรทัดที่พิมพ์ถึงคำตอบ</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ก่อนแก้ และ 1.6 วินาทีแรกหายไปไหน</span></summary><div class="body">
+          <p>
+            ก่อนแก้ ไม่มีอะไรพิมพ์ออกมาจนถึง 6460ms ซึ่งเป็นตอนที่ stdin ปิด คำตอบแรกในการรันเต็มมาถึงประมาณ 1.6 วินาที และนั่นคือเวลาเริ่มต้นของ <code>tsx</code> ไม่ใช่ความหน่วงในการอ่าน
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัวอ่านบรรทัดที่คืนค่าเฉพาะตอนจบ input คือตัวอ่านไฟล์ที่ใช้ชื่อตัวอ่านบรรทัด
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        การ pipe ไฟล์ผ่านมันใช้ได้สมบูรณ์ ซึ่งเป็นเหตุผลที่ไม่มีอะไรจับได้: ทุกแอปใน repository ที่อ่าน stdin อ่านจาก pipe แล้ววันหนึ่งมีคนเขียน chat client และมันเงียบไปขณะที่เขาพิมพ์ แล้วพิมพ์คำตอบทั้งหมดออกมาพร้อมกันหลัง Ctrl-D
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">แอปที่ถูกปรับรูปให้เลี่ยงมัน</span></summary><div class="body">
         <p>
-          หนึ่งถึงสองมิลลิวินาทีจากบรรทัดที่พิมพ์ถึงคำตอบ ก่อนแก้ ไม่มีอะไรพิมพ์ออกมาจนถึง 6460ms ซึ่งเป็นตอนที่ stdin ปิด คำตอบแรกในการรันเต็มมาถึงประมาณ 1.6 วินาที และนั่นคือเวลาเริ่มต้นของ <code>tsx</code> ไม่ใช่ความหน่วงในการอ่าน
+          แอปนั้นถูกปล่อยออกไปเป็นตัวเล่นซ้ำ session จากไฟล์ JSON ที่บันทึกไว้ พร้อม comment ในซอร์สบอกเหตุผล อีกสามแอปถูกปรับรูปให้หลบเรื่องเดียวกันโดยไม่มีใครเรียกชื่อมัน: minesweeper วาดใหม่ระหว่างการเดินไม่ได้ เกมผจญภัยแบบข้อความตอบ <code>look</code> ไม่ได้ และ REPL ไม่ประมวลผลอะไรเลยจนกว่าคุณจะวางสาย
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="the-parts-that-bite-in-practice">ส่วนที่มักเจอปัญหาจริง<a class="h-anchor" href="#the-parts-that-bite-in-practice" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-        <p>
-          <code>\r</code> ท้ายบรรทัดถูกตัดออก ไฟล์ CRLF กับไฟล์ LF จึงให้บรรทัดเหมือนกัน และคุณไม่ต้องมาดีบักอักขระที่มองไม่เห็นจาก input บน Windows input ที่จบโดยไม่มีขึ้นบรรทัดใหม่ตัวสุดท้ายยังคืนบรรทัดสุดท้ายนั้นหนึ่งครั้งก่อน <code>None</code> แถวสุดท้ายของไฟล์ที่ไม่มีขึ้นบรรทัดใหม่ปิดท้ายจึงไม่หายไปเงียบๆ UTF-8 แบบหลายไบต์ที่ถูกแบ่งข้ามขอบเขตการอ่านจะถูกเก็บไว้และต่อให้ครบ แทนที่จะกลายเป็นอักขระแทนที่
-        </p>
-        <p>
-          <code>read_to_string</code> ดึงจาก buffer เดียวกัน ทั้งสองจึงใช้ร่วมกันได้: <code>read_line</code> สำหรับบรรทัด header แล้ว <code>read_to_string</code> สำหรับ body จะได้ส่วนที่เหลือ ไม่ใช่สำเนาที่สอง และไม่ใช่ string ว่าง ถ้าเรียกมันก่อน ก็ยังคืน stdin ทั้งหมด การนับ 200,000 บรรทัดที่ pipe เข้ามาใช้เวลาประมาณ 20ms การอ่านทีละบรรทัดจึงไม่ได้แลกกับ throughput
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">ส่วนที่มักเจอปัญหาจริง<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b><code>\r</code> ท้ายบรรทัดถูกตัดออก ไฟล์ CRLF กับไฟล์ LF จึงให้บรรทัดเหมือนกัน และคุณไม่ต้องมาดีบักอักขระที่มองไม่เห็นจาก input บน Windows</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>ไม่มีขึ้นบรรทัดใหม่ปิดท้าย</b>input ที่จบโดยไม่มีขึ้นบรรทัดใหม่ตัวสุดท้ายยังคืนบรรทัดสุดท้ายนั้นหนึ่งครั้งก่อน <code>None</code> แถวสุดท้ายของไฟล์ที่ไม่มีขึ้นบรรทัดใหม่ปิดท้ายจึงไม่หายไปเงียบๆ</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>UTF-8 ที่ถูกแบ่ง</b>UTF-8 แบบหลายไบต์ที่ถูกแบ่งข้ามขอบเขตการอ่านจะถูกเก็บไว้และต่อให้ครบ แทนที่จะกลายเป็นอักขระแทนที่</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer"><code>read_line</code> แล้วตามด้วย <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> ดึงจาก buffer เดียวกัน ทั้งสองจึงใช้ร่วมกันได้: <code>read_line</code> สำหรับบรรทัด header แล้ว <code>read_to_string</code> สำหรับ body จะได้ส่วนที่เหลือ ไม่ใช่สำเนาที่สอง และไม่ใช่ string ว่าง ถ้าเรียกมันก่อน ก็ยังคืน stdin ทั้งหมด
+      </p>
       <div class="code">
         <span class="cap">บรรทัด header แล้วตามด้วย body</span>
 <pre><span class="k">let</span> header = io.read_line()
 <span class="k">let</span> body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        การนับ 200,000 บรรทัดที่ pipe เข้ามาใช้เวลาประมาณ 20ms การอ่านทีละบรรทัดจึงไม่ได้แลกกับ throughput
+      </p></div>
 
-      <h2 class="block-label" id="where-it-stands">สถานะตอนนี้<a class="h-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>io.read_line</code> คืนค่าเมื่อบรรทัดเข้ามา ไม่ใช่เมื่อ stream ปิด loop แบบถาม อ่าน ตอบ จึงใช้ได้ทั้งใน terminal และผ่าน pipe CRLF ถูกปรับให้เป็นมาตรฐาน บรรทัดสุดท้ายที่ไม่มีตัวจบถูกส่งหนึ่งครั้ง อักขระหลายไบต์รอดข้ามขอบ chunk และ <code>read_to_string</code> รับส่วนที่เหลือของ buffer เดียวกัน regression test เปิด stdin ค้างไว้และต้องได้ echo กลับมา เพราะเทสต์ที่ pipe ไฟล์เข้าไปก็ผ่านกับ implementation ที่พังได้เหมือนกัน <code>io.print</code> และ <code>io.eprint</code> เขียนโดยไม่ขึ้นบรรทัดใหม่ prompt <code>&gt; </code> ของ REPL จึงอยู่บนบรรทัดเดียวกับที่พิมพ์คำตอบ และ <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> บอกโปรแกรมว่ากำลังคุยกับคนหรือ pipe flag อย่าง <code>--stdin</code> ของแอป chat จึงไม่ใช่วิธีเดียวที่จะถามอีกต่อไป</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">ยังหยาบอยู่</h3>
-          <p>โปรแกรมที่ต้องการวาดหน้าจอใหม่ไม่มีการควบคุมเคอร์เซอร์: <code>std/io</code> ไม่มีฟังก์ชันเกี่ยวกับเคอร์เซอร์หรือหน้าจอ และไม่มี module อื่นใน stdlib เพิ่มให้ terminal UI แบบเต็มจอจึงยังต้องเขียน escape code เอง</p>
-        </div>
-        <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-20">20 พ.ย. 2026</time></p>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code> คืนค่าเมื่อบรรทัดเข้ามา ไม่ใช่เมื่อ stream ปิด loop แบบถาม อ่าน ตอบ จึงใช้ได้ทั้งใน terminal และผ่าน pipe</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF ถูกปรับให้เป็นมาตรฐาน บรรทัดสุดท้ายที่ไม่มีตัวจบถูกส่งหนึ่งครั้ง อักขระหลายไบต์รอดข้ามขอบ chunk และ <code>read_to_string</code> รับส่วนที่เหลือของ buffer เดียวกัน</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">regression test เปิด stdin ค้างไว้และต้องได้ echo กลับมา</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>regression test เปิด stdin ค้างไว้และต้องได้ echo กลับมา เพราะเทสต์ที่ pipe ไฟล์เข้าไปก็ผ่านกับ implementation ที่พังได้เหมือนกัน</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> และ <code>io.eprint</code> เขียนโดยไม่ขึ้นบรรทัดใหม่</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> บอกโปรแกรมว่ากำลังคุยกับคนหรือ pipe</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>io.print</code> และ <code>io.eprint</code> เขียนโดยไม่ขึ้นบรรทัดใหม่ prompt <code>&gt; </code> ของ REPL จึงอยู่บนบรรทัดเดียวกับที่พิมพ์คำตอบ และ <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> บอกโปรแกรมว่ากำลังคุยกับคนหรือ pipe flag อย่าง <code>--stdin</code> ของแอป chat จึงไม่ใช่วิธีเดียวที่จะถามอีกต่อไป</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> ยังหยาบอยู่</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">โปรแกรมที่ต้องการวาดหน้าจอใหม่ยังไม่มีการควบคุม cursor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>โปรแกรมที่ต้องการวาดหน้าจอใหม่ไม่มีการควบคุมเคอร์เซอร์: <code>std/io</code> ไม่มีฟังก์ชันเกี่ยวกับเคอร์เซอร์หรือหน้าจอ และไม่มี module อื่นใน stdlib เพิ่มให้ terminal UI แบบเต็มจอจึงยังต้องเขียน escape code เอง</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.153 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/web-serving/">
           <span class="dir">&larr; ก่อนหน้า</span>

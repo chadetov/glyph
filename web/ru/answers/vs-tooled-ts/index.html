@@ -42,8 +42,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему не TypeScript с инструментами: tsc, zod, eslint?","item":"https://glyphlang.io/ru/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#article","headline":"Почему не TypeScript с инструментами: tsc, zod, eslint?","description":"TypeScript с инструментами заходит далеко, но каждая гарантия включается по желанию, и агент может её обойти. В Glyph строгость это сам язык, а не конфигурационный файл.","url":"https://glyphlang.io/ru/answers/vs-tooled-ts/","inLanguage":"ru","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
+    <link rel="stylesheet" href="/css/answer-kit.css" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Почему не TypeScript с инструментами: tsc, zod, eslint?","item":"https://glyphlang.io/ru/answers/vs-tooled-ts/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#article","headline":"Почему не TypeScript с инструментами: tsc, zod, eslint?","description":"TypeScript с инструментами заходит далеко, но каждая гарантия включается по желанию, и агент может её обойти. В Glyph строгость это сам язык, а не конфигурационный файл.","url":"https://glyphlang.io/ru/answers/vs-tooled-ts/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/vs-tooled-ts/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/vs-tooled-ts/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/vs-tooled-ts/" />
@@ -425,7 +425,7 @@
       })();
     </script>
     <main id="main">
-    <article class="answer-page has-side">
+    <article class="answer-page has-side ak">
       <p class="q-eyebrow">05 &middot; Сравнение</p>
       <h1 class="q-title">Почему не просто строгий TypeScript + zod + eslint + ts-pattern?</h1>
       <nav class="ans-side" id="ans-nav" aria-label="Ответы">
@@ -478,13 +478,10 @@
         Потому что каждая из этих гарантий <strong>включается по желанию</strong>, и агент может обойти любую из них одной строкой. Строгость Glyph это не конфигурационный файл, который агент может поправить. Это сам язык. Точка контроля смещается с «не забыли ли мы прогнать линтер по этому файлу» на «компилируется ли это».
       </p>
 
-      <div class="detail">
-        <h2 class="block-label" id="what-tooled-typescript-already-covers">Что уже даёт TypeScript с инструментами<a class="h-anchor" href="#what-tooled-typescript-already-covers" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Хорошо настроенный TypeScript заводит очень далеко, и если ваша команда гоняет всё это в CI, большинство пробелов, на которые нацелен Glyph, у вас уже закрыто. Это альтернатива, к которой стоит отнестись серьёзно, поэтому вот соответствие:
-        </p>
-      </div>
-
+      <p class="ak-lede">
+        Хорошо настроенный TypeScript заводит очень далеко, и если ваша команда гоняет всё это в CI, большинство пробелов, на которые нацелен Glyph, у вас уже закрыто. Это альтернатива, к которой стоит отнестись серьёзно, поэтому вот соответствие:
+      </p>
+      <figure class="ak-hero" id="what-tooled-typescript-already-covers">
       <div class="code">
         <span class="cap">что уже даёт TypeScript с инструментами</span>
 <pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
@@ -494,18 +491,25 @@ runtime validation  <span class="cm">→ zod at every boundary</span>
 must-handle errors  <span class="cm">→ an eslint rule</span>
 deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Что уже даёт TypeScript с инструментами. Если всё это у вас подключено и соблюдается, вы прошли большую часть пути. В TypeScript эти идеи есть. Язык, делая их обязательными, добавляет к ним три вещи.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Если всё это у вас подключено и соблюдается, вы прошли большую часть пути. В TypeScript эти идеи есть. Язык, делая их обязательными, добавляет к ним три вещи.
-        </p>
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#non-optional-beats-opt-in">Обязательное лучше необязательного</a></li>
+          <li><a href="#the-type-is-the-validator-no-second-artifact">Тип и есть валидатор</a></li>
+          <li><a href="#greppable-mutation">Мутации, которые находит grep</a></li>
+          <li><a href="#the-failure-mode-diff">Разница в сбоях</a></li>
+          <li><a href="#where-tooled-typescript-is-still-ahead">Где TypeScript впереди</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Обязательное лучше необязательного<a class="h-anchor" href="#non-optional-beats-opt-in" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Конфигурация eslint защищает только тот код, который агент пропускает <em>через</em> неё, а агент может написать <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> или просто забыть <code>.exhaustive()</code>, и это всё равно скомпилируется и будет смёржено. Каждая из этих лазеек это настройка, которую агент может поменять. В Glyph такой лазейки нет: нет <code>as</code>, нет прагмы игнорирования, нет способа получить типизированное значение из <code>unknown</code> без проверки, которую видит компилятор.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="non-optional-beats-opt-in"><span class="ex-label">01</span> Обязательное лучше необязательного<a class="ak-anchor" href="#non-optional-beats-opt-in" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Каждая из этих лазеек это настройка, которую агент может поменять. В Glyph такой лазейки нет: нет <code>as</code>, нет прагмы игнорирования, нет способа получить типизированное значение из <code>unknown</code> без проверки, которую видит компилятор.
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TypeScript: лазейки есть</span>
@@ -527,30 +531,36 @@ doThing(user.mispelled);
 <span class="cm">// no lint to switch off.</span></pre>
         </div>
       </div>
-
-      <div class="detail">
-        <p class="callout">
-          Строгость, которую агент <strong>не может отключить конфигурацией</strong>, находится в другой точке контроля, чем строгость, которую может. На этой разнице и построен Glyph.
-        </p>
-
-        <h2 class="block-label" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> Тип и есть валидатор: второго артефакта нет<a class="h-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="Ссылка на этот раздел">#</a></h2>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Строгость, которую агент не может отключить конфигурацией, находится в другой точке контроля, чем строгость, которую может. На этой разнице и построен Glyph.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что агент может написать в обход eslint</span></summary><div class="body">
         <p>
-          zod переворачивает источник истины: вы пишете <em>схему</em>, выводите из неё тип, а потом вручную синхронизируете тип, схему и любой сериализатор. Именно при поддержании этого соответствия агент и вносит расхождение: переименовывает поле в типе, но не в схеме, и оба продолжают компилироваться. В Glyph тип <em>и есть</em> валидатор: объявление <code>type User = {...}</code> генерирует рядом <code>User.parse</code>. Один артефакт, нечего синхронизировать, нечего забыть.
+          Конфигурация eslint защищает только тот код, который агент пропускает <em>через</em> неё, а агент может написать <code>as unknown as User</code>, <code>@ts-ignore</code>, <code>// eslint-disable-next-line</code> или просто забыть <code>.exhaustive()</code>, и это всё равно скомпилируется и будет смёржено.
         </p>
+      </div></details>
 
-        <h2 class="block-label" id="greppable-mutation"><span class="ex-label">03</span> Мутации, которые находит grep<a class="h-anchor" href="#greppable-mutation" aria-label="Ссылка на этот раздел">#</a></h2>
+      <h2 class="ak-h" id="the-type-is-the-validator-no-second-artifact"><span class="ex-label">02</span> Тип и есть валидатор: второго артефакта нет<a class="ak-anchor" href="#the-type-is-the-validator-no-second-artifact" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        В Glyph тип <em>и есть</em> валидатор: объявление <code>type User = {...}</code> генерирует рядом <code>User.parse</code>. Один артефакт, нечего синхронизировать, нечего забыть.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>zod: сначала схема</b>zod переворачивает источник истины: вы пишете <em>схему</em>, выводите из неё тип, а потом вручную синхронизируете тип, схему и любой сериализатор.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>Откуда берётся расхождение</b>Именно при поддержании этого соответствия агент и вносит расхождение: переименовывает поле в типе, но не в схеме, и оба продолжают компилироваться.</li>
+      </ul>
+
+      <h2 class="ak-h" id="greppable-mutation"><span class="ex-label">03</span> Мутации, которые находит grep<a class="ak-anchor" href="#greppable-mutation" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        В Glyph общее состояние живёт в store, и каждое изменение это буквальный <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> находит каждую локальную мутацию. В обычном TypeScript аналога нет.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">где может спрятаться запись в TypeScript</span></summary><div class="body">
         <p>
-          В TypeScript изменение состояния может прятаться за <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, сеттером или spread. Нет одного токена, который можно искать, и ни одно правило линтера это полностью не исправляет. В Glyph общее состояние живёт в store, и каждое изменение это буквальный <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code> находит каждую локальную мутацию. В обычном TypeScript аналога нет.
+          В TypeScript изменение состояния может прятаться за <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, сеттером или spread. Нет одного токена, который можно искать, и ни одно правило линтера это полностью не исправляет.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label" id="the-failure-mode-diff">Разница в том, как всё ломается<a class="h-anchor" href="#the-failure-mode-diff" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Та же задача: агент добавляет вариант в union и забывает обработать его в одном из трёх мест:
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-failure-mode-diff">Разница в том, как всё ломается<a class="ak-anchor" href="#the-failure-mode-diff" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Та же задача: агент добавляет вариант в union и забывает обработать его в одном из трёх мест:
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">TS с инструментами</span>
@@ -570,37 +580,49 @@ doThing(user.mispelled);
         </div>
       </div>
 
-      <div class="detail">
-        <h2 class="block-label" id="where-tooled-typescript-is-still-ahead">В чём TypeScript с инструментами пока впереди<a class="h-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Ссылка на этот раздел">#</a></h2>
-        <p>
-          Четыре места, где сегодня он опережает Glyph:
-        </p>
-        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Более богатая валидация.</strong> Дескрипторы Glyph по умолчанию строгие (они отклоняют необъявленные ключи), а уточнение <code>where</code> накладывает предикат на примитив (<code>type Email = string where value.includes("@")</code>), и дескриптор выполняет его на каждой границе, до которой доходит тип. zod всё ещё впереди в двух отношениях: в нём есть готовые проверки вроде <code>.email()</code> и <code>.url()</code>, которые в Glyph вы пишете сами, и он уточняет целые объекты, тогда как <code>where</code> на записи (<code>lo &lt;= hi</code> по двум полям) сегодня даёт <code>E0300</code>.</li>
-          <li><strong>Более глубокое сопоставление.</strong> Гарды и глубокие структурные паттерны ts-pattern выходят за пределы того, что выражает <code>match</code> в Glyph.</li>
-          <li><strong>«Доказуемое отсутствие» заканчивается на границе <code>.ts</code>.</strong> Гарантии Glyph действуют для кода, написанного на Glyph; исключение, выброшенное зависимостью из npm, всё равно обходит <code>Result</code>, а у импортированного типа из <code>.d.ts</code> нет дескриптора для проверки во время выполнения.</li>
-          <li><strong>Экосистема и найм.</strong> Инструменты, сообщество и рынок разработчиков TypeScript намного больше, и за ними годы использования в продакшене. Glyph это ранняя предварительная версия.</li>
-        </ul>
-        <p>
-          Если TypeScript с инструментами у вас подключён полностью и ваши агенты остаются внутри него, большая часть этого у вас уже есть. Довод Glyph в том, что вся нагрузка лежит на словах «остаются внутри», и именно их агент нарушает. Обязательность, валидация одним артефактом и мутации, которые находит grep, это то, чего не получить, добавляя новые необязательные инструменты.
-        </p>
+      <h2 class="ak-h" id="where-tooled-typescript-is-still-ahead">В чём TypeScript с инструментами пока впереди<a class="ak-anchor" href="#where-tooled-typescript-is-still-ahead" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Четыре места, где сегодня он опережает Glyph:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>Более богатая валидация.</b>Дескрипторы Glyph по умолчанию строгие (они отклоняют необъявленные ключи), а уточнение <code>where</code> накладывает предикат на примитив (<code>type Email = string where value.includes("@")</code>), и дескриптор выполняет его на каждой границе, до которой доходит тип. zod всё ещё впереди в двух отношениях: в нём есть готовые проверки вроде <code>.email()</code> и <code>.url()</code>, которые в Glyph вы пишете сами, и он уточняет целые объекты, тогда как <code>where</code> на записи (<code>lo &lt;= hi</code> по двум полям) сегодня даёт <code>E0300</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Более глубокое сопоставление.</b>Гарды и глубокие структурные паттерны ts-pattern выходят за пределы того, что выражает <code>match</code> в Glyph.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg></span><b>«Доказуемое отсутствие» заканчивается на границе <code>.ts</code>.</b>Гарантии Glyph действуют для кода, написанного на Glyph; исключение, выброшенное зависимостью из npm, всё равно обходит <code>Result</code>, а у импортированного типа из <code>.d.ts</code> нет дескриптора для проверки во время выполнения.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="5.5" cy="6" r="2.2"/><circle cx="11" cy="6" r="2.2"/><path d="M1.8 13c.4-2.2 1.9-3.4 3.7-3.4s3.3 1.2 3.7 3.4M7.4 13c.4-2.2 1.9-3.4 3.6-3.4s3.3 1.2 3.7 3.4"/></svg></span><b>Экосистема и найм.</b>Инструменты, сообщество и рынок разработчиков TypeScript намного больше, и за ними годы использования в продакшене. Glyph это ранняя предварительная версия.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Если TypeScript с инструментами у вас подключён полностью и ваши агенты остаются внутри него, большая часть этого у вас уже есть. Довод Glyph в том, что вся нагрузка лежит на словах «остаются внутри», и именно их агент нарушает. Обязательность, валидация одним артефактом и мутации, которые находит grep, это то, чего не получить, добавляя новые необязательные инструменты.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">ReScript, Gleam или Elm</span></summary><div class="body">
         <p>
           Если вы готовы уйти с TypeScript на более старый типизированный язык, компилирующийся в JavaScript, страница <a href="/ru/design/vs-rescript-gleam-elm/">Почему не ReScript, Gleam или Elm?</a> сравнивает Glyph с ними.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label" id="where-it-stands">Текущее состояние<a class="h-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел">#</a></h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Нет <code>any</code>/<code>as</code>, исчерпывающий <code>match</code> (<code>E0200</code>/<code>E0218</code>), предупреждение об отброшенном <code>Result</code> (<code>E0217</code>), валидаторы, сгенерированные из типов, и мутации, которые находит grep: всё обязательное, и ничто из этого не правило eslint, которое можно отключить.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Измеряется</h3>
-          <p>Утверждение, что агенты допускают меньше ускользнувших дефектов в Glyph, чем в <em>хорошо настроенном</em> строгом TS, это бенчмарк, который мы строим, и сравнение идёт с TypeScript с инструментами, а не с наивным TS. Смотрите <a href="/ru/benchmarks/">бенчмарки</a>.</p>
-        </div>
-        <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-20">20 ноя 2026</time>.</p>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Нет <code>any</code>/<code>as</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Исчерпывающий <code>match</code>.</span><span class="chip code">E0200</span><span class="chip code">E0218</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Предупреждение об отброшенном <code>Result</code>.</span><span class="chip code">E0217</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Валидаторы, сгенерированные из типов.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Мутации, которые находит grep.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Всё обязательное, и ничто из этого не правило eslint, которое можно отключить.</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Нет <code>any</code>/<code>as</code>, исчерпывающий <code>match</code> (<code>E0200</code>/<code>E0218</code>), предупреждение об отброшенном <code>Result</code> (<code>E0217</code>), валидаторы, сгенерированные из типов, и мутации, которые находит grep: всё обязательное, и ничто из этого не правило eslint, которое можно отключить.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Измеряется</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Утверждение, что агенты допускают меньше ускользнувших дефектов в Glyph, чем в <em>хорошо настроенном</em> строгом TS, это бенчмарк, который мы строим, и сравнение идёт с TypeScript с инструментами, а не с наивным TS. Смотрите <a href="/ru/benchmarks/">бенчмарки</a>.</span></span></li>
+          </ul>
+        </section>
       </div>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.153 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/why-typescript/">
           <span class="dir">&larr; Назад</span>

@@ -569,6 +569,16 @@ pub fn explain(code: &str) -> Option<&'static str> {
             so removing one leaves a value of no declared type. Use a record with \
             optional fields for a partial map, and `record.set` to replace a \
             value.\n\n\
+            An async function passed where a sync `fn(...) -> void` is declared \
+            is this error (D40): the slot calls it and drops what it returns, so \
+            each call starts on its own, nothing waits for it, and its failure \
+            is lost. TypeScript accepts it. `ids.forEach(save)` with `async fn \
+            save` is refused, as is an async lambda given to `timers.every` or \
+            to a socket handler. Where the caller can wait, await each call in \
+            a loop, `for id in ids { await save(id) }`; where it cannot, pass a \
+            sync callback that starts the work on purpose, `fn(id: number) { \
+            task.detach(async fn() -> void { await save(id) }) }`, which reports \
+            a failure instead of losing it.\n\n\
             Pass a value of the expected type, or change the parameter's type.",
 
         "E0212" => "E0212: cannot reassign a `const`\n\n\
@@ -2159,7 +2169,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40)",
         fix: "Pass a value of the expected type",
     },
     CodeEntry {

@@ -28,6 +28,7 @@
 #![forbid(unsafe_code)]
 
 pub mod assign;
+pub mod async_slot;
 pub mod builtin_members;
 mod builtin_methods;
 pub mod concurrency;
@@ -1137,6 +1138,27 @@ pub enum TypeError {
         task: Option<String>,
         span: Span,
     },
+
+    /// An async function passed where a sync `fn(...) -> void` is declared:
+    /// `ids.forEach(save)` with `async fn save`, an async lambda given to
+    /// `timers.every` (D40, as amended for 0.1.159). The slot calls it and
+    /// drops what it returns, so each call runs on its own and its failure is
+    /// lost. E0211, at the argument, with its own message: the general
+    /// argument mismatch would only print two function types.
+    ///
+    /// `callee` is the function called, as the program spells it; `loop_over`
+    /// the array a `forEach` walks, for the loop the help offers; `can_await`
+    /// whether the calling code is async; `task` the module's name for
+    /// `std/task`.
+    #[error("{}", async_slot::async_slot_message(.callee, .callback))]
+    AsyncCallbackIntoSyncVoid {
+        callee: String,
+        callback: async_slot::AsyncCallback,
+        loop_over: Option<String>,
+        can_await: bool,
+        task: Option<String>,
+        span: Span,
+    },
 }
 
 /// What the variant a `<case ... bind={x}>` names carries, as far as the
@@ -1482,6 +1504,7 @@ impl TypeError {
             TypeError::RecordRemoveFiniteKey { span, .. } => *span,
             TypeError::CaseBind { span, .. } => *span,
             TypeError::PendingNotAwaited { span, .. } => *span,
+            TypeError::AsyncCallbackIntoSyncVoid { span, .. } => *span,
         }
     }
 
@@ -1532,6 +1555,7 @@ impl TypeError {
             TypeError::RecordRemoveFiniteKey { .. } => "E0211",
             TypeError::CaseBind { .. } => "E0231",
             TypeError::PendingNotAwaited { .. } => "E0238",
+            TypeError::AsyncCallbackIntoSyncVoid { .. } => "E0211",
         }
     }
 
@@ -1607,6 +1631,21 @@ impl TypeError {
                 subject,
                 *settles_to_result,
                 context,
+                task.as_deref(),
+            )));
+        }
+        if let TypeError::AsyncCallbackIntoSyncVoid {
+            callback,
+            loop_over,
+            can_await,
+            task,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(async_slot::async_slot_help(
+                callback,
+                loop_over.as_deref(),
+                *can_await,
                 task.as_deref(),
             )));
         }
@@ -1827,6 +1866,7 @@ impl TypeError {
             }
             TypeError::CaseBind { .. } => unreachable!("answered above with its rewrite"),
             TypeError::PendingNotAwaited { .. } => unreachable!("answered above with the call it names"),
+            TypeError::AsyncCallbackIntoSyncVoid { .. } => unreachable!("answered above with the callback it names"),
             TypeError::UnseenMatchType { .. } => unreachable!("answered above with the module it names"),
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
@@ -1905,6 +1945,9 @@ impl TypeError {
             ),
             TypeError::PendingNotAwaited { .. } => Some(
                 "Calling an async function starts it and hands back a pending value (D51). Only `await` waits for it and sees its failure; a pending value may also be returned from an async callable or bound to a name that is awaited later.",
+            ),
+            TypeError::AsyncCallbackIntoSyncVoid { .. } => Some(
+                "A `fn(...) -> void` parameter is called and its result dropped, so an `async fn` passed there is started and never awaited (D40). TypeScript accepts it; Glyph holds `fn` and `async fn` apart, the `void` slot included.",
             ),
             TypeError::MatchArmProducesNoValue { .. } => Some(
                 "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",

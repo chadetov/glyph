@@ -1183,7 +1183,9 @@ instead. Read a failed outcome's `unknown` with `string.from(e)`.
 A call to an async function that nothing awaits is E0238, so `detach` is how a
 sync callback (a timer, a socket event) starts work on purpose:
 `task.detach(async fn() -> void { await save(x) })`. Pass the work as a
-function; `task.detach(save(x))` has already started the call.
+function; `task.detach(save(x))` has already started the call. The callback
+itself stays sync: an `async fn` given to a `fn(...) -> void` parameter (a
+timer, a socket handler, `forEach`) is E0211, because nothing waits for it.
 
 ### std/set
 
@@ -2062,7 +2064,7 @@ written. The full catalogue:
 | E0208 | Non-exhaustive `match` on an array (length not covered) | Cover the length, or add a catch-all |
 | E0209 | Non-exhaustive `match` on a `bool` | Cover `true` and `false`, or add `else` |
 | E0210 | A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set | Fix the field name / add it to the type |
-| E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record | Pass a value of the expected type |
+| E0211 | Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40) | Pass a value of the expected type |
 | E0212 | `mut` reassigns a `const` binding (D20) | Use a function-level `let` |
 | E0213 | Wrong number of call arguments | One argument per parameter |
 | E0214 | Component declared with multiple parameters (use a props record) | Take a single props record |
@@ -2253,7 +2255,7 @@ variants' `construct` in `glyph check --agent`.
 - **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
 - **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`
 - **run concurrently:** `await task.all([fn() { a() }, fn() { b() }])`
-- **await every async call:** a call to an `async fn` is a pending value until it is awaited; `save(1)` alone, `let _ = save(1)` and `let n: number = load()` are E0238. Write `await save(1)`; in a sync callback, `task.detach(async fn() -> void { await save(1) })`
+- **await every async call:** a call to an `async fn` is a pending value until it is awaited; `save(1)` alone, `let _ = save(1)` and `let n: number = load()` are E0238. Write `await save(1)`; in a sync callback, `task.detach(async fn() -> void { await save(1) })`. An `async fn` passed where `fn(...) -> void` is declared (`ids.forEach(save)`, `timers.every(200, async fn() { ... })`) is E0211: await each call in a loop, or pass a sync callback that calls `task.detach`
 - **bounded concurrency:** `await task.pool(4, tasks)` runs the thunks with at most 4 in flight (fail-fast); `task.pool_settled(4, tasks)` keeps going past a failure
 - **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`, `regex.captures_all(pat, text)` for the groups of every match
 - **walk a directory:** `let names = fs.read_dir(dir)?` for entry names, `fs.is_dir(path.join([dir, name]))` to recurse, `let info = fs.stat(p)?` for size/mtime

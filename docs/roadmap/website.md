@@ -84,8 +84,20 @@ case files, in English and the nine languages: the TypeScript and what it did,
 the Glyph and what the compiler said with its error code, what a fully
 configured TypeScript project catches, and previous/next in the ranked order.
 Each is in the sitemap with a content-hashed date and carries a breadcrumb and
-a TechArticle. Cards on `/catches/` link to their pages. Traps and holes
-have no page yet: they carry only a one-line summary.
+a TechArticle. Cards on `/catches/` link to their pages, and so do the home
+hero, the home page's top cases and the refused table on `/hardening/`, which
+linked to `/catches/#<slug>` before. Traps and holes have no page yet: they
+carry only a one-line summary.
+
+**2026-11-21 · The scannable answer format everywhere.** Every answer and the
+four pillar pages follow the format piloted on `/answers/verifiability/` and
+`/answers/typed-apis/`: the short answer, one visual under it, an "On this
+page" list on the longer pages, sections that are a heading, a sentence or two
+and one artifact, longer explanation and history in collapsed rows, and "Where
+it stands" as one-line items. The sentences, code blocks and section anchors
+are the ones the pages had. The translations in the nine languages follow the
+new structure, including the answers that were behind their English
+(`codegen`, `parse-errors`, `typed-apis`, `early-errors`).
 
 ## Next
 
@@ -94,15 +106,12 @@ have no page yet: they carry only a one-line summary.
    Glyph-refuses pair; a 60 to 90 second demo. Done on 2026-11-21: an "Open
    in playground" link on each case the playground carries (21 of the 37
    TypeScript cases and the 5 traps), on `/catches/` and on each case's page.
-2. **The scannable answer format for the remaining answers and the pillars**,
-   as piloted on `/answers/verifiability/` and `/answers/typed-apis/`.
-   Approved by the owner on 2026-11-21; not started.
-3. **Search data.** The sitemap submitted to Search Console, indexing of all
+2. **Search data.** The sitemap submitted to Search Console, indexing of all
    pages and languages checked, and the search queries that bring people in,
    read through seo-monster once its Google sign-in is set up.
-4. **Translation polish.** Shorten translated descriptions that run past search
+3. **Translation polish.** Shorten translated descriptions that run past search
    result length; one number format policy across languages; remove the unused
    `Reference` menu key.
-5. **Launch.** Show HN, then r/typescript and the other channels in the launch
+4. **Launch.** Show HN, then r/typescript and the other channels in the launch
    plan, posted by the author. Target: the week of 8 December 2026, or mid
    January.

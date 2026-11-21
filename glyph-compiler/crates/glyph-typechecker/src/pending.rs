@@ -94,9 +94,57 @@ pub enum WaitContext {
     /// A sync lambda with no written return type, which returns its tail;
     /// `params` is its parameter list as written, for the rewrite the help
     /// offers.
-    UnannotatedLambda { params: String },
+    UnannotatedLambda { params: String, slot: CallbackSlot },
     /// A component, which is never async.
     Component(String),
+}
+
+/// What a lambda is passed to, read off the parameter it fills, which decides
+/// the rewrite E0238 offers for its pending tail (record 135). One help for
+/// every slot sent `task.detach` code `tsc` refuses and `array.map` an async
+/// callback that builds an array of promises.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CallbackSlot {
+    /// Not an argument, or a parameter the checker holds no function type
+    /// for (`task.all`, which is unmodeled, or a builtin method's callback).
+    Unknown,
+    /// `async fn(...) -> void`, as `task.detach` takes.
+    AsyncVoid,
+    /// `async fn(...) -> T`.
+    AsyncValue,
+    /// A sync `fn(...) -> void`: the caller drops whatever the callback
+    /// returns (`timers.every`).
+    SyncVoid,
+    /// A sync `fn(...) -> T`: the caller keeps what the callback returns
+    /// (`array.map`). `callee` and `iterable` are as written, for the loop
+    /// the help describes.
+    SyncValue { callee: String, iterable: String },
+}
+
+/// The slot the parameter `param` of a call to `callee` makes for a lambda
+/// passed there.
+fn callback_slot(param: &Ty, callee: &Expr, args: &[Expr]) -> CallbackSlot {
+    let Ty::Fn {
+        return_ty,
+        is_async,
+        ..
+    } = param
+    else {
+        return CallbackSlot::Unknown;
+    };
+    let void = matches!(return_ty.as_ref(), Ty::Prim(Primitive::Void));
+    match (is_async, void) {
+        (true, true) => CallbackSlot::AsyncVoid,
+        (true, false) => CallbackSlot::AsyncValue,
+        (false, true) => CallbackSlot::SyncVoid,
+        (false, false) => CallbackSlot::SyncValue {
+            callee: expr_source(callee),
+            iterable: match args.first() {
+                Some(a @ (Expr::Ident { .. } | Expr::Member { .. })) => expr_source(a),
+                _ => "xs".to_string(),
+            },
+        },
+    }
 }
 
 /// Every pending value in `module` that nothing waits for, as E0238.
@@ -113,6 +161,7 @@ pub fn check_pending(module: &Module, resolved: &ResolvedModule, tm: &TypeMap) -
         task: task_namespace(module),
         frames: Vec::new(),
         errors: Vec::new(),
+        lambda_slot: None,
     };
     for item in &module.items {
         match item {
@@ -162,6 +211,9 @@ struct Pass<'a> {
     task: Option<String>,
     frames: Vec<Frame>,
     errors: Vec<TypeError>,
+    /// The slot the lambda about to be walked is passed to, set by the call
+    /// that passes it and taken by the lambda.
+    lambda_slot: Option<CallbackSlot>,
 }
 
 /// The callable a statement is in: what the help can offer, and where its
@@ -320,7 +372,17 @@ impl Pass<'_> {
                     (None, Ty::Fn { .. }) => Slot::Used,
                     (None, _) => Slot::Waited,
                 };
-                for a in args {
+                let params = match self.tm.get(callee.span()) {
+                    Ty::Fn { params, .. } => params.clone(),
+                    _ => Vec::new(),
+                };
+                for (i, a) in args.iter().enumerate() {
+                    if matches!(a, Expr::Lambda { .. }) {
+                        self.lambda_slot = Some(match params.get(i) {
+                            Some(p) => callback_slot(&p.ty, callee, args),
+                            None => CallbackSlot::Unknown,
+                        });
+                    }
                     self.expr(a, arg_slot.clone());
                 }
             }
@@ -372,9 +434,11 @@ impl Pass<'_> {
                 // one cannot wait for what it returns (see the module
                 // comment). The unannotated form's help rewrites the lambda
                 // itself, with its own parameters.
+                let slot = self.lambda_slot.take().unwrap_or(CallbackSlot::Unknown);
                 let frame = match (is_async, return_ty) {
                     (true, _) => Frame::waited(),
                     (false, None) => Frame::sync(WaitContext::UnannotatedLambda {
+                        slot,
                         params: params
                             .iter()
                             .map(|p| format!("{}: {}", p.name, crate::assign::type_expr_source(&p.ty)))
@@ -751,10 +815,39 @@ pub(crate) fn pending_help(
             "`{f}` is not async, so it cannot wait. Make it `async fn {f}` and write \
              `{awaited}`, or start it on purpose with {detach}."
         ),
-        (WaitContext::UnannotatedLambda { params }, PendingPosition::SyncReturn) => format!(
-            "This function is not async, so it cannot wait. Write `async fn({params}) {{ \
-             {awaited} }}`, or start the call on purpose with {detach}."
-        ),
+        (WaitContext::UnannotatedLambda { params, slot }, PendingPosition::SyncReturn) => {
+            match slot {
+                CallbackSlot::AsyncVoid => {
+                    format!("Write `async fn({params}) -> void {{ {awaited} }}`.")
+                }
+                CallbackSlot::AsyncValue => format!("Write `async fn({params}) {{ {awaited} }}`."),
+                CallbackSlot::SyncVoid => {
+                    let ns = task.unwrap_or("task");
+                    let import = match task {
+                        Some(_) => String::new(),
+                        None => " (with `import std/task`)".to_string(),
+                    };
+                    format!(
+                        "This callback is called without being awaited, so it cannot wait. \
+                         Start the work on purpose: `fn({params}) {{ {ns}.detach(async fn() -> \
+                         void {{ {awaited} }}) }}`{import}."
+                    )
+                }
+                CallbackSlot::SyncValue { callee, iterable } => {
+                    let var = params.split(':').next().unwrap_or("x").trim().to_string();
+                    let var = if var.is_empty() { "x".to_string() } else { var };
+                    format!(
+                        "`{callee}` does not wait for its callback. Await each call in a loop, \
+                         `for {var} in {iterable} {{ ... {awaited} ... }}`, or run them together \
+                         with `task.all`."
+                    )
+                }
+                CallbackSlot::Unknown => format!(
+                    "This function is not async, so it cannot wait. Write `async fn({params}) \
+                     {{ {awaited} }}`, or start the call on purpose with {detach}."
+                ),
+            }
+        }
         (WaitContext::Component(c), _) => format!(
             "`{c}` is a component, which cannot be async. Start the call on purpose with \
              {detach}, or make it from an async event handler that awaits it."
@@ -1103,7 +1196,67 @@ mod tests {
             }\n";
         let found = e0238(body);
         assert_eq!(found.len(), 4, "{found:?}");
-        assert!(found.iter().any(|(_, h)| h.contains("Write `async fn(x: number) { await save(x) }`")), "{found:?}");
+    }
+
+    /// Record 135: the rewrite a sync lambda's pending tail is offered is
+    /// read off the parameter it is passed to, so each one compiles where it
+    /// goes and none leads into another bug.
+    #[test]
+    fn the_help_for_a_lambda_tail_follows_the_parameter_it_fills() {
+        let help_of = |call: &str| -> String {
+            let found = e0238(&format!(
+                "import std/task\nimport std/array\n\
+                 async fn run(f: async fn() -> number) -> number {{\n  return await f()\n}}\n\
+                 async fn main(argv: Array<string>) -> number {{\n  {call}\n  return 0\n}}\n"
+            ));
+            assert_eq!(found.len(), 1, "{call}: {found:?}");
+            found[0].1.clone()
+        };
+        assert_eq!(
+            help_of("task.detach(fn() { save(5) })"),
+            "Write `async fn() -> void { await save(5) }`."
+        );
+        let every = help_of("let t = timers.every(200, fn() { save(3) })\n  timers.cancel(t)");
+        assert_eq!(
+            every,
+            "This callback is called without being awaited, so it cannot wait. Start the work \
+             on purpose: `fn() { task.detach(async fn() -> void { await save(3) }) }`."
+        );
+        let map = help_of("let xs = [1, 2]\n  let ys = array.map(xs, fn(x: number) { save(x) })\n  let _n = ys.length");
+        assert_eq!(
+            map,
+            "`array.map` does not wait for its callback. Await each call in a loop, `for x in xs \
+             { ... await save(x) ... }`, or run them together with `task.all`."
+        );
+        assert!(!map.contains("async fn("), "{map}");
+        assert_eq!(
+            help_of("let n = await run(fn() { save(1) })\n  let _m = n"),
+            "Write `async fn() { await save(1) }`."
+        );
+        // `task.all` is not modeled, so its thunk slot is unknown and the
+        // help is the one a bound lambda gets.
+        assert_eq!(
+            help_of("let rs = await task.all([fn() { save(1) }])\n  let _n = rs.length"),
+            "This function is not async, so it cannot wait. Write `async fn() { await save(1) }`, \
+             or start the call on purpose with `task.detach(async fn() -> void { await save(1) })`."
+        );
+    }
+
+    /// `task.detach(fn() { save(5) })` is one mistake and one diagnostic: the
+    /// refused tail is not also an E0211 for passing a sync function where an
+    /// async one is taken.
+    #[test]
+    fn a_refused_lambda_is_not_also_an_argument_mismatch() {
+        let c = codes(
+            "import std/task\nfn kick() -> void {\n  task.detach(fn() { save(5) })\n}\n",
+        );
+        assert_eq!(c, vec!["E0238"], "{c:?}");
+        // Against a parameter whose async function returns a value too.
+        let c = codes(
+            "async fn run(f: async fn() -> number) -> number {\n  return await f()\n}\n\
+             async fn main(argv: Array<string>) -> number {\n  return await run(fn() { save(1) })\n}\n",
+        );
+        assert_eq!(c, vec!["E0238"], "{c:?}");
     }
 
     /// The call of a lambda whose pending tail is refused claims no type, so

@@ -423,7 +423,7 @@
       <header class="page-hero">
         <p class="eyebrow">กรณีที่ TypeScript ปล่อยผ่าน</p>
         <h1>จับได้ก่อนขึ้น production</h1>
-        <p class="lede">รวมทั้งหมดมี 49 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 7 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี)</p>
+        <p class="lede">รวมทั้งหมดมี 48 กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript 37 กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph 5 กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ 6 กรณี Glyph ปฏิเสธ 28 กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript 23 กรณี และกับดัก 5 กรณี)</p>
         <p class="lede">ตัวอย่าง TypeScript ทุกตัวในรายการผ่าน <code>tsc --strict</code> โดยไม่มี error และแต่ละตัวยังถูกตรวจกับโปรเจกต์ที่ตั้งค่าเข้มที่สุดอีกชั้น คือเปิด compiler flag ทุกตัวที่เข้มกว่า <code>--strict</code> และใช้ typescript-eslint <code>strictTypeChecked</code> ด้วย จาก 37 ข้อ มี 21 ข้อที่ไม่มีอะไรในการตั้งค่านั้นจับได้เลย compiler flag ที่ปิดอยู่โดยค่าเริ่มต้นจับได้ 5 ข้อ และกฎ lint จับได้ 11 ข้อ ทั้งสองอย่างโปรเจกต์ต้องเปิดเอง และเอเจนต์ก็ปิดกลับได้ ใน Glyph ไม่มีข้อไหนเป็นตัวเลือกในการตั้งค่า</p>
         <p class="lede">
           แต่ละรายการคือโปรแกรมสองตัวใน <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> และ output ใต้แต่ละตัวคือสิ่งที่เครื่องมือพิมพ์ออกมาจริง build gate ชื่อ <a href="https://github.com/chadetov/glyph/blob/main/scripts/check_catches.py">scripts/check_catches.py</a> รันทุกกรณีซ้ำ และจะ fail ถ้าฝั่งใดฝั่งหนึ่งไม่ทำตามที่หน้านี้บอก การตั้งค่า TypeScript ฉบับเต็มที่ใช้ตรวจอยู่ในสคริปต์นั้น
@@ -1484,11 +1484,10 @@ console.log((<span class="t">JSON</span>.parse(text) <span class="k">as</span> <
       <section class="c-section" id="not-yet">
         <h2 class="group-head">สิ่งที่ Glyph ยังจับไม่ได้</h2>
         <p class="group-sub">
-          ช่องโหว่ 7 ข้อที่ Glyph ยังปิดไม่ได้ แต่ละข้อคอมไพล์ผ่านใน Glyph วันนี้ และทำสิ่งที่ผิดแบบเดียวกับใน TypeScript ทุกข้อมีโค้ดสำหรับทำซ้ำอยู่ใน <code>catches/</code> และมีหมายเลข gap ที่ยังเปิดอยู่ gate จะ fail เมื่อมีการแก้ลงมา รายการจึงอยู่นานกว่าช่องโหว่ไม่ได้
+          ช่องโหว่ 6 ข้อที่ Glyph ยังปิดไม่ได้ แต่ละข้อคอมไพล์ผ่านใน Glyph วันนี้ และทำสิ่งที่ผิดแบบเดียวกับใน TypeScript ทุกข้อมีโค้ดสำหรับทำซ้ำอยู่ใน <code>catches/</code> และมีหมายเลข gap ที่ยังเปิดอยู่ gate จะ fail เมื่อมีการแก้ลงมา รายการจึงอยู่นานกว่าช่องโหว่ไม่ได้
         </p>
       <ul class="c-gaps">
         <li><code>requested || 3</code> เปลี่ยน <code>0</code> ที่เป็นค่าจริงให้กลายเป็น <code>3</code> <span>G386</span></li>
-        <li><code>xs.sort(...)</code> ภายใน helper เรียงลำดับ array ของผู้เรียกใหม่ โดยไม่มี <code>mut</code> กำกับ <span>G380</span></li>
         <li><code>.sort()</code> กับตัวเลขจะเรียงแบบข้อความ: <code>100,25,9</code> <span>G388</span></li>
         <li>การอัปเดตที่หายไปข้าม <code>await</code> บน <code>c[0]</code> ทั้งที่การเขียนแบบเดียวกันลง field ถูกปฏิเสธ <span>G390</span></li>
         <li><code>input + 1</code> กับ string, <code>users.find(...).name</code> และการอ่าน field จากค่า <code>unknown</code> ถูกจับได้เฉพาะในขั้น <code>tsc</code> เท่านั้น ไม่ใช่โดยตัวตรวจของ Glyph เอง editor และเครื่องมือของเอเจนต์จึงมองไม่เห็น <span>G381, G382, G392</span></li>

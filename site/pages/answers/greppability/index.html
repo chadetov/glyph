@@ -26,7 +26,7 @@ head: |
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
-        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span></figcaption>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search. The compiler refuses an array write that skips the <code>mut</code>.</span></figcaption>
       </figure>
 
       <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -46,6 +46,26 @@ head: |
           has no reliable answer.
         </p>
       </div></details>
+
+      <h2 class="ak-h" id="enforced">The compiler keeps the search complete<a class="ak-anchor" href="#enforced" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          A method that changes its array (<code>push</code>, <code>pop</code>, <code>sort</code>,
+          <code>splice</code> and five more) only stands as the whole call of a <code>mut</code>
+          statement. Anywhere else it is <code>E0240</code>, including inside an expression, where
+          a helper could sort its caller's array while reading one element:
+      </p>
+      <div class="code term">
+        <span class="cap">glyph check</span>
+<pre><span class="add">[E0240]</span> `xs.sort(cmp)` changes `xs` in place, and its value is used here
+ 4 │   return xs.sort(cmp)[0]
+   │ Help: `array.sort(xs, cmp)` returns a sorted copy and leaves `xs` alone</pre>
+      </div>
+      <p class="ak-lede">
+          <code>xs.push(4)</code> on a line of its own gets the same code, and <code>glyph fix</code>
+          writes the <code>mut</code> for you. The other direction is <code>E0241</code>:
+          <code>mut xs.concat(ys)</code> changes nothing and drops the new array, so the audit
+          never lists a line that writes nothing.
+      </p>
 
       <h2 class="ak-h" id="audits">Whole categories in one search<a class="ak-anchor" href="#audits" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
@@ -78,7 +98,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">One canonical form per construct.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation restricted to two greppable shapes (<code>mut</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -86,6 +106,11 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Layered on top</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</span></span></li>
           </ul>
         </section>

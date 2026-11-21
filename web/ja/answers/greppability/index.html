@@ -487,7 +487,7 @@
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
-        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。3 つの変更、それで全部です。1 回の検索で済みます。</span></figcaption>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph は変更を 2 つの形（<code>mut x = &hellip;</code> と <code>mut x.method(&hellip;)</code>）に限定しているので、状態が変わる<em>すべての</em>場所が 1 回の検索で見つかります。3 つの変更、それで全部です。1 回の検索で済みます。 <code>mut</code> を付けずに配列へ書き込むと、コンパイラが拒否します。</span></figcaption>
       </figure>
 
       <h2 class="ak-h" id="why-it-matters">なぜ重要か<a class="ak-anchor" href="#why-it-matters" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -500,6 +500,20 @@
           TypeScript では、変更は <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter、スプレッドの陰に隠れられます。grep すべき単一のトークンがないので、「これを変更しているものはあるか」に確実な答えが出ません。
         </p>
       </div></details>
+
+      <h2 class="ak-h" id="enforced">コンパイラが検索の完全さを保つ<a class="ak-anchor" href="#enforced" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          配列を変更するメソッド（<code>push</code>、<code>pop</code>、<code>sort</code>、<code>splice</code> など 9 つ）は、<code>mut</code> 文の呼び出し全体としてしか書けません。それ以外の場所では <code>E0240</code> になります。式の中も同じで、ヘルパーが要素を 1 つ読みながら呼び出し元の配列を並べ替えてしまう、といったケースです:
+      </p>
+      <div class="code term">
+        <span class="cap">glyph check</span>
+<pre class="wraps"><span class="add">[E0240]</span> <span class="q">`xs.sort(cmp)`</span> changes <span class="q">`xs`</span> in place, and its value is used here
+ 4 <span class="bx">│</span>   return xs.sort(cmp)[0]
+   <span class="bx">│</span> <span class="f">Help:</span> <span class="q">`array.sort(xs, cmp)`</span> returns a sorted copy and leaves <span class="q">`xs`</span> alone</pre>
+      </div>
+      <p class="ak-lede">
+          単独の行に書いた <code>xs.push(4)</code> も同じコードになり、<code>glyph fix</code> が <code>mut</code> を書き足します。逆向きは <code>E0241</code> です。<code>mut xs.concat(ys)</code> は何も変更せず新しい配列を捨てるので、何も書き込まない行が監査に載ることはありません。
+      </p>
 
       <h2 class="ak-h" id="audits">カテゴリ全体を 1 回の検索で<a class="ak-anchor" href="#audits" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
@@ -529,7 +543,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">構文ごとに 1 つの正規形。</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">変更は grep できる 2 つの形（<code>mut</code>）に限定。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">変更は grep できる 2 つの形（<code>mut</code>）に限定し、それを付けない配列への書き込みは拒否（<code>E0240</code>）。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">キーワード 1 つでの監査（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</span></span></li>
           </ul>
         </section>
@@ -537,6 +551,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> その上に重ねるもの</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">標準ライブラリの <code>Set</code>、<code>Store</code>、<code>Deque</code> を通した書き込みは、まだ <code>mut</code> の検査対象外</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p>Glyph のチェッカーはまだこれらのレシーバーに型を付けないので、<code>seen.add(x)</code> と <code>mut seen.add(x)</code> はどちらも受け入れられ、コーパスにも両方の書き方があります。型を付けて書き込みメソッドに印を付けるのが次に予定している作業です。npm パッケージの値はどちらの方向でも判定しません。その呼び出しの前の <code>mut</code> は書いてもよく、必須でもありません。</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">言語サーバーが、ワークスペース全体の定義へのジャンプと参照検索を加えます。同じ保証を、エディタの中で対話的に使えます。</span></span></li>
           </ul>
         </section>

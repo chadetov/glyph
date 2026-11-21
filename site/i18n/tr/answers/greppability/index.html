@@ -1,7 +1,7 @@
 ---
 title: Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi? · Glyph
 description: Glyph'teki her yapının aranacak tek bir biçimi vardır; bu yüzden grep (ya da bir ajanın araması) elli yakın eşleşmeye değil, tek tanıma ulaşır.
-source_hash: 15511937ba2844d1
+source_hash: 09c27df708c026c8
 prev: /answers/diff-stability/ | &larr; Önceki | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 next: /answers/why-typescript/ | Sonraki &rarr; | Neden TypeScript, neden Go ya da yeni bir dil değil?
 ---
@@ -19,7 +19,7 @@ next: /answers/why-typescript/ | Sonraki &rarr; | Neden TypeScript, neden Go ya 
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
-        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph değiştirmeyi iki biçimle sınırlar (<code>mut x = &hellip;</code> ve <code>mut x.method(&hellip;)</code>), bu yüzden durumun değiştiği <em>her</em> yer tek bir aramayla bulunur. Üç değiştirme, hepsi, tek bir aramada.</span></figcaption>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph değiştirmeyi iki biçimle sınırlar (<code>mut x = &hellip;</code> ve <code>mut x.method(&hellip;)</code>), bu yüzden durumun değiştiği <em>her</em> yer tek bir aramayla bulunur. Üç değiştirme, hepsi, tek bir aramada. Derleyici, <code>mut</code> yazılmadan bir diziye yapılan yazmayı reddeder.</span></figcaption>
       </figure>
 
       <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -32,6 +32,20 @@ next: /answers/why-typescript/ | Sonraki &rarr; | Neden TypeScript, neden Go ya 
           TypeScript'te bir değiştirme <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, bir setter ya da bir spread arkasına saklanabilir. Grep'lenecek tek bir token yoktur, bu yüzden &ldquo;bunu değiştiren bir şey var mı?&rdquo; sorusunun güvenilir bir yanıtı yoktur.
         </p>
       </div></details>
+
+      <h2 class="ak-h" id="enforced">Derleyici aramanın eksiksiz kalmasını sağlar<a class="ak-anchor" href="#enforced" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Dizisini değiştiren bir metot (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> ve beş tane daha) yalnızca bir <code>mut</code> deyiminin çağrısının tamamı olarak yazılabilir. Başka her yerde <code>E0240</code> olur; bir ifadenin içi de buna dahildir, örneğin bir yardımcı fonksiyonun tek bir eleman okurken çağıranın dizisini sıralaması:
+      </p>
+      <div class="code term">
+        <span class="cap">glyph check</span>
+<pre><span class="add">[E0240]</span> `xs.sort(cmp)` changes `xs` in place, and its value is used here
+ 4 │   return xs.sort(cmp)[0]
+   │ Help: `array.sort(xs, cmp)` returns a sorted copy and leaves `xs` alone</pre>
+      </div>
+      <p class="ak-lede">
+          Kendi satırında duran <code>xs.push(4)</code> da aynı kodu alır ve <code>glyph fix</code> <code>mut</code>'u sizin yerinize yazar. Ters yön <code>E0241</code>'dir: <code>mut xs.concat(ys)</code> hiçbir şeyi değiştirmez ve yeni diziyi atar, bu yüzden denetim hiçbir şey yazmayan bir satırı asla listelemez.
+      </p>
 
       <h2 class="ak-h" id="audits">Tek aramada bütün kategoriler<a class="ak-anchor" href="#audits" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
@@ -61,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yapı başına tek kanonik biçim.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İki grep'lenebilir biçimle (<code>mut</code>) sınırlandırılmış değiştirme.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değiştirme grep ile bulunabilen iki biçimle sınırlı (<code>mut</code>), ve bu ön ek olmadan diziye yazma reddediliyor (<code>E0240</code>).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tek anahtar kelimeyle denetimler (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -69,6 +83,11 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Üstüne eklenenler</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Standart kütüphanenin <code>Set</code>, <code>Store</code> ve <code>Deque</code> türleri üzerinden yapılan yazmalar henüz <code>mut</code> için denetlenmiyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Glyph'in denetleyicisi bu alıcılara henüz tür vermiyor, bu yüzden <code>seen.add(x)</code> de <code>mut seen.add(x)</code> de kabul ediliyor ve derlemde iki yazım da var. Onlara tür vermek ve yazan metotlarını işaretlemek planlanan bir sonraki adım. Bir npm paketinden gelen değer iki yönde de yargılanmaz: çağrılarından önce <code>mut</code> yazmak serbesttir ve zorunlu değildir.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dil sunucusu, tüm çalışma alanında tanıma gitme ve referansları bulma ekler: aynı garanti, artık editörünüzde etkileşimli.</span></span></li>
           </ul>
         </section>

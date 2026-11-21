@@ -485,7 +485,7 @@
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
       </div>
-        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph restringe la mutación a dos formas (<code>mut x = &hellip;</code> y <code>mut x.method(&hellip;)</code>), así que <em>cada</em> sitio donde cambia el estado aparece con una sola búsqueda. Tres mutaciones, todas, en una sola búsqueda.</span></figcaption>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph restringe la mutación a dos formas (<code>mut x = &hellip;</code> y <code>mut x.method(&hellip;)</code>), así que <em>cada</em> sitio donde cambia el estado aparece con una sola búsqueda. Tres mutaciones, todas, en una sola búsqueda. El compilador rechaza una escritura en un array que se salta el <code>mut</code>.</span></figcaption>
       </figure>
 
       <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -498,6 +498,20 @@
           En TypeScript una mutación se puede esconder detrás de <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, un setter o un spread. No hay un único token que buscar con grep, así que &ldquo;¿algo cambia esto?&rdquo; no tiene una respuesta fiable.
         </p>
       </div></details>
+
+      <h2 class="ak-h" id="enforced">El compilador mantiene la búsqueda completa<a class="ak-anchor" href="#enforced" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Un método que cambia su array (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> y cinco más) solo puede ser la llamada entera de una sentencia <code>mut</code>. En cualquier otro sitio es <code>E0240</code>, también dentro de una expresión, donde una función auxiliar podría ordenar el array de quien la llama mientras lee un elemento:
+      </p>
+      <div class="code term">
+        <span class="cap">glyph check</span>
+<pre class="wraps"><span class="add">[E0240]</span> <span class="q">`xs.sort(cmp)`</span> changes <span class="q">`xs`</span> in place, and its value is used here
+ 4 <span class="bx">│</span>   return xs.sort(cmp)[0]
+   <span class="bx">│</span> <span class="f">Help:</span> <span class="q">`array.sort(xs, cmp)`</span> returns a sorted copy and leaves <span class="q">`xs`</span> alone</pre>
+      </div>
+      <p class="ak-lede">
+          <code>xs.push(4)</code> en una línea propia recibe el mismo código, y <code>glyph fix</code> escribe el <code>mut</code> por ti. La dirección contraria es <code>E0241</code>: <code>mut xs.concat(ys)</code> no cambia nada y descarta el array nuevo, así que la auditoría nunca lista una línea que no escribe nada.
+      </p>
 
       <h2 class="ak-h" id="audits">Categorías enteras en una sola búsqueda<a class="ak-anchor" href="#audits" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
@@ -527,7 +541,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una forma canónica por construcción.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">La mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>), y una escritura en un array sin él, rechazada (<code>E0240</code>).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Auditorías con una sola palabra clave (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -535,6 +549,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Por encima</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Las escrituras a través de <code>Set</code>, <code>Store</code> y <code>Deque</code> de la biblioteca estándar aún no se comprueban con <code>mut</code></span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>El comprobador de Glyph todavía no tipa esos receptores, así que se aceptan tanto <code>seen.add(x)</code> como <code>mut seen.add(x)</code>, y el corpus usa las dos formas. Tiparlos y marcar sus métodos que escriben es el siguiente paso previsto. Un valor de un paquete npm no se juzga en ninguna dirección: <code>mut</code> delante de una de sus llamadas está permitido y no es obligatorio.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El servidor de lenguaje añade ir a la definición y buscar referencias en todo el workspace: la misma garantía, ahora interactiva en tu editor.</span></span></li>
           </ul>
         </section>

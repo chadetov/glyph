@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "zh-cn",
-  "source_hash": "15511937ba2844d1",
+  "source_hash": "09c27df708c026c8",
   "segments": [
     {
       "id": "title",
@@ -65,10 +65,10 @@
       "tr": "grep -rn \"mut \" src/（代码库中的每一处修改）"
     },
     {
-      "id": "h-d26f2e3b",
+      "id": "h-56787c52",
       "kind": "html",
-      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span>",
-      "tr": "<span>Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到。三处修改，全部在一次搜索中找到。</span>"
+      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search. The compiler refuses an array write that skips the <code>mut</code>.</span>",
+      "tr": "<span>Glyph 把修改限制为两种形式（<code>mut x = &hellip;</code> 和 <code>mut x.method(&hellip;)</code>），所以状态发生变化的<em>每一个</em>地方都能通过一次搜索找到。三处修改，全部在一次搜索中找到。 编译器会拒绝漏写 <code>mut</code> 的数组写入。</span>"
     },
     {
       "id": "h-b8bda68d",
@@ -105,6 +105,30 @@
       "kind": "html",
       "en": "In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer.",
       "tr": "在 TypeScript 中，修改可能藏在 <code>=</code>、<code>.push()</code>、<code>Object.assign</code>、setter 或展开运算之后。没有一个能 grep 的标记，所以&ldquo;有没有东西会改动它？&rdquo;这个问题没有可靠的答案。"
+    },
+    {
+      "id": "h-303dd63e",
+      "kind": "html",
+      "en": "The compiler keeps the search complete",
+      "tr": "编译器保证搜索没有遗漏"
+    },
+    {
+      "id": "h-e2cd1d2f",
+      "kind": "html",
+      "en": "A method that changes its array (<code>push</code>, <code>pop</code>, <code>sort</code>, <code>splice</code> and five more) only stands as the whole call of a <code>mut</code> statement. Anywhere else it is <code>E0240</code>, including inside an expression, where a helper could sort its caller's array while reading one element:",
+      "tr": "会修改数组本身的方法（<code>push</code>、<code>pop</code>、<code>sort</code>、<code>splice</code> 等九个）只能作为 <code>mut</code> 语句的整个调用出现。出现在其他任何位置都是 <code>E0240</code>，表达式内部也一样，比如辅助函数在读取一个元素的同时把调用方的数组排了序："
+    },
+    {
+      "id": "h-060ae7a5",
+      "kind": "html",
+      "en": "glyph check",
+      "tr": "glyph check"
+    },
+    {
+      "id": "h-70a6d486",
+      "kind": "html",
+      "en": "<code>xs.push(4)</code> on a line of its own gets the same code, and <code>glyph fix</code> writes the <code>mut</code> for you. The other direction is <code>E0241</code>: <code>mut xs.concat(ys)</code> changes nothing and drops the new array, so the audit never lists a line that writes nothing.",
+      "tr": "单独一行的 <code>xs.push(4)</code> 也是同一个错误码，<code>glyph fix</code> 会替你补上 <code>mut</code>。反方向是 <code>E0241</code>：<code>mut xs.concat(ys)</code> 什么也没改，还丢掉了新数组，所以审计结果里不会出现什么都没写的行。"
     },
     {
       "id": "h-b5acb878",
@@ -155,10 +179,10 @@
       "tr": "每种结构只有一种标准形式。"
     },
     {
-      "id": "h-69c725a8",
+      "id": "h-7801641c",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>).",
-      "tr": "修改限制为两种可以 grep 的形式（<code>mut</code>）。"
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
+      "tr": "修改限制为两种可以 grep 的形式（<code>mut</code>），不带这个前缀的数组写入会被拒绝（<code>E0240</code>）。"
     },
     {
       "id": "h-2e001a35",
@@ -171,6 +195,24 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "在此之上"
+    },
+    {
+      "id": "h-97d71b45",
+      "kind": "html",
+      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
+      "tr": "通过标准库 <code>Set</code>、<code>Store</code> 和 <code>Deque</code> 的写入还没有做 <code>mut</code> 检查"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "详情"
+    },
+    {
+      "id": "h-84597a40",
+      "kind": "html",
+      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
+      "tr": "Glyph 的检查器还不知道这些接收者的类型，所以 <code>seen.add(x)</code> 和 <code>mut seen.add(x)</code> 都能通过，语料里两种写法都有。给它们加上类型并标记会写入的方法，是下一步的计划。来自 npm 包的值两个方向都不判定：在它的调用前写 <code>mut</code> 可以，但不是必须。"
     },
     {
       "id": "h-87fdbb44",

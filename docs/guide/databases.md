@@ -65,16 +65,35 @@ Help: Pass the value as a parameter: `db.query("SELECT * FROM users WHERE name =
 ```
 
 Constants are fine however they are put together: a literal, a module
-`const`, a `let` no `mut` reassigns, `"SELECT * FROM ${TABLE}"` with `TABLE`
-a `const`, or a `+` of those. A function that takes a query from its caller
+`const`, a `let` no `mut` reassigns, a `match` whose arms are all constant,
+`"SELECT * FROM ${TABLE}"` with `TABLE` a `const`, or a `+` of those. A function that takes a query from its caller
 declares the parameter `sql: sqlite.Sql`, and its callers' arguments are then
 checked the same way. `exec` takes no parameters, so a statement that needs a
 value goes through `run(sql, [values])`.
 
-When the structure itself has to vary, say an `IN (?, ?, ?)` list sized at run
-time, build the text, mark it with `taint.trust_unchecked` (or
-`taint.sanitize` with a cleaning function), and pass it through
-`sqlite.from_trusted`:
+A parameter stands for a value, never for a name, so `ORDER BY ?` sorts by a
+constant and `FROM ?` is a syntax error. To pick a column or a table at run
+time, choose it with a `match` whose arms are constant strings. The checker
+reads that `match` as one of a fixed set of texts, all written in the
+program, so the query stays constant:
+
+```glyph
+import std/sqlite
+
+fn sorted(db: sqlite.Db, key: string) -> number {
+  let col = match key {
+    "name" => "name",
+    else => "id",
+  }
+  return db.query("SELECT * FROM users ORDER BY ${col}", []).length
+}
+```
+
+A `match` with an arm built from a run-time value is E0239 like any other.
+When the text has to be built at run time and no `match` can list it, say an
+`IN (?, ?, ?)` list sized at run time, build the text, mark it with
+`taint.trust_unchecked` (or `taint.sanitize` with a cleaning function), and
+pass it through `sqlite.from_trusted`:
 
 ```glyph
 import std/sqlite

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-411 entries, 307 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-84 are open. G144, the D28 boundary cast that never reached the returns a
+414 entries, 309 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+85 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13916,6 +13916,12 @@ and is the owner's to confirm.
   its field types. Found by record 129, which reported hover on `i.path`
   answering `null`.
 
+  Five apps turn a path into text with `string.from(i.path)`, an accidental
+  array join (`a,0` for `["a", 0]`): csvql (`main.glyph:81`), depsolve
+  (`:890`), leaderboard (`:317`), settle (`:573`) and sheet (`:1403`). Once
+  the field is typed, E0237's `string.from` rule flags those five sites and
+  they get fixed then, as sitegen was (record 130, ledger notes).
+
   *Reproduced against 0.1.152 (the published package) and the 0.1.154 branch
   build: `fn f(i: Issue) -> number { let p: number = i.path  let m: number =
   i.message ... }` (one statement per line) checks with no diagnostics, exit
@@ -14016,3 +14022,67 @@ and is the owner's to confirm.
   values in the array; a structure that must vary goes through
   `taint.sanitize` and `sqlite.from_trusted`.`` for the `LIKE '%${name}%'`
   query.*
+
+- **G412. [FIXED] The formatter and the emitter erase a written `unknown` on a
+  lambda parameter.** The parser recorded an omitted lambda annotation as a
+  written `unknown` path, so the two were one node and three stages read it
+  three ways. `glyph fmt` rewrote `array.map(xs, fn(p: unknown) -> number {
+  return p + 1 })` to `fn(p)`, the emitter wrote `(p): number =>`, and full
+  `check` passed, because `tsc` inferred `number` for the parameter the
+  program declared `unknown`. The checker read the same node as a written
+  `unknown`. Found by record 130 (probe `r130/f`).
+
+  *Reproduced against 0.1.153 (the published package): `fmt` deletes the
+  annotation, the emitted file has `(p): number =>`, and full `check` exits
+  0.*
+
+  Fixed in 0.1.156 (record 130, F1). A lambda parameter is a `LambdaParam`
+  whose annotation is `Option<TypeExpr>`: `None` when omitted, never a
+  synthesized type. The checker lowers an omitted one to its internal "not
+  typed here" (`Ty::Unknown`, judged by no rule) and a written `unknown` to
+  the judged `unknown`. The formatter prints what was written, and the
+  emitter writes `(p: unknown)` for a written one, so full `check` now
+  refuses `p + 1` with TS18046; an omitted annotation still emits `(p)`. The
+  name `unknown` is matched nowhere: the emitter's `is_unknown_type` and the
+  formatter's `is_unknown_ty` are gone. No tracked `.glyph` file writes `:
+  unknown` on a lambda parameter.
+
+- **G413. [FIXED] An `is` arm does not narrow its scrutinee.** In `match v {
+  is number => "b ${v}", else => "?", }` with `v: unknown`, Glyph's checker
+  read `v` as `unknown` inside the arm, though the emitted `typeof` check and
+  `tsc` both know it is a `number` there. A rule that judges `unknown` would
+  refuse a program after it had proved the type, and `is User => v.nmae`
+  passed `check --no-tsc` while `tsc` refused it (TS2339). Found by record
+  130 (probe `r130/g`, F3).
+
+  *Reproduced against 0.1.153 (the published package): `is User => v.nmae`
+  exits 0 under `check --no-tsc`, and hover shows `unknown` inside the
+  arm.*
+
+  Fixed in 0.1.156 (record 130, F3). Inside an arm whose pattern is `is T`, a
+  scrutinee that is a local name (a parameter or a `let`) has type `T` in
+  that arm's body, when `T` lowers to a primitive or a declared type. A
+  prelude container (`is Record<K, V>`, `is Array<X>`) does not narrow:
+  narrowing one exposes E0224 on an index read `tsc` accepts, in
+  `examples/01_validator.glyph`, and that is left to its own decision. The
+  name keeps its own type outside the arm, and an arm that
+  rebinds the name with `mut` is not narrowed. `is User => v.nmae` is E0210
+  without `tsc`, and hover shows `number` inside `is number =>`.
+
+- **G414. An omitted lambda annotation takes no type from its context.**
+  `array.map(us, fn(p) -> string { return p.nmae })` with `us: Array<User>`
+  passes `check --no-tsc`, and only `tsc` refuses it (TS2339), because an
+  omitted lambda parameter is "not typed here" to Glyph's checker while
+  `tsc` infers `User` from `array.map`'s signature. The same hole lets
+  `"${p}"` print `[object Object]` once E0237 exists, with no Glyph
+  diagnostic (record 130, finding 2). The fix: an omitted lambda parameter
+  takes its type from the expected function type at its position, the
+  callee's parameter with its type arguments instantiated or an annotated
+  `let`; with none, or an `Unknown` one, it stays "not typed here". It adds
+  refusals under `--no-tsc` that `tsc` already makes, so it is breaking
+  there; measure it with two binaries. It flips Release B's pinned-hole test
+  and must land before G325. Found by record 130 (option (c) of F1).
+
+  *Reproduced against 0.1.153 (the published package): `check --no-tsc`
+  reports no diagnostics, and full `check` reports ``[TS2339] Error: tsc:
+  Property 'nmae' does not exist on type 'User'``.*

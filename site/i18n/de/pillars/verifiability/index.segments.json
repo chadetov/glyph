@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/verifiability/index.html",
   "locale": "de",
-  "source_hash": "b8ae04a4b3228182",
+  "source_hash": "27017c2e0eebfe6d",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "Glyph schließt die Löcher, durch die ein Agent fällt: Es gibt <strong>kein <code>any</code> und kein <code>as</code>, das du schreiben könntest</strong>, <code>match</code> ist <strong>nachweislich erschöpfend</strong>, und die Typen, die du deklarierst, bekommen <strong>strikte Laufzeitvalidatoren</strong>, alles durchgesetzt als strikte Schicht über <code>tsc</code>. Es verifiziert nicht alles selbst, und unten steht offen, wo genau die Garantie aufhört."
     },
     {
+      "id": "h-efbb175b",
+      "kind": "html",
+      "en": "TypeScript: compiles, then crashes",
+      "tr": "TypeScript: kompiliert, stürzt dann ab"
+    },
+    {
+      "id": "h-fd3640a0",
+      "kind": "html",
+      "en": "Glyph: the narrowing is the proof",
+      "tr": "Glyph: Das Einengen ist der Beweis"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Auf dieser Seite"
+    },
+    {
+      "id": "h-14006a10",
+      "kind": "html",
+      "en": "<a href=\"#the-lie-a-type-can-tell\">The lie a type can tell</a>",
+      "tr": "<a href=\"#the-lie-a-type-can-tell\">Die Lüge, die ein Typ erzählen kann</a>"
+    },
+    {
+      "id": "h-4335a2ef",
+      "kind": "html",
+      "en": "<a href=\"#there-is-no-any\">No any</a>",
+      "tr": "<a href=\"#there-is-no-any\">Kein any</a>"
+    },
+    {
+      "id": "h-14dde7ec",
+      "kind": "html",
+      "en": "<a href=\"#types-are-real-at-runtime\">Types at runtime</a>",
+      "tr": "<a href=\"#types-are-real-at-runtime\">Typen zur Laufzeit</a>"
+    },
+    {
+      "id": "h-d0911bf6",
+      "kind": "html",
+      "en": "<a href=\"#every-case-or-it-doesn-t-compile\">Every case</a>",
+      "tr": "<a href=\"#every-case-or-it-doesn-t-compile\">Jeder Fall</a>"
+    },
+    {
+      "id": "h-b0fd3fd0",
+      "kind": "html",
+      "en": "<a href=\"#errors-are-values-not-surprises\">Errors as values</a>",
+      "tr": "<a href=\"#errors-are-values-not-surprises\">Fehler als Werte</a>"
+    },
+    {
+      "id": "h-75be2a29",
+      "kind": "html",
+      "en": "<a href=\"#even-pii-is-type-level\">PII</a>",
+      "tr": "<a href=\"#even-pii-is-type-level\">Personenbezogene Daten</a>"
+    },
+    {
+      "id": "h-d47b2d7f",
+      "kind": "html",
+      "en": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Where the guarantee stops</a>",
+      "tr": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Wo die Garantie aufhört</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">Der Benchmark</a>"
+    },
+    {
+      "id": "h-c5be8c0b",
+      "kind": "html",
+      "en": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Strict TS and lint</a>",
+      "tr": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Striktes TS und Lint</a>"
+    },
+    {
       "id": "h-639f009d",
       "kind": "html",
       "en": "The lie a type can tell",
       "tr": "Die Lüge, die ein Typ erzählen kann"
     },
     {
-      "id": "h-075a79f0",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Link zu diesem Abschnitt"
+    },
+    {
+      "id": "h-51680a37",
       "kind": "html",
-      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all. Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
-      "tr": "In TypeScript ist ein Typ ein Versprechen zur Compile-Zeit, das sich verflüchtigt, bevor dein Code läuft. Eine <code>User</code>-Annotation wird zu nichts gelöscht; das Objekt, das du tatsächlich aus einem Netzwerkaufruf, einem JSON-Parse oder einem Formularfeld bekommst, kann jede beliebige Form haben. Schlimmer noch, die Sprache gibt dir drei legale Wege, den Checker darüber anzulügen: <code>any</code>, einen <code>as</code>-Cast und ein Non-Null-<code>!</code>. Ein Agent, der schnell arbeitet, greift zu allen dreien, und <code>tsc --strict</code> bleibt grün, während der Bug ausgeliefert wird."
+      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all.",
+      "tr": "In TypeScript ist ein Typ ein Versprechen zur Compile-Zeit, das sich verflüchtigt, bevor dein Code läuft. Eine <code>User</code>-Annotation wird zu nichts gelöscht; das Objekt, das du tatsächlich aus einem Netzwerkaufruf, einem JSON-Parse oder einem Formularfeld bekommst, kann jede beliebige Form haben."
+    },
+    {
+      "id": "h-e2e3672a",
+      "kind": "html",
+      "en": "Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
+      "tr": "Schlimmer noch, die Sprache gibt dir drei legale Wege, den Checker darüber anzulügen: <code>any</code>, einen <code>as</code>-Cast und ein Non-Null-<code>!</code>. Ein Agent, der schnell arbeitet, greift zu allen dreien, und <code>tsc --strict</code> bleibt grün, während der Bug ausgeliefert wird."
     },
     {
       "id": "h-3e057639",
@@ -83,22 +173,22 @@
       "tr": "<span class=\"ex-label\">01</span> Es gibt kein <code>any</code>"
     },
     {
-      "id": "h-5f3593d9",
+      "id": "h-bc245dbd",
       "kind": "html",
-      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
-      "tr": "<code>any</code> ist das teuerste Schlüsselwort in TypeScript: Es schaltet das Typsystem für einen Wert ab <em>und für alles, was dieser Wert berührt</em>. Ein einziges <code>any</code> an einer Systemgrenze vergiftet still den Aufrufgraphen dahinter. Glyph hat es nicht. Der oberste Typ ist <code>unknown</code>, und <code>unknown</code> ist träge: Du kannst ihn nicht aufrufen, nicht indizieren und nirgendwohin übergeben, wo etwas typisiert ist, bis du <em>bewiesen</em> hast, was er ist."
+      "en": "Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
+      "tr": "Glyph hat es nicht. Der oberste Typ ist <code>unknown</code>, und <code>unknown</code> ist träge: Du kannst ihn nicht aufrufen, nicht indizieren und nirgendwohin übergeben, wo etwas typisiert ist, bis du <em>bewiesen</em> hast, was er ist."
     },
     {
-      "id": "h-efbb175b",
+      "id": "h-11d21731",
       "kind": "html",
-      "en": "TypeScript: compiles, then crashes",
-      "tr": "TypeScript: kompiliert, stürzt dann ab"
+      "en": "Details <span class=\"hint\">why one any costs so much</span>",
+      "tr": "Details <span class=\"hint\">warum ein einziges any so viel kostet</span>"
     },
     {
-      "id": "h-fd3640a0",
+      "id": "h-76bc3093",
       "kind": "html",
-      "en": "Glyph: the narrowing is the proof",
-      "tr": "Glyph: Das Einengen ist der Beweis"
+      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream.",
+      "tr": "<code>any</code> ist das teuerste Schlüsselwort in TypeScript: Es schaltet das Typsystem für einen Wert ab <em>und für alles, was dieser Wert berührt</em>. Ein einziges <code>any</code> an einer Systemgrenze vergiftet still den Aufrufgraphen dahinter."
     },
     {
       "id": "h-f01c689a",
@@ -113,10 +203,10 @@
       "tr": "<span class=\"ex-label\">02</span> Typen sind zur Laufzeit echt"
     },
     {
-      "id": "h-6b3971a1",
+      "id": "h-1a69a996",
       "kind": "html",
-      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>. The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
-      "tr": "Wie kann es <code>User.parse</code> geben? Weil jeder Record-Typ und jede nicht generische Tagged Union einen <strong>Laufzeit-Deskriptor</strong> daneben erzeugt: einen <code>is</code>-Guard, ein <code>parse</code>, das ein <code>unknown</code> in ein <code>Result</code> validiert, und ein zusammensetzbares <code>schema</code>. Die Form des Records wird zur Laufzeit tatsächlich untersucht statt angenommen, also ist eine Prüfung <code>is User</code> eine echte Prüfung und kein gelöschter No-op."
+      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>.",
+      "tr": "Wie kann es <code>User.parse</code> geben? Weil jeder Record-Typ und jede nicht generische Tagged Union einen <strong>Laufzeit-Deskriptor</strong> daneben erzeugt: einen <code>is</code>-Guard, ein <code>parse</code>, das ein <code>unknown</code> in ein <code>Result</code> validiert, und ein zusammensetzbares <code>schema</code>."
     },
     {
       "id": "h-14c2cb86",
@@ -125,16 +215,40 @@
       "tr": "der Typ, den du schreibst, und der daraus erzeugte Deskriptor"
     },
     {
-      "id": "h-013d9e91",
+      "id": "h-c3e4b6d5",
       "kind": "html",
-      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator. A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
-      "tr": "Das ist die Antwort auf \"jede API braucht einen handgeschriebenen Validator\". Der Typ ist der Validator. Eine Systemgrenze (ein Request-Body, eine Konfigurationsdatei, eine Antwort eines Drittanbieters) wird nur typisiert, indem sie durch eine Prüfung geht, die fehlerhafte Daten tatsächlich ablehnen kann."
+      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator.",
+      "tr": "Das ist die Antwort auf \"jede API braucht einen handgeschriebenen Validator\". Der Typ ist der Validator."
     },
     {
-      "id": "h-10d713ab",
+      "id": "h-0271b6cb",
       "kind": "html",
-      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields. What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
-      "tr": "Wo das aufhört: Der Deskriptor eines Records ist standardmäßig strikt. Er bestätigt die deklarierten Felder und lehnt einen Wert mit nicht deklarierten Schlüsseln ab (setz <code>@open</code> an den Typ, um zusätzliche zu erlauben). Record-Typen bekommen einen Deskriptor, generische eingeschlossen, also prüft <code>Paginated&lt;User&gt;</code> jedes Element als <code>User</code>, und der Deskriptor einer Tagged Union prüft den Tag und dann die Payload-Felder dieser Variante. Keinen bekommt weiterhin eine generische Tagged Union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> hat kein <code>Box.parse</code>) oder ein Typ, der aus einer <code>.d.ts</code> importiert und nur referenziert wird. Wo eine Prüfung nur einen Teil einer Form beweisen kann, sagt der Compiler das, statt eine Garantie anzudeuten, die er nicht geben kann."
+      "en": "Details <span class=\"hint\">what the descriptor checks</span>",
+      "tr": "Details <span class=\"hint\">was der Deskriptor prüft</span>"
+    },
+    {
+      "id": "h-c49f1369",
+      "kind": "html",
+      "en": "The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
+      "tr": "Die Form des Records wird zur Laufzeit tatsächlich untersucht statt angenommen, also ist eine Prüfung <code>is User</code> eine echte Prüfung und kein gelöschter No-op."
+    },
+    {
+      "id": "h-7ec41b58",
+      "kind": "html",
+      "en": "A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
+      "tr": "Eine Systemgrenze (ein Request-Body, eine Konfigurationsdatei, eine Antwort eines Drittanbieters) wird nur typisiert, indem sie durch eine Prüfung geht, die fehlerhafte Daten tatsächlich ablehnen kann."
+    },
+    {
+      "id": "h-c1597e84",
+      "kind": "html",
+      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields.",
+      "tr": "Wo das aufhört: Der Deskriptor eines Records ist standardmäßig strikt. Er bestätigt die deklarierten Felder und lehnt einen Wert mit nicht deklarierten Schlüsseln ab (setz <code>@open</code> an den Typ, um zusätzliche zu erlauben). Record-Typen bekommen einen Deskriptor, generische eingeschlossen, also prüft <code>Paginated&lt;User&gt;</code> jedes Element als <code>User</code>, und der Deskriptor einer Tagged Union prüft den Tag und dann die Payload-Felder dieser Variante."
+    },
+    {
+      "id": "h-9ae0aa14",
+      "kind": "html",
+      "en": "What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
+      "tr": "Keinen bekommt weiterhin eine generische Tagged Union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> hat kein <code>Box.parse</code>) oder ein Typ, der aus einer <code>.d.ts</code> importiert und nur referenziert wird. Wo eine Prüfung nur einen Teil einer Form beweisen kann, sagt der Compiler das, statt eine Garantie anzudeuten, die er nicht geben kann."
     },
     {
       "id": "h-7f6e1258",
@@ -143,10 +257,10 @@
       "tr": "<span class=\"ex-label\">03</span> Jeder Fall, oder es kompiliert nicht"
     },
     {
-      "id": "h-0adab77f",
+      "id": "h-714a5971",
       "kind": "html",
-      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>). The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
-      "tr": "Ein <code>match</code> über einer abgeschlossenen Union muss jede Variante behandeln. Füg später eine Variante hinzu, und <em>jedes</em> match, das sie nicht berücksichtigt hat, kompiliert nicht mehr (<code>E0200</code>). Der neue Fall kann nicht still zu <code>undefined</code> durchfallen, wie es ein vergessener <code>switch</code>-Zweig tut. Und es geht nicht nur um Unions: Ein match über einer <code>number</code> oder einem <code>string</code> mit Literalwerten verlangt ein <code>else</code> (<code>E0218</code>), weil diese Wertebereiche unbegrenzt sind und eine Menge von Literalen nie vollständig sein kann."
+      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).",
+      "tr": "Ein <code>match</code> über einer abgeschlossenen Union muss jede Variante behandeln. Füg später eine Variante hinzu, und <em>jedes</em> match, das sie nicht berücksichtigt hat, kompiliert nicht mehr (<code>E0200</code>)."
     },
     {
       "id": "h-b6cc05d4",
@@ -155,16 +269,34 @@
       "tr": "Compile-Fehler, kein undefined zur Laufzeit"
     },
     {
+      "id": "h-1e14f808",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">number and string matches</span>",
+      "tr": "Details <span class=\"hint\">matches über number und string</span>"
+    },
+    {
+      "id": "h-2121973b",
+      "kind": "html",
+      "en": "The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
+      "tr": "Der neue Fall kann nicht still zu <code>undefined</code> durchfallen, wie es ein vergessener <code>switch</code>-Zweig tut. Und es geht nicht nur um Unions: Ein match über einer <code>number</code> oder einem <code>string</code> mit Literalwerten verlangt ein <code>else</code> (<code>E0218</code>), weil diese Wertebereiche unbegrenzt sind und eine Menge von Literalen nie vollständig sein kann."
+    },
+    {
       "id": "h-85b49cf2",
       "kind": "html",
       "en": "<span class=\"ex-label\">04</span> Errors are values, not surprises",
       "tr": "<span class=\"ex-label\">04</span> Fehler sind Werte, keine Überraschungen"
     },
     {
-      "id": "h-9f7ae855",
+      "id": "h-8cad6d11",
       "kind": "html",
-      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch). Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
-      "tr": "Eine Funktion, die fehlschlagen kann, gibt <code>Result&lt;T, E&gt;</code> zurück. Du behandelst es mit <code>match</code> oder reichst es mit dem Operator <code>?</code> weiter, und der Fehlertyp muss passen (es gibt keine implizite Umwandlung, die einen Unterschied versteckt). Ignorier ein <code>Result</code> ganz (ruf es wegen seiner Wirkung auf und verwirf, was es zurückgegeben hat), und Glyph warnt dich (<code>E0217</code>), weil ein verworfener Fehler ein verschluckter Fehlschlag ist. Du bringst die Warnung bewusst mit <code>let _ = ...</code> zum Schweigen, nie versehentlich."
+      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch).",
+      "tr": "Eine Funktion, die fehlschlagen kann, gibt <code>Result&lt;T, E&gt;</code> zurück. Du behandelst es mit <code>match</code> oder reichst es mit dem Operator <code>?</code> weiter, und der Fehlertyp muss passen (es gibt keine implizite Umwandlung, die einen Unterschied versteckt)."
+    },
+    {
+      "id": "h-51e3ca2c",
+      "kind": "html",
+      "en": "Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "Ignorier ein <code>Result</code> ganz (ruf es wegen seiner Wirkung auf und verwirf, was es zurückgegeben hat), und Glyph warnt dich (<code>E0217</code>), weil ein verworfener Fehler ein verschluckter Fehlschlag ist. Du bringst die Warnung bewusst mit <code>let _ = ...</code> zum Schweigen, nie versehentlich."
     },
     {
       "id": "h-bc93cc11",
@@ -173,10 +305,16 @@
       "tr": "<span class=\"ex-label\">05</span> Sogar personenbezogene Daten sind eine Typfrage"
     },
     {
-      "id": "h-b6234b6d",
+      "id": "h-559df4dc",
       "kind": "html",
-      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
-      "tr": "Derselbe Instinkt, \"mach es zur Aufgabe des Compilers, nicht zu einer Konvention\", reicht bis zu sensiblen Daten. Setz <code>@redact</code> an einen Typ, und sein Deskriptor bekommt ein <code>redact()</code>, das diese Felder maskiert, also kann ein verirrtes <code>json.stringify(User.redact(u))</code> sie nicht preisgeben. Nenn ein Feld, das der Typ nicht hat, und es ist ein Compile-Fehler (<code>E0219</code>), keine Schwärzung, die still nichts schützt."
+      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "Derselbe Instinkt, \"mach es zur Aufgabe des Compilers, nicht zu einer Konvention\", reicht bis zu sensiblen Daten. Setz <code>@redact</code> an einen Typ, und sein Deskriptor bekommt ein <code>redact()</code>, das diese Felder maskiert, also kann ein verirrtes <code>json.stringify(User.redact(u))</code> sie nicht preisgeben."
+    },
+    {
+      "id": "h-e0c731d9",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
+      "tr": "Nenn ein Feld, das der Typ nicht hat, und es ist ein Compile-Fehler (<code>E0219</code>), keine Schwärzung, die still nichts schützt."
     },
     {
       "id": "h-725757af",
@@ -191,10 +329,34 @@
       "tr": "Wie es durchgesetzt wird und wo die Garantie aufhört"
     },
     {
-      "id": "h-4641dcd8",
+      "id": "h-c91b558b",
       "kind": "html",
-      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation. The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
-      "tr": "Genau genommen, weil der Unterschied wichtig ist: Glyph ist ein <strong>strikter, durchgesetzter Dialekt über <code>tsc</code></strong>, kein unabhängiger Verifizierer. Manches beweist es selbst: Erschöpfendheit, den Fehlertyp von <code>?</code>, das Fehlen von <code>any</code>/<code>as</code> in deinem Quellcode, die Validierung strikter Schlüssel. Den Rest der Typkompatibilität setzt es durch, indem es TypeScript erzeugt und <code>tsc --strict</code> ausführt, was den Build fehlschlagen lässt. Der Kern ist, dass diese Prüfungen die <em>Sprache</em> sind, kein Opt-in-Lint, das der Agent abschalten kann, nicht, dass Glyph einen Typchecker neu implementiert."
+      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier.",
+      "tr": "Genau genommen, weil der Unterschied wichtig ist: Glyph ist ein <strong>strikter, durchgesetzter Dialekt über <code>tsc</code></strong>, kein unabhängiger Verifizierer."
+    },
+    {
+      "id": "h-540f13a2",
+      "kind": "html",
+      "en": "<b>Proved by Glyph</b>Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation.",
+      "tr": "<b>Von Glyph bewiesen</b>Manches beweist es selbst: Erschöpfendheit, den Fehlertyp von <code>?</code>, das Fehlen von <code>any</code>/<code>as</code> in deinem Quellcode, die Validierung strikter Schlüssel."
+    },
+    {
+      "id": "h-3251c604",
+      "kind": "html",
+      "en": "<b>Enforced through tsc</b>The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build.",
+      "tr": "<b>Über tsc durchgesetzt</b>Den Rest der Typkompatibilität setzt es durch, indem es TypeScript erzeugt und <code>tsc --strict</code> ausführt, was den Build fehlschlagen lässt."
+    },
+    {
+      "id": "h-afd82d3a",
+      "kind": "html",
+      "en": "The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
+      "tr": "Der Kern ist, dass diese Prüfungen die <em>Sprache</em> sind, kein Opt-in-Lint, das der Agent abschalten kann, nicht, dass Glyph einen Typchecker neu implementiert."
+    },
+    {
+      "id": "h-d0732969",
+      "kind": "html",
+      "en": "History <span class=\"hint\">edges closed in 0.1.10, deep generic validation</span>",
+      "tr": "Geschichte <span class=\"hint\">in 0.1.10 geschlossene Grenzen, tiefe generische Validierung</span>"
     },
     {
       "id": "h-c25c2286",
@@ -203,10 +365,16 @@
       "tr": "Zwei frühere Grenzen hier wurden in 0.1.10 geschlossen. Der Emitter fügte früher in <em>jede</em> generische Funktion einen Rückgabe-Cast ein, der von Glyph und nicht von <code>tsc</code> geprüft wurde; jetzt passiert das nur noch dort, wo ein Validator-Kombinator einen Wert eines aus einer Form abgeleiteten Typs zusammensetzt (<code>infer_output&lt;Shape&gt;</code>), und jedes ehrliche Generic wird ganz ohne Cast ausgegeben. Und dem Ausgabetyp eines Validators wird nicht mehr blind vertraut: <code>infer_output</code> leitet ihn aus der Form ab, die du übergibst, und <code>tsc</code> prüft deine Annotation dagegen: Eine Form, der ein Feld des behaupteten Typs fehlt, kompiliert jetzt nicht mehr."
     },
     {
-      "id": "h-3ae3435e",
+      "id": "h-84808e67",
       "kind": "html",
-      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence. One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
-      "tr": "Generische Typen werden jetzt auch tief validiert: Ein Deskriptor für <code>Paginated&lt;User&gt;</code> prüft jedes Element <em>als <code>User</code></em>, nicht nur auf Vorhandensein. Eine Grenze bleibt, klar benannt: Ein <em>importierter</em> Typ aus einer externen <code>.d.ts</code>, den du nur referenzierst, hat keinen Deskriptor, bis du ihn mit <code>glyph gen dts</code> materialisierst, also wird ein Feld dieses Typs auf Vorhandensein geprüft, nicht auf seine Form. Diese Grenze ist Absicht (ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen), und das Materialisieren schließt sie."
+      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence.",
+      "tr": "Generische Typen werden jetzt auch tief validiert: Ein Deskriptor für <code>Paginated&lt;User&gt;</code> prüft jedes Element <em>als <code>User</code></em>, nicht nur auf Vorhandensein."
+    },
+    {
+      "id": "h-20559d87",
+      "kind": "html",
+      "en": "One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
+      "tr": "Eine Grenze bleibt, klar benannt: Ein <em>importierter</em> Typ aus einer externen <code>.d.ts</code>, den du nur referenzierst, hat keinen Deskriptor, bis du ihn mit <code>glyph gen dts</code> materialisierst, also wird ein Feld dieses Typs auf Vorhandensein geprüft, nicht auf seine Form. Diese Grenze ist Absicht (ein Typ, den Glyph nicht erzeugt hat, kann keine Validierung zur Laufzeit versprechen), und das Materialisieren schließt sie."
     },
     {
       "id": "h-71727b66",
@@ -215,10 +383,16 @@
       "tr": "Der Benchmark: kommt noch"
     },
     {
-      "id": "h-e396933a",
+      "id": "h-d5addd8d",
       "kind": "html",
-      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches. Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
-      "tr": "Diese Aussage ist empirisch, also wollen wir sie messen: einen Korpus echter Änderungen von Agenten nehmen, jede durch <code>tsc --strict</code> und durch Glyph laufen lassen und zählen, was jedes tatsächlich findet. Glyph ist noch nicht im echten Einsatz, also gibt es keine Zahlen zu berichten. Das Diagramm unten ist ein Platzhalter und füllt sich mit echten Daten, sobald es echte Nutzung gibt."
+      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches.",
+      "tr": "Diese Aussage ist empirisch, also wollen wir sie messen: einen Korpus echter Änderungen von Agenten nehmen, jede durch <code>tsc --strict</code> und durch Glyph laufen lassen und zählen, was jedes tatsächlich findet."
+    },
+    {
+      "id": "h-3d020067",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
+      "tr": "Glyph ist noch nicht im echten Einsatz, also gibt es keine Zahlen zu berichten. Das Diagramm unten ist ein Platzhalter und füllt sich mit echten Daten, sobald es echte Nutzung gibt."
     },
     {
       "id": "h-53997b9b",
@@ -269,16 +443,22 @@
       "tr": "\"Striktes TypeScript und eine Lint-Konfiguration können das auch\""
     },
     {
-      "id": "h-9a1829dc",
+      "id": "h-129ba306",
       "kind": "html",
-      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
-      "tr": "Innerhalb eines Programms kommen sie nah heran. <code>strict</code>, <code>noUncheckedIndexedAccess</code> und eine Regel gegen explizites <code>any</code> fangen das meiste ab, was ein Agent sonst durchrutschen ließe. An den Rändern hören sie auf. <code>JSON.parse(body) as User</code> kompiliert unter jeder denkbaren Einstellung, und der übliche Fix, ein zod-Schema, ist eine zweite Beschreibung von <code>User</code>, die von Hand mit der ersten synchron gehalten werden muss. In Glyph ist der Typ der Validator: <code>json.parse&lt;User&gt;(body)</code> wird gegen <code>User</code> selbst geprüft, und ein Typ, den Glyph zur Laufzeit nicht prüfen kann, wird abgelehnt statt blind akzeptiert."
+      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges.",
+      "tr": "Innerhalb eines Programms kommen sie nah heran. <code>strict</code>, <code>noUncheckedIndexedAccess</code> und eine Regel gegen explizites <code>any</code> fangen das meiste ab, was ein Agent sonst durchrutschen ließe. An den Rändern hören sie auf."
     },
     {
-      "id": "h-df4adf7a",
+      "id": "h-62c1627b",
       "kind": "html",
-      "en": "The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
-      "tr": "Der andere Unterschied ist, wer sich darauf verlassen kann. Eine Lint-Konfiguration ist eine Entscheidung, die ein Repository getroffen hat. Ein Agent, der eine unbekannte TypeScript-Codebasis öffnet, kann nicht annehmen, dass <code>any</code> dort verboten ist; in Glyph lässt es sich nirgends schreiben."
+      "en": "<b>At the boundary</b><code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
+      "tr": "<b>An der Systemgrenze</b><code>JSON.parse(body) as User</code> kompiliert unter jeder denkbaren Einstellung, und der übliche Fix, ein zod-Schema, ist eine zweite Beschreibung von <code>User</code>, die von Hand mit der ersten synchron gehalten werden muss. In Glyph ist der Typ der Validator: <code>json.parse&lt;User&gt;(body)</code> wird gegen <code>User</code> selbst geprüft, und ein Typ, den Glyph zur Laufzeit nicht prüfen kann, wird abgelehnt statt blind akzeptiert."
+    },
+    {
+      "id": "h-4e201e12",
+      "kind": "html",
+      "en": "<b>Across repositories</b>The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
+      "tr": "<b>Über Repositorys hinweg</b>Der andere Unterschied ist, wer sich darauf verlassen kann. Eine Lint-Konfiguration ist eine Entscheidung, die ein Repository getroffen hat. Ein Agent, der eine unbekannte TypeScript-Codebasis öffnet, kann nicht annehmen, dass <code>any</code> dort verboten ist; in Glyph lässt es sich nirgends schreiben."
     },
     {
       "id": "h-339efe42",

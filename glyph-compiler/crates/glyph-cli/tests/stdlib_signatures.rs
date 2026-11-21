@@ -271,7 +271,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (132, 46, 166),
+        (134, 46, 164),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );

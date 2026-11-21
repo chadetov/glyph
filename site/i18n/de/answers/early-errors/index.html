@@ -1,7 +1,7 @@
 ---
 title: Warum findet Glyph, was tsc findet, nur früher? · Glyph
 description: Glyph meldet await außerhalb einer async fn, einen match-Arm, der keinen Wert erzeugt, und ein fehlendes mut an deinem Quellcode, mit der Regel und dem Fix, vor tsc.
-source_hash: 39590229d161d4c3
+source_hash: c5e5837369abce5e
 prev: /answers/tooling/ | &larr; Zurück | Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?
 next: /answers/parse-errors/ | Weiter &rarr; | Wenn das Parsen fehlschlägt, erfahre ich warum?
 ---
@@ -91,7 +91,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">welches Aufrufbare entscheidet</span></summary><div class="body">
         <p>
-          Das war früher <code>TS1308</code> von <code>tsc</code> an der erzeugten Datei. Jetzt ist es <code>E0222</code>, und das innerste umgebende Aufrufbare entscheidet, also ist ein synchrones Lambda innerhalb einer <code>async fn</code> ein eigener Kontext, dieselbe Regel, die TypeScript verwendet.
+          Das war früher <code>TS1308</code> von <code>tsc</code> an der erzeugten Datei. Jetzt ist es <code>E0222</code>, und das innerste umgebende Aufrufbare entscheidet, also ist ein synchrones Lambda innerhalb einer <code>async fn</code> ein eigener Kontext, dieselbe Regel, die TypeScript verwendet. Der umgekehrte Fehler, ein Aufruf, auf den niemand wartet, ist <code>E0238</code>: <code>save(1)</code> allein in einer Zeile, <code>let _ = save(1)</code> und <code>let n: number = load()</code> werden abgelehnt, weil der Aufruf startet und das Programm ohne ihn weiterläuft. Ein synchroner Callback, der etwas anstoßen und vergessen will, schreibt <code>task.detach(async fn() -&gt; void { await save(1) })</code>; das meldet einen Fehler auf stderr.
         </p>
       </div></details>
 
@@ -484,6 +484,7 @@ string.repeeat(s, 2)
           <p class="ak-st-group">Anweisungen und Syntax</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> außerhalb einer <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Aufruf einer async-Funktion, auf den nichts wartet, <code>let _ =</code> und eine typisierte Stelle eingeschlossen</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein <code>match</code>-Arm an Wertposition, der keinen Wert erzeugt</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Zuweisung ohne <code>mut</code></span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Variante mit mehreren positionalen Payload-Feldern, wo es nur die Record-Form gibt</span><span class="chip code">E0010</span></span></li>
@@ -519,6 +520,11 @@ string.repeeat(s, 2)
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Wird schärfer</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> erkennt einen Aufruf nur dann als async, wenn Glyphs Checker seine Signatur kennt</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>E0238</code> weiß nur dann, dass ein Aufruf async ist, wenn Glyphs Checker seine Signatur kennt, daher kann ein Promise aus einem npm-Paket oder einem node-Builtin weiterhin still verworfen werden. Ein <code>async</code>-Callback, der an <code>forEach</code> oder einen Timer übergeben wird, wird ebenfalls noch nicht abgelehnt: Diese Regel braucht modellierte Callback-Stellen und ist geplant.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> und <code>zip</code> nehmen weiterhin ohne Beschwerde einen <code>async</code>-Callback</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> und <code>zip</code> nehmen weiterhin ohne Beschwerde einen <code>async</code>-Callback und liefern ein Array ausstehender Werte zurück, das als <code>[object Promise]</code> ausgegeben wird; die fünf Array-Funktionen, die ein Prädikat nehmen, stoppen es, mit <code>E0211</code> am Callback. Die anderen drei genauso zu modellieren, würde auch <code>par.all(array.map(items, async fn ...))</code> ablehnen, und so führt Glyph Arbeit nebenläufig aus, weil ein Array ausstehender Werte in der Sprache keine Schreibweise hat. Das ist eine Entscheidung des Typsystems und kein fehlender Eintrag, also ist es offen.</p>

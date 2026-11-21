@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "ko",
-  "source_hash": "39590229d161d4c3",
+  "source_hash": "c5e5837369abce5e",
   "segments": [
     {
       "id": "title",
@@ -281,10 +281,10 @@
       "tr": "자세히 <span class=\"hint\">어떤 호출 가능한 것이 판정하는가</span>"
     },
     {
-      "id": "h-bd0de091",
+      "id": "h-da6289b9",
       "kind": "html",
-      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
-      "tr": "예전에는 생성된 파일에 대한 <code>tsc</code>의 <code>TS1308</code>이었습니다. 이제는 <code>E0222</code>이며, 가장 안쪽의 둘러싼 호출 가능한 것이 판정하므로, <code>async fn</code> 안의 동기 람다는 별도의 문맥입니다. TypeScript와 같은 규칙입니다."
+      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses. The opposite mistake, a call nobody awaits, is <code>E0238</code>: <code>save(1)</code> on its own line, <code>let _ = save(1)</code> and <code>let n: number = load()</code> are refused, because the call starts and the program moves on without it. A sync callback that means to fire and forget writes <code>task.detach(async fn() -&gt; void { await save(1) })</code>, which reports a failure on stderr.",
+      "tr": "예전에는 생성된 파일에 대한 <code>tsc</code>의 <code>TS1308</code>이었습니다. 이제는 <code>E0222</code>이며, 가장 안쪽의 둘러싼 호출 가능한 것이 판정하므로, <code>async fn</code> 안의 동기 람다는 별도의 문맥입니다. TypeScript와 같은 규칙입니다. 반대 실수, 즉 아무도 await하지 않는 호출은 <code>E0238</code>입니다. 한 줄에 단독으로 있는 <code>save(1)</code>, <code>let _ = save(1)</code>, <code>let n: number = load()</code>는 거부됩니다. 호출은 시작되지만 프로그램은 그것을 기다리지 않고 넘어가기 때문입니다. 실행만 시켜 두려는 동기 콜백은 <code>task.detach(async fn() -&gt; void { await save(1) })</code>라고 씁니다. 이것은 실패를 stderr에 알립니다."
     },
     {
       "id": "h-868a3ae0",
@@ -1025,6 +1025,12 @@
       "tr": "<code>async fn</code> 밖의 <code>await</code>"
     },
     {
+      "id": "h-9d81475f",
+      "kind": "html",
+      "en": "A call to an async function that nothing awaits, <code>let _ =</code> and a typed slot included",
+      "tr": "아무것도 await하지 않는 async 함수 호출 (<code>let _ =</code>와 타입이 지정된 자리 포함)"
+    },
+    {
       "id": "h-46773e34",
       "kind": "html",
       "en": "A value-position <code>match</code> arm that produces no value",
@@ -1151,16 +1157,28 @@
       "tr": "개선 중"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-4f8e68bf",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받습니다"
+      "en": "<code>E0238</code> sees a call as async only when Glyph's checker has its signature",
+      "tr": "<code>E0238</code>은 Glyph 검사기가 시그니처를 알 때만 호출을 async로 인식합니다"
     },
     {
       "id": "h-45989de4",
       "kind": "html",
       "en": "Details",
       "tr": "자세히"
+    },
+    {
+      "id": "h-58e46187",
+      "kind": "html",
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
+      "tr": "<code>E0238</code>은 Glyph 검사기가 호출의 시그니처를 알 때만 그것이 async임을 알기 때문에, npm 패키지나 node 내장 모듈이 돌려주는 promise는 여전히 조용히 버려질 수 있습니다. <code>forEach</code>나 타이머에 넘긴 <code>async</code> 콜백도 아직 거부되지 않습니다. 이 규칙은 콜백 자리를 모델링해야 하며, 계획되어 있습니다."
+    },
+    {
+      "id": "h-c6868905",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
+      "tr": "<code>array.map</code>, <code>flat_map</code>, <code>zip</code>은 여전히 <code>async</code> 콜백을 아무 불평 없이 받습니다"
     },
     {
       "id": "h-ef5ceb2e",

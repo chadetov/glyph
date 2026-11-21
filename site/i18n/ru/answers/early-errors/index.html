@@ -1,7 +1,7 @@
 ---
 title: Почему Glyph ловит то же, что tsc, но раньше? · Glyph
 description: Glyph сообщает await вне async fn, ветку match без значения и пропущенный mut относительно вашего исходного кода, с правилом и исправлением, ещё до tsc.
-source_hash: 39590229d161d4c3
+source_hash: c5e5837369abce5e
 prev: /answers/tooling/ | &larr; Назад | Как обстоят дела с редактором, отладкой и ошибками?
 next: /answers/parse-errors/ | Далее &rarr; | Когда разбор не удаётся, узнаю ли я почему?
 ---
@@ -91,7 +91,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">какая вызываемая конструкция решает</span></summary><div class="body">
         <p>
-          Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript.
+          Раньше это была ошибка <code>tsc</code> <code>TS1308</code> в сгенерированном файле. Теперь это <code>E0222</code>, и решает ближайшая охватывающая вызываемая конструкция, так что синхронная лямбда внутри <code>async fn</code> образует свой контекст, по тому же правилу, что и в TypeScript. Обратная ошибка, вызов, который никто не ждёт, это <code>E0238</code>: <code>save(1)</code> отдельной строкой, <code>let _ = save(1)</code> и <code>let n: number = load()</code> отклоняются, потому что вызов начинается, а программа идёт дальше без него. Синхронный колбэк, который хочет запустить работу и забыть о ней, пишет <code>task.detach(async fn() -&gt; void { await save(1) })</code>; это сообщает об ошибке в stderr.
         </p>
       </div></details>
 
@@ -484,6 +484,7 @@ string.repeeat(s, 2)
           <p class="ak-st-group">Инструкции и синтаксис</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> вне <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Вызов async-функции, который ничто не ждёт, включая <code>let _ =</code> и типизированную позицию</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ветка <code>match</code> в позиции значения, которая не даёт значения</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Присваивание без <code>mut</code></span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Вариант с несколькими позиционными полями содержимого там, где существует только форма записи</span><span class="chip code">E0010</span></span></li>
@@ -519,6 +520,11 @@ string.repeeat(s, 2)
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Становится точнее</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> распознаёт вызов как async, только если у проверки Glyph есть его сигнатура</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>E0238</code> знает, что вызов async, только если у проверки Glyph есть его сигнатура, поэтому promise из npm-пакета или встроенного модуля node всё ещё может быть молча отброшен. Колбэк <code>async</code>, переданный в <code>forEach</code> или таймер, тоже пока не отклоняется: для этого правила нужно смоделировать позиции колбэков, и оно запланировано.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> и <code>zip</code> по-прежнему без возражений принимают <code>async</code>-колбэк и возвращают массив ожидающих значений, который печатается как <code>[object Promise]</code>; пять функций для массивов, принимающих предикат, это останавливают, выдавая <code>E0211</code> на колбэке. Если смоделировать так же остальные три, будет отклонён и <code>par.all(array.map(items, async fn ...))</code>, а именно так Glyph выполняет работу конкурентно, потому что у массива ожидающих значений нет записи в языке. Это решение о системе типов, а не пропущенная запись, поэтому вопрос открыт.</p>

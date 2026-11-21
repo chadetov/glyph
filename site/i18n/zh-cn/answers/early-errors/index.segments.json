@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/early-errors/index.html",
   "locale": "zh-cn",
-  "source_hash": "39590229d161d4c3",
+  "source_hash": "c5e5837369abce5e",
   "segments": [
     {
       "id": "title",
@@ -281,10 +281,10 @@
       "tr": "详情 <span class=\"hint\">由哪个可调用体决定</span>"
     },
     {
-      "id": "h-bd0de091",
+      "id": "h-da6289b9",
       "kind": "html",
-      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses.",
-      "tr": "这以前是生成文件上的 <code>tsc</code> 的 <code>TS1308</code>，现在是 <code>E0222</code>，由最内层的外围可调用体决定，所以 <code>async fn</code> 里的同步 lambda 是它自己的上下文，规则和 TypeScript 相同。"
+      "en": "That used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is <code>E0222</code> now, and the innermost enclosing callable decides, so a synchronous lambda inside an <code>async fn</code> is its own context, the same rule TypeScript uses. The opposite mistake, a call nobody awaits, is <code>E0238</code>: <code>save(1)</code> on its own line, <code>let _ = save(1)</code> and <code>let n: number = load()</code> are refused, because the call starts and the program moves on without it. A sync callback that means to fire and forget writes <code>task.detach(async fn() -&gt; void { await save(1) })</code>, which reports a failure on stderr.",
+      "tr": "这以前是生成文件上的 <code>tsc</code> 的 <code>TS1308</code>，现在是 <code>E0222</code>，由最内层的外围可调用体决定，所以 <code>async fn</code> 里的同步 lambda 是它自己的上下文，规则和 TypeScript 相同。 相反的错误，即没有任何地方 await 的调用，是 <code>E0238</code>：单独一行的 <code>save(1)</code>、<code>let _ = save(1)</code> 和 <code>let n: number = load()</code> 都会被拒绝，因为调用开始了，程序却不等它就继续往下走。想要“发出后不管”的同步回调写成 <code>task.detach(async fn() -&gt; void { await save(1) })</code>，它会在 stderr 上报告失败。"
     },
     {
       "id": "h-868a3ae0",
@@ -1025,6 +1025,12 @@
       "tr": "<code>async fn</code> 之外的 <code>await</code>"
     },
     {
+      "id": "h-9d81475f",
+      "kind": "html",
+      "en": "A call to an async function that nothing awaits, <code>let _ =</code> and a typed slot included",
+      "tr": "对异步函数的调用没有被任何地方 await，包括 <code>let _ =</code> 和带类型的位置"
+    },
+    {
       "id": "h-46773e34",
       "kind": "html",
       "en": "A value-position <code>match</code> arm that produces no value",
@@ -1151,16 +1157,28 @@
       "tr": "正在改进"
     },
     {
-      "id": "h-c6868905",
+      "id": "h-4f8e68bf",
       "kind": "html",
-      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
-      "tr": "<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调"
+      "en": "<code>E0238</code> sees a call as async only when Glyph's checker has its signature",
+      "tr": "只有当 Glyph 的检查器知道某个调用的签名时，<code>E0238</code> 才能认出它是异步的"
     },
     {
       "id": "h-45989de4",
       "kind": "html",
       "en": "Details",
       "tr": "详情"
+    },
+    {
+      "id": "h-58e46187",
+      "kind": "html",
+      "en": "<code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.",
+      "tr": "只有当 Glyph 的检查器知道调用的签名时，<code>E0238</code> 才知道它是异步的，所以来自 npm 包或 node 内置模块的 promise 仍可能被悄悄丢掉。传给 <code>forEach</code> 或定时器的 <code>async</code> 回调目前也还不会被拒绝：这条规则需要先对回调位置建模，已在计划中。"
+    },
+    {
+      "id": "h-c6868905",
+      "kind": "html",
+      "en": "<code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint",
+      "tr": "<code>array.map</code>、<code>flat_map</code> 和 <code>zip</code> 仍然会毫无异议地接受 <code>async</code> 回调"
     },
     {
       "id": "h-ef5ceb2e",

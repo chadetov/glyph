@@ -65,7 +65,7 @@
       <nav class="site-nav" aria-label="メイン">
         <div class="nav-brand">
           <a href="/ja/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.153</a>
+          <a href="/versions/" class="nav-version" title="リリースノート">v0.1.154</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -559,7 +559,7 @@ within async functions and at the top levels of modules.</span></pre>
       </div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">どの呼び出し可能なものが判定するか</span></summary><div class="body">
         <p>
-          以前は生成されたファイルに対する <code>tsc</code> の <code>TS1308</code> でしたが、今は <code>E0222</code> です。判定するのは最も内側の呼び出し可能なものなので、<code>async fn</code> の中にある同期ラムダはそれ自体が独立した文脈になります。TypeScript と同じルールです。
+          以前は生成されたファイルに対する <code>tsc</code> の <code>TS1308</code> でしたが、今は <code>E0222</code> です。判定するのは最も内側の呼び出し可能なものなので、<code>async fn</code> の中にある同期ラムダはそれ自体が独立した文脈になります。TypeScript と同じルールです。 逆の間違い、つまり誰も await しない呼び出しは <code>E0238</code> です。単独の行の <code>save(1)</code>、<code>let _ = save(1)</code>、<code>let n: number = load()</code> は拒否されます。呼び出しは始まるのに、プログラムはそれを待たずに先へ進むからです。発火して忘れるつもりの同期コールバックは <code>task.detach(async fn() -&gt; void { await save(1) })</code> と書きます。これは失敗を stderr に報告します。
         </p>
       </div></details>
 
@@ -952,6 +952,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           <p class="ak-st-group">文と構文</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn</code> の外での <code>await</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">何も await しない非同期関数の呼び出し（<code>let _ =</code> や型付きの位置を含む）</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">値の位置にある <code>match</code> で値を生まないアーム</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>mut</code> のない代入</span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">存在するのはレコード形式なのに、バリアントに複数の位置ペイロードフィールドを渡したとき</span><span class="chip code">E0010</span></span></li>
@@ -987,6 +988,11 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 改善中</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> が呼び出しを非同期だと分かるのは、Glyph のチェッカーがそのシグネチャを持っている場合だけ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
+                <p><code>E0238</code> が呼び出しを非同期だと分かるのは Glyph のチェッカーがそのシグネチャを持っている場合だけなので、npm パッケージや node の組み込みが返す promise は今も黙って捨てられることがあります。<code>forEach</code> やタイマーに渡した <code>async</code> コールバックもまだ拒否されません。このルールにはコールバックの位置のモデル化が必要で、予定されています。</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取る</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
                 <p><code>array.map</code>、<code>flat_map</code>、<code>zip</code> は、今も <code>async</code> コールバックを文句なく受け取り、保留中の値の配列を返します。これは <code>[object Promise]</code> と表示されます。述語を受け取る 5 つの配列関数は、コールバックに対する <code>E0211</code> でこれを止めます。残りの 3 つを同じようにモデル化すると、<code>par.all(array.map(items, async fn ...))</code> も拒否してしまいます。これは Glyph で処理を並行に実行する方法で、保留中の値の配列は言語の中で表す書き方がないからです。これは抜けているエントリではなく型システムの判断なので、未解決のままです。</p>
@@ -1022,7 +1028,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.153 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.154 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/tooling/">
           <span class="dir">&larr; 前へ</span>

@@ -364,6 +364,7 @@ pub fn assign_types_with_relations(
             key_generics: Vec::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
+            refused_lambdas: HashSet::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -468,6 +469,7 @@ pub fn assignability(
         key_generics: Vec::new(),
         local_type_exprs: HashMap::new(),
         awaited_calls: HashSet::new(),
+        refused_lambdas: HashSet::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -520,6 +522,7 @@ pub fn declared_record_fields(
         key_generics: Vec::new(),
         local_type_exprs: HashMap::new(),
         awaited_calls: HashSet::new(),
+        refused_lambdas: HashSet::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1287,6 +1290,10 @@ struct Assigner<'a> {
     /// The calls an enclosing `await` applies to, by span (D51). A call to an
     /// async callee is a pending value everywhere except here.
     awaited_calls: HashSet<Span>,
+    /// Sync lambdas with no written return type whose tail is a pending
+    /// value, by span: E0238 refuses the tail, and nothing else refuses the
+    /// lambda for the same mistake.
+    refused_lambdas: HashSet<Span>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -2833,6 +2840,7 @@ impl Assigner<'_> {
                     );
                     if let (true, Ty::Fn { return_ty, .. }) = (pending_tail, &mut ty) {
                         *return_ty = Arc::new(Ty::Unknown);
+                        self.refused_lambdas.insert(*span);
                     }
                 }
                 self.tm.insert(*span, ty);
@@ -6785,6 +6793,15 @@ impl Assigner<'_> {
         if matches!(found, Ty::Pending(_)) {
             return None;
         }
+        // A sync lambda whose pending tail is E0238 is that one mistake: its
+        // `async` flag is not compared again here as E0211 (record 138).
+        // Marked by span, never read off its `Unknown` return, which an
+        // `extern_ts` function has too and which stays compared.
+        if let Expr::Lambda { span, .. } = value {
+            if self.refused_lambdas.contains(span) {
+                return None;
+            }
+        }
         // A written array or object literal is checked element by element and
         // field by field first, so the refusal names the one that is wrong and
         // underlines it rather than the whole literal (G237).
@@ -7618,9 +7635,7 @@ impl Assigner<'_> {
         ) = (&found, &expected)
         {
             if ty_is_decidable(&found) && ty_is_decidable(&expected) {
-                // The same guards as `definitely_incompatible`, the value's
-                // `Unknown` return among them (D51).
-                return !matches!(**fr, Ty::Prim(Primitive::Void) | Ty::Unknown)
+                return !matches!(**fr, Ty::Prim(Primitive::Void))
                     && !matches!(**er, Ty::Prim(Primitive::Void))
                     && (fa != ea || self.assign_incompatible(fr, er));
             }
@@ -8801,11 +8816,7 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
                 ..
             },
         ) => {
-            // An `Unknown` return on the value's side is undecided, the way
-            // `void` is: it is what a sync lambda whose pending tail is
-            // E0238 returns (D51), and comparing its `async` flag would
-            // report the one mistake a second time as E0211.
-            !matches!(**fr, Ty::Prim(Primitive::Void) | Ty::Unknown)
+            !matches!(**fr, Ty::Prim(Primitive::Void))
                 && !matches!(**er, Ty::Prim(Primitive::Void))
                 && (fa != ea || definitely_incompatible(fr, er))
         }
@@ -16572,6 +16583,7 @@ component View(props: { s: Status }) -> Component {
             key_generics: Vec::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
+            refused_lambdas: HashSet::new(),
         };
         f(&assigner)
     }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "ko",
-  "source_hash": "31b76a81a51f0211",
+  "source_hash": "cfa565ac48a19111",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "생성된 것입니다. <code>glyph llms --json</code>은 진단 목록, prelude, stdlib 시그니처, 언어 결정, 도구 설명서를 컴파일러 자체 테이블에서 출력하고, 사람이 쓴 사본이 이와 다르면 게이트가 빌드를 실패시킵니다. 에이전트가 처음 읽는 문서의 모든 Glyph 예제는 잘못된 예제까지 포함해 컴파일됩니다."
     },
     {
+      "id": "h-25ad2c9c",
+      "kind": "html",
+      "en": "glyph llms --json, the E0200 entry (trimmed)",
+      "tr": "glyph llms --json의 E0200 항목 (일부 생략)"
+    },
+    {
+      "id": "h-f5ddcc36",
+      "kind": "html",
+      "en": "<span>Seven sections, each read off a table the compiler already has.</span>",
+      "tr": "<span>일곱 개 섹션이 있고, 각각은 컴파일러가 이미 가진 테이블에서 읽습니다.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "이 페이지의 내용"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">왜 중요한가</a>"
+    },
+    {
+      "id": "h-2eb90f00",
+      "kind": "html",
+      "en": "<a href=\"#diagnostics\">Diagnostics</a>",
+      "tr": "<a href=\"#diagnostics\">진단</a>"
+    },
+    {
+      "id": "h-3d52eed8",
+      "kind": "html",
+      "en": "<a href=\"#the-prelude-the-stdlib-and-the-decisions\">Prelude, stdlib, decisions</a>",
+      "tr": "<a href=\"#the-prelude-the-stdlib-and-the-decisions\">prelude, stdlib, 결정</a>"
+    },
+    {
+      "id": "h-be3d93a7",
+      "kind": "html",
+      "en": "<a href=\"#the-wrong-programs-are-readable-too\">Wrong programs</a>",
+      "tr": "<a href=\"#the-wrong-programs-are-readable-too\">잘못된 프로그램</a>"
+    },
+    {
+      "id": "h-0851af65",
+      "kind": "html",
+      "en": "<a href=\"#every-example-compiles-including-the-wrong-ones\">Compiled examples</a>",
+      "tr": "<a href=\"#every-example-compiles-including-the-wrong-ones\">컴파일되는 예제</a>"
+    },
+    {
+      "id": "h-b5f4c54f",
+      "kind": "html",
+      "en": "<a href=\"#what-it-costs-to-hand-over-and-what-it-stopped-costing\">What it costs</a>",
+      "tr": "<a href=\"#what-it-costs-to-hand-over-and-what-it-stopped-costing\">비용</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">현재 상태</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "왜 중요한가"
     },
     {
-      "id": "h-c74ff5a4",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-ca6074b0",
       "kind": "html",
-      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\" The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times. The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present. Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
-      "tr": "그냥 하는 질문이 아닙니다. 솔직한 답이 예전에는 \"사람이 썼고, 낡았다\"였기 때문입니다. 에이전트 안내 문서는 MCP 서버가 \"도구 다섯 개를 제공한다\"며 다섯 개를 나열했습니다. 서버는 일곱 개를 제공했습니다. 서버 자체의 지침이 에이전트에게 가장 먼저 쓰라고 하는 두 개는 문서에 한 번도 나오지 않았습니다. 오류 코드 58개는 사람이 관리하는 사본 세 곳에 있었고, 코드 문자열이 있는지만 검사했습니다. 그 문서의 Glyph 예제 19개 중 2개만 컴파일되었고 17개는 단편으로 건너뛰었습니다."
+      "en": "The question is not rhetorical, because the honest answer used to be \"written by hand, and yes.\"",
+      "tr": "그냥 하는 질문이 아닙니다. 솔직한 답이 예전에는 \"사람이 썼고, 낡았다\"였기 때문입니다."
+    },
+    {
+      "id": "h-af97880e",
+      "kind": "html",
+      "en": "<b>The tool list</b>The agent bootstrap said the MCP server \"exposes five tools\" and listed five. The server served seven. The two the server's own instructions tell an agent to reach for first appeared in it zero times.",
+      "tr": "<b>도구 목록</b>에이전트 안내 문서는 MCP 서버가 \"도구 다섯 개를 제공한다\"며 다섯 개를 나열했습니다. 서버는 일곱 개를 제공했습니다. 서버 자체의 지침이 에이전트에게 가장 먼저 쓰라고 하는 두 개는 문서에 한 번도 나오지 않았습니다."
+    },
+    {
+      "id": "h-ecced3e1",
+      "kind": "html",
+      "en": "<b>The error codes</b>The 58 error codes lived in three hand-maintained copies, checked only for whether the code string was present.",
+      "tr": "<b>오류 코드</b>오류 코드 58개는 사람이 관리하는 사본 세 곳에 있었고, 코드 문자열이 있는지만 검사했습니다."
+    },
+    {
+      "id": "h-61ee9e27",
+      "kind": "html",
+      "en": "<b>The examples</b>Of 19 Glyph examples in that document, 2 were compiled and 17 were skipped as fragments.",
+      "tr": "<b>예제</b>그 문서의 Glyph 예제 19개 중 2개만 컴파일되었고 17개는 단편으로 건너뛰었습니다."
     },
     {
       "id": "h-b65fc913",
@@ -77,22 +167,28 @@
       "tr": "모두 같은 결함입니다. 컴파일러에 대한 문서를, 선의를 가진 사람들이 컴파일러 옆에서 관리한 것입니다. 그것을 읽는 에이전트는 어느 문장이 여전히 참인지 알 수 없었고, 우리도 마찬가지였습니다."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-4ee26ed3",
       "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
+      "en": "One table for the diagnostics",
+      "tr": "진단을 위한 테이블 하나"
     },
     {
-      "id": "h-b81e3a56",
+      "id": "h-8cb613f9",
       "kind": "html",
-      "en": "Seven sections, each read off a table the compiler already has. A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew. 51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
-      "tr": "일곱 개 섹션이 있고, 각각은 컴파일러가 이미 가진 테이블에서 읽습니다. 진단 항목에는 목록의 설명 문장, 한 줄짜리 수정 방법, 자세한 설명, 그리고 컴파일러가 실제로 낸 진단에서 가져온 도움말과 참고 사항이 담깁니다. 코드 77개 중 51개에는 그 코드를 일으키는 잘못된 프로그램도 있으며, 요청하는 순간 컴파일됩니다. 나머지 26개에는 코퍼스에 사례가 없다고 적혀 있습니다."
+      "en": "A diagnostic entry carries the catalogue sentence, the one-line fix, the long explanation, and the help and note taken from a diagnostic the compiler drew.",
+      "tr": "진단 항목에는 목록의 설명 문장, 한 줄짜리 수정 방법, 자세한 설명, 그리고 컴파일러가 실제로 낸 진단에서 가져온 도움말과 참고 사항이 담깁니다."
     },
     {
-      "id": "h-25ad2c9c",
+      "id": "h-61717901",
       "kind": "html",
-      "en": "glyph llms --json, the E0200 entry (trimmed)",
-      "tr": "glyph llms --json의 E0200 항목 (일부 생략)"
+      "en": "51 of the 77 codes also carry a wrong program that draws the code, compiled at the moment you ask; the other 26 say the corpus has no case for it.",
+      "tr": "코드 77개 중 51개에는 그 코드를 일으키는 잘못된 프로그램도 있으며, 요청하는 순간 컴파일됩니다. 나머지 26개에는 코퍼스에 사례가 없다고 적혀 있습니다."
+    },
+    {
+      "id": "h-00da3faf",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">three copies merged into one</span>",
+      "tr": "자세히 <span class=\"hint\">사본 세 개를 하나로 합친 과정</span>"
     },
     {
       "id": "h-3b207613",
@@ -107,10 +203,10 @@
       "tr": "prelude, stdlib, 그리고 결정들"
     },
     {
-      "id": "h-527db667",
+      "id": "h-94089cbd",
       "kind": "html",
-      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to. The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
-      "tr": "prelude는 resolver가 해석에 쓰는 이름 24개와 각각이 무엇인지입니다. stdlib는 모듈 40개와 export 340개이며, 각 시그니처는 검사기 자체 테이블에서 읽어 진단과 같은 타입 출력기로 출력하므로, 문서의 시그니처가 곧 검사기가 여러분에게 요구할 시그니처입니다. export는 세 가지로 나뉘고 절대 두 가지로 뭉치지 않습니다. 129개는 모든 위치가 모델링된 시그니처이고, 46개는 매개변수 타입 자리에 <code>?</code>가 있어 몇 자리가 남았는지 알려 주는 줄과 함께 <code>partially_modeled</code>로 세며, 165개는 시그니처가 아예 없습니다. <code>?</code>는 <code>unknown</code>을 출력한 것이므로, 완전한 시그니처로 공개되는 일은 없습니다."
+      "en": "The prelude is the 24 names the resolver resolves against, with what each one is. The stdlib is 40 modules and 340 exports, and each signature is read out of the checker's own tables and printed by the same type printer a diagnostic uses, so the signature in the document is the signature the checker will hold you to.",
+      "tr": "prelude는 resolver가 해석에 쓰는 이름 24개와 각각이 무엇인지입니다. stdlib는 모듈 40개와 export 340개이며, 각 시그니처는 검사기 자체 테이블에서 읽어 진단과 같은 타입 출력기로 출력하므로, 문서의 시그니처가 곧 검사기가 여러분에게 요구할 시그니처입니다."
     },
     {
       "id": "h-1016682f",
@@ -125,6 +221,24 @@
       "tr": "\"prelude\"와 \"decisions\""
     },
     {
+      "id": "h-e5bff88f",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the exports split</span>",
+      "tr": "자세히 <span class=\"hint\">export가 나뉘는 방식</span>"
+    },
+    {
+      "id": "h-126fc4da",
+      "kind": "html",
+      "en": "The exports split three ways and never two: 129 signatures are modeled in every position, 46 carry a <code>?</code> where a parameter type belongs and are counted <code>partially_modeled</code> with a line saying how many positions are left, and 165 have no signature at all. A <code>?</code> is <code>unknown</code> rendered, so it is never published as a complete signature.",
+      "tr": "export는 세 가지로 나뉘고 절대 두 가지로 뭉치지 않습니다. 129개는 모든 위치가 모델링된 시그니처이고, 46개는 매개변수 타입 자리에 <code>?</code>가 있어 몇 자리가 남았는지 알려 주는 줄과 함께 <code>partially_modeled</code>로 세며, 165개는 시그니처가 아예 없습니다. <code>?</code>는 <code>unknown</code>을 출력한 것이므로, 완전한 시그니처로 공개되는 일은 없습니다."
+    },
+    {
+      "id": "h-0f3031bc",
+      "kind": "html",
+      "en": "History <span class=\"hint\">why <code>duplicate_numbers</code> exists</span>",
+      "tr": "이력 <span class=\"hint\"><code>duplicate_numbers</code>가 있는 이유</span>"
+    },
+    {
       "id": "h-d02a769f",
       "kind": "html",
       "en": "<code>duplicate_numbers</code> is there because the generator reads the spec's own list, and the first time it ran it found two different decisions both numbered D43 and printed <code>\"duplicate_numbers\": [43]</code>. It reports a collision rather than deduplicating it, which is how anyone found out. Nothing in the compiler keys on a D number, so no program was affected; a reader following a citation was. That one is fixed: D43 is the <code>mut</code>-across-<code>await</code> rule and <code>never</code> is D47, so the list comes back empty. There are 49 decisions today, D1 to D49.",
@@ -137,16 +251,28 @@
       "tr": "잘못된 프로그램도 읽을 수 있습니다"
     },
     {
-      "id": "h-b2d0bb7d",
+      "id": "h-3b1cb5e2",
       "kind": "html",
-      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>. An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
-      "tr": "컴파일러의 negative 코퍼스는 반드시 실패해야 하는 프로그램과 각각이 일으켜야 하는 코드의 모음입니다. 예전에는 <code>cargo test</code>에만 보였습니다. 규칙이 무엇을 거부하는지 배우는 에이전트가 바로 그 코퍼스가 염두에 둔 독자이므로, 이제 이를 답으로 제공하며, 각 사례는 요청할 때 컴파일되므로 옆의 진단은 이 컴파일러가 낸 것입니다."
+      "en": "The compiler's negative corpus is a set of programs that must fail, with the code each one must draw. It used to be visible only to <code>cargo test</code>.",
+      "tr": "컴파일러의 negative 코퍼스는 반드시 실패해야 하는 프로그램과 각각이 일으켜야 하는 코드의 모음입니다. 예전에는 <code>cargo test</code>에만 보였습니다."
+    },
+    {
+      "id": "h-5743f0ef",
+      "kind": "html",
+      "en": "An agent learning what a rule refuses is exactly the reader it was written for, so it answers now, and each case is compiled when you ask so the diagnostic beside it is this compiler's.",
+      "tr": "규칙이 무엇을 거부하는지 배우는 에이전트가 바로 그 코퍼스가 염두에 둔 독자이므로, 이제 이를 답으로 제공하며, 각 사례는 요청할 때 컴파일되므로 옆의 진단은 이 컴파일러가 낸 것입니다."
     },
     {
       "id": "h-eb5a2b6c",
       "kind": "html",
       "en": "glyph llms --negative E0008",
       "tr": "glyph llms --negative E0008"
+    },
+    {
+      "id": "h-fa0dce8a",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">coverage, and the <code>catches/</code> corpus</span>",
+      "tr": "자세히 <span class=\"hint\">커버리지, 그리고 <code>catches/</code> 코퍼스</span>"
     },
     {
       "id": "h-0eeb8564",
@@ -161,16 +287,40 @@
       "tr": "잘못된 예제까지 포함해 모든 예제가 컴파일됩니다"
     },
     {
-      "id": "h-31753a2c",
+      "id": "h-63d0dd2c",
       "kind": "html",
-      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies. Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in. It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped. The stdlib reference went from 4 of 8 to 8 of 8.",
-      "tr": "레퍼런스를 생성하는 것은 절반입니다. 나머지 절반은 에이전트가 처음 읽는 설명 글이며, 거기서 에이전트가 복사하는 것은 예제입니다. 그 문서의 모든 Glyph 코드 블록은 컴파일되는 완전한 프로그램이거나, 이름이 붙은 완전한 예제의 단편으로 표시되어 그 줄들이 해당 예제에 실제로 나와야 합니다. 예전에는 코드 블록 19개 중 2개가 컴파일되었고, 지금은 24개 중 20개가 컴파일되고 4개가 표시되어 있으며, 건너뛴 것은 없습니다. stdlib 레퍼런스는 8개 중 4개에서 8개 중 8개가 되었습니다."
+      "en": "Generating the reference is half of it. The other half is the prose an agent bootstraps from, where the examples are the part it copies.",
+      "tr": "레퍼런스를 생성하는 것은 절반입니다. 나머지 절반은 에이전트가 처음 읽는 설명 글이며, 거기서 에이전트가 복사하는 것은 예제입니다."
     },
     {
-      "id": "h-d4615d6d",
+      "id": "h-f6d38040",
       "kind": "html",
-      "en": "A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
-      "tr": "코드 블록은 일으키는 코드를 명시해서 반드시 실패해야 하는 프로그램으로 표시할 수도 있으며, 문서가 경고하는 잘못된 형태 다섯 개를 이렇게 담고 있습니다. <code>E0228</code>을 일으키는 것, <code>E0008</code>을 일으키는 것, 그리고 세 개 더입니다. 진단과 짝지은 경고는 검사할 수 있습니다. 글로만 쓴 경고는 약속일 뿐입니다."
+      "en": "Every Glyph fence in that document is either a complete program that compiles, or is marked as a fragment of a named complete example whose lines it has to appear in.",
+      "tr": "그 문서의 모든 Glyph 코드 블록은 컴파일되는 완전한 프로그램이거나, 이름이 붙은 완전한 예제의 단편으로 표시되어 그 줄들이 해당 예제에 실제로 나와야 합니다."
+    },
+    {
+      "id": "h-46e5a2fa",
+      "kind": "html",
+      "en": "<b>The bootstrap</b>It was 19 fences with 2 compiled; it is 24 with 20 compiled and 4 marked, and none skipped.",
+      "tr": "<b>안내 문서</b>예전에는 코드 블록 19개 중 2개가 컴파일되었고, 지금은 24개 중 20개가 컴파일되고 4개가 표시되어 있으며, 건너뛴 것은 없습니다."
+    },
+    {
+      "id": "h-8f918e23",
+      "kind": "html",
+      "en": "<b>The stdlib reference</b>The stdlib reference went from 4 of 8 to 8 of 8.",
+      "tr": "<b>stdlib 레퍼런스</b>stdlib 레퍼런스는 8개 중 4개에서 8개 중 8개가 되었습니다."
+    },
+    {
+      "id": "h-66882521",
+      "kind": "html",
+      "en": "<b>The wrong forms</b>A fence can also be marked as a program that must fail, naming the code it draws, which is how the document carries the five wrong forms it warns you about: the one that draws <code>E0228</code>, the one that draws <code>E0008</code>, and three more. A warning paired with the diagnostic is checkable. A warning written in prose is a promise.",
+      "tr": "<b>잘못된 형태</b>코드 블록은 일으키는 코드를 명시해서 반드시 실패해야 하는 프로그램으로 표시할 수도 있으며, 문서가 경고하는 잘못된 형태 다섯 개를 이렇게 담고 있습니다. <code>E0228</code>을 일으키는 것, <code>E0008</code>을 일으키는 것, 그리고 세 개 더입니다. 진단과 짝지은 경고는 검사할 수 있습니다. 글로만 쓴 경고는 약속일 뿐입니다."
+    },
+    {
+      "id": "h-c126392e",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">two things compiling the documents found</span>",
+      "tr": "자세히 <span class=\"hint\">문서를 컴파일하면서 찾은 두 가지</span>"
     },
     {
       "id": "h-10fd6248",
@@ -185,16 +335,46 @@
       "tr": "넘겨주는 비용, 그리고 더 이상 들지 않게 된 비용"
     },
     {
-      "id": "h-2dc5770c",
+      "id": "h-eadd10b0",
       "kind": "html",
-      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now. Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply. A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
-      "tr": "MCP 도구 열한 개는 예전에 모든 세션이 연결할 때 비용을 치르는 <code>tools/list</code> 응답에 설명서 전체를 담고 있었습니다. 45,509바이트 응답 중 31,446바이트가 설명이었습니다. 같은 도구 열한 개가 지금은 20,386바이트 응답 중 8,627바이트를 담습니다. 삭제한 것은 없습니다. 이전 텍스트는 도구 이름을 키로 그대로 보관되어 <code>glyph llms --json</code> 안에 공개되므로, 호출하는 순간 필요한 계약은 설명에 있고 나머지는 모든 세션의 첫 응답이 아니라 명령 하나 거리에 있습니다. 테스트가 도구 목록과 문서를 함께 읽으므로, 서버가 제공하지 않는 도구를 언급하거나 목록과 다른 개수를 적은 문서는 빌드를 실패시킵니다. \"도구 다섯 개를 제공한다\"에 필요했던 검사가 바로 이것입니다."
+      "en": "The eleven MCP tools used to carry their whole manual in the <code>tools/list</code> reply, which every session pays for on connect: 31,446 bytes of description in a 45,509-byte reply. The same eleven tools carry 8,627 in a 20,386-byte reply now.",
+      "tr": "MCP 도구 열한 개는 예전에 모든 세션이 연결할 때 비용을 치르는 <code>tools/list</code> 응답에 설명서 전체를 담고 있었습니다. 45,509바이트 응답 중 31,446바이트가 설명이었습니다. 같은 도구 열한 개가 지금은 20,386바이트 응답 중 8,627바이트를 담습니다."
     },
     {
-      "id": "h-ebc0730a",
+      "id": "h-06024752",
       "kind": "html",
-      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs. The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
-      "tr": "이 모두는 오프라인이고 로컬입니다. <code>glyph llms</code>는 설명 글을, <code>glyph llms --json</code>은 데이터를, <code>glyph llms --negative</code>는 잘못된 프로그램을 출력합니다. 네트워크는 있지만 바이너리가 없는 에이전트를 위해 같은 설명 글을 <a href=\"/llms.txt\">llms.txt</a>로 제공합니다. 에이전트가 언어가 아니라 <em>여러분의</em> 코드에 대해 묻는 것은 <a href=\"/answers/ask-the-compiler/\">쿼리 도구</a>가 답합니다."
+      "en": "Nothing was deleted. The previous text is held verbatim, keyed by tool name, and published inside <code>glyph llms --json</code>, so the contract you need at the moment of the call is in the description and the rest is one command away instead of in every session's first reply.",
+      "tr": "삭제한 것은 없습니다. 이전 텍스트는 도구 이름을 키로 그대로 보관되어 <code>glyph llms --json</code> 안에 공개되므로, 호출하는 순간 필요한 계약은 설명에 있고 나머지는 모든 세션의 첫 응답이 아니라 명령 하나 거리에 있습니다."
+    },
+    {
+      "id": "h-af7632b1",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the test that holds the count</span>",
+      "tr": "자세히 <span class=\"hint\">개수를 지키는 테스트</span>"
+    },
+    {
+      "id": "h-c00d6973",
+      "kind": "html",
+      "en": "A test reads the tool list and the document together, so a document naming a tool the server does not serve, or a count that disagrees with the list, fails the build. That is the check \"exposes five tools\" needed.",
+      "tr": "테스트가 도구 목록과 문서를 함께 읽으므로, 서버가 제공하지 않는 도구를 언급하거나 목록과 다른 개수를 적은 문서는 빌드를 실패시킵니다. \"도구 다섯 개를 제공한다\"에 필요했던 검사가 바로 이것입니다."
+    },
+    {
+      "id": "h-ab486bf3",
+      "kind": "html",
+      "en": "Offline and local",
+      "tr": "오프라인, 로컬"
+    },
+    {
+      "id": "h-f9c7e75b",
+      "kind": "html",
+      "en": "All of this is offline and local. <code>glyph llms</code> prints the prose, <code>glyph llms --json</code> the data, <code>glyph llms --negative</code> the wrong programs.",
+      "tr": "이 모두는 오프라인이고 로컬입니다. <code>glyph llms</code>는 설명 글을, <code>glyph llms --json</code>은 데이터를, <code>glyph llms --negative</code>는 잘못된 프로그램을 출력합니다."
+    },
+    {
+      "id": "h-66d93a53",
+      "kind": "html",
+      "en": "The same prose is served at <a href=\"/llms.txt\">llms.txt</a> for an agent with a network and no binary. What an agent asks about <em>your</em> code, rather than about the language, is the <a href=\"/answers/ask-the-compiler/\">query tools</a>.",
+      "tr": "네트워크는 있지만 바이너리가 없는 에이전트를 위해 같은 설명 글을 <a href=\"/llms.txt\">llms.txt</a>로 제공합니다. 에이전트가 언어가 아니라 <em>여러분의</em> 코드에 대해 묻는 것은 <a href=\"/answers/ask-the-compiler/\">쿼리 도구</a>가 답합니다."
     },
     {
       "id": "h-b55f380c",
@@ -209,10 +389,58 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-ef7b0c9f",
+      "id": "h-4c65167b",
       "kind": "html",
-      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals. <code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it. A test holds the tool catalogue to what the server serves. Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws. <code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
-      "tr": "<code>glyph llms --json</code>은 컴파일러에서 일곱 개 섹션을 출력합니다. 진단 코드 77개(그중 51개에 컴파일된 반례 포함), 예약어 32개, prelude 이름 24개, export 340개를 가진 stdlib 모듈 40개, 명세에서 파싱한 언어 결정 49개, 그리고 <code>glyph query</code> 동사와 전체 설명서를 갖춘 도구 열한 개입니다. <code>docs/error-codes.md</code>와 안내 문서의 진단 테이블은 어긋나면 실패하는 스크립트가 컴파일러 자체 코드 테이블에서 쓰고, 그와 함께 <code>llms.txt</code>도 다시 맞춥니다. 테스트가 도구 목록을 서버가 실제로 제공하는 것에 맞춰 둡니다. 안내 문서와 stdlib 레퍼런스의 모든 Glyph 코드 블록은 컴파일되거나 컴파일되는 예제의 표시된 단편이며, 잘못된 형태 다섯 개는 각각 일으키는 코드와 짝지은 프로그램입니다. <code>glyph llms --negative</code>는 <code>cargo test</code>가 실행하는 것과 같은 코퍼스에서 답합니다."
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler",
+      "tr": "<code>glyph llms --json</code>은 컴파일러에서 일곱 개 섹션을 출력합니다"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "자세히"
+    },
+    {
+      "id": "h-c8eadb90",
+      "kind": "html",
+      "en": "<code>glyph llms --json</code> emits seven sections out of the compiler: 77 diagnostic codes, 51 of them with a compiled counter-example, the 32 reserved words, the 24 prelude names, 40 stdlib modules with 340 exports, 49 language decisions parsed from the spec, and the eleven tools with their <code>glyph query</code> verbs and full manuals.",
+      "tr": "<code>glyph llms --json</code>은 컴파일러에서 일곱 개 섹션을 출력합니다. 진단 코드 77개(그중 51개에 컴파일된 반례 포함), 예약어 32개, prelude 이름 24개, export 340개를 가진 stdlib 모듈 40개, 명세에서 파싱한 언어 결정 49개, 그리고 <code>glyph query</code> 동사와 전체 설명서를 갖춘 도구 열한 개입니다."
+    },
+    {
+      "id": "h-4b53aa9d",
+      "kind": "html",
+      "en": "<code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table",
+      "tr": "<code>docs/error-codes.md</code>와 안내 문서의 진단 테이블은 컴파일러 자체 코드 테이블에서 씁니다"
+    },
+    {
+      "id": "h-acb04dc3",
+      "kind": "html",
+      "en": "<code>docs/error-codes.md</code> and the bootstrap's diagnostic table are written from the compiler's own code table by a script that fails on drift and re-mirrors <code>llms.txt</code> with it.",
+      "tr": "<code>docs/error-codes.md</code>와 안내 문서의 진단 테이블은 어긋나면 실패하는 스크립트가 컴파일러 자체 코드 테이블에서 쓰고, 그와 함께 <code>llms.txt</code>도 다시 맞춥니다."
+    },
+    {
+      "id": "h-0c0ce912",
+      "kind": "html",
+      "en": "A test holds the tool catalogue to what the server serves.",
+      "tr": "테스트가 도구 목록을 서버가 실제로 제공하는 것에 맞춰 둡니다."
+    },
+    {
+      "id": "h-52ffcb4a",
+      "kind": "html",
+      "en": "Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does",
+      "tr": "안내 문서와 stdlib 레퍼런스의 모든 Glyph 코드 블록은 컴파일되거나 컴파일되는 예제의 표시된 단편입니다"
+    },
+    {
+      "id": "h-4b0f5fb1",
+      "kind": "html",
+      "en": "Every Glyph fence in the bootstrap and the stdlib reference compiles or is a marked fragment of one that does, and five wrong forms are programs paired with the code each draws.",
+      "tr": "안내 문서와 stdlib 레퍼런스의 모든 Glyph 코드 블록은 컴파일되거나 컴파일되는 예제의 표시된 단편이며, 잘못된 형태 다섯 개는 각각 일으키는 코드와 짝지은 프로그램입니다."
+    },
+    {
+      "id": "h-5042c3bb",
+      "kind": "html",
+      "en": "<code>glyph llms --negative</code> answers from the same corpora <code>cargo test</code> runs.",
+      "tr": "<code>glyph llms --negative</code>는 <code>cargo test</code>가 실행하는 것과 같은 코퍼스에서 답합니다."
     },
     {
       "id": "h-c647197d",
@@ -221,10 +449,46 @@
       "tr": "한계"
     },
     {
-      "id": "h-5c7219d3",
+      "id": "h-9ff540f4",
       "kind": "html",
-      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes. In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one. 165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason. Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs. And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
-      "tr": "이 문서에는 잘못된 프로그램의 개수가 두 가지 나오며, 서로 다른 것을 셉니다. 코드 77개 중 51개는 <code>tests/negative/</code>에서 온 반례를 가지고, <code>glyph llms --negative</code>는 <code>catches/</code>의 거부 사례도 읽기 때문에 0.1.149에서 코드 53개에 걸친 사례 117개를 나열합니다. 다음 릴리스에는 그 뒤 <code>catches/</code>에 추가된 거부 사례 22개가 더해져 코드 55개에 걸친 사례 139개가 됩니다. 0.1.149에서 코드 24개는 어느 코퍼스에도 잘못된 프로그램이 없으며, 답은 하나를 지어내는 대신 그 코드들을 짚어 줍니다. stdlib export 340개 중 165개는 시그니처 없이 돌아옵니다. 구현이 <code>tsc</code>가 검사하는 TypeScript이고 컴파일러 자체 테이블은 이에 대해 아무것도 모델링하지 않으므로, <code>std/result::all</code>이나 <code>std/io::println</code>에 대한 <code>glyph_symbol</code>은 그 이유와 함께 <code>kind: null</code>을 보고합니다. 시그니처가 있는 175개 중 46개는 여전히 매개변수 타입 자리에 <code>?</code>가 있습니다. 그리고 문서는 서비스가 아니라 받아 가는 스냅숏입니다. 검색 계층도, 임베딩도, 그 위의 채팅 인터페이스도 없습니다."
+      "en": "Two counts of the wrong programs appear in this document and they count different things",
+      "tr": "이 문서에는 잘못된 프로그램의 개수가 두 가지 나오며, 서로 다른 것을 셉니다"
+    },
+    {
+      "id": "h-be03024b",
+      "kind": "html",
+      "en": "Two counts of the wrong programs appear in this document and they count different things: 51 of the 77 codes carry a counter-example from <code>tests/negative/</code>, and <code>glyph llms --negative</code> lists 117 cases over 53 codes in 0.1.149 because it reads the refusals in <code>catches/</code> as well; the next release adds the 22 refusals added to <code>catches/</code> since, for 139 cases over 55 codes.",
+      "tr": "이 문서에는 잘못된 프로그램의 개수가 두 가지 나오며, 서로 다른 것을 셉니다. 코드 77개 중 51개는 <code>tests/negative/</code>에서 온 반례를 가지고, <code>glyph llms --negative</code>는 <code>catches/</code>의 거부 사례도 읽기 때문에 0.1.149에서 코드 53개에 걸친 사례 117개를 나열합니다. 다음 릴리스에는 그 뒤 <code>catches/</code>에 추가된 거부 사례 22개가 더해져 코드 55개에 걸친 사례 139개가 됩니다."
+    },
+    {
+      "id": "h-691ffd15",
+      "kind": "html",
+      "en": "In 0.1.149, 24 codes have no wrong program in either corpus, and the answer names them rather than inventing one.",
+      "tr": "0.1.149에서 코드 24개는 어느 코퍼스에도 잘못된 프로그램이 없으며, 답은 하나를 지어내는 대신 그 코드들을 짚어 줍니다."
+    },
+    {
+      "id": "h-b98b950b",
+      "kind": "html",
+      "en": "165 of the 340 stdlib exports come back with no signature",
+      "tr": "stdlib export 340개 중 165개는 시그니처 없이 돌아옵니다"
+    },
+    {
+      "id": "h-7158d2ba",
+      "kind": "html",
+      "en": "165 of the 340 stdlib exports come back with no signature: the implementation is TypeScript that <code>tsc</code> checks and the compiler's own tables model nothing for it, so <code>glyph_symbol</code> on <code>std/result::all</code> or <code>std/io::println</code> reports <code>kind: null</code> with that reason.",
+      "tr": "stdlib export 340개 중 165개는 시그니처 없이 돌아옵니다. 구현이 <code>tsc</code>가 검사하는 TypeScript이고 컴파일러 자체 테이블은 이에 대해 아무것도 모델링하지 않으므로, <code>std/result::all</code>이나 <code>std/io::println</code>에 대한 <code>glyph_symbol</code>은 그 이유와 함께 <code>kind: null</code>을 보고합니다."
+    },
+    {
+      "id": "h-f773b8d6",
+      "kind": "html",
+      "en": "Of the 175 that do have one, 46 still carry a <code>?</code> where a parameter type belongs.",
+      "tr": "시그니처가 있는 175개 중 46개는 여전히 매개변수 타입 자리에 <code>?</code>가 있습니다."
+    },
+    {
+      "id": "h-438793a7",
+      "kind": "html",
+      "en": "And the document is a snapshot you fetch, not a service: there is no retrieval layer, no embeddings, and no chat surface over it.",
+      "tr": "그리고 문서는 서비스가 아니라 받아 가는 스냅숏입니다. 검색 계층도, 임베딩도, 그 위의 채팅 인터페이스도 없습니다."
     }
   ]
 }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "ko",
-  "source_hash": "cb5e3e02dc597369",
+  "source_hash": "15511937ba2844d1",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,64 @@
       "tr": "모든 구문은 검색할 <strong>모양이 정확히 하나</strong>입니다. 평범한 <code>grep</code>(에이전트가 실제로 코드를 탐색하는 방식)은 <strong>비슷하지만 틀린 결과 쉰 개가 아니라</strong> 정의 하나에 닿습니다."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "왜 중요한가"
-    },
-    {
-      "id": "h-5ddea4d2",
-      "kind": "html",
-      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
-      "tr": "에이전트는 저장소 전체를 머릿속에 담고 있지 않습니다. <strong>검색합니다</strong>. 개념 하나를 다섯 가지 방식으로 쓸 수 있다면 검색은 일부를 놓치고, 기존 정의를 찾지 못한 자신만만한 에이전트는 두 번째 정의를 만들어 냅니다. 개념마다 모양이 하나이면 검색이 완전해지므로, 에이전트는 중복을 만들지 않고 이미 있는 것을 편집합니다."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "직접 보기"
-    },
-    {
-      "id": "h-534265e6",
-      "kind": "html",
-      "en": "Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:",
-      "tr": "Glyph는 변경을 두 가지 형태(<code>mut x = &hellip;</code>와 <code>mut x.method(&hellip;)</code>)로 제한하므로, 상태가 바뀌는 <em>모든</em> 곳이 검색 한 번으로 나옵니다."
-    },
-    {
       "id": "h-f3493d94",
       "kind": "html",
       "en": "grep -rn \"mut \" src/ (every mutation in the codebase)",
       "tr": "grep -rn \"mut \" src/ (코드베이스의 모든 변경)"
     },
     {
-      "id": "h-92a8e9f7",
+      "id": "h-d26f2e3b",
       "kind": "html",
-      "en": "Three mutations, all of them, in one search. In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer. The same one-shape rule makes whole categories auditable:",
-      "tr": "변경 세 개, 전부가 검색 한 번에 나옵니다. TypeScript에서는 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. grep할 토큰이 하나로 정해져 있지 않으므로 &ldquo;이것을 바꾸는 곳이 있는가?&rdquo;에 믿을 만한 답이 없습니다. 같은 하나의 모양 규칙 덕분에 범주 전체를 감사할 수 있습니다."
+      "en": "<span>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search. Three mutations, all of them, in one search.</span>",
+      "tr": "<span>Glyph는 변경을 두 가지 형태(<code>mut x = &hellip;</code>와 <code>mut x.method(&hellip;)</code>)로 제한하므로, 상태가 바뀌는 <em>모든</em> 곳이 검색 한 번으로 나옵니다. 변경 세 개, 전부가 검색 한 번에 나옵니다.</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "왜 중요한가"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "이 섹션으로 연결되는 링크"
+    },
+    {
+      "id": "h-5a6848f0",
+      "kind": "html",
+      "en": "An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. One shape per concept means search is complete, so the agent edits what's there instead of duplicating it.",
+      "tr": "에이전트는 저장소 전체를 머릿속에 담고 있지 않습니다. <strong>검색합니다</strong>. 개념마다 모양이 하나이면 검색이 완전해지므로, 에이전트는 중복을 만들지 않고 이미 있는 것을 편집합니다."
+    },
+    {
+      "id": "h-ff06c89c",
+      "kind": "html",
+      "en": "If a concept can be written five different ways, search misses cases, and a confident agent that can't find the existing definition invents a second one.",
+      "tr": "개념 하나를 다섯 가지 방식으로 쓸 수 있다면 검색은 일부를 놓치고, 기존 정의를 찾지 못한 자신만만한 에이전트는 두 번째 정의를 만들어 냅니다."
+    },
+    {
+      "id": "h-9dd2c6c9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the same question has no answer in TypeScript</span>",
+      "tr": "자세히 <span class=\"hint\">같은 질문에 TypeScript에서는 답이 없는 이유</span>"
+    },
+    {
+      "id": "h-f95da33e",
+      "kind": "html",
+      "en": "In TypeScript a mutation can hide behind <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo; has no reliable answer.",
+      "tr": "TypeScript에서는 변경이 <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, setter, spread 뒤에 숨을 수 있습니다. grep할 토큰이 하나로 정해져 있지 않으므로 &ldquo;이것을 바꾸는 곳이 있는가?&rdquo;에 믿을 만한 답이 없습니다."
+    },
+    {
+      "id": "h-b5acb878",
+      "kind": "html",
+      "en": "Whole categories in one search",
+      "tr": "검색 한 번으로 범주 전체를"
+    },
+    {
+      "id": "h-6c669be5",
+      "kind": "html",
+      "en": "The same one-shape rule makes whole categories auditable:",
+      "tr": "같은 하나의 모양 규칙 덕분에 범주 전체를 감사할 수 있습니다."
     },
     {
       "id": "h-62e795f5",
@@ -125,10 +149,22 @@
       "tr": "지금 제공되는 것"
     },
     {
-      "id": "h-b95960cf",
+      "id": "h-9582ca37",
       "kind": "html",
-      "en": "One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
-      "tr": "구문마다 하나인 정해진 형태, grep할 수 있는 두 가지 모양(<code>mut</code>)으로 제한된 변경, 그리고 키워드 하나로 하는 감사(<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)."
+      "en": "One canonical form per construct.",
+      "tr": "구문마다 하나인 정해진 형태."
+    },
+    {
+      "id": "h-69c725a8",
+      "kind": "html",
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>).",
+      "tr": "grep할 수 있는 두 가지 모양(<code>mut</code>)으로 제한된 변경."
+    },
+    {
+      "id": "h-2e001a35",
+      "kind": "html",
+      "en": "Single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).",
+      "tr": "키워드 하나로 하는 감사(<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)."
     },
     {
       "id": "h-b19d96e0",

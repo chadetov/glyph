@@ -1,0 +1,20 @@
+---
+version: 0.1.155
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A SQL query's text has to be fixed when the program is written
+---
+            <p>The query you pass to <code>std/sqlite</code> is now a <code>sqlite.Sql</code>, which only accepts text the program wrote: a string literal, a constant, a <code>+</code> of constants, or a <code>let</code> that is never reassigned and holds one of those. A query built from a run-time value is E0239:</p>
+
+<pre><code>[E0239] `db.query` runs its first argument as SQL, and this one is built from `name` at run time, so a value with a quote in it can change the query
+Help: Pass the value as a parameter: `db.query("SELECT * FROM users WHERE name = ?", [name])`.</code></pre>
+
+            <p>Before this release, <code>db.query("... WHERE name = '${name}'", [])</code> compiled, and so did hoisting the same string into a <code>let</code> first, which is what Glyph's own style advice produces. With <code>x' OR '1'='1</code> as the name, it returned every row.</p>
+
+            <p>The help rewrites the query with <code>?</code> placeholders only where SQL takes a value: after a comparison, in <code>LIMIT</code> and <code>OFFSET</code>, and inside <code>VALUES (...)</code> or <code>IN (...)</code>. Where the interpolation names a table or a column, it says so, because a parameter cannot fill that position. A column picked at run time is written as a <code>match</code> whose arms are constant strings, which counts as constant. Each suggested rewrite was run against a real database: it returns no rows for the injection and the same rows as the constant query otherwise. A two-statement <code>exec</code> is not rewritten into <code>run</code>, which would drop the second statement.</p>
+
+            <p>Text that has to vary goes through <code>std/taint</code>: <code>sqlite.from_trusted(taint.sanitize(...))</code>, or <code>taint.trust_unchecked(...)</code> for text you wrote, both names you can search for. A constant imported from another module counts once it is declared <code>pub const BASE: sqlite.Sql = "..."</code> where it is written, under either import spelling.</p>
+
+            <h3>Breaking</h3>
+            <p>A query built from a run-time value no longer compiles (0.1.154 exits 0, 0.1.155 exits 1). Separately, a <code>taint.Tainted</code> value given where a <code>taint.Trusted</code> one is declared is now refused by Glyph's own checker; full <code>check</code> already refused it through <code>tsc</code>, so only <code>check --no-tsc</code> changes. No tracked <code>.glyph</code> file or example app is affected: the job queue and task apps already pass literals and constants.</p>

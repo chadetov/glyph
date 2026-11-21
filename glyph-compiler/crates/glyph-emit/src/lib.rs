@@ -4469,6 +4469,11 @@ impl<'a> Emitter<'a> {
         }
         match &ty {
             Ty::Unknown => IterShape::Unknown,
+            // A declared `unknown` says nothing about the value's shape either:
+            // it may hold an array, so the record form would bind a string
+            // index (`i + 1` gave `"01"` inside an `is Array<unknown>` arm,
+            // which does not narrow yet, G415). The run time decides.
+            Ty::UnknownTop => IterShape::Unknown,
             // A `Ty::Imported` crosses a module boundary with no shape attached,
             // so it is no more settled than `Unknown`.
             Ty::Imported { .. } => IterShape::Unknown,
@@ -12871,6 +12876,32 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
             !ts.contains("import { express }") && !ts.contains("import * as express"),
             "neither of the forms tsc rejects; got:\n{ts}"
         );
+    }
+
+    /// A declared `unknown` iterand has no settled shape any more than an
+    /// untyped one: inside an `is Array<unknown>` arm (which does not narrow
+    /// yet, G415) the value is an array, and the record form bound a string
+    /// index, so `i + 1` gave `"01"`. It defers to the run time. Contextual
+    /// typing (D55) made this reachable from an omitted lambda annotation:
+    /// `01_validator`'s `parse: fn(input) { .. }` now types `input` as the
+    /// slot's declared `unknown`.
+    #[test]
+    fn a_declared_unknown_iterand_decides_its_pairs_at_run_time() {
+        let ts = emit(
+            "module m\n\
+             fn last(input: unknown) -> number {\n\
+             \x20 return match input {\n\
+             \x20\x20\x20 is Array<unknown> => {\n\
+             \x20\x20\x20\x20\x20 let seen: Array<number> = []\n\
+             \x20\x20\x20\x20\x20 for i, item in input { mut seen.push(i) }\n\
+             \x20\x20\x20\x20\x20 seen.length\n\
+             \x20\x20\x20 },\n\
+             \x20\x20\x20 else => 0,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(ts.contains("__glyph_pairs(input)"), "got:\n{ts}");
+        assert!(!ts.contains("Object.entries(input)"), "got:\n{ts}");
     }
 
     #[test]

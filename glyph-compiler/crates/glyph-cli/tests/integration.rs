@@ -20305,7 +20305,7 @@ fn record_remove_on_a_finite_key_is_e0211_by_every_spelling() {
     assert_eq!(d.len(), 5, "the refined and open keys are not refused: {d:?}");
 }
 
-/// G385 (record 129, D5y): one function per refused conversion. Each marked
+/// G385 (record 129, D54): one function per refused conversion. Each marked
 /// line holds exactly one conversion of a value with no text form.
 const NO_TEXT_FORM_MAIN: &str = r#"module main
 
@@ -20512,179 +20512,6 @@ fn no_text_form_diagnostics(label: &str, text: &str) -> Vec<(String, String, Str
                 d["help"].as_str().unwrap_or_default().to_string(),
             )
         })
-        .collect();
-    assert_eq!(got.len(), 2, "{stdout}");
-    assert_eq!(got[0], got[1], "the import spelling does not change the diagnosis");
-    assert!(got[0].0.contains("`BASE` comes from another module"), "{got:?}");
-    assert!(got[0].1.contains("pub const BASE: sqlite.Sql"), "{got:?}");
-}
-
-/// The end of the call that starts at byte `start` of `line` (the index just
-/// past its closing parenthesis), skipping parentheses inside string
-/// literals.
-fn call_end(line: &str, start: usize) -> usize {
-    let mut depth = 0;
-    let mut in_str = false;
-    let bytes = line.as_bytes();
-    let mut i = start;
-    while i < bytes.len() {
-        match bytes[i] {
-            b'\\' if in_str => i += 1,
-            b'"' => in_str = !in_str,
-            b'(' if !in_str => depth += 1,
-            b')' if !in_str => {
-                depth -= 1;
-                if depth == 0 {
-                    return i + 1;
-                }
-            }
-            _ => {}
-        }
-        i += 1;
-    }
-    panic!("no end to the call in {line}");
-}
-
-/// Record 132, B1: every rewrite the help offers in a value position is run
-/// against node:sqlite. Each must return 0 rows for its injection payload and
-/// the same count as the constant query written out for a benign input. The
-/// `LIMIT` value is an `int`, which cannot carry an injection, so only its
-/// benign count is compared.
-#[test]
-fn g387_every_offered_rewrite_runs_on_node_sqlite() {
-    if !js_toolchain_available() {
-        eprintln!("skipping G387 node:sqlite rewrites: node/tsx not available");
-        return;
-    }
-    let cases = r#"fn q1(db: sqlite.Db, x: string) -> number {
-  return db.query("SELECT * FROM users WHERE name = '${x}'", []).length
-}
-
-fn q2(db: sqlite.Db, id: string) -> number {
-  return db.query("SELECT * FROM users WHERE id = ${id}", []).length
-}
-
-fn q3(db: sqlite.Db, n: int) -> number {
-  return db.query("SELECT * FROM users LIMIT ${n}", []).length
-}
-
-fn q4(db: sqlite.Db, a: string, b: string) -> number {
-  return db.run("INSERT INTO users (name, id) VALUES ('${a}', ${b})", [])
-}
-
-fn q5(db: sqlite.Db, id: string) -> number {
-  return db.query("SELECT * FROM users WHERE id IN (0, ${id})", []).length
-}
-"#;
-    let main = r#"
-fn main(argv: Array<string>) -> number {
-  let db = sqlite.open(":memory:")
-  db.exec("CREATE TABLE users (id INTEGER, name TEXT)")
-  db.exec("INSERT INTO users VALUES (1, 'ada'), (2, 'linus')")
-  let ada = "ada"
-  let one = "1"
-  let quote = "x' OR '1'='1"
-  let or_all = "1 OR 1=1"
-  let close = "1) OR (1=1"
-  let b1 = q1(db, ada)
-  let k1 = db.query("SELECT * FROM users WHERE name = 'ada'", []).length
-  let p1 = q1(db, quote)
-  io.println("q1 benign=${b1} const=${k1} payload=${p1}")
-  let b2 = q2(db, one)
-  let k2 = db.query("SELECT * FROM users WHERE id = 1", []).length
-  let p2 = q2(db, or_all)
-  io.println("q2 benign=${b2} const=${k2} payload=${p2}")
-  let b3 = q3(db, 1)
-  let k3 = db.query("SELECT * FROM users LIMIT 1", []).length
-  io.println("q3 benign=${b3} const=${k3} payload=0")
-  let bob = "bob"
-  let three = "3"
-  let b4 = q4(db, bob, three)
-  let k4 = db.run("INSERT INTO users (name, id) VALUES ('bob', 3)", [])
-  let evil = "x', 9), ('evil', 10) --"
-  let five = "5"
-  let _ = q4(db, evil, five)
-  let p4 = db.query("SELECT * FROM users WHERE name = 'evil'", []).length
-  io.println("q4 benign=${b4} const=${k4} payload=${p4}")
-  let b5 = q5(db, one)
-  let k5 = db.query("SELECT * FROM users WHERE id IN (0, 1)", []).length
-  let p5 = q5(db, close)
-  io.println("q5 benign=${b5} const=${k5} payload=${p5}")
-  return 0
-}
-"#;
-    let head = "module main\n\nimport std/sqlite\nimport std/io\n\n";
-    let probe = format!("{head}{cases}{main}");
-    let root = unique_tmp("g387_node");
-    write_file(&root, "src/main.glyph", &probe);
-    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
-    assert_eq!(code, 1, "the built queries are refused:\n{stdout}\n{stderr}");
-    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
-    let diags: Vec<&serde_json::Value> = v["diagnostics"]
-        .as_array()
-        .expect("diagnostics")
-        .iter()
-        .filter(|d| d["code"] == "E0239")
-        .collect();
-    assert_eq!(diags.len(), 5, "one E0239 per case:\n{stdout}");
-
-    // Record 132's three probes where a parameter cannot stand: the help
-    // offers no `?` rewrite for any of them, since run on node:sqlite the old
-    // rewrites threw (`FROM ?`), sorted by a constant (`ORDER BY ?`) or
-    // dropped the second statement (`run` of two).
-    let names = format!(
-        "{head}pub fn n(db: sqlite.Db, table: string, col: string, first: string) -> number {{\n  let a = db.query(\"SELECT * FROM ${{table}} WHERE id = ?\", [1])\n  let b = db.query(\"SELECT * FROM users ORDER BY ${{col}}\", [])\n  db.exec(\"DELETE FROM a WHERE x = '${{first}}'; DELETE FROM b\")\n  return a.length + b.length\n}}\n"
-    );
-    let nroot = unique_tmp("g387_node_names");
-    write_file(&nroot, "src/main.glyph", &names);
-    let (_, nout, _) = glyph_in(&nroot, &["check", "--no-tsc", "--json", "{src}"]);
-    let nv: serde_json::Value = serde_json::from_str(&nout).expect("check --json prints JSON");
-    let nhelps: Vec<String> = nv["diagnostics"]
-        .as_array()
-        .expect("diagnostics")
-        .iter()
-        .filter(|d| d["code"] == "E0239")
-        .map(|d| d["help"].as_str().unwrap_or_default().to_string())
-        .collect();
-    assert_eq!(nhelps.len(), 3, "{nout}");
-    for h in &nhelps {
-        assert!(
-            !backticked(h).iter().any(|s| s.starts_with("db.") && s.contains('?')),
-            "no placeholder rewrite where SQL needs a name or one statement: {h}"
-        );
-    }
-
-    let mut lines: Vec<String> = probe.lines().map(str::to_string).collect();
-    for d in &diags {
-        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
-        let help = d["help"].as_str().expect("help");
-        let rewrite = backticked(help)
-            .into_iter()
-            .find(|s| s.starts_with("db.") && s.contains('[') && !s.contains("[values]"))
-            .unwrap_or_else(|| panic!("a value position gets a rewrite: {help}"));
-        let l = lines[line].clone();
-        let start = l.find("db.").expect("the call");
-        let end = call_end(&l, start);
-        lines[line] = format!("{}{rewrite}{}", &l[..start], &l[end..]);
-    }
-    let fixed = lines.join("\n") + "\n";
-    write_file(&root, "src/main.glyph", &fixed);
-    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
-    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
-    for case in ["q1", "q2", "q3", "q4", "q5"] {
-        let row = stdout
-            .lines()
-            .find(|l| l.starts_with(&format!("{case} ")))
-            .unwrap_or_else(|| panic!("{case} ran:\n{stdout}"));
-        let field = |k: &str| -> String {
-            row.split(' ')
-                .find_map(|kv| kv.strip_prefix(&format!("{k}=")))
-                .unwrap_or_default()
-                .to_string()
-        };
-        assert_eq!(field("benign"), field("const"), "{case}: same rows as the constant query:\n{fixed}\n{stdout}");
-        assert_eq!(field("payload"), "0", "{case}: the payload matches nothing:\n{fixed}\n{stdout}");
-    }
         .collect()
 }
 
@@ -20862,8 +20689,8 @@ fn untyped(a: number, c: number) -> string {
 /// an `is` arm narrows, so interpolating inside one is accepted.
 ///
 /// The last function pins the hole that leaves open: `p` holds a `User` at run
-/// time and prints `[object Object]`, and nothing refuses it until G405 gives
-/// an omitted annotation its type from context. G405 flips this line.
+/// time and prints `[object Object]`, and nothing refuses it until G414 gives
+/// an omitted annotation its type from context. G414 flips this line.
 #[test]
 fn string_from_takes_unknown_and_an_omitted_lambda_annotation_is_not_judged() {
     let text = r#"module main
@@ -20891,7 +20718,7 @@ fn narrowed(v: unknown) -> string {
   return a + b
 }
 
-fn g405_pinned_hole(users: Array<User>) -> Array<string> {
+fn g414_pinned_hole(users: Array<User>) -> Array<string> {
   return array.map(users, fn(p) -> string { return "${p}" })
 }
 "#;
@@ -20992,4 +20819,403 @@ fn the_unknown_help_beside_a_plus_compiles() {
     if tsc_available() {
         assert!(stderr.contains("tsc --strict passed"), "{stderr}");
     }
+}
+
+/// G387's probe (record 129): five ways of building a query from a run-time
+/// `name`, and two constant queries beside them. One line is added to the
+/// record's file, the `built` count: the rows the five built queries return or
+/// change. `rows` also counts `f`, a parameterized query that runs after the
+/// `UPDATE` and so matches the payload once the `UPDATE` stores it.
+const G387_PROBE: &str = r#"module main
+
+import std/sqlite
+import std/io
+
+const TABLE: string = "users"
+
+fn count(db: sqlite.Db, name: string) -> number {
+  let a = db.query("SELECT * FROM users WHERE name = '${name}'", [])
+  let q = "SELECT * FROM users WHERE name = '${name}'"
+  let b = db.query(q, [])
+  let c = db.query("SELECT * FROM users WHERE name = '" + name + "'", [])
+  let d = db.query_one("SELECT * FROM ${TABLE} WHERE name = ?", [name])
+  let e = db.run("DELETE FROM users WHERE name = '${name}'", [])
+  db.exec("UPDATE users SET name = '${name}'")
+  let f = db.query("SELECT * FROM users WHERE name = ?", [name])
+  let n = match d { Some(_) => 1, None => 0, }
+  let built = a.length + b.length + c.length + e
+  io.println("built ${built}")
+  return a.length + b.length + c.length + f.length + e + n
+}
+
+fn main(argv: Array<string>) -> number {
+  let db = sqlite.open(":memory:")
+  db.exec("CREATE TABLE users (name TEXT)")
+  db.exec("INSERT INTO users VALUES ('ada'), ('linus')")
+  let evil = "x' OR '1'='1"
+  let total = count(db, evil)
+  io.println("rows ${total}")
+  return 0
+}
+"#;
+
+/// The backticked snippets of a help, in order.
+fn backticked(help: &str) -> Vec<String> {
+    help.split('`').skip(1).step_by(2).map(str::to_string).collect()
+}
+
+/// G387, D52: every E0239 on the probe carries a rewrite, and applying each
+/// one as written gives a program that `glyph check` accepts (with `tsc`) and
+/// that returns no rows for the injection payload. The help is applied the
+/// way an agent would: a `let q = ...` snippet replaces that `let`, and a call
+/// snippet replaces the call on the diagnostic's line. Nothing is typed in
+/// by hand, so a help that does not compile fails here.
+#[test]
+fn g387_applying_every_e0239_rewrite_compiles_and_returns_no_rows() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G387 rewrite run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("g387_rewrite");
+    write_file(&root, "src/main.glyph", G387_PROBE);
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "the probe is refused:\n{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let diags: Vec<&serde_json::Value> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .collect();
+    assert_eq!(diags.len(), 5, "one E0239 per built query:\n{stdout}");
+
+    let mut lines: Vec<String> = G387_PROBE.lines().map(str::to_string).collect();
+    for d in &diags {
+        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
+        let help = d["help"].as_str().expect("help");
+        let snippets: Vec<String> = backticked(help)
+            .into_iter()
+            .filter(|s| s.starts_with("let ") || (s.starts_with("db.") && s.contains('[') && !s.contains("[values]")))
+            .collect();
+        assert!(!snippets.is_empty(), "the help carries a rewrite: {help}");
+        for s in snippets {
+            if let Some(rest) = s.strip_prefix("let ") {
+                let name = rest.split(' ').next().expect("a name");
+                let at = lines
+                    .iter()
+                    .position(|l| l.trim_start().starts_with(&format!("let {name} = ")))
+                    .expect("the let the help rewrites");
+                lines[at] = format!("  {s}");
+            } else {
+                let l = &lines[line];
+                let start = l.find("db.").expect("the call on the diagnostic's line");
+                let end = l.rfind(')').expect("the call's close") + 1;
+                lines[line] = format!("{}{s}{}", &l[..start], &l[end..]);
+            }
+        }
+    }
+    let fixed = lines.join("\n") + "\n";
+    write_file(&root, "src/main.glyph", &fixed);
+    let check_args: &[&str] = if tsc_available() {
+        &["check", "{src}"]
+    } else {
+        &["check", "--no-tsc", "{src}"]
+    };
+    let (code, stdout, stderr) = glyph_in(&root, check_args);
+    assert_eq!(code, 0, "the rewritten probe compiles:\n{fixed}\n{stdout}\n{stderr}");
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
+    assert!(
+        stdout.contains("built 0"),
+        "the payload matches nothing once it is a parameter:\n{fixed}\n{stdout}\n{stderr}"
+    );
+    assert!(stdout.contains("rows 2"), "only `f`, after the `UPDATE`:\n{fixed}\n{stdout}");
+}
+
+/// Record 132, B2: a constant from another module gets one diagnosis whatever
+/// the import spelling. `BASE` imported by name and `lib.BASE` through the
+/// namespace draw the same E0239, with the same message and help.
+#[test]
+fn g387_an_imported_constant_reads_the_same_by_name_and_through_the_namespace() {
+    let root = unique_tmp("g387_b2");
+    write_file(
+        &root,
+        "src/lib.glyph",
+        "module lib\n\npub const BASE: string = \"SELECT * FROM users\"\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\nimport lib\nimport lib { BASE }\nimport std/sqlite\n\nfn main(argv: Array<string>) -> number {\n  let db = sqlite.open(\":memory:\")\n  let a = db.query(BASE, [])\n  let b = db.query(lib.BASE, [])\n  return a.length + b.length\n}\n",
+    );
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let got: Vec<(String, String)> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .map(|d| {
+            (
+                d["message"].as_str().unwrap_or_default().to_string(),
+                d["help"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect();
+    assert_eq!(got.len(), 2, "{stdout}");
+    assert_eq!(got[0], got[1], "the import spelling does not change the diagnosis");
+    assert!(got[0].0.contains("`BASE` comes from another module"), "{got:?}");
+    assert!(got[0].1.contains("pub const BASE: sqlite.Sql"), "{got:?}");
+}
+
+/// The end of the call that starts at byte `start` of `line` (the index just
+/// past its closing parenthesis), skipping parentheses inside string
+/// literals.
+fn call_end(line: &str, start: usize) -> usize {
+    let mut depth = 0;
+    let mut in_str = false;
+    let bytes = line.as_bytes();
+    let mut i = start;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' if in_str => i += 1,
+            b'"' => in_str = !in_str,
+            b'(' if !in_str => depth += 1,
+            b')' if !in_str => {
+                depth -= 1;
+                if depth == 0 {
+                    return i + 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    panic!("no end to the call in {line}");
+}
+
+/// Record 132, B1: every rewrite the help offers in a value position is run
+/// against node:sqlite. Each must return 0 rows for its injection payload and
+/// the same count as the constant query written out for a benign input. The
+/// `LIMIT` value is an `int`, which cannot carry an injection, so only its
+/// benign count is compared.
+#[test]
+fn g387_every_offered_rewrite_runs_on_node_sqlite() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G387 node:sqlite rewrites: node/tsx not available");
+        return;
+    }
+    let cases = r#"fn q1(db: sqlite.Db, x: string) -> number {
+  return db.query("SELECT * FROM users WHERE name = '${x}'", []).length
+}
+
+fn q2(db: sqlite.Db, id: string) -> number {
+  return db.query("SELECT * FROM users WHERE id = ${id}", []).length
+}
+
+fn q3(db: sqlite.Db, n: int) -> number {
+  return db.query("SELECT * FROM users LIMIT ${n}", []).length
+}
+
+fn q4(db: sqlite.Db, a: string, b: string) -> number {
+  return db.run("INSERT INTO users (name, id) VALUES ('${a}', ${b})", [])
+}
+
+fn q5(db: sqlite.Db, id: string) -> number {
+  return db.query("SELECT * FROM users WHERE id IN (0, ${id})", []).length
+}
+"#;
+    let main = r#"
+fn main(argv: Array<string>) -> number {
+  let db = sqlite.open(":memory:")
+  db.exec("CREATE TABLE users (id INTEGER, name TEXT)")
+  db.exec("INSERT INTO users VALUES (1, 'ada'), (2, 'linus')")
+  let ada = "ada"
+  let one = "1"
+  let quote = "x' OR '1'='1"
+  let or_all = "1 OR 1=1"
+  let close = "1) OR (1=1"
+  let b1 = q1(db, ada)
+  let k1 = db.query("SELECT * FROM users WHERE name = 'ada'", []).length
+  let p1 = q1(db, quote)
+  io.println("q1 benign=${b1} const=${k1} payload=${p1}")
+  let b2 = q2(db, one)
+  let k2 = db.query("SELECT * FROM users WHERE id = 1", []).length
+  let p2 = q2(db, or_all)
+  io.println("q2 benign=${b2} const=${k2} payload=${p2}")
+  let b3 = q3(db, 1)
+  let k3 = db.query("SELECT * FROM users LIMIT 1", []).length
+  io.println("q3 benign=${b3} const=${k3} payload=0")
+  let bob = "bob"
+  let three = "3"
+  let b4 = q4(db, bob, three)
+  let k4 = db.run("INSERT INTO users (name, id) VALUES ('bob', 3)", [])
+  let evil = "x', 9), ('evil', 10) --"
+  let five = "5"
+  let _ = q4(db, evil, five)
+  let p4 = db.query("SELECT * FROM users WHERE name = 'evil'", []).length
+  io.println("q4 benign=${b4} const=${k4} payload=${p4}")
+  let b5 = q5(db, one)
+  let k5 = db.query("SELECT * FROM users WHERE id IN (0, 1)", []).length
+  let p5 = q5(db, close)
+  io.println("q5 benign=${b5} const=${k5} payload=${p5}")
+  return 0
+}
+"#;
+    let head = "module main\n\nimport std/sqlite\nimport std/io\n\n";
+    let probe = format!("{head}{cases}{main}");
+    let root = unique_tmp("g387_node");
+    write_file(&root, "src/main.glyph", &probe);
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "the built queries are refused:\n{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let diags: Vec<&serde_json::Value> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .collect();
+    assert_eq!(diags.len(), 5, "one E0239 per case:\n{stdout}");
+
+    // Record 132's three probes where a parameter cannot stand: the help
+    // offers no `?` rewrite for any of them, since run on node:sqlite the old
+    // rewrites threw (`FROM ?`), sorted by a constant (`ORDER BY ?`) or
+    // dropped the second statement (`run` of two).
+    let names = format!(
+        "{head}pub fn n(db: sqlite.Db, table: string, col: string, first: string) -> number {{\n  let a = db.query(\"SELECT * FROM ${{table}} WHERE id = ?\", [1])\n  let b = db.query(\"SELECT * FROM users ORDER BY ${{col}}\", [])\n  db.exec(\"DELETE FROM a WHERE x = '${{first}}'; DELETE FROM b\")\n  return a.length + b.length\n}}\n"
+    );
+    let nroot = unique_tmp("g387_node_names");
+    write_file(&nroot, "src/main.glyph", &names);
+    let (_, nout, _) = glyph_in(&nroot, &["check", "--no-tsc", "--json", "{src}"]);
+    let nv: serde_json::Value = serde_json::from_str(&nout).expect("check --json prints JSON");
+    let nhelps: Vec<String> = nv["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .map(|d| d["help"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert_eq!(nhelps.len(), 3, "{nout}");
+    for h in &nhelps {
+        assert!(
+            !backticked(h).iter().any(|s| s.starts_with("db.") && s.contains('?')),
+            "no placeholder rewrite where SQL needs a name or one statement: {h}"
+        );
+    }
+
+    let mut lines: Vec<String> = probe.lines().map(str::to_string).collect();
+    for d in &diags {
+        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
+        let help = d["help"].as_str().expect("help");
+        let rewrite = backticked(help)
+            .into_iter()
+            .find(|s| s.starts_with("db.") && s.contains('[') && !s.contains("[values]"))
+            .unwrap_or_else(|| panic!("a value position gets a rewrite: {help}"));
+        let l = lines[line].clone();
+        let start = l.find("db.").expect("the call");
+        let end = call_end(&l, start);
+        lines[line] = format!("{}{rewrite}{}", &l[..start], &l[end..]);
+    }
+    let fixed = lines.join("\n") + "\n";
+    write_file(&root, "src/main.glyph", &fixed);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
+    for case in ["q1", "q2", "q3", "q4", "q5"] {
+        let row = stdout
+            .lines()
+            .find(|l| l.starts_with(&format!("{case} ")))
+            .unwrap_or_else(|| panic!("{case} ran:\n{stdout}"));
+        let field = |k: &str| -> String {
+            row.split(' ')
+                .find_map(|kv| kv.strip_prefix(&format!("{k}=")))
+                .unwrap_or_default()
+                .to_string()
+        };
+        assert_eq!(field("benign"), field("const"), "{case}: same rows as the constant query:\n{fixed}\n{stdout}");
+        assert_eq!(field("payload"), "0", "{case}: the payload matches nothing:\n{fixed}\n{stdout}");
+    }
+}
+
+/// Records 131, 139 and 141: a pending value in each text conversion, a `+`
+/// chain included, is exactly one E0238 and never E0237, since `await` is the
+/// fix and E0238 owns it.
+#[test]
+fn a_pending_value_converted_to_text_is_e0238_alone() {
+    let text = r#"module main
+
+import std/string
+
+async fn load() -> number {
+  return 1
+}
+
+pub async fn pend(name: string) -> string {
+  let a = "x ${load()}"
+  let b = "a" + load()
+  let c = string.from(load())
+  let d = "a" + name + load() + "b"
+  return a + b + c + d
+}
+"#;
+    let root = unique_tmp("g385-pending");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let (_, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--no-test", "--json", "{src}"]);
+    let v: serde_json::Value = serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("{e}: {stdout}\n{stderr}"));
+    let lines: Vec<(u64, String)> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["severity"] == "error")
+        .map(|d| (d["range"]["start"]["line"].as_u64().unwrap(), d["code"].as_str().unwrap().to_string()))
+        .collect();
+    assert_eq!(
+        lines,
+        vec![
+            (10, "E0238".to_string()),
+            (11, "E0238".to_string()),
+            (12, "E0238".to_string()),
+            (13, "E0238".to_string()),
+        ],
+        "one E0238 per conversion and no E0237: {stdout}"
+    );
+}
+
+/// Record 132, ruling 5, and record 141: `sqlite.Sql` is a `string` whose
+/// text is fixed when the program is written, so it is text-like in `${}` and
+/// beside `+`, and what it builds stays a constant query (no E0239).
+#[test]
+fn a_sqlite_sql_value_becomes_text_and_stays_constant() {
+    let text = r#"module main
+
+import std/sqlite
+
+pub fn sql_text(sql: sqlite.Sql) -> string {
+  let a = "${sql} LIMIT 1"
+  let b = "SELECT " + sql
+  return a + b
+}
+
+pub fn sql_run(db: sqlite.Db, sql: sqlite.Sql) -> number {
+  let rows = db.query("${sql} LIMIT 1", [])
+  let more = db.query("SELECT " + sql, [])
+  return rows.length + more.length
+}
+"#;
+    let root = unique_tmp("g385-sql");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--no-test", "{src}"]);
+    assert_eq!(code, 0, "a `sqlite.Sql` in text is refused:\n{stdout}\n{stderr}");
+    assert!(!stdout.contains("E0237") && !stdout.contains("E0239") && !stderr.contains("E0237") && !stderr.contains("E0239"), "{stdout}\n{stderr}");
+}
+
+/// Record 141: the `match` the `unknown` help points at, with an `else` that
+/// gives empty text, is accepted now that an `is` arm narrows (Release A).
+#[test]
+fn an_is_arm_interpolation_after_the_unknown_help_is_accepted() {
+    let text = "module main\n\npub fn show(v: unknown) -> string {\n  return match v { is string => \"${v}\", else => \"\" }\n}\n";
+    let got = no_text_form_diagnostics("g385-is-arm", text);
+    assert!(got.is_empty(), "{got:#?}");
 }

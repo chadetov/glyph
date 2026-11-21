@@ -1,4 +1,4 @@
-//! D5y (G385, record 129): only a text-like value becomes text.
+//! D54 (G385, record 129): only a text-like value becomes text.
 //!
 //! A value turns into text in three places: a `${}` inside a `"..."` or
 //! `"""..."""` literal, an operand of `+` whose other operand is a string, and
@@ -35,7 +35,7 @@ enum Position {
 enum TextForm {
     /// A string, a number or a bool: its text is its value.
     TextLike,
-    /// The checker's internal `Unknown`. Not judged (D5y's documented edge).
+    /// The checker's internal `Unknown`. Not judged (D54's documented edge).
     NotJudged,
     /// Anything else, with what the help needs to name a fix.
     None(NoText),
@@ -194,6 +194,9 @@ impl Assigner<'_> {
                 | Ty::StringLiteralUnion(_)
                 | Ty::Never => return TextForm::TextLike,
                 Ty::Unknown => return TextForm::NotJudged,
+                // A pending value is E0238's (record 131): the fix is `await`,
+                // and a second code at the same place would only repeat it.
+                Ty::Pending(_) => return TextForm::NotJudged,
                 Ty::Prim(Primitive::Void) => return TextForm::None(NoText::Void),
                 Ty::UnknownTop => return TextForm::None(NoText::UnknownTop),
                 Ty::Param { name, .. } => {
@@ -238,6 +241,9 @@ impl Assigner<'_> {
                 Ty::Named { .. } => match stdlib_type_path(&current) {
                     Some(("decimal", "Decimal")) => return TextForm::None(NoText::Decimal),
                     Some(("bytes", "Bytes")) => return TextForm::None(NoText::Bytes),
+                    // `sqlite.Sql` is a `string` whose text is fixed when the
+                    // program is written (D52); its base is text (record 132).
+                    Some(("sqlite", "Sql")) => return TextForm::TextLike,
                     Some((ns, name)) => {
                         if let Some(u) = builtin_union(&format!("std/{ns}"), name) {
                             return TextForm::None(NoText::TaggedUnion {
@@ -291,6 +297,9 @@ impl Assigner<'_> {
                 }
                 Ty::Prim(Primitive::Number) => return Some(Scalar::Number),
                 Ty::Prim(Primitive::Bool) => return Some(Scalar::Bool),
+                Ty::Named { .. } if stdlib_type_path(&current) == Some(("sqlite", "Sql")) => {
+                    return Some(Scalar::String)
+                }
                 Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
                 Ty::App { base, args } => self.alias_body(base, args)?,
                 _ => return None,

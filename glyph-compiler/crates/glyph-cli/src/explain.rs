@@ -1099,7 +1099,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `+` joins a `User` to a string, or `string.from(user)`. A value \
             the checker cannot type (an arithmetic result such as `${a + b}`, \
             an npm value with no materialized types, a lambda parameter \
-            written without an annotation until G414 types it from context) \
+            written without an annotation whose position supplies no type) \
             is not judged; `tsc` \
             and the run are what see it. JSX children are not covered: \
             React's types check those.",

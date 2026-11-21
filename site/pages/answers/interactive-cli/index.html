@@ -2,10 +2,13 @@
 title: Can I write a program someone types into? · Glyph
 description: io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop or a chat client answers while you type.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/web-serving/ | &larr; Previous | Can I serve a web page, or only a JSON API?
 next: /answers/long-running/ | Next &rarr; | Can I write a server, or does the process just exit?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">18 &middot; Programs you type into</p>
       <h1 class="q-title">Can I write a program someone types into?</h1>
@@ -17,29 +20,10 @@ next: /answers/long-running/ | Next &rarr; | Can I write a server, or does the p
         is worth saying out loud, because it made every interactive program impossible.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          A line reader that only returns at end of input is a file reader wearing a line
-          reader's name. Piping a file through it works perfectly, which is why nothing
-          caught it: every app in the repository that read stdin read a pipe. Then someone
-          wrote a chat client, and it sat silent while they typed and printed every answer
-          at once after Ctrl-D.
-        </p>
-        <p>
-          That app shipped as a session replayer over a recorded JSON file, with a comment
-          in its source saying why. Three other apps had been shaped around the same thing
-          without anyone naming it: minesweeper could not redraw between moves, the text
-          adventure could not answer <code>look</code>, and a REPL evaluated nothing until
-          you hung up.
-        </p>
-
-        <h2 class="block-label">See it</h2>
-        <p>The whole live-session loop of the chat app. Read, apply, print, repeat:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">The whole live-session loop of the chat app. Read, apply, print, repeat:</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
   let state = server.empty()
   io.println(LIVE_BANNER)
@@ -59,17 +43,13 @@ next: /answers/long-running/ | Next &rarr; | Can I write a server, or does the p
   }
   return state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Driven at a real terminal, with each line typed about 0.6 seconds apart and stdin
           left open. The left column is milliseconds since the process started:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -78,47 +58,95 @@ next: /answers/long-running/ | Next &rarr; | Can I write a server, or does the p
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>One to two milliseconds from typed line to answer.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">before the fix, and where the first 1.6 seconds go</span></summary><div class="body">
+          <p>
+            Before the fix, nothing printed
+            until 6460ms, which is when stdin closed. The first response in a full run lands
+            around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A line reader that only returns at end of input is a file reader wearing a line
+        reader's name.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Piping a file through it works perfectly, which is why nothing
+        caught it: every app in the repository that read stdin read a pipe. Then someone
+        wrote a chat client, and it sat silent while they typed and printed every answer
+        at once after Ctrl-D.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the apps shaped around it</span></summary><div class="body">
         <p>
-          One to two milliseconds from typed line to answer. Before the fix, nothing printed
-          until 6460ms, which is when stdin closed. The first response in a full run lands
-          around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.
+          That app shipped as a session replayer over a recorded JSON file, with a comment
+          in its source saying why. Three other apps had been shaped around the same thing
+          without anyone naming it: minesweeper could not redraw between moves, the text
+          adventure could not answer <code>look</code>, and a REPL evaluated nothing until
+          you hung up.
         </p>
+      </div></details>
 
-        <h2 class="block-label">The parts that bite in practice</h2>
-        <p>
-          A trailing <code>\r</code> is stripped, so a CRLF file and an LF file give you the
-          same lines and you are not debugging an invisible character on Windows input.
-          Input that ends without a final newline still hands back that last line once
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">The parts that bite in practice<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b>A trailing <code>\r</code> is stripped, so a CRLF file and an LF file give you the
+          same lines and you are not debugging an invisible character on Windows input.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>No final newline</b>Input that ends without a final newline still hands back that last line once
           before <code>None</code>, so the last row of a file with no trailing newline is
-          not silently dropped. Multi-byte UTF-8 split across a read boundary is held and
-          completed rather than turning into replacement characters.
-        </p>
-        <p>
-          <code>read_to_string</code> drains the same buffer, so the two compose:
-          <code>read_line</code> for a header and then <code>read_to_string</code> for the
-          body gives you the rest, not a second copy and not an empty string. Called first,
-          it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so
-          reading a line at a time is not a throughput tradeoff.
-        </p>
-      </div>
+          not silently dropped.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Split UTF-8</b>Multi-byte UTF-8 split across a read boundary is held and
+          completed rather than turning into replacement characters.</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer"><code>read_line</code>, then <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> drains the same buffer, so the two compose:
+        <code>read_line</code> for a header and then <code>read_to_string</code> for the
+        body gives you the rest, not a second copy and not an empty string. Called first,
+        it still returns all of stdin.
+      </p>
       <div class="code">
         <span class="cap">A header line, then the body</span>
 <pre>let header = io.read_line()
 let body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        200,000 piped lines are counted in about 20ms, so
+        reading a line at a time is not a throughput tradeoff.
+      </p></div>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too. <code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Still rough</h3>
-          <p>A program that wants to redraw a screen has no cursor control: <code>std/io</code> has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A regression test holds stdin open and requires the echo back</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> and <code>io.eprint</code> write without a newline</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Still rough</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A program that wants to redraw a screen has no cursor control</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A program that wants to redraw a screen has no cursor control: <code>std/io</code> has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

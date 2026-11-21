@@ -2274,6 +2274,12 @@ enum IterShape {
     /// Not settled statically. Decided at run time rather than guessed, because
     /// guessing wrong changes what the program computes.
     Unknown,
+    /// A declared `unknown`: decided at run time like `Unknown`, and the pair
+    /// is handed to `tsc` as `[unknown, unknown]`, the type the checker gives
+    /// both bindings, so `let s: string = i` is refused there too. The
+    /// helper's own declaration says `any`, which would let it through
+    /// (record 146).
+    DeclaredUnknown,
 }
 
 /// The two bounds of a `for` that walks `array.range(..)` directly.
@@ -4040,6 +4046,9 @@ impl<'a> Emitter<'a> {
                             // `__glyph_eq`: a Glyph runtime global the bootstrap
                             // installs, not a JS one a module could shadow.
                             IterShape::Unknown => format!("__glyph_pairs({iter})"),
+                            IterShape::DeclaredUnknown => {
+                                format!("(__glyph_pairs({iter}) as Iterable<[unknown, unknown]>)")
+                            }
                         };
                         format!("for (const [{k}, {v}] of {pairs}) ")
                     }
@@ -4472,8 +4481,9 @@ impl<'a> Emitter<'a> {
             // A declared `unknown` says nothing about the value's shape either:
             // it may hold an array, so the record form would bind a string
             // index (`i + 1` gave `"01"` inside an `is Array<unknown>` arm,
-            // which does not narrow yet, G415). The run time decides.
-            Ty::UnknownTop => IterShape::Unknown,
+            // which does not narrow yet, G415). The run time decides, and the
+            // bindings stay `unknown` for `tsc`.
+            Ty::UnknownTop => IterShape::DeclaredUnknown,
             // A `Ty::Imported` crosses a module boundary with no shape attached,
             // so it is no more settled than `Unknown`.
             Ty::Imported { .. } => IterShape::Unknown,
@@ -12902,6 +12912,27 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
         );
         assert!(ts.contains("__glyph_pairs(input)"), "got:\n{ts}");
         assert!(!ts.contains("Object.entries(input)"), "got:\n{ts}");
+    }
+
+    /// Record 146: the pair a declared `unknown` loop hands `tsc` is
+    /// `[unknown, unknown]`, never the helper's declared `any`, so a binding
+    /// used as a `string` or a `number` is refused there as the checker reads
+    /// it. An untyped iterand keeps the bare helper (G419).
+    #[test]
+    fn a_declared_unknown_loop_hands_tsc_unknown_bindings_not_any() {
+        let ts = emit(
+            "module m\n\
+             fn walk(v: unknown) -> number {\n\
+             \x20 let n = 0\n\
+             \x20 for i, x in v { mut n = n + 1 }\n\
+             \x20 return n\n\
+             }\n",
+        );
+        assert!(
+            ts.contains("for (const [i, x] of (__glyph_pairs(v) as Iterable<[unknown, unknown]>))"),
+            "got:\n{ts}"
+        );
+        assert!(!ts.contains("[any, any]"), "got:\n{ts}");
     }
 
     #[test]

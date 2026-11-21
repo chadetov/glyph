@@ -21000,7 +21000,9 @@ pub fn d(users: Array<User>) -> Array<string> {
 /// index was a string and `i + 1` printed `01,11`. Contextual typing (D55)
 /// gives `01_validator`'s `parse: fn(input) { .. }` the slot's declared
 /// `unknown`, which put its array loop on that path; the iterand now defers
-/// to the run time as an untyped one does.
+/// to the run time as an untyped one does. The bindings are `unknown` to both
+/// checkers (record 146), so `i + 1` is refused by `tsc`; this runs it with
+/// `--no-tsc` to pin what the loop binds.
 #[test]
 fn a_declared_unknown_array_loop_binds_a_numeric_index() {
     if !js_toolchain_available() {
@@ -21031,6 +21033,120 @@ fn main() -> void {
     let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
     assert_eq!(code, 0, "{stdout}\n{stderr}");
     assert_eq!(stdout.trim(), "1,2", "{stderr}");
+}
+
+/// Linus's record 146 probe, `t/a.glyph`: the run-time pairs of a declared
+/// `unknown` loop, over an array at the top level and inside an
+/// `is Array<unknown>` arm, give numeric indexes (`1,2,` for both), as they
+/// must for the validator's array loop.
+#[test]
+fn a_declared_unknown_loop_over_an_array_prints_numeric_indexes() {
+    if !js_toolchain_available() {
+        eprintln!("skipping the record 146 run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("d55-r146-a");
+    let text = r#"module main
+
+import std/io
+import std/json
+
+fn walk(v: unknown) -> string {
+  let out = ""
+  for i, x in v {
+    mut out = out + "${i + 1},"
+  }
+  return out
+}
+
+fn arm(v: unknown) -> string {
+  return match v {
+    is Array<unknown> => {
+      let out = ""
+      for i, x in v {
+        mut out = out + "${i + 1},"
+      }
+      out
+    },
+    else => "no",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  match json.parse<unknown>("[10, 20]") {
+    Ok(v) => {
+      io.println(walk(v))
+      io.println(arm(v))
+    },
+    Err(e) => io.println("err"),
+  }
+  return 0
+}
+"#;
+    write_file(&root.join("src"), "main.glyph", text);
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines, vec!["1,2,", "1,2,"], "{stderr}");
+}
+
+/// Record 146, B1: the bindings of a loop over a declared `unknown` are
+/// `unknown` to `tsc` as they are to Glyph's checker. The helper the loop
+/// emits is declared `[any, any]`, so this program passed both checks on the
+/// release branch and `glyph run` crashed with `s.toUpperCase is not a
+/// function` on `[10, 20]`. Full `check` refuses each use now: TS2322 where
+/// the index is declared a `string` or a `number`, TS18046 where a method is
+/// called on it.
+#[test]
+fn a_declared_unknown_loop_binding_is_unknown_to_tsc() {
+    if !tsc_available() {
+        eprintln!("skipping the record 146 tsc check: tsc not available");
+        return;
+    }
+    let text = r#"module main
+
+fn walk(v: unknown) -> string {
+  let out = ""
+  for i, x in v {
+    let n: number = i
+    let s: string = i
+    mut out = out + s.toUpperCase() + i.toUpperCase() + "${n},"
+  }
+  return out
+}
+"#;
+    let root = unique_tmp("d55-r146-b");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("check"), std::ffi::OsStr::new("--no-test"), main.as_os_str()]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    let all = format!("{stdout}\n{stderr}");
+    assert!(all.contains("[TS2322] Error: tsc: Type 'unknown' is not assignable to type 'number'."), "{all}");
+    assert!(all.contains("[TS2322] Error: tsc: Type 'unknown' is not assignable to type 'string'."), "{all}");
+    assert!(all.contains("[TS18046] Error: tsc: 'i' is of type 'unknown'."), "{all}");
+}
+
+/// `examples/01_validator.glyph` passes full `check`, `tsc` included, now that
+/// its array loop's index is `unknown` to both checkers: it reads the index
+/// only through `string.from`, which takes a declared `unknown` (record 146).
+#[test]
+fn the_validator_example_passes_full_check() {
+    if !tsc_available() {
+        eprintln!("skipping the validator tsc check: tsc not available");
+        return;
+    }
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../examples/01_validator.glyph");
+    let text = std::fs::read_to_string(&example).expect("the validator example");
+    let root = unique_tmp("d55-validator");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", &text);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("check"), std::ffi::OsStr::new("--no-test"), main.as_os_str()]);
+    assert_eq!(code, 0, "{stdout}\n{stderr}");
+    assert!(stderr.contains("tsc --strict passed"), "{stderr}");
 }
 
 /// Record 142, B2: an attribute of a component element is a field of the

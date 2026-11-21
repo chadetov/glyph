@@ -1,7 +1,7 @@
 ---
 title: 能在现有应用里引入 Glyph 吗？ · Glyph
 description: 不需要重写：应用继续用 TypeScript，领域核心用 Glyph 编写，编译出的模块像任何本地文件一样导入。在标准的 Vite 下就能工作。
-source_hash: 4dc0a3c1d0f26ab3
+source_hash: 407d584aaaf4d048
 prev: /answers/imports/ | &larr; 上一篇 | 我能使用现有的 TypeScript、JavaScript 和 npm 库吗？
 next: /answers/typed-apis/ | 下一篇 &rarr; | 每个 API 都要手写校验器吗？
 ---
@@ -12,16 +12,7 @@ next: /answers/typed-apis/ | 下一篇 &rarr; | 每个 API 都要手写校验器
         不需要重写。应用继续用 TypeScript，把出不得错的部分（模型、权限、状态转换、金额计算）用 Glyph 编写。<code>glyph build</code> 生成的模块可以被你的应用<strong>像任何本地文件一样</strong>导入，不需要打包工具配置，也不需要路径别名。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">为什么重要</h2>
-        <p>
-          大多数团队没法重写一个应用，而应用的大部分也不需要 Glyph。需要它的是领域核心：下个月 AI 智能体会去修改、谁都不希望它悄悄出错的那些规则。把这个核心放在 Glyph 中，你就在最值得的地方得到穷尽的 <code>match</code>、没有类型断言、经过校验的边界，而 React 组件、样式和基础设施仍然是普通的 TypeScript。
-        </p>
-
-        <h2 class="block-label">看看实际效果</h2>
-        <p>一个 Glyph 源码目录，编译进应用，由 UI 导入：</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">混合布局：领域核心用 Glyph，其余都用 TypeScript</span>
 <pre>src/
@@ -34,21 +25,41 @@ import { TaskCard, can_move } from "../generated/models";
 
 const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>一个 Glyph 源码目录，编译进应用，由 UI 导入。</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          生成的代码所需的一切都随它一起提供。导入使用相对路径，包括打包在内的标准库，所以你项目的 <code>tsconfig.json</code> 和打包工具不需要任何改动：标准的 Vite 脚手架可以原样编译和打包这些输出，同样的文件也能通过宿主项目的 <code>tsc --strict</code>。用 <code>pub</code> 标记应用要导入的内容；不带它的声明是模块私有的。这不是假设：一位外部工程师<a href="https://github.com/yildizadem/glyph-kanban">用这种方式构建了一个 React 看板</a>，RBAC 矩阵、分析公式和状态转换放在四个 Glyph 模块中，上面是手写的 React UI。
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          大多数团队没法重写一个应用，而应用的大部分也不需要 Glyph。需要它的是领域核心：下个月 AI 智能体会去修改、谁都不希望它悄悄出错的那些规则。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>把这个核心放在 Glyph 中，你就在最值得的地方得到穷尽的 <code>match</code>、没有类型断言、经过校验的边界，而 React 组件、样式和基础设施仍然是普通的 TypeScript。</p></div>
 
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>生成的输出可以原样放进宿主项目：全部使用相对路径说明符，prelude 类型由代码自身携带，已在标准 Vite 脚手架、宿主 <code>tsc --strict</code>、esbuild 和 <code>tsx</code> 上验证。<a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">部署指南</a>介绍了混合布局。</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">正在进行</h3>
-          <p>还没有 watch 模式：编辑 <code>.glyph</code> 源码后需要重新运行 <code>glyph build</code>（可以把它接入你的 <code>dev</code> 脚本）。使用 <code>std/fs</code> 或 <code>std/net</code> 的模块需要宿主项目安装 <code>@types/node</code>，和任何涉及 Node 的 TypeScript 一样。</p>
-        </div>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">宿主项目无需任何添加<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          生成的代码所需的一切都随它一起提供。
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>相对路径导入</b>导入使用相对路径，包括打包在内的标准库，所以你项目的 <code>tsconfig.json</code> 和打包工具不需要任何改动：标准的 Vite 脚手架可以原样编译和打包这些输出，同样的文件也能通过宿主项目的 <code>tsc --strict</code>。</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>pub</code> 导出</b>用 <code>pub</code> 标记应用要导入的内容；不带它的声明是模块私有的。</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>这不是假设：一位外部工程师<a href="https://github.com/yildizadem/glyph-kanban">用这种方式构建了一个 React 看板</a>，RBAC 矩阵、分析公式和状态转换放在四个 Glyph 模块中，上面是手写的 React UI。</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">生成的输出可以原样放进宿主项目：全部使用相对路径说明符，prelude 类型由代码自身携带。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">已在标准 Vite 脚手架、宿主 <code>tsc --strict</code>、esbuild 和 <code>tsx</code> 上验证。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">部署指南</a>介绍了混合布局。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">还没有 watch 模式：编辑 <code>.glyph</code> 源码后需要重新运行 <code>glyph build</code>（可以把它接入你的 <code>dev</code> 脚本）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">使用 <code>std/fs</code> 或 <code>std/net</code> 的模块需要宿主项目安装 <code>@types/node</code>，和任何涉及 Node 的 TypeScript 一样。</span></span></li>
+          </ul>
+        </section>
       </div>

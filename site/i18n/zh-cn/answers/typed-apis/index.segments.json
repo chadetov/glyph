@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/typed-apis/index.html",
   "locale": "zh-cn",
-  "source_hash": "e5583b6a5d857445",
+  "source_hash": "46f9f9ea5d8ba7bb",
   "segments": [
     {
       "id": "title",
@@ -401,10 +401,10 @@
       "tr": "请求体到达时已经解码为 <code>unknown</code>，所以这时你要用 <code>T.parse(value)</code>：同样的保证，不需要类型断言。"
     },
     {
-      "id": "h-751631d4",
+      "id": "h-c73aba3e",
       "kind": "html",
-      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present.",
-      "tr": "不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。"
+      "en": "The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code> and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a missing header or query parameter is <code>None</code> and the <code>match</code> <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't compile. Absent input can't be read as if it were present. A body field follows the same rule: <code>timeout_ms?: number</code> is an absent key or a number, so <code>{\"timeout_ms\": null}</code> is an <code>Err</code> at <code>[\"timeout_ms\"]</code>, from <code>T.parse</code>, <code>is T</code> and <code>json.parse&lt;T&gt;</code> alike. Declare <code>timeout_ms?: Nullable&lt;number&gt;</code> when the sender writes <code>null</code>. Until 0.1.152 that <code>null</code> came back inside the <code>Ok</code>.",
+      "tr": "不可信边界的其余部分也以同样方式定型：<code>header(req, name)</code> 和 <code>query_param(req, name)</code> 返回 <code>Option&lt;string&gt;</code>，所以缺失的请求头或查询参数是 <code>None</code>，而 <code>match</code> <em>强制</em>你处理它。省略 <code>None</code> 分支就无法编译。不存在的输入不可能被当作存在来读取。请求体字段遵循同样的规则：<code>timeout_ms?: number</code> 要么是不存在的键，要么是数字，所以 <code>{\"timeout_ms\": null}</code> 在 <code>[\"timeout_ms\"]</code> 处得到 <code>Err</code>，无论来自 <code>T.parse</code>、<code>is T</code> 还是 <code>json.parse&lt;T&gt;</code>。如果发送方会写 <code>null</code>，就声明 <code>timeout_ms?: Nullable&lt;number&gt;</code>。在 0.1.152 之前，这个 <code>null</code> 会出现在 <code>Ok</code> 里返回。"
     },
     {
       "id": "h-c5c56180",
@@ -443,10 +443,10 @@
       "tr": "恰好是列出的键，不缺也不多"
     },
     {
-      "id": "h-356bbed3",
+      "id": "h-2ec68c34",
       "kind": "html",
-      "en": "A <code>where</code>-refined type",
-      "tr": "用 <code>where</code> 细化的类型"
+      "en": "A <code>where</code>-refined <code>string</code> or number",
+      "tr": "用 <code>where</code> 细化的 <code>string</code> 或数字"
     },
     {
       "id": "h-d1db2150",
@@ -467,16 +467,16 @@
       "tr": "没有新变化"
     },
     {
-      "id": "h-14b46ac0",
+      "id": "h-7c256822",
       "kind": "html",
-      "en": "Details <span class=\"hint\">refined and int keys, and what is still left to tsc</span>",
-      "tr": "详情 <span class=\"hint\">细化类型和 int 类型的键，以及仍然交给 tsc 的部分</span>"
+      "en": "Details <span class=\"hint\">refined and int keys, and what the checker holds</span>",
+      "tr": "详情 <span class=\"hint\">细化类型和 int 类型的键，以及检查器把关的部分</span>"
     },
     {
-      "id": "h-906e9c5a",
+      "id": "h-d2cb189d",
       "kind": "html",
-      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. Glyph's own checker still leaves the keys of a value you write in code to <code>tsc</code>, and a generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
-      "tr": "用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>\"01\"</code> 和 <code>\"1.5\"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。对于你在代码中写出的值，Glyph 自己的检查器仍然把键交给 <code>tsc</code> 检查；以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。"
+      "en": "A <code>where</code>-refined key type runs its predicate on every key, and an <code>int</code> key has to be the plain spelling of a whole number, so <code>\"01\"</code> and <code>\"1.5\"</code> are refused. A <code>Record&lt;string, V&gt;</code> is checked exactly as before. A <code>where</code> cannot refine a string-literal union (<code>type T2 = Tier where value != \"pro\"</code> is <code>E0300</code> since 0.1.152); write the members you mean as their own union, <code>type T2 = \"free\"</code>, and it keys a <code>Record</code> with the same exact-keys check. Since 0.1.153 Glyph's own checker holds the key of a value you write in code as well: a <code>Record&lt;string, int&gt;</code> does not stand where a <code>Record&lt;Tier, int&gt;</code> is declared, or the other way round, so the crossing is a <code>json.parse</code> or an <code>is Record&lt;Tier, int&gt;</code> arm, and <code>record.set</code> keeps the key it was given. A generic record keyed by its own type parameter is refused unless that parameter is <code>string</code>.",
+      "tr": "用 <code>where</code> 细化的键类型会对每个键运行谓词，<code>int</code> 键必须是整数的普通写法，所以 <code>\"01\"</code> 和 <code>\"1.5\"</code> 被拒绝。<code>Record&lt;string, V&gt;</code> 的检查方式和以前完全一样。<code>where</code> 不能细化字符串字面量联合类型（自 0.1.152 起，<code>type T2 = Tier where value != \"pro\"</code> 是 <code>E0300</code>）；把你想要的成员写成单独的联合类型 <code>type T2 = \"free\"</code>，它作为 <code>Record</code> 的键时会得到同样的精确键检查。自 0.1.153 起，对于你在代码中写出的值，Glyph 自己的检查器也会检查它的键：<code>Record&lt;string, int&gt;</code> 不能用在声明为 <code>Record&lt;Tier, int&gt;</code> 的位置，反过来也一样，所以跨越这条界线要通过 <code>json.parse</code> 或一个 <code>is Record&lt;Tier, int&gt;</code> 分支，而 <code>record.set</code> 会保留传给它的键类型。以自身类型参数为键的泛型记录会被拒绝，除非该参数是 <code>string</code>。"
     },
     {
       "id": "h-efd6b0f9",

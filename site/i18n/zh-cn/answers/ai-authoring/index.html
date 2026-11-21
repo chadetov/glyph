@@ -1,7 +1,7 @@
 ---
 title: AI 能写一门它几乎没见过的语言吗？ · Glyph
 description: Glyph 读起来像 TypeScript，但不是它的子集。模型对 TypeScript 的了解大多能直接沿用，编译器会指出那些不能沿用的地方。
-source_hash: dc044819d67c5db7
+source_hash: 7b8c6d4dac416f54
 prev: /answers/human-value/ | &larr; 上一篇 | 如果我不用 AI，Glyph 还值得用吗？
 next: /answers/upgrades/ | 下一篇 &rarr; | 新的 Glyph 版本会破坏我的构建吗？
 ---
@@ -12,40 +12,46 @@ next: /answers/upgrades/ | 下一篇 &rarr; | 新的 Glyph 版本会破坏我的
         大体上可以。Glyph 读起来像 TypeScript：同样的基本类型和泛型类型（<code>string</code>、<code>number</code>、<code>Array&lt;T&gt;</code>），大部分相同的表达式，npm 包也按名字导入。它不是 TypeScript 的子集：<code>match</code>、<code>Result</code> 和 <code>fn name(x: T) -&gt; R</code> 是 TypeScript 没有的语法，而 <code>if</code>、三元表达式和类型断言不属于 Glyph。模型已有的知识大多能直接沿用，编译器会指出那些不能沿用的地方。
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">为什么重要</h2>
-        <p>
-          这是一个合理的质疑：LLM 根据大量现有语言的代码预测下一个 token，所以一门几乎没有训练数据的语言应该很难写。答案在于结构：Glyph 并不陌生。它看起来像 TypeScript，所以模型已经懂得其中大部分；差异很少，可以逐一列出，而且每一处都会在编译时<em>立即</em>失败，而不是悄悄通过。
-        </p>
-
-        <h2 class="block-label">看看实际效果</h2>
-        <p>猜错的智能体不会把猜测发布出去。它会得到一个精确、可修复的错误，并在同一轮循环中改正：</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">一步完成的修正循环</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">一步完成的修正循环</span>
 <pre><span class="dim">// agent writes, reaching for a TypeScript habit:</span>
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
    ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          错误信息指出对应的 Glyph 结构并给出写法，所以修复只差一次编辑：不用翻源码，也不用猜。正是这个紧凑的循环弥补了训练数据的不足。一份文档 <a href="/llms.txt">llms.txt</a> 就能给智能体提供程序结构、标准库，以及每条诊断及其修复方法，<code>glyph llms</code> 也能离线打印同样的参考内容。
-        </p>
-      </div>
-
-      <h2 class="block-label">当前状态</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">现已提供</h3>
-          <p>TypeScript 风格的语法，带稳定错误码并指出修复方法的报错，以及作为任何智能体统一参考文档的 <code>llms.txt</code> / <code>glyph llms</code>。</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">正在验证</h3>
-          <p>一个成功率基准测试（在同一任务上与 TypeScript 比较改正所需的尝试次数），把&ldquo;它经受住了考验&rdquo;变成一个测得的数字。</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>猜错的智能体不会把猜测发布出去。它会得到一个精确、可修复的错误，并在同一轮循环中改正。</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">为什么重要<a class="ak-anchor" href="#why-it-matters" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        这是一个合理的质疑：LLM 根据大量现有语言的代码预测下一个 token，所以一门几乎没有训练数据的语言应该很难写。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>答案在于结构：Glyph 并不陌生。它看起来像 TypeScript，所以模型已经懂得其中大部分；差异很少，可以逐一列出，而且每一处都会在编译时<em>立即</em>失败，而不是悄悄通过。</p></div>
+
+      <h2 class="ak-h" id="one-edit-away">修复只差一次编辑<a class="ak-anchor" href="#one-edit-away" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        错误信息指出对应的 Glyph 结构并给出写法，所以修复只差一次编辑：不用翻源码，也不用猜。正是这个紧凑的循环弥补了训练数据的不足。
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>一份文档 <a href="/llms.txt">llms.txt</a> 就能给智能体提供程序结构、标准库，以及每条诊断及其修复方法，<code>glyph llms</code> 也能离线打印同样的参考内容。</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">TypeScript 风格的语法。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">带稳定错误码并指出修复方法的报错。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">作为任何智能体统一参考文档的 <code>llms.txt</code> / <code>glyph llms</code>。</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在验证</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">一个成功率基准测试（在同一任务上与 TypeScript 比较改正所需的尝试次数），把&ldquo;它经受住了考验&rdquo;变成一个测得的数字。</span></span></li>
+          </ul>
+        </section>
       </div>

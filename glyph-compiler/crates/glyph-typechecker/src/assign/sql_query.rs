@@ -1266,6 +1266,7 @@ mod tests {
     // ----- record 132: B3, a primitive where a taint wrapper is declared -----
 
     const TRUSTED_HELP: &str = "Pass a constant query directly; text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.";
+    const TRUSTED_SLOT_HELP: &str = "Text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.";
 
     fn coded(src: &str, code: &str) -> Vec<(String, String)> {
         errors_of(src)
@@ -1287,7 +1288,7 @@ mod tests {
             coded(&src, "E0204"),
             vec![(
                 "type mismatch: expected `taint.Trusted<string>`, found `string`".to_string(),
-                TRUSTED_HELP.to_string()
+                TRUSTED_SLOT_HELP.to_string()
             )]
         );
     }
@@ -1313,4 +1314,23 @@ mod tests {
         assert_eq!(got.len(), 1, "{got:?}");
         assert_eq!(got[0].1, TRUSTED_HELP);
     }
+
+    /// Record 137: the SQL clause belongs to `from_trusted`'s parameter only.
+    /// A `Trusted` field, a `return` and another function's `Trusted`
+    /// parameter get the help without it.
+    #[test]
+    fn the_taint_help_names_sql_only_at_from_trusted() {
+        let field = format!("{HEAD}type Box = {{ t: taint.Trusted<string> }}\n\nfn f(s: string) -> Box {{\n  let b: Box = {{ t: s }}\n  return b\n}}\n");
+        assert_eq!(
+            coded(&field, "E0204").iter().map(|(_, h)| h.clone()).collect::<Vec<_>>(),
+            vec![TRUSTED_SLOT_HELP.to_string()]
+        );
+        let ret = format!("{HEAD}fn f(s: string) -> taint.Trusted<string> {{\n  return s\n}}\n");
+        assert_eq!(coded(&ret, "E0204")[0].1, TRUSTED_SLOT_HELP);
+        let sink = format!("{HEAD}fn render(t: taint.Trusted<string>) -> void {{\n}}\n\nfn f(s: string) -> void {{\n  render(s)\n}}\n");
+        assert_eq!(coded(&sink, "E0211")[0].1, TRUSTED_SLOT_HELP);
+        let sql = program("  db.exec(sqlite.from_trusted(name))\n");
+        assert_eq!(coded(&sql, "E0211")[0].1, TRUSTED_HELP);
+    }
+
 }

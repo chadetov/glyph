@@ -668,6 +668,10 @@ pub enum TypeError {
         /// fill the field; the help says so and names the two spellings that
         /// compile. False everywhere else.
         children_between_tags: bool,
+        /// True when the parameter is `sqlite.from_trusted`'s (G387, D52), so
+        /// the help can say that a constant query needs no escape at all. Any
+        /// other `taint.Trusted` slot gets the help without the SQL clause.
+        sql_escape: bool,
         /// Same rule as `TypeMismatch::record_key`.
         record_key: Option<Box<RecordKeyMismatch>>,
         span: Span,
@@ -1535,9 +1539,14 @@ impl TypeError {
                 ));
             }
             if expected.starts_with("taint.Trusted<") {
-                return Some(Cow::Borrowed(
-                    "Pass a constant query directly; text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.",
-                ));
+                // The SQL clause fits only `sqlite.from_trusted`'s parameter;
+                // a field, a `let`, a `return` or another sink is not a query
+                // (record 137).
+                let sql = matches!(self, TypeError::ArgumentTypeMismatch { sql_escape: true, .. });
+                return Some(Cow::Borrowed(match sql {
+                    true => "Pass a constant query directly; text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.",
+                    false => "Text built at run time goes through `taint.sanitize(…)`, or `taint.trust_unchecked(…)` for text you wrote.",
+                }));
             }
             if expected.starts_with("taint.Tainted<") {
                 return Some(Cow::Borrowed(

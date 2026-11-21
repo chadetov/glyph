@@ -1,7 +1,7 @@
 ---
 title: เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมาหรือเปล่า? · Glyph
 description: glyph llms --json emit diagnostic, prelude, signature ของ stdlib และ decision ของภาษา ออกมาจากตารางของคอมไพเลอร์เอง มันจึงเพี้ยนไม่ได้
-source_hash: 31b76a81a51f0211
+source_hash: cfa565ac48a19111
 prev: /answers/repair-protocol/ | &larr; ก่อนหน้า | เมื่อ build ล้มเหลว คอมไพเลอร์บอกเอเจนต์ไหมว่าต้องแก้อย่างไร?
 next: /answers/tooling/ | ถัดไป &rarr; | ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?
 ---
@@ -12,22 +12,8 @@ next: /answers/tooling/ | ถัดไป &rarr; | ประสบการณ�
         generate ขึ้นมา <code>glyph llms --json</code> emit แคตตาล็อก diagnostic, prelude, signature ของ stdlib, decision ของภาษา และคู่มือเครื่องมือ ออกมาจากตารางของคอมไพเลอร์เอง และมี gate ที่ทำให้ build fail เมื่อสำเนาที่เขียนด้วยมือไม่ตรงกัน ทุกตัวอย่าง Glyph ในเอกสารที่เอเจนต์ใช้เริ่มต้นถูกคอมไพล์ รวมถึงตัวที่ผิดด้วย
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          คำถามนี้ไม่ใช่วาทศิลป์ เพราะคำตอบตรงๆ เคยเป็น "เขียนด้วยมือ และใช่" เอกสารเริ่มต้นสำหรับเอเจนต์บอกว่าเซิร์ฟเวอร์ MCP "exposes five tools" และแสดงห้าตัว เซิร์ฟเวอร์ให้บริการเจ็ดตัว สองตัวที่คำแนะนำของเซิร์ฟเวอร์เองบอกให้เอเจนต์ใช้ก่อนไม่ปรากฏในนั้นเลย รหัส error 58 ตัวอยู่ในสำเนาที่ดูแลด้วยมือสามชุด ตรวจแค่ว่ามี string ของรหัสอยู่หรือไม่ จากตัวอย่าง Glyph 19 ตัวในเอกสารนั้น คอมไพล์ 2 ตัว และ 17 ตัวถูกข้ามไปในฐานะชิ้นส่วน
-        </p>
-        <p>
-          ทุกข้อเหล่านั้นคือข้อบกพร่องเดียวกัน เอกสารเกี่ยวกับคอมไพเลอร์ ดูแลอยู่ข้างคอมไพเลอร์ โดยคนที่มีเจตนาดี เอเจนต์ที่อ่านมันบอกไม่ได้ว่าประโยคไหนยังจริงอยู่ และเราก็บอกไม่ได้เช่นกัน
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p>
-          เจ็ดส่วน แต่ละส่วนอ่านจากตารางที่คอมไพเลอร์มีอยู่แล้ว รายการ diagnostic มีประโยคจากแคตตาล็อก วิธีแก้หนึ่งบรรทัด คำอธิบายแบบยาว และ help กับ note ที่เอามาจาก diagnostic ที่คอมไพเลอร์สร้าง 51 จาก 77 รหัสมีโปรแกรมที่ผิดซึ่งได้รหัสนั้นด้วย คอมไพล์ตอนที่คุณถาม อีก 26 ตัวบอกว่าชุดตัวอย่างไม่มีกรณีสำหรับมัน
-        </p>
-      </div>
-
-      <div class="code">
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
         <span class="cap">glyph llms --json รายการ E0200 (ตัดบางส่วน)</span>
 <pre>{
   "code": "E0200",
@@ -52,19 +38,49 @@ next: /answers/tooling/ | ถัดไป &rarr; | ประสบการณ�
       invented here would compile nowhere and be checked by nothing."
   }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>เจ็ดส่วน แต่ละส่วนอ่านจากตารางที่คอมไพเลอร์มีอยู่แล้ว</span></figcaption>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#diagnostics">Diagnostic</a></li>
+          <li><a href="#the-prelude-the-stdlib-and-the-decisions">prelude, stdlib, decision</a></li>
+          <li><a href="#the-wrong-programs-are-readable-too">โปรแกรมที่ผิด</a></li>
+          <li><a href="#every-example-compiles-including-the-wrong-ones">ตัวอย่างที่คอมไพล์แล้ว</a></li>
+          <li><a href="#what-it-costs-to-hand-over-and-what-it-stopped-costing">ต้นทุน</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        คำถามนี้ไม่ใช่วาทศิลป์ เพราะคำตอบตรงๆ เคยเป็น "เขียนด้วยมือ และใช่"
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>รายการเครื่องมือ</b>เอกสารเริ่มต้นสำหรับเอเจนต์บอกว่าเซิร์ฟเวอร์ MCP "exposes five tools" และแสดงห้าตัว เซิร์ฟเวอร์ให้บริการเจ็ดตัว สองตัวที่คำแนะนำของเซิร์ฟเวอร์เองบอกให้เอเจนต์ใช้ก่อนไม่ปรากฏในนั้นเลย</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>รหัส error</b>รหัส error 58 ตัวอยู่ในสำเนาที่ดูแลด้วยมือสามชุด ตรวจแค่ว่ามี string ของรหัสอยู่หรือไม่</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>ตัวอย่าง</b>จากตัวอย่าง Glyph 19 ตัวในเอกสารนั้น คอมไพล์ 2 ตัว และ 17 ตัวถูกข้ามไปในฐานะชิ้นส่วน</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ทุกข้อเหล่านั้นคือข้อบกพร่องเดียวกัน เอกสารเกี่ยวกับคอมไพเลอร์ ดูแลอยู่ข้างคอมไพเลอร์ โดยคนที่มีเจตนาดี เอเจนต์ที่อ่านมันบอกไม่ได้ว่าประโยคไหนยังจริงอยู่ และเราก็บอกไม่ได้เช่นกัน</p></div>
+
+      <h2 class="ak-h" id="diagnostics">ตารางเดียวสำหรับ diagnostic<a class="ak-anchor" href="#diagnostics" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        รายการ diagnostic มีประโยคจากแคตตาล็อก วิธีแก้หนึ่งบรรทัด คำอธิบายแบบยาว และ help กับ note ที่เอามาจาก diagnostic ที่คอมไพเลอร์สร้าง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>51 จาก 77 รหัสมีโปรแกรมที่ผิดซึ่งได้รหัสนั้นด้วย คอมไพล์ตอนที่คุณถาม อีก 26 ตัวบอกว่าชุดตัวอย่างไม่มีกรณีสำหรับมัน</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สำเนาสามชุดรวมเป็นชุดเดียว</span></summary><div class="body">
         <p>
           รหัส 77 ตัวมาจากตารางเดียวในคอมไพเลอร์ และ <code>docs/error-codes.md</code> กับตารางแคตตาล็อกในเอกสารเริ่มต้นสำหรับเอเจนต์ถูกเขียนจากมันโดยสคริปต์ที่ fail เมื่อเพี้ยน การรวมสามสำเนาที่เคยมีเจอรหัสหนึ่งที่มีคำอธิบายแต่ไม่มีที่ในรายการ และแถวหนึ่งที่ pipe ที่ escape ไว้ทำให้ตารางที่มันอยู่พังไปเงียบๆ
         </p>
+      </div></details>
 
-        <h2 class="block-label">prelude, stdlib และ decision</h2>
-        <p>
-          prelude คือ 24 ชื่อที่ resolver ใช้ resolve พร้อมบอกว่าแต่ละตัวคืออะไร stdlib คือ 40 module กับ 340 export และแต่ละ signature อ่านออกมาจากตารางของตัวตรวจเอง และพิมพ์ด้วย type printer ตัวเดียวกับที่ diagnostic ใช้ signature ในเอกสารจึงเป็น signature ที่ตัวตรวจจะบังคับคุณ export แบ่งเป็นสามกลุ่มเสมอ ไม่ใช่สอง: 129 signature ถูก model ครบทุกตำแหน่ง 46 ตัวมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter และนับเป็น <code>partially_modeled</code> พร้อมบรรทัดที่บอกว่ายังเหลืออีกกี่ตำแหน่ง และ 165 ตัวไม่มี signature เลย <code>?</code> คือ <code>unknown</code> ที่ถูก render จึงไม่เคยถูกเผยแพร่เป็น signature ที่สมบูรณ์
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-prelude-the-stdlib-and-the-decisions">prelude, stdlib และ decision<a class="ak-anchor" href="#the-prelude-the-stdlib-and-the-decisions" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        prelude คือ 24 ชื่อที่ resolver ใช้ resolve พร้อมบอกว่าแต่ละตัวคืออะไร stdlib คือ 40 module กับ 340 export และแต่ละ signature อ่านออกมาจากตารางของตัวตรวจเอง และพิมพ์ด้วย type printer ตัวเดียวกับที่ diagnostic ใช้ signature ในเอกสารจึงเป็น signature ที่ตัวตรวจจะบังคับคุณ
+      </p>
       <div class="two-up">
         <div class="code">
           <span class="cap">"stdlib"</span>
@@ -99,18 +115,22 @@ next: /answers/tooling/ | ถัดไป &rarr; | ประสบการณ�
         head is a variant reference ..." }, ... ] }</pre>
         </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">export แบ่งกลุ่มอย่างไร</span></summary><div class="body">
+        <p>
+          export แบ่งเป็นสามกลุ่มเสมอ ไม่ใช่สอง: 129 signature ถูก model ครบทุกตำแหน่ง 46 ตัวมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter และนับเป็น <code>partially_modeled</code> พร้อมบรรทัดที่บอกว่ายังเหลืออีกกี่ตำแหน่ง และ 165 ตัวไม่มี signature เลย <code>?</code> คือ <code>unknown</code> ที่ถูก render จึงไม่เคยถูกเผยแพร่เป็น signature ที่สมบูรณ์
+        </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">ทำไมจึงมี <code>duplicate_numbers</code></span></summary><div class="body">
         <p>
           <code>duplicate_numbers</code> มีอยู่เพราะ generator อ่านรายการของสเปกเอง และครั้งแรกที่รัน มันเจอ decision สองข้อที่ต่างกันแต่มีหมายเลข D43 ทั้งคู่ แล้วพิมพ์ <code>"duplicate_numbers": [43]</code> มันรายงานการชนแทนที่จะตัดตัวซ้ำทิ้ง ซึ่งเป็นวิธีที่ทำให้มีคนรู้ ไม่มีอะไรในคอมไพเลอร์ใช้หมายเลข D เป็น key จึงไม่มีโปรแกรมไหนได้รับผลกระทบ แต่คนอ่านที่ตามการอ้างอิงได้รับผลกระทบ ข้อนั้นแก้แล้ว: D43 คือกฎ <code>mut</code> ข้าม <code>await</code> และ <code>never</code> คือ D47 รายการจึงกลับมาว่าง ตอนนี้มี 49 decision ตั้งแต่ D1 ถึง D49
         </p>
+      </div></details>
 
-        <h2 class="block-label">โปรแกรมที่ผิดก็อ่านได้เช่นกัน</h2>
-        <p>
-          ชุดตัวอย่างเชิงลบของคอมไพเลอร์คือชุดโปรแกรมที่ต้อง fail พร้อมรหัสที่แต่ละตัวต้องได้ มันเคยมองเห็นได้แค่จาก <code>cargo test</code> เอเจนต์ที่กำลังเรียนรู้ว่ากฎปฏิเสธอะไรคือผู้อ่านที่มันถูกเขียนมาให้ ตอนนี้มันจึงตอบได้ และแต่ละกรณีถูกคอมไพล์เมื่อคุณถาม diagnostic ข้างๆ จึงเป็นของคอมไพเลอร์ตัวนี้
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-wrong-programs-are-readable-too">โปรแกรมที่ผิดก็อ่านได้เช่นกัน<a class="ak-anchor" href="#the-wrong-programs-are-readable-too" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ชุดตัวอย่างเชิงลบของคอมไพเลอร์คือชุดโปรแกรมที่ต้อง fail พร้อมรหัสที่แต่ละตัวต้องได้ มันเคยมองเห็นได้แค่จาก <code>cargo test</code>
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เอเจนต์ที่กำลังเรียนรู้ว่ากฎปฏิเสธอะไรคือผู้อ่านที่มันถูกเขียนมาให้ ตอนนี้มันจึงตอบได้ และแต่ละกรณีถูกคอมไพล์เมื่อคุณถาม diagnostic ข้างๆ จึงเป็นของคอมไพเลอร์ตัวนี้</p></div>
       <div class="code">
         <span class="cap">glyph llms --negative E0008</span>
 <pre>{
@@ -133,40 +153,88 @@ next: /answers/tooling/ | ถัดไป &rarr; | ประสบการณ�
   "catches_absent": "`catches/` pairs no TypeScript-accepted program with E0008"
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ความครอบคลุม และชุดตัวอย่าง <code>catches/</code></span></summary><div class="body">
         <p>
           ถ้าไม่ระบุรหัส มันแสดง 117 กรณีบน 53 จาก 77 รหัสใน 0.1.149 และระบุชื่อ 24 รหัสที่ไม่มี แทนที่จะปล่อยให้คุณอนุมานความครอบคลุมจากสิ่งที่กลับมา ชุดที่สองคือ <code>catches/</code> จับคู่โปรแกรมที่ <code>tsc --strict</code> ยอมรับกับ Glyph ที่ปฏิเสธมัน และกลับมาในคำตอบเดียวกันเมื่อมี ทั้งสองชุดฝังมาจากไดเรกทอรีเอง กรณีที่เพิ่มในชุดไหนก็อยู่ในคำตอบโดยไม่ต้องจำไปแก้ที่ที่สอง
         </p>
+      </div></details>
 
-        <h2 class="block-label">ทุกตัวอย่างคอมไพล์ได้ รวมถึงตัวที่ผิด</h2>
-        <p>
-          การ generate เอกสารอ้างอิงเป็นแค่ครึ่งเดียว อีกครึ่งคือร้อยแก้วที่เอเจนต์ใช้เริ่มต้น ซึ่งตัวอย่างคือส่วนที่มันลอกไป ทุก fence ของ Glyph ในเอกสารนั้นเป็นโปรแกรมสมบูรณ์ที่คอมไพล์ได้ หรือถูกทำเครื่องหมายว่าเป็นชิ้นส่วนของตัวอย่างสมบูรณ์ที่มีชื่อ ซึ่งบรรทัดของมันต้องปรากฏอยู่ในนั้น เคยมี 19 fence คอมไพล์ 2 ตอนนี้มี 24 คอมไพล์ 20 ทำเครื่องหมาย 4 และไม่มีตัวไหนถูกข้าม เอกสารอ้างอิง stdlib เพิ่มจาก 4 ใน 8 เป็น 8 ใน 8
-        </p>
-        <p>
-          fence ยังถูกทำเครื่องหมายเป็นโปรแกรมที่ต้อง fail ได้ด้วย โดยระบุรหัสที่มันได้ ซึ่งเป็นวิธีที่เอกสารถือรูปแบบที่ผิดห้าแบบที่มันเตือนไว้: ตัวที่ได้ <code>E0228</code> ตัวที่ได้ <code>E0008</code> และอีกสามตัว คำเตือนที่คู่กับ diagnostic ตรวจได้ คำเตือนที่เขียนเป็นร้อยแก้วเป็นแค่คำสัญญา
-        </p>
+      <h2 class="ak-h" id="every-example-compiles-including-the-wrong-ones">ทุกตัวอย่างคอมไพล์ได้ รวมถึงตัวที่ผิด<a class="ak-anchor" href="#every-example-compiles-including-the-wrong-ones" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        การ generate เอกสารอ้างอิงเป็นแค่ครึ่งเดียว อีกครึ่งคือร้อยแก้วที่เอเจนต์ใช้เริ่มต้น ซึ่งตัวอย่างคือส่วนที่มันลอกไป
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ทุก fence ของ Glyph ในเอกสารนั้นเป็นโปรแกรมสมบูรณ์ที่คอมไพล์ได้ หรือถูกทำเครื่องหมายว่าเป็นชิ้นส่วนของตัวอย่างสมบูรณ์ที่มีชื่อ ซึ่งบรรทัดของมันต้องปรากฏอยู่ในนั้น</p></div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>เอกสารเริ่มต้น</b>เคยมี 19 fence คอมไพล์ 2 ตอนนี้มี 24 คอมไพล์ 20 ทำเครื่องหมาย 4 และไม่มีตัวไหนถูกข้าม</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>เอกสารอ้างอิง stdlib</b>เอกสารอ้างอิง stdlib เพิ่มจาก 4 ใน 8 เป็น 8 ใน 8</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b>รูปแบบที่ผิด</b>fence ยังถูกทำเครื่องหมายเป็นโปรแกรมที่ต้อง fail ได้ด้วย โดยระบุรหัสที่มันได้ ซึ่งเป็นวิธีที่เอกสารถือรูปแบบที่ผิดห้าแบบที่มันเตือนไว้: ตัวที่ได้ <code>E0228</code> ตัวที่ได้ <code>E0008</code> และอีกสามตัว คำเตือนที่คู่กับ diagnostic ตรวจได้ คำเตือนที่เขียนเป็นร้อยแก้วเป็นแค่คำสัญญา</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สองอย่างที่การคอมไพล์เอกสารเจอ</span></summary><div class="body">
         <p>
           การคอมไพล์เอกสารเจอสองอย่างที่การอ่านไม่มีวันเจอ triple backtick แบบ inline ถูกอ่านเป็นตัวเปิด fence 250 บรรทัดจึงนับเป็นชิ้นเดียวและไม่มีอะไรข้างในถูกตรวจ และ server ตัวอย่างในเอกสารอ้างอิง stdlib เรียก <code>http.serve</code> ซึ่ง <code>std/http</code> ไม่ได้ export ฟังก์ชันที่ถูกคือ <code>listen</code>
         </p>
+      </div></details>
 
-        <h2 class="block-label">ต้นทุนของการส่งมอบ และสิ่งที่ไม่ต้องจ่ายอีกแล้ว</h2>
+      <h2 class="ak-h" id="what-it-costs-to-hand-over-and-what-it-stopped-costing">ต้นทุนของการส่งมอบ และสิ่งที่ไม่ต้องจ่ายอีกแล้ว<a class="ak-anchor" href="#what-it-costs-to-hand-over-and-what-it-stopped-costing" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        เครื่องมือ MCP สิบเอ็ดตัวเคยแบกคู่มือทั้งหมดไว้ใน reply ของ <code>tools/list</code> ซึ่งทุก session จ่ายตอนเชื่อมต่อ: คำอธิบาย 31,446 ไบต์ ใน reply ขนาด 45,509 ไบต์ ตอนนี้เครื่องมือสิบเอ็ดตัวเดิมแบก 8,627 ใน reply ขนาด 20,386 ไบต์
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ไม่มีอะไรถูกลบ ข้อความเดิมถูกเก็บไว้ตรงตัว ใช้ชื่อเครื่องมือเป็น key และเผยแพร่ภายใน <code>glyph llms --json</code> ข้อตกลงที่คุณต้องใช้ตอนเรียกจึงอยู่ในคำอธิบาย และส่วนที่เหลืออยู่ห่างไปหนึ่งคำสั่ง แทนที่จะอยู่ใน reply แรกของทุก session</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">เทสต์ที่ยึดจำนวนไว้</span></summary><div class="body">
         <p>
-          เครื่องมือ MCP สิบเอ็ดตัวเคยแบกคู่มือทั้งหมดไว้ใน reply ของ <code>tools/list</code> ซึ่งทุก session จ่ายตอนเชื่อมต่อ: คำอธิบาย 31,446 ไบต์ ใน reply ขนาด 45,509 ไบต์ ตอนนี้เครื่องมือสิบเอ็ดตัวเดิมแบก 8,627 ใน reply ขนาด 20,386 ไบต์ ไม่มีอะไรถูกลบ ข้อความเดิมถูกเก็บไว้ตรงตัว ใช้ชื่อเครื่องมือเป็น key และเผยแพร่ภายใน <code>glyph llms --json</code> ข้อตกลงที่คุณต้องใช้ตอนเรียกจึงอยู่ในคำอธิบาย และส่วนที่เหลืออยู่ห่างไปหนึ่งคำสั่ง แทนที่จะอยู่ใน reply แรกของทุก session มีเทสต์ที่อ่านรายการเครื่องมือและเอกสารไปพร้อมกัน เอกสารที่อ้างถึงเครื่องมือที่เซิร์ฟเวอร์ไม่ได้ให้บริการ หรือจำนวนที่ไม่ตรงกับรายการ จะทำให้ build fail นั่นคือการตรวจที่ "exposes five tools" ต้องการ
+          มีเทสต์ที่อ่านรายการเครื่องมือและเอกสารไปพร้อมกัน เอกสารที่อ้างถึงเครื่องมือที่เซิร์ฟเวอร์ไม่ได้ให้บริการ หรือจำนวนที่ไม่ตรงกับรายการ จะทำให้ build fail นั่นคือการตรวจที่ "exposes five tools" ต้องการ
         </p>
-        <p>
-          ทั้งหมดนี้ทำงานแบบออฟไลน์และในเครื่อง <code>glyph llms</code> พิมพ์ร้อยแก้ว <code>glyph llms --json</code> พิมพ์ข้อมูล <code>glyph llms --negative</code> พิมพ์โปรแกรมที่ผิด ร้อยแก้วเดียวกันให้บริการที่ <a href="/llms.txt">llms.txt</a> สำหรับเอเจนต์ที่มี network แต่ไม่มี binary สิ่งที่เอเจนต์ถามเกี่ยวกับโค้ด<em>ของคุณ</em> แทนที่จะเกี่ยวกับภาษา คือ<a href="/answers/ask-the-compiler/">เครื่องมือคิวรี</a>
-        </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>glyph llms --json</code> emit เจ็ดส่วนออกมาจากคอมไพเลอร์: รหัส diagnostic 77 ตัว 51 ตัวมีตัวอย่างค้านที่คอมไพล์แล้ว คำสงวน 32 คำ ชื่อใน prelude 24 ชื่อ stdlib 40 module ที่มี export 340 ตัว decision ของภาษา 49 ข้อที่ parse จากสเปก และเครื่องมือสิบเอ็ดตัวพร้อมคำสั่งย่อย <code>glyph query</code> และคู่มือเต็ม <code>docs/error-codes.md</code> และตาราง diagnostic ของเอกสารเริ่มต้นถูกเขียนจากตารางรหัสของคอมไพเลอร์เองโดยสคริปต์ที่ fail เมื่อเพี้ยน และสะท้อน <code>llms.txt</code> ใหม่ไปพร้อมกัน มีเทสต์ที่ยึดแคตตาล็อกเครื่องมือให้ตรงกับสิ่งที่เซิร์ฟเวอร์ให้บริการ ทุก fence ของ Glyph ในเอกสารเริ่มต้นและเอกสารอ้างอิง stdlib คอมไพล์ได้หรือเป็นชิ้นส่วนที่ทำเครื่องหมายไว้ของตัวที่คอมไพล์ได้ และรูปแบบที่ผิดห้าแบบเป็นโปรแกรมที่คู่กับรหัสที่แต่ละตัวได้ <code>glyph llms --negative</code> ตอบจากชุดตัวอย่างเดียวกับที่ <code>cargo test</code> รัน</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">หยุดตรงไหน</h3>
-          <p>จำนวนโปรแกรมที่ผิดปรากฏสองครั้งในเอกสารนี้และนับคนละอย่าง: 51 จาก 77 รหัสมีตัวอย่างค้านจาก <code>tests/negative/</code> และ <code>glyph llms --negative</code> แสดง 117 กรณีบน 53 รหัสใน 0.1.149 เพราะมันอ่านการปฏิเสธใน <code>catches/</code> ด้วย รุ่นถัดไปเพิ่มการปฏิเสธ 22 ตัวที่เพิ่มใน <code>catches/</code> ตั้งแต่นั้น รวมเป็น 139 กรณีบน 55 รหัส ใน 0.1.149 มี 24 รหัสที่ไม่มีโปรแกรมที่ผิดในชุดไหนเลย และคำตอบระบุชื่อมันแทนที่จะแต่งขึ้นมา 165 จาก 340 export ของ stdlib กลับมาโดยไม่มี signature: implementation เป็น TypeScript ที่ <code>tsc</code> ตรวจ และตารางของคอมไพเลอร์เองไม่ได้ model อะไรให้มัน <code>glyph_symbol</code> บน <code>std/result::all</code> หรือ <code>std/io::println</code> จึงรายงาน <code>kind: null</code> พร้อมเหตุผลนั้น ใน 175 ตัวที่มี มี 46 ตัวที่ยังมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter และเอกสารเป็น snapshot ที่คุณดึงมา ไม่ใช่ service: ไม่มีชั้น retrieval ไม่มี embedding และไม่มีช่องทางแชทครอบมัน</p>
-        </div>
+      <h3 class="ak-h3" id="offline-and-local">ออฟไลน์และในเครื่อง<a class="ak-anchor" href="#offline-and-local" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        ทั้งหมดนี้ทำงานแบบออฟไลน์และในเครื่อง <code>glyph llms</code> พิมพ์ร้อยแก้ว <code>glyph llms --json</code> พิมพ์ข้อมูล <code>glyph llms --negative</code> พิมพ์โปรแกรมที่ผิด
+      </p>
+      <p>
+        ร้อยแก้วเดียวกันให้บริการที่ <a href="/llms.txt">llms.txt</a> สำหรับเอเจนต์ที่มี network แต่ไม่มี binary สิ่งที่เอเจนต์ถามเกี่ยวกับโค้ด<em>ของคุณ</em> แทนที่จะเกี่ยวกับภาษา คือ<a href="/answers/ask-the-compiler/">เครื่องมือคิวรี</a>
+      </p>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --json</code> emit เจ็ดส่วนออกมาจากคอมไพเลอร์</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>glyph llms --json</code> emit เจ็ดส่วนออกมาจากคอมไพเลอร์: รหัส diagnostic 77 ตัว 51 ตัวมีตัวอย่างค้านที่คอมไพล์แล้ว คำสงวน 32 คำ ชื่อใน prelude 24 ชื่อ stdlib 40 module ที่มี export 340 ตัว decision ของภาษา 49 ข้อที่ parse จากสเปก และเครื่องมือสิบเอ็ดตัวพร้อมคำสั่งย่อย <code>glyph query</code> และคู่มือเต็ม</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>docs/error-codes.md</code> และตาราง diagnostic ของเอกสารเริ่มต้นถูกเขียนจากตารางรหัสของคอมไพเลอร์เอง</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>docs/error-codes.md</code> และตาราง diagnostic ของเอกสารเริ่มต้นถูกเขียนจากตารางรหัสของคอมไพเลอร์เองโดยสคริปต์ที่ fail เมื่อเพี้ยน และสะท้อน <code>llms.txt</code> ใหม่ไปพร้อมกัน</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">มีเทสต์ที่ยึดแคตตาล็อกเครื่องมือให้ตรงกับสิ่งที่เซิร์ฟเวอร์ให้บริการ</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ทุก fence ของ Glyph ในเอกสารเริ่มต้นและเอกสารอ้างอิง stdlib คอมไพล์ได้หรือเป็นชิ้นส่วนที่ทำเครื่องหมายไว้ของตัวที่คอมไพล์ได้</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ทุก fence ของ Glyph ในเอกสารเริ่มต้นและเอกสารอ้างอิง stdlib คอมไพล์ได้หรือเป็นชิ้นส่วนที่ทำเครื่องหมายไว้ของตัวที่คอมไพล์ได้ และรูปแบบที่ผิดห้าแบบเป็นโปรแกรมที่คู่กับรหัสที่แต่ละตัวได้</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph llms --negative</code> ตอบจากชุดตัวอย่างเดียวกับที่ <code>cargo test</code> รัน</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> หยุดตรงไหน</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">จำนวนโปรแกรมที่ผิดปรากฏสองครั้งในเอกสารนี้และนับคนละอย่าง</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>จำนวนโปรแกรมที่ผิดปรากฏสองครั้งในเอกสารนี้และนับคนละอย่าง: 51 จาก 77 รหัสมีตัวอย่างค้านจาก <code>tests/negative/</code> และ <code>glyph llms --negative</code> แสดง 117 กรณีบน 53 รหัสใน 0.1.149 เพราะมันอ่านการปฏิเสธใน <code>catches/</code> ด้วย รุ่นถัดไปเพิ่มการปฏิเสธ 22 ตัวที่เพิ่มใน <code>catches/</code> ตั้งแต่นั้น รวมเป็น 139 กรณีบน 55 รหัส</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ใน 0.1.149 มี 24 รหัสที่ไม่มีโปรแกรมที่ผิดในชุดไหนเลย และคำตอบระบุชื่อมันแทนที่จะแต่งขึ้นมา</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">165 จาก 340 export ของ stdlib กลับมาโดยไม่มี signature</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>165 จาก 340 export ของ stdlib กลับมาโดยไม่มี signature: implementation เป็น TypeScript ที่ <code>tsc</code> ตรวจ และตารางของคอมไพเลอร์เองไม่ได้ model อะไรให้มัน <code>glyph_symbol</code> บน <code>std/result::all</code> หรือ <code>std/io::println</code> จึงรายงาน <code>kind: null</code> พร้อมเหตุผลนั้น</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">ใน 175 ตัวที่มี มี 46 ตัวที่ยังมี <code>?</code> ในตำแหน่งที่ควรเป็น type ของ parameter</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">และเอกสารเป็น snapshot ที่คุณดึงมา ไม่ใช่ service: ไม่มีชั้น retrieval ไม่มี embedding และไม่มีช่องทางแชทครอบมัน</span></span></li>
+          </ul>
+        </section>
       </div>

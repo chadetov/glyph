@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/embedding/index.html",
   "locale": "th",
-  "source_hash": "4dc0a3c1d0f26ab3",
+  "source_hash": "407d584aaaf4d048",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,70 @@
       "tr": "ไม่ต้องเขียนใหม่ แอปยังเป็น TypeScript และเขียนส่วนที่พลาดไม่ได้ (model, สิทธิ์, การเปลี่ยนสถานะ, การคำนวณเงิน) ด้วย Glyph <code>glyph build</code> emit module ที่แอปของคุณ import ได้<strong>เหมือนไฟล์ในเครื่องทั่วไป</strong> ไม่ต้องตั้งค่า bundler และไม่ต้องมี path alias"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "ทำไมเรื่องนี้สำคัญ"
-    },
-    {
-      "id": "h-c70d97da",
-      "kind": "html",
-      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
-      "tr": "ทีมส่วนใหญ่เขียนแอปใหม่ทั้งหมดไม่ได้ และแอปส่วนใหญ่ก็ไม่จำเป็นต้องใช้ Glyph ส่วนที่จำเป็นคือแกนของโดเมน: กฎที่เอเจนต์ AI จะมาแก้เดือนหน้า และไม่มีใครอยากให้ผิดแบบเงียบๆ การเก็บแกนนั้นไว้ใน Glyph ทำให้คุณได้ <code>match</code> ที่ต้องครบทุกกรณี ไม่มี cast และขอบเขตที่ถูก validate ตรงจุดที่คุ้มค่า ขณะที่ React component, การจัดสไตล์ และ infrastructure ยังเป็น TypeScript ธรรมดา"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "ดูของจริง"
-    },
-    {
-      "id": "h-33682851",
-      "kind": "html",
-      "en": "One directory of Glyph sources, compiled into the app, imported by the UI:",
-      "tr": "ไดเรกทอรีเดียวของซอร์ส Glyph คอมไพล์เข้าไปในแอป และ UI import ไปใช้:"
-    },
-    {
       "id": "h-a3eaf0cf",
       "kind": "html",
       "en": "A hybrid layout: Glyph domain core, TypeScript everything else",
       "tr": "layout แบบผสม: แกนของโดเมนเป็น Glyph ที่เหลือเป็น TypeScript"
     },
     {
-      "id": "h-abc250a1",
+      "id": "h-38a88b92",
       "kind": "html",
-      "en": "Everything the emitted code needs travels with it. Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>. Mark what the app imports with <code>pub</code>; a declaration without it is private to its module. This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
-      "tr": "ทุกอย่างที่โค้ดที่ emit ออกมาต้องใช้เดินทางไปพร้อมกับมัน import เป็นแบบ relative รวมถึง standard library ที่ bundle มาด้วย <code>tsconfig.json</code> และ bundler ของโปรเจกต์จึงไม่ต้องเพิ่มอะไร: Vite scaffold แบบมาตรฐานคอมไพล์และ bundle output ได้ตามที่เป็น และไฟล์ชุดเดียวกันผ่าน <code>tsc --strict</code> ของโปรเจกต์หลักด้วย ทำเครื่องหมายสิ่งที่แอป import ด้วย <code>pub</code> declaration ที่ไม่มีมันจะเป็น private ของ module นั้น นี่ไม่ใช่สมมติฐาน: วิศวกรภายนอก<a href=\"https://github.com/yildizadem/glyph-kanban\">สร้าง Kanban board ด้วย React แบบนี้</a> โดยมี RBAC matrix สูตร analytics และการเปลี่ยนสถานะอยู่ใน module ของ Glyph สี่ตัว ใต้ UI React ที่เขียนเอง"
+      "en": "<span>One directory of Glyph sources, compiled into the app, imported by the UI.</span>",
+      "tr": "<span>ไดเรกทอรีเดียวของซอร์ส Glyph คอมไพล์เข้าไปในแอป และ UI import ไปใช้</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-60a2bbb8",
+      "kind": "html",
+      "en": "Most teams can't rewrite an application, and most of an application doesn't need Glyph. The part that does is the domain core: the rules an AI agent will edit next month and nobody wants silently wrong.",
+      "tr": "ทีมส่วนใหญ่เขียนแอปใหม่ทั้งหมดไม่ได้ และแอปส่วนใหญ่ก็ไม่จำเป็นต้องใช้ Glyph ส่วนที่จำเป็นคือแกนของโดเมน: กฎที่เอเจนต์ AI จะมาแก้เดือนหน้า และไม่มีใครอยากให้ผิดแบบเงียบๆ"
+    },
+    {
+      "id": "h-a693ed56",
+      "kind": "html",
+      "en": "Keeping that core in Glyph gives you exhaustive <code>match</code>, no casts, and validated boundaries exactly where they pay, while the React components, the styling, and the infrastructure stay plain TypeScript.",
+      "tr": "การเก็บแกนนั้นไว้ใน Glyph ทำให้คุณได้ <code>match</code> ที่ต้องครบทุกกรณี ไม่มี cast และขอบเขตที่ถูก validate ตรงจุดที่คุ้มค่า ขณะที่ React component, การจัดสไตล์ และ infrastructure ยังเป็น TypeScript ธรรมดา"
+    },
+    {
+      "id": "h-50f65031",
+      "kind": "html",
+      "en": "Nothing to add in the host",
+      "tr": "ไม่ต้องเพิ่มอะไรในโปรเจกต์หลัก"
+    },
+    {
+      "id": "h-88352f57",
+      "kind": "html",
+      "en": "Everything the emitted code needs travels with it.",
+      "tr": "ทุกอย่างที่โค้ดที่ emit ออกมาต้องใช้เดินทางไปพร้อมกับมัน"
+    },
+    {
+      "id": "h-fd57dd45",
+      "kind": "html",
+      "en": "<b>Relative imports</b>Imports are relative, including the bundled standard library, so your project's <code>tsconfig.json</code> and bundler need nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same files pass a host <code>tsc --strict</code>.",
+      "tr": "<b>import แบบ relative</b>import เป็นแบบ relative รวมถึง standard library ที่ bundle มาด้วย <code>tsconfig.json</code> และ bundler ของโปรเจกต์จึงไม่ต้องเพิ่มอะไร: Vite scaffold แบบมาตรฐานคอมไพล์และ bundle output ได้ตามที่เป็น และไฟล์ชุดเดียวกันผ่าน <code>tsc --strict</code> ของโปรเจกต์หลักด้วย"
+    },
+    {
+      "id": "h-7b57dcdc",
+      "kind": "html",
+      "en": "<b><code>pub</code> exports</b>Mark what the app imports with <code>pub</code>; a declaration without it is private to its module.",
+      "tr": "<b>export ด้วย <code>pub</code></b>ทำเครื่องหมายสิ่งที่แอป import ด้วย <code>pub</code> declaration ที่ไม่มีมันจะเป็น private ของ module นั้น"
+    },
+    {
+      "id": "h-cdeb6b7e",
+      "kind": "html",
+      "en": "This isn't a hypothetical: an outside engineer <a href=\"https://github.com/yildizadem/glyph-kanban\">built a React Kanban board this way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in four Glyph modules under a hand-written React UI.",
+      "tr": "นี่ไม่ใช่สมมติฐาน: วิศวกรภายนอก<a href=\"https://github.com/yildizadem/glyph-kanban\">สร้าง Kanban board ด้วย React แบบนี้</a> โดยมี RBAC matrix สูตร analytics และการเปลี่ยนสถานะอยู่ใน module ของ Glyph สี่ตัว ใต้ UI React ที่เขียนเอง"
     },
     {
       "id": "h-b55f380c",
@@ -107,10 +137,22 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-a33b093e",
+      "id": "h-86f74990",
       "kind": "html",
-      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
-      "tr": "output ที่ emit ออกมาวางลงในโปรเจกต์หลักได้โดยไม่ต้องแก้: ใช้ specifier แบบ relative ตลอด type ของ prelude ติดมากับโค้ดเอง ตรวจแล้วกับ Vite scaffold แบบมาตรฐาน, <code>tsc --strict</code> ของโปรเจกต์หลัก, esbuild และ <code>tsx</code> <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">คู่มือการ deploy</a> อธิบาย layout แบบผสมไว้"
+      "en": "Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself.",
+      "tr": "output ที่ emit ออกมาวางลงในโปรเจกต์หลักได้โดยไม่ต้องแก้: ใช้ specifier แบบ relative ตลอด type ของ prelude ติดมากับโค้ดเอง"
+    },
+    {
+      "id": "h-2eb72527",
+      "kind": "html",
+      "en": "Verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>.",
+      "tr": "ตรวจแล้วกับ Vite scaffold แบบมาตรฐาน, <code>tsc --strict</code> ของโปรเจกต์หลัก, esbuild และ <code>tsx</code>"
+    },
+    {
+      "id": "h-11ad5abe",
+      "kind": "html",
+      "en": "The <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment guide</a> documents the hybrid layout.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">คู่มือการ deploy</a> อธิบาย layout แบบผสมไว้"
     },
     {
       "id": "h-b63a305d",
@@ -119,10 +161,16 @@
       "tr": "กำลังมา"
     },
     {
-      "id": "h-6f1c79e2",
+      "id": "h-94f9623f",
       "kind": "html",
-      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
-      "tr": "ยังไม่มี watch mode: ต้องรัน <code>glyph build</code> ใหม่หลังแก้ซอร์ส <code>.glyph</code> (ผูกไว้ในสคริปต์ <code>dev</code>) module ที่ใช้ <code>std/fs</code> หรือ <code>std/net</code> ต้องมี <code>@types/node</code> ในโปรเจกต์หลัก เหมือน TypeScript ที่แตะ Node ทั่วไป"
+      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).",
+      "tr": "ยังไม่มี watch mode: ต้องรัน <code>glyph build</code> ใหม่หลังแก้ซอร์ส <code>.glyph</code> (ผูกไว้ในสคริปต์ <code>dev</code>)"
+    },
+    {
+      "id": "h-19a4b124",
+      "kind": "html",
+      "en": "Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.",
+      "tr": "module ที่ใช้ <code>std/fs</code> หรือ <code>std/net</code> ต้องมี <code>@types/node</code> ในโปรเจกต์หลัก เหมือน TypeScript ที่แตะ Node ทั่วไป"
     }
   ]
 }

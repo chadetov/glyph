@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/why-typescript/index.html",
   "locale": "th",
-  "source_hash": "9f7bf2e8baaad5d9",
+  "source_hash": "4df0de0ec8bd7ba2",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,34 @@
       "tr": "เพราะ TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ ecosystem ของคุณ (npm, React, Node) Glyph นำมาใช้ทีละไฟล์ได้<strong>ก็เพราะเป้าหมายของมันคือ TS เท่านั้น</strong>"
     },
     {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน"
+    },
+    {
+      "id": "h-d0269c9c",
+      "kind": "html",
+      "en": "<span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span>",
+      "tr": "<span>Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง</span>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "ทำไมเรื่องนี้สำคัญ"
     },
     {
-      "id": "h-0a5dbd26",
-      "kind": "html",
-      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
-      "tr": "ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง:"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
     },
     {
-      "id": "h-2a66da79",
+      "id": "h-5ee1e84f",
       "kind": "html",
-      "en": "the same project: .glyph and .ts, side by side",
-      "tr": "โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน"
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy.",
+      "tr": "ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย"
     },
     {
       "id": "h-4eb97fa1",
@@ -83,10 +95,22 @@
       "tr": "คุณใส่ Go ลงใน codebase TypeScript ทีละไฟล์ไม่ได้: runtime ต่างกัน ระบบ module ต่างกัน ecosystem ต่างกัน ข้อเท็จจริงข้อเดียวนี้คือเหตุผลที่เป้าหมายเป็น TS"
     },
     {
-      "id": "h-b0743097",
+      "id": "h-f9a17aa4",
       "kind": "html",
-      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
-      "tr": "<strong>ข้อที่ยุติธรรมเกี่ยวกับ Go:</strong> keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง Go รวมอยู่ใน<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ"
+      "en": "The fair point about Go",
+      "tr": "ข้อที่ยุติธรรมเกี่ยวกับ Go"
+    },
+    {
+      "id": "h-dca0c488",
+      "kind": "html",
+      "en": "Its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing.",
+      "tr": "keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง"
+    },
+    {
+      "id": "h-bbac4976",
+      "kind": "html",
+      "en": "Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "Go รวมอยู่ใน<a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ"
     },
     {
       "id": "h-b55f380c",
@@ -95,22 +119,34 @@
       "tr": "สถานะตอนนี้"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-4f2da421",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "ใช้ได้วันนี้"
+      "en": "Shipping today <span class=\"count\">3</span>",
+      "tr": "ใช้ได้วันนี้ <span class=\"count\">3</span>"
     },
     {
-      "id": "h-93871ba6",
+      "id": "h-12991ef7",
       "kind": "html",
-      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
-      "tr": "output ที่เป็น TypeScript สะอาด import สองทางกับ <code>.ts</code> ที่มีอยู่ และ core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้"
+      "en": "Clean TypeScript output.",
+      "tr": "output ที่เป็น TypeScript สะอาด"
     },
     {
-      "id": "h-0abde815",
+      "id": "h-a6b7a39e",
       "kind": "html",
-      "en": "Being measured",
-      "tr": "กำลังวัด"
+      "en": "Bidirectional imports with your existing <code>.ts</code>.",
+      "tr": "import สองทางกับ <code>.ts</code> ที่มีอยู่"
+    },
+    {
+      "id": "h-4ec09cc2",
+      "kind": "html",
+      "en": "A small core that runs anywhere Node or a browser bundle does.",
+      "tr": "core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้"
+    },
+    {
+      "id": "h-a86ec4ab",
+      "kind": "html",
+      "en": "Being measured <span class=\"count\">1</span>",
+      "tr": "กำลังวัด <span class=\"count\">1</span>"
     },
     {
       "id": "h-5cb4379c",

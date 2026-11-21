@@ -1,7 +1,7 @@
 ---
 title: ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่? · Glyph
 description: TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ npm, React และ Node Glyph นำมาใช้ทีละไฟล์ได้ก็เพราะเป้าหมายของมันคือ TS
-source_hash: 9f7bf2e8baaad5d9
+source_hash: 4df0de0ec8bd7ba2
 prev: /answers/greppability/ | &larr; ก่อนหน้า | เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?
 next: /answers/vs-tooled-ts/ | ถัดไป &rarr; | ทำไมไม่ใช้แค่ TypeScript แบบ strict + zod + eslint + ts-pattern?
 ---
@@ -12,39 +12,45 @@ next: /answers/vs-tooled-ts/ | ถัดไป &rarr; | ทำไมไม่ใ
         เพราะ TypeScript คือที่ที่เอเจนต์เขียนโค้ดมากที่สุดอยู่แล้ว และเป็นที่อยู่ของ ecosystem ของคุณ (npm, React, Node) Glyph นำมาใช้ทีละไฟล์ได้<strong>ก็เพราะเป้าหมายของมันคือ TS เท่านั้น</strong>
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน</span>
+      <figure class="ak-hero">
+        <div class="code">
+          <span class="cap">โปรเจกต์เดียวกัน: .glyph และ .ts วางคู่กัน</span>
 <pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 import { formatPrice } from "./format.ts"
 
 <span class="cm">// checkout.ts: existing, untouched</span>
 import { total } from "./cart.glyph"</pre>
-      </div>
-
-      <div class="detail">
-        <p>
-          คุณใส่ Go ลงใน codebase TypeScript ทีละไฟล์ไม่ได้: runtime ต่างกัน ระบบ module ต่างกัน ecosystem ต่างกัน ข้อเท็จจริงข้อเดียวนี้คือเหตุผลที่เป้าหมายเป็น TS
-        </p>
-        <p>
-          <strong>ข้อที่ยุติธรรมเกี่ยวกับ Go:</strong> keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง Go รวมอยู่ใน<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ
-        </p>
-      </div>
-
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p>output ที่เป็น TypeScript สะอาด import สองทางกับ <code>.ts</code> ที่มีอยู่ และ core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้</p>
         </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังวัด</h3>
-          <p>benchmark ข้ามภาษา (Glyph, TS, Go, Python, Rust) โตตามชุดข้อมูล ข้อกล่าวอ้างเรื่อง &ldquo;พื้นผิวเล็ก&rdquo; จึงยังเป็นตัวเลข ไม่ใช่แค่คำยืนยัน</p>
-        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph เสียบเข้าไปข้างไฟล์ <code>.ts</code> ที่คุณมีอยู่แล้ว และ import กันได้สะอาดทั้งสองทาง</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ภาษาใหม่จะรอดหรือไม่ขึ้นกับว่าคุณไปจากศูนย์ถึงการปล่อยของจริงได้อย่างไร การคอมไพล์เป็น TypeScript หมายความว่าคุณไม่ต้องออกจาก codebase, bundler, test runner หรือวิธี deploy ของคุณเลย
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>คุณใส่ Go ลงใน codebase TypeScript ทีละไฟล์ไม่ได้: runtime ต่างกัน ระบบ module ต่างกัน ecosystem ต่างกัน ข้อเท็จจริงข้อเดียวนี้คือเหตุผลที่เป้าหมายเป็น TS</p></div>
+
+      <h2 class="ak-h" id="go">ข้อที่ยุติธรรมเกี่ยวกับ Go<a class="ak-anchor" href="#go" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        keyword ที่มีน้อยและคงที่ของมันทำให้เอเจนต์มีทางผิดพลาดน้อยลง เราเห็นด้วย และนั่นคือเหตุผลที่ Glyph ตั้งใจรักษา core ให้เล็ก มีวิธีเดียวในการทำแต่ละอย่าง
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Go รวมอยู่ใน<a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a> ความหนาแน่นของเราเพื่อเปรียบเทียบกันตรงๆ</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">3</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">output ที่เป็น TypeScript สะอาด</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">import สองทางกับ <code>.ts</code> ที่มีอยู่</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">core เล็กๆ ที่รันได้ทุกที่ที่ Node หรือ browser bundle รันได้</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังวัด <span class="count">1</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">benchmark ข้ามภาษา (Glyph, TS, Go, Python, Rust) โตตามชุดข้อมูล ข้อกล่าวอ้างเรื่อง &ldquo;พื้นผิวเล็ก&rdquo; จึงยังเป็นตัวเลข ไม่ใช่แค่คำยืนยัน</span></span></li>
+          </ul>
+        </section>
       </div>

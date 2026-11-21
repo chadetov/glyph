@@ -1,7 +1,7 @@
 ---
 title: ต้องเขียน validator ด้วยมือให้ทุก API ไหม? · Glyph
 description: ไม่ต้อง ใน Glyph type คือ validator ตอนรันของตัวเอง request และ response body จึงถูกตรวจโดยไม่ต้องเขียน validator และ type อาจมาจากสเปก OpenAPI หรือ .d.ts ก็ได้
-source_hash: e5583b6a5d857445
+source_hash: 46f9f9ea5d8ba7bb
 prev: /answers/embedding/ | &larr; ก่อนหน้า | นำ Glyph มาใช้ในแอปที่มีอยู่ได้ไหม หรือต้องเปลี่ยนทั้งหมด?
 next: /answers/codegen/ | ถัดไป &rarr; | generate client และ server ที่มี type จากสเปก API ได้ไหม?
 ---
@@ -226,7 +226,7 @@ type User = { name: string; age: number };
           request body มาถึงในรูปที่ decode แล้วเป็น <code>unknown</code> ตรงนั้นจึงใช้ <code>T.parse(value)</code> แทน: การรับประกันเดียวกัน ไม่มี cast
         </p>
         <p>
-          ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจมี type แบบเดียวกัน: <code>header(req, name)</code> และ <code>query_param(req, name)</code> คืน <code>Option&lt;string&gt;</code> header หรือ query parameter ที่ไม่มีจึงเป็น <code>None</code> และ <code>match</code> <em>บังคับ</em>ให้คุณจัดการ ละ arm <code>None</code> แล้วจะคอมไพล์ไม่ผ่าน input ที่ไม่มีจึงถูกอ่านราวกับว่ามีอยู่ไม่ได้
+          ส่วนที่เหลือของขอบเขตที่ไม่น่าไว้ใจมี type แบบเดียวกัน: <code>header(req, name)</code> และ <code>query_param(req, name)</code> คืน <code>Option&lt;string&gt;</code> header หรือ query parameter ที่ไม่มีจึงเป็น <code>None</code> และ <code>match</code> <em>บังคับ</em>ให้คุณจัดการ ละ arm <code>None</code> แล้วจะคอมไพล์ไม่ผ่าน input ที่ไม่มีจึงถูกอ่านราวกับว่ามีอยู่ไม่ได้ field ใน body ก็ใช้กฎเดียวกัน: <code>timeout_ms?: number</code> คือ key ที่ไม่มีหรือเป็นตัวเลข <code>{"timeout_ms": null}</code> จึงเป็น <code>Err</code> ที่ <code>["timeout_ms"]</code> ไม่ว่าจะมาจาก <code>T.parse</code>, <code>is T</code> หรือ <code>json.parse&lt;T&gt;</code> ประกาศ <code>timeout_ms?: Nullable&lt;number&gt;</code> เมื่อฝั่งส่งเขียน <code>null</code> มา ก่อน 0.1.152 ค่า <code>null</code> นั้นกลับมาอยู่ใน <code>Ok</code>
         </p>
       </div></details>
 
@@ -239,15 +239,15 @@ type User = { name: string; age: number };
           <thead><tr><th>type ของ key</th><th>สิ่งที่ <code>parse</code> ตรวจกับแต่ละ key</th></tr></thead>
           <tbody>
             <tr><td>union ของ string literal</td><td>key ตามรายการพอดี ไม่ขาด ไม่เกิน</td></tr>
-            <tr><td>type ที่ refine ด้วย <code>where</code></td><td>predicate</td></tr>
+            <tr><td><code>string</code> หรือตัวเลขที่ refine ด้วย <code>where</code></td><td>predicate</td></tr>
             <tr><td><code>int</code></td><td>การเขียนจำนวนเต็มแบบธรรมดา <code>"01"</code> และ <code>"1.5"</code> ไม่ผ่าน</td></tr>
             <tr><td><code>string</code></td><td>ไม่มีอะไรใหม่</td></tr>
           </tbody>
         </table>
       </div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">key แบบ refine และแบบ int และสิ่งที่ยังปล่อยให้ tsc</span></summary><div class="body">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">key แบบ refine และแบบ int และสิ่งที่ตัวตรวจยึดไว้</span></summary><div class="body">
         <p>
-          type ของ key ที่ refine ด้วย <code>where</code> รัน predicate กับทุก key และ key แบบ <code>int</code> ต้องเป็นการเขียนจำนวนเต็มแบบธรรมดา <code>"01"</code> และ <code>"1.5"</code> จึงถูกปฏิเสธ <code>Record&lt;string, V&gt;</code> ถูกตรวจเหมือนเดิมทุกประการ ตัวตรวจของ Glyph เองยังปล่อย key ของค่าที่คุณเขียนในโค้ดให้ <code>tsc</code> และ record แบบ generic ที่ใช้ type parameter ของตัวเองเป็น key จะถูกปฏิเสธ เว้นแต่ parameter นั้นเป็น <code>string</code>
+          type ของ key ที่ refine ด้วย <code>where</code> รัน predicate กับทุก key และ key แบบ <code>int</code> ต้องเป็นการเขียนจำนวนเต็มแบบธรรมดา <code>"01"</code> และ <code>"1.5"</code> จึงถูกปฏิเสธ <code>Record&lt;string, V&gt;</code> ถูกตรวจเหมือนเดิมทุกประการ <code>where</code> refine union ของ string literal ไม่ได้ (<code>type T2 = Tier where value != "pro"</code> เป็น <code>E0300</code> ตั้งแต่ 0.1.152) ให้เขียนสมาชิกที่คุณต้องการเป็น union ของมันเอง <code>type T2 = "free"</code> แล้วมันจะเป็น key ของ <code>Record</code> พร้อมการตรวจ key ให้ตรงเป๊ะแบบเดียวกัน ตั้งแต่ 0.1.153 ตัวตรวจของ Glyph เองก็ยึด key ของค่าที่คุณเขียนในโค้ดด้วย: <code>Record&lt;string, int&gt;</code> ใช้แทนที่ที่ประกาศเป็น <code>Record&lt;Tier, int&gt;</code> ไม่ได้ และกลับกันก็ไม่ได้ การข้ามไปมาจึงต้องผ่าน <code>json.parse</code> หรือ arm <code>is Record&lt;Tier, int&gt;</code> และ <code>record.set</code> รักษา key ที่ได้รับไว้ record แบบ generic ที่ใช้ type parameter ของตัวเองเป็น key จะถูกปฏิเสธ เว้นแต่ parameter นั้นเป็น <code>string</code>
         </p>
       </div></details>
 

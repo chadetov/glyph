@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/verifiability/index.html",
   "locale": "th",
-  "source_hash": "b8ae04a4b3228182",
+  "source_hash": "27017c2e0eebfe6d",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "Glyph ปิดช่องโหว่ที่เอเจนต์ตกลงไป: <strong>ไม่มี <code>any</code> และไม่มี <code>as</code> ให้เขียน</strong> <code>match</code> <strong>พิสูจน์ได้ว่าครบทุกกรณี</strong> และ type ที่คุณประกาศได้<strong>validator ตอนรันแบบเข้ม</strong> ทั้งหมดบังคับใช้เป็นชั้นที่เข้มอยู่บน <code>tsc</code> มันไม่ได้ตรวจทุกอย่างเอง และด้านล่างบอกไว้ตรงๆ ว่าการรับประกันหยุดตรงไหนพอดี"
     },
     {
+      "id": "h-efbb175b",
+      "kind": "html",
+      "en": "TypeScript: compiles, then crashes",
+      "tr": "TypeScript: คอมไพล์ผ่าน แล้ว crash"
+    },
+    {
+      "id": "h-fd3640a0",
+      "kind": "html",
+      "en": "Glyph: the narrowing is the proof",
+      "tr": "Glyph: การ narrow คือหลักฐาน"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-14006a10",
+      "kind": "html",
+      "en": "<a href=\"#the-lie-a-type-can-tell\">The lie a type can tell</a>",
+      "tr": "<a href=\"#the-lie-a-type-can-tell\">คำโกหกที่ type บอกได้</a>"
+    },
+    {
+      "id": "h-4335a2ef",
+      "kind": "html",
+      "en": "<a href=\"#there-is-no-any\">No any</a>",
+      "tr": "<a href=\"#there-is-no-any\">ไม่มี any</a>"
+    },
+    {
+      "id": "h-14dde7ec",
+      "kind": "html",
+      "en": "<a href=\"#types-are-real-at-runtime\">Types at runtime</a>",
+      "tr": "<a href=\"#types-are-real-at-runtime\">type ตอนรัน</a>"
+    },
+    {
+      "id": "h-d0911bf6",
+      "kind": "html",
+      "en": "<a href=\"#every-case-or-it-doesn-t-compile\">Every case</a>",
+      "tr": "<a href=\"#every-case-or-it-doesn-t-compile\">ทุก case</a>"
+    },
+    {
+      "id": "h-b0fd3fd0",
+      "kind": "html",
+      "en": "<a href=\"#errors-are-values-not-surprises\">Errors as values</a>",
+      "tr": "<a href=\"#errors-are-values-not-surprises\">error เป็นค่า</a>"
+    },
+    {
+      "id": "h-75be2a29",
+      "kind": "html",
+      "en": "<a href=\"#even-pii-is-type-level\">PII</a>",
+      "tr": "<a href=\"#even-pii-is-type-level\">PII</a>"
+    },
+    {
+      "id": "h-d47b2d7f",
+      "kind": "html",
+      "en": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Where the guarantee stops</a>",
+      "tr": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">การรับประกันหยุดตรงไหน</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">benchmark</a>"
+    },
+    {
+      "id": "h-c5be8c0b",
+      "kind": "html",
+      "en": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Strict TS and lint</a>",
+      "tr": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">TS แบบ strict และ lint</a>"
+    },
+    {
       "id": "h-639f009d",
       "kind": "html",
       "en": "The lie a type can tell",
       "tr": "คำโกหกที่ type บอกได้"
     },
     {
-      "id": "h-075a79f0",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-51680a37",
       "kind": "html",
-      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all. Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
-      "tr": "ใน TypeScript type คือคำสัญญาตอนคอมไพล์ที่ระเหยหายไปก่อนโค้ดจะรัน annotation <code>User</code> ถูกลบจนไม่เหลืออะไร object ที่คุณได้จริงจากการเรียก network การ parse JSON หรือช่องในฟอร์มอาจเป็นรูปร่างอะไรก็ได้ แย่กว่านั้น ภาษาให้วิธีที่ถูกกฎหมายสามทางในการโกหกตัวตรวจ: <code>any</code>, cast แบบ <code>as</code> และ <code>!</code> แบบ non-null เอเจนต์ที่ทำงานเร็วหยิบทั้งสามมาใช้ และ <code>tsc --strict</code> ก็ยังเขียวขณะที่บั๊กถูกปล่อยออกไป"
+      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all.",
+      "tr": "ใน TypeScript type คือคำสัญญาตอนคอมไพล์ที่ระเหยหายไปก่อนโค้ดจะรัน annotation <code>User</code> ถูกลบจนไม่เหลืออะไร object ที่คุณได้จริงจากการเรียก network การ parse JSON หรือช่องในฟอร์มอาจเป็นรูปร่างอะไรก็ได้"
+    },
+    {
+      "id": "h-e2e3672a",
+      "kind": "html",
+      "en": "Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
+      "tr": "แย่กว่านั้น ภาษาให้วิธีที่ถูกกฎหมายสามทางในการโกหกตัวตรวจ: <code>any</code>, cast แบบ <code>as</code> และ <code>!</code> แบบ non-null เอเจนต์ที่ทำงานเร็วหยิบทั้งสามมาใช้ และ <code>tsc --strict</code> ก็ยังเขียวขณะที่บั๊กถูกปล่อยออกไป"
     },
     {
       "id": "h-3e057639",
@@ -83,22 +173,22 @@
       "tr": "<span class=\"ex-label\">01</span> ไม่มี <code>any</code>"
     },
     {
-      "id": "h-5f3593d9",
+      "id": "h-bc245dbd",
       "kind": "html",
-      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
-      "tr": "<code>any</code> คือ keyword ที่แพงที่สุดใน TypeScript: มันปิด type system สำหรับค่าหนึ่ง<em>และทุกอย่างที่ค่านั้นแตะ</em> <code>any</code> ตัวเดียวที่ขอบเขตวางยาพิษให้ call graph ปลายน้ำแบบเงียบๆ Glyph ไม่มีมัน top type คือ <code>unknown</code> และ <code>unknown</code> ทำอะไรไม่ได้: คุณเรียกมัน index มัน หรือส่งมันไปที่ที่มี type ไม่ได้ จนกว่าคุณจะ<em>พิสูจน์</em>ว่ามันคืออะไร"
+      "en": "Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
+      "tr": "Glyph ไม่มีมัน top type คือ <code>unknown</code> และ <code>unknown</code> ทำอะไรไม่ได้: คุณเรียกมัน index มัน หรือส่งมันไปที่ที่มี type ไม่ได้ จนกว่าคุณจะ<em>พิสูจน์</em>ว่ามันคืออะไร"
     },
     {
-      "id": "h-efbb175b",
+      "id": "h-11d21731",
       "kind": "html",
-      "en": "TypeScript: compiles, then crashes",
-      "tr": "TypeScript: คอมไพล์ผ่าน แล้ว crash"
+      "en": "Details <span class=\"hint\">why one any costs so much</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ทำไม any ตัวเดียวจึงแพงขนาดนั้น</span>"
     },
     {
-      "id": "h-fd3640a0",
+      "id": "h-76bc3093",
       "kind": "html",
-      "en": "Glyph: the narrowing is the proof",
-      "tr": "Glyph: การ narrow คือหลักฐาน"
+      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream.",
+      "tr": "<code>any</code> คือ keyword ที่แพงที่สุดใน TypeScript: มันปิด type system สำหรับค่าหนึ่ง<em>และทุกอย่างที่ค่านั้นแตะ</em> <code>any</code> ตัวเดียวที่ขอบเขตวางยาพิษให้ call graph ปลายน้ำแบบเงียบๆ"
     },
     {
       "id": "h-f01c689a",
@@ -113,10 +203,10 @@
       "tr": "<span class=\"ex-label\">02</span> type มีอยู่จริงตอนรัน"
     },
     {
-      "id": "h-6b3971a1",
+      "id": "h-1a69a996",
       "kind": "html",
-      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>. The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
-      "tr": "<code>User.parse</code> มีอยู่ได้อย่างไร? เพราะทุก record type และทุก tagged union ที่ไม่ใช่ generic จะ generate <strong>runtime descriptor</strong> มาด้วย: guard <code>is</code>, <code>parse</code> ที่ validate <code>unknown</code> ให้เป็น <code>Result</code> และ <code>schema</code> ที่ประกอบต่อได้ รูปร่างของ record ถูกตรวจจริงตอนรัน ไม่ใช่ถูกสันนิษฐาน การตรวจ <code>is User</code> จึงเป็นการตรวจจริง ไม่ใช่สิ่งที่ถูกลบทิ้งจนไม่ทำอะไร"
+      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>.",
+      "tr": "<code>User.parse</code> มีอยู่ได้อย่างไร? เพราะทุก record type และทุก tagged union ที่ไม่ใช่ generic จะ generate <strong>runtime descriptor</strong> มาด้วย: guard <code>is</code>, <code>parse</code> ที่ validate <code>unknown</code> ให้เป็น <code>Result</code> และ <code>schema</code> ที่ประกอบต่อได้"
     },
     {
       "id": "h-14c2cb86",
@@ -125,16 +215,40 @@
       "tr": "type ที่คุณเขียน และ descriptor ที่ generate จากมัน"
     },
     {
-      "id": "h-013d9e91",
+      "id": "h-c3e4b6d5",
       "kind": "html",
-      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator. A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
-      "tr": "นี่คือคำตอบของ \"ทุก API ต้องมี validator ที่เขียนเอง\" type คือ validator ขอบเขต (request body, ไฟล์ config, response จาก third-party) จะมี type ได้ก็ต่อเมื่อผ่านการตรวจที่ปฏิเสธข้อมูลผิดได้จริง"
+      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator.",
+      "tr": "นี่คือคำตอบของ \"ทุก API ต้องมี validator ที่เขียนเอง\" type คือ validator"
     },
     {
-      "id": "h-10d713ab",
+      "id": "h-0271b6cb",
       "kind": "html",
-      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields. What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
-      "tr": "จุดที่สิ่งนี้หยุด: descriptor ของ record เข้มโดยค่าเริ่มต้น มันยืนยัน field ที่ประกาศไว้และปฏิเสธค่าที่มี key ที่ไม่ได้ประกาศ (ใส่ <code>@open</code> บน type เพื่อยอมให้มีส่วนเกิน) record type ได้ descriptor รวมถึงตัวที่เป็น generic <code>Paginated&lt;User&gt;</code> จึงตรวจแต่ละ element ในฐานะ <code>User</code> และ descriptor ของ tagged union ตรวจ tag แล้วตรวจ field ของ payload ของ variant นั้น สิ่งที่ยังไม่ได้ descriptor คือ tagged union ที่เป็น generic (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> ไม่มี <code>Box.parse</code>) หรือ type ที่ import จาก <code>.d.ts</code> ที่คุณแค่อ้างถึง ในกรณีที่การตรวจพิสูจน์ได้แค่บางส่วนของรูปร่าง คอมไพเลอร์จะบอกไว้ แทนที่จะสื่อเป็นนัยถึงการรับประกันที่มันให้ไม่ได้"
+      "en": "Details <span class=\"hint\">what the descriptor checks</span>",
+      "tr": "รายละเอียด <span class=\"hint\">descriptor ตรวจอะไร</span>"
+    },
+    {
+      "id": "h-c49f1369",
+      "kind": "html",
+      "en": "The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
+      "tr": "รูปร่างของ record ถูกตรวจจริงตอนรัน ไม่ใช่ถูกสันนิษฐาน การตรวจ <code>is User</code> จึงเป็นการตรวจจริง ไม่ใช่สิ่งที่ถูกลบทิ้งจนไม่ทำอะไร"
+    },
+    {
+      "id": "h-7ec41b58",
+      "kind": "html",
+      "en": "A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
+      "tr": "ขอบเขต (request body, ไฟล์ config, response จาก third-party) จะมี type ได้ก็ต่อเมื่อผ่านการตรวจที่ปฏิเสธข้อมูลผิดได้จริง"
+    },
+    {
+      "id": "h-c1597e84",
+      "kind": "html",
+      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields.",
+      "tr": "จุดที่สิ่งนี้หยุด: descriptor ของ record เข้มโดยค่าเริ่มต้น มันยืนยัน field ที่ประกาศไว้และปฏิเสธค่าที่มี key ที่ไม่ได้ประกาศ (ใส่ <code>@open</code> บน type เพื่อยอมให้มีส่วนเกิน) record type ได้ descriptor รวมถึงตัวที่เป็น generic <code>Paginated&lt;User&gt;</code> จึงตรวจแต่ละ element ในฐานะ <code>User</code> และ descriptor ของ tagged union ตรวจ tag แล้วตรวจ field ของ payload ของ variant นั้น"
+    },
+    {
+      "id": "h-9ae0aa14",
+      "kind": "html",
+      "en": "What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
+      "tr": "สิ่งที่ยังไม่ได้ descriptor คือ tagged union ที่เป็น generic (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> ไม่มี <code>Box.parse</code>) หรือ type ที่ import จาก <code>.d.ts</code> ที่คุณแค่อ้างถึง ในกรณีที่การตรวจพิสูจน์ได้แค่บางส่วนของรูปร่าง คอมไพเลอร์จะบอกไว้ แทนที่จะสื่อเป็นนัยถึงการรับประกันที่มันให้ไม่ได้"
     },
     {
       "id": "h-7f6e1258",
@@ -143,10 +257,10 @@
       "tr": "<span class=\"ex-label\">03</span> ครบทุก case ไม่อย่างนั้นคอมไพล์ไม่ผ่าน"
     },
     {
-      "id": "h-0adab77f",
+      "id": "h-714a5971",
       "kind": "html",
-      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>). The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
-      "tr": "<code>match</code> บน union ที่ปิดผนึกต้องจัดการทุก variant เพิ่ม variant ทีหลังแล้ว match <em>ทุกตัว</em>ที่ไม่ได้รองรับมันจะคอมไพล์ไม่ผ่าน (<code>E0200</code>) case ใหม่ตกทะลุไปเป็น <code>undefined</code> แบบเงียบๆ เหมือน branch ของ <code>switch</code> ที่ถูกลืมไม่ได้ และไม่ใช่แค่ union: การ match <code>number</code> หรือ <code>string</code> ด้วยค่า literal ต้องมี <code>else</code> (<code>E0218</code>) เพราะโดเมนเหล่านั้นไม่มีขอบเขต และชุดของ literal ไม่มีวันครบ"
+      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).",
+      "tr": "<code>match</code> บน union ที่ปิดผนึกต้องจัดการทุก variant เพิ่ม variant ทีหลังแล้ว match <em>ทุกตัว</em>ที่ไม่ได้รองรับมันจะคอมไพล์ไม่ผ่าน (<code>E0200</code>)"
     },
     {
       "id": "h-b6cc05d4",
@@ -155,16 +269,34 @@
       "tr": "compile error ไม่ใช่ undefined ตอนรัน"
     },
     {
+      "id": "h-1e14f808",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">number and string matches</span>",
+      "tr": "รายละเอียด <span class=\"hint\">match บน number และ string</span>"
+    },
+    {
+      "id": "h-2121973b",
+      "kind": "html",
+      "en": "The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
+      "tr": "case ใหม่ตกทะลุไปเป็น <code>undefined</code> แบบเงียบๆ เหมือน branch ของ <code>switch</code> ที่ถูกลืมไม่ได้ และไม่ใช่แค่ union: การ match <code>number</code> หรือ <code>string</code> ด้วยค่า literal ต้องมี <code>else</code> (<code>E0218</code>) เพราะโดเมนเหล่านั้นไม่มีขอบเขต และชุดของ literal ไม่มีวันครบ"
+    },
+    {
       "id": "h-85b49cf2",
       "kind": "html",
       "en": "<span class=\"ex-label\">04</span> Errors are values, not surprises",
       "tr": "<span class=\"ex-label\">04</span> error เป็นค่า ไม่ใช่เรื่องไม่คาดฝัน"
     },
     {
-      "id": "h-9f7ae855",
+      "id": "h-8cad6d11",
       "kind": "html",
-      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch). Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
-      "tr": "ฟังก์ชันที่อาจล้มเหลวคืนค่า <code>Result&lt;T, E&gt;</code> คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code> และ error type ต้องตรงกัน (ไม่มีการแปลงแฝงที่ซ่อนความไม่ตรง) ถ้าเพิกเฉยต่อ <code>Result</code> ไปเลย (เรียกเพื่อผลข้างเคียงแล้วทิ้งสิ่งที่มันคืนมา) Glyph จะเตือน (<code>E0217</code>) เพราะ error ที่ถูกทิ้งคือความล้มเหลวที่ถูกกลืน คุณปิดเสียงมันได้อย่างตั้งใจด้วย <code>let _ = ...</code> ไม่ใช่โดยบังเอิญ"
+      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch).",
+      "tr": "ฟังก์ชันที่อาจล้มเหลวคืนค่า <code>Result&lt;T, E&gt;</code> คุณจัดการด้วย <code>match</code> หรือส่งต่อขึ้นไปด้วย operator <code>?</code> และ error type ต้องตรงกัน (ไม่มีการแปลงแฝงที่ซ่อนความไม่ตรง)"
+    },
+    {
+      "id": "h-51e3ca2c",
+      "kind": "html",
+      "en": "Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "ถ้าเพิกเฉยต่อ <code>Result</code> ไปเลย (เรียกเพื่อผลข้างเคียงแล้วทิ้งสิ่งที่มันคืนมา) Glyph จะเตือน (<code>E0217</code>) เพราะ error ที่ถูกทิ้งคือความล้มเหลวที่ถูกกลืน คุณปิดเสียงมันได้อย่างตั้งใจด้วย <code>let _ = ...</code> ไม่ใช่โดยบังเอิญ"
     },
     {
       "id": "h-bc93cc11",
@@ -173,10 +305,16 @@
       "tr": "<span class=\"ex-label\">05</span> แม้แต่ PII ก็อยู่ระดับ type"
     },
     {
-      "id": "h-b6234b6d",
+      "id": "h-559df4dc",
       "kind": "html",
-      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
-      "tr": "สัญชาตญาณเดียวกันคือ \"ให้เป็นงานของคอมไพเลอร์ ไม่ใช่ธรรมเนียม\" ไปถึงข้อมูลอ่อนไหวด้วย ใส่ <code>@redact</code> บน type แล้ว descriptor ของมันจะได้ <code>redact()</code> ที่ปิดบัง field เหล่านั้น <code>json.stringify(User.redact(u))</code> ที่หลงมาจึงทำข้อมูลรั่วไม่ได้ ระบุ field ที่ type ไม่มีแล้วจะเป็น compile error (<code>E0219</code>) ไม่ใช่การปิดบังที่ไม่ได้ปกป้องอะไรแบบเงียบๆ"
+      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "สัญชาตญาณเดียวกันคือ \"ให้เป็นงานของคอมไพเลอร์ ไม่ใช่ธรรมเนียม\" ไปถึงข้อมูลอ่อนไหวด้วย ใส่ <code>@redact</code> บน type แล้ว descriptor ของมันจะได้ <code>redact()</code> ที่ปิดบัง field เหล่านั้น <code>json.stringify(User.redact(u))</code> ที่หลงมาจึงทำข้อมูลรั่วไม่ได้"
+    },
+    {
+      "id": "h-e0c731d9",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
+      "tr": "ระบุ field ที่ type ไม่มีแล้วจะเป็น compile error (<code>E0219</code>) ไม่ใช่การปิดบังที่ไม่ได้ปกป้องอะไรแบบเงียบๆ"
     },
     {
       "id": "h-725757af",
@@ -191,10 +329,34 @@
       "tr": "บังคับใช้อย่างไร และการรับประกันหยุดตรงไหน"
     },
     {
-      "id": "h-4641dcd8",
+      "id": "h-c91b558b",
       "kind": "html",
-      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation. The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
-      "tr": "พูดให้แม่นยำ เพราะความต่างสำคัญ: Glyph เป็น<strong>ภาษาย่อยที่เข้มและบังคับใช้บน <code>tsc</code></strong> ไม่ใช่ตัวตรวจอิสระ บางอย่างมันพิสูจน์เอง: ความครบถ้วน error type ของ <code>?</code> การไม่มี <code>any</code>/<code>as</code> ในซอร์สของคุณ การ validate key แบบเข้ม ความเข้ากันได้ของ type ส่วนที่เหลือมันบังคับใช้โดย emit TypeScript แล้วรัน <code>tsc --strict</code> ซึ่งทำให้ build fail จุดหลักคือการตรวจเหล่านี้เป็น<em>ภาษา</em> ไม่ใช่ lint ที่ต้องเลือกเปิดซึ่งเอเจนต์ปิดได้ ไม่ใช่ว่า Glyph เขียน type checker ขึ้นใหม่"
+      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier.",
+      "tr": "พูดให้แม่นยำ เพราะความต่างสำคัญ: Glyph เป็น<strong>ภาษาย่อยที่เข้มและบังคับใช้บน <code>tsc</code></strong> ไม่ใช่ตัวตรวจอิสระ"
+    },
+    {
+      "id": "h-540f13a2",
+      "kind": "html",
+      "en": "<b>Proved by Glyph</b>Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation.",
+      "tr": "<b>Glyph พิสูจน์เอง</b>บางอย่างมันพิสูจน์เอง: ความครบถ้วน error type ของ <code>?</code> การไม่มี <code>any</code>/<code>as</code> ในซอร์สของคุณ การ validate key แบบเข้ม"
+    },
+    {
+      "id": "h-3251c604",
+      "kind": "html",
+      "en": "<b>Enforced through tsc</b>The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build.",
+      "tr": "<b>บังคับใช้ผ่าน tsc</b>ความเข้ากันได้ของ type ส่วนที่เหลือมันบังคับใช้โดย emit TypeScript แล้วรัน <code>tsc --strict</code> ซึ่งทำให้ build fail"
+    },
+    {
+      "id": "h-afd82d3a",
+      "kind": "html",
+      "en": "The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
+      "tr": "จุดหลักคือการตรวจเหล่านี้เป็น<em>ภาษา</em> ไม่ใช่ lint ที่ต้องเลือกเปิดซึ่งเอเจนต์ปิดได้ ไม่ใช่ว่า Glyph เขียน type checker ขึ้นใหม่"
+    },
+    {
+      "id": "h-d0732969",
+      "kind": "html",
+      "en": "History <span class=\"hint\">edges closed in 0.1.10, deep generic validation</span>",
+      "tr": "ที่มา <span class=\"hint\">ขอบที่ปิดใน 0.1.10 และการ validate generic แบบลึก</span>"
     },
     {
       "id": "h-c25c2286",
@@ -203,10 +365,16 @@
       "tr": "ขอบสองจุดก่อนหน้านี้ถูกปิดใน 0.1.10 emitter เคยแทรก return cast ที่ตรวจโดย Glyph ไม่ใช่ <code>tsc</code> ใน<em>ทุก</em>ฟังก์ชัน generic ตอนนี้มันเกิดเฉพาะที่ combinator ของ validator ประกอบค่าของ type ที่ derive จาก shape (<code>infer_output&lt;Shape&gt;</code>) และ generic ที่ตรงไปตรงมาทุกตัว emit โดยไม่มี cast เลย และ output type ของ validator ไม่ถูกเชื่อตามคำบอกอีกต่อไป: <code>infer_output</code> derive มันจาก shape ที่คุณส่ง และ <code>tsc</code> ตรวจ annotation ของคุณเทียบกับมัน shape ที่ขาด field ของ type ที่คุณอ้างจึงคอมไพล์ไม่ผ่าน"
     },
     {
-      "id": "h-3ae3435e",
+      "id": "h-84808e67",
       "kind": "html",
-      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence. One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
-      "tr": "type แบบ generic ก็ validate แบบลึกแล้ว: descriptor ของ <code>Paginated&lt;User&gt;</code> ตรวจทุก element <em>ในฐานะ <code>User</code></em> ไม่ใช่แค่ว่ามีอยู่ ยังเหลือขอบหนึ่งจุด บอกไว้ตรงๆ: type ที่ <em>import</em> จาก <code>.d.ts</code> ภายนอกที่คุณแค่อ้างถึงไม่มี descriptor จนกว่าคุณจะ materialize มันด้วย <code>glyph gen dts</code> field ของ type นั้นจึงถูกตรวจแค่ว่ามีอยู่ ไม่ได้ตรวจรูปร่าง ขอบนั้นเป็นความตั้งใจ (type ที่ Glyph ไม่ได้ emit สัญญาการ validate ตอนรันไม่ได้) และการ materialize ปิดมันได้"
+      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence.",
+      "tr": "type แบบ generic ก็ validate แบบลึกแล้ว: descriptor ของ <code>Paginated&lt;User&gt;</code> ตรวจทุก element <em>ในฐานะ <code>User</code></em> ไม่ใช่แค่ว่ามีอยู่"
+    },
+    {
+      "id": "h-20559d87",
+      "kind": "html",
+      "en": "One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
+      "tr": "ยังเหลือขอบหนึ่งจุด บอกไว้ตรงๆ: type ที่ <em>import</em> จาก <code>.d.ts</code> ภายนอกที่คุณแค่อ้างถึงไม่มี descriptor จนกว่าคุณจะ materialize มันด้วย <code>glyph gen dts</code> field ของ type นั้นจึงถูกตรวจแค่ว่ามีอยู่ ไม่ได้ตรวจรูปร่าง ขอบนั้นเป็นความตั้งใจ (type ที่ Glyph ไม่ได้ emit สัญญาการ validate ตอนรันไม่ได้) และการ materialize ปิดมันได้"
     },
     {
       "id": "h-71727b66",
@@ -215,10 +383,16 @@
       "tr": "benchmark: กำลังมา"
     },
     {
-      "id": "h-e396933a",
+      "id": "h-d5addd8d",
       "kind": "html",
-      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches. Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
-      "tr": "ข้อกล่าวอ้างนี้เป็นเชิงประจักษ์ เราจึงตั้งใจจะวัด: เอาชุดการเปลี่ยนแปลงจริงที่เอเจนต์เขียน รันแต่ละตัวผ่าน <code>tsc --strict</code> และผ่าน Glyph แล้วนับว่าแต่ละตัวจับอะไรได้จริง Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก จึงยังไม่มีตัวเลขให้รายงาน กราฟด้านล่างเป็นที่ว่างรอไว้ และจะเติมด้วยข้อมูลจริงทันทีที่มีการใช้งานจริง"
+      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches.",
+      "tr": "ข้อกล่าวอ้างนี้เป็นเชิงประจักษ์ เราจึงตั้งใจจะวัด: เอาชุดการเปลี่ยนแปลงจริงที่เอเจนต์เขียน รันแต่ละตัวผ่าน <code>tsc --strict</code> และผ่าน Glyph แล้วนับว่าแต่ละตัวจับอะไรได้จริง"
+    },
+    {
+      "id": "h-3d020067",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
+      "tr": "Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก จึงยังไม่มีตัวเลขให้รายงาน กราฟด้านล่างเป็นที่ว่างรอไว้ และจะเติมด้วยข้อมูลจริงทันทีที่มีการใช้งานจริง"
     },
     {
       "id": "h-53997b9b",
@@ -269,16 +443,22 @@
       "tr": "\"TypeScript แบบ strict กับ config ของ lint ก็ทำแบบนี้ได้\""
     },
     {
-      "id": "h-9a1829dc",
+      "id": "h-129ba306",
       "kind": "html",
-      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
-      "tr": "ภายในโปรแกรม มันเข้าใกล้ <code>strict</code>, <code>noUncheckedIndexedAccess</code> และกฎที่ห้าม <code>any</code> แบบชัดแจ้ง จับสิ่งที่เอเจนต์จะเล็ดลอดไปได้ส่วนใหญ่ แต่หยุดที่ขอบ <code>JSON.parse(body) as User</code> คอมไพล์ผ่านทุกการตั้งค่าที่มี และวิธีแก้ที่ใช้กันคือ schema ของ zod ซึ่งเป็นคำอธิบาย <code>User</code> ชุดที่สองที่ต้องรักษาให้ตรงกับชุดแรกด้วยมือ ใน Glyph type คือ validator: <code>json.parse&lt;User&gt;(body)</code> ถูกตรวจเทียบกับ <code>User</code> เอง และ type ที่ Glyph ตรวจตอนรันไม่ได้จะถูกปฏิเสธแทนที่จะถูกเชื่อ"
+      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges.",
+      "tr": "ภายในโปรแกรม มันเข้าใกล้ <code>strict</code>, <code>noUncheckedIndexedAccess</code> และกฎที่ห้าม <code>any</code> แบบชัดแจ้ง จับสิ่งที่เอเจนต์จะเล็ดลอดไปได้ส่วนใหญ่ แต่หยุดที่ขอบ"
     },
     {
-      "id": "h-df4adf7a",
+      "id": "h-62c1627b",
       "kind": "html",
-      "en": "The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
-      "tr": "อีกความต่างคือใครพึ่งพามันได้ config ของ lint คือตัวเลือกที่ repository หนึ่งเลือก เอเจนต์ที่เปิด codebase TypeScript ที่ไม่คุ้นเคยสันนิษฐานไม่ได้ว่า <code>any</code> ถูกห้ามที่นั่น ใน Glyph มันเขียนไม่ได้ที่ไหนเลย"
+      "en": "<b>At the boundary</b><code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
+      "tr": "<b>ที่ขอบเขต</b><code>JSON.parse(body) as User</code> คอมไพล์ผ่านทุกการตั้งค่าที่มี และวิธีแก้ที่ใช้กันคือ schema ของ zod ซึ่งเป็นคำอธิบาย <code>User</code> ชุดที่สองที่ต้องรักษาให้ตรงกับชุดแรกด้วยมือ ใน Glyph type คือ validator: <code>json.parse&lt;User&gt;(body)</code> ถูกตรวจเทียบกับ <code>User</code> เอง และ type ที่ Glyph ตรวจตอนรันไม่ได้จะถูกปฏิเสธแทนที่จะถูกเชื่อ"
+    },
+    {
+      "id": "h-4e201e12",
+      "kind": "html",
+      "en": "<b>Across repositories</b>The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
+      "tr": "<b>ข้าม repository</b>อีกความต่างคือใครพึ่งพามันได้ config ของ lint คือตัวเลือกที่ repository หนึ่งเลือก เอเจนต์ที่เปิด codebase TypeScript ที่ไม่คุ้นเคยสันนิษฐานไม่ได้ว่า <code>any</code> ถูกห้ามที่นั่น ใน Glyph มันเขียนไม่ได้ที่ไหนเลย"
     },
     {
       "id": "h-339efe42",

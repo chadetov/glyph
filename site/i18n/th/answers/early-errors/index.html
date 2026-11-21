@@ -1,7 +1,7 @@
 ---
 title: ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า? · Glyph
 description: Glyph รายงาน await นอก async fn, arm ของ match ที่ไม่ให้ค่า และ mut ที่ขาดไป เทียบกับซอร์สของคุณ พร้อมกฎและวิธีแก้ ก่อน tsc
-source_hash: 0f97abca4b650947
+source_hash: 9388fb478e6fc44c
 prev: /answers/tooling/ | &larr; ก่อนหน้า | ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?
 next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse ไม่ผ่าน ฉันจะรู้ไหมว่าเพราะอะไร?
 ---
@@ -12,23 +12,9 @@ next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse �
         เพราะ error บน TypeScript ที่ generate คือ error เกี่ยวกับโค้ดที่คุณไม่ได้เขียน Glyph รายงานสิ่งเหล่านี้เทียบกับซอร์สของคุณ พร้อมกฎที่คุณละเมิดและการแก้ที่ทำให้ถูก
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">ทำไมเรื่องนี้สำคัญ</h2>
-        <p>
-          Glyph คอมไพล์เป็น TypeScript แล้วตรวจ type ของ output ด้วย <code>tsc --strict</code> ความผิดพลาดที่ Glyph ไม่ได้ model จึงไม่หายไป มันกลับมาในขั้นถัดไป โดยพูดในแง่ของไฟล์ที่ emit: <code>TS1308</code> ที่ชี้ไปที่ <code>await</code> ในฟังก์ชันที่คุณไม่เคยเขียน หรือ <code>TS2366</code> เกี่ยวกับ <code>switch</code> ที่คุณไม่ได้เขียน บรรทัดถูก map กลับไปยัง <code>.glyph</code> ของคุณ แต่คำอธิบายไม่ได้ถูก map
-        </p>
-        <p>
-          ช่องว่างนั้นคือที่ที่คอมไพเลอร์เลิกสอน กฎแต่ละข้อที่ Glyph ตัดสินเองได้จึงย้ายขึ้นมา: <code>await</code> นอก <code>async fn</code> (<code>E0222</code>), arm ของ <code>match</code> ที่ไม่ให้ค่าในขณะที่ <code>match</code> ถูกใช้เป็นค่า (<code>E0223</code>) และการ assign ที่เขียนโดยไม่มี <code>mut</code> (<code>E0008</code>) แต่ละข้อระบุกฎ อ้าง decision ที่อยู่เบื้องหลัง และแสดงก่อนและหลัง
-        </p>
-
-        <h2 class="block-label">ดูของจริง</h2>
-        <p>
-          กรณีของ arm คือตัวที่เคยหลุดไปทั้งหมด <code>{}</code> ในตำแหน่ง arm คือ <em>block</em> ว่าง ไม่ใช่ record ว่าง arm จึงรันและไม่ให้อะไรออกมา:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">status.glyph: arm ที่ไม่ให้อะไรเลย ในตำแหน่งที่ต้องการค่า</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">status.glyph: arm ที่ไม่ให้อะไรเลย ในตำแหน่งที่ต้องการค่า</span>
 <pre>fn label(s: Status) -&gt; string {
   let text = match s {
 <span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
@@ -37,27 +23,64 @@ next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse �
   }
   return text
 }</pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
    ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
       only where the `match` is a statement.
    note: A value-position arm lowers to `case X: { break; }` when it yields
          nothing, so the value would be `undefined` at run time.</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>กรณีของ arm คือตัวที่เคยหลุดไปทั้งหมด <code>{}</code> ในตำแหน่ง arm คือ <em>block</em> ว่าง ไม่ใช่ record ว่าง arm จึงรันและไม่ให้อะไรออกมา</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          ก่อนหน้านี้ <code>switch</code> ที่ emit หลุดออกจาก case ของตัวเอง และ <code>text</code> ถือ <code>undefined</code> ขณะที่ type บอกว่า <code>string</code> <code>tsc</code> จับบางรูปแบบได้และพลาดบางรูปแบบ ตอนนี้ Glyph ตัดสินทุกที่ที่ตำแหน่งตัดสินได้: <code>let</code>, <code>mut</code>, <code>return</code> หรือส่วนท้ายของฟังก์ชันที่ประกาศ return type <code>match</code> แบบ statement ยังเก็บ <code>X =&gt; {}</code> ไว้เป็นการไม่ทำอะไรโดยตั้งใจตามที่มันเป็น
-        </p>
-        <p>
-          <code>await</code> ก็ย้ายแบบเดียวกัน Glyph ไม่มี <code>Promise</code> ที่ผู้ใช้มองเห็น: <code>async fn -&gt; T</code> ถูก await ได้เป็น <code>T</code> <code>await</code> ที่อื่นจึงไม่มีอะไรให้พักรอ สิ่งนั้นเคยเป็น <code>TS1308</code> ของ <code>tsc</code> บนไฟล์ที่ generate ตอนนี้เป็น <code>E0222</code> และสิ่งที่เรียกได้ซึ่งครอบอยู่ชั้นในสุดเป็นตัวตัดสิน lambda แบบ synchronous ภายใน <code>async fn</code> จึงเป็นบริบทของตัวเอง ซึ่งเป็นกฎเดียวกับที่ TypeScript ใช้
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="ในหน้านี้">
+        <p>ในหน้านี้</p>
+        <ol>
+          <li><a href="#why-it-matters">ทำไมเรื่องนี้สำคัญ</a></li>
+          <li><a href="#value-arm">arm ที่ไม่ให้ค่า</a></li>
+          <li><a href="#await">await นอก async</a></li>
+          <li><a href="#missing-mut">mut ที่ขาดไป</a></li>
+          <li><a href="#the-worse-case-when-tsc-is-happy-too">เมื่อ tsc ก็พอใจด้วย</a></li>
+          <li><a href="#a-wrong-message-is-worse-than-no-message">ข้อความที่ผิด</a></li>
+          <li><a href="#naming-the-rule-not-the-token">ระบุกฎ ไม่ใช่ token</a></li>
+          <li><a href="#two-more-the-checker-took-over-in-0-1-121">รับมาทำใน 0.1.121</a></li>
+          <li><a href="#and-three-more-since-0-1-133">ตั้งแต่ 0.1.133</a></li>
+          <li><a href="#and-two-more-in-0-1-122">ใน 0.1.122</a></li>
+          <li><a href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">literal type, 0.1.123</a></li>
+          <li><a href="#a-module-under-std-was-dead-code-with-no-diagnostic">module ใต้ std/</a></li>
+          <li><a href="#nesting-limit">ขีดจำกัดการซ้อน</a></li>
+          <li><a href="#when-neither-compiler-is-wrong">เมื่อไม่มีใครผิด</a></li>
+          <li><a href="#the-same-typo-two-answers">คำผิดเดียวกัน</a></li>
+          <li><a href="#where-it-stands">สถานะตอนนี้</a></li>
+        </ol>
+      </nav>
 
-      <div class="code">
+      <h2 class="ak-h" id="why-it-matters">ทำไมเรื่องนี้สำคัญ<a class="ak-anchor" href="#why-it-matters" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph คอมไพล์เป็น TypeScript แล้วตรวจ type ของ output ด้วย <code>tsc --strict</code> ความผิดพลาดที่ Glyph ไม่ได้ model จึงไม่หายไป มันกลับมาในขั้นถัดไป โดยพูดในแง่ของไฟล์ที่ emit: <code>TS1308</code> ที่ชี้ไปที่ <code>await</code> ในฟังก์ชันที่คุณไม่เคยเขียน หรือ <code>TS2366</code> เกี่ยวกับ <code>switch</code> ที่คุณไม่ได้เขียน
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>บรรทัดถูก map กลับไปยัง <code>.glyph</code> ของคุณ แต่คำอธิบายไม่ได้ถูก map ช่องว่างนั้นคือที่ที่คอมไพเลอร์เลิกสอน</p></div>
+      <p class="ak-lede">กฎแต่ละข้อที่ Glyph ตัดสินเองได้จึงย้ายขึ้นมา:</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>await</code> นอก <code>async fn</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b>arm ของ <code>match</code> ที่ไม่ให้ค่าในขณะที่ <code>match</code> ถูกใช้เป็นค่า</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>และการ assign ที่เขียนโดยไม่มี <code>mut</code></li>
+      </ul>
+      <p class="ak-lede">แต่ละข้อระบุกฎ อ้าง decision ที่อยู่เบื้องหลัง และแสดงก่อนและหลัง</p>
+
+      <h2 class="ak-h" id="value-arm">arm ที่ไม่ให้ค่า<a class="ak-anchor" href="#value-arm" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ก่อนหน้านี้ <code>switch</code> ที่ emit หลุดออกจาก case ของตัวเอง และ <code>text</code> ถือ <code>undefined</code> ขณะที่ type บอกว่า <code>string</code> <code>tsc</code> จับบางรูปแบบได้และพลาดบางรูปแบบ
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ตอนนี้ Glyph ตัดสินทุกที่ที่ตำแหน่งตัดสินได้: <code>let</code>, <code>mut</code>, <code>return</code> หรือส่วนท้ายของฟังก์ชันที่ประกาศ return type <code>match</code> แบบ statement ยังเก็บ <code>X =&gt; {}</code> ไว้เป็นการไม่ทำอะไรโดยตั้งใจตามที่มันเป็น</p></div>
+
+      <h2 class="ak-h" id="await">await นอก async fn<a class="ak-anchor" href="#await" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>await</code> ก็ย้ายแบบเดียวกัน Glyph ไม่มี <code>Promise</code> ที่ผู้ใช้มองเห็น: <code>async fn -&gt; T</code> ถูก await ได้เป็น <code>T</code> <code>await</code> ที่อื่นจึงไม่มีอะไรให้พักรอ
+      </p>
+      <div class="code term">
         <span class="cap">glyph build บน `fn total() -&gt; number { return await fetch_count() }`</span>
 <pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
    ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
@@ -66,27 +89,30 @@ next: /answers/parse-errors/ | ถัดไป &rarr; | เมื่อ parse �
 <span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
 within async functions and at the top levels of modules.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่เรียกได้ตัวไหนเป็นตัวตัดสิน</span></summary><div class="body">
         <p>
-          ตัวที่สามเกี่ยวกับกฎที่คนละเมิดตั้งแต่วันแรก Glyph ทำเครื่องหมายทุกการแก้ค่า การ assign binding ใหม่คือ <code>mut x = e</code> และการสร้างใหม่คือ <code>let x = e</code> <code>x = e</code> เปล่าๆ เคยรายงาน "unexpected token: Equals" ซึ่งระบุอักขระแทนที่จะระบุกฎ ตอนนี้เป็น <code>E0008</code> และ <code>glyph --explain E0008</code> อธิบายว่าทำไมเครื่องหมายนี้มีอยู่: ทุกที่ที่ค่าเปลี่ยนขึ้นต้นด้วย <code>mut</code> <code>grep "mut total"</code> จึงเจอทุกจุด
+          สิ่งนั้นเคยเป็น <code>TS1308</code> ของ <code>tsc</code> บนไฟล์ที่ generate ตอนนี้เป็น <code>E0222</code> และสิ่งที่เรียกได้ซึ่งครอบอยู่ชั้นในสุดเป็นตัวตัดสิน lambda แบบ synchronous ภายใน <code>async fn</code> จึงเป็นบริบทของตัวเอง ซึ่งเป็นกฎเดียวกับที่ TypeScript ใช้
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="missing-mut">การ assign ที่ไม่มี mut<a class="ak-anchor" href="#missing-mut" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัวที่สามเกี่ยวกับกฎที่คนละเมิดตั้งแต่วันแรก Glyph ทำเครื่องหมายทุกการแก้ค่า การ assign binding ใหม่คือ <code>mut x = e</code> และการสร้างใหม่คือ <code>let x = e</code>
+      </p>
+      <div class="ak-chips"><span class="chip code">E0008</span><span class="chip code">E0302</span><span class="chip code">E0303</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>x = e</code> เปล่าๆ เคยรายงาน "unexpected token: Equals" ซึ่งระบุอักขระแทนที่จะระบุกฎ ตอนนี้เป็น <code>E0008</code> และ <code>glyph --explain E0008</code> อธิบายว่าทำไมเครื่องหมายนี้มีอยู่: ทุกที่ที่ค่าเปลี่ยนขึ้นต้นด้วย <code>mut</code> <code>grep "mut total"</code> จึงเจอทุกจุด</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">operator <code>?</code>, E0302 และ E0303</span></summary><div class="body">
         <p>
           operator <code>?</code> ได้การดูแลแบบเดียวกันจากอีกทาง <code>?</code> ขยายเป็น binding บวก <code>return</code> ก่อนเวลาที่วางไว้ก่อน statement ที่มันอยู่ มันจึงต้องมี statement ให้ขยายเข้าไป มันใช้ได้ใน <code>let</code>, <code>return</code>, argument และตอนนี้ใน body ของ arm ของ <code>match</code> ด้วย ตรงไหนที่ใช้ไม่ได้ ข้อความจะบอกว่าเป็นตำแหน่งไหนและจะ bind ออกมาอย่างไร (<code>E0302</code> และ <code>E0303</code>) แทนที่จะอ้างว่า operator ยังไม่ได้ implement
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">กรณีที่แย่กว่า: เมื่อ tsc ก็พอใจด้วย</h2>
-        <p>
-          error ของ <code>tsc</code> ในที่ผิดเป็นเรื่องน่ารำคาญ build ที่สะอาดบนโปรแกรมที่มีความหมายอีกอย่างคือปัญหาจริง และ Glyph เคยมี ทุกชื่อระดับบนสุดที่คุณประกาศเข้าไปใน module ที่ emit ตรงตัว รวมถึง constructor ของ variant ใน tagged union variant ชื่อ <code>Error</code> จึง emit <code>export function Error(...)</code> ที่ระดับบนสุดของ module แล้ว <code>new Error(...)</code> ที่คอมไพเลอร์เขียนไว้ข้างล่างก็เรียก variant ของคุณ
-        </p>
-        <p>
-          <code>type Key = string | number</code> คือข้อบกพร่องเดียวกันในหน้าตาที่เป็นมิตรกว่า ใน Glyph <code>A | B</code> ประกาศ tagged union ที่สมาชิกเป็น<em>constructor</em>ของ variant บรรทัดนั้นจึงประกาศ variant ชื่อ <code>string</code> และ <code>number</code> มันคอมไพล์ผ่าน ผ่าน <code>tsc --strict</code> และ emit <code>export const number</code> ที่บัง namespace <code>number</code> ของ prelude ไม่มีอะไร fail จนกระทั่งการเรียก <code>number.to_string</code> ทีหลัง fail
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-worse-case-when-tsc-is-happy-too">กรณีที่แย่กว่า: เมื่อ tsc ก็พอใจด้วย<a class="ak-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        error ของ <code>tsc</code> ในที่ผิดเป็นเรื่องน่ารำคาญ build ที่สะอาดบนโปรแกรมที่มีความหมายอีกอย่างคือปัญหาจริง และ Glyph เคยมี
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ทุกชื่อระดับบนสุดที่คุณประกาศเข้าไปใน module ที่ emit ตรงตัว รวมถึง constructor ของ variant ใน tagged union variant ชื่อ <code>Error</code> จึง emit <code>export function Error(...)</code> ที่ระดับบนสุดของ module แล้ว <code>new Error(...)</code> ที่คอมไพเลอร์เขียนไว้ข้างล่างก็เรียก variant ของคุณ</p></div>
+      <div class="code term">
         <span class="cap">glyph build บน union ที่มี variant `Error`</span>
 <pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
         references the JavaScript global `Error`, and this declaration would
@@ -100,51 +126,62 @@ within async functions and at the top levels of modules.</span></pre>
 <span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
 assignable to parameter of type ...</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0110</span><span class="chip code">E0111</span><span class="chip code">E0109</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint"><code>type Key = string | number</code>, รายการที่ป้องกันไว้, E0111</span></summary><div class="body">
+        <p>
+          <code>type Key = string | number</code> คือข้อบกพร่องเดียวกันในหน้าตาที่เป็นมิตรกว่า ใน Glyph <code>A | B</code> ประกาศ tagged union ที่สมาชิกเป็น<em>constructor</em>ของ variant บรรทัดนั้นจึงประกาศ variant ชื่อ <code>string</code> และ <code>number</code> มันคอมไพล์ผ่าน ผ่าน <code>tsc --strict</code> และ emit <code>export const number</code> ที่บัง namespace <code>number</code> ของ prelude ไม่มีอะไร fail จนกระทั่งการเรียก <code>number.to_string</code> ทีหลัง fail
+        </p>
         <p>
           span คือ declaration ซึ่งเป็นที่ที่ต้องเปลี่ยนชื่อ รายการที่ป้องกันไว้ derive มาจาก emitter ไม่ใช่จากรายการ global ของ JavaScript ทั่วไป และมีเทสต์ที่ grep emitter แล้ว fail เมื่อมีการอ้างถึง global ใหม่โดยไม่มีรายการที่ตรงกัน เทสต์นั้นคือประเด็น: <code>Number</code> ไม่มีพิษภัยจนกระทั่ง <code>int</code> ออกมาและเริ่ม emit <code>Number.isInteger</code> ซึ่งเป็นวิธีที่เรื่องนี้หลุดไปถึงรุ่นที่ออกตั้งแต่แรก <code>Date</code>, <code>Math</code> และ <code>JSON</code> ยังใช้ได้ เพราะไม่มีอะไรที่ Glyph emit อ้างถึงมัน
         </p>
         <p>
           กรณี union ของ primitive ได้รหัสของตัวเองคือ <code>E0111</code> เพราะการปฏิเสธโดยไม่อธิบายไม่ได้สอนอะไร มันบอกว่าบรรทัดนั้นถูก parse เป็นอะไรจริงๆ ชี้ไปที่ variant ที่มีชื่อ และระบุ <code>extern_ts("string | number")</code> สำหรับขอบเขตที่คุณต้องการ union ของ TypeScript ดิบ ทุกชื่อที่ Glyph ไม่ให้ใช้อยู่ในตารางใน <code>docs/reference/reserved-words.md</code>: keyword 32 คำ คำสงวนของ TypeScript 33 คำที่อยู่เบื้องหลัง <code>E0109</code> และรายการชื่อที่บังกัน แต่ละคำมีเหตุผลว่าทำไมชื่อนั้นถูกจองไว้
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ควรพูดให้ชัดว่าสิ่งนี้ไม่ได้ทำอะไร คุณยังตั้งชื่อ type หรือ variant ว่า <code>Error</code> ไม่ได้ และ spreadsheet ที่ทำให้เรื่องนี้โผล่ขึ้นมาก็มี variant ชื่อ <code>Cellerr</code> เพราะเหตุนี้ โปรแกรมที่มันอยากเป็นยังเขียนไม่ได้ สิ่งที่เปลี่ยนคือตอนนี้คอมไพเลอร์บอกที่ declaration แทนที่จะปล่อยให้ build เขียวแล้วมีความหมายอีกอย่าง</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมไม่ทำให้ชื่อนั้นใช้ได้ไปเลย</span></summary><div class="body">
         <p>
-          ควรพูดให้ชัดว่าสิ่งนี้ไม่ได้ทำอะไร คุณยังตั้งชื่อ type หรือ variant ว่า <code>Error</code> ไม่ได้ และ spreadsheet ที่ทำให้เรื่องนี้โผล่ขึ้นมาก็มี variant ชื่อ <code>Cellerr</code> เพราะเหตุนี้ โปรแกรมที่มันอยากเป็นยังเขียนไม่ได้ สิ่งที่เปลี่ยนคือตอนนี้คอมไพเลอร์บอกที่ declaration แทนที่จะปล่อยให้ build เขียวแล้วมีความหมายอีกอย่าง การทำให้ชื่อนั้นใช้ได้หมายถึงต้องแปลงชื่อของ Glyph ตอนเข้าสู่ TypeScript ซึ่งเปลี่ยนสิ่งที่ stack trace, <code>grep</code> บน <code>dist/</code> และ shim <code>extern/</code> ที่เขียนเองมองเห็น จึงไม่ใช่ patch ที่เราทำแบบเงียบๆ ได้
+          การทำให้ชื่อนั้นใช้ได้หมายถึงต้องแปลงชื่อของ Glyph ตอนเข้าสู่ TypeScript ซึ่งเปลี่ยนสิ่งที่ stack trace, <code>grep</code> บน <code>dist/</code> และ shim <code>extern/</code> ที่เขียนเองมองเห็น จึงไม่ใช่ patch ที่เราทำแบบเงียบๆ ได้
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">ข้อความที่ผิดแย่กว่าไม่มีข้อความ</h2>
-        <p>
-          รายการชื่อที่บังกันเริ่มจากชื่อที่ emitter เขียนเป็น<em>ค่า</em> มันขาดชื่อที่ emitter เขียนเป็น<em>type</em> และนั่นทำให้เกิดปัญหานี้ในแบบที่แหลมคมที่สุด <code>parse</code> ของทุก descriptor คืน <code>Result&lt;T, Issue[]&gt;</code> module ที่ emit จึงเขียน <code>Issue</code> ไม่ว่าคุณจะเขียนหรือไม่ ประกาศ <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> ใน module ของคุณเอง แล้วของคุณจะชนะ object <code>Issue</code> ที่ emit มี field <code>code</code> ที่ของคุณไม่รู้จัก และ build fail ด้วย error ของ <code>tsc</code> เกี่ยวกับโค้ดที่ generate ที่ span ซึ่งชี้ไปที่อื่น
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build ก่อน: แบบนี้สิบห้าตัว ไม่มีตัวไหนอยู่ใกล้ต้นเหตุ</span>
+      <h2 class="ak-h" id="a-wrong-message-is-worse-than-no-message">ข้อความที่ผิดแย่กว่าไม่มีข้อความ<a class="ak-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        รายการชื่อที่บังกันเริ่มจากชื่อที่ emitter เขียนเป็น<em>ค่า</em> มันขาดชื่อที่ emitter เขียนเป็น<em>type</em> และนั่นทำให้เกิดปัญหานี้ในแบบที่แหลมคมที่สุด
+      </p>
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code term">
+            <span class="cap">glyph build ก่อน: แบบนี้สิบห้าตัว ไม่มีตัวไหนอยู่ใกล้ต้นเหตุ</span>
 <pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
 specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build ตอนนี้</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code term">
+            <span class="cap">glyph build ตอนนี้</span>
 <pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
         references the Glyph prelude global `Issue`, and this declaration
         would shadow it</span>
    ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
       the rebinding.</pre>
+          </div>
+        </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไม <code>Issue</code> ถึงชนกัน และ <code>Record</code></span></summary><div class="body">
+        <p>
+          <code>parse</code> ของทุก descriptor คืน <code>Result&lt;T, Issue[]&gt;</code> module ที่ emit จึงเขียน <code>Issue</code> ไม่ว่าคุณจะเขียนหรือไม่ ประกาศ <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> ใน module ของคุณเอง แล้วของคุณจะชนะ object <code>Issue</code> ที่ emit มี field <code>code</code> ที่ของคุณไม่รู้จัก และ build fail ด้วย error ของ <code>tsc</code> เกี่ยวกับโค้ดที่ generate ที่ span ซึ่งชี้ไปที่อื่น
+        </p>
         <p>
           <code>Record</code> เข้ารายการในเวลาเดียวกัน โดยจัดไว้กับ global ของ JavaScript แทนที่จะเป็นชื่อใน prelude เพราะมันเป็น built-in ของ TypeScript และการอ้างเป็นอย่างอื่นจะทำให้ข้อความผิดเรื่องที่มาของชื่อ เทสต์ตรวจความเพี้ยนที่ grep emitter ตอนนี้ครอบคลุม type แบบ ambient ด้วย และต้องเรียนรู้ที่จะเห็น <code>Issue[]</code> ในตำแหน่ง type ซึ่งเป็นเหตุผลที่เรื่องนี้หลุดไปถึงรุ่นที่ออก <code>Schema</code>, <code>Component</code> และ <code>Option</code> ยังใช้ได้ตามกฎเดียวกับที่ทำให้ <code>Date</code> ใช้ได้: emitter เขียนมันก็เพราะคุณเขียนไว้ใน annotation การประกาศมันจึงไม่บังอะไร
         </p>
-        <p>
-          อีกตัวในกลุ่มนี้คือ import path ของ import ในเครื่อง resolve จาก build root คือไดเรกทอรีที่คุณส่งให้ <code>glyph build</code> ไม่ใช่จากไดเรกทอรีของไฟล์ที่ import build tree ที่ครอบอยู่แล้ว <code>import catalog</code> หาอะไรไม่เจอ และจนถึงตอนนี้ไม่มีอะไรบอก type ลดลงเป็น unknown <code>match</code> บนมันเสีย variant ที่มันกำลัง match และสิ่งที่คุณได้คือ <code>E0218</code> match ไม่ครบ บน <code>match</code> ที่ครอบคลุมทุก case ถ้าทำตามที่ข้อความนั้นขอ ก็จะเพิ่ม arm <code>else</code> ที่ไม่มีวันรันให้โค้ดที่ถูกต้อง
-        </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h3 class="ak-h3" id="wrong-cause-import">import ที่โยนความผิดให้ match<a class="ak-anchor" href="#wrong-cause-import" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        อีกตัวในกลุ่มนี้คือ import path ของ import ในเครื่อง resolve จาก build root คือไดเรกทอรีที่คุณส่งให้ <code>glyph build</code> ไม่ใช่จากไดเรกทอรีของไฟล์ที่ import
+      </p>
+      <div class="code term">
         <span class="cap">glyph build examples/apps บน `import catalog` ภายใน csvql/</span>
 <pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
         root `examples/apps`. There is a `csvql/catalog.glyph` under the
@@ -156,24 +193,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// before: no import diagnostic, then</span>
 <span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่มันเคยรายงาน และวิธีเลี่ยง false positive</span></summary><div class="body">
+        <p>
+          build tree ที่ครอบอยู่แล้ว <code>import catalog</code> หาอะไรไม่เจอ และจนถึงตอนนี้ไม่มีอะไรบอก type ลดลงเป็น unknown <code>match</code> บนมันเสีย variant ที่มันกำลัง match และสิ่งที่คุณได้คือ <code>E0218</code> match ไม่ครบ บน <code>match</code> ที่ครอบคลุมทุก case ถ้าทำตามที่ข้อความนั้นขอ ก็จะเพิ่ม arm <code>else</code> ที่ไม่มีวันรันให้โค้ดที่ถูกต้อง
+        </p>
         <p>
           ความเสี่ยงของการตรวจแบบนี้คือมันเตือนสิ่งที่ไม่ได้ผิด และตัวตรวจ import ที่ร้องเตือนทุกแพ็กเกจ npm แย่กว่าความเงียบที่มันมาแทน build จึงรวบรวมชื่อ module ที่ resolve ได้โดยไม่ต้องมีไฟล์ <code>.glyph</code> ก่อน: ทุก <code>declare module "X"</code> ใต้ <code>&lt;root&gt;/.types/</code> และใน Node shim ที่มาด้วย บวกทุกแพ็กเกจใน <code>node_modules</code> ของโปรเจกต์ ชื่อที่อยู่ในรายการนั้นไม่เคยถูกรายงาน แม้ไฟล์ในเครื่องจะบังเอิญชื่อเดียวกัน เมื่อโปรเจกต์ไม่มี <code>node_modules</code> เลย คอมไพเลอร์แยก dependency ที่ยังไม่ได้ติดตั้งออกจากคำผิดไม่ได้ มันจึงรายงานเฉพาะสิ่งที่พิสูจน์ได้: import ที่มีไฟล์ <code>.glyph</code> ใต้ root ตอบรับอยู่
         </p>
-        <p>
-          การ resolve เองไม่ได้เปลี่ยน โปรแกรมเดิม build ผ่าน และโปรแกรมเดิม fail สิ่งที่เปลี่ยนคือความล้มเหลวตอนนี้ระบุ import แทนที่จะกล่าวหา <code>match</code> ที่อยู่ห่างไปสองไฟล์ ซึ่งคือทั้งหมดของเรื่อง: คอมไพเลอร์ที่รายงานต้นเหตุผิดทำให้คุณเสียเวลาหนึ่งชั่วโมงไปไล่มัน และเสียความเชื่อใจในทุกข้อความหลังจากนั้น
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>การ resolve เองไม่ได้เปลี่ยน โปรแกรมเดิม build ผ่าน และโปรแกรมเดิม fail สิ่งที่เปลี่ยนคือความล้มเหลวตอนนี้ระบุ import แทนที่จะกล่าวหา <code>match</code> ที่อยู่ห่างไปสองไฟล์ ซึ่งคือทั้งหมดของเรื่อง: คอมไพเลอร์ที่รายงานต้นเหตุผิดทำให้คุณเสียเวลาหนึ่งชั่วโมงไปไล่มัน และเสียความเชื่อใจในทุกข้อความหลังจากนั้น</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">ระบุกฎ ไม่ใช่ token</h2>
-        <p>
-          ปัญหาเดียวกันในแบบที่เงียบกว่าคือ error ที่ถูกต้องแต่ไม่บอกอะไรเลย เอเจนต์ที่เขียน red-black tree หยิบ constructor ตามตำแหน่งที่ทุกภาษาตระกูล ML มี แล้ว parser หยุดที่ comma ตัวแรกพร้อม &ldquo;expected <code>)</code>&rdquo; และคำแนะนำ &ldquo;add the expected token&rdquo; การเพิ่ม <code>)</code> ตรงนั้นได้โปรแกรมอีกตัว ไม่ใช่โปรแกรมที่ใช้งานได้ variant ของ Glyph มี payload เดียว และ payload ที่มีหลาย field คือ record ไม่มีประโยคไหนในสองประโยคนั้นอยู่ใน output เลย
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="naming-the-rule-not-the-token">ระบุกฎ ไม่ใช่ token<a class="ak-anchor" href="#naming-the-rule-not-the-token" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ปัญหาเดียวกันในแบบที่เงียบกว่าคือ error ที่ถูกต้องแต่ไม่บอกอะไรเลย
+      </p>
+      <div class="code term">
         <span class="cap">glyph check ก่อนและตอนนี้</span>
 <pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
    ╰─ Add the expected token.</span>
@@ -185,27 +219,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
               /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
       and destructure it by those names in a match arm.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">red-black tree และการแก้ที่ระบุโปรแกรมของคุณ</span></summary><div class="body">
+        <p>
+          เอเจนต์ที่เขียน red-black tree หยิบ constructor ตามตำแหน่งที่ทุกภาษาตระกูล ML มี แล้ว parser หยุดที่ comma ตัวแรกพร้อม &ldquo;expected <code>)</code>&rdquo; และคำแนะนำ &ldquo;add the expected token&rdquo; การเพิ่ม <code>)</code> ตรงนั้นได้โปรแกรมอีกตัว ไม่ใช่โปรแกรมที่ใช้งานได้ variant ของ Glyph มี payload เดียว และ payload ที่มีหลาย field คือ record ไม่มีประโยคไหนในสองประโยคนั้นอยู่ใน output เลย
+        </p>
         <p>
           การจะพูดแบบนั้นได้ parser ต้องอ่านทั้ง list ก่อนปฏิเสธ ซึ่งก็ทำให้มันนับได้ด้วย span ขีดเส้นใต้ทั้งหก field แทนที่จะเป็นตัวคั่นที่มันบังเอิญไปตาย และ record ที่แนะนำสร้างจากชื่อ variant และหก type ในไฟล์ วิธีแก้จึงระบุโปรแกรมของคุณ ไม่ใช่ตัวอย่างของคนอื่น ชื่อ field เป็นสิ่งเดียวที่คอมไพเลอร์ใส่ให้ไม่ได้ มันจึงเว้นไว้เป็นช่องว่าง
         </p>
-        <p>
-          กฎเบื้องหลังข้อความเป็นการเลือก ไม่ใช่ช่องว่าง <code>Node(Black, l, x, b, h, r)</code> คือการสลับ argument ที่ตรวจ type ผ่าน และตำแหน่งที่สี่ไม่บอกอะไรคนอ่าน การเขียนแบบ record ระบุทุก field arm ของ match ระบุแค่ field ที่ใช้ และทั้งสองอย่างเป็นสิ่งที่ <code>grep</code> หาเจอ
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>กฎเบื้องหลังข้อความเป็นการเลือก ไม่ใช่ช่องว่าง <code>Node(Black, l, x, b, h, r)</code> คือการสลับ argument ที่ตรวจ type ผ่าน และตำแหน่งที่สี่ไม่บอกอะไรคนอ่าน การเขียนแบบ record ระบุทุก field arm ของ match ระบุแค่ field ที่ใช้ และทั้งสองอย่างเป็นสิ่งที่ <code>grep</code> หาเจอ</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">อีกสองอย่างที่ตัวตรวจรับมาทำใน 0.1.121</h2>
-        <p>
-          <code>Order { id: "a", total: 1 }</code> คือสิ่งที่คนที่มาจาก TypeScript เขียนเพื่อสร้าง record และ Glyph ไม่มีรูปแบบนั้น: ค่าเขียนแยกต่างหาก และ type อยู่ที่ annotation สิ่งที่คอมไพเลอร์เคยบอกเกี่ยวกับบรรทัดนั้นคือ <code>E0108</code> โค้ดที่ไปไม่ถึง บน build ที่ exit 0 เพราะชื่อ resolve ไปที่ type และวงเล็บปีกกาถูก parse เป็น block หลัง <code>return</code> ชื่อของ type ที่เขียนเป็นค่าคือ <code>E0228</code> และข้อความอ่านจาก declaration record จึงแสดง field ของมัน tagged union แสดง variant พร้อมรูปร่างของ payload และ union ของ string literal แสดง literal ของมัน <code>Order.parse(raw)</code> และ <code>Order.is(v)</code> ยังใช้ได้ เพราะตัวรับ descriptor ของ type เองเป็นตำแหน่ง expression เดียวที่ชื่อ type ควรอยู่
-        </p>
-        <p>
-          นั่นแก้กรณีที่ชื่อเป็น type และไม่ได้แตะการ parse <code>return h() { k: 2 }</code> จึงยัง return <code>h()</code> และทิ้งวงเล็บปีกกาพร้อมคำเตือน ตั้งแต่ 0.1.146 <code>{</code> บนบรรทัดที่ statement จบไปแล้วคือ <code>E0013</code> ตอน parse ไม่ว่าชื่อก่อนหน้าจะเป็นอะไร และข้อความช่วยเหลือให้การเขียนใหม่แบบเดียวกัน ตั้งแต่ 0.1.149 กฎครอบคลุมทุก statement ไม่ใช่แค่ตัวที่ขึ้นต้นด้วยวงเล็บปีกกา: <code>let s = "a" "b"</code> เคย bind <code>"a"</code> แล้วทิ้ง <code>"b"</code> และ <code>return x as User</code> เคยเป็นสาม statement เพราะ Glyph ไม่มี cast แต่ละ statement ใน block เริ่มบรรทัดของตัวเอง
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="two-more-the-checker-took-over-in-0-1-121">อีกสองอย่างที่ตัวตรวจรับมาทำใน 0.1.121<a class="ak-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Order { id: "a", total: 1 }</code> คือสิ่งที่คนที่มาจาก TypeScript เขียนเพื่อสร้าง record และ Glyph ไม่มีรูปแบบนั้น: ค่าเขียนแยกต่างหาก และ type อยู่ที่ annotation
+      </p>
+      <div class="code term">
         <span class="cap">glyph check บน record ที่สร้างแบบ TypeScript</span>
 <pre><span class="del">[E0013] a statement cannot begin on the line where
         `return Order` ends</span>
@@ -215,43 +243,71 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
 <span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0228</span><span class="chip code">E0013</span><span class="chip since">ตั้งแต่ 0.1.146</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">จาก E0108 ไป E0228 ไป E0013</span></summary><div class="body">
         <p>
-          อีกตัวคือ container ของ prelude ที่ถูก assign ให้ primitive <code>let x: string = o</code> ที่ <code>o: Option&lt;int&gt;</code> ไม่ได้อะไรเลยจากตัวตรวจของ Glyph และการส่ง <code>Nullable&lt;int&gt;</code> ให้ parameter ที่ประกาศเป็น <code>int</code> ก็เช่นกัน ตอนนี้ container ห้าตัวถูกครอบคลุมทั้งสองทิศ: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> และ <code>Nullable</code> ไม่เคยเป็น <code>string</code>, <code>number</code> หรือ <code>bool</code> ไม่ว่า argument จะเป็นอะไร และ <code>Nullable&lt;T&gt;</code> เทียบกับ scalar ตัดสินลึกลงไปหนึ่งชั้นเทียบกับ <code>T</code> <code>let v: Nullable&lt;int&gt; = 3</code> จึงยังถูก และ <code>let v: Nullable&lt;int&gt; = "three"</code> เป็น <code>E0204</code> กรณี <code>Nullable</code> ควรอยู่ในหน้านี้มากกว่าตัวอื่น เพราะ <code>tsc</code> จับไม่ได้: <code>const v: number | null = 3</code> ที่ emit ถูก narrow กลับเป็น <code>number</code> ก่อนการเรียกจะถูกตรวจ type ของขอบเขตที่มีไว้ทำให้ <code>null</code> มองเห็นได้จึงผ่านไปเงียบๆ ในที่ที่ประกาศ <code>int</code> และตัวตรวจของ Glyph เป็นที่เดียวที่จะจับได้
+          สิ่งที่คอมไพเลอร์เคยบอกเกี่ยวกับบรรทัดนั้นคือ <code>E0108</code> โค้ดที่ไปไม่ถึง บน build ที่ exit 0 เพราะชื่อ resolve ไปที่ type และวงเล็บปีกกาถูก parse เป็น block หลัง <code>return</code> ชื่อของ type ที่เขียนเป็นค่าคือ <code>E0228</code> และข้อความอ่านจาก declaration record จึงแสดง field ของมัน tagged union แสดง variant พร้อมรูปร่างของ payload และ union ของ string literal แสดง literal ของมัน <code>Order.parse(raw)</code> และ <code>Order.is(v)</code> ยังใช้ได้ เพราะตัวรับ descriptor ของ type เองเป็นตำแหน่ง expression เดียวที่ชื่อ type ควรอยู่
         </p>
-      </div>
+        <p>
+          นั่นแก้กรณีที่ชื่อเป็น type และไม่ได้แตะการ parse <code>return h() { k: 2 }</code> จึงยัง return <code>h()</code> และทิ้งวงเล็บปีกกาพร้อมคำเตือน ตั้งแต่ 0.1.146 <code>{</code> บนบรรทัดที่ statement จบไปแล้วคือ <code>E0013</code> ตอน parse ไม่ว่าชื่อก่อนหน้าจะเป็นอะไร และข้อความช่วยเหลือให้การเขียนใหม่แบบเดียวกัน ตั้งแต่ 0.1.149 กฎครอบคลุมทุก statement ไม่ใช่แค่ตัวที่ขึ้นต้นด้วยวงเล็บปีกกา: <code>let s = "a" "b"</code> เคย bind <code>"a"</code> แล้วทิ้ง <code>"b"</code> และ <code>return x as User</code> เคยเป็นสาม statement เพราะ Glyph ไม่มี cast
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>แต่ละ statement ใน block เริ่มบรรทัดของตัวเอง</p></div>
 
-      <div class="detail">
+      <h3 class="ak-h3" id="prelude-containers">container ในที่ที่ประกาศ primitive<a class="ak-anchor" href="#prelude-containers" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        อีกตัวคือ container ของ prelude ที่ถูก assign ให้ primitive <code>let x: string = o</code> ที่ <code>o: Option&lt;int&gt;</code> ไม่ได้อะไรเลยจากตัวตรวจของ Glyph และการส่ง <code>Nullable&lt;int&gt;</code> ให้ parameter ที่ประกาศเป็น <code>int</code> ก็เช่นกัน
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ตอนนี้ container ห้าตัวถูกครอบคลุมทั้งสองทิศ: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> และ <code>Nullable</code> ไม่เคยเป็น <code>string</code>, <code>number</code> หรือ <code>bool</code> ไม่ว่า argument จะเป็นอะไร และ <code>Nullable&lt;T&gt;</code> เทียบกับ scalar ตัดสินลึกลงไปหนึ่งชั้นเทียบกับ <code>T</code> <code>let v: Nullable&lt;int&gt; = 3</code> จึงยังถูก และ <code>let v: Nullable&lt;int&gt; = "three"</code> เป็น <code>E0204</code></p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">กรณีที่มีแต่ Glyph จับได้ และ record ตั้งแต่ 0.1.130</span></summary><div class="body">
+        <p>
+          กรณี <code>Nullable</code> ควรอยู่ในหน้านี้มากกว่าตัวอื่น เพราะ <code>tsc</code> จับไม่ได้: <code>const v: number | null = 3</code> ที่ emit ถูก narrow กลับเป็น <code>number</code> ก่อนการเรียกจะถูกตรวจ type ของขอบเขตที่มีไว้ทำให้ <code>null</code> มองเห็นได้จึงผ่านไปเงียบๆ ในที่ที่ประกาศ <code>int</code> และตัวตรวจของ Glyph เป็นที่เดียวที่จะจับได้
+        </p>
         <p>
           container เดียวกันเทียบกับ record หรือ union ที่ประกาศไว้มาเป็นลำดับถัดไป ตั้งแต่ 0.1.130 <code>let user: User = json.parse(body)</code> เป็น <code>E0204</code> expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code> ก่อนหน้านี้มีแค่ <code>tsc</code> ที่บอก ซึ่งหมายความว่า <code>glyph check --no-tsc</code>, editor และ playground แสดงไฟล์ที่สะอาดบนบรรทัดเดียวที่ขอบเขตมีไว้ให้ทำให้ถูก
         </p>
-        <p>
-          member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม "did you mean <code>length</code>" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน <code>tsc</code> ก็จะปฏิเสธทั้งคู่ build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">และอีกสามอย่าง ตั้งแต่ 0.1.133</h2>
-        <p>
-          <code>let up = s.toUpperCase</code> ตรวจ type ผ่านใน TypeScript และ throw เมื่อ <code>up()</code> รัน เพราะการอ่านทิ้ง string ที่มันเป็นของ Glyph ปฏิเสธมันเป็น <code>E0234</code> และปฏิเสธ <code>.bind(s)</code> บนมันด้วย: ให้ครอบการเรียกด้วย lambda แทน ตอนนี้ตัวตรวจรู้ว่า method ของ array และ string แต่ละตัวคืนอะไร จากตารางที่ generate จาก declaration ของ TypeScript เอง
-        </p>
-        <p>
-          <code>r?.label</code> บน <code>Result</code> อ่านแล้วเหมือน "ส่งต่อ error แล้วอ่าน field" แต่มันคือ optional chaining และ <code>Result</code> ไม่เคยเป็น null มันจึงอ่าน field จาก object <code>Result</code> และไม่ได้ส่งต่ออะไร เอเจนต์เขียนแบบนั้นพอดีตอนสร้างเครื่องมือคิวรี CSV ตอนนี้เป็น <code>E0236</code> บน <code>Option</code> ด้วย และข้อความช่วยเหลือบอกให้ bind ด้วย <code>?</code> ก่อน
-        </p>
-        <p>
-          <code>json.parse(body)</code> ที่ไม่มี type argument คือการอ่านที่ไม่ตรวจ ได้ <code>Result&lt;unknown, ...&gt;</code> เมื่อเขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> <code>tsc</code> เคยอนุมาน <code>User</code> จาก declaration และโปรแกรม crash ตอนอ่าน field แรก ตอนนี้ emitter เขียน <code>unknown</code> ออกมาตรงๆ <code>glyph check</code> จึงปฏิเสธมันผ่าน <code>tsc</code> ตัวตรวจของ Glyph เองยังจับ <code>unknown</code> ที่ไปตกอยู่ภายใน type ที่ประกาศไว้ไม่ได้ <code>--no-tsc</code> และ editor จึงยังพลาด <code>Result&lt;unknown, ...&gt;</code> ที่เขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> (<code>let user: User = json.parse(body)</code> แบบเปล่าๆ เป็น <code>E0204</code> จากตัวตรวจของ Glyph เอง เพราะ type ชั้นนอกผิดอยู่แล้ว) การปฏิเสธ <code>unknown</code> ทุกระดับความลึกวางแผนไว้เป็น G325 ใน<a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">โรดแมปการออกรุ่น</a>
-        </p>
-      </div>
+      <h3 class="ak-h3" id="member-typo">member ที่สะกดผิดบน array หรือ string<a class="ak-anchor" href="#member-typo" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        member ที่สะกดผิดบน array หรือ string คืออีกกรณีที่เคยต้องรอ <code>tsc</code> <code>xs.lenght</code> เป็น <code>E0210</code> พร้อม "did you mean <code>length</code>" ตรวจเทียบกับ member ที่ไลบรารีของ TypeScript ประกาศไว้สำหรับ array และ string แบบเดียวกับที่การอ่าน field ของ record ถูกตรวจเทียบกับ field ของมัน
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> ก็จะปฏิเสธทั้งคู่ build ที่รันมันจึงแดงอยู่แล้ว สิ่งที่เปลี่ยนคือตัวตรวจและทุกอย่างที่สร้างบนมันเห็นก่อน</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">และอีกสองอย่างใน 0.1.122</h2>
-        <p>
-          <code>type Mode = "read" | "write"</code> ประกาศชุดจำกัดของ string และตัวตรวจของ Glyph เปรียบเทียบค่ากับมันด้วยอะไรก็ไม่ใช่เลย ตัวเลข <code>bool</code> record และ string ที่อยู่นอกชุด ผ่าน <code>glyph check --no-tsc</code> ได้หมด โดยมีแค่คำเตือนเรื่องตัวแปรที่ไม่ได้ใช้ ขณะที่ <code>tsc</code> ปฏิเสธทุกตัวบน TypeScript ที่ emit <code>glyph build</code> เต็มจึงไม่เคยผิดเรื่องนี้ แต่ช่องทางสี่ทางที่ไม่มี <code>tsc</code> ใน loop ผิด: <code>--no-tsc</code>, language server, เครื่องมือ MCP และ playground
-        </p>
-      </div>
+      <h2 class="ak-h" id="and-three-more-since-0-1-133">และอีกสามอย่าง ตั้งแต่ 0.1.133<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
-      <div class="code">
+      <h3 class="ak-h3" id="detached-method">method ที่ถูกอ่านแยกออกจาก string ของมัน<a class="ak-anchor" href="#detached-method" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>let up = s.toUpperCase</code> ตรวจ type ผ่านใน TypeScript และ throw เมื่อ <code>up()</code> รัน เพราะการอ่านทิ้ง string ที่มันเป็นของ Glyph ปฏิเสธมันเป็น <code>E0234</code> และปฏิเสธ <code>.bind(s)</code> บนมันด้วย: ให้ครอบการเรียกด้วย lambda แทน
+      </p>
+      <div class="ak-chips"><span class="chip code">E0234</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">type ของ method มาจากไหน</span></summary><div class="body">
+        <p>
+          ตอนนี้ตัวตรวจรู้ว่า method ของ array และ string แต่ละตัวคืนอะไร จากตารางที่ generate จาก declaration ของ TypeScript เอง
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="optional-chain-result">optional chaining บน Result<a class="ak-anchor" href="#optional-chain-result" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>r?.label</code> บน <code>Result</code> อ่านแล้วเหมือน "ส่งต่อ error แล้วอ่าน field" แต่มันคือ optional chaining และ <code>Result</code> ไม่เคยเป็น null มันจึงอ่าน field จาก object <code>Result</code> และไม่ได้ส่งต่ออะไร
+      </p>
+      <div class="ak-chips"><span class="chip code">E0236</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>เอเจนต์เขียนแบบนั้นพอดีตอนสร้างเครื่องมือคิวรี CSV ตอนนี้เป็น <code>E0236</code> บน <code>Option</code> ด้วย และข้อความช่วยเหลือบอกให้ bind ด้วย <code>?</code> ก่อน</p></div>
+
+      <h3 class="ak-h3" id="unchecked-parse">json.parse ที่ไม่ได้ตรวจ<a class="ak-anchor" href="#unchecked-parse" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>json.parse(body)</code> ที่ไม่มี type argument คือการอ่านที่ไม่ตรวจ ได้ <code>Result&lt;unknown, ...&gt;</code> เมื่อเขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> <code>tsc</code> เคยอนุมาน <code>User</code> จาก declaration และโปรแกรม crash ตอนอ่าน field แรก
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ตอนนี้ emitter เขียน <code>unknown</code> ออกมาตรงๆ <code>glyph check</code> จึงปฏิเสธมันผ่าน <code>tsc</code></p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>ตัวตรวจของ Glyph เองยังจับ <code>unknown</code> ที่ไปตกอยู่ภายใน type ที่ประกาศไว้ไม่ได้ <code>--no-tsc</code> และ editor จึงยังพลาด <code>Result&lt;unknown, ...&gt;</code> ที่เขียนในที่ที่ประกาศ <code>Result&lt;User, ...&gt;</code> (<code>let user: User = json.parse(body)</code> แบบเปล่าๆ เป็น <code>E0204</code> จากตัวตรวจของ Glyph เอง เพราะ type ชั้นนอกผิดอยู่แล้ว) การปฏิเสธ <code>unknown</code> ทุกระดับความลึกวางแผนไว้เป็น G325 ใน<a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">โรดแมปการออกรุ่น</a></p></div>
+      <div class="ak-chips"><span class="chip gap">G325</span></div>
+
+      <h2 class="ak-h" id="and-two-more-in-0-1-122">และอีกสองอย่างใน 0.1.122<a class="ak-anchor" href="#and-two-more-in-0-1-122" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> ประกาศชุดจำกัดของ string และตัวตรวจของ Glyph เปรียบเทียบค่ากับมันด้วยอะไรก็ไม่ใช่เลย ตัวเลข <code>bool</code> record และ string ที่อยู่นอกชุด ผ่าน <code>glyph check --no-tsc</code> ได้หมด โดยมีแค่คำเตือนเรื่องตัวแปรที่ไม่ได้ใช้ ขณะที่ <code>tsc</code> ปฏิเสธทุกตัวบน TypeScript ที่ emit
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>glyph build</code> เต็มจึงไม่เคยผิดเรื่องนี้ แต่ช่องทางสี่ทางที่ไม่มี <code>tsc</code> ใน loop ผิด: <code>--no-tsc</code>, language server, เครื่องมือ MCP และ playground</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc บน type ที่แสดง string ที่ถูกต้องของมัน</span>
 <pre>type Mode = "read" | "write"
 
@@ -265,30 +321,26 @@ let d: Mode = { x: 1 }
 [E0211] argument type mismatch: expected `Mode`, found `bool`
 [E0204] type mismatch: expected `Mode`, found `record`</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">union ถูกเปรียบเทียบอย่างไร</span></summary><div class="body">
         <p>
           นั่นคือสี่ข้อที่ <code>tsc</code> รายงาน ที่สี่ statement เดียวกัน โดยไม่ต้องรัน <code>tsc</code> กฎอ่าน union ตามที่มันเป็นตอนรัน คือ <code>string</code> และถามตัวตรวจด้วยคำถาม <code>string</code> ที่สอดคล้องกันในแต่ละทิศ มันจึงสืบทอดกฎที่ปฏิเสธ record หรือ container เทียบกับ <code>string</code> อยู่แล้ว แทนที่จะเขียนใหม่ทีละรูปร่าง ชุดของ literal สองชุดเทียบกันแบบเซต union ที่แคบกว่าจึงไปอยู่ในที่ที่ประกาศตัวที่กว้างกว่าได้ chain ของ alias ถูกตามทั้งสองฝั่ง union ที่ import มาถูกตัดสินแบบเดียวกับตัวในเครื่อง และ <code>Nullable&lt;Mode&gt;</code> ถูกไล่ลงไปโดยรักษา union ไว้
         </p>
         <p>
           union ที่ซ้อนอยู่ใน field ของ record หรือ argument ของ generic ถูกปล่อยให้ <code>tsc</code> ใน 0.1.122 และถูกตัดสินใน 0.1.123 ดูด้านล่าง
         </p>
-        <p>
-          ตัวที่สองไม่ใช่เรื่องของ <code>tsc</code> เลย parser เป็นแบบ recursive descent ที่ไม่มีการป้องกันความลึก expression ที่ซ้อนกันสองพันชั้นจึงทำให้ process หมด stack และ abort ด้วย exit 134 นั่นแย่กับ <code>glyph check</code> และแย่กว่ากับ <code>glyph lsp</code> และ <code>glyph mcp</code> ซึ่งอ่านทุกไฟล์ใต้ root: ไฟล์ผิดปกติไฟล์เดียวทำให้ server ล่มทั้ง workspace ตอนนี้เป็น <code>E0011</code> แจ้งที่ token ที่จะเปิดชั้นที่ 65
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">0.1.123: literal ที่ค่าเป็นจริง ไม่ใช่ <code>string</code> ที่มันถูก emit ไป</h2>
+      <h2 class="ak-h" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: literal ที่ค่าเป็นจริง ไม่ใช่ <code>string</code> ที่มันถูก emit ไป<a class="ak-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> ใส่ชุดไว้ที่ declaration และไม่ได้ใส่อะไรไว้ที่ค่า <code>"read"</code> จึงเป็น <code>string</code> และ <code>["read", "write"]</code> เป็น <code>Array&lt;string&gt;</code>
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ที่มา <span class="hint">สิ่งที่ 0.1.122 ยอมปล่อย</span></summary><div class="body">
         <p>
-          <code>type Mode = "read" | "write"</code> ใส่ชุดไว้ที่ declaration และไม่ได้ใส่อะไรไว้ที่ค่า <code>"read"</code> จึงเป็น <code>string</code> และ <code>["read", "write"]</code> เป็น <code>Array&lt;string&gt;</code> นั่นทำให้สองโปรแกรมแยกกันไม่ออก: <code>return ["read", "write"]</code> ในที่ที่ประกาศ <code>Array&lt;Mode&gt;</code> ซึ่ง <code>tsc</code> คอมไพล์ผ่าน กับ <code>return xs</code> สำหรับ <code>xs: Array&lt;string&gt;</code> ซึ่งมันปฏิเสธ 0.1.122 ปฏิเสธที่จะตัดสินการจับคู่นั้นแทนที่จะตัดสินผิด และนั่นได้โปรแกรมที่ถูกมาโดยแลกกับการยอมปล่อยโปรแกรมที่ผิด: <code>{ mode: "nope" }</code> เทียบกับ <code>{ mode: Mode }</code> ไม่ได้อะไรเลย
+          นั่นทำให้สองโปรแกรมแยกกันไม่ออก: <code>return ["read", "write"]</code> ในที่ที่ประกาศ <code>Array&lt;Mode&gt;</code> ซึ่ง <code>tsc</code> คอมไพล์ผ่าน กับ <code>return xs</code> สำหรับ <code>xs: Array&lt;string&gt;</code> ซึ่งมันปฏิเสธ 0.1.122 ปฏิเสธที่จะตัดสินการจับคู่นั้นแทนที่จะตัดสินผิด และนั่นได้โปรแกรมที่ถูกมาโดยแลกกับการยอมปล่อยโปรแกรมที่ผิด: <code>{ mode: "nope" }</code> เทียบกับ <code>{ mode: Mode }</code> ไม่ได้อะไรเลย
         </p>
-        <p>
-          ตอนนี้ string literal ที่เขียนไว้มี type เป็น literal เดียวตามที่มันเขียน type ของ element ใน array literal คือการรวมของ element ทั้งหมด และ array หรือ object literal ที่เขียนไว้ถูกตรวจทีละ element และทีละ field เทียบกับ type ที่ประกาศ diagnostic จึงระบุ literal และขีดเส้นใต้มัน
-        </p>
-      </div>
-
-      <div class="code">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ตอนนี้ string literal ที่เขียนไว้มี type เป็น literal เดียวตามที่มันเขียน type ของ element ใน array literal คือการรวมของ element ทั้งหมด และ array หรือ object literal ที่เขียนไว้ถูกตรวจทีละ element และทีละ field เทียบกับ type ที่ประกาศ diagnostic จึงระบุ literal และขีดเส้นใต้มัน</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc บน literal ที่อยู่ใน container หนึ่งชั้น</span>
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
@@ -299,24 +351,21 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// 0.1.122: nothing, on all three</span>
 <span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">literal ขยายเป็น type กว้างที่ไหน และ key ของ <code>Record</code> ตั้งแต่ 0.1.153</span></summary><div class="body">
         <p>
           literal ขยายกลับเป็น <code>string</code> ในที่ที่ TypeScript ขยาย: ที่ <code>let</code> ที่ไม่มี annotation ซึ่ง <code>let</code> ของ TypeScript ที่ emit ก็ขยายแบบเดียวกัน และที่ binding ของ element ใน <code>for</code> บน array ที่เขียนไว้ <code>let l = "read"</code> ตามด้วย <code>takes_mode(l)</code> จึงถูกปฏิเสธที่นี่และเป็น <code>TS2345</code> ที่นั่น <code>const</code> emit เป็น <code>const</code> ของ TypeScript และรักษา literal ไว้ <code>takes_mode(CM)</code> จึงคอมไพล์ผ่านทั้งสองฝั่ง literal type ที่มาถึงผ่านชื่อจะไม่ถูกขยาย ซึ่งเป็นกฎความสดใหม่ของ TypeScript เอง ทุกแถวในนั้นตัดสินโดยการรัน <code>tsc --strict</code> บน TypeScript ที่เทียบเท่า ไม่ใช่โดยการให้เหตุผลเอา
         </p>
         <p>
-          ยังมีการจับคู่หนึ่งที่ปฏิเสธจะตัดสิน: argument ที่เป็น key ของ <code>Record</code> เทียบกับของ <code>Record</code> อีกตัว TypeScript เขียน <code>Record&lt;string, V&gt;</code> เป็น index signature ที่ครอบคลุมทุก key ที่ <code>Record&lt;Mode, V&gt;</code> ประกาศ และยอมรับทั้งสองทิศ การปฏิเสธจึงจะปฏิเสธโปรแกรมที่คอมไพล์ผ่าน อีกสองรูปร่างที่ตัวตรวจยังไม่บอกอะไร: literal ภายใน <code>Some(...)</code> เพราะ constructor ของ prelude ยังไม่มี type ที่นี่ และ record literal ที่ bind กับ <code>let</code> ที่ไม่มี annotation เพราะไม่มี record type ถูกสังเคราะห์ให้ object literal
+          ตั้งแต่ 0.1.153 argument ที่เป็น key ของ <code>Record</code> ถูกยึดเข้มกว่าที่ <code>tsc</code> ยึด TypeScript เขียน <code>Record&lt;string, V&gt;</code> เป็น index signature และยอมรับมันเทียบกับ <code>Record&lt;Mode, V&gt;</code> ทั้งสองทิศ Glyph ปฏิเสธทั้งคู่: map แบบเปิดอาจมี key ที่อยู่นอก <code>Mode</code> หรือขาดไปตัวหนึ่ง และ <code>Record&lt;Mode, V&gt;</code> ที่ถูกส่งต่อไปเป็นแบบเปิดก็อาจถูกเขียน key แปลกปลอมลงไป การไปจากแบบหนึ่งสู่อีกแบบต้องผ่าน arm <code>is</code> หรือ <code>json.parse</code>
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>สองรูปร่างที่ตัวตรวจยังไม่บอกอะไร: literal ภายใน <code>Some(...)</code> เพราะ constructor ของ prelude ยังไม่มี type ที่นี่ และ record literal ที่ bind กับ <code>let</code> ที่ไม่มี annotation เพราะไม่มี record type ถูกสังเคราะห์ให้ object literal</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">module ใต้ <code>std/</code> เคยเป็นโค้ดที่ไม่มีวันรันโดยไม่มี diagnostic</h2>
-        <p>
-          <code>std/</code> และ <code>extern/</code> ระบุ module ที่คอมไพเลอร์พามาด้วย และ resolver สงวนไว้สำหรับ import ไม่มีอะไรห้ามไฟล์ในโปรเจกต์<em>ประกาศ</em>ตัวหนึ่ง <code>module std/io</code> ใน <code>src/io.glyph</code> ของคุณเองคอมไพล์ผ่านสะอาด แล้ว <code>import std/io { shout }</code> ก็ resolve ไปที่ stub และรายงานว่า <code>shout</code> ไม่ได้ถูก export: ไฟล์ของคุณไม่เคยถูกอ่าน ไฟล์ที่ไม่มี diagnostic และไม่รันโค้ดคือรูปแบบที่แย่ที่สุดที่คอมไพเลอร์ทิ้งคุณไว้ได้ เพราะไม่มีอะไรเกี่ยวกับมันดูผิด
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-module-under-std-was-dead-code-with-no-diagnostic">module ใต้ <code>std/</code> เคยเป็นโค้ดที่ไม่มีวันรันโดยไม่มี diagnostic<a class="ak-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/</code> และ <code>extern/</code> ระบุ module ที่คอมไพเลอร์พามาด้วย และ resolver สงวนไว้สำหรับ import ไม่มีอะไรห้ามไฟล์ในโปรเจกต์<em>ประกาศ</em>ตัวหนึ่ง
+      </p>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc บน src/io.glyph ที่ประกาศ `module std/io`</span>
 <pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
 
@@ -326,14 +375,22 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
    &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
    &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">สิ่งที่เคยเกิดขึ้น และ path ไหนถูกสงวนไว้</span></summary><div class="body">
+        <p>
+          <code>module std/io</code> ใน <code>src/io.glyph</code> ของคุณเองคอมไพล์ผ่านสะอาด แล้ว <code>import std/io { shout }</code> ก็ resolve ไปที่ stub และรายงานว่า <code>shout</code> ไม่ได้ถูก export: ไฟล์ของคุณไม่เคยถูกอ่าน
+        </p>
         <p>
           prefix ถูก match เป็น segment แรกทั้งตัว <code>standard</code>, <code>externals/io</code>, <code>app/std</code> และ <code>app/extern/helper</code> จึงไม่ถูกแตะ และการ import ใต้ prefix ใดก็ยังทำงานแบบที่เคยเป็นมาตลอด
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ไฟล์ที่ไม่มี diagnostic และไม่รันโค้ดคือรูปแบบที่แย่ที่สุดที่คอมไพเลอร์ทิ้งคุณไว้ได้ เพราะไม่มีอะไรเกี่ยวกับมันดูผิด</p></div>
 
-      <div class="code">
+      <p class="ak-kicker">ตัวที่สองใน 0.1.122</p>
+      <h2 class="ak-h" id="nesting-limit">ขีดจำกัดความลึกของ parser<a class="ak-anchor" href="#nesting-limit" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ตัวที่สองไม่ใช่เรื่องของ <code>tsc</code> เลย parser เป็นแบบ recursive descent ที่ไม่มีการป้องกันความลึก expression ที่ซ้อนกันสองพันชั้นจึงทำให้ process หมด stack และ abort ด้วย exit 134
+      </p>
+      <div class="code term">
         <span class="cap">glyph check บน `const x = ` ตามด้วยวงเล็บซ้อนกัน 2,000 ชั้น</span>
 <pre><span class="cm">// before: thread 'main' has overflowed its stack
 //         fatal runtime error: stack overflow, aborting   (exit 134)</span>
@@ -343,23 +400,23 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       `fn` that returns one of them, so no single expression, type or
       pattern is more than 64 levels deep.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมเรื่องนี้สำคัญกับ language server</span></summary><div class="body">
         <p>
-          ขีดจำกัดคือ 64 และมาจากการวัด ไม่ใช่การเลือกเอา construct ที่แพงที่สุดหนึ่งชั้น คือ array literal ที่ซ้อนกัน ใช้ stack 7,792 ไบต์ใน release build และ 8,810 ใน debug ซึ่งหาได้จากการ binary search หา thread stack ที่เล็กที่สุดที่ความลึกหนึ่งๆ จะ parse ได้ stack ที่บางที่สุดที่ parser รันคือ 2 MiB ของ thread ที่ spawn ขึ้นมา ซึ่งเป็นสิ่งที่ worker ของ language server ได้ และ 64 ชั้นใช้ไม่ถึงหนึ่งในสามของมันใน build ที่แพงกว่า การซ้อนที่ลึกที่สุดในไฟล์ <code>.glyph</code> 343 ไฟล์ของ repository นี้คือ 16 ขีดจำกัดครอบคลุม expression, type, pattern, block และ children ของ JSX เหมือนกัน และ array ข้างเคียงกันพันตัวยัง parse ได้ เพราะความลึกคือการซ้อนต่อ construct ไม่ใช่งบที่ใช้ไปทั้งไฟล์
+          นั่นแย่กับ <code>glyph check</code> และแย่กว่ากับ <code>glyph lsp</code> และ <code>glyph mcp</code> ซึ่งอ่านทุกไฟล์ใต้ root: ไฟล์ผิดปกติไฟล์เดียวทำให้ server ล่มทั้ง workspace ตอนนี้เป็น <code>E0011</code> แจ้งที่ token ที่จะเปิดชั้นที่ 65
         </p>
-      </div>
-
-      <h2 class="block-label">เมื่อไม่มีคอมไพเลอร์ตัวไหนผิด</h2>
-      <div class="detail">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ขีดจำกัดคือ 64 และมาจากการวัด ไม่ใช่การเลือกเอา</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">วัด 64 มาอย่างไร</span></summary><div class="body">
         <p>
-          มีรูปแบบที่สาม และเป็นตัวที่อ่านแล้วแย่ที่สุด Glyph ไม่รายงานอะไร <code>tsc</code> รายงานบางอย่างที่จริง และโปรแกรมที่คุณเขียนก็ไม่ได้ผิด สิ่งที่ล้มเหลวคือการแปลระหว่างสองตัวนั้น
+          construct ที่แพงที่สุดหนึ่งชั้น คือ array literal ที่ซ้อนกัน ใช้ stack 7,792 ไบต์ใน release build และ 8,810 ใน debug ซึ่งหาได้จากการ binary search หา thread stack ที่เล็กที่สุดที่ความลึกหนึ่งๆ จะ parse ได้ stack ที่บางที่สุดที่ parser รันคือ 2 MiB ของ thread ที่ spawn ขึ้นมา ซึ่งเป็นสิ่งที่ worker ของ language server ได้ และ 64 ชั้นใช้ไม่ถึงหนึ่งในสามของมันใน build ที่แพงกว่า การซ้อนที่ลึกที่สุดในไฟล์ <code>.glyph</code> 343 ไฟล์ของ repository นี้คือ 16 ขีดจำกัดครอบคลุม expression, type, pattern, block และ children ของ JSX เหมือนกัน และ array ข้างเคียงกันพันตัวยัง parse ได้ เพราะความลึกคือการซ้อนต่อ construct ไม่ใช่งบที่ใช้ไปทั้งไฟล์
         </p>
-        <p>
-          binding ใน Glyph มี type เดียวตลอดอายุของมัน TypeScript narrow binding ให้เป็นสิ่งที่เห็นถูก assign ล่าสุด และ <code>boolean</code> ของมันคือ union <code>true | false</code> <code>let done = false</code> จึงไปถึง <code>tsc</code> ด้วย type <code>false</code> และ arm <code>true</code> ของ <code>switch</code> ที่ emit ก็ไม่มีอะไรให้ match
-        </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="when-neither-compiler-is-wrong">เมื่อไม่มีคอมไพเลอร์ตัวไหนผิด<a class="ak-anchor" href="#when-neither-compiler-is-wrong" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        มีรูปแบบที่สาม และเป็นตัวที่อ่านแล้วแย่ที่สุด Glyph ไม่รายงานอะไร <code>tsc</code> รายงานบางอย่างที่จริง และโปรแกรมที่คุณเขียนก็ไม่ได้ผิด
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>สิ่งที่ล้มเหลวคือการแปลระหว่างสองตัวนั้น</p></div>
       <div class="code">
         <span class="cap">poll.glyph และสิ่งที่ tsc บอกเกี่ยวกับมันก่อน 0.1.89</span>
 <pre>fn classify() -&gt; int {
@@ -373,13 +430,18 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// no Glyph diagnostic, then</span>
 <span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไม <code>tsc</code> เห็น <code>false</code> และแอปที่เจอปัญหานี้</span></summary><div class="body">
+        <p>
+          binding ใน Glyph มี type เดียวตลอดอายุของมัน TypeScript narrow binding ให้เป็นสิ่งที่เห็นถูก assign ล่าสุด และ <code>boolean</code> ของมันคือ union <code>true | false</code> <code>let done = false</code> จึงไปถึง <code>tsc</code> ด้วย type <code>false</code> และ arm <code>true</code> ของ <code>switch</code> ที่ emit ก็ไม่มีอะไรให้ match
+        </p>
         <p>
           type ที่ประกาศเป็นชุดของ string literal ล้มเหลวแบบเดียวกัน และ <code>==</code> ก็เช่นกัน ซึ่งกลับมาเป็น <code>TS2367</code> แทน: สองข้อความ สองรหัส ต้นเหตุเดียว แอปที่เจอมันกำลัง poll flag ที่ callback ของ timer ตั้ง ซึ่งเป็นวิธีเปลี่ยน API แบบ event ให้เป็นค่า ในขณะที่ Glyph ไม่มี <code>Promise</code> ที่คุณสร้างเองได้ callback กลายเป็นว่าไม่ใช่ประเด็น: สี่บรรทัดที่ไม่มี callback ก็ทำให้เกิดได้
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>การแก้ไม่ใช่ diagnostic ใหม่ เพราะไม่มีอะไรให้วินิจฉัย ตอนนี้ emitter ระบุ type ที่ตัวตรวจตัดสินไว้แล้วซ้ำอีกครั้ง ในสองที่ที่แยกแยะตามค่า: scrutinee ของ <code>match</code> และทั้งสองฝั่งของ <code>==</code> หรือ <code>!=</code></p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">การตรวจที่ยังทำงานอยู่ และต้นทุนของมัน</span></summary><div class="body">
         <p>
-          การแก้ไม่ใช่ diagnostic ใหม่ เพราะไม่มีอะไรให้วินิจฉัย ตอนนี้ emitter ระบุ type ที่ตัวตรวจตัดสินไว้แล้วซ้ำอีกครั้ง ในสองที่ที่แยกแยะตามค่า: scrutinee ของ <code>match</code> และทั้งสองฝั่งของ <code>==</code> หรือ <code>!=</code> แต่ละฝั่งตัดสินด้วย type ของตัวเองและไม่สนสิ่งที่อยู่ข้างๆ การเปรียบเทียบระหว่างสอง binding จึงถูกครอบคลุมแบบเดียวกับการเปรียบเทียบกับ literal
+          แต่ละฝั่งตัดสินด้วย type ของตัวเองและไม่สนสิ่งที่อยู่ข้างๆ การเปรียบเทียบระหว่างสอง binding จึงถูกครอบคลุมแบบเดียวกับการเปรียบเทียบกับ literal
         </p>
         <p>
           การตรวจที่คุณต้องการยังทำงาน <code>m == "nope"</code> ที่ <code>m</code> เป็น <code>Mode</code> ยังถูกปฏิเสธ และตอนนี้ข้อความระบุ <code>Mode</code> แทนที่จะเป็นสมาชิกตัวเดียวที่ <code>m</code> บังเอิญถืออยู่ การทำที่การ assign แทนจะใช้โค้ดน้อยกว่าและจะทิ้งสิ่งนั้นไป: cast เป็น <code>Mode</code> ถูกยอมรับในที่ที่การ assign แบบมี annotation ไม่ถูกยอมรับ และการตรวจความเป็นสมาชิกคือส่วนที่ Glyph ตั้งใจปล่อยให้ <code>tsc</code>
@@ -387,45 +449,108 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <p>
           ต้นทุนมีน้อยและควรระบุ cast narrow ได้เช่นเดียวกับยืนยัน ค่าที่ Glyph ให้ type เป็น <code>bool</code> ซึ่ง type ใน TypeScript ออกมาเป็น <code>unknown</code> จึงผ่านในที่ที่ <code>switch</code> เคยบ่น type ทั้งสองยังต้องเทียบกันได้ model ที่เพี้ยนไปไกลพอจะมีผล อย่าง <code>string</code> เทียบกับ <code>bool</code> จึงรายงาน <code>TS2352</code> แทนที่จะไม่บอกอะไร
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">คำผิดเดียวกัน สองคำตอบ</h2>
-      <div class="detail">
-        <p>
-          ฟังก์ชันของ standard library ที่สะกดผิดเคยได้คำตอบต่างกันขึ้นกับว่าคุณเขียน import แบบไหน ซึ่งเป็นความไม่สม่ำเสมอแบบที่สอนให้คุณไม่เชื่อคำตอบทั้งสอง
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-same-typo-two-answers">คำผิดเดียวกัน สองคำตอบ<a class="ak-anchor" href="#the-same-typo-two-answers" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        ฟังก์ชันของ standard library ที่สะกดผิดเคยได้คำตอบต่างกันขึ้นกับว่าคุณเขียน import แบบไหน ซึ่งเป็นความไม่สม่ำเสมอแบบที่สอนให้คุณไม่เชื่อคำตอบทั้งสอง
+      </p>
       <div class="code">
         <span class="cap">import ด้วยชื่อ เป็น E0105 เสมอ</span>
 <pre>import std/string { repeeat }
 <span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
       </div>
-
       <div class="code">
         <span class="cap">การอ่านผ่าน namespace ก่อน 0.1.72</span>
 <pre>import std/string
 string.repeeat(s, 2)
 <span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>ตอนนี้ทั้งสองแบบผ่านรายการ export และทั้งคู่บอก <code>E0105</code> โดยระบุ member และ module ที่มันขาดไป</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ทำไมการเขียนสองแบบถึงต่างกัน และเปิดใช้แล้วเจออะไร</span></summary><div class="body">
         <p>
-          การเขียนแบบแรกถูกตรวจกับรายการ export ของ module ตอน resolve แบบที่สองไม่ถูกตรวจเลย มันจึงตกไปถึง <code>tsc</code> ซึ่งเห็นการเข้าถึง property บน object และตอบในแง่นั้น ตอนนี้ทั้งสองแบบผ่านรายการ export และทั้งคู่บอก <code>E0105</code> โดยระบุ member และ module ที่มันขาดไป
+          การเขียนแบบแรกถูกตรวจกับรายการ export ของ module ตอน resolve แบบที่สองไม่ถูกตรวจเลย มันจึงตกไปถึง <code>tsc</code> ซึ่งเห็นการเข้าถึง property บน object และตอบในแง่นั้น
         </p>
         <p>
           การเปิดใช้มันเจอสิ่งที่ไม่มีใครมองหาทันที: test fixture ตัวหนึ่งเรียก <code>fs.write</code> ทั้งที่ฟังก์ชันชื่อ <code>write_text</code> มันผ่านมาหลายเดือนเพราะ fixture นั้นรันโดยปิดการตรวจ type และไม่มีอะไรอื่นในคอมไพเลอร์ดู member ของ namespace ตอนนี้รายการ export เป็นแหล่งอ้างอิงของทั้งสองแบบ การตรวจแยกต่างหากจึงรักษามันให้ตรงกับสิ่งที่ runtime export จริง การตรวจนั้นถูกเขียนขึ้น แล้วตั้งใจทำให้พังเพื่อยืนยันว่ามัน fail ซึ่งเป็นวิธีที่เราพบว่าเวอร์ชันแรกของมันไม่ได้ตรวจอะไรเลยแบบเงียบๆ
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">สถานะตอนนี้</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">ใช้ได้วันนี้</h3>
-          <p><code>E0222</code> สำหรับ <code>await</code> นอก <code>async fn</code>, <code>E0223</code> สำหรับ arm ของ <code>match</code> ในตำแหน่งค่าที่ไม่ให้ค่า, <code>E0008</code> สำหรับการ assign ที่ขาด <code>mut</code>, <code>E0010</code> สำหรับ variant ที่ได้ payload ตามตำแหน่งหลาย field ในขณะที่รูปแบบ record คือรูปแบบที่มีอยู่, <code>E0302</code>/<code>E0303</code> สำหรับ <code>?</code> ในตำแหน่งที่ส่งต่อไม่ได้, <code>E0110</code>/<code>E0111</code> สำหรับ declaration ที่จะบังชื่อที่ module ที่ emit พึ่งพาอยู่, <code>E0104</code> สำหรับ import ในเครื่องที่ไม่ได้ระบุ module ใต้ build root, <code>E0105</code> สำหรับชื่อที่ module ไม่ได้ export ไม่ว่าคุณจะเข้าถึงผ่าน import ด้วยชื่อหรือผ่าน namespace, <code>E0228</code> สำหรับชื่อของ type ที่เขียนในที่ที่ต้องการค่า, <code>E0013</code> สำหรับ statement ที่เริ่มบนบรรทัดที่อีกตัวจบ ซึ่งเคยทิ้งค่าที่ตามมา, <code>E0204</code>/<code>E0211</code> สำหรับ container ของ prelude ที่ถูก assign หรือส่งเป็น primitive หรือ record หรือ union ที่ประกาศไว้ รวมถึงกรณี <code>Nullable&lt;T&gt;</code> ที่ <code>tsc</code> narrow ทิ้งไป, <code>E0210</code> สำหรับ member ที่ array หรือ string ไม่มี, สองรหัสเดียวกันสำหรับค่าที่ไม่อยู่ในชุดที่ union ของ string literal ประกาศไว้, <code>E0011</code> สำหรับ construct ที่ซ้อนเกิน 64 ชั้น, <code>E0101</code> สำหรับ path ของ import แบบ relative ซึ่งเคยหยุดใน parser ด้วย "expected module path segment" ทั่วไป และ <code>E0113</code> สำหรับ module ในโปรเจกต์ที่ประกาศใต้ <code>std/</code> หรือ <code>extern/</code> ซึ่งเคยคอมไพล์ผ่านสะอาดแต่เข้าถึงไม่ได้ รายการชื่อที่บังกันครอบคลุม type ที่ emitter เขียนเอง <code>Issue</code> และ <code>Record</code> จึงถูกจับที่ declaration ทุกรหัสมีวิธีแก้หนึ่งบรรทัด note ที่อธิบายกฎ และคำอธิบายแบบยาวใน <code>glyph --explain</code> <code>docs/error-codes.md</code> แสดงแคตตาล็อก และมีเทสต์รักษาทั้งสองให้ตรงกัน</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">กำลังคมขึ้น</h3>
-          <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่ initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดจึงได้รับอนุญาต และ ESM ที่ emit ก็รันมัน Glyph ต้องการการเริ่ม module แบบ async โดยนัยหรือไม่ยังเป็นคำถามในสเปกที่เปิดอยู่ <code>E0223</code> ตัดสิน <code>match</code> ท้ายฟังก์ชันได้ก็ต่อเมื่อฟังก์ชันประกาศ return type arm ภายใน lambda ที่ไม่มี annotation จึงยังไปถึง <code>tsc</code> ฝั่งชื่อที่บังกัน มีสองอย่างที่ทำไปได้แค่ครึ่ง <code>E0110</code> บอกให้คุณเปลี่ยนชื่อแทนที่จะให้เก็บชื่อไว้ <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> และ <code>Promise</code> จึงยังใช้เป็นชื่อ type หรือ variant ไม่ได้ และ <code>E0111</code> หยุด <code>type Key = string | number</code> ไม่ให้มีความหมายผิด โดยไม่ได้ให้วิธีเขียนสิ่งที่ตั้งใจ: union ของ primitive สอง type ไม่มีวิธีเขียนใน Glyph นอกจาก <code>extern_ts</code> ซึ่งตัวตรวจของมันเองมองเนื้อหาเป็นของทึบ union ที่ไม่มี tag แตะเรื่องความครบถ้วน runtime descriptor และ <code>is</code> ข้อนั้นจึงเป็นการตัดสินใจเรื่อง type system และยังไม่ได้กำหนดเวลา <code>E0104</code> ไปถึง <code>glyph build</code> และ <code>glyph check</code> แต่ไม่ถึง editor: LSP วิเคราะห์ข้อความของเอกสารโดยไม่มี build root และโฟลเดอร์ของ workspace ก็ไม่ใช่ build root การเดาจะทำให้เกิดการเตือนผิดที่การตรวจนี้ออกแบบมาให้หลีกเลี่ยง และ parameter ที่เป็นคำสงวนยังซ่อนอยู่หลัง error ที่ไม่เกี่ยวข้องในไฟล์เดียวกัน เพราะความล้มเหลวใน pass รวบรวมจะข้าม pass resolve ที่จะเจอมัน อีกเรื่องหนึ่ง การตรึงที่จุดอ่านซึ่งทำให้ binding แบบ <code>bool</code> หรือ union ของ string literal ยัง match ได้ ตาม type alias เฉพาะภายใน module ที่กำลัง emit <code>pub type Ready = bool</code> ใน module หนึ่ง และ <code>let r: catalog.Ready = false</code> ในอีก module จึงยังไปถึง <code>tsc</code> เป็น <code>TS2678</code> union ของ string literal ถูกครอบคลุมข้าม module ในการ import ทั้งสามแบบ และตั้งแต่ 0.1.123 diagnostic ระบุ declaration (expected <code>Mode</code>) ในทุกแบบ แทนที่จะพิมพ์ชุด literal ในแบบใดแบบหนึ่ง</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
+
+          <p class="ak-st-group">statement และ syntax</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> นอก <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">arm ของ <code>match</code> ในตำแหน่งค่าที่ไม่ให้ค่า</span><span class="chip code">E0223</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การ assign ที่ขาด <code>mut</code></span><span class="chip code">E0008</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">variant ที่ได้ payload ตามตำแหน่งหลาย field ในขณะที่รูปแบบ record คือรูปแบบที่มีอยู่</span><span class="chip code">E0010</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>?</code> ในตำแหน่งที่ส่งต่อไม่ได้</span><span class="chip code">E0302</span><span class="chip code">E0303</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ชื่อของ type ที่เขียนในที่ที่ต้องการค่า</span><span class="chip code">E0228</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">statement ที่เริ่มบนบรรทัดที่อีกตัวจบ ซึ่งเคยทิ้งค่าที่ตามมา</span><span class="chip code">E0013</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">construct ที่ซ้อนเกิน 64 ชั้น</span><span class="chip code">E0011</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">ชื่อและ module</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">declaration ที่จะบังชื่อที่ module ที่ emit พึ่งพาอยู่</span><span class="chip code">E0110</span><span class="chip code">E0111</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">รายการชื่อที่บังกันครอบคลุม type ที่ emitter เขียนเอง <code>Issue</code> และ <code>Record</code> จึงถูกจับที่ declaration</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">import ในเครื่องที่ไม่ได้ระบุ module ใต้ build root</span><span class="chip code">E0104</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ชื่อที่ module ไม่ได้ export ไม่ว่าคุณจะเข้าถึงผ่าน import ด้วยชื่อหรือผ่าน namespace</span><span class="chip code">E0105</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">path ของ import แบบ relative ซึ่งเคยหยุดใน parser ด้วย "expected module path segment" ทั่วไป</span><span class="chip code">E0101</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">module ในโปรเจกต์ที่ประกาศใต้ <code>std/</code> หรือ <code>extern/</code> ซึ่งเคยคอมไพล์ผ่านสะอาดแต่เข้าถึงไม่ได้</span><span class="chip code">E0113</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">type</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">container ของ prelude ที่ถูก assign หรือส่งเป็น primitive หรือ record หรือ union ที่ประกาศไว้ รวมถึงกรณี <code>Nullable&lt;T&gt;</code> ที่ <code>tsc</code> narrow ทิ้งไป</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">member ที่ array หรือ string ไม่มี</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">สองรหัสเดียวกันสำหรับค่าที่ไม่อยู่ในชุดที่ union ของ string literal ประกาศไว้</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">ทุกรหัส</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ทุกรหัสมีวิธีแก้หนึ่งบรรทัด note ที่อธิบายกฎ และคำอธิบายแบบยาวใน <code>glyph --explain</code> <code>docs/error-codes.md</code> แสดงแคตตาล็อก และมีเทสต์รักษาทั้งสองให้ตรงกัน</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> กำลังคมขึ้น</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>array.map</code>, <code>flat_map</code> และ <code>zip</code> ยังรับ callback แบบ <code>async</code> โดยไม่บ่น และคืน array ของค่าที่ยังค้างอยู่ ซึ่งพิมพ์ออกมาเป็น <code>[object Promise]</code> ฟังก์ชัน array ห้าตัวที่รับ predicate หยุดมันได้ ด้วย <code>E0211</code> ที่ callback การ model อีกสามตัวแบบเดียวกันจะปฏิเสธ <code>par.all(array.map(items, async fn ...))</code> ด้วย ซึ่งเป็นวิธีที่ Glyph รันงานพร้อมกัน เพราะ array ของค่าที่ยังค้างไม่มีวิธีเขียนในภาษา นั่นเป็นการตัดสินใจเรื่อง type system ไม่ใช่รายการที่ขาด จึงยังเปิดอยู่</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>await</code> ระดับบนสุดได้รับอนุญาต</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>initializer ของ <code>const</code> ระดับ module ไม่มีสิ่งที่เรียกได้ครอบอยู่ <code>await</code> ระดับบนสุดจึงได้รับอนุญาต และ ESM ที่ emit ก็รันมัน Glyph ต้องการการเริ่ม module แบบ async โดยนัยหรือไม่ยังเป็นคำถามในสเปกที่เปิดอยู่</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0223</code> ตัดสิน <code>match</code> ท้ายฟังก์ชันได้ก็ต่อเมื่อฟังก์ชันประกาศ return type arm ภายใน lambda ที่ไม่มี annotation จึงยังไปถึง <code>tsc</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0110</code> บอกให้คุณเปลี่ยนชื่อแทนที่จะให้เก็บชื่อไว้</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>ฝั่งชื่อที่บังกัน มีสองอย่างที่ทำไปได้แค่ครึ่ง <code>E0110</code> บอกให้คุณเปลี่ยนชื่อแทนที่จะให้เก็บชื่อไว้ <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> และ <code>Promise</code> จึงยังใช้เป็นชื่อ type หรือ variant ไม่ได้</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0111</code> หยุด <code>type Key = string | number</code> ไม่ให้มีความหมายผิด โดยไม่ได้ให้วิธีเขียนสิ่งที่ตั้งใจ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>และ <code>E0111</code> หยุด <code>type Key = string | number</code> ไม่ให้มีความหมายผิด โดยไม่ได้ให้วิธีเขียนสิ่งที่ตั้งใจ: union ของ primitive สอง type ไม่มีวิธีเขียนใน Glyph นอกจาก <code>extern_ts</code> ซึ่งตัวตรวจของมันเองมองเนื้อหาเป็นของทึบ union ที่ไม่มี tag แตะเรื่องความครบถ้วน runtime descriptor และ <code>is</code> ข้อนั้นจึงเป็นการตัดสินใจเรื่อง type system และยังไม่ได้กำหนดเวลา</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0104</code> ไปถึง <code>glyph build</code> และ <code>glyph check</code> แต่ไม่ถึง editor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p><code>E0104</code> ไปถึง <code>glyph build</code> และ <code>glyph check</code> แต่ไม่ถึง editor: LSP วิเคราะห์ข้อความของเอกสารโดยไม่มี build root และโฟลเดอร์ของ workspace ก็ไม่ใช่ build root การเดาจะทำให้เกิดการเตือนผิดที่การตรวจนี้ออกแบบมาให้หลีกเลี่ยง</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">parameter ที่เป็นคำสงวนยังซ่อนอยู่หลัง error ที่ไม่เกี่ยวข้องในไฟล์เดียวกัน เพราะความล้มเหลวใน pass รวบรวมจะข้าม pass resolve ที่จะเจอมัน</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การตรึงที่จุดอ่านตาม type alias เฉพาะภายใน module ที่กำลัง emit</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
+                <p>อีกเรื่องหนึ่ง การตรึงที่จุดอ่านซึ่งทำให้ binding แบบ <code>bool</code> หรือ union ของ string literal ยัง match ได้ ตาม type alias เฉพาะภายใน module ที่กำลัง emit <code>pub type Ready = bool</code> ใน module หนึ่ง และ <code>let r: catalog.Ready = false</code> ในอีก module จึงยังไปถึง <code>tsc</code> เป็น <code>TS2678</code> union ของ string literal ถูกครอบคลุมข้าม module ในการ import ทั้งสามแบบ และตั้งแต่ 0.1.123 diagnostic ระบุ declaration (expected <code>Mode</code>) ในทุกแบบ แทนที่จะพิมพ์ชุด literal ในแบบใดแบบหนึ่ง</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

@@ -1,7 +1,7 @@
 ---
 title: ¿Puedo manejar datos binarios, o todo es un string? · Glyph
 description: std/bytes le da a Glyph una secuencia de bytes inmutable, con codecs hex, base64 y base32 que rechazan la entrada mal formada, además de E/S de archivos y HMACs sobre bytes.
-source_hash: 597ac2fe9fcb5f04
+source_hash: 9c69ac3fe3f46a35
 prev: /answers/long-running/ | &larr; Anterior | ¿Puedo escribir un servidor, o el proceso simplemente termina?
 next: /answers/impact/ | Siguiente &rarr; | ¿Puede el compilador decirme qué va a romper un cambio antes de hacerlo?
 ---
@@ -12,23 +12,9 @@ next: /answers/impact/ | Siguiente &rarr; | ¿Puede el compilador decirme qué v
         <code>std/bytes</code> te da una secuencia inmutable de octetos, y tanto <code>std/fs</code> como <code>std/crypto</code> la entienden. Hasta la 0.1.78 no era así: cada frontera de la librería estándar recibía un string y devolvía un string, así que no se podía leer un PNG ni darle a un HMAC una clave de verdad.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por qué importa</h2>
-        <p>
-          El primer byte de un PNG es <code>0x89</code>, que por sí solo no es UTF-8 válido. Si lees ese archivo como texto, cada byte que el decodificador no sabe interpretar se convierte en U+FFFD, así que el archivo está corrupto antes de que tu programa lo vea y nada informa de un error. Lo mismo le pasa a una clave: un secreto de HMAC son octetos arbitrarios, y pasarlo por un string lo cambia, así que calculas un MAC distinto del que dice la especificación y todos los tests que escribiste contra tu propio código pasan.
-        </p>
-        <p>
-          Dos aplicaciones escritas por separado, un lector de PNG y un autenticador, se toparon con esta misma frase la misma semana. Ninguna de las dos podía esquivarlo dentro del lenguaje.
-        </p>
-
-        <h2 class="block-label">Míralo</h2>
-        <p>
-          Un autenticador RFC 6238, que necesita bytes a ambos lados del HMAC. El secreto llega codificado en base32, el mensaje es un contador de ocho bytes que es casi todo ceros, y el digest se indexa por su propio último byte:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Contraseña de un solo uso, de principio a fin</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">Contraseña de un solo uso, de principio a fin</span>
 <pre>module totp
 
 import std/bytes
@@ -58,28 +44,55 @@ pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.Bytes
     + (at(mac, offset + 2) * 256)
     + at(mac, offset + 3)) % 100000000)
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Míralo: un autenticador RFC 6238, que necesita bytes a ambos lados del HMAC. El secreto llega codificado en base32, el mensaje es un contador de ocho bytes que es casi todo ceros, y el digest se indexa por su propio último byte.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          <code>Bytes</code> es un <code>Uint8Array</code> en tiempo de ejecución, así que se pasa a cualquier API del host que reciba uno sin desenvolverlo. Las operaciones de secuencia se llaman como sus equivalentes en <code>std/array</code> y <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Ninguna modifica su argumento.
-        </p>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por qué los strings rompen los bytes</a></li>
+          <li><a href="#what-a-bytes-value-is">Qué es un valor Bytes</a></li>
+          <li><a href="#every-decode-can-refuse-and-says-where">Decodificaciones que rechazan</a></li>
+          <li><a href="#which-hmac-you-pick-changes-the-answer">Elegir un HMAC</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Cada decodificación puede rechazar la entrada, y dice dónde</h2>
-        <p>
-          Esta es la parte que más costó construir y la razón para usarlo. El <code>Buffer</code> de Node acepta entrada mal formada e informa de éxito:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Dos aplicaciones escritas por separado, un lector de PNG y un autenticador, se toparon con esta misma frase la misma semana. Ninguna de las dos podía esquivarlo dentro del lenguaje.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Un archivo leído como texto</b>El primer byte de un PNG es <code>0x89</code>, que por sí solo no es UTF-8 válido. Si lees ese archivo como texto, cada byte que el decodificador no sabe interpretar se convierte en U+FFFD, así que el archivo está corrupto antes de que tu programa lo vea y nada informa de un error.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Una clave que pasa por un string</b>Lo mismo le pasa a una clave: un secreto de HMAC son octetos arbitrarios, y pasarlo por un string lo cambia, así que calculas un MAC distinto del que dice la especificación y todos los tests que escribiste contra tu propio código pasan.</li>
+      </ul>
 
-      <div class="code">
-        <span class="cap">Lo que la plataforma hace sin avisar</span>
+      <h2 class="ak-h" id="what-a-bytes-value-is">Qué es un valor <code>Bytes</code><a class="ak-anchor" href="#what-a-bytes-value-is" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Bytes</code> es un <code>Uint8Array</code> en tiempo de ejecución, así que se pasa a cualquier API del host que reciba uno sin desenvolverlo.
+      </p>
+      <p>
+        Las operaciones de secuencia se llaman como sus equivalentes en <code>std/array</code> y <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Ninguna modifica su argumento.
+      </p>
+
+      <h2 class="ak-h" id="every-decode-can-refuse-and-says-where">Cada decodificación puede rechazar la entrada, y dice dónde<a class="ak-anchor" href="#every-decode-can-refuse-and-says-where" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Esta es la parte que más costó construir y la razón para usarlo. El <code>Buffer</code> de Node acepta entrada mal formada e informa de éxito:
+      </p>
+
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code">
+            <span class="cap">Lo que la plataforma hace sin avisar</span>
 <pre>Buffer.from("zz", "hex")        // an empty buffer, no error
 Buffer.from("a-b_", "base64")   // skips - and _, decodes the rest, no error
 buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">Lo que hace Glyph</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code">
+            <span class="cap">Lo que hace Glyph</span>
 <pre>match bytes.from_hex(input) {
   Ok(b) =&gt; use(b),
   Err(e) =&gt; io.eprintln("${e.message} at ${number.to_string(e.index)}"),
@@ -88,33 +101,55 @@ buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
 // "z" is not a hex digit at 0
 // a trailing base64 group cannot be 1 character(s) long at 3
 // not valid UTF-8 at 2</pre>
+          </div>
+        </div>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué rechaza cada codec</span></summary><div class="body">
         <p>
           Cada codec está escrito a mano en lugar de delegar en <code>Buffer</code>, así que hex, base64, base64url y base32 rechazan un carácter fuera de su alfabeto, un grupo final demasiado corto para codificar un byte entero y un carácter final con bits más allá del final de los datos. <code>to_text</code> recorre los datos hasta el primer byte que no puede formar parte de una secuencia UTF-8 válida, así que obtienes una posición y no solo un veredicto. <code>from_array</code> rechaza cualquier valor fuera de 0..255 por el mismo motivo: un <code>&amp; 0xff</code> silencioso convierte 256 en 0 y una errata en datos.
         </p>
-        <p>
-          Escribir los codecs a mano trajo algo que no era el objetivo. El módulo no usa ninguna API del host, solo <code>Uint8Array</code>, <code>TextEncoder</code> y <code>TextDecoder</code>, así que un bundle que solo toca <code>std/bytes</code> también funciona en un Web Worker.
-        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Escribir los codecs a mano trajo algo que no era el objetivo. El módulo no usa ninguna API del host, solo <code>Uint8Array</code>, <code>TextEncoder</code> y <code>TextDecoder</code>, así que un bundle que solo toca <code>std/bytes</code> también funciona en un Web Worker.
+      </p></div>
 
-        <h2 class="block-label">El HMAC que elijas cambia la respuesta</h2>
-        <p>
-          <code>std/crypto</code> tiene ahora las dos formas de cada algoritmo. El nombre simple recibe un string y devuelve hex, que es lo que quieres para hashear una contraseña. La forma <code>_bytes</code> recibe y devuelve <code>Bytes</code>, que es lo que quiere un protocolo de red. Si la clave vino de <code>bytes.from_base64</code> o de <code>crypto.random_bytes</code>, tiene bytes que un string no puede contener, y la forma de texto calculará otra cosa sin avisar.
-        </p>
-        <p>
-          Para comparar un valor que aporta un atacante con un secreto se usa <code>crypto.timing_safe_equal</code>, no <code>bytes.equals</code>. <code>equals</code> retorna en cuanto encuentra una diferencia, así que lo que tarda revela cuántos bytes iniciales eran correctos.
-        </p>
-      </div>
+      <h2 class="ak-h" id="which-hmac-you-pick-changes-the-answer">El HMAC que elijas cambia la respuesta<a class="ak-anchor" href="#which-hmac-you-pick-changes-the-answer" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/crypto</code> tiene ahora las dos formas de cada algoritmo.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>El nombre simple</b>El nombre simple recibe un string y devuelve hex, que es lo que quieres para hashear una contraseña.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>La forma <code>_bytes</code></b>La forma <code>_bytes</code> recibe y devuelve <code>Bytes</code>, que es lo que quiere un protocolo de red.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Si la clave vino de <code>bytes.from_base64</code> o de <code>crypto.random_bytes</code>, tiene bytes que un string no puede contener, y la forma de texto calculará otra cosa sin avisar.
+      </p></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Para comparar un valor que aporta un atacante con un secreto se usa <code>crypto.timing_safe_equal</code>, no <code>bytes.equals</code>. <code>equals</code> retorna en cuanto encuentra una diferencia, así que lo que tarda revela cuántos bytes iniciales eran correctos.
+      </p></div>
 
-      <h2 class="block-label">Dónde está</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p><code>std/bytes</code> con 21 funciones: las operaciones de secuencia, el puente con UTF-8 y codecs hex, base64, base64url y base32 que devuelven un <code>Result</code> que indica la posición culpable. <code>fs.read_bytes</code>, <code>write_bytes</code> y <code>append_bytes</code> leen y escriben un archivo sin decodificarlo. <code>std/crypto</code> tiene una forma <code>_bytes</code> de cada digest y HMAC, además de SHA-1 para los protocolos que lo especifican, <code>random_bytes</code> y <code>timing_safe_equal</code>. Los codecs están fijados contra los vectores de RFC 4648 y el HMAC contra RFC 6238, en la propia suite de tests del compilador.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Lo que se está afinando</h3>
-          <p>Todavía no hay codec de enteros, así que leer un <code>u32</code> big-endian de una cabecera es aritmética que escribes tú: por encima de 32 bits un desplazamiento no es la herramienta adecuada de todos modos, así que se divide. Los literales hexadecimales todavía no se parsean, lo que hace difícil de leer una tabla CRC32 de 256 entradas escrita en decimal. <code>std/websocket</code> todavía decodifica un frame binario como texto UTF-8; el tipo que necesitaba ya existe, y los frames son lo siguiente. Y las seis funciones antiguas de string a string de <code>std/encoding</code> siguen sin decir nada ante una entrada mal formada, así que usa los codecs de <code>std/bytes</code> para cualquier cosa que tenga que estar bien. Los codecs están escritos en TypeScript en lugar de delegar en el <code>Buffer</code> de Node, que es lo que les permite funcionar en un Web Worker, y son entre 1x y 35x más lentos que los de la plataforma con un megabyte. Codificar una clave o un token no cuesta nada que se pueda medir en ningún caso; la guía de rendimiento tiene la tabla si mueves decenas de megabytes.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/bytes</code> con 21 funciones: las operaciones de secuencia, el puente con UTF-8 y codecs hex, base64, base64url y base32 que devuelven un <code>Result</code> que indica la posición culpable.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_bytes</code>, <code>write_bytes</code> y <code>append_bytes</code> leen y escriben un archivo sin decodificarlo.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/crypto</code> tiene una forma <code>_bytes</code> de cada digest y HMAC, además de SHA-1 para los protocolos que lo especifican, <code>random_bytes</code> y <code>timing_safe_equal</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Los codecs están fijados contra los vectores de RFC 4648 y el HMAC contra RFC 6238, en la propia suite de tests del compilador.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Lo que se está afinando</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Todavía no hay codec de enteros, así que leer un <code>u32</code> big-endian de una cabecera es aritmética que escribes tú: por encima de 32 bits un desplazamiento no es la herramienta adecuada de todos modos, así que se divide.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los literales hexadecimales todavía no se parsean, lo que hace difícil de leer una tabla CRC32 de 256 entradas escrita en decimal.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/websocket</code> todavía decodifica un frame binario como texto UTF-8; el tipo que necesitaba ya existe, y los frames son lo siguiente.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Y las seis funciones antiguas de string a string de <code>std/encoding</code> siguen sin decir nada ante una entrada mal formada, así que usa los codecs de <code>std/bytes</code> para cualquier cosa que tenga que estar bien.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los codecs están escritos en TypeScript en lugar de delegar en el <code>Buffer</code> de Node, que es lo que les permite funcionar en un Web Worker, y son entre 1x y 35x más lentos que los de la plataforma con un megabyte.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Codificar una clave o un token no cuesta nada que se pueda medir en ningún caso; la guía de rendimiento tiene la tabla si mueves decenas de megabytes.</span></span></li>
+          </ul>
+        </section>
       </div>

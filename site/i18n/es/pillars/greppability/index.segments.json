@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/greppability/index.html",
   "locale": "es",
-  "source_hash": "7d5d7e45736ff422",
+  "source_hash": "9c3cf289350d83ef",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "<strong>Un nombre, un sitio.</strong> Cada símbolo tiene exactamente una forma sintáctica en el lugar donde se declara, así que un <code>grep</code> normal encuentra la definición, siempre, sin índice, sin servidor de lenguaje y sin necesidad de suerte."
     },
     {
-      "id": "h-cfc911db",
-      "kind": "html",
-      "en": "Why \"where is this defined?\" is hard",
-      "tr": "Por qué \"¿dónde está definido esto?\" es difícil"
-    },
-    {
-      "id": "h-8a696257",
-      "kind": "html",
-      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest. The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
-      "tr": "En un código TypeScript maduro, la pregunta más simple, <em>¿de dónde viene este nombre?</em>, suele ser la más difícil. El lenguaje ofrece media docena de formas de repartir un símbolo por muchos sitios: las sobrecargas dividen una función en varias firmas, los decoradores la envuelven en otra cosa, la fusión de <code>namespace</code> e <code>interface</code> dispersa un tipo entre archivos, <code>declare module</code> amplía código que no es tuyo, y los barrel files <code>index.ts</code> lo reexportan todo, así que la ruta desde la que importas no es donde vive realmente nada."
-    },
-    {
-      "id": "h-7ac6182d",
-      "kind": "html",
-      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is. Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
-      "tr": "Una persona se apaña con un LSP y la memoria muscular. Un <strong>agente</strong> hace grep: lee el repositorio como texto, y cada una de esas construcciones es un sitio donde el texto miente sobre dónde está el código. Glyph las elimina. El resultado es un lenguaje donde la búsqueda es una primitiva fiable, no una heurística."
-    },
-    {
-      "id": "h-e0bad820",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
-      "tr": "<span class=\"ex-label\">01</span> Una declaración, una forma"
-    },
-    {
-      "id": "h-b1b69e3e",
-      "kind": "html",
-      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>). So the search for a definition has exactly one answer.",
-      "tr": "Una función, un tipo o un componente se declara exactamente una vez, con una sola sintaxis. No hay sobrecargas que dividan una firma ni forma de volver a declarar un nombre: dos cosas de nivel superior con el mismo nombre son un error (<code>E0100</code>). Así que la búsqueda de una definición tiene exactamente una respuesta."
-    },
-    {
       "id": "h-e3252323",
       "kind": "html",
       "en": "TypeScript: four hits, one is the body",
@@ -101,10 +71,124 @@
       "tr": "Glyph: la primera coincidencia es la definición"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "En esta página"
+    },
+    {
+      "id": "h-24ca6fa6",
+      "kind": "html",
+      "en": "<a href=\"#why-where-is-this-defined-is-hard\">Why it is hard</a>",
+      "tr": "<a href=\"#why-where-is-this-defined-is-hard\">Por qué es difícil</a>"
+    },
+    {
+      "id": "h-50c02449",
+      "kind": "html",
+      "en": "<a href=\"#one-declaration-one-form\">One declaration, one form</a>",
+      "tr": "<a href=\"#one-declaration-one-form\">Una declaración, una forma</a>"
+    },
+    {
+      "id": "h-ad5848b5",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-the-import-path-is-the-location\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-the-import-path-is-the-location\">Sin barrel files</a>"
+    },
+    {
+      "id": "h-91485703",
+      "kind": "html",
+      "en": "<a href=\"#no-hidden-ways-to-attach-behavior\">No hidden behavior</a>",
+      "tr": "<a href=\"#no-hidden-ways-to-attach-behavior\">Sin comportamiento oculto</a>"
+    },
+    {
+      "id": "h-2d5e229e",
+      "kind": "html",
+      "en": "<a href=\"#even-mutation-is-greppable\">Greppable mutation</a>",
+      "tr": "<a href=\"#even-mutation-is-greppable\">Mutación que se puede buscar con grep</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">El benchmark</a>"
+    },
+    {
+      "id": "h-0b94e373",
+      "kind": "html",
+      "en": "<a href=\"#a-lint-rule-can-ban-overloads-and-decorators\">\"A lint rule can do this\"</a>",
+      "tr": "<a href=\"#a-lint-rule-can-ban-overloads-and-decorators\">\"Una regla de lint puede hacerlo\"</a>"
+    },
+    {
+      "id": "h-cfc911db",
+      "kind": "html",
+      "en": "Why \"where is this defined?\" is hard",
+      "tr": "Por qué \"¿dónde está definido esto?\" es difícil"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Enlace a esta sección"
+    },
+    {
+      "id": "h-bdb2c935",
+      "kind": "html",
+      "en": "In a mature TypeScript codebase, the simplest question, <em>where does this name come from?</em>, is often the hardest.",
+      "tr": "En un código TypeScript maduro, la pregunta más simple, <em>¿de dónde viene este nombre?</em>, suele ser la más difícil."
+    },
+    {
+      "id": "h-3a120abf",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">overloads, decorators, merging, augmentation, barrels</span>",
+      "tr": "Detalles <span class=\"hint\">sobrecargas, decoradores, fusión, ampliación, barrels</span>"
+    },
+    {
+      "id": "h-fb571be7",
+      "kind": "html",
+      "en": "The language offers half a dozen ways to spread one symbol across many places: overloads split a function into several signatures, decorators wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter a type across files, <code>declare module</code> augments code you don't own, and barrel <code>index.ts</code> files re-export everything so the path you import from isn't where anything actually lives.",
+      "tr": "El lenguaje ofrece media docena de formas de repartir un símbolo por muchos sitios: las sobrecargas dividen una función en varias firmas, los decoradores la envuelven en otra cosa, la fusión de <code>namespace</code> e <code>interface</code> dispersa un tipo entre archivos, <code>declare module</code> amplía código que no es tuyo, y los barrel files <code>index.ts</code> lo reexportan todo, así que la ruta desde la que importas no es donde vive realmente nada."
+    },
+    {
+      "id": "h-58f30961",
+      "kind": "html",
+      "en": "A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it reads the repo as text, and every one of those constructs is a place the text lies about where the code is.",
+      "tr": "Una persona se apaña con un LSP y la memoria muscular. Un <strong>agente</strong> hace grep: lee el repositorio como texto, y cada una de esas construcciones es un sitio donde el texto miente sobre dónde está el código."
+    },
+    {
+      "id": "h-d45a6d81",
+      "kind": "html",
+      "en": "Glyph removes them. The result is a language where search is a reliable primitive, not a heuristic.",
+      "tr": "Glyph las elimina. El resultado es un lenguaje donde la búsqueda es una primitiva fiable, no una heurística."
+    },
+    {
+      "id": "h-e0bad820",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One declaration, one form",
+      "tr": "<span class=\"ex-label\">01</span> Una declaración, una forma"
+    },
+    {
+      "id": "h-e0587fdd",
+      "kind": "html",
+      "en": "A function, type, or component is declared exactly once, with one syntax. There are no overloads to split a signature and no way to redeclare a name: two top-level things with the same name is a hard error (<code>E0100</code>).",
+      "tr": "Una función, un tipo o un componente se declara exactamente una vez, con una sola sintaxis. No hay sobrecargas que dividan una firma ni forma de volver a declarar un nombre: dos cosas de nivel superior con el mismo nombre son un error (<code>E0100</code>)."
+    },
+    {
       "id": "h-eb25898c",
       "kind": "html",
       "en": "The declaration keyword is part of the name you search for. <code>grep \"fn parseUser\"</code> cannot match a call, an import, or a re-export, only the one place it's <strong>defined</strong>.",
       "tr": "La palabra clave de la declaración forma parte del nombre que buscas. <code>grep \"fn parseUser\"</code> no puede coincidir con una llamada, un import o un re-export, solo con el único sitio donde está <strong>definida</strong>."
+    },
+    {
+      "id": "h-a3c3049c",
+      "kind": "html",
+      "en": "So the search for a definition has exactly one answer.",
+      "tr": "Así que la búsqueda de una definición tiene exactamente una respuesta."
     },
     {
       "id": "h-79996f09",
@@ -113,10 +197,10 @@
       "tr": "<span class=\"ex-label\">02</span> Sin barrel files: la ruta del import es la ubicación"
     },
     {
-      "id": "h-f450e21f",
+      "id": "h-b2f4eba2",
       "kind": "html",
-      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
-      "tr": "Los imports de Glyph nunca reexportan, y un módulo cuyo único contenido son imports se rechaza (<code>E0102</code>). No hay una capa <code>index.ts</code> que lo blanquee. Así que un import nombra el módulo donde vive realmente el símbolo: la ruta <em>es</em> la dirección."
+      "en": "Glyph imports never re-export, and a module whose only contents are imports is rejected (<code>E0102</code>). There is no <code>index.ts</code> laundering layer.",
+      "tr": "Los imports de Glyph nunca reexportan, y un módulo cuyo único contenido son imports se rechaza (<code>E0102</code>). No hay una capa <code>index.ts</code> que lo blanquee."
     },
     {
       "id": "h-f4999a77",
@@ -125,16 +209,28 @@
       "tr": "el import te dice exactamente dónde mirar"
     },
     {
+      "id": "h-5d9e758c",
+      "kind": "html",
+      "en": "So an import names the module the symbol actually lives in: the path <em>is</em> the address.",
+      "tr": "Así que un import nombra el módulo donde vive realmente el símbolo: la ruta <em>es</em> la dirección."
+    },
+    {
       "id": "h-6c9d2ede",
       "kind": "html",
       "en": "<span class=\"ex-label\">03</span> No hidden ways to attach behavior",
       "tr": "<span class=\"ex-label\">03</span> Sin formas ocultas de añadir comportamiento"
     },
     {
-      "id": "h-c09fa1b1",
+      "id": "h-d17431ab",
       "kind": "html",
-      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to. A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
-      "tr": "No hay decoradores que envuelvan una función en una capa invisible, ni fusión de <code>namespace</code> que junte miembros de todo el árbol, ni <code>declare module</code> que amplíe un tipo de terceros desde un archivo que nunca se te ocurriría abrir, ni <code>this</code> implícito que cambie a qué se refiere un método. Un nombre se resuelve a una declaración, y todo lo que le da forma está a la vista en esa declaración."
+      "en": "There are no decorators wrapping a function in an unseen layer, no <code>namespace</code> merging pooling members from across the tree, no <code>declare module</code> augmenting a third-party type from a file you'd never think to open, and no implicit <code>this</code> rebinding what a method refers to.",
+      "tr": "No hay decoradores que envuelvan una función en una capa invisible, ni fusión de <code>namespace</code> que junte miembros de todo el árbol, ni <code>declare module</code> que amplíe un tipo de terceros desde un archivo que nunca se te ocurriría abrir, ni <code>this</code> implícito que cambie a qué se refiere un método."
+    },
+    {
+      "id": "h-adad9b4d",
+      "kind": "html",
+      "en": "A name resolves to one declaration, and everything that shapes it is visible at that declaration.",
+      "tr": "Un nombre se resuelve a una declaración, y todo lo que le da forma está a la vista en esa declaración."
     },
     {
       "id": "h-1f8a2312",
@@ -143,10 +239,16 @@
       "tr": "<span class=\"ex-label\">04</span> Hasta las mutaciones se encuentran con grep"
     },
     {
-      "id": "h-844b3d63",
+      "id": "h-f2ca2c10",
       "kind": "html",
-      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
-      "tr": "La buscabilidad no consiste solo en encontrar definiciones, también en encontrar <em>efectos</em>. El estado compartido vive en un <code>std/store</code>, y cada cambio sobre él es una llamada literal a <code>.set(</code> o <code>.update(</code>. Así que una sola búsqueda enumera toda la superficie de escritura de un estado, en lugar de ir a la caza de asignaciones repartidas por el archivo."
+      "en": "Greppability isn't only about finding definitions, it's about finding <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a literal <code>.set(</code> or <code>.update(</code> call.",
+      "tr": "La buscabilidad no consiste solo en encontrar definiciones, también en encontrar <em>efectos</em>. El estado compartido vive en un <code>std/store</code>, y cada cambio sobre él es una llamada literal a <code>.set(</code> o <code>.update(</code>."
+    },
+    {
+      "id": "h-8d916673",
+      "kind": "html",
+      "en": "So one search enumerates the entire write-surface of a piece of state, instead of hunting for assignments scattered through the file.",
+      "tr": "Así que una sola búsqueda enumera toda la superficie de escritura de un estado, en lugar de ir a la caza de asignaciones repartidas por el archivo."
     },
     {
       "id": "h-69824f13",
@@ -161,10 +263,16 @@
       "tr": "El benchmark: en camino"
     },
     {
-      "id": "h-45b81f92",
+      "id": "h-16e77859",
       "kind": "html",
-      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
-      "tr": "La versión medible de esta afirmación es la precisión: para un símbolo dado, qué fracción de las coincidencias de un grep normal son lo que realmente buscabas, y cuántos pasos necesita un agente para llegar a una definición. Glyph todavía no se usa en el mundo real, así que el gráfico de abajo es un marcador de posición, y se rellenará con cifras reales cuando haya un código real que medir."
+      "en": "The measurable version of this claim is precision: for a given symbol, what fraction of a plain grep's hits are the thing you were actually looking for, and how many steps does it take an agent to reach a definition?",
+      "tr": "La versión medible de esta afirmación es la precisión: para un símbolo dado, ¿qué fracción de las coincidencias de un grep normal son lo que realmente buscabas, y cuántos pasos necesita un agente para llegar a una definición?"
+    },
+    {
+      "id": "h-bbe0254d",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder, it fills in with real numbers once there's a real codebase to measure.",
+      "tr": "Glyph todavía no se usa en el mundo real, así que el gráfico de abajo es un marcador de posición, y se rellenará con cifras reales cuando haya un código real que medir."
     },
     {
       "id": "h-22a29cf4",
@@ -215,10 +323,22 @@
       "tr": "\"Una regla de lint puede prohibir las sobrecargas y los decoradores\""
     },
     {
-      "id": "h-054477f5",
+      "id": "h-f7708ca3",
       "kind": "html",
-      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload. The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it. In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
-      "tr": "En tu propio repositorio, sí. ESLint puede prohibir los namespaces, y un equipo puede acordar no usar sobrecargas. El lenguaje lo sigue permitiendo todo, así que la garantía dura lo que dure la configuración y solo cubre el código sobre el que se ejecuta. Un <code>grep</code> sobre una dependencia, un archivo generado o el repositorio de otra persona no puede contar con ello. En Glyph esas construcciones no existen, así que <code>grep</code> funciona igual en todos los archivos Glyph, incluidos los que nadie de tu equipo configuró."
+      "en": "In your own repository, yes. ESLint can forbid namespaces, and a team can agree not to overload.",
+      "tr": "En tu propio repositorio, sí. ESLint puede prohibir los namespaces, y un equipo puede acordar no usar sobrecargas."
+    },
+    {
+      "id": "h-851eb261",
+      "kind": "html",
+      "en": "The language still allows all of it, so the guarantee lasts as long as the config does and covers only the code it runs on. A <code>grep</code> over a dependency, a generated file or someone else's repository can't count on it.",
+      "tr": "El lenguaje lo sigue permitiendo todo, así que la garantía dura lo que dure la configuración y solo cubre el código sobre el que se ejecuta. Un <code>grep</code> sobre una dependencia, un archivo generado o el repositorio de otra persona no puede contar con ello."
+    },
+    {
+      "id": "h-ba3cf568",
+      "kind": "html",
+      "en": "In Glyph the constructs don't exist, so <code>grep</code> works the same on every Glyph file, including ones nobody on your team configured.",
+      "tr": "En Glyph esas construcciones no existen, así que <code>grep</code> funciona igual en todos los archivos Glyph, incluidos los que nadie de tu equipo configuró."
     },
     {
       "id": "h-7ef205c4",

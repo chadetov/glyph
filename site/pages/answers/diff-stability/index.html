@@ -2,10 +2,13 @@
 title: Will agent edits stay clean, or reformat my file? · Glyph
 description: Glyph has one canonical layout and requires trailing commas, so a one-line change is a one-line diff. Agents can't bury a real change under reformatting noise.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/verifiability/ | &larr; Previous | What stops an agent from silently breaking my code?
 next: /answers/greppability/ | Next &rarr; | Can an agent (or I) find where anything is defined?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">02 &middot; Reviewable change</p>
       <h1 class="q-title">Will agent edits stay clean, or reformat my whole file?</h1>
@@ -16,59 +19,70 @@ next: /answers/greppability/ | Next &rarr; | Can an agent (or I) find where anyt
         reformatting</strong>.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          When an agent opens a pull request, the diff <em>is</em> the review. If a genuine
-          one-line fix arrives as a 200-line reformat, nobody can see what actually changed,
-          and that noise is exactly where a bug slips through. Diff stability means the diff
-          shows the change and <strong>nothing but the change</strong>.
-        </p>
-        <p>Two rules do most of the work. Here's each, shown as the diff you'd review.</p>
-
-        <h2 class="block-label">Example 1: trailing commas, one item per line</h2>
-        <p>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:</p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">TypeScript: add "/billing"</span>
+      <figure class="ak-hero" id="example-1-trailing-commas-one-item-per-line">
+        <div class="two-up fit">
+          <div class="code">
+            <span class="cap">TypeScript: add "/billing"</span>
 <pre> const routes = [
    "/home",
 <span class="del">-  "/about"</span>
 <span class="add">+  "/about",</span>
 <span class="add">+  "/billing"</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict bad">3 lines moved for 1 change</span></div>
-        </div>
-        <div class="code">
-          <span class="cap">Glyph: add "/billing"</span>
+            <div style="padding:0 16px 14px"><span class="verdict bad">3 lines moved for 1 change</span></div>
+          </div>
+          <div class="code">
+            <span class="cap">Glyph: add "/billing"</span>
 <pre> let routes = [
    "/home",
    "/about",
 <span class="add">+  "/billing",</span>
  ]</pre>
-          <div style="padding:0 16px 14px"><span class="verdict good">1 line added, exactly the change</span></div>
+            <div style="padding:0 16px 14px"><span class="verdict good">1 line added, exactly the change</span></div>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line
-          goes one element per line rather than being repacked, so inserting, removing, or
-          reordering an entry never disturbs its neighbors. The same holds for record fields,
-          parameters, match arms, and imports. The threshold has a cost: a rename that pushes a
-          call past 100 columns expands the whole argument list to one per line.
-        </p>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why it matters</a></li>
+          <li><a href="#trailing-commas">Trailing commas</a></li>
+          <li><a href="#example-2-one-canonical-layout">One canonical layout</a></li>
+          <li><a href="#one-canonical-layout-so-does-the-formatter-move-my-comments">Comments stay put</a></li>
+          <li><a href="#can-glyph-fmt-break-a-program-that-builds">Can fmt break a build?</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Example 2: one canonical layout</h2>
-        <p>
-          There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace,
-          wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic
-          edit can't drag reflow along with it. Change one field's type, and that's the whole diff:
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        When an agent opens a pull request, the diff <em>is</em> the review. If a genuine
+        one-line fix arrives as a 200-line reformat, nobody can see what actually changed,
+        and that noise is exactly where a bug slips through.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Diff stability means the diff
+          shows the change and <strong>nothing but the change</strong>.</p></div>
+      <p class="ak-lede">Two rules do most of the work. Here's each, shown as the diff you'd review.</p>
 
+      <h2 class="ak-h" id="trailing-commas">Trailing commas, one item per line<a class="ak-anchor" href="#trailing-commas" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line
+        goes one element per line rather than being repacked, so inserting, removing, or
+        reordering an entry never disturbs its neighbors.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The same holds for record fields,
+          parameters, match arms, and imports.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>The threshold has a cost: a rename that pushes a
+          call past 100 columns expands the whole argument list to one per line.</p></div>
+
+      <h2 class="ak-h" id="example-2-one-canonical-layout">One canonical layout<a class="ak-anchor" href="#example-2-one-canonical-layout" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace,
+        wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic
+        edit can't drag reflow along with it. Change one field's type, and that's the whole diff:
+      </p>
       <div class="code">
         <span class="cap">user.glyph: change one field, review one line</span>
 <pre> type User = {
@@ -78,18 +92,20 @@ next: /answers/greppability/ | Next &rarr; | Can an agent (or I) find where anyt
    email: string,
  }</pre>
       </div>
-
-      <div class="detail">
-        <p>
-          Because the layout is fixed, two different agents editing the same file produce
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Because the layout is fixed, two different agents editing the same file produce
           <strong>byte-identical</strong> formatting, no reflow churn, no &ldquo;my
           formatter vs. yours&rdquo; noise, and a clean <code>git blame</code> that points at the
-          commit that actually changed a line, not the one that reformatted it.
-        </p>
+          commit that actually changed a line, not the one that reformatted it.</p></div>
 
-        <h2 class="block-label">One canonical layout, so does the formatter move my comments?</h2>
+      <h2 class="ak-h" id="one-canonical-layout-so-does-the-formatter-move-my-comments">One canonical layout, so does the formatter move my comments?<a class="ak-anchor" href="#one-canonical-layout-so-does-the-formatter-move-my-comments" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        It used to, and that was a bug worth naming. The rule now: a comment is re-emitted above the item it was written above, inside a
+        record body, a union variant list, an array or object literal, an argument or parameter
+        list, and a <code>match</code>.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">how comments drifted, and the app that surfaced it</span></summary><div class="body">
         <p>
-          It used to, and that was a bug worth naming. Glyph has no block comments and no
+          Glyph has no block comments and no
           doc-comment syntax, so a <code>//</code> line is the only way to explain a record field,
           a union variant, or a <code>match</code> arm. The formatter flushed pending comments only
           at declaration and statement boundaries, which meant a comment written <em>inside</em>
@@ -98,8 +114,7 @@ next: /answers/greppability/ | Next &rarr; | Can an agent (or I) find where anyt
           from <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper/main.glyph">the
           real app</a> (comments trimmed to fit), run through the old formatter and the new one.
         </p>
-      </div>
-
+      </div></details>
       <div class="two-up">
         <div class="code">
           <span class="cap">0.1.37: one fmt pass</span>
@@ -136,16 +151,11 @@ type Cell = {
           <div style="padding:0 16px 14px"><span class="verdict good">every comment on what it describes</span></div>
         </div>
       </div>
-
-      <div class="detail">
-        <p>
-          The rule now: a comment is re-emitted above the item it was written above, inside a
-          record body, a union variant list, an array or object literal, an argument or parameter
-          list, and a <code>match</code>. And a construct holding an interior comment always takes
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>And a construct holding an interior comment always takes
           the one-element-per-line form, at any size, so the comment has an item to sit above. So
           <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment
-          you document <code>h</code> the record stays expanded.
-        </p>
+          you document <code>h</code> the record stays expanded.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why this counts as a correctness bug</span></summary><div class="body">
         <p>
           Why this counts as a correctness bug and not a cosmetic one: nothing failed. The build
           exited 0, <code>tsc</code> passed, and the mangled output was itself a fixed point, so
@@ -153,10 +163,24 @@ type Cell = {
           something false. That is the same class of failure Glyph exists to remove, just in the
           formatter rather than the type system.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Can <code>glyph fmt</code> break a program that builds?</h2>
+      <h2 class="ak-h" id="can-glyph-fmt-break-a-program-that-builds">Can <code>glyph fmt</code> break a program that builds?<a class="ak-anchor" href="#can-glyph-fmt-break-a-program-that-builds" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        It could, and one case is still open. A formatter your program has to survive is worse than
+        a missing feature, because it damages code that already worked.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5.5 3C3.8 4.5 3 6.2 3 8s.8 3.5 2.5 5M10.5 3c1.7 1.5 2.5 3.2 2.5 5s-.8 3.5-2.5 5"/></svg></span><b>Arm bodies</b>The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that
+          would reparse as a block, which is the empty object and anything built on it
+          (<code>({}).size</code> comes back as <code>({}.size)</code>).</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b>The fuzzer</b>The fuzzer now parses the formatted file
+          and compares the tree with the original's, so a layout that changes what a file means
+          fails on the first pass instead of waiting for someone to notice.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">the empty record that stopped building</span></summary><div class="body">
         <p>
-          It could, and one case is still open. The fixed one first. An arm meaning &ldquo;the empty
+          The fixed one first. An arm meaning &ldquo;the empty
           record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place
           in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by
           requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has
@@ -166,14 +190,13 @@ type Cell = {
           working code and got code that no longer compiled.
         </p>
         <p>
-          The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that
-          would reparse as a block, which is the empty object and anything built on it
-          (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already
+          An arm body that already
           reads unambiguously, like <code>false =&gt; { a: "x" }</code>, stays bare, so there is no
           new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and
-          the emitted TypeScript is unchanged. A formatter your program has to survive is worse than
-          a missing feature, because it damages code that already worked.
+          the emitted TypeScript is unchanged.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">two more fixed in 0.1.138</span></summary><div class="body">
         <p>
           Two more were fixed in 0.1.138. Inside a block, a line that starts with <code>(</code>
           continues the line above, and up to 0.1.137 the formatter printed <code>load()?</code>
@@ -182,27 +205,43 @@ type Cell = {
           keeps <code>load()?</code> with <code>.run()</code> indented on the next line, and writes
           <code>e?(x)</code>, <code>e?[0]</code> and <code>e? ?</code> without parentheses. The other
           was a union's <code>where</code> refinement, which the formatter dropped, turning a program
-          <code>check</code> refused into one it accepted. The fuzzer now parses the formatted file
-          and compares the tree with the original's, so a layout that changes what a file means
-          fails on the first pass instead of waiting for someone to notice.
+          <code>check</code> refused into one it accepted.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The formatting rules behind this, and the trade they make, are on the
+          <a href="/pillars/diff-stability/">diff stability pillar page</a>.</p></div>
 
-      <div class="detail">
-        <p>
-          The formatting rules behind this, and the trade they make, are on the
-          <a href="/pillars/diff-stability/">diff stability pillar page</a>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fmt</code> never moves a comment to somewhere it does not belong.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Comments are kept above the item they were written above</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. <code>glyph fmt</code> never moves a comment to somewhere it does not belong. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, a <code>match</code>, between the operands of an operator, and between the steps of a method chain, which then goes one step per line with the dot leading.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">The edge, and what's next</h3>
-          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500. A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
-        </div>
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> The edge, and what's next</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A comment at the end of a code line moves to the line above the next item</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A comment the layout has nowhere to put is refused, not moved</span><span class="chip code">E0500</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p>A comment where the layout has nowhere to put it, such as inside an index, after a call's arguments in the middle of a chain, or before a <code>!</code> or <code>await</code> operand, is not moved any more: <code>glyph fmt</code> refuses the file, leaves it as it was, and names the line and where to put the comment, and <code>glyph check</code> reports the same thing as warning E0500.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A comment between JSX attributes or between the fields of an object pattern is refused too, where a one-per-line layout could place it; those layouts are on the list.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</span></span></li>
+          </ul>
+        </section>
       </div>

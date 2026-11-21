@@ -2,10 +2,13 @@
 title: Can I generate a typed client from my API spec? · Glyph
 description: Yes. glyph gen openapi turns a spec into a typed HTTP client or into server stubs with a router, and gen zod works from zod schemas. The output is plain Glyph.
 layout: article
+article_class: ak
 nav: answers
 subnav: answers
 prev: /answers/typed-apis/ | &larr; Previous | Do I have to hand-write a validator for every API?
 next: /answers/react/ | Next &rarr; | Does it work with React: components, hooks, and Context?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
 ---
       <p class="q-eyebrow">12 &middot; From your spec</p>
       <h1 class="q-title">Can I generate a typed client and server from my API spec?</h1>
@@ -19,25 +22,10 @@ next: /answers/react/ | Next &rarr; | Does it work with React: components, hooks
         codegen step.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Why it matters</h2>
-        <p>
-          Hand-written API clients and their DTOs drift from the spec, and the drift is a class of
-          bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions,
-          real <code>type</code> declarations with runtime descriptors), the spec stays the
-          source of truth, and regeneration is an idempotent, reviewable diff, not a black box.
-        </p>
-
-        <h2 class="block-label">See it: the client</h2>
-        <p>
-          Each operation becomes an <code>async fn</code> with typed path parameters and a typed
-          request body, returning the HTTP <code>Response</code>:
-        </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+      <figure class="ak-hero" id="see-it-the-client">
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
 <pre>async fn createTask(
   base: string,
   body: NewTask,
@@ -52,9 +40,9 @@ async fn getTask(base: string, id: number)
   -&gt; Result&lt;Response, HttpError&gt; {
   return await get("${base}/tasks/${id}")
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+          </div>
+          <div class="code">
+            <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
 <pre>fn route(req: Request)
   -&gt; Result&lt;Response, string&gt; {
   return match req.method {
@@ -71,22 +59,56 @@ async fn getTask(base: string, id: number)
     })),
   }
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>See it: the client. Each operation becomes an <code>async fn</code> with typed path parameters and a typed
+          request body, returning the HTTP <code>Response</code>.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          The <code>--handlers</code> router matches the path with array patterns, so
-          <code>/tasks/{id}</code> becomes <code>["tasks", id]</code> and binds the parameter for
-          you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you
-          fill them in and wire it up with <code>await serve(PORT, route)</code>.
-        </p>
-        <h2 class="block-label">From a zod schema instead</h2>
-        <p>
-          If your team already defines shapes with <code>zod</code>, generate from those directly.
-          The schema becomes a first-class Glyph type with its own descriptor:
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="On this page">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#why-it-matters">Why generate</a></li>
+          <li><a href="#the-handlers-router">The server router</a></li>
+          <li><a href="#from-a-zod-schema-instead">From a zod schema</a></li>
+          <li><a href="#what-it-maps">What it maps</a></li>
+          <li><a href="#keeping-it-in-sync">Keeping it in sync</a></li>
+          <li><a href="#where-it-stands">Where it stands</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Hand-written API clients and their DTOs drift from the spec, and the drift is a class of
+        bug nobody enjoys.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Because Glyph generates <em>real</em> code (typed functions,
+        real <code>type</code> declarations with runtime descriptors), the spec stays the
+        source of truth, and regeneration is an idempotent, reviewable diff, not a black box.
+      </p></div>
+
+      <h2 class="ak-h" id="the-handlers-router">The <code>--handlers</code> router<a class="ak-anchor" href="#the-handlers-router" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The <code>--handlers</code> router matches the path with array patterns, so
+        <code>/tasks/{id}</code> becomes <code>["tasks", id]</code> and binds the parameter for
+        you.
+      </p>
+      <ol class="ak-path" aria-label="How a path reaches a handler">
+        <li><span>/tasks/{id}</span></li>
+        <li><span>["tasks", id]</span></li>
+        <li><span>getTask(req, id)</span></li>
+      </ol>
+      <p>
+        Each stub starts as a <code>501</code> with a comment showing the body-parse; you
+        fill them in and wire it up with <code>await serve(PORT, route)</code>.
+      </p>
+
+      <h2 class="ak-h" id="from-a-zod-schema-instead">From a zod schema instead<a class="ak-anchor" href="#from-a-zod-schema-instead" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        If your team already defines shapes with <code>zod</code>, generate from those directly.
+        The schema becomes a first-class Glyph type with its own descriptor:
+      </p>
 
       <div class="two-up">
         <div class="code">
@@ -109,47 +131,68 @@ async fn getTask(base: string, id: number)
         </div>
       </div>
 
-      <div class="detail">
+      <h2 class="ak-h" id="what-it-maps">What it maps<a class="ak-anchor" href="#what-it-maps" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>)
+        comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code>
+        that reads the discriminator property and validates into the right variant.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">why a dispatcher is generated</span></summary><div class="body">
         <p>
-          A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>)
-          comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code>
-          that reads the discriminator property and validates into the right variant. Because
+          Because
           Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges
           the wire object to the union for you.
         </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="where-it-falls-short">Where it falls short<a class="ak-anchor" href="#where-it-falls-short" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>
+        Generation is wire-faithful, so it maps the common 80%:
+        objects, primitives, arrays, references, optional and nullable fields (kept
+        apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the
+        schema does not require gets <code>?</code>, which takes no <code>null</code>), and
+        discriminated unions. It narrows what it can't represent exactly (a string enum, an
+        <em>un</em>discriminated union) with a printed note rather than a validator that would
+        reject real data. Richer enums are next.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">what the generators need installed</span></summary><div class="body">
         <p>
-          Where it falls short: generation is wire-faithful, so it maps the common 80%:
-          objects, primitives, arrays, references, optional and nullable fields (kept
-          apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the
-          schema does not require gets <code>?</code>, which takes no <code>null</code>), and
-          discriminated unions. It narrows what it can't represent exactly (a string enum, an
-          <em>un</em>discriminated union) with a printed note rather than a validator that would
-          reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
+          And the tooling has real dependencies: <code>gen dts</code>/<code>gen
           zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen
           dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your
           project first, and they tell you exactly what to install if it's missing.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Keeping it in sync</h2>
-        <p>
-          Every generated file records the exact command that made it in its header. When a spec
-          changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans
-          for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen
-          with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check
-          that fails if the committed code has drifted from the spec.
-        </p>
-      </div>
+      <h2 class="ak-h" id="keeping-it-in-sync">Keeping it in sync<a class="ak-anchor" href="#keeping-it-in-sync" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Every generated file records the exact command that made it in its header. When a spec
+        changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans
+        for those headers and re-runs each one, rewriting the output.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        It's idempotent, so a regen
+        with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check
+        that fails if the committed code has drifted from the spec.
+      </p></div>
 
-      <h2 class="block-label">Where it stands</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Shipping today</h3>
-          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
-         Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.</div>
-        <div class="status-card next">
-          <h3 class="h">On the way</h3>
-          <p>Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">That choice is recorded in the generated header, so <code>glyph regen</code> replays it.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.</span></span></li>
+          </ul>
+        </section>
       </div>

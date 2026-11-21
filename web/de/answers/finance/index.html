@@ -409,6 +409,7 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Ffinance%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Ffinance%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ffinance%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
+      <p class="i18n-stale">Die englische Version dieser Seite hat sich seit dieser Übersetzung geändert. <a href="/answers/finance/" hreflang="en" data-lang="en">Aktuelle englische Version lesen</a></p>
     </div>
     <script>
       (function () {
@@ -565,7 +566,7 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">
           <span class="cap">der Injection-Weg nicht</span>
-<pre data-check="expect-error TS2345"><span class="k">module</span> query
+<pre data-check="expect-error E0211"><span class="k">module</span> query
 
 <span class="k">import</span> std/taint { <span class="t">Tainted</span>, <span class="t">Trusted</span>, taint, expose }
 
@@ -578,9 +579,9 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
   <span class="k">return</span> run_query(input)
 }
 
-<span class="c">// [TS2345] Argument of type 'Tainted&lt;string&gt;'</span>
-<span class="c">//   is not assignable to parameter of type</span>
-<span class="c">//   'Trusted&lt;string&gt;'. (query.glyph:11)</span></pre>
+<span class="c">// [E0211] argument type mismatch: expected</span>
+<span class="c">//   `taint.Trusted&lt;string&gt;`, found</span>
+<span class="c">//   `taint.Tainted&lt;string&gt;` (query.glyph:11)</span></pre>
         </div>
       </div>
       <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>

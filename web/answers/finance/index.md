@@ -92,12 +92,12 @@ pub fn handle(body: string) -> string {
   return run_query(input)
 }
 
-// [TS2345] Argument of type 'Tainted<string>'
-//   is not assignable to parameter of type
-//   'Trusted<string>'. (query.glyph:11)
+// [E0211] argument type mismatch: expected
+//   `taint.Trusted<string>`, found
+//   `taint.Tainted<string>` (query.glyph:11)
 ```
 
-Hand a sink the tainted value directly and `tsc` refuses to compile it.
+Hand a sink the tainted value directly and Glyph's checker refuses it (E0211) before `tsc` runs.
 
 ## Where it stands
 
@@ -107,7 +107,7 @@ Hand a sink the tainted value directly and `tsc` refuses to compile it.
 - `bigint` for exact large integers
 - `where` refinements so an invariant is validated at the boundary
 - `std/taint` so untrusted input can't reach a protected sink without an explicit `sanitize`
-- Each is checked: a bad amount or id fails `parse`, a bad invariant fails `parse`, and an unsanitized value fails `tsc`.
+- Each is checked: a bad amount or id fails `parse`, a bad invariant fails `parse`, and an unsanitized value is refused by Glyph's checker.
 
 ### Where it stops
 

@@ -99,7 +99,7 @@ run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
         </div>
         <div class="code">
           <span class="cap">インジェクションの経路は通らない</span>
-<pre data-check="expect-error TS2345">module query
+<pre data-check="expect-error E0211">module query
 
 import std/taint { Tainted, Trusted, taint, expose }
 
@@ -112,9 +112,9 @@ pub fn handle(body: string) -&gt; string {
   return run_query(input)
 }
 
-// [TS2345] Argument of type 'Tainted&lt;string&gt;'
-//   is not assignable to parameter of type
-//   'Trusted&lt;string&gt;'. (query.glyph:11)</pre>
+// [E0211] argument type mismatch: expected
+//   `taint.Trusted&lt;string&gt;`, found
+//   `taint.Tainted&lt;string&gt;` (query.glyph:11)</pre>
         </div>
       </div>
       <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>

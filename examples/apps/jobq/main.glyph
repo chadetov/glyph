@@ -25,6 +25,7 @@ import std/json
 import std/result { Ok, Err }
 import std/sqlite { Db }
 import std/string
+import std/task
 import std/time
 import std/timers
 import api
@@ -116,7 +117,13 @@ fn parse_port(raw: string) -> Result<int, string> {
 // with one command, and the queue does not care which process claims a job.
 async fn serve(db: Db, port: int) -> number {
   let policy = job.default_policy()
-  let _pump = timers.every(200, fn() { let _ = worker.drain(db, time.now(), policy, LEASE_MS) })
+  // The timer's callback is sync and cannot wait, so each tick starts a drain
+  // on purpose with `task.detach`, which reports a drain that fails instead of
+  // losing it.
+  let _pump = timers.every(
+    200,
+    fn() { task.detach(async fn() -> void { await worker.drain(db, time.now(), policy, LEASE_MS) }) },
+  )
   // `listen` resolves once the port is bound, so the "listening" line is only
   // printed when it is true. It used to be printed before the bind was even
   // attempted, which meant a port already in use produced the banner and then

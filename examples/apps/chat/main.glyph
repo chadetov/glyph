@@ -296,7 +296,7 @@ fn report(lines: Array<string>) -> void {
   }
 }
 
-fn main(argv: Array<string>) -> number {
+async fn main(argv: Array<string>) -> number {
   let args = match parse_args(argv) {
     Ok(a) => a,
     Err(message) => {
@@ -307,11 +307,11 @@ fn main(argv: Array<string>) -> number {
   }
 
   // Serving is not a mode of the replay: it never produces a final state to
-  // report, because it does not end. It starts the listener and hands the
-  // process over to socket events.
+  // report, because it does not end. It waits for the listener to bind, then
+  // hands the process over to socket events.
   match args.source {
     Listen({ port }) => {
-      daemon.serve(port)
+      await daemon.serve(port)
       return 0
     },
     _ => {},

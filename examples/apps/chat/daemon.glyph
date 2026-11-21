@@ -178,12 +178,12 @@ pub async fn serve(port: int) {
     },
   )
 
-  // A bind failure is fatal and has to say so itself: `main` has already
-  // returned by the time the process would otherwise drain its loop and exit 0,
-  // reporting success for a server that never took its port. `listen` resolves
-  // when the socket is bound, so this branch runs before any connection could,
-  // and `e.kind` distinguishes a port worth retrying on from one this process
-  // will never be allowed to have.
+  // A bind failure is fatal and says so itself, with its own exit status, so a
+  // server that never took its port cannot report success. `listen` resolves
+  // when the socket is bound, so this branch runs before any connection could
+  // (and before `main`, which awaits this, returns), and `e.kind` distinguishes
+  // a port worth retrying on from one this process will never be allowed to
+  // have.
   match started {
     Ok(server) => {
       io.println("chat listening on ${number.to_string(net.port(server))}")

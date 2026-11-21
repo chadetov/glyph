@@ -3095,6 +3095,14 @@ impl Assigner<'_> {
                     // Check each argument against its parameter type (with any
                     // inferred generics substituted in). Reports only a provable
                     // mismatch; an undecidable argument or parameter is silent.
+                    // An argument refused for being the wrong kind of
+                    // function (D40) leaves the call's result untyped: an
+                    // async callback to `array.map` builds promises, not the
+                    // `U` its row binds, and a refusal of what that result
+                    // then meets (`${}`, a typed `let`) would report the one
+                    // mistake twice, the second time naming a type the
+                    // program does not hold.
+                    let mut kind_refused = false;
                     for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
@@ -3103,9 +3111,16 @@ impl Assigner<'_> {
                         }
                         if let Some(e) = self.async_callback_refusal(callee, a, &found, &p.ty) {
                             self.errors.push(e);
+                            kind_refused = true;
+                            continue;
+                        }
+                        if let Some(e) = self.builtin_slot_kind_refusal(callee, args, i, a, &found) {
+                            self.errors.push(e);
+                            kind_refused = true;
                             continue;
                         }
                         let kind_help = self.fn_kind_help(callee, args, a, &found, &expected);
+                        kind_refused |= kind_help.is_some();
                         if let Some(mut r) = self.value_refusal(a, &found, &expected) {
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
@@ -3127,8 +3142,11 @@ impl Assigner<'_> {
                             });
                         }
                     }
-                    let returned = return_override
-                        .unwrap_or_else(|| substitute_type_params(return_ty, &subst));
+                    let returned = match kind_refused {
+                        true => Ty::Unknown,
+                        false => return_override
+                            .unwrap_or_else(|| substitute_type_params(return_ty, &subst)),
+                    };
                     // D51: calling an async callee starts it and hands back a
                     // pending value, which is what the emitted `Promise<T>`
                     // is. Typing the call as `T` claimed a value the program
@@ -3139,6 +3157,17 @@ impl Assigner<'_> {
                         returned
                     }
                 } else {
+                    // A built-in method whose row is untyped (`filter`,
+                    // `find`, `reduce`, `sort`: TypeScript declares
+                    // overloads) still has the callback slot contextual
+                    // typing reads, and the function-kind rule holds there
+                    // as it does for a typed row.
+                    for (i, a) in args.iter().enumerate() {
+                        let found = self.tm.get(a.span()).clone();
+                        if let Some(e) = self.builtin_slot_kind_refusal(callee, args, i, a, &found) {
+                            self.errors.push(e);
+                        }
+                    }
                     Ty::Unknown
                 };
                 self.tm.insert(*span, call_ty);
@@ -7338,7 +7367,7 @@ impl Assigner<'_> {
             Expr::Lambda { params, body, .. } => AsyncCallback::Lambda {
                 params: params
                     .iter()
-                    .map(|p| (p.name.to_string(), type_expr_source(&p.ty)))
+                    .map(|p| (p.name.to_string(), p.ty.as_ref().map(type_expr_source).unwrap_or_default()))
                     .collect(),
                 body: quotable_body(body),
             },
@@ -7387,6 +7416,69 @@ impl Assigner<'_> {
         })
     }
 
+    /// The function-kind rule (D40 as amended for 0.1.159) at a built-in
+    /// `Array<T>` method's callback, whose generated row types the parameter
+    /// `unknown`: the slot is the one contextual typing reads
+    /// (`builtin_callback_slot`, D55), so `users.forEach(async fn(p) { .. })`
+    /// is judged as `each(users, async fn(p) { .. })` is, and the two
+    /// diagnostics name the same slot. Only the kind is judged here; the
+    /// slot's parameter and return types are TypeScript's declarations for
+    /// context, and a sync predicate returning a `number` stays legal, as it
+    /// is to `tsc`. `map`'s callback return is a type the slot does not bind,
+    /// but the slot is still a sync one that keeps a value, so it is judged
+    /// as `unknown` there (an async callback builds an array of promises).
+    fn builtin_slot_kind_refusal(
+        &self,
+        callee: &Expr,
+        args: &[Expr],
+        index: usize,
+        arg: &Expr,
+        found: &Ty,
+    ) -> Option<TypeError> {
+        let slot = self.builtin_callback_slot(callee, args, index)?;
+        let slot = match slot {
+            Ty::Fn {
+                params,
+                return_ty,
+                is_async,
+                type_params,
+            } if return_ty.is_unknown() => Ty::Fn {
+                params,
+                return_ty: Arc::new(Ty::UnknownTop),
+                is_async,
+                type_params,
+            },
+            other => other,
+        };
+        let (Ty::Fn { is_async: fa, .. }, Ty::Fn { is_async: ea, return_ty: er, .. }) = (found, &slot)
+        else {
+            return None;
+        };
+        if fa == ea || fn_kinds_incompatible(*fa, er, *ea) != Some(true) {
+            return None;
+        }
+        if let Expr::Lambda { span, .. } = arg {
+            if self.refused_lambdas.contains(span) {
+                return None;
+            }
+        }
+        if let Some(e) = self.async_callback_refusal(callee, arg, found, &slot) {
+            return Some(e);
+        }
+        Some(TypeError::ArgumentTypeMismatch {
+            expected: ty_display(&slot),
+            found: self.found_display(&self.named_params(found), &slot),
+            accepted: None,
+            missing_fields: Vec::new(),
+            no_common_field: false,
+            children_between_tags: false,
+            sql_escape: false,
+            record_key: None,
+            kind_help: self.fn_kind_help(callee, args, arg, found, &slot),
+            span: arg.span(),
+        })
+    }
+
     /// The help for an argument that is the wrong kind of function, when the
     /// relation refuses it for that reason alone (record 144): a sync
     /// function where an async one is declared (G408), or an async callback
@@ -7431,7 +7523,7 @@ impl Assigner<'_> {
             } => KindValue::Lambda {
                 params: params
                     .iter()
-                    .map(|p| (p.name.to_string(), type_expr_source(&p.ty)))
+                    .map(|p| (p.name.to_string(), p.ty.as_ref().map(type_expr_source).unwrap_or_default()))
                     .collect(),
                 return_ty: return_ty.as_ref().map(type_expr_source),
                 body: quotable_body(body),
@@ -7458,7 +7550,20 @@ impl Assigner<'_> {
             };
             Some(sync_into_async_help(&callee_name, &value, ret, found_ret))
         } else {
-            let iterable = match args.first() {
+            // What a loop walks: an array method's receiver, else the first
+            // argument, as `pending`'s help for the same slot reads it.
+            let receiver = match callee {
+                Expr::Member { object, .. }
+                    if matches!(
+                        self.builtin_receiver_elem(self.tm.get(object.span())),
+                        Some((BuiltinReceiver::Array, _))
+                    ) =>
+                {
+                    Some(object.as_ref())
+                }
+                _ => None,
+            };
+            let iterable = match receiver.or(args.first()) {
                 Some(a @ (Expr::Ident { .. } | Expr::Member { .. })) if !std::ptr::eq(a, arg) => {
                     crate::pending::expr_source(a)
                 }

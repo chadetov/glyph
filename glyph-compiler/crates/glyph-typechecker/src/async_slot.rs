@@ -36,7 +36,8 @@ pub enum AsyncCallback {
         name: String,
         params: Option<Vec<(String, String)>>,
     },
-    /// An async lambda. `params` is its parameter list as written; `body` is
+    /// An async lambda. `params` is its parameter list as written, an empty
+    /// type for an omitted annotation; `body` is
     /// its body when it is one expression statement the help can quote whole.
     Lambda {
         params: Vec<(String, String)>,
@@ -130,11 +131,16 @@ pub(crate) fn async_slot_help(
     }
 }
 
-/// `x: number, y: string`.
+/// `x: number, y: string`. A lambda parameter written with no annotation
+/// (its type taken from its slot, D55) has an empty type and is written as
+/// its name alone, as the program wrote it.
 fn written(params: &[(String, String)]) -> String {
     params
         .iter()
-        .map(|(n, t)| format!("{n}: {t}"))
+        .map(|(n, t)| match t.is_empty() {
+            true => n.clone(),
+            false => format!("{n}: {t}"),
+        })
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -255,7 +261,7 @@ pub(crate) fn async_into_value_help(callee: &str, value: &KindValue, iterable: &
                 .as_ref()
                 .and_then(|ps| ps.first().map(|(n, _)| n.clone()))
                 .unwrap_or_else(|| "x".to_string());
-            let work = format!("await {name}({var})");
+            let work = Some(format!("await {name}({var})"));
             (var, work)
         }
         KindValue::Lambda { params, body, .. } => {
@@ -263,12 +269,17 @@ pub(crate) fn async_into_value_help(callee: &str, value: &KindValue, iterable: &
                 .first()
                 .map(|(n, _)| n.clone())
                 .unwrap_or_else(|| "x".to_string());
-            (var, body.clone().unwrap_or_else(|| "await ...".to_string()))
+            (var, body.clone())
         }
-        KindValue::Other => ("x".to_string(), "await ...".to_string()),
+        KindValue::Other => ("x".to_string(), None),
+    };
+    // With no call to name, the loop is a placeholder the reader fills.
+    let body = match work {
+        Some(w) => format!("... {w} ..."),
+        None => "...".to_string(),
     };
     format!(
         "`{callee}` does not wait for its callback. Await each call in a loop, `for {var} in \
-         {iterable} {{ ... {work} ... }}`, or run them together with `task.all`."
+         {iterable} {{ {body} }}`, or run them together with `task.all`."
     )
 }

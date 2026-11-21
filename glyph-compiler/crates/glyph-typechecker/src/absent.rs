@@ -70,6 +70,12 @@ pub(crate) struct AbsentCall<'a> {
     /// checker does not know it.
     pub elem: Option<String>,
     pub default: Option<Default>,
+    /// Whether the position the call stands in uses its value up, so the
+    /// `Option` the rewrite produces goes nowhere but where it is handled: a
+    /// statement, a `match` scrutinee, a slot declared `Option`. `Err` names
+    /// the position that would go on reading the value as the element
+    /// (decision record 155, F1). A `??` default is handled by `default`.
+    pub consumer: Result<(), String>,
 }
 
 /// How the help and the fix spell a `std/*` module: the module's own name for
@@ -78,21 +84,40 @@ struct Ns {
     name: String,
     path: &'static str,
     imported: bool,
+    /// Another binding in the module has the name the rewrite calls through,
+    /// so the import cannot be added under it, or a local shadows it.
+    taken: bool,
 }
 
 impl Ns {
     fn of(module: &Module, short: &'static str, path: &'static str) -> Ns {
-        match std_namespace(module, short) {
-            Some(name) => Ns { name, path, imported: true },
-            None => Ns { name: short.to_string(), path, imported: false },
-        }
+        let (name, imported) = match std_namespace(module, short) {
+            Some(name) => (name, true),
+            None => (short.to_string(), false),
+        };
+        let taken = binds_name(module, &name, path);
+        Ns { name, path, imported, taken }
     }
 
     fn note(&self) -> String {
-        match self.imported {
-            true => String::new(),
-            false => format!(" (with `import {}`)", self.path),
+        match (self.imported, self.taken) {
+            (true, _) => String::new(),
+            (false, false) => format!(" (with `import {}`)", self.path),
+            (false, true) => format!(
+                " (import `{}` under another name, since `{}` is already bound here, and call through that name)",
+                self.path, self.name
+            ),
         }
+    }
+
+    /// Why the fix writes nothing when the name is taken: the same reason
+    /// `glyph fix` gives when it finds the binding itself.
+    fn taken_reason(&self) -> String {
+        format!(
+            "the rewrite calls `{0}.…` from `{1}`, and the name `{0}` is already bound here; import `{1}` under \
+             another name and write the help's call",
+            self.name, self.path
+        )
     }
 }
 
@@ -221,6 +246,15 @@ fn rewrite(
     f: &str,
     tail: Option<String>,
 ) -> AbsentRepair {
+    if ns.taken {
+        return AbsentRepair::Decline(ns.taken_reason());
+    }
+    if let (None, Err(why)) = (&c.default, &c.consumer) {
+        return AbsentRepair::Decline(format!(
+            "{why}; the `Option` the rewrite returns would be read as the element there, which can change what \
+             the program prints with every check passing, so the help names the call"
+        ));
+    }
     if c.optional {
         return AbsentRepair::Decline(format!(
             "the call is written `?.`, so the receiver may be missing, and `{}.{f}` needs it present; \
@@ -369,4 +403,76 @@ fn string_match(c: &AbsentCall, module: &Module, recv: &str) -> (String, AbsentR
                 .to_string(),
         ),
     )
+}
+
+/// Whether `name` is bound anywhere in `module` other than by its own
+/// `import std/<name>`: a declaration, an import binding, a parameter, a
+/// `let`, a `for` binding, a lambda parameter or a name a `match` arm binds.
+///
+/// The rewrite calls through the namespace, so a binding of that name either
+/// collides with the import the fix would add or shadows it at the call. The
+/// question is asked of the whole module, not the call's scope, because an
+/// added import is module-wide. Conservative by design: it can only make the
+/// fix decline, never make it apply wrongly.
+pub(crate) fn binds_name(module: &Module, name: &str, std_path: &str) -> bool {
+    use glyph_ast::{visit, Block, Decl, ImportKind, LetBinding, Pattern, Stmt};
+    fn pattern(p: &Pattern, name: &str) -> bool {
+        match p {
+            Pattern::Ident { name: n, .. } => n.as_ref() == name,
+            Pattern::Constructor { args, .. } => args.iter().any(|a| pattern(a, name)),
+            Pattern::Object { fields, .. } => fields.iter().any(|f| match &f.pattern {
+                Some(p) => pattern(p, name),
+                None => f.key.as_ref() == name,
+            }),
+            Pattern::Array { elements, rest, .. } => {
+                elements.iter().any(|e| pattern(e, name)) || rest.as_deref().is_some_and(|r| pattern(r, name))
+            }
+            Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Literal { .. } | Pattern::IsType { .. } => false,
+        }
+    }
+    fn expr(e: &Expr, name: &str) -> bool {
+        let here = match e {
+            Expr::Lambda { params, .. } => params.iter().any(|p| p.name.as_ref() == name),
+            Expr::Match { arms, .. } => arms.iter().any(|a| pattern(&a.pattern, name)),
+            _ => false,
+        };
+        let mut found = here;
+        visit::child_exprs(e, &mut |c| found = found || expr(c, name));
+        visit::child_blocks(e, &mut |b| found = found || block(b, name));
+        found
+    }
+    fn block(b: &Block, name: &str) -> bool {
+        b.stmts.iter().any(|s| {
+            let here = match s {
+                Stmt::Let(l) => match &l.binding {
+                    LetBinding::Name(n) => n.as_ref() == name,
+                    LetBinding::Pattern(p) => pattern(p, name),
+                },
+                Stmt::For(f) => f.bindings.iter().any(|b| b.name.as_ref() == name),
+                _ => false,
+            };
+            let mut found = here;
+            visit::stmt_exprs(s, &mut |e| found = found || expr(e, name));
+            visit::stmt_blocks(s, &mut |b| found = found || block(b, name));
+            found
+        })
+    }
+    module.items.iter().any(|d| match d {
+        Decl::Import(i) => {
+            let path = i.path.segments.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("/");
+            match &i.kind {
+                ImportKind::Namespace => path != std_path && i.path.segments.last().is_some_and(|s| s.as_ref() == name),
+                ImportKind::Aliased(a) => path != std_path && a.as_ref() == name,
+                ImportKind::Default(l) => l.as_ref() == name,
+                ImportKind::Named(ns) => ns.iter().any(|n| n.as_ref() == name),
+            }
+        }
+        Decl::Fn(f) => f.name.as_ref() == name || f.params.iter().any(|p| p.name.as_ref() == name) || block(&f.body, name),
+        Decl::Component(c) => {
+            c.name.as_ref() == name || c.params.iter().any(|p| p.name.as_ref() == name) || block(&c.body, name)
+        }
+        Decl::Const(c) => c.name.as_ref() == name || expr(&c.value, name),
+        Decl::Type(t) => t.name.as_ref() == name,
+        Decl::Interface(i) => i.name.as_ref() == name,
+    })
 }

@@ -458,3 +458,113 @@ fn fix_declines_the_import_when_the_name_is_taken() {
     assert!(fixed.contains("let n = array.at(0) ?? 0") && !out.contains("applied E0242"), "{out}\n{fixed}");
     assert!(out.contains("the name `array` is already bound here"), "{out}");
 }
+
+/// Record 155, F1: `let u = xs.find(f)` then `let v = u ?? 0` prints `v=0` on
+/// 0.1.160. Rewriting only the `find` would hand `??` an `Option`, which is
+/// never nullish, and the program would print `v=[object Object]` with every
+/// check passing. The fix declines it, names the position, and leaves the
+/// file as it was.
+#[test]
+fn fix_declines_a_rewrite_whose_value_is_read_on() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let xs = [3, 1, 2]\n\
+        \x20 let u = xs.find(fn(x: number) -> bool { return x > 9 })\n\
+        \x20 let v = u ?? 0\n\
+        \x20 io.println(\"v=${v}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (dir, fixed, out) = fix(src);
+    glyph(&dir, &["fmt", "src"]);
+    assert_eq!(fixed, std::fs::read_to_string(dir.join("src/main.glyph")).unwrap(), "{out}");
+    assert!(fixed.contains("let u = xs.find(") && !fixed.contains("import std/array"), "{fixed}");
+    assert!(
+        out.contains("declined E0242") && out.contains("it initializes a `let` with no declared type"),
+        "{out}"
+    );
+    // Every other position that reads the value as the element declines too,
+    // naming what reads it.
+    let cases = [
+        ("  let a = xs.find(fn(x: number) -> bool { return x > 1 }).toFixed(1)\n  print(a)", "its value is read with `.toFixed`"),
+        ("  let b = greet(users.at(0))\n  print(b)", "it is an argument where the parameter is `User`"),
+        ("  let c: number = xs.at(0)\n  print(\"${c}\")", "it initializes a `let` declared `number`"),
+        ("  let d = xs.at(0) + 1\n  print(\"${d}\")", "it is an operand of an operator"),
+        ("  print(\"${xs.at(0)}\")", "it is turned into text in a `${}`"),
+    ];
+    for (stmts, why) in cases {
+        let (_, _, out) = fix(&program("", stmts));
+        assert!(out.contains("declined E0242") && !out.contains("applied E0242"), "{stmts}\n{out}");
+        assert!(out.contains(why), "expected `{why}`:\n{out}");
+    }
+}
+
+/// Record 155, F1: each position that uses the value up is rewritten, and the
+/// result passes the full check and prints what it should.
+#[test]
+fn fix_rewrites_where_the_option_is_used_up() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        \n\
+        fn show(o: Option<number>) -> string {\n\
+        \x20 return match o { Some(v) => \"${v}\", None => \"none\", }\n\
+        }\n\
+        \n\
+        fn first(xs: Array<number>) -> Option<number> {\n\
+        \x20 return xs.find(fn(x: number) -> bool { return x > 1 })\n\
+        }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let xs = [3, 1, 2]\n\
+        \x20 xs.find(fn(x: number) -> bool { return x > 9 })\n\
+        \x20 let a = xs.find(fn(x: number) -> bool { return x > 9 }) ?? 0\n\
+        \x20 let b = match xs.find(fn(x: number) -> bool { return x < 3 }) { Some(v) => v, None => 0, }\n\
+        \x20 let c: Option<number> = xs.at(5)\n\
+        \x20 let d = show(xs.findLast(fn(x: number) -> bool { return x > 1 }))\n\
+        \x20 io.println(\"${a} ${b} ${show(c)} ${d} ${show(first(xs))}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (dir, fixed, out) = fix(src);
+    assert_eq!(out.matches("applied E0242").count(), 6, "{out}");
+    assert!(!out.contains("declined E0242"), "{out}");
+    assert_fix_settles(&dir, &fixed);
+    let run = glyph(&dir, &["run", "src/main.glyph"]);
+    assert!(
+        String::from_utf8_lossy(&run.stdout).contains("0 1 none 2 3"),
+        "{}\n{}",
+        String::from_utf8_lossy(&run.stdout),
+        String::from_utf8_lossy(&run.stderr)
+    );
+}
+
+/// Record 155, F3: a type parameter is named in the message and the help.
+#[test]
+fn a_type_parameter_is_named() {
+    let src = "module main\n\
+        \n\
+        fn g<T>(ys: Array<T>) -> T {\n\
+        \x20 return ys.at(0)\n\
+        }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 print(\"${g([1])}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, help) = one(src);
+    assert_eq!(msg, "`ys.at(0)` returns `T | undefined`; Glyph writes a value that may be missing as an `Option`");
+    assert_eq!(help, "write `array.get(ys, 0)`, which returns `Option<T>`, and `match` it (with `import std/array`)");
+}
+
+/// Record 155: when `array` is already bound, the help says to import
+/// `std/array` under another name, as the fix's decline does.
+#[test]
+fn the_help_matches_the_decline_when_the_name_is_taken() {
+    let (_, help) = one(&program("", "  let array = [9]\n  let c = xs.at(0) ?? array.length\n  print(\"${c}\")"));
+    assert_eq!(
+        help,
+        "write `match array.get(xs, 0) { Some(v) => v, None => array.length, }` (import `std/array` under another name, since `array` is already bound here, and call through that name)"
+    );
+}

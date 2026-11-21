@@ -1318,8 +1318,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Before:  let n = xs.at(-1) ?? 0\n\
             After:   let n = match array.get(xs, array.len(xs) - 1) { Some(v) => v, None => 0, }\n\n\
             `glyph fix` writes the `find`, `findLast` and `at` rewrites on an \
-            array, and adds `import std/array` when the module has none and \
-            no other binding is called `array`. It rewrites `at` only for an \
+            array where the call's value is used up on the spot: a statement, \
+            a `??` default, a `match` scrutinee, or a `let`, argument or \
+            `return` declared `Option`. Anywhere else (a `let` with no type, \
+            `.name`, an operand, a `${}`) the name would go on holding an \
+            `Option` where the program read the element, and `u ?? 0` on an \
+            `Option` hands back the `Option`, so it writes nothing and says \
+            why. It adds `import std/array` when the module has none and no \
+            other binding is called `array`. It rewrites `at` only for an \
             integer literal index, and a negative one only when the receiver \
             is a name, a field or an index. It leaves the string calls and \
             `match` to you, because the `Option` forms there answer \

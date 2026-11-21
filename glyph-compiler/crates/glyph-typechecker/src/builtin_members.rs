@@ -133,6 +133,13 @@ pub struct BuiltinMethod {
     /// as the whole call of a `mut` statement (E0240); `mut` before a call
     /// that changes nothing is E0241.
     pub mutates: bool,
+    /// Whether a call can answer `undefined` or `null` (G392, D56): some
+    /// overload's return type in TypeScript's library holds one of them
+    /// (`find`, `at`, `findLast`, `pop`, `shift` on an array; `at`,
+    /// `codePointAt`, `match` on a string). Read off the declarations by the
+    /// script, not written by hand. A call to one is E0242, except `pop` and
+    /// `shift`, which change the array and are E0240's.
+    pub absent: bool,
     pub sig: MethodSig,
 }
 
@@ -373,6 +380,19 @@ mod tests {
         for r in [BuiltinReceiver::String, BuiltinReceiver::Number] {
             assert!(r.methods().iter().all(|m| !m.mutates), "{r:?}");
         }
+    }
+
+    /// The `absent` column (G392, D56): read off `lib.d.ts`, so this pins
+    /// the set TypeScript 6.0.3 gives. E0242 refuses every non-mutating one;
+    /// `pop` and `shift` are E0240's.
+    #[test]
+    fn absent_rows_are_the_ones_typescript_declares() {
+        let absent = |r: BuiltinReceiver| -> Vec<&str> {
+            r.methods().iter().filter(|m| m.absent).map(|m| m.name).collect()
+        };
+        assert_eq!(absent(BuiltinReceiver::Array), ["at", "find", "findLast", "pop", "shift"]);
+        assert_eq!(absent(BuiltinReceiver::String), ["at", "codePointAt", "match"]);
+        assert!(absent(BuiltinReceiver::Number).is_empty());
     }
 
     #[test]

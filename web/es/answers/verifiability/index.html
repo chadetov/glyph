@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -814,6 +814,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods">Un método que responde <code>undefined</code><a class="ak-anchor" href="#absent-methods" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">una búsqueda que puede no encontrar nada: ahora E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">Algunos métodos de JavaScript dicen "no hay nada" con <code>undefined</code>, que el checker del propio Glyph no veía, así que el editor y las herramientas del agente dejaban pasar la lectura de <code>.name</code>. Ahora cada uno apunta a la función de la biblioteca estándar que devuelve un <code>Option</code>, y <code>glyph fix</code> escribe las de arrays.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">qué métodos, y qué los sustituye</span></summary><div class="body">
+        <p>
+          La lista se lee de las declaraciones de TypeScript: <code>find</code>, <code>findLast</code> y <code>at</code> en un array, y <code>at</code>, <code>codePointAt</code> y <code>match</code> en un string. Los reemplazos son <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> y <code>regex.matches</code>. Un valor por defecto con <code>??</code> pasa a ser el brazo <code>None</code> de un <code>match</code>. <code>array.get</code> responde <code>None</code> con un índice negativo, así que la ayuda para <code>xs.at(-1)</code> escribe <code>array.get(xs, array.len(xs) - 1)</code>. Un método llamado sobre un valor de npm no se juzga, porque Glyph no conoce su tipo.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> es igualdad de valor en todas partes<a class="ak-anchor" href="#equality" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">un test que pasaba mientras el código fallaba</span>
@@ -963,7 +979,7 @@
       <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy <span class="count">19</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -988,6 +1004,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una errata en un campo de un <code>const</code> anotado de nivel de módulo</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> como igualdad de valor en todos los tipos</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Leer una clave de un mapa, rechazado</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un método nativo que responde <code>undefined</code>, como <code>find</code> o <code>at</code>, rechazado con su forma <code>Option</code> indicada</span><span class="chip code">E0242</span><span class="chip since">desde la 0.1.161</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Literales de objeto y atributos JSX comprobados contra el tipo declarado</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">desde la 0.1.124</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
                 <p>Desde la 0.1.124 un literal de objeto tiene el tipo record que escriben sus campos, así que <code>let g: string = { x: 1 }</code>, un literal al que le falta un campo que exige el record declarado y un literal pasado donde no encaja son E0204 o E0211 con el tipo declarado nombrado, en un <code>let</code>, un <code>const</code>, un <code>return</code> y un argumento de llamada; y un atributo JSX se comprueba contra el record de props del componente, así que <code>&lt;Button variant="nope" /&gt;</code> provoca E0211 con los valores que acepta y un atributo que el record no declara provoca E0210, que <code>glyph fix</code> renombra.</p>
@@ -1013,7 +1030,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Cada vez más preciso <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Cada vez más preciso <span class="count">14</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -1056,6 +1073,7 @@
 
           <p class="ak-st-group">Fronteras de datos</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Un <code>find</code> o <code>at</code> sobre un valor de npm no se juzga; solo un array o un string que Glyph ha tipado</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los mapas de otro módulo o de la librería estándar se leen sin comprobar</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
                 <p>Un mapa que llega de otro módulo o de la librería estándar todavía se lee sin comprobar, así que E0224 aún no cubre un <code>sqlite.Row</code>, y el <code>for i, x in xs</code> con dos bindings todavía pierde sus tipos.</p>
@@ -1099,7 +1117,7 @@
           Por qué este es el primero de los cuatro pilares de Glyph, y dónde se detiene su garantía, está en la <a href="/es/pillars/verifiability/">página del pilar de verificabilidad</a>.
         </p>
       </div>
-      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.160 en cada build. Último cambio: <time datetime="2026-11-20">20 nov 2026</time>.</p>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.160 en cada build. Último cambio: <time datetime="2026-11-22">22 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <div class="spacer"></div>
         <a href="/es/answers/diff-stability/" class="nx cta">

@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","item":"https://glyphlang.io/tr/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/verifiability/#article","headline":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","description":"TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.","url":"https://glyphlang.io/tr/answers/verifiability/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","item":"https://glyphlang.io/tr/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/verifiability/#article","headline":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","description":"TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.","url":"https://glyphlang.io/tr/answers/verifiability/","inLanguage":"tr","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -814,6 +814,22 @@
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="absent-methods"><code>undefined</code> döndüren bir metot<a class="ak-anchor" href="#absent-methods" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">hiçbir şey bulamayabilecek bir arama: artık E0242</span>
+<pre>let name = users.find(fn(u: User) -&gt; bool { return u.id == id }).name
+let last = xs.at(-1) ?? 0  <span class="cm">// passed tsc --strict too</span>
+
+<span class="add">[E0242]</span> the call to `users.find` returns `User | undefined`; Glyph writes a value that may be missing as an `Option`
+Help: pass `users` and the same callback to `array.find`, which returns `Option&lt;User&gt;`, and `match` it</pre>
+      </div>
+      <p class="ak-lede">Bazı JavaScript metotları "hiçbir şey yok" durumunu <code>undefined</code> ile söyler. Glyph'in kendi checker'ı bunu göremiyordu, bu yüzden editör ve agent araçları <code>.name</code> okumasını geçiriyordu. Artık her biri <code>Option</code> döndüren standart kütüphane fonksiyonunu gösteriyor ve array olanları <code>glyph fix</code> yazıyor.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">hangi metotlar ve yerlerine ne geçiyor</span></summary><div class="body">
+        <p>
+          Liste TypeScript'in bildirimlerinden okunuyor: bir array'de <code>find</code>, <code>findLast</code> ve <code>at</code>, bir string'de <code>at</code>, <code>codePointAt</code> ve <code>match</code>. Yerlerine geçenler <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> ve <code>regex.matches</code>. <code>??</code> ile verilen varsayılan değer bir <code>match</code>'in <code>None</code> kolu olur. <code>array.get</code> negatif bir index için <code>None</code> döndürür, bu yüzden <code>xs.at(-1)</code> için yardım <code>array.get(xs, array.len(xs) - 1)</code> yazar. npm'den gelen bir değer üzerinde çağrılan metot değerlendirilmez, çünkü Glyph onun tipini bilmez.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="equality"><code>==</code> her yerde değer eşitliğidir<a class="ak-anchor" href="#equality" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">kod başarısız olurken geçen bir test</span>
@@ -963,7 +979,7 @@
       <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">18</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">19</span></h3>
 
           <p class="ak-st-group">Eşleştirme</p>
           <ul class="ak-list">
@@ -988,6 +1004,7 @@
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Annotation'lı modül düzeyindeki bir <code>const</code> üzerinde alan yazım hatası</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her tipte değer eşitliği olarak <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir map'ten key okumak reddedilir</span><span class="chip code">E0224</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code> ya da <code>at</code> gibi <code>undefined</code> döndüren yerleşik bir metot, <code>Option</code> karşılığı söylenerek reddedilir</span><span class="chip code">E0242</span><span class="chip since">0.1.161'den beri</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bildirilen tipe karşı kontrol edilen nesne literal'leri ve JSX attribute'ları</span><span class="chip code">E0204</span><span class="chip code">E0211</span><span class="chip code">E0210</span><span class="chip since">0.1.124'ten beri</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
                 <p>0.1.124'ten beri bir nesne literal'i, alanlarının yazdığı record tipine sahip; böylece <code>let g: string = { x: 1 }</code>, bildirilen record'ın gerektirdiği bir alanı eksik olan bir literal ve uymadığı yere geçirilen bir literal, bir <code>let</code>'te, bir <code>const</code>'ta, bir <code>return</code>'de ve bir çağrı argümanında bildirilen tipi adlandıran E0204 ya da E0211'dir; bir JSX attribute'u ise component'in props record'ına karşı kontrol edilir, dolayısıyla <code>&lt;Button variant="nope" /&gt;</code> kabul ettiği değerlerle birlikte E0211 alır ve record'ın bildirmediği bir attribute, <code>glyph fix</code>'in yeniden adlandırdığı E0210'u alır.</p>
@@ -1013,7 +1030,7 @@
         </section>
 
         <section class="ak-st next" aria-labelledby="st-next">
-          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Keskinleşmekte olanlar <span class="count">13</span></h3>
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Keskinleşmekte olanlar <span class="count">14</span></h3>
 
           <p class="ak-st-group">Eşleştirme</p>
           <ul class="ak-list">
@@ -1056,6 +1073,7 @@
 
           <p class="ak-st-group">Veri sınırları</p>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">npm'den gelen bir değer üzerindeki <code>find</code> ya da <code>at</code> değerlendirilmez; yalnızca Glyph'in tipini bildiği bir array ya da string değerlendirilir</span><span class="chip code">E0242</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Başka bir modülden ya da standart kütüphaneden gelen map'ler kontrolsüz okunuyor</span><span class="chip code">E0224</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
                 <p>Başka bir modülden ya da standart kütüphaneden gelen bir map hâlâ kontrolsüz okunuyor; bu yüzden E0224 henüz bir <code>sqlite.Row</code>'u kapsamıyor ve iki binding'li <code>for i, x in xs</code> hâlâ tiplerini kaybediyor.</p>
@@ -1099,7 +1117,7 @@
           Bunun neden Glyph'in dört temel ilkesinin ilki olduğu ve garantisinin nerede bittiği, <a href="/tr/pillars/verifiability/">doğrulanabilirlik ilkesi sayfasında</a> anlatılıyor.
         </p>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.160 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-20">20 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.160 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-22">22 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <div class="spacer"></div>
         <a href="/tr/answers/diff-stability/" class="nx cta">

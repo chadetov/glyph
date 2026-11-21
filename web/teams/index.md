@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/teams/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/teams/, generated from the same source as the page. Last changed 2026-11-22. -->
 
 For teams
 
@@ -8,7 +8,7 @@ Glyph refuses a specific, checked list of cases that a strict TypeScript project
 
 ## What it guarantees
 
-Every claim about what Glyph catches is a case in the repository's `catches/` directory: the same program in TypeScript and in Glyph, both run by a CI gate. There are 48 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 6 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). Of the mistakes it does not refuse, 3 draw a warning, 9 are bad data stopped at a runtime boundary check, and 2 stop at run time. The ones a reviewer of agent-written code leans on most:
+Every claim about what Glyph catches is a case in the repository's `catches/` directory: the same program in TypeScript and in Glyph, both run by a CI gate. There are 47 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 5 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). Of the mistakes it does not refuse, 3 draw a warning, 9 are bad data stopped at a runtime boundary check, and 2 stop at run time. The ones a reviewer of agent-written code leans on most:
 
 | Code | What is refused |
 
@@ -24,7 +24,7 @@ Every claim about what Glyph catches is a case in the repository's `catches/` di
 
 ## Where it stops
 
-The guarantees cover code written in Glyph. An exception thrown inside an npm dependency still bypasses `Result`, and a type imported from a package's `.d.ts` has no runtime check. Inside Glyph, the 6 open holes are listed with their gap numbers in [what it does not catch yet](https://glyphlang.io/catches/#not-yet), and the full ledger is [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md). For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where that setup is still ahead, see [why not tooled TypeScript](https://glyphlang.io/answers/vs-tooled-ts/).
+The guarantees cover code written in Glyph. An exception thrown inside an npm dependency still bypasses `Result`, and a type imported from a package's `.d.ts` has no runtime check. Inside Glyph, the 5 open holes are listed with their gap numbers in [what it does not catch yet](https://glyphlang.io/catches/#not-yet), and the full ledger is [docs/dogfooding-gaps.md](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md). For a comparison with strict TypeScript plus zod, eslint and ts-pattern, including where that setup is still ahead, see [why not tooled TypeScript](https://glyphlang.io/answers/vs-tooled-ts/).
 
 ## Adopting it inside an existing app
 

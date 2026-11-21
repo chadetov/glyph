@@ -430,7 +430,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">fixture<a class="h-anchor" href="#the-fixtures" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 아래의 각 디렉터리에는 <code>ts.ts</code>, <code>glyph.glyph</code>, 그리고 각각이 무엇을 하는지 적은 <code>case.toml</code>이 있습니다. <code>scripts/check_catches.py</code>는 CI에서 실행됩니다. 컴파일되지 않는 TypeScript 프로그램은 아무것도 증명하지 못하므로 모든 <code>ts.ts</code>가 <code>tsc --strict</code>를 통과해야 하고, Glyph 쪽은 사례의 종류에 따라 검사합니다. 확인된 사례는 모두 48건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 6건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건). 게이트가 검사하는 종류별로 보면 다음과 같습니다.
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> 아래의 각 디렉터리에는 <code>ts.ts</code>, <code>glyph.glyph</code>, 그리고 각각이 무엇을 하는지 적은 <code>case.toml</code>이 있습니다. <code>scripts/check_catches.py</code>는 CI에서 실행됩니다. 컴파일되지 않는 TypeScript 프로그램은 아무것도 증명하지 못하므로 모든 <code>ts.ts</code>가 <code>tsc --strict</code>를 통과해야 하고, Glyph 쪽은 사례의 종류에 따라 검사합니다. 확인된 사례는 모두 47건입니다. TypeScript 사례 37건, Glyph에는 없는 JavaScript 함정 5건, Glyph가 아직 막지 못한 구멍 5건입니다. 그중 28건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 23건, 함정 5건). 게이트가 검사하는 종류별로 보면 다음과 같습니다.
         </p>
       </div>
 
@@ -444,7 +444,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">빌드는 통과하고 그 코드를 경고로 보고함</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">프로그램이 실행되고, 경계의 검사가 잘못된 데이터를 <code>Err</code>로 바꿈</td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">프로그램이 빌드된 뒤, 실행 중에 명시된 출력과 함께 멈춤</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">6</td><td data-label="What the gate requires of the Glyph">Glyph가 프로그램을 받아들이고 잘못 동작함. 구멍이 막히면 게이트가 실패하고 사례를 옮기라고 알려 줌</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">5</td><td data-label="What the gate requires of the Glyph">Glyph가 프로그램을 받아들이고 잘못 동작함. 구멍이 막히면 게이트가 실패하고 사례를 옮기라고 알려 줌</td></tr>
           </tbody>
         </table>
       </div>
@@ -538,7 +538,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">아직 잡아내지 못하는 것<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
-          <code>gap</code> 사례 6건은 각각의 gap 번호와 함께 <a href="/ko/catches/#not-yet">잡아내는 것 페이지</a>에 있습니다. Glyph로 앱을 만들면서 발견한 모든 gap은 목록인 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>에 있습니다. 여기서는 대괄호 표시만이 현재 상태를 나타내며(<code>[FIXED]</code>, <code>[HALF FIXED]</code>, 열린 항목은 표시 없음), 열린 항목이 마지막으로 재현된 지 릴리스 다섯 개가 넘으면 <code>scripts/check_gaps.py</code>가 CI를 실패시킵니다.
+          <code>gap</code> 사례 5건은 각각의 gap 번호와 함께 <a href="/ko/catches/#not-yet">잡아내는 것 페이지</a>에 있습니다. Glyph로 앱을 만들면서 발견한 모든 gap은 목록인 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>에 있습니다. 여기서는 대괄호 표시만이 현재 상태를 나타내며(<code>[FIXED]</code>, <code>[HALF FIXED]</code>, 열린 항목은 표시 없음), 열린 항목이 마지막으로 재현된 지 릴리스 다섯 개가 넘으면 <code>scripts/check_gaps.py</code>가 CI를 실패시킵니다.
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">릴리스에 Breaking 표시를 붙이는 방법<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="이 섹션으로 연결되는 링크">#</a></h2>

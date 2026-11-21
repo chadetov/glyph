@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "debac5501878fd3d",
+  "source_hash": "c7a4b93d61ceb50d",
   "segments": [
     {
       "id": "title",
@@ -623,6 +623,36 @@
       "tr": "map のキーは任意なので、コンパイラはキーが存在するかを知ることができません。読み取りを <code>string</code> と型付けするのは、検査していないことを述べることであり、値は \"undefined\" という文字列として出力されていました。キーへの書き込みは変わりませんし、配列のインデックスも変わりません。範囲はプログラムが検査できる値ですが、map のキーはそうではありません。"
     },
     {
+      "id": "h-3a3d7d62",
+      "kind": "html",
+      "en": "A method that answers <code>undefined</code>",
+      "tr": "<code>undefined</code> を返すメソッド"
+    },
+    {
+      "id": "h-260d7a8e",
+      "kind": "html",
+      "en": "a lookup that may find nothing: now E0242",
+      "tr": "何も見つからないかもしれない検索: 現在は E0242"
+    },
+    {
+      "id": "h-ee3783df",
+      "kind": "html",
+      "en": "A few JavaScript methods say \"nothing there\" with <code>undefined</code>, which Glyph's own checker could not see, so the editor and the agent tools passed the <code>.name</code> read. Each one now points at the standard library function that returns an <code>Option</code>, and <code>glyph fix</code> writes the array ones.",
+      "tr": "JavaScript のいくつかのメソッドは「何もない」を <code>undefined</code> で表します。Glyph 自身のチェッカーにはそれが見えなかったため、エディタとエージェントのツールは <code>.name</code> の読み取りを通していました。今はそれぞれが <code>Option</code> を返す標準ライブラリの関数を示し、配列のものは <code>glyph fix</code> が書き換えます。"
+    },
+    {
+      "id": "h-a8265a1c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">which methods, and what replaces them</span>",
+      "tr": "詳細 <span class=\"hint\">どのメソッドが対象で、何に置き換えるか</span>"
+    },
+    {
+      "id": "h-797549b8",
+      "kind": "html",
+      "en": "The list is read off TypeScript's declarations: <code>find</code>, <code>findLast</code> and <code>at</code> on an array, and <code>at</code>, <code>codePointAt</code> and <code>match</code> on a string. The replacements are <code>array.find</code>, <code>array.find_last</code>, <code>array.get</code>, <code>string.char_at</code>, <code>string.code_point_at</code> and <code>regex.matches</code>. A <code>??</code> default becomes the <code>None</code> arm of a <code>match</code>. <code>array.get</code> answers <code>None</code> for a negative index, so the help for <code>xs.at(-1)</code> writes <code>array.get(xs, array.len(xs) - 1)</code>. A method called on an npm value is not judged, because Glyph does not know its type.",
+      "tr": "一覧は TypeScript の宣言から読み取っています。配列の <code>find</code>、<code>findLast</code>、<code>at</code> と、文字列の <code>at</code>、<code>codePointAt</code>、<code>match</code> です。置き換え先は <code>array.find</code>、<code>array.find_last</code>、<code>array.get</code>、<code>string.char_at</code>、<code>string.code_point_at</code>、<code>regex.matches</code> です。<code>??</code> のデフォルト値は <code>match</code> の <code>None</code> アームになります。<code>array.get</code> は負のインデックスに <code>None</code> を返すので、<code>xs.at(-1)</code> のヘルプは <code>array.get(xs, array.len(xs) - 1)</code> と書きます。npm の値に対するメソッド呼び出しは、Glyph がその型を知らないため判定しません。"
+    },
+    {
       "id": "h-7affa1da",
       "kind": "html",
       "en": "<code>==</code> is value equality everywhere",
@@ -869,10 +899,10 @@
       "tr": "現状"
     },
     {
-      "id": "h-d58144f7",
+      "id": "h-6ce312f0",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">18</span>",
-      "tr": "提供中 <span class=\"count\">18</span>"
+      "en": "Shipping today <span class=\"count\">19</span>",
+      "tr": "提供中 <span class=\"count\">19</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -971,6 +1001,18 @@
       "tr": "map からのキーの読み取りを拒否"
     },
     {
+      "id": "h-3f45b85d",
+      "kind": "html",
+      "en": "A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named",
+      "tr": "<code>find</code> や <code>at</code> のように <code>undefined</code> を返す組み込みメソッドを、<code>Option</code> 版を示して拒否"
+    },
+    {
+      "id": "h-98f4194b",
+      "kind": "html",
+      "en": "since 0.1.161",
+      "tr": "0.1.161 から"
+    },
+    {
       "id": "h-0fdc9dd8",
       "kind": "html",
       "en": "Object literals and JSX attributes checked against the declared type",
@@ -1049,10 +1091,10 @@
       "tr": "型デスクリプタ上の <code>@redact</code> による PII のマスキング"
     },
     {
-      "id": "h-f094b384",
+      "id": "h-87f2be3e",
       "kind": "html",
-      "en": "Getting sharper <span class=\"count\">13</span>",
-      "tr": "改善中 <span class=\"count\">13</span>"
+      "en": "Getting sharper <span class=\"count\">14</span>",
+      "tr": "改善中 <span class=\"count\">14</span>"
     },
     {
       "id": "h-832f8a5e",
@@ -1137,6 +1179,12 @@
       "kind": "html",
       "en": "Deeper flow-narrowing is on the roadmap",
       "tr": "より深いフローによる絞り込みはロードマップにある"
+    },
+    {
+      "id": "h-cdeef03f",
+      "kind": "html",
+      "en": "A <code>find</code> or <code>at</code> on an npm value is not judged; only an array or a string Glyph has typed is",
+      "tr": "npm の値に対する <code>find</code> や <code>at</code> は判定しない。対象は Glyph が型を知っている配列と文字列だけ"
     },
     {
       "id": "h-fd47e980",

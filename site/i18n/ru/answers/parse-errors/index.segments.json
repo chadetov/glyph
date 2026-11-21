@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/parse-errors/index.html",
   "locale": "ru",
-  "source_hash": "7f1a8b2bd45c7f9e",
+  "source_hash": "4e3c1f0c9f2ab861",
   "segments": [
     {
       "id": "title",
@@ -59,30 +59,6 @@
       "tr": "Да. Каждая проблема называет поле, говорит, <strong>какое правило нарушило значение</strong>, и несёт <code>code</code>, по которому можно ветвиться. Поле, ограниченное предикатом <code>where</code>, сообщает сам предикат, так что по отказу grep приводит к строке, где это ограничение задано."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Почему это важно"
-    },
-    {
-      "id": "h-2b8c51b7",
-      "kind": "html",
-      "en": "A validator that says \"this payload is bad\" has done half the job. The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
-      "tr": "Валидатор, который говорит «этот payload плохой», сделал половину работы. Обработчику всё равно нужно решить: это клиент, который забыл поле, или клиент, который прислал пароль из четырёх символов? Первое это 400, второе 422, и если валидатор этого не говорит, в итоге вы разбираете одно и то же тело дважды с двумя разными типами, чтобы восстановить информацию, которая у валидатора уже была."
-    },
-    {
-      "id": "h-333aed3e",
-      "kind": "html",
-      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
-      "tr": "Именно это и случилось при написании API авторизации на Glyph. Регистрация вообще без ключа <code>password</code> возвращалась как <code>weak_password</code>, потому что отсутствующее и слишком короткое значение давали одну и ту же строку."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Посмотрите сами"
-    },
-    {
       "id": "h-bddd14ad",
       "kind": "html",
       "en": "One type, one constraint:",
@@ -95,10 +71,28 @@
       "tr": "Четыре плохих payload, четыре разных ответа. Каждый из них это один <code>Issue</code>, показанный как <code>code | path | message</code>:"
     },
     {
-      "id": "h-cb372fc2",
+      "id": "h-e9f3d57d",
       "kind": "html",
-      "en": "The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim. Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
-      "tr": "Главное здесь второй. <code>value.length &gt;= 8</code> написано один раз, в типе, и отказ цитирует его дословно. Вставьте эту строку из тела ответа HTTP 422 в <code>grep</code>, и вы попадёте на объявление, которое её породило. Никому не нужно держать копию правила в слое сообщений об ошибках, а именно так эти две копии и расходятся."
+      "en": "<span>The second one is the point. <code>value.length &gt;= 8</code> is written once, at the type, and the rejection quotes it verbatim.</span>",
+      "tr": "<span>Главное здесь второй. <code>value.length &gt;= 8</code> написано один раз, в типе, и отказ цитирует его дословно.</span>"
+    },
+    {
+      "id": "h-e5637b50",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">from a 422 body back to the declaration</span>",
+      "tr": "Подробнее <span class=\"hint\">от тела ответа 422 обратно к объявлению</span>"
+    },
+    {
+      "id": "h-56143245",
+      "kind": "html",
+      "en": "Paste that string out of an HTTP 422 body into <code>grep</code> and you land on the declaration that produced it. Nobody has to keep a copy of the rule in the error-message layer, which is how the two drift apart.",
+      "tr": "Вставьте эту строку из тела ответа HTTP 422 в <code>grep</code>, и вы попадёте на объявление, которое её породило. Никому не нужно держать копию правила в слое сообщений об ошибках, а именно так эти две копии и расходятся."
+    },
+    {
+      "id": "h-368d2a6e",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what an array used to do</span>",
+      "tr": "История <span class=\"hint\">что раньше делал массив</span>"
     },
     {
       "id": "h-c1b3d39f",
@@ -107,16 +101,118 @@
       "tr": "Четвёртый раньше был хуже, чем просто плохое сообщение. Для <code>typeof</code> массив это объект, поэтому запись без обязательных полей принимала его без вопросов, а присланный <code>[1, 2, 3]</code> возвращался как по одной непонятной проблеме на каждое объявленное поле, и ни одна не упоминала, что вы прислали список."
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Почему это важно</a>"
+    },
+    {
+      "id": "h-c67fef3c",
+      "kind": "html",
+      "en": "<a href=\"#nested-types-answer-for-themselves\">Nested types</a>",
+      "tr": "<a href=\"#nested-types-answer-for-themselves\">Вложенные типы</a>"
+    },
+    {
+      "id": "h-4ae08760",
+      "kind": "html",
+      "en": "<a href=\"#the-code-not-the-string\">The code, not the string</a>",
+      "tr": "<a href=\"#the-code-not-the-string\">Код, а не строка</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Текущее состояние</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Почему это важно"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-7c00eb67",
+      "kind": "html",
+      "en": "A validator that says \"this payload is bad\" has done half the job.",
+      "tr": "Валидатор, который говорит «этот payload плохой», сделал половину работы."
+    },
+    {
+      "id": "h-5710a37f",
+      "kind": "html",
+      "en": "The handler still has to decide: is this a client that forgot a field, or a client that sent a password four characters long? One is a 400, the other is a 422, and if the validator won't say, you end up parsing the same body twice with two different types to recover a bit the validator already had.",
+      "tr": "Обработчику всё равно нужно решить: это клиент, который забыл поле, или клиент, который прислал пароль из четырёх символов? Первое это 400, второе 422, и если валидатор этого не говорит, в итоге вы разбираете одно и то же тело дважды с двумя разными типами, чтобы восстановить информацию, которая у валидатора уже была."
+    },
+    {
+      "id": "h-77e96ed1",
+      "kind": "html",
+      "en": "History <span class=\"hint\">where this came up</span>",
+      "tr": "История <span class=\"hint\">где это всплыло</span>"
+    },
+    {
+      "id": "h-333aed3e",
+      "kind": "html",
+      "en": "That is exactly what happened building an auth API in Glyph. A signup with no <code>password</code> key at all came back as <code>weak_password</code>, because absent and too-short produced the same string.",
+      "tr": "Именно это и случилось при написании API авторизации на Glyph. Регистрация вообще без ключа <code>password</code> возвращалась как <code>weak_password</code>, потому что отсутствующее и слишком короткое значение давали одну и ту же строку."
+    },
+    {
       "id": "h-f15fe14d",
       "kind": "html",
       "en": "Nested types answer for themselves",
       "tr": "Вложенные типы отвечают сами за себя"
     },
     {
-      "id": "h-1c1f349a",
+      "id": "h-f34a842c",
       "kind": "html",
-      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message. You get the location and the reason from the same issue, without re-running anything.",
-      "tr": "Поле, у типа которого есть собственный дескриптор, проверяется <code>parse</code> этого типа, и его проблемы возвращаются с именем поля в начале пути. Так что <code>Password</code>, вложенный на два уровня, сообщает <code>[\"body\", \"password\"]</code> и сохраняет своё сообщение. Место и причину вы получаете из одной и той же проблемы, ничего не перезапуская."
+      "en": "A field whose type has its own descriptor is validated by that type's <code>parse</code>, and its issues come back with the field name on the front of the path. So a <code>Password</code> nested two levels down reports <code>[\"body\", \"password\"]</code> and still carries its own message.",
+      "tr": "Поле, у типа которого есть собственный дескриптор, проверяется <code>parse</code> этого типа, и его проблемы возвращаются с именем поля в начале пути. Так что <code>Password</code>, вложенный на два уровня, сообщает <code>[\"body\", \"password\"]</code> и сохраняет своё сообщение."
+    },
+    {
+      "id": "a-5132ab55",
+      "kind": "attr:aria-label",
+      "en": "The path a nested issue reports",
+      "tr": "Путь, который сообщает вложенная проблема"
+    },
+    {
+      "id": "h-59744442",
+      "kind": "html",
+      "en": "<span>body</span>",
+      "tr": "<span>body</span>"
+    },
+    {
+      "id": "h-8e14aceb",
+      "kind": "html",
+      "en": "<span>password</span>",
+      "tr": "<span>password</span>"
+    },
+    {
+      "id": "h-783c1919",
+      "kind": "html",
+      "en": "<span>Password</span>",
+      "tr": "<span>Password</span>"
+    },
+    {
+      "id": "h-3d8b546d",
+      "kind": "html",
+      "en": "<span>You get the location and the reason from the same issue, without re-running anything.</span>",
+      "tr": "<span>Место и причину вы получаете из одной и той же проблемы, ничего не перезапуская.</span>"
     },
     {
       "id": "h-f4063e91",
@@ -125,10 +221,10 @@
       "tr": "Код, а не строка"
     },
     {
-      "id": "h-0696faed",
+      "id": "h-a4d51c89",
       "kind": "html",
-      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, or <code>\"unexpected\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
-      "tr": "<code>Issue</code> несёт необязательный <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code> или <code>\"unexpected\"</code>. Ветвитесь по нему. Сопоставление по тексту сообщения это та хрупкость, которую Glyph и призван убрать, а сообщение предназначено для человека, читающего тело ответа."
+      "en": "<code>Issue</code> carries an optional <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code>, or <code>\"depth\"</code>. Branch on that. Matching on message text is the fragility Glyph exists to remove, and the message is for the human reading the response body.",
+      "tr": "<code>Issue</code> несёт необязательный <code>code</code>: <code>\"missing\"</code>, <code>\"type\"</code>, <code>\"refinement\"</code>, <code>\"unexpected\"</code> или <code>\"depth\"</code>. Ветвитесь по нему. Сопоставление по тексту сообщения это та хрупкость, которую Glyph и призван убрать, а сообщение предназначено для человека, читающего тело ответа."
     },
     {
       "id": "h-d38a3f61",
@@ -143,6 +239,18 @@
       "tr": "<code>code</code> необязателен, поэтому <code>Issue</code>, собранный вручную, и любой потребитель, написанный до его появления, по-прежнему компилируются без изменений."
     },
     {
+      "id": "h-66caedb4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the <code>\"depth\"</code> code</span>",
+      "tr": "Подробнее <span class=\"hint\">код <code>\"depth\"</code></span>"
+    },
+    {
+      "id": "h-e1454553",
+      "kind": "html",
+      "en": "<code>\"depth\"</code> is the answer for a body nested more than 1000 objects and arrays deep (<code>MAX_DEPTH</code> in <code>std/schema</code>): one issue at the field where it happened, where before 0.1.150 the check threw <code>RangeError: Maximum call stack size exceeded</code> and took the handler with it.",
+      "tr": "<code>\"depth\"</code> это ответ для тела, вложенного глубже 1000 объектов и массивов (<code>MAX_DEPTH</code> в <code>std/schema</code>): одна проблема на том поле, где это случилось, тогда как до 0.1.150 проверка бросала <code>RangeError: Maximum call stack size exceeded</code> и роняла вместе с собой обработчик."
+    },
+    {
       "id": "h-b55f380c",
       "kind": "html",
       "en": "Where it stands",
@@ -155,22 +263,106 @@
       "tr": "Уже работает"
     },
     {
-      "id": "h-7654d152",
+      "id": "h-597fe3e1",
       "kind": "html",
-      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, and <code>\"unexpected\"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.",
-      "tr": "Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле: <code>\"missing\"</code> для отсутствующего обязательного поля, <code>\"type\"</code> для неверной формы (включая не-объект или массив), <code>\"refinement\"</code> для значения, которое прошло базовый тип, но не прошло предикат, и <code>\"unexpected\"</code> для ключа, которого тип не объявляет. Уточнение цитирует свой предикат. Поле, у типа которого есть дескриптор, передаёт проверку ему, поэтому вложенные проблемы приходят с полным путём. Необязательные поля (<code>f?: T</code>) никогда не сообщаются как отсутствующие."
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field",
+      "tr": "Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле"
     },
     {
-      "id": "h-5db269e9",
+      "id": "h-ffa63583",
       "kind": "html",
-      "en": "Getting sharper",
-      "tr": "Становится точнее"
+      "en": "missing",
+      "tr": "missing"
     },
     {
-      "id": "h-7339349c",
+      "id": "h-1303c06b",
       "kind": "html",
-      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
-      "tr": "Два ограничения. Поле, типизированное чем-то без собственного дескриптора (неограниченным параметром типа или типом, импортированным из рукописного <code>.d.ts</code>), по-прежнему получает плоскую проверку и проблему <code>\"type\"</code>; компилятор не синтезирует для них дескриптор, а дать его может запуск <code>glyph gen dts</code> на объявлении. Модуль, объявляющий собственный тип с именем <code>Issue</code>, раньше перекрывал тип из прелюдии внутри сгенерированного файла и ломал все дескрипторы в этом модуле; начиная с 0.1.60 такое объявление даёт <code>E0110</code> на строке, где назван тип, так что вы узнаёте, где проблема, вместо того чтобы читать ошибку <code>tsc</code> о сгенерированном коде."
+      "en": "type",
+      "tr": "type"
+    },
+    {
+      "id": "h-1a53d443",
+      "kind": "html",
+      "en": "refinement",
+      "tr": "refinement"
+    },
+    {
+      "id": "h-bcf76901",
+      "kind": "html",
+      "en": "unexpected",
+      "tr": "unexpected"
+    },
+    {
+      "id": "h-ded32129",
+      "kind": "html",
+      "en": "depth",
+      "tr": "depth"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Подробнее"
+    },
+    {
+      "id": "h-13de36e7",
+      "kind": "html",
+      "en": "Records and <code>where</code> types report the failing rule, not just the failing field: <code>\"missing\"</code> for an absent required field, <code>\"type\"</code> for the wrong shape (including a non-object or an array), <code>\"refinement\"</code> for a value that passed its base type and failed the predicate, <code>\"unexpected\"</code> for a key the type does not declare, and <code>\"depth\"</code> for a value nested more than 1000 deep.",
+      "tr": "Записи и типы <code>where</code> сообщают нарушенное правило, а не только поле: <code>\"missing\"</code> для отсутствующего обязательного поля, <code>\"type\"</code> для неверной формы (включая не-объект или массив), <code>\"refinement\"</code> для значения, которое прошло базовый тип, но не прошло предикат, <code>\"unexpected\"</code> для ключа, которого тип не объявляет, и <code>\"depth\"</code> для значения, вложенного глубже 1000 уровней."
+    },
+    {
+      "id": "h-3ac6ed8a",
+      "kind": "html",
+      "en": "A refinement quotes its predicate.",
+      "tr": "Уточнение цитирует свой предикат."
+    },
+    {
+      "id": "h-0925dc35",
+      "kind": "html",
+      "en": "A field whose type has a descriptor delegates to it, so nested issues arrive with the full path.",
+      "tr": "Поле, у типа которого есть дескриптор, передаёт проверку ему, поэтому вложенные проблемы приходят с полным путём."
+    },
+    {
+      "id": "h-aa75521c",
+      "kind": "html",
+      "en": "Optional fields (<code>f?: T</code>) are never reported as missing.",
+      "tr": "Необязательные поля (<code>f?: T</code>) никогда не сообщаются как отсутствующие."
+    },
+    {
+      "id": "h-42a8d834",
+      "kind": "html",
+      "en": "Getting sharper <span class=\"count\">2</span>",
+      "tr": "Становится точнее <span class=\"count\">2</span>"
+    },
+    {
+      "id": "h-5064bfc9",
+      "kind": "html",
+      "en": "A field typed by something with no descriptor of its own still gets the flat check and a <code>\"type\"</code> issue",
+      "tr": "Поле, типизированное чем-то без собственного дескриптора, по-прежнему получает плоскую проверку и проблему <code>\"type\"</code>"
+    },
+    {
+      "id": "h-38b590d3",
+      "kind": "html",
+      "en": "Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>\"type\"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one.",
+      "tr": "Два ограничения. Поле, типизированное чем-то без собственного дескриптора (неограниченным параметром типа или типом, импортированным из рукописного <code>.d.ts</code>), по-прежнему получает плоскую проверку и проблему <code>\"type\"</code>; компилятор не синтезирует для них дескриптор, а дать его может запуск <code>glyph gen dts</code> на объявлении."
+    },
+    {
+      "id": "h-b0ffbce4",
+      "kind": "html",
+      "en": "A module's own type called <code>Issue</code> is refused at the line that names it",
+      "tr": "Собственный тип модуля с именем <code>Issue</code> отклоняется на строке, где он назван"
+    },
+    {
+      "id": "h-42d20e8c",
+      "kind": "html",
+      "en": "since 0.1.60",
+      "tr": "с 0.1.60"
+    },
+    {
+      "id": "h-04cd298e",
+      "kind": "html",
+      "en": "A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.",
+      "tr": "Модуль, объявляющий собственный тип с именем <code>Issue</code>, раньше перекрывал тип из прелюдии внутри сгенерированного файла и ломал все дескрипторы в этом модуле; начиная с 0.1.60 такое объявление даёт <code>E0110</code> на строке, где назван тип, так что вы узнаёте, где проблема, вместо того чтобы читать ошибку <code>tsc</code> о сгенерированном коде."
     }
   ]
 }

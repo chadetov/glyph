@@ -1,7 +1,7 @@
 ---
 title: Сломает ли новый выпуск Glyph мою сборку? · Glyph
 description: Проект на Glyph фиксирует точную версию компилятора, поэтому выпуск никогда не приходит к вам случайно. glyph doctor сообщает, что он вышел, а glyph upgrade на него переводит.
-source_hash: b4d1d08012358fef
+source_hash: d07b464c988f9441
 prev: /answers/ai-authoring/ | &larr; Назад | Может ли ИИ надёжно писать на языке, который почти не видел?
 next: /answers/imports/ | Далее &rarr; | Можно ли использовать мой существующий TypeScript, JavaScript и библиотеки из npm?
 ---
@@ -12,16 +12,7 @@ next: /answers/imports/ | Далее &rarr; | Можно ли использов
         Нет, пока вы сами об этом не попросите. Проект на Glyph фиксирует компилятор на <strong>точной версии</strong>, поэтому выпуск, опубликованный утром, не попадёт в вашу сборку днём. До 1.0 выпуск может добавить диагностику, которая отклоняет код, компилировавшийся вчера, и обычно в этом и есть смысл выпуска, поэтому решение его взять за вами, и это одна команда.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Большинство инструментов фиксируют с caret, потому что патч-выпуск это исправление ошибок. Компилятор до 1.0 устроен иначе. Вся работа Glyph в том, чтобы отклонять программы, а становиться в этом лучше значит выдавать новые ошибки: более строгую проверку импорта, дыру в исчерпываемости, которая раньше проскальзывала, арность, которую проверка ещё не моделировала. Это хорошие выпуски. И это ровно те выпуски, которые вы не хотите получить через <code>npm install</code>, запущенный ради библиотеки для дат.
-        </p>
-        <p>
-          Поэтому <code>glyph init</code> не пишет <code>^</code>. На версии <code>0.x</code> caret всё равно пропускает патчи, и в этом ловушка: <code>^0.1.9</code> тихо принимает любой более поздний 0.1.x.
-        </p>
-      </div>
-
+      <figure class="ak-hero">
       <div class="code">
         <span class="cap">package.json в том виде, в каком его создаёт шаблон</span>
 <pre>"devDependencies": {
@@ -31,19 +22,46 @@ next: /answers/imports/ | Далее &rarr; | Можно ли использов
   "tsx": "^4.19.0"
 }</pre>
       </div>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему фиксация точная</a></li>
+          <li><a href="#the-other-half">Как узнать о новом выпуске</a></li>
+          <li><a href="#taking-the-upgrade">Как обновиться</a></li>
+          <li><a href="#moving-the-tool-not-the-project">Обновление самого компилятора</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Большинство инструментов фиксируют с caret, потому что патч-выпуск это исправление ошибок. Компилятор до 1.0 устроен иначе.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему новые ошибки означают хорошие выпуски</span></summary><div class="body">
         <p>
-          Закоммитьте рядом <code>package-lock.json</code>, и свежий клон будет собираться тем набором инструментов, который вы тестировали, а не тем, что вышло с тех пор.
+          Вся работа Glyph в том, чтобы отклонять программы, а становиться в этом лучше значит выдавать новые ошибки: более строгую проверку импорта, дыру в исчерпываемости, которая раньше проскальзывала, арность, которую проверка ещё не моделировала. Это хорошие выпуски. И это ровно те выпуски, которые вы не хотите получить через <code>npm install</code>, запущенный ради библиотеки для дат.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Поэтому <code>glyph init</code> не пишет <code>^</code>. На версии <code>0.x</code> caret всё равно пропускает патчи, и в этом ловушка: <code>^0.1.9</code> тихо принимает любой более поздний 0.1.x.
+      </p></div>
+      <p>
+        Закоммитьте рядом <code>package-lock.json</code>, и свежий клон будет собираться тем набором инструментов, который вы тестировали, а не тем, что вышло с тех пор.
+      </p>
 
-        <h2 class="block-label">Вторая половина</h2>
+      <h2 class="ak-h" id="the-other-half">Вторая половина<a class="ak-anchor" href="#the-other-half" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        У фиксации версии есть очевидный способ провалиться: вы год сидите на старом компиляторе и не узнаёте об этом. Поэтому компилятор сообщает сам, когда вы спрашиваете его о своей настройке:
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему канал это сам компилятор</span></summary><div class="body">
         <p>
-          У фиксации версии есть очевидный способ провалиться: вы год сидите на старом компиляторе и не узнаёте об этом. На вашей машине об этом ничто не скажет, а сайт, который нужно не забывать проверять, это не канал. Поэтому компилятор сообщает сам, когда вы спрашиваете его о своей настройке:
+          На вашей машине об этом ничто не скажет, а сайт, который нужно не забывать проверять, это не канал.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph doctor</span>
 <pre>glyph &mdash; 0.1.72
   [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
@@ -56,18 +74,24 @@ glyph doctor &mdash; JavaScript toolchain
 All good. `glyph run` and `glyph build --check` are ready.</pre>
       </div>
 
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Найденный новый выпуск <em>никогда</em> не меняет код выхода, поэтому команду безопасно запускать в CI.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">CI, работа без сети и что никогда не обращается к сети</span></summary><div class="body">
         <p>
-          Найденный новый выпуск <em>никогда</em> не меняет код выхода, поэтому команду безопасно запускать в CI. Опубликованный выпуск не означает сломанный набор инструментов, и зелёный пайплайн не должен краснеть из-за того, что кто-то выпустил что-то десять минут назад. Если машина без сети, проверка так и пишет и идёт дальше; <code>--offline</code> пропускает её полностью и вообще не обращается к сети.
+          Опубликованный выпуск не означает сломанный набор инструментов, и зелёный пайплайн не должен краснеть из-за того, что кто-то выпустил что-то десять минут назад. Если машина без сети, проверка так и пишет и идёт дальше; <code>--offline</code> пропускает её полностью и вообще не обращается к сети.
         </p>
         <p>
           Больше ничто не обращается к реестру. <code>build</code>, <code>run</code> и <code>check</code> этого никогда не делают. Компилятор, который звонит домой при каждой сборке, это другой продукт.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Как обновиться</h2>
-      </div>
+      <h2 class="ak-h" id="taking-the-upgrade">Как обновиться<a class="ak-anchor" href="#taking-the-upgrade" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Команда переписывает одну строку и запускает <code>npm install</code>. Ваш исходный код она не трогает и не делает вид, что обновление завершено: собрать проект после этого и есть суть, потому что только что взятый выпуск вправе иметь мнения, с которыми ваш код ещё не встречался.
+      </p>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">Меняется одна строка, и когда, решаете вы</span>
 <pre>$ glyph upgrade --dry-run
 glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
@@ -79,20 +103,26 @@ glyph upgrade: build before you commit; a new release may report diagnostics
                this project did not have.</pre>
       </div>
 
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">выбор версии и пропуск установки</span></summary><div class="body">
         <p>
-          Команда переписывает одну строку и запускает <code>npm install</code>. Ваш исходный код она не трогает и не делает вид, что обновление завершено: собрать проект после этого и есть суть, потому что только что взятый выпуск вправе иметь мнения, с которыми ваш код ещё не встречался. <code>--to &lt;version&gt;</code> указывает конкретную версию, в том числе более старую, если хотите вернуться, а <code>--no-install</code> оставляет установку вам.
+          <code>--to &lt;version&gt;</code> указывает конкретную версию, в том числе более старую, если хотите вернуться, а <code>--no-install</code> оставляет установку вам.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Обновить инструмент, а не проект</h2>
+      <h2 class="ak-h" id="moving-the-tool-not-the-project">Обновить инструмент, а не проект<a class="ak-anchor" href="#moving-the-tool-not-the-project" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>upgrade</code> переносит фиксацию в <code>package.json</code>. <code>glyph --update</code> это вторая половина.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Теперь это правило, а не совпадение: флаги действуют на инструмент, как <code>--version</code>, <code>--help</code> и <code>--explain</code>, а подкоманды действуют на ваш код.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">что раньше печатал doctor</span></summary><div class="body">
         <p>
-          <code>upgrade</code> переносит фиксацию в <code>package.json</code>. Это не та команда, когда отстаёт компилятор в вашем <code>PATH</code>, а <code>doctor</code> какое-то время всё равно её советовал, отправляя глобальную установку к манифесту, которого у неё может не быть. <code>glyph --update</code> это вторая половина. Теперь это правило, а не совпадение: флаги действуют на инструмент, как <code>--version</code>, <code>--help</code> и <code>--explain</code>, а подкоманды действуют на ваш код. <code>--update-dry-run</code> останавливается, напечатав команду <code>npm</code>, которую запустил бы.
+          Это не та команда, когда отстаёт компилятор в вашем <code>PATH</code>, а <code>doctor</code> какое-то время всё равно её советовал, отправляя глобальную установку к манифесту, которого у неё может не быть.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <div class="code term">
         <span class="cap">glyph --update</span>
 <pre>$ glyph --update
 glyph 0.1.72 is installed; 0.1.73 is published.
@@ -106,20 +136,33 @@ npm finished. Confirm with:
     glyph --version</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          Он обновляет только установку, которую может распознать. Для компилятора, запущенного через <code>npx</code>, собранного из исходников Glyph или лежащего по пути, который он не узнаёт, команда только печатается, и ничего не перезаписывается, потому что заменить наугад бинарник из Homebrew или чей-то <code>cargo build</code> значит оставить <code>PATH</code> указывать на то, что никто не выбирал. Он также не утверждает, что обновление прошло: npm может завершиться с кодом ноль, пропустив <code>optionalDependency</code>, которую не смог скачать, и именно так однажды вышел выпуск Glyph без бинарника для платформы, поэтому последняя строка называет проверкой <code>glyph --version</code>, а не заявляет об успехе.
-        </p>
-      </div>
+      <p>
+        <code>--update-dry-run</code> останавливается, напечатав команду <code>npm</code>, которую запустил бы.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Только установка, которую он может распознать</b>Он обновляет только установку, которую может распознать. Для компилятора, запущенного через <code>npx</code>, собранного из исходников Glyph или лежащего по пути, который он не узнаёт, команда только печатается, и ничего не перезаписывается, потому что заменить наугад бинарник из Homebrew или чей-то <code>cargo build</code> значит оставить <code>PATH</code> указывать на то, что никто не выбирал.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M4.8 6.5l2 1.5-2 1.5M8.5 10h3"/></svg></span><b>Без заявлений об успехе</b>Он также не утверждает, что обновление прошло: npm может завершиться с кодом ноль, пропустив <code>optionalDependency</code>, которую не смог скачать, и именно так однажды вышел выпуск Glyph без бинарника для платформы, поэтому последняя строка называет проверкой <code>glyph --version</code>, а не заявляет об успехе.</li>
+      </ul>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Проекты из шаблона фиксируют точную версию, поэтому ни один выпуск не попадает в сборку случайно. <code>glyph doctor</code> сравнивает ваш компилятор с реестром и даёт ссылку на заметки к выпуску, никогда не влияя на свой код выхода и не вызываясь из <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> переносит фиксацию, устанавливает версию и понимает caret из более старого проекта, так что существующие проекты тоже можно перевести на точную фиксацию. <code>glyph --update</code> обновляет сам компилятор при глобальной установке через npm, а при любом другом способе установки сообщает, что делать, а не угадывает.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Что ещё улучшается</h3>
-          <p>Заметки к выпускам это одна страница на всю линейку, поэтому <code>glyph upgrade</code> даёт ссылку на страницу, а не на запись о версии, на которую вы переходите. Пока ничто не говорит, какие из диагностик нового выпуска сработают на вашем коде: чтобы узнать, нужно собрать проект, поэтому команда так и советует. А обновление сразу через несколько выпусков делается тем же одним шагом, что и через один, без сводки о том, что накопилось между ними. <code>glyph --update</code> вызывает npm и читает его код выхода, поэтому может сказать, что npm закончил, но не что бинарник в <code>PATH</code> имеет запрошенную версию; поэтому он отсылает к <code>glyph --version</code>, а не говорит, что всё получилось.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Проекты из шаблона фиксируют точную версию, поэтому ни один выпуск не попадает в сборку случайно.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph doctor</code> сравнивает ваш компилятор с реестром и даёт ссылку на заметки к выпуску, никогда не влияя на свой код выхода и не вызываясь из <code>build</code>/<code>run</code>/<code>check</code>.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph upgrade</code> переносит фиксацию, устанавливает версию и понимает caret из более старого проекта, так что существующие проекты тоже можно перевести на точную фиксацию.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --update</code> обновляет сам компилятор при глобальной установке через npm, а при любом другом способе установки сообщает, что делать, а не угадывает.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Что ещё улучшается</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Заметки к выпускам это одна страница на всю линейку, поэтому <code>glyph upgrade</code> даёт ссылку на страницу, а не на запись о версии, на которую вы переходите.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Пока ничто не говорит, какие из диагностик нового выпуска сработают на вашем коде: чтобы узнать, нужно собрать проект, поэтому команда так и советует.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">А обновление сразу через несколько выпусков делается тем же одним шагом, что и через один, без сводки о том, что накопилось между ними.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph --update</code> вызывает npm и читает его код выхода, поэтому может сказать, что npm закончил, но не что бинарник в <code>PATH</code> имеет запрошенную версию; поэтому он отсылает к <code>glyph --version</code>, а не говорит, что всё получилось.</span></span></li>
+          </ul>
+        </section>
       </div>

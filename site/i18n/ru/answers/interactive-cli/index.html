@@ -1,7 +1,7 @@
 ---
 title: Можно ли написать программу, в которую пользователь вводит текст? · Glyph
 description: io.read_line возвращает строку, как только она приходит, а не ждёт закрытия stdin, поэтому REPL, игровой цикл или чат-клиент отвечают, пока вы печатаете.
-source_hash: a2332eec4a663662
+source_hash: e06954a40c0a760a
 prev: /answers/web-serving/ | &larr; Назад | Можно ли отдавать веб-страницу, или только JSON API?
 next: /answers/long-running/ | Далее &rarr; | Можно ли написать сервер, или процесс просто завершится?
 ---
@@ -12,21 +12,10 @@ next: /answers/long-running/ | Далее &rarr; | Можно ли написа�
         Да. <code>io.read_line</code> возвращает строку, <strong>как только она пришла целиком</strong>, и не ждёт закрытия stdin, поэтому REPL, игровой цикл или чат-клиент отвечают на каждую строку, прежде чем читать следующую. До 0.1.62 он ждал, и об этом стоит сказать прямо, потому что из-за этого никакая интерактивная программа была невозможна.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Чтение строк, которое возвращает результат только в конце ввода, это чтение файла под чужим именем. Если пропустить через него файл по конвейеру, всё работает идеально, и поэтому никто ничего не заметил: все приложения в репозитории, которые читали stdin, читали из pipe. Потом кто-то написал чат-клиент, и он молчал, пока человек печатал, а после Ctrl-D выдал все ответы разом.
-        </p>
-        <p>
-          То приложение вышло как проигрыватель сессии по записанному JSON-файлу, с комментарием в исходнике, объясняющим почему. Ещё три приложения были подогнаны под то же самое, и никто это не назвал: сапёр не мог перерисовываться между ходами, текстовое приключение не могло ответить на <code>look</code>, а REPL ничего не вычислял, пока вы не отключались.
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>Весь цикл живой сессии чат-приложения. Прочитать, применить, вывести, повторить:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">examples/apps/chat/main.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Весь цикл живой сессии чат-приложения. Прочитать, применить, вывести, повторить:</p>
+        <div class="code">
+          <span class="cap">examples/apps/chat/main.glyph</span>
 <pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
   let state = server.empty()
   io.println(LIVE_BANNER)
@@ -46,16 +35,12 @@ next: /answers/long-running/ | Далее &rarr; | Можно ли написа�
   }
   return state
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Запуск в настоящем терминале: строки вводятся примерно с интервалом 0.6 секунды, stdin остаётся открытым. В левом столбце миллисекунды с момента запуска процесса:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+        <div class="code term">
+          <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
 <pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
 1826ms |    1  #general &lt;bob&gt; hey, is the build green?
 2434ms | <span class="cm">alice: green since 9am</span>
@@ -64,36 +49,77 @@ next: /answers/long-running/ | Далее &rarr; | Можно ли написа�
 3044ms |       * #general: alice, bob (2)
 3648ms | <span class="cm">carol: hello?</span>
 3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>От введённой строки до ответа одна-две миллисекунды.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">что было до исправления и куда уходят первые 1.6 секунды</span></summary><div class="body">
+          <p>
+            До исправления ничего не выводилось до 6460ms, то есть до закрытия stdin. Первый ответ в полном прогоне приходит примерно через 1.6 секунды, и это запуск <code>tsx</code>, а не задержка чтения.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Чтение строк, которое возвращает результат только в конце ввода, это чтение файла под чужим именем.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Если пропустить через него файл по конвейеру, всё работает идеально, и поэтому никто ничего не заметил: все приложения в репозитории, которые читали stdin, читали из pipe. Потом кто-то написал чат-клиент, и он молчал, пока человек печатал, а после Ctrl-D выдал все ответы разом.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">приложения, подогнанные под это</span></summary><div class="body">
         <p>
-          От введённой строки до ответа одна-две миллисекунды. До исправления ничего не выводилось до 6460ms, то есть до закрытия stdin. Первый ответ в полном прогоне приходит примерно через 1.6 секунды, и это запуск <code>tsx</code>, а не задержка чтения.
+          То приложение вышло как проигрыватель сессии по записанному JSON-файлу, с комментарием в исходнике, объясняющим почему. Ещё три приложения были подогнаны под то же самое, и никто это не назвал: сапёр не мог перерисовываться между ходами, текстовое приключение не могло ответить на <code>look</code>, а REPL ничего не вычислял, пока вы не отключались.
         </p>
+      </div></details>
 
-        <h2 class="block-label">Что мешает на практике</h2>
-        <p>
-          Завершающий <code>\r</code> отбрасывается, поэтому файл с CRLF и файл с LF дают одинаковые строки, и вам не придётся отлаживать невидимый символ во вводе из Windows. Если ввод заканчивается без последнего перевода строки, эта последняя строка всё равно возвращается один раз перед <code>None</code>, так что последняя строка файла без завершающего перевода строки не теряется молча. Многобайтовый символ UTF-8, разрезанный границей чтения, удерживается и дособирается, а не превращается в символы замены.
-        </p>
-        <p>
-          <code>read_to_string</code> читает из того же буфера, поэтому они сочетаются: <code>read_line</code> для заголовка, а затем <code>read_to_string</code> для тела даёт оставшуюся часть, а не вторую копию и не пустую строку. Если вызвать его первым, он по-прежнему возвращает весь stdin. 200,000 строк из pipe считаются примерно за 20ms, так что чтение по одной строке не жертвует пропускной способностью.
-        </p>
-      </div>
+      <h2 class="ak-h" id="the-parts-that-bite-in-practice">Что мешает на практике<a class="ak-anchor" href="#the-parts-that-bite-in-practice" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>CRLF</b>Завершающий <code>\r</code> отбрасывается, поэтому файл с CRLF и файл с LF дают одинаковые строки, и вам не придётся отлаживать невидимый символ во вводе из Windows.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Без последнего перевода строки</b>Если ввод заканчивается без последнего перевода строки, эта последняя строка всё равно возвращается один раз перед <code>None</code>, так что последняя строка файла без завершающего перевода строки не теряется молча.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Разрезанный UTF-8</b>Многобайтовый символ UTF-8, разрезанный границей чтения, удерживается и дособирается, а не превращается в символы замены.</li>
+      </ul>
 
+      <h3 class="ak-h3" id="one-buffer"><code>read_line</code>, затем <code>read_to_string</code><a class="ak-anchor" href="#one-buffer" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>read_to_string</code> читает из того же буфера, поэтому они сочетаются: <code>read_line</code> для заголовка, а затем <code>read_to_string</code> для тела даёт оставшуюся часть, а не вторую копию и не пустую строку. Если вызвать его первым, он по-прежнему возвращает весь stdin.
+      </p>
       <div class="code">
         <span class="cap">Строка заголовка, затем тело</span>
 <pre>let header = io.read_line()
 let body = io.read_to_string()</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        200,000 строк из pipe считаются примерно за 20ms, так что чтение по одной строке не жертвует пропускной способностью.
+      </p></div>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p><code>io.read_line</code> возвращает результат, когда приходит строка, а не когда закрывается поток, поэтому циклы «приглашение, чтение, ответ» работают и в терминале, и через pipe. CRLF нормализуется, последняя строка без завершения выдаётся один раз, многобайтовые символы переживают границы фрагментов, а <code>read_to_string</code> забирает остаток того же буфера. Регрессионный тест держит stdin открытым и требует эхо в ответ, потому что тест, который подаёт файл через pipe, проходит и на сломанной реализации. <code>io.print</code> и <code>io.eprint</code> пишут без перевода строки, поэтому приглашение REPL <code>&gt; </code> стоит на той строке, где вводится ответ, а <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> сообщают программе, говорит ли она с человеком или с pipe, так что флаг вроде <code>--stdin</code> в чат-приложении больше не единственный способ это узнать.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Пока шероховато</h3>
-          <p>У программы, которой нужно перерисовывать экран, нет управления курсором: в <code>std/io</code> нет функций для курсора или экрана, и ни один другой модуль стандартной библиотеки их не добавляет, так что полноэкранный терминальный интерфейс по-прежнему означает самостоятельно писать escape-последовательности.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.read_line</code> возвращает результат, когда приходит строка, а не когда закрывается поток, поэтому циклы «приглашение, чтение, ответ» работают и в терминале, и через pipe.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">CRLF нормализуется, последняя строка без завершения выдаётся один раз, многобайтовые символы переживают границы фрагментов, а <code>read_to_string</code> забирает остаток того же буфера.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Регрессионный тест держит stdin открытым и требует эхо в ответ</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Регрессионный тест держит stdin открытым и требует эхо в ответ, потому что тест, который подаёт файл через pipe, проходит и на сломанной реализации.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.print</code> и <code>io.eprint</code> пишут без перевода строки</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> сообщают программе, говорит ли она с человеком или с pipe</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>io.print</code> и <code>io.eprint</code> пишут без перевода строки, поэтому приглашение REPL <code>&gt; </code> стоит на той строке, где вводится ответ, а <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> сообщают программе, говорит ли она с человеком или с pipe, так что флаг вроде <code>--stdin</code> в чат-приложении больше не единственный способ это узнать.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Пока шероховато</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">У программы, которой нужно перерисовывать экран, нет управления курсором</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>У программы, которой нужно перерисовывать экран, нет управления курсором: в <code>std/io</code> нет функций для курсора или экрана, и ни один другой модуль стандартной библиотеки их не добавляет, так что полноэкранный терминальный интерфейс по-прежнему означает самостоятельно писать escape-последовательности.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

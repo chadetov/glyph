@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/diff-stability/index.html",
   "locale": "ru",
-  "source_hash": "dda01800844f43a2",
+  "source_hash": "efcaa38e3c37f640",
   "segments": [
     {
       "id": "title",
@@ -59,42 +59,6 @@
       "tr": "Изменение в одну строку даёт <strong>дифф в одну строку</strong>. Один канонический формат, завершающие запятые и список, который либо целиком в одну строку, либо целиком по элементу на строке и никогда не переупаковывается, так что ревью показывает сделанное изменение, а не шум вокруг него."
     },
     {
-      "id": "h-d88b5884",
-      "kind": "html",
-      "en": "Review is reading diffs",
-      "tr": "Ревью это чтение диффов"
-    },
-    {
-      "id": "h-199ca7e9",
-      "kind": "html",
-      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency. In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
-      "tr": "Почти всё, на чём держится доверие к изменению (ревью, blame, откат, bisect), построено на диффе. Поэтому отношение сигнала к шуму в диффе и есть настоящая валюта. В большинстве кодовых баз оно ужасное: форматтер перераскладывает перенесённую строку, сортировщик импортов перетасовывает блок, переименование задевает пробелы в каждом месте вызова, и единственная строка, которая <em>важна</em>, теряется среди пятидесяти неважных."
-    },
-    {
-      "id": "h-f039c970",
-      "kind": "html",
-      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout gives the model nothing to churn.",
-      "tr": "Агенты делают это заметно хуже. Получив маленькую задачу, модель охотно перепишет целую функцию или целый файл ради одного изменения, потому что сгенерировать заново ей проще, чем аккуратно отредактировать. Ревьюеру остаётся сравнивать переписанное с оригиналом и <em>надеяться</em>, что единственное настоящее изменение и есть задуманное. Glyph устроен так, чтобы раскладка не давала модели ничего перемешивать."
-    },
-    {
-      "id": "h-afcfd1de",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
-      "tr": "<span class=\"ex-label\">01</span> Одна каноническая раскладка, без выбора"
-    },
-    {
-      "id": "h-f8a89d48",
-      "kind": "html",
-      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing. The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
-      "tr": "<code>glyph fmt</code> перепечатывает каждый файл в одной фиксированной раскладке: отступ в два пробела, завершающая запятая в каждом многострочном списке, а список остаётся в одной строке, пока помещается в 100 колонок, и раскладывается по элементу на строке, когда не помещается. Выбор по принципу всё или ничего. Форматтер никогда не переупаковывает элементы, чтобы заполнить строку, поэтому список никогда не бывает частично на одной строке и частично на следующей, а добавление поля это одна добавленная строка. Поскольку допустимая форма ровно одна, спорить не о чем, и инструменту нечего «исправлять» попутно."
-    },
-    {
-      "id": "h-d74094e1",
-      "kind": "html",
-      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
-      "tr": "Цена этого в пороге ширины. Переименуйте привязку так, что вызов перейдёт за 100 колонок, и вызов развернётся по аргументу на строке: правка в один токен, дифф на четыре строки. Взамен раскладка зависит только от кода и колонки, с которой он начинается, так что два агента, правящие один файл, приходят к одним и тем же байтам."
-    },
-    {
       "id": "h-79570668",
       "kind": "html",
       "en": "Reflowed style: one change, three touched lines",
@@ -119,6 +83,132 @@
       "tr": "git diff (канонический)"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-397463bb",
+      "kind": "html",
+      "en": "<a href=\"#review-is-reading-diffs\">Review is reading diffs</a>",
+      "tr": "<a href=\"#review-is-reading-diffs\">Ревью это чтение диффов</a>"
+    },
+    {
+      "id": "h-ce58ab88",
+      "kind": "html",
+      "en": "<a href=\"#one-canonical-layout-no-choices\">One canonical layout</a>",
+      "tr": "<a href=\"#one-canonical-layout-no-choices\">Одна каноническая раскладка</a>"
+    },
+    {
+      "id": "h-5642172f",
+      "kind": "html",
+      "en": "<a href=\"#order-is-stable-so-history-is-legible\">Stable order</a>",
+      "tr": "<a href=\"#order-is-stable-so-history-is-legible\">Стабильный порядок</a>"
+    },
+    {
+      "id": "h-93c2a791",
+      "kind": "html",
+      "en": "<a href=\"#no-barrel-files-no-import-churn\">No barrel files</a>",
+      "tr": "<a href=\"#no-barrel-files-no-import-churn\">Без barrel-файлов</a>"
+    },
+    {
+      "id": "h-903080aa",
+      "kind": "html",
+      "en": "<a href=\"#generation-is-idempotent-not-a-blob\">Idempotent generation</a>",
+      "tr": "<a href=\"#generation-is-idempotent-not-a-blob\">Идемпотентная генерация</a>"
+    },
+    {
+      "id": "h-65de8b4a",
+      "kind": "html",
+      "en": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>",
+      "tr": "<a href=\"#typescript-can-do-this-with-prettier\">Prettier</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">Бенчмарк</a>"
+    },
+    {
+      "id": "h-d88b5884",
+      "kind": "html",
+      "en": "Review is reading diffs",
+      "tr": "Ревью это чтение диффов"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-d0dd6080",
+      "kind": "html",
+      "en": "Almost everything we trust about a change (the review, the blame, the revert, the bisect) is built on the diff. So the diff's signal-to-noise ratio is the real currency.",
+      "tr": "Почти всё, на чём держится доверие к изменению (ревью, blame, откат, bisect), построено на диффе. Поэтому отношение сигнала к шуму в диффе и есть настоящая валюта."
+    },
+    {
+      "id": "h-f342f678",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the noise comes from</span>",
+      "tr": "Подробнее <span class=\"hint\">откуда берётся шум</span>"
+    },
+    {
+      "id": "h-89489cc0",
+      "kind": "html",
+      "en": "In most codebases it's terrible: a formatter reflows a wrapped line, an import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one line that <em>matters</em> is buried in fifty that don't.",
+      "tr": "В большинстве кодовых баз оно ужасное: форматтер перераскладывает перенесённую строку, сортировщик импортов перетасовывает блок, переименование задевает пробелы в каждом месте вызова, и единственная строка, которая <em>важна</em>, теряется среди пятидесяти неважных."
+    },
+    {
+      "id": "h-e3147d32",
+      "kind": "html",
+      "en": "Agents make this sharply worse. Given a small task, a model will happily rewrite a whole function, or a whole file, to change one thing, because regenerating is easier for it than editing surgically. The reviewer is left to diff a rewrite against the original and <em>hope</em> the only real change is the intended one.",
+      "tr": "Агенты делают это заметно хуже. Получив маленькую задачу, модель охотно перепишет целую функцию или целый файл ради одного изменения, потому что сгенерировать заново ей проще, чем аккуратно отредактировать. Ревьюеру остаётся сравнивать переписанное с оригиналом и <em>надеяться</em>, что единственное настоящее изменение и есть задуманное."
+    },
+    {
+      "id": "h-408937d1",
+      "kind": "html",
+      "en": "Glyph is built so that the layout gives the model nothing to churn.",
+      "tr": "Glyph устроен так, чтобы раскладка не давала модели ничего перемешивать."
+    },
+    {
+      "id": "h-afcfd1de",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> One canonical layout, no choices",
+      "tr": "<span class=\"ex-label\">01</span> Одна каноническая раскладка, без выбора"
+    },
+    {
+      "id": "h-b77fb19e",
+      "kind": "html",
+      "en": "<code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a trailing comma on every multi-line list, and a list that stays on one line while it fits inside 100 columns and goes one element per line when it doesn't. The choice is all-or-nothing.",
+      "tr": "<code>glyph fmt</code> перепечатывает каждый файл в одной фиксированной раскладке: отступ в два пробела, завершающая запятая в каждом многострочном списке, а список остаётся в одной строке, пока помещается в 100 колонок, и раскладывается по элементу на строке, когда не помещается. Выбор по принципу всё или ничего."
+    },
+    {
+      "id": "h-7b7a954c",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no repacking, one legal shape</span>",
+      "tr": "Подробнее <span class=\"hint\">без переупаковки, одна допустимая форма</span>"
+    },
+    {
+      "id": "h-138c6b00",
+      "kind": "html",
+      "en": "The formatter never repacks your elements to fill a line, so a list is never partly on one row and partly on the next, and adding a field is a single added line. Because there's exactly one legal shape, there's nothing to argue about and nothing for a tool to \"fix\" on the side.",
+      "tr": "Форматтер никогда не переупаковывает элементы, чтобы заполнить строку, поэтому список никогда не бывает частично на одной строке и частично на следующей, а добавление поля это одна добавленная строка. Поскольку допустимая форма ровно одна, спорить не о чем, и инструменту нечего «исправлять» попутно."
+    },
+    {
+      "id": "h-d74094e1",
+      "kind": "html",
+      "en": "The width threshold is what this costs. Rename a binding so a call crosses 100 columns and the call expands to one argument per line: a one-token edit, a four-line diff. The trade is that the layout depends on the code and the column it starts at and nothing else, so two agents editing the same file converge on the same bytes.",
+      "tr": "Цена этого в пороге ширины. Переименуйте привязку так, что вызов перейдёт за 100 колонок, и вызов развернётся по аргументу на строке: правка в один токен, дифф на четыре строки. Взамен раскладка зависит только от кода и колонки, с которой он начинается, так что два агента, правящие один файл, приходят к одним и тем же байтам."
+    },
+    {
       "id": "h-90e0d667",
       "kind": "html",
       "en": "The trailing comma is doing quiet work: because the last element already ends in a comma, adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.",
@@ -131,10 +221,16 @@
       "tr": "<span class=\"ex-label\">02</span> Порядок стабилен, поэтому историю можно читать"
     },
     {
-      "id": "h-caf8f67b",
+      "id": "h-71cbcedc",
       "kind": "html",
-      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours. <code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
-      "tr": "По элементу на строке означает, что перестановка, вставка или удаление элемента затрагивает только его строки и никогда соседние. <code>git blame</code> остаётся осмысленным: последний коммит, тронувший строку, это коммит, который действительно изменил <em>этот</em> элемент, а не проход форматирования, который случайно переупаковал общую строку."
+      "en": "One element per line means reordering, inserting, or removing an item touches only that item's lines, never its neighbours.",
+      "tr": "По элементу на строке означает, что перестановка, вставка или удаление элемента затрагивает только его строки и никогда соседние."
+    },
+    {
+      "id": "h-59fb6fdf",
+      "kind": "html",
+      "en": "<code>git blame</code> stays meaningful: each line's last-touched commit is the commit that actually changed <em>that</em> element, not the formatting pass that happened to repack the row it shared.",
+      "tr": "<code>git blame</code> остаётся осмысленным: последний коммит, тронувший строку, это коммит, который действительно изменил <em>этот</em> элемент, а не проход форматирования, который случайно переупаковал общую строку."
     },
     {
       "id": "h-bfb2f0bd",
@@ -155,16 +251,22 @@
       "tr": "<span class=\"ex-label\">04</span> Генерация идемпотентна, а не сплошной блок"
     },
     {
-      "id": "h-c4bbd5c2",
+      "id": "h-6837705f",
       "kind": "html",
-      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file. And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
-      "tr": "Та же дисциплина распространяется на сгенерированный код. <code>glyph gen</code> и <code>glyph regen</code> перепечатывают свой вывод через канонический форматтер, поэтому повторная генерация после изменения спецификации даёт <em>минимальный</em> дифф, который реально можно отревьюить: пару изменённых строк, а не полную замену файла, написанного машиной. А каждый сгенерированный <code>.ts</code> идёт с source map, так что даже скомпилированный вывод чисто прослеживается до изменённой строки."
+      "en": "The same discipline extends to generated code. <code>glyph gen</code> and <code>glyph regen</code> reprint their output through the canonical formatter, so regenerating after a spec change produces a <em>minimal</em> diff you can actually review, a couple of changed lines, not a wholesale replacement of a machine-written file.",
+      "tr": "Та же дисциплина распространяется на сгенерированный код. <code>glyph gen</code> и <code>glyph regen</code> перепечатывают свой вывод через канонический форматтер, поэтому повторная генерация после изменения спецификации даёт <em>минимальный</em> дифф, который реально можно отревьюить: пару изменённых строк, а не полную замену файла, написанного машиной."
     },
     {
       "id": "h-e4efdc9c",
       "kind": "html",
       "en": "a field added to the spec &rarr; the regenerated diff",
       "tr": "в спецификацию добавлено поле &rarr; дифф после повторной генерации"
+    },
+    {
+      "id": "h-8d821d14",
+      "kind": "html",
+      "en": "And every emitted <code>.ts</code> ships a source map, so even the compiled output traces cleanly back to the line you changed.",
+      "tr": "А каждый сгенерированный <code>.ts</code> идёт с source map, так что даже скомпилированный вывод чисто прослеживается до изменённой строки."
     },
     {
       "id": "h-91e761f8",
@@ -179,22 +281,22 @@
       "tr": "Для большей части форматирования да. Prettier с <code>trailingComma: \"all\"</code> ставит запятую после последнего элемента и печатает длинные списки по элементу на строке, и это даёт большую часть раздела 01. Разница в трёх местах."
     },
     {
-      "id": "h-abb494fb",
+      "id": "h-d78411aa",
       "kind": "html",
-      "en": "<strong>The layout depends only on the code.</strong> Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
-      "tr": "<strong>Раскладка зависит только от кода.</strong> Prettier оставляет объектный литерал развёрнутым, если автор поставил перенос строки после <code>{</code>, и сворачивает, если не поставил, так что один и тот же объект может быть напечатан двумя способами в зависимости от того, как его впервые набрали. Два агента, написавшие одно и то же, получают две раскладки, и следующая правка в одной из них выглядит как перераскладка. <code>glyph fmt</code> печатает <code>{ a: 1, b: 2 }</code> одинаково, как бы ни был перенесён ввод."
+      "en": "<b>The layout depends only on the code.</b>Prettier keeps an object literal expanded if its author put a line break after the <code>{</code>, and collapses it if they didn't, so the same object can be printed two ways depending on how it was first typed. Two agents writing the same thing produce two layouts, and the next edit to one of them shows up as a reflow. <code>glyph fmt</code> prints <code>{ a: 1, b: 2 }</code> the same way however the input was wrapped.",
+      "tr": "<b>Раскладка зависит только от кода.</b>Prettier оставляет объектный литерал развёрнутым, если автор поставил перенос строки после <code>{</code>, и сворачивает, если не поставил, так что один и тот же объект может быть напечатан двумя способами в зависимости от того, как его впервые набрали. Два агента, написавшие одно и то же, получают две раскладки, и следующая правка в одной из них выглядит как перераскладка. <code>glyph fmt</code> печатает <code>{ a: 1, b: 2 }</code> одинаково, как бы ни был перенесён ввод."
     },
     {
-      "id": "h-2b89c0b6",
+      "id": "h-cadbc396",
       "kind": "html",
-      "en": "<strong>There is nothing to configure.</strong> Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
-      "tr": "<strong>Настраивать нечего.</strong> Вывод Prettier определяется файлом конфигурации репозитория, а в некоторых репозиториях его нет. Агент, переходящий между проектами на TypeScript, в каждом встречает свою раскладку. Файл Glyph имеет одну и ту же раскладку в любом проекте, потому что у форматтера нет опций."
+      "en": "<b>There is nothing to configure.</b>Prettier's output is whatever the repository's config file says, and some repositories don't have one. An agent moving between TypeScript projects meets a different layout in each. A Glyph file has the same layout in every project, because the formatter has no options.",
+      "tr": "<b>Настраивать нечего.</b>Вывод Prettier определяется файлом конфигурации репозитория, а в некоторых репозиториях его нет. Агент, переходящий между проектами на TypeScript, в каждом встречает свою раскладку. Файл Glyph имеет одну и ту же раскладку в любом проекте, потому что у форматтера нет опций."
     },
     {
-      "id": "h-68832179",
+      "id": "h-45adf37f",
       "kind": "html",
-      "en": "<strong>The formatter can't change what a file says.</strong> <code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
-      "tr": "<strong>Форматтер не может изменить смысл файла.</strong> <code>glyph fmt</code> тестируется так: его собственный вывод разбирается, а синтаксическое дерево сравнивается с деревом ввода, на каждом примере в репозитории и под фаззером. Если комментарий стоит там, где в раскладке для него нет строки, форматтер отклоняет файл (<code>E0500</code>), а не переносит комментарий к коду, который тот не описывает."
+      "en": "<b>The formatter can't change what a file says.</b><code>glyph fmt</code> is tested by parsing its own output and comparing the syntax tree with the input's, on every example in the repository and under a fuzzer. When a comment sits somewhere the layout has no line for, it refuses the file (<code>E0500</code>) rather than move the comment next to code it doesn't describe.",
+      "tr": "<b>Форматтер не может изменить смысл файла.</b><code>glyph fmt</code> тестируется так: его собственный вывод разбирается, а синтаксическое дерево сравнивается с деревом ввода, на каждом примере в репозитории и под фаззером. Если комментарий стоит там, где в раскладке для него нет строки, форматтер отклоняет файл (<code>E0500</code>), а не переносит комментарий к коду, который тот не описывает."
     },
     {
       "id": "h-759bd893",
@@ -215,10 +317,16 @@
       "tr": "Бенчмарк: скоро"
     },
     {
-      "id": "h-2ef42aea",
+      "id": "h-6219861d",
       "kind": "html",
-      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
-      "tr": "Число, которое это отражает, это размер диффа на одно логическое изменение: сколько строк сдвигается при одной задуманной правке в Glyph по сравнению с эквивалентным изменением в TypeScript, прогнанным через типичный форматтер. Glyph пока не используется в реальных проектах, поэтому график ниже это заглушка, которая заполнится настоящими измерениями, когда появится реальная история."
+      "en": "The number that captures this is diff size per logical change: how many lines move when you make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical formatter.",
+      "tr": "Число, которое это отражает, это размер диффа на одно логическое изменение: сколько строк сдвигается при одной задуманной правке в Glyph по сравнению с эквивалентным изменением в TypeScript, прогнанным через типичный форматтер."
+    },
+    {
+      "id": "h-4f7ab29f",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's real history to draw from.",
+      "tr": "Glyph пока не используется в реальных проектах, поэтому график ниже это заглушка, которая заполнится настоящими измерениями, когда появится реальная история."
     },
     {
       "id": "h-2f2e8c1d",

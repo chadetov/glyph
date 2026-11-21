@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/long-running/index.html",
   "locale": "ru",
-  "source_hash": "babc2c3ac5bb52bc",
+  "source_hash": "14f7ffe4f2542222",
   "segments": [
     {
       "id": "title",
@@ -59,10 +59,70 @@
       "tr": "Сервер написать можно. <code>main</code> выполняет настройку и возвращается, а процесс <strong>живёт, пока есть ожидающие сокеты и таймеры</strong>, по тому же правилу, что и в Node. До 0.1.63 так не было: раннер завершал процесс в момент возврата из <code>main</code>, так что сервер занимал порт и умирал в том же тике."
     },
     {
+      "id": "h-72b727b4",
+      "kind": "html",
+      "en": "A server, start to finish",
+      "tr": "Сервер от начала до конца"
+    },
+    {
+      "id": "h-5d3779d0",
+      "kind": "html",
+      "en": "<span>See it: a TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives.</span>",
+      "tr": "<span>Посмотрите сами: TCP-сервер целиком. <code>main</code> возвращается сразу; колбэки выполняются, пока живёт процесс.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Почему это важно</a>"
+    },
+    {
+      "id": "h-3b5a9dee",
+      "kind": "html",
+      "en": "<a href=\"#after-main-returns\">After main returns</a>",
+      "tr": "<a href=\"#after-main-returns\">После возврата из main</a>"
+    },
+    {
+      "id": "h-56a07701",
+      "kind": "html",
+      "en": "<a href=\"#a-real-one\">A chat server</a>",
+      "tr": "<a href=\"#a-real-one\">Чат-сервер</a>"
+    },
+    {
+      "id": "h-f1358f5d",
+      "kind": "html",
+      "en": "<a href=\"#the-other-direction-a-long-running-client\">A long-running client</a>",
+      "tr": "<a href=\"#the-other-direction-a-long-running-client\">Долгоживущий клиент</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Текущее состояние</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Почему это важно"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
     },
     {
       "id": "h-802abf2b",
@@ -71,40 +131,46 @@
       "tr": "В этом разница между языком, который может выполнить скрипт, и языком, который может запустить сервис. Сервер, наблюдатель за файлами, бот, держащий соединение с gateway, исполнитель задач: ни один из них не заканчивает работу внутри <code>main</code>. Они настраивают обработчики и отдают процесс событиям."
     },
     {
+      "id": "h-6f79d78b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">how it failed before 0.1.63</span>",
+      "tr": "История <span class=\"hint\">как это ломалось до 0.1.63</span>"
+    },
+    {
       "id": "h-ddc1b8fa",
       "kind": "html",
       "en": "The old behaviour failed in the worst possible way, which is quietly. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Nothing in the source looked wrong and it type-checked. An agent that hits that has no error to report and no reason to think anything failed.",
       "tr": "Старое поведение ломалось худшим из возможных способов, то есть молча. <code>glyph run app.glyph --serve 4100</code> ничего не печатал, даже строку внутри колбэка <code>listen</code>, и завершался с кодом 0. В исходнике ничего не выглядело неправильным, и проверка типов проходила. У агента, который на это наткнётся, нет ни ошибки, о которой можно сообщить, ни причины думать, что что-то сломалось."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-80b986b7",
       "kind": "html",
-      "en": "See it",
-      "tr": "Посмотрите сами"
+      "en": "After <code>main</code> returns",
+      "tr": "После возврата из <code>main</code>"
     },
     {
-      "id": "h-fbc29a6a",
+      "id": "h-e6800521",
       "kind": "html",
-      "en": "A TCP server in full. <code>main</code> returns immediately; the callbacks run for as long as the process lives:",
-      "tr": "TCP-сервер целиком. <code>main</code> возвращается сразу; колбэки выполняются, пока живёт процесс:"
+      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves.",
+      "tr": "Две вещи, которые стоит знать. <code>return 0</code> выполняется ещё до того, как подключится первый клиент: это код, с которым процесс в итоге завершится, а не указание, когда он завершится."
     },
     {
-      "id": "h-72b727b4",
+      "id": "h-6cc8c511",
       "kind": "html",
-      "en": "A server, start to finish",
-      "tr": "Сервер от начала до конца"
+      "en": "And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
+      "tr": "И всё, что падает <em>после</em> возврата из <code>main</code>, должно само выставить код выхода, потому что возвращаемое значение <code>main</code> уже использовано. Для этого и нужен обработчик <code>error</code>. Без него сервер, который не может занять порт, опустошает цикл событий и завершается с кодом 0, сообщая об успехе."
+    },
+    {
+      "id": "h-e0120a6b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">types for the net import</span>",
+      "tr": "Подробнее <span class=\"hint\">типы для импорта net</span>"
     },
     {
       "id": "h-4c1b7d58",
       "kind": "html",
       "en": "<code>net</code> is a Node builtin, so it is an ordinary import, but it is not one of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either install <code>@types/node</code> and the build prefers it, or drop a declaration in <code>.types/net.d.ts</code> next to your source, which is what the chat app does so it needs no dependencies at all.",
       "tr": "<code>net</code> это встроенный модуль Node, поэтому импортируется обычным образом, но он не входит в шесть модулей, для которых компилятор поставляет встроенные типы (<code>fs</code>, <code>http</code>, <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Либо установите <code>@types/node</code>, и сборка будет использовать его, либо положите объявление в <code>.types/net.d.ts</code> рядом с исходниками, как делает чат-приложение, чтобы вообще обойтись без зависимостей."
-    },
-    {
-      "id": "h-4c982701",
-      "kind": "html",
-      "en": "Two things worth knowing. The <code>return 0</code> runs before the first client ever connects: it is the code the process will eventually leave with, not a statement about when it leaves. And anything that fails <em>after</em> <code>main</code> has returned has to set its own exit code, because <code>main</code>'s return value is already spent. That is what the <code>error</code> handler is for. Without it, a server that cannot bind its port drains its event loop and exits 0, reporting success.",
-      "tr": "Две вещи, которые стоит знать. <code>return 0</code> выполняется ещё до того, как подключится первый клиент: это код, с которым процесс в итоге завершится, а не указание, когда он завершится. И всё, что падает <em>после</em> возврата из <code>main</code>, должно само выставить код выхода, потому что возвращаемое значение <code>main</code> уже использовано. Для этого и нужен обработчик <code>error</code>. Без него сервер, который не может занять порт, опустошает цикл событий и завершается с кодом 0, сообщая об успехе."
     },
     {
       "id": "h-b957e585",
@@ -125,6 +191,12 @@
       "tr": "Три клиента подключены одновременно"
     },
     {
+      "id": "h-1d259ae0",
+      "kind": "html",
+      "en": "Line reassembly",
+      "tr": "Сборка строк"
+    },
+    {
       "id": "h-6ad09c69",
       "kind": "html",
       "en": "TCP does not deliver messages, it delivers bytes, so the tail of a chunk is usually half a line. That reassembly is a pure function with the awkward cases written down as examples rather than provoked over a socket:",
@@ -143,10 +215,22 @@
       "tr": "Бот устроен так же, только направлен наружу. <code>examples/apps/discord</code> это клиент gateway Discord: он подключается по WebSocket, представляется, шлёт heartbeat с интервалом, который задаёт сервер, отслеживает номер последовательности, чтобы оборванное соединение возобновлялось, а не начиналось заново, замечает, когда соединение открыто, но мертво, и делает паузы между переподключениями."
     },
     {
-      "id": "h-39d6dc9e",
+      "id": "h-fac72028",
       "kind": "html",
-      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket. That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
-      "tr": "Перенимать стоит то, где живёт логика. Решение, что делать с <code>RECONNECT</code>, пропущенным heartbeat или отклонённым токеном, это чистая функция от сессии и одного события к новой сессии и списку действий. Один модуль выполняет эти действия на настоящем сокете. Поэтому логика переподключения, которую труднее всего сделать правильно, проверяется <code>@example</code>, а не выдёргиванием сетевого кабеля:"
+      "en": "The part worth copying is where the logic lives. Deciding what to do about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token is a pure function from a session and one event to a new session and a list of actions. One module carries those actions out on a real socket.",
+      "tr": "Перенимать стоит то, где живёт логика. Решение, что делать с <code>RECONNECT</code>, пропущенным heartbeat или отклонённым токеном, это чистая функция от сессии и одного события к новой сессии и списку действий. Один модуль выполняет эти действия на настоящем сокете."
+    },
+    {
+      "id": "h-7b68ad1d",
+      "kind": "html",
+      "en": "That is why the reconnect logic, which is the hard part to get right, is checked by <code>@example</code> rather than by unplugging a network cable:",
+      "tr": "Поэтому логика переподключения, которую труднее всего сделать правильно, проверяется <code>@example</code>, а не выдёргиванием сетевого кабеля:"
+    },
+    {
+      "id": "h-6cf75bd9",
+      "kind": "html",
+      "en": "History <span class=\"hint\">three bugs, two mocks</span>",
+      "tr": "История <span class=\"hint\">три бага, два мока</span>"
     },
     {
       "id": "h-eb9066f0",
@@ -167,10 +251,40 @@
       "tr": "Уже работает"
     },
     {
-      "id": "h-3954ea38",
+      "id": "h-74b1a6ee",
       "kind": "html",
-      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
-      "tr": "Возврат из <code>main</code> выставляет код выхода, не останавливая процесс, так что серверы, наблюдатели и циклы событий работают. Программа, которая только вычисляет, по-прежнему завершается в момент возврата из <code>main</code> с тем же кодом, так что для коротких программ ничего не изменилось. Встроенные модули Node вроде <code>net</code> импортируются обычным образом, а программа, которая бросает исключение во время настройки, по-прежнему завершается, теперь уже после того, как её диагностика дошла до stderr в пайпе, а не, возможно, обрезалась при выходе. <code>std/timers</code> планирует работу (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>), а <code>std/websocket</code> открывает соединение, так что ни тому, ни другому не нужно рукописное объявление."
+      "en": "Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run.",
+      "tr": "Возврат из <code>main</code> выставляет код выхода, не останавливая процесс, так что серверы, наблюдатели и циклы событий работают."
+    },
+    {
+      "id": "h-23ea9ea8",
+      "kind": "html",
+      "en": "A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed.",
+      "tr": "Программа, которая только вычисляет, по-прежнему завершается в момент возврата из <code>main</code> с тем же кодом, так что для коротких программ ничего не изменилось."
+    },
+    {
+      "id": "h-3ea5fc1e",
+      "kind": "html",
+      "en": "Node builtins like <code>net</code> are ordinary imports, and a setup throw still terminates",
+      "tr": "Встроенные модули Node вроде <code>net</code> импортируются обычным образом, а исключение во время настройки по-прежнему завершает программу"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Подробнее"
+    },
+    {
+      "id": "h-94dfdcb7",
+      "kind": "html",
+      "en": "Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit.",
+      "tr": "Встроенные модули Node вроде <code>net</code> импортируются обычным образом, а программа, которая бросает исключение во время настройки, по-прежнему завершается, теперь уже после того, как её диагностика дошла до stderr в пайпе, а не, возможно, обрезалась при выходе."
+    },
+    {
+      "id": "h-1eb5debc",
+      "kind": "html",
+      "en": "<code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.",
+      "tr": "<code>std/timers</code> планирует работу (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>), а <code>std/websocket</code> открывает соединение, так что ни тому, ни другому не нужно рукописное объявление."
     },
     {
       "id": "h-5db269e9",
@@ -179,10 +293,28 @@
       "tr": "Становится точнее"
     },
     {
-      "id": "h-5f8ed8fa",
+      "id": "h-f2cbc167",
       "kind": "html",
-      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
-      "tr": "Слушатель, который не смог занять порт после возврата из <code>main</code>, завершается с кодом 0, если программа не скажет иного: <code>process.set_exit_code(1)</code> фиксирует ошибку, не прерывая работу, которая ещё идёт, а <code>process.exit(1)</code> останавливает процесс сразу. Компилятор пока не умеет предупреждать, что вы об этом забыли. И по-прежнему нельзя записать, что функция не возвращается, поэтому <code>main</code> сервера содержит <code>return 0</code>, до которого выполнение никогда не доходит."
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise",
+      "tr": "Слушатель, который не смог занять порт после возврата из <code>main</code>, завершается с кодом 0, если программа не скажет иного"
+    },
+    {
+      "id": "h-4f1b29ed",
+      "kind": "html",
+      "en": "A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately.",
+      "tr": "Слушатель, который не смог занять порт после возврата из <code>main</code>, завершается с кодом 0, если программа не скажет иного: <code>process.set_exit_code(1)</code> фиксирует ошибку, не прерывая работу, которая ещё идёт, а <code>process.exit(1)</code> останавливает процесс сразу."
+    },
+    {
+      "id": "h-deb6d675",
+      "kind": "html",
+      "en": "The compiler cannot yet warn that you forgot.",
+      "tr": "Компилятор пока не умеет предупреждать, что вы об этом забыли."
+    },
+    {
+      "id": "h-92ff94b9",
+      "kind": "html",
+      "en": "And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.",
+      "tr": "И по-прежнему нельзя записать, что функция не возвращается, поэтому <code>main</code> сервера содержит <code>return 0</code>, до которого выполнение никогда не доходит."
     }
   ]
 }

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/binary/index.html",
   "locale": "ru",
-  "source_hash": "597ac2fe9fcb5f04",
+  "source_hash": "9c69ac3fe3f46a35",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,70 @@
       "tr": "<code>std/bytes</code> даёт неизменяемую последовательность октетов, и с ней работают и <code>std/fs</code>, и <code>std/crypto</code>. До 0.1.78 так не было: каждая граница стандартной библиотеки принимала и возвращала строки, поэтому PNG нельзя было прочитать, а HMAC нельзя было передать настоящий ключ."
     },
     {
+      "id": "h-e573d962",
+      "kind": "html",
+      "en": "One-time password, start to finish",
+      "tr": "Одноразовый пароль от начала до конца"
+    },
+    {
+      "id": "h-c66fcbe4",
+      "kind": "html",
+      "en": "<span>See it: an RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte.</span>",
+      "tr": "<span>Посмотрите сами: аутентификатор по RFC 6238, которому нужны байты с обеих сторон HMAC. Секрет приходит в base32, сообщение это восьмибайтовый счётчик, почти целиком из нулей, а дайджест индексируется собственным последним байтом.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-aa986976",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why strings break bytes</a>",
+      "tr": "<a href=\"#why-it-matters\">Почему строки ломают байты</a>"
+    },
+    {
+      "id": "h-2623bb65",
+      "kind": "html",
+      "en": "<a href=\"#what-a-bytes-value-is\">What a Bytes value is</a>",
+      "tr": "<a href=\"#what-a-bytes-value-is\">Что такое значение Bytes</a>"
+    },
+    {
+      "id": "h-e3da7ed6",
+      "kind": "html",
+      "en": "<a href=\"#every-decode-can-refuse-and-says-where\">Decodes that refuse</a>",
+      "tr": "<a href=\"#every-decode-can-refuse-and-says-where\">Декодирование с отказом</a>"
+    },
+    {
+      "id": "h-f3fc565f",
+      "kind": "html",
+      "en": "<a href=\"#which-hmac-you-pick-changes-the-answer\">Picking an HMAC</a>",
+      "tr": "<a href=\"#which-hmac-you-pick-changes-the-answer\">Выбор HMAC</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Текущее состояние</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Почему это важно"
     },
     {
-      "id": "h-fb444517",
-      "kind": "html",
-      "en": "A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error. The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
-      "tr": "Первый байт PNG равен <code>0x89</code>, и сам по себе это некорректный UTF-8. Прочитайте такой файл как текст, и каждый байт, который декодер не может понять, станет U+FFFD, так что файл испорчен ещё до того, как его увидит ваша программа, и никто не сообщает об ошибке. То же самое происходит с ключом: секрет HMAC это произвольные октеты, и если провести его через строку, он изменится, так что вы вычислите другой MAC, чем требует спецификация, а все тесты, написанные против вашего же кода, пройдут."
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
     },
     {
       "id": "h-2923da28",
@@ -77,28 +131,34 @@
       "tr": "Два независимо написанных приложения, одно читает PNG, другое аутентификатор, упёрлись в одну и ту же проблему на одной неделе. Ни одно не могло обойти её средствами языка."
     },
     {
-      "id": "h-90eb7554",
+      "id": "h-f1a8dd29",
       "kind": "html",
-      "en": "See it",
-      "tr": "Посмотрите сами"
+      "en": "<b>A file read as text</b>A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own. Read that file as text and every byte the decoder cannot make sense of becomes U+FFFD, so the file is corrupt before your program sees it and nothing reports an error.",
+      "tr": "<b>Файл, прочитанный как текст</b>Первый байт PNG равен <code>0x89</code>, и сам по себе это некорректный UTF-8. Прочитайте такой файл как текст, и каждый байт, который декодер не может понять, станет U+FFFD, так что файл испорчен ещё до того, как его увидит ваша программа, и никто не сообщает об ошибке."
     },
     {
-      "id": "h-1575f58f",
+      "id": "h-9e4fd1c0",
       "kind": "html",
-      "en": "An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The secret arrives base32-encoded, the message is an eight-byte counter that is mostly zero, and the digest is indexed by its own last byte:",
-      "tr": "Аутентификатор по RFC 6238, которому нужны байты с обеих сторон HMAC. Секрет приходит в base32, сообщение это восьмибайтовый счётчик, почти целиком из нулей, а дайджест индексируется собственным последним байтом:"
+      "en": "<b>A key routed through a string</b>The same thing happens to a key: an HMAC secret is arbitrary octets, and routing one through a string changes it, so you compute a different MAC than the specification says and every test you wrote against your own code passes.",
+      "tr": "<b>Ключ, проведённый через строку</b>То же самое происходит с ключом: секрет HMAC это произвольные октеты, и если провести его через строку, он изменится, так что вы вычислите другой MAC, чем требует спецификация, а все тесты, написанные против вашего же кода, пройдут."
     },
     {
-      "id": "h-e573d962",
+      "id": "h-72d28a78",
       "kind": "html",
-      "en": "One-time password, start to finish",
-      "tr": "Одноразовый пароль от начала до конца"
+      "en": "What a <code>Bytes</code> value is",
+      "tr": "Что такое значение <code>Bytes</code>"
     },
     {
-      "id": "h-1280c9e1",
+      "id": "h-08a2a804",
       "kind": "html",
-      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping. The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
-      "tr": "Во время выполнения <code>Bytes</code> это <code>Uint8Array</code>, поэтому его можно передать любому API хоста, который такой принимает, без распаковки. Операции над последовательностью названы так же, как их аналоги в <code>std/array</code> и <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Ничто не изменяет свой аргумент."
+      "en": "<code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any host API that takes one without unwrapping.",
+      "tr": "Во время выполнения <code>Bytes</code> это <code>Uint8Array</code>, поэтому его можно передать любому API хоста, который такой принимает, без распаковки."
+    },
+    {
+      "id": "h-d3d5abcf",
+      "kind": "html",
+      "en": "The sequence operations are named after their peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.",
+      "tr": "Операции над последовательностью названы так же, как их аналоги в <code>std/array</code> и <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>index_of</code>, <code>starts_with</code>. Ничто не изменяет свой аргумент."
     },
     {
       "id": "h-53d05d13",
@@ -125,6 +185,12 @@
       "tr": "Что делает Glyph"
     },
     {
+      "id": "h-9f979608",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what each codec refuses</span>",
+      "tr": "Подробнее <span class=\"hint\">что отклоняет каждый кодек</span>"
+    },
+    {
       "id": "h-ce7398d8",
       "kind": "html",
       "en": "Every codec is written out rather than delegated to <code>Buffer</code>, so hex, base64, base64url and base32 all refuse a character outside their alphabet, a trailing group too short to encode a whole byte, and a final character carrying bits past the end of the data. <code>to_text</code> scans to find the first byte that cannot be part of a valid UTF-8 sequence, so you get a position rather than a verdict. <code>from_array</code> rejects anything outside 0..255 for the same reason: a silent <code>&amp; 0xff</code> turns 256 into 0 and a typo into data.",
@@ -143,10 +209,28 @@
       "tr": "От выбора HMAC зависит ответ"
     },
     {
-      "id": "h-45fc3393",
+      "id": "h-92efadf8",
       "kind": "html",
-      "en": "<code>std/crypto</code> now has both forms of every algorithm. The plain name takes a string and returns hex, which is what hashing a password wants. The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants. If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
-      "tr": "В <code>std/crypto</code> теперь есть обе формы каждого алгоритма. Обычное имя принимает строку и возвращает hex, что и нужно для хеширования пароля. Форма <code>_bytes</code> принимает и возвращает <code>Bytes</code>, что нужно сетевому протоколу. Если ключ получен из <code>bytes.from_base64</code> или <code>crypto.random_bytes</code>, в нём есть байты, которые строка не может хранить, и текстовая форма молча вычислит что-то другое."
+      "en": "<code>std/crypto</code> now has both forms of every algorithm.",
+      "tr": "В <code>std/crypto</code> теперь есть обе формы каждого алгоритма."
+    },
+    {
+      "id": "h-8625c91c",
+      "kind": "html",
+      "en": "<b>The plain name</b>The plain name takes a string and returns hex, which is what hashing a password wants.",
+      "tr": "<b>Обычное имя</b>Обычное имя принимает строку и возвращает hex, что и нужно для хеширования пароля."
+    },
+    {
+      "id": "h-7de4c4b1",
+      "kind": "html",
+      "en": "<b>The <code>_bytes</code> form</b>The <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a wire protocol wants.",
+      "tr": "<b>Форма <code>_bytes</code></b>Форма <code>_bytes</code> принимает и возвращает <code>Bytes</code>, что нужно сетевому протоколу."
+    },
+    {
+      "id": "h-c6a4127f",
+      "kind": "html",
+      "en": "If the key came from <code>bytes.from_base64</code> or <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the text form will quietly compute something else.",
+      "tr": "Если ключ получен из <code>bytes.from_base64</code> или <code>crypto.random_bytes</code>, в нём есть байты, которые строка не может хранить, и текстовая форма молча вычислит что-то другое."
     },
     {
       "id": "h-168ab7fa",
@@ -167,10 +251,28 @@
       "tr": "Уже работает"
     },
     {
-      "id": "h-f6e99ace",
+      "id": "h-0b91f055",
       "kind": "html",
-      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
-      "tr": "<code>std/bytes</code> с 21 функцией: операции над последовательностью, мост к UTF-8 и кодеки hex, base64, base64url и base32, которые возвращают <code>Result</code> с позицией ошибки. <code>fs.read_bytes</code>, <code>write_bytes</code> и <code>append_bytes</code> читают и пишут файл без декодирования. В <code>std/crypto</code> есть форма <code>_bytes</code> для каждого дайджеста и HMAC, а также SHA-1 для протоколов, которые его требуют, <code>random_bytes</code> и <code>timing_safe_equal</code>. Кодеки закреплены тестовыми векторами RFC 4648, а HMAC векторами RFC 6238 в собственном наборе тестов компилятора."
+      "en": "<code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position.",
+      "tr": "<code>std/bytes</code> с 21 функцией: операции над последовательностью, мост к UTF-8 и кодеки hex, base64, base64url и base32, которые возвращают <code>Result</code> с позицией ошибки."
+    },
+    {
+      "id": "h-4d27820e",
+      "kind": "html",
+      "en": "<code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded.",
+      "tr": "<code>fs.read_bytes</code>, <code>write_bytes</code> и <code>append_bytes</code> читают и пишут файл без декодирования."
+    },
+    {
+      "id": "h-c94fd832",
+      "kind": "html",
+      "en": "<code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>.",
+      "tr": "В <code>std/crypto</code> есть форма <code>_bytes</code> для каждого дайджеста и HMAC, а также SHA-1 для протоколов, которые его требуют, <code>random_bytes</code> и <code>timing_safe_equal</code>."
+    },
+    {
+      "id": "h-dcf8ed3b",
+      "kind": "html",
+      "en": "The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.",
+      "tr": "Кодеки закреплены тестовыми векторами RFC 4648, а HMAC векторами RFC 6238 в собственном наборе тестов компилятора."
     },
     {
       "id": "h-5db269e9",
@@ -179,10 +281,40 @@
       "tr": "Становится точнее"
     },
     {
-      "id": "h-cbb9e44a",
+      "id": "h-b6f9d185",
       "kind": "html",
-      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right. The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte. Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
-      "tr": "Кодека для целых чисел пока нет, так что чтение big-endian <code>u32</code> из заголовка это арифметика, которую вы пишете сами: за пределами 32 бит сдвиг всё равно неподходящий инструмент, поэтому используется деление. Шестнадцатеричные литералы пока не разбираются, из-за чего таблицу CRC32 на 256 элементов, записанную в десятичном виде, трудно читать. <code>std/websocket</code> всё ещё декодирует бинарный фрейм как текст UTF-8; нужный для этого тип теперь есть, и фреймы следующие на очереди. А шесть старых функций <code>std/encoding</code> вида «строка в строку» по-прежнему молчат при некорректном вводе, так что для всего, что должно быть правильным, используйте кодеки <code>std/bytes</code>. Кодеки написаны на TypeScript, а не делегируют работу <code>Buffer</code> из node, и именно поэтому работают в Web Worker; на мегабайте данных они медленнее платформенных, от 1x до 35x. Кодирование ключа или токена в любом случае обходится в неизмеримо малое время; если вы перегоняете десятки мегабайт, таблица есть в руководстве по производительности."
+      "en": "There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides.",
+      "tr": "Кодека для целых чисел пока нет, так что чтение big-endian <code>u32</code> из заголовка это арифметика, которую вы пишете сами: за пределами 32 бит сдвиг всё равно неподходящий инструмент, поэтому используется деление."
+    },
+    {
+      "id": "h-d01f811d",
+      "kind": "html",
+      "en": "Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read.",
+      "tr": "Шестнадцатеричные литералы пока не разбираются, из-за чего таблицу CRC32 на 256 элементов, записанную в десятичном виде, трудно читать."
+    },
+    {
+      "id": "h-7f5d1a5d",
+      "kind": "html",
+      "en": "<code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next.",
+      "tr": "<code>std/websocket</code> всё ещё декодирует бинарный фрейм как текст UTF-8; нужный для этого тип теперь есть, и фреймы следующие на очереди."
+    },
+    {
+      "id": "h-76759413",
+      "kind": "html",
+      "en": "And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right.",
+      "tr": "А шесть старых функций <code>std/encoding</code> вида «строка в строку» по-прежнему молчат при некорректном вводе, так что для всего, что должно быть правильным, используйте кодеки <code>std/bytes</code>."
+    },
+    {
+      "id": "h-6b5c5d79",
+      "kind": "html",
+      "en": "The codecs are written in TypeScript rather than delegating to node's <code>Buffer</code>, which is what lets them run in a Web Worker, and they are between 1x and 35x slower than the platform's on a megabyte.",
+      "tr": "Кодеки написаны на TypeScript, а не делегируют работу <code>Buffer</code> из node, и именно поэтому работают в Web Worker; на мегабайте данных они медленнее платформенных, от 1x до 35x."
+    },
+    {
+      "id": "h-64fe601c",
+      "kind": "html",
+      "en": "Encoding a key or a token costs nothing you can measure either way; the performance guide has the table if you are moving tens of megabytes.",
+      "tr": "Кодирование ключа или токена в любом случае обходится в неизмеримо малое время; если вы перегоняете десятки мегабайт, таблица есть в руководстве по производительности."
     }
   ]
 }

@@ -1,7 +1,7 @@
 ---
 title: Может ли компилятор сказать, что сломает изменение? · Glyph
 description: glyph_impact принимает объявление, которое вы собираетесь изменить, и саму правку, и отвечает вердиктом с причиной для каждого места, ещё до того, как вы тронете файл.
-source_hash: 42e24af1156f67f1
+source_hash: 430fde319321c2e5
 prev: /answers/binary/ | &larr; Назад | Можно ли работать с бинарными данными, или всё строка?
 next: /answers/ask-the-compiler/ | Далее &rarr; | Может ли агент спросить у компилятора, что такое символ, до того как писать код?
 ---
@@ -12,26 +12,13 @@ next: /answers/ask-the-compiler/ | Далее &rarr; | Может ли аген�
         Для шести видов правок да. <code>glyph_impact</code> принимает объявление, которое вы собираетесь изменить, и само изменение (переименовать, удалить вариант, сменить тип параметра, сменить арность, удалить объявление) и отвечает <strong>одним вердиктом на каждое место</strong> из закрытого списка, у каждого есть причина, почему вердикт именно такой, а не другой.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Почему это важно</h2>
-        <p>
-          Когда вы переименовываете функцию, расширяете union или меняете то, что принимает параметр, вы либо ищете старое имя через grep и надеетесь, что нашли все вызовы, либо делаете правку и читаете, что потом скажет компилятор. Ни один из способов не говорит, какие места продолжат компилироваться, но тихо станут неправильными: <code>match</code> с веткой catch-all не падает, когда вы добавляете вариант, он просто начинает отправлять новый случай туда, куда никто не решал его отправлять. Такое место никогда не проявится при сборке. <code>glyph_impact</code> отвечает до правки, на основе того же анализа, который выполняет компилятор.
-        </p>
-
-        <h2 class="block-label">Что приходит в ответ</h2>
-        <p>
-          Запрос называет сущность по её идентичности <code>module::name</code> и изменение из закрытого списка: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Изменение обязательно, потому что вердикт это факт о правке; без названной правки каждое место вернулось бы просто ссылкой, а не последствием. Ответ называет сущность, изменение и список <code>impact</code>: одна запись на место, в каждой объявление, внутри которого оно находится, <code>relation</code>, <code>verdict</code>, <code>because</code> и код диагностики, который выдаст компилятор, если он ровно один. Вердикты образуют закрытый список, и каждый значит одно: <code>WILL_FAIL</code> (компилятор может доказать, что место перестанет компилироваться), <code>ABSORBS</code> (может доказать, что изменение будет здесь молча поглощено), <code>SAFE</code> (может доказать, что место останется корректным), <code>UNDETERMINED</code> (он посмотрел на это место и не может установить последствие) и <code>NOT_INDEXED</code> (для места такой формы вопрос вообще нельзя задать).
-        </p>
-
-        <h2 class="block-label">Посмотрите сами</h2>
-        <p>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">
           Модуль объявляет <code>label(s: string) -&gt; number</code>. До неё доходят три вызывающих места: одно передаёт строковый литерал, другое передаёт значение, тип которого это псевдоним для <code>string</code>, импортированный из другого модуля, а третье читает <code>label</code> как значение и никогда его не вызывает. Если спросить, что <code>change_signature_type</code> сделает с каждым из них, получится три разных вердикта, потому что это три разных утверждения:
         </p>
-      </div>
-
-      <div class="two-up">
-        <div class="code">
-          <span class="cap">запрос</span>
+        <div class="two-up">
+          <div class="code">
+            <span class="cap">запрос</span>
 <pre>{
   "method": "tools/call",
   "params": {
@@ -42,9 +29,9 @@ next: /answers/ask-the-compiler/ | Далее &rarr; | Может ли аген�
     }
   }
 }</pre>
-        </div>
-        <div class="code">
-          <span class="cap">результат, сокращённый до трёх мест</span>
+          </div>
+          <div class="code term">
+            <span class="cap">результат, сокращённый до трёх мест</span>
 <pre>{
   "entity": "lib::label",
   "impact": [
@@ -83,28 +70,102 @@ next: /answers/ask-the-compiler/ | Далее &rarr; | Может ли аген�
     }
   ]
 }</pre>
+          </div>
         </div>
-      </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Одна правка, три места, три вердикта, и <code>because</code> у каждого это настоящая фраза, которую выдаёт компилятор, а не метка категории.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">тест компилятора, который это повторяет</span></summary><div class="body">
+          <p>
+            Это повторяет собственный тест компилятора для этого изменения (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> в <code>glyph-cli/tests/agent_loop.rs</code>): тест затем делает правку и проверяет, что E0211 появляется ровно там, где предсказал <code>WILL_FAIL</code>, а в двух других местах компилятор молчит.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
+      <nav class="ak-toc" aria-label="На этой странице">
+        <p>На этой странице</p>
+        <ol>
+          <li><a href="#why-it-matters">Почему это важно</a></li>
+          <li><a href="#what-comes-back">Что возвращается</a></li>
+          <li><a href="#on-a-real-application">На настоящем приложении</a></li>
+          <li><a href="#where-it-stands">Текущее состояние</a></li>
+        </ol>
+      </nav>
+
+      <h2 class="ak-h" id="why-it-matters">Почему это важно<a class="ak-anchor" href="#why-it-matters" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Когда вы переименовываете функцию, расширяете union или меняете то, что принимает параметр, вы либо ищете старое имя через grep и надеетесь, что нашли все вызовы, либо делаете правку и читаете, что потом скажет компилятор.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Ни один из способов не говорит, какие места продолжат компилироваться, но тихо станут неправильными: <code>match</code> с веткой catch-all не падает, когда вы добавляете вариант, он просто начинает отправлять новый случай туда, куда никто не решал его отправлять. Такое место никогда не проявится при сборке. <code>glyph_impact</code> отвечает до правки, на основе того же анализа, который выполняет компилятор.
+      </p></div>
+
+      <h2 class="ak-h" id="what-comes-back">Что приходит в ответ<a class="ak-anchor" href="#what-comes-back" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Запрос называет сущность по её идентичности <code>module::name</code> и изменение из закрытого списка: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Вердикты образуют закрытый список, и каждый значит одно:
+      </p>
+      <table class="ref-table">
+        <thead><tr><th>Вердикт</th><th>Значение</th></tr></thead>
+        <tbody>
+          <tr><td data-label="Verdict"><code>WILL_FAIL</code></td><td data-label="Meaning">компилятор может доказать, что место перестанет компилироваться</td></tr>
+          <tr><td data-label="Verdict"><code>ABSORBS</code></td><td data-label="Meaning">может доказать, что изменение будет здесь молча поглощено</td></tr>
+          <tr><td data-label="Verdict"><code>SAFE</code></td><td data-label="Meaning">может доказать, что место останется корректным</td></tr>
+          <tr><td data-label="Verdict"><code>UNDETERMINED</code></td><td data-label="Meaning">он посмотрел на это место и не может установить последствие</td></tr>
+          <tr><td data-label="Verdict"><code>NOT_INDEXED</code></td><td data-label="Meaning">для места такой формы вопрос вообще нельзя задать</td></tr>
+        </tbody>
+      </table>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">почему изменение обязательно и что содержит каждая запись</span></summary><div class="body">
         <p>
-          Одна правка, три места, три вердикта, и <code>because</code> у каждого это настоящая фраза, которую выдаёт компилятор, а не метка категории. Это повторяет собственный тест компилятора для этого изменения (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> в <code>glyph-cli/tests/agent_loop.rs</code>): тест затем делает правку и проверяет, что E0211 появляется ровно там, где предсказал <code>WILL_FAIL</code>, а в двух других местах компилятор молчит.
+          Изменение обязательно, потому что вердикт это факт о правке; без названной правки каждое место вернулось бы просто ссылкой, а не последствием. Ответ называет сущность, изменение и список <code>impact</code>: одна запись на место, в каждой объявление, внутри которого оно находится, <code>relation</code>, <code>verdict</code>, <code>because</code> и код диагностики, который выдаст компилятор, если он ровно один.
         </p>
+      </div></details>
 
-        <h2 class="block-label">На реальном приложении</h2>
-        <p>
-          В <code>examples/apps/csvql</code>, движке запросов к CSV из одиннадцати файлов в этом репозитории, есть одно размеченное объединение <code>Value</code>, сейчас с четырьмя вариантами. Если спросить <code>glyph_impact</code>, что сделает добавление пятого (<code>Blob</code>), он находит 10 мест match в 4 файлах: в 8 компиляция упадёт, а в 2 есть ветка catch-all, которая молча поглотит новый вариант. Если действительно добавить вариант, компилятор сообщает ровно 8 ошибок <code>E0200</code> ровно в 8 предсказанных местах и ничего не говорит о 2 местах <code>ABSORBS</code> ни до, ни после. Текстовый поиск веток catch-all по тому же приложению, то, что вы делали бы без инструмента, находит те же 2 настоящих места среди 20 совпадений (точность 0.10) и ничего не говорит о 8 падающих, потому что не знает, какой тип разбирает <code>match</code>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="on-a-real-application">На реальном приложении<a class="ak-anchor" href="#on-a-real-application" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        В <code>examples/apps/csvql</code>, движке запросов к CSV из одиннадцати файлов в этом репозитории, есть одно размеченное объединение <code>Value</code>, сейчас с четырьмя вариантами. Если спросить <code>glyph_impact</code>, что сделает добавление пятого (<code>Blob</code>), он находит 10 мест match в 4 файлах: в 8 компиляция упадёт, а в 2 есть ветка catch-all, которая молча поглотит новый вариант.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg></span><b>Проверено сборкой</b>Если действительно добавить вариант, компилятор сообщает ровно 8 ошибок <code>E0200</code> ровно в 8 предсказанных местах и ничего не говорит о 2 местах <code>ABSORBS</code> ни до, ни после.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><path d="M10.4 10.4L14 14"/></svg></span><b>Вместо этого текстовый поиск</b>Текстовый поиск веток catch-all по тому же приложению, то, что вы делали бы без инструмента, находит те же 2 настоящих места среди 20 совпадений (точность 0.10) и ничего не говорит о 8 падающих, потому что не знает, какой тип разбирает <code>match</code>.</li>
+      </ul>
 
-      <h2 class="block-label">Текущее состояние</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Уже работает</h3>
-          <p>Шесть видов изменений из закрытого списка (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) и пять вердиктов из закрытого списка, одна запись на каждое затронутое место с причиной и кодом диагностики. <code>change_signature_type</code> решается для каждого аргумента вызова по собственным правилам сравнения проверки типов, и место получает самый слабый вердикт из своих аргументов. JSX-элемент оценивается как вызов, в который он понижается: <code>&lt;Card title="x" /&gt;</code> это одна запись props, переданная в <code>Card</code>, и каждый атрибут указывается напротив поля, с которым он сверяется, с тем вердиктом, который получил бы аргумент вызова того же типа. Покрытие (что поиск смог и не смог прочитать) указывается для каждого поиска, а не один раз на весь ответ, и каждый узел сообщает, пришёл ли он из исходника на Glyph, из лазейки <code>extern_ts</code> или из непрозрачного <code>.d.ts</code>.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Где это заканчивается</h3>
-          <p>Глубина точна на одном шаге и пуста дальше: Glyph никогда не выводит тип объявления из его тела, поэтому тип вызываемой функции не может дойти до сигнатуры вызывающей, и изменение X может сделать некорректными только выражения, которые называют X. Если запросить глубину 2, ответ вернётся с <code>next_query</code>, где назван точный вопрос, потому что второму шагу нужно исправление, которое кто-то внесёт в первое место, а этого исправления ещё нет. <code>UNDETERMINED</code> и <code>NOT_INDEXED</code> это разные утверждения: аргумент, для которого у проверки типов нет типа, или сопоставление записи с полем, которое не читает ни одно правило, это <code>UNDETERMINED</code> (посмотрел и не смог решить); функция, прочитанная как значение, а не вызванная, это <code>NOT_INDEXED</code> (там вопрос вообще нельзя было задать). Следить стоит за <code>ABSORBS</code>: место продолжает компилироваться и при этом доказуемо неправильно, а зелёная сборка этого никогда не покажет.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Шесть видов изменений из закрытого списка (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) и пять вердиктов из закрытого списка, одна запись на каждое затронутое место с причиной и кодом диагностики.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>change_signature_type</code> решается для каждого аргумента вызова по собственным правилам сравнения проверки типов, и место получает самый слабый вердикт из своих аргументов.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">JSX-элемент оценивается как вызов, в который он понижается</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>JSX-элемент оценивается как вызов, в который он понижается: <code>&lt;Card title="x" /&gt;</code> это одна запись props, переданная в <code>Card</code>, и каждый атрибут указывается напротив поля, с которым он сверяется, с тем вердиктом, который получил бы аргумент вызова того же типа.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Покрытие указывается для каждого поиска, и каждый узел сообщает, откуда он пришёл</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Покрытие (что поиск смог и не смог прочитать) указывается для каждого поиска, а не один раз на весь ответ, и каждый узел сообщает, пришёл ли он из исходника на Glyph, из лазейки <code>extern_ts</code> или из непрозрачного <code>.d.ts</code>.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Где это заканчивается</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Глубина точна на одном шаге и пуста дальше</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Глубина точна на одном шаге и пуста дальше: Glyph никогда не выводит тип объявления из его тела, поэтому тип вызываемой функции не может дойти до сигнатуры вызывающей, и изменение X может сделать некорректными только выражения, которые называют X.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Если запросить глубину 2, ответ вернётся с <code>next_query</code>, где назван точный вопрос</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p>Если запросить глубину 2, ответ вернётся с <code>next_query</code>, где назван точный вопрос, потому что второму шагу нужно исправление, которое кто-то внесёт в первое место, а этого исправления ещё нет.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>UNDETERMINED</code> и <code>NOT_INDEXED</code> это разные утверждения</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
+                <p><code>UNDETERMINED</code> и <code>NOT_INDEXED</code> это разные утверждения: аргумент, для которого у проверки типов нет типа, или сопоставление записи с полем, которое не читает ни одно правило, это <code>UNDETERMINED</code> (посмотрел и не смог решить); функция, прочитанная как значение, а не вызванная, это <code>NOT_INDEXED</code> (там вопрос вообще нельзя было задать).</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Следить стоит за <code>ABSORBS</code>: место продолжает компилироваться и при этом доказуемо неправильно, а зелёная сборка этого никогда не покажет.</span></span></li>
+          </ul>
+        </section>
       </div>

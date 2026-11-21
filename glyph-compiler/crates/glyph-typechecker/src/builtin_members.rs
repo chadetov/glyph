@@ -124,6 +124,15 @@ impl BuiltinReceiver {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BuiltinMethod {
     pub name: &'static str,
+    /// Whether a call changes the receiver in place (G380, D5): `push`,
+    /// `sort` and the seven others on an array, nothing on a string or a
+    /// number. `lib.d.ts` carries no such marker, so the split is the
+    /// script's `MUTATING` set, written by hand and held to two gates: every
+    /// method is classified exactly once, and node confirms the array split
+    /// by calling each method on a fresh array. A mutating call stands only
+    /// as the whole call of a `mut` statement (E0240); `mut` before a call
+    /// that changes nothing is E0241.
+    pub mutates: bool,
     pub sig: MethodSig,
 }
 
@@ -343,6 +352,26 @@ mod tests {
                 let property = matches!(*name, "length" | "constructor");
                 assert_eq!(r.method(name).is_some(), !property, "{r:?}: `{name}`");
             }
+        }
+    }
+
+    /// The `mutates` column (G380): exactly the nine array methods, and
+    /// nothing on a string or a number. The script that writes the rows
+    /// holds the split against node; this pins what the checker reads.
+    #[test]
+    fn exactly_nine_array_methods_mutate() {
+        let mutating: Vec<&str> = BuiltinReceiver::Array
+            .methods()
+            .iter()
+            .filter(|m| m.mutates)
+            .map(|m| m.name)
+            .collect();
+        assert_eq!(
+            mutating,
+            ["copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"]
+        );
+        for r in [BuiltinReceiver::String, BuiltinReceiver::Number] {
+            assert!(r.methods().iter().all(|m| !m.mutates), "{r:?}");
         }
     }
 

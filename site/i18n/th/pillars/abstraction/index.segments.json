@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/abstraction/index.html",
   "locale": "th",
-  "source_hash": "01e075d4f0eca884",
+  "source_hash": "20ee19449bc530dd",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "เขียนตามที่ตั้งใจด้วย<strong>core เล็กๆ ที่แต่ละส่วนตั้งฉากกัน</strong>: pattern matching แทนบันได switch, <code>Result</code> แทน exception ที่ throw, record ที่มีชื่อแทน tuple หนึ่งวิธีที่ดีต่อหนึ่งแนวคิด ไม่ใช่ชั้นที่พอกพูนกันมาแบบ TypeScript"
     },
     {
-      "id": "h-394d34b1",
-      "kind": "html",
-      "en": "Too many ways to say the same thing",
-      "tr": "วิธีพูดเรื่องเดียวกันมีมากเกินไป"
-    },
-    {
-      "id": "h-350fc73d",
-      "kind": "html",
-      "en": "TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>. There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
-      "tr": "TypeScript โตมาด้วยการพอกพูน และเก็บทุกชั้นไว้ คุณ model ชุด case ที่ตายตัวได้เป็น <code>enum</code>, union ของ string literal หรือ object แบบ <code>const</code> คุณอธิบายรูปร่างได้ด้วย <code>interface</code>, <code>type</code> หรือ <code>class</code> มี <code>namespace</code> และ module, decorator และ higher-order function มีห้า idiom สำหรับแทบทุกอย่าง แต่ละตัวมีกรณีขอบของตัวเอง"
-    },
-    {
-      "id": "h-ea5d3974",
-      "kind": "html",
-      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
-      "tr": "สำหรับคน นั่นคือความยืดหยุ่น สำหรับ<strong>เอเจนต์</strong>มันคือทุ่นระเบิด: วิธีแสดงสิ่งหนึ่งที่มากขึ้นหมายถึงโอกาสเลือกตัวที่มีกับดักมากขึ้น และมี idiom ให้จำไม่ให้สับสนมากขึ้น เสาหลักเรื่องนามธรรมของ Glyph คือการลบออกโดยตั้งใจ: เครื่องมือคมหนึ่งชิ้นต่องาน เลือกให้วิธีที่ชัดที่สุดเป็นวิธีที่ปลอดภัยด้วย"
-    },
-    {
-      "id": "h-c576eb56",
-      "kind": "html",
-      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
-      "tr": "<span class=\"ex-label\">01</span> <code>match</code> เป็นเงื่อนไขแบบเดียว"
-    },
-    {
-      "id": "h-1a910d0c",
-      "kind": "html",
-      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value. One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
-      "tr": "ไม่มี statement <code>if</code>/<code>else</code> การแตก branch คือ <code>match</code> ทุกที่ และ <code>match</code> เป็น expression: มันให้ค่า construct เดียวครอบคลุมการทดสอบ boolean การ dispatch ตาม union และตารางค่า จึงไม่ต้องตัดสินใจว่าจะใช้รูปแบบการแตก branch <em>แบบไหน</em>"
-    },
-    {
       "id": "h-fd1d8f8e",
       "kind": "html",
       "en": "TypeScript: statement, not a value",
@@ -101,16 +71,148 @@
       "tr": "Glyph: expression เดียว"
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-3642b9c1",
+      "kind": "html",
+      "en": "<a href=\"#too-many-ways-to-say-the-same-thing\">Too many ways</a>",
+      "tr": "<a href=\"#too-many-ways-to-say-the-same-thing\">วิธีที่มากเกินไป</a>"
+    },
+    {
+      "id": "h-18243566",
+      "kind": "html",
+      "en": "<a href=\"#match-is-the-only-conditional\"><code>match</code> as the conditional</a>",
+      "tr": "<a href=\"#match-is-the-only-conditional\"><code>match</code> เป็นเงื่อนไข</a>"
+    },
+    {
+      "id": "h-9116d8af",
+      "kind": "html",
+      "en": "<a href=\"#tagged-unions-and-pattern-matching\">Tagged unions</a>",
+      "tr": "<a href=\"#tagged-unions-and-pattern-matching\">tagged union</a>"
+    },
+    {
+      "id": "h-98fab184",
+      "kind": "html",
+      "en": "<a href=\"#result-over-exceptions\"><code>Result</code> over exceptions</a>",
+      "tr": "<a href=\"#result-over-exceptions\"><code>Result</code> แทน exception</a>"
+    },
+    {
+      "id": "h-0fc507c7",
+      "kind": "html",
+      "en": "<a href=\"#named-records-over-positional-tuples\">Named records</a>",
+      "tr": "<a href=\"#named-records-over-positional-tuples\">record ที่มีชื่อ</a>"
+    },
+    {
+      "id": "h-b9e79706",
+      "kind": "html",
+      "en": "<a href=\"#one-primitive-per-job\">One primitive per job</a>",
+      "tr": "<a href=\"#one-primitive-per-job\">หนึ่ง primitive ต่องาน</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">benchmark</a>"
+    },
+    {
+      "id": "h-394d34b1",
+      "kind": "html",
+      "en": "Too many ways to say the same thing",
+      "tr": "วิธีพูดเรื่องเดียวกันมีมากเกินไป"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-d1c69ff4",
+      "kind": "html",
+      "en": "TypeScript grew by accretion, and it kept every layer.",
+      "tr": "TypeScript โตมาด้วยการพอกพูน และเก็บทุกชั้นไว้"
+    },
+    {
+      "id": "h-b846c38e",
+      "kind": "html",
+      "en": "<b>Fixed cases</b>You can model a fixed set of cases as an <code>enum</code>, a union of string literals, or a <code>const</code> object.",
+      "tr": "<b>ชุด case ที่ตายตัว</b>คุณ model ชุด case ที่ตายตัวได้เป็น <code>enum</code>, union ของ string literal หรือ object แบบ <code>const</code>"
+    },
+    {
+      "id": "h-70a900fd",
+      "kind": "html",
+      "en": "<b>Shapes</b>You can describe a shape with an <code>interface</code>, a <code>type</code>, or a <code>class</code>.",
+      "tr": "<b>รูปร่าง</b>คุณอธิบายรูปร่างได้ด้วย <code>interface</code>, <code>type</code> หรือ <code>class</code>"
+    },
+    {
+      "id": "h-379dc356",
+      "kind": "html",
+      "en": "<b>Everything else</b>There are <code>namespace</code>s and modules, decorators and higher-order functions, five idioms for nearly everything, each with its own edge cases.",
+      "tr": "<b>ที่เหลือทั้งหมด</b>มี <code>namespace</code> และ module, decorator และ higher-order function มีห้า idiom สำหรับแทบทุกอย่าง แต่ละตัวมีกรณีขอบของตัวเอง"
+    },
+    {
+      "id": "h-ea803f83",
+      "kind": "html",
+      "en": "For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to express a thing means more ways to pick the one with the footgun, and more idioms to keep straight while doing it.",
+      "tr": "สำหรับคน นั่นคือความยืดหยุ่น สำหรับ<strong>เอเจนต์</strong>มันคือทุ่นระเบิด: วิธีแสดงสิ่งหนึ่งที่มากขึ้นหมายถึงโอกาสเลือกตัวที่มีกับดักมากขึ้น และมี idiom ให้จำไม่ให้สับสนมากขึ้น"
+    },
+    {
+      "id": "h-ac4cdf34",
+      "kind": "html",
+      "en": "Glyph's abstraction pillar is a deliberate subtraction: one sharp tool per job, chosen so the obvious way is also the safe way.",
+      "tr": "เสาหลักเรื่องนามธรรมของ Glyph คือการลบออกโดยตั้งใจ: เครื่องมือคมหนึ่งชิ้นต่องาน เลือกให้วิธีที่ชัดที่สุดเป็นวิธีที่ปลอดภัยด้วย"
+    },
+    {
+      "id": "h-c576eb56",
+      "kind": "html",
+      "en": "<span class=\"ex-label\">01</span> <code>match</code> is the only conditional",
+      "tr": "<span class=\"ex-label\">01</span> <code>match</code> เป็นเงื่อนไขแบบเดียว"
+    },
+    {
+      "id": "h-b108c57c",
+      "kind": "html",
+      "en": "There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>, everywhere, and <code>match</code> is an expression: it produces a value.",
+      "tr": "ไม่มี statement <code>if</code>/<code>else</code> การแตก branch คือ <code>match</code> ทุกที่ และ <code>match</code> เป็น expression: มันให้ค่า"
+    },
+    {
+      "id": "h-f880b2fd",
+      "kind": "html",
+      "en": "One construct covers a boolean test, a union dispatch, and a value table, so there's no decision to make about <em>which</em> branching form to reach for.",
+      "tr": "construct เดียวครอบคลุมการทดสอบ boolean การ dispatch ตาม union และตารางค่า จึงไม่ต้องตัดสินใจว่าจะใช้รูปแบบการแตก branch <em>แบบไหน</em>"
+    },
+    {
       "id": "h-9a3a4109",
       "kind": "html",
       "en": "<span class=\"ex-label\">02</span> Tagged unions and pattern matching",
       "tr": "<span class=\"ex-label\">02</span> tagged union และ pattern matching"
     },
     {
-      "id": "h-ad530d74",
+      "id": "h-3bd9017e",
       "kind": "html",
-      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case. No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
-      "tr": "วิธี model \"หนึ่งในรูปร่างเหล่านี้\" คือ tagged union และวิธีแยกมันออกคือ <code>match</code> ซึ่ง destructure payload ในขั้นเดียวกับที่เลือก case ไม่มี field discriminant ให้ดูแลเอง ไม่มีบันได <code>switch</code> บน tag ที่เป็น string ไม่มี cast ในแต่ละ branch เพื่อกู้รูปร่างคืน"
+      "en": "The way to model \"one of these shapes\" is a tagged union, and the way to take it apart is <code>match</code>, which destructures the payload in the same step it selects the case.",
+      "tr": "วิธี model \"หนึ่งในรูปร่างเหล่านี้\" คือ tagged union และวิธีแยกมันออกคือ <code>match</code> ซึ่ง destructure payload ในขั้นเดียวกับที่เลือก case"
+    },
+    {
+      "id": "h-ffa3ae4b",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what you no longer write by hand</span>",
+      "tr": "รายละเอียด <span class=\"hint\">สิ่งที่คุณไม่ต้องเขียนเองอีกต่อไป</span>"
+    },
+    {
+      "id": "h-be7c04c9",
+      "kind": "html",
+      "en": "No discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast inside each branch to recover the shape.",
+      "tr": "ไม่มี field discriminant ให้ดูแลเอง ไม่มีบันได <code>switch</code> บน tag ที่เป็น string ไม่มี cast ในแต่ละ branch เพื่อกู้รูปร่างคืน"
     },
     {
       "id": "h-da9f8a38",
@@ -119,10 +221,16 @@
       "tr": "<span class=\"ex-label\">03</span> <code>Result</code> แทน exception"
     },
     {
-      "id": "h-b227a6fe",
+      "id": "h-a6a5d5b4",
       "kind": "html",
-      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class. The error path is as visible as the happy path.",
-      "tr": "ความล้มเหลวเป็นค่า ไม่ใช่การกระโดดของ control flow ที่ซ่อนอยู่ ฟังก์ชันที่อาจล้มเหลวบอกไว้ใน return type (<code>Result&lt;T, E&gt;</code>) และคุณประกอบความล้มเหลวด้วย operator <code>?</code> แทนที่จะครอบจุดเรียกด้วย <code>try</code>/<code>catch</code> แล้วหวังว่าสิ่งที่ถูกจะ throw class ที่ถูก เส้นทาง error มองเห็นได้เท่ากับเส้นทางปกติ"
+      "en": "Failure is a value, not a hidden control-flow jump. A function that can fail says so in its return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code> and hoping the right thing throws the right class.",
+      "tr": "ความล้มเหลวเป็นค่า ไม่ใช่การกระโดดของ control flow ที่ซ่อนอยู่ ฟังก์ชันที่อาจล้มเหลวบอกไว้ใน return type (<code>Result&lt;T, E&gt;</code>) และคุณประกอบความล้มเหลวด้วย operator <code>?</code> แทนที่จะครอบจุดเรียกด้วย <code>try</code>/<code>catch</code> แล้วหวังว่าสิ่งที่ถูกจะ throw class ที่ถูก"
+    },
+    {
+      "id": "h-f4c006e2",
+      "kind": "html",
+      "en": "The error path is as visible as the happy path.",
+      "tr": "เส้นทาง error มองเห็นได้เท่ากับเส้นทางปกติ"
     },
     {
       "id": "h-cbb161e6",
@@ -131,10 +239,10 @@
       "tr": "<span class=\"ex-label\">04</span> record ที่มีชื่อแทน tuple ตามตำแหน่ง"
     },
     {
-      "id": "h-c219a9fc",
+      "id": "h-c3a9cf90",
       "kind": "html",
-      "en": "Data is described with named fields, always. There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember. The shape reads the same at the definition, the construction, and the use.",
-      "tr": "ข้อมูลอธิบายด้วย field ที่มีชื่อเสมอ ไม่มี object-literal shorthand และไม่มีการหยิบ tuple นิรนามที่คุณต้องจำว่า <code>[0]</code> และ <code>[1]</code> คืออะไร รูปร่างอ่านเหมือนกันทั้งที่นิยาม ที่สร้าง และที่ใช้"
+      "en": "Data is described with named fields, always. The shape reads the same at the definition, the construction, and the use.",
+      "tr": "ข้อมูลอธิบายด้วย field ที่มีชื่อเสมอ รูปร่างอ่านเหมือนกันทั้งที่นิยาม ที่สร้าง และที่ใช้"
     },
     {
       "id": "h-acbd509b",
@@ -149,16 +257,52 @@
       "tr": "Glyph: ชื่อเดินทางไปพร้อมค่า"
     },
     {
+      "id": "h-e7f194c4",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">no shorthand, no anonymous tuples</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ไม่มี shorthand ไม่มี tuple นิรนาม</span>"
+    },
+    {
+      "id": "h-f3c15f17",
+      "kind": "html",
+      "en": "There's no object-literal shorthand and no reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to remember.",
+      "tr": "ไม่มี object-literal shorthand และไม่มีการหยิบ tuple นิรนามที่คุณต้องจำว่า <code>[0]</code> และ <code>[1]</code> คืออะไร"
+    },
+    {
       "id": "h-403ba4b0",
       "kind": "html",
       "en": "<span class=\"ex-label\">05</span> One primitive per job",
       "tr": "<span class=\"ex-label\">05</span> primitive หนึ่งตัวต่องาน"
     },
     {
-      "id": "h-bc427179",
+      "id": "h-d51cd5ce",
       "kind": "html",
-      "en": "When a concept needs its own tool, Glyph gives it exactly one. Shared mutable state lives in a <code>std/store</code>. A file or socket handle that must be closed once is an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
-      "tr": "เมื่อแนวคิดหนึ่งต้องมีเครื่องมือของตัวเอง Glyph ให้แค่หนึ่งตัวพอดี state ที่ใช้ร่วมกันและเปลี่ยนค่าได้อยู่ใน <code>std/store</code> handle ของไฟล์หรือ socket ที่ต้องปิดครั้งเดียวคือ resource แบบ <code>owned</code> การวนซ้ำคือ <code>for x in xs</code> แต่ละตัวเป็น primitive เดียวที่มีชื่อและสร้างมาเพื่องานนั้น ไม่ใช่ pattern ที่คุณต้องประกอบใหม่จากชิ้นส่วนทั่วไปแล้วทำผิดแบบแนบเนียน"
+      "en": "When a concept needs its own tool, Glyph gives it exactly one.",
+      "tr": "เมื่อแนวคิดหนึ่งต้องมีเครื่องมือของตัวเอง Glyph ให้แค่หนึ่งตัวพอดี"
+    },
+    {
+      "id": "h-ea24c346",
+      "kind": "html",
+      "en": "<b>Shared state</b>Shared mutable state lives in a <code>std/store</code>.",
+      "tr": "<b>state ที่ใช้ร่วมกัน</b>state ที่ใช้ร่วมกันและเปลี่ยนค่าได้อยู่ใน <code>std/store</code>"
+    },
+    {
+      "id": "h-17bdc29b",
+      "kind": "html",
+      "en": "<b>Handles</b>A file or socket handle that must be closed once is an <code>owned</code> resource.",
+      "tr": "<b>handle</b>handle ของไฟล์หรือ socket ที่ต้องปิดครั้งเดียวคือ resource แบบ <code>owned</code>"
+    },
+    {
+      "id": "h-200dc901",
+      "kind": "html",
+      "en": "<b>Iteration</b>Iteration is <code>for x in xs</code>.",
+      "tr": "<b>การวนซ้ำ</b>การวนซ้ำคือ <code>for x in xs</code>"
+    },
+    {
+      "id": "h-7cc956aa",
+      "kind": "html",
+      "en": "Each is a single, named, purpose-built primitive, not a pattern you re-derive from a grab-bag of general parts and get subtly wrong.",
+      "tr": "แต่ละตัวเป็น primitive เดียวที่มีชื่อและสร้างมาเพื่องานนั้น ไม่ใช่ pattern ที่คุณต้องประกอบใหม่จากชิ้นส่วนทั่วไปแล้วทำผิดแบบแนบเนียน"
     },
     {
       "id": "h-73dda756",
@@ -173,10 +317,16 @@
       "tr": "benchmark: กำลังมา"
     },
     {
-      "id": "h-b0f9e141",
+      "id": "h-629c87c9",
       "kind": "html",
-      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
-      "tr": "วิธีวัดเรื่องนี้คือพื้นที่ผิว: คนอ่านต้องถือแนวคิดที่แตกต่างกันกี่อย่างเพื่อเข้าใจโปรแกรม และต้องใช้โค้ดเท่าไรในการแสดงงานทั่วไปอย่างสะอาด Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีโปรแกรมจริงมากพอให้เปรียบเทียบ"
+      "en": "The way to measure this is surface area: how many distinct concepts a reader has to hold to understand a program, and how much code it takes to express a common task cleanly.",
+      "tr": "วิธีวัดเรื่องนี้คือพื้นที่ผิว: คนอ่านต้องถือแนวคิดที่แตกต่างกันกี่อย่างเพื่อเข้าใจโปรแกรม และต้องใช้โค้ดเท่าไรในการแสดงงานทั่วไปอย่างสะอาด"
+    },
+    {
+      "id": "h-5421b526",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so the chart below is a placeholder that fills in with real measurements once there's a body of real programs to compare.",
+      "tr": "Glyph ยังไม่ได้ใช้งานจริงในโลกภายนอก กราฟด้านล่างจึงเป็นที่ว่างรอไว้ ซึ่งจะเติมด้วยการวัดจริงเมื่อมีโปรแกรมจริงมากพอให้เปรียบเทียบ"
     },
     {
       "id": "h-a10f7a79",

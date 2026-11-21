@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "th",
-  "source_hash": "42e24af1156f67f1",
+  "source_hash": "430fde319321c2e5",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "สำหรับการแก้หกแบบ ได้ <code>glyph_impact</code> รับ declaration ที่คุณกำลังจะเปลี่ยนและตัวการเปลี่ยนแปลง (เปลี่ยนชื่อ ลบ variant เปลี่ยน type ของ parameter เปลี่ยนจำนวน argument ลบทิ้ง) แล้วตอบด้วย<strong>คำตัดสินหนึ่งข้อต่อจุด</strong>จากรายการที่ปิดไว้ แต่ละข้อพร้อมเหตุผลว่าทำไมเป็นคำตัดสินนั้นและไม่ใช่ข้ออื่น"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "ทำไมเรื่องนี้สำคัญ"
-    },
-    {
-      "id": "h-113a4126",
-      "kind": "html",
-      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward. Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
-      "tr": "เมื่อเปลี่ยนชื่อฟังก์ชัน ขยาย union หรือเปลี่ยนสิ่งที่ parameter รับ คุณจะ grep หาชื่อเก่าแล้วหวังว่าเจอทุกจุดที่เรียก หรือไม่ก็แก้ไปแล้วอ่านว่าคอมไพเลอร์บอกอะไรหลังจากนั้น ไม่มีวิธีไหนบอกคุณได้ว่าจุดไหนจะยังคอมไพล์ผ่านแต่ผิดแบบเงียบๆ: <code>match</code> ที่มี arm แบบ catch-all ไม่ fail เมื่อคุณเพิ่ม variant มันแค่เริ่มส่ง case ใหม่ไปที่ที่ไม่มีใครเลือก จุดนั้นไม่เคยโผล่ใน build <code>glyph_impact</code> ตอบก่อนแก้ บนการวิเคราะห์เดียวกับที่คอมไพเลอร์รัน"
-    },
-    {
-      "id": "h-5a7866e7",
-      "kind": "html",
-      "en": "What comes back",
-      "tr": "สิ่งที่ได้กลับมา"
-    },
-    {
-      "id": "h-da22973a",
-      "kind": "html",
-      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the change is taken here silently), <code>SAFE</code> (it can prove the site stays correct), <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence), and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at all).",
-      "tr": "request ระบุ entity ด้วยตัวตน <code>module::name</code> และการเปลี่ยนแปลงจากรายการที่ปิดไว้: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code> การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว คำตัดสินเป็นชุดปิดและแต่ละตัวมีความหมายเดียว: <code>WILL_FAIL</code> (คอมไพเลอร์พิสูจน์ได้ว่าจุดนั้นจะคอมไพล์ไม่ผ่าน), <code>ABSORBS</code> (พิสูจน์ได้ว่าการเปลี่ยนแปลงถูกรับไว้ตรงนี้แบบเงียบๆ), <code>SAFE</code> (พิสูจน์ได้ว่าจุดนั้นยังถูกต้อง), <code>UNDETERMINED</code> (ดูจุดนี้แล้วแต่ยืนยันผลไม่ได้) และ <code>NOT_INDEXED</code> (คำถามนี้ถามไม่ได้เลยสำหรับจุดที่มีรูปแบบนี้)"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "ดูของจริง"
-    },
-    {
       "id": "h-86ba488a",
       "kind": "html",
       "en": "A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and one reads <code>label</code> as a value and never calls it. Asking what <code>change_signature_type</code> does to each gets three different verdicts, because they're three different claims:",
@@ -107,10 +77,148 @@
       "tr": "ผลลัพธ์ ตัดเหลือสามจุด"
     },
     {
-      "id": "h-cdf2b702",
+      "id": "h-a1dce1aa",
       "kind": "html",
-      "en": "Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label. This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
-      "tr": "การแก้เดียวกัน สามจุด สามคำตัดสิน และ <code>because</code> ในแต่ละข้อคือประโยคจริงที่คอมไพเลอร์สร้าง ไม่ใช่ป้ายหมวดหมู่ นี่สะท้อนเทสต์ของคอมไพเลอร์เองสำหรับการเปลี่ยนแปลงนี้ (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> ใน <code>glyph-cli/tests/agent_loop.rs</code>): เทสต์ทำการแก้หลังจากนั้น และตรวจว่า E0211 เกิดตรงจุดที่ <code>WILL_FAIL</code> บอกไว้พอดี และคอมไพเลอร์เงียบในอีกสองจุด"
+      "en": "<span>Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label.</span>",
+      "tr": "<span>การแก้เดียวกัน สามจุด สามคำตัดสิน และ <code>because</code> ในแต่ละข้อคือประโยคจริงที่คอมไพเลอร์สร้าง ไม่ใช่ป้ายหมวดหมู่</span>"
+    },
+    {
+      "id": "h-7ff698cb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the compiler test this mirrors</span>",
+      "tr": "รายละเอียด <span class=\"hint\">เทสต์ของคอมไพเลอร์ที่สิ่งนี้สะท้อน</span>"
+    },
+    {
+      "id": "h-b0f93c00",
+      "kind": "html",
+      "en": "This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
+      "tr": "นี่สะท้อนเทสต์ของคอมไพเลอร์เองสำหรับการเปลี่ยนแปลงนี้ (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> ใน <code>glyph-cli/tests/agent_loop.rs</code>): เทสต์ทำการแก้หลังจากนั้น และตรวจว่า E0211 เกิดตรงจุดที่ <code>WILL_FAIL</code> บอกไว้พอดี และคอมไพเลอร์เงียบในอีกสองจุด"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมเรื่องนี้สำคัญ</a>"
+    },
+    {
+      "id": "h-227b0659",
+      "kind": "html",
+      "en": "<a href=\"#what-comes-back\">What comes back</a>",
+      "tr": "<a href=\"#what-comes-back\">สิ่งที่ได้กลับมา</a>"
+    },
+    {
+      "id": "h-682c9014",
+      "kind": "html",
+      "en": "<a href=\"#on-a-real-application\">On a real application</a>",
+      "tr": "<a href=\"#on-a-real-application\">บนแอปจริง</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-9e5268ec",
+      "kind": "html",
+      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward.",
+      "tr": "เมื่อเปลี่ยนชื่อฟังก์ชัน ขยาย union หรือเปลี่ยนสิ่งที่ parameter รับ คุณจะ grep หาชื่อเก่าแล้วหวังว่าเจอทุกจุดที่เรียก หรือไม่ก็แก้ไปแล้วอ่านว่าคอมไพเลอร์บอกอะไรหลังจากนั้น"
+    },
+    {
+      "id": "h-db276c0c",
+      "kind": "html",
+      "en": "Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
+      "tr": "ไม่มีวิธีไหนบอกคุณได้ว่าจุดไหนจะยังคอมไพล์ผ่านแต่ผิดแบบเงียบๆ: <code>match</code> ที่มี arm แบบ catch-all ไม่ fail เมื่อคุณเพิ่ม variant มันแค่เริ่มส่ง case ใหม่ไปที่ที่ไม่มีใครเลือก จุดนั้นไม่เคยโผล่ใน build <code>glyph_impact</code> ตอบก่อนแก้ บนการวิเคราะห์เดียวกับที่คอมไพเลอร์รัน"
+    },
+    {
+      "id": "h-5a7866e7",
+      "kind": "html",
+      "en": "What comes back",
+      "tr": "สิ่งที่ได้กลับมา"
+    },
+    {
+      "id": "h-af924ab7",
+      "kind": "html",
+      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The verdicts are closed and each means one thing:",
+      "tr": "request ระบุ entity ด้วยตัวตน <code>module::name</code> และการเปลี่ยนแปลงจากรายการที่ปิดไว้: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code> คำตัดสินเป็นชุดปิดและแต่ละตัวมีความหมายเดียว:"
+    },
+    {
+      "id": "h-4a36f89d",
+      "kind": "html",
+      "en": "Verdict",
+      "tr": "คำตัดสิน"
+    },
+    {
+      "id": "h-1f5d64b9",
+      "kind": "html",
+      "en": "Meaning",
+      "tr": "ความหมาย"
+    },
+    {
+      "id": "h-7654985b",
+      "kind": "html",
+      "en": "the compiler can prove the site stops compiling",
+      "tr": "คอมไพเลอร์พิสูจน์ได้ว่าจุดนั้นจะคอมไพล์ไม่ผ่าน"
+    },
+    {
+      "id": "h-2e902292",
+      "kind": "html",
+      "en": "it can prove the change is taken here silently",
+      "tr": "พิสูจน์ได้ว่าการเปลี่ยนแปลงถูกรับไว้ตรงนี้แบบเงียบๆ"
+    },
+    {
+      "id": "h-1cbbbfa0",
+      "kind": "html",
+      "en": "it can prove the site stays correct",
+      "tr": "พิสูจน์ได้ว่าจุดนั้นยังถูกต้อง"
+    },
+    {
+      "id": "h-199ea864",
+      "kind": "html",
+      "en": "it looked at this site and can't establish the consequence",
+      "tr": "ดูจุดนี้แล้วแต่ยืนยันผลไม่ได้"
+    },
+    {
+      "id": "h-4e74c295",
+      "kind": "html",
+      "en": "the question isn't askable for a site of this shape at all",
+      "tr": "คำถามนี้ถามไม่ได้เลยสำหรับจุดที่มีรูปแบบนี้"
+    },
+    {
+      "id": "h-aec68efa",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the change is required, and what each entry holds</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ทำไมต้องระบุการเปลี่ยนแปลง และแต่ละรายการมีอะไร</span>"
+    },
+    {
+      "id": "h-3b307258",
+      "kind": "html",
+      "en": "The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one.",
+      "tr": "การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว"
     },
     {
       "id": "h-ed0c982f",
@@ -119,10 +227,22 @@
       "tr": "บนแอปพลิเคชันจริง"
     },
     {
-      "id": "h-0a557626",
+      "id": "h-34192c8e",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant. Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
-      "tr": "<code>examples/apps/csvql</code> query engine สำหรับ CSV สิบเอ็ดไฟล์ใน repository นี้ มี tagged union หนึ่งตัวคือ <code>Value</code> ซึ่งวันนี้มีสี่ variant การถาม <code>glyph_impact</code> ว่าการเพิ่มตัวที่ห้า (<code>Blob</code>) ทำอะไร เจอจุดที่ match 10 จุดใน 4 ไฟล์: 8 จุดจะคอมไพล์ไม่ผ่าน และ 2 จุดมี arm แบบ catch-all ที่จะกลืน variant ใหม่ไปเงียบๆ เมื่อเพิ่ม variant จริงๆ คอมไพเลอร์รายงาน <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดที่คาดไว้พอดี และไม่บอกอะไรเลยที่ 2 จุด <code>ABSORBS</code> ทั้งก่อนและหลัง การค้นหาข้อความหา arm แบบ catch-all ทั่วแอปเดียวกัน ซึ่งเป็นสิ่งที่คุณจะทำถ้าไม่มีเครื่องมือ เจอ 2 จุดจริงนั้นฝังอยู่ใน 20 ผลลัพธ์ (precision 0.10) และไม่บอกอะไรเลยเกี่ยวกับ 8 จุดที่ fail เพราะมันไม่รู้ว่า <code>match</code> ตรวจค่าที่เป็น type อะไร"
+      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant.",
+      "tr": "<code>examples/apps/csvql</code> query engine สำหรับ CSV สิบเอ็ดไฟล์ใน repository นี้ มี tagged union หนึ่งตัวคือ <code>Value</code> ซึ่งวันนี้มีสี่ variant การถาม <code>glyph_impact</code> ว่าการเพิ่มตัวที่ห้า (<code>Blob</code>) ทำอะไร เจอจุดที่ match 10 จุดใน 4 ไฟล์: 8 จุดจะคอมไพล์ไม่ผ่าน และ 2 จุดมี arm แบบ catch-all ที่จะกลืน variant ใหม่ไปเงียบๆ"
+    },
+    {
+      "id": "h-57529b83",
+      "kind": "html",
+      "en": "<b>Checked by the build</b>Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after.",
+      "tr": "<b>ตรวจด้วย build</b>เมื่อเพิ่ม variant จริงๆ คอมไพเลอร์รายงาน <code>E0200</code> 8 ตัวพอดี ที่ 8 จุดที่คาดไว้พอดี และไม่บอกอะไรเลยที่ 2 จุด <code>ABSORBS</code> ทั้งก่อนและหลัง"
+    },
+    {
+      "id": "h-44f82082",
+      "kind": "html",
+      "en": "<b>A text search instead</b>A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
+      "tr": "<b>ถ้าใช้การค้นหาข้อความแทน</b>การค้นหาข้อความหา arm แบบ catch-all ทั่วแอปเดียวกัน ซึ่งเป็นสิ่งที่คุณจะทำถ้าไม่มีเครื่องมือ เจอ 2 จุดจริงนั้นฝังอยู่ใน 20 ผลลัพธ์ (precision 0.10) และไม่บอกอะไรเลยเกี่ยวกับ 8 จุดที่ fail เพราะมันไม่รู้ว่า <code>match</code> ตรวจค่าที่เป็น type อะไร"
     },
     {
       "id": "h-b55f380c",
@@ -137,10 +257,46 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-b902e12f",
+      "id": "h-0d0ff806",
       "kind": "html",
-      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
-      "tr": "การเปลี่ยนแปลงหกแบบที่เป็นชุดปิด (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) และคำตัดสินห้าแบบที่เป็นชุดปิด หนึ่งรายการต่อจุดที่ได้รับผลกระทบพร้อมเหตุผลและรหัส diagnostic <code>change_signature_type</code> ตัดสินทีละ argument ของการเรียกตามกฎการเปรียบเทียบของตัวตรวจเอง และแต่ละจุดได้คำตัดสินที่อ่อนที่สุดของ argument ทั้งหมด element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป: <code>&lt;Card title=\"x\" /&gt;</code> คือ props record หนึ่งตัวที่ส่งให้ <code>Card</code> และแต่ละ attribute แสดงคู่กับ field ที่มันถูกตรวจ พร้อมคำตัดสินที่ argument ของการเรียกที่มี type เดียวกันจะได้ ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน"
+      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code.",
+      "tr": "การเปลี่ยนแปลงหกแบบที่เป็นชุดปิด (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) และคำตัดสินห้าแบบที่เป็นชุดปิด หนึ่งรายการต่อจุดที่ได้รับผลกระทบพร้อมเหตุผลและรหัส diagnostic"
+    },
+    {
+      "id": "h-d3ea45aa",
+      "kind": "html",
+      "en": "<code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments.",
+      "tr": "<code>change_signature_type</code> ตัดสินทีละ argument ของการเรียกตามกฎการเปรียบเทียบของตัวตรวจเอง และแต่ละจุดได้คำตัดสินที่อ่อนที่สุดของ argument ทั้งหมด"
+    },
+    {
+      "id": "h-e6408624",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to",
+      "tr": "element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "รายละเอียด"
+    },
+    {
+      "id": "h-28ce4e1d",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get.",
+      "tr": "element ของ JSX ตัดสินเหมือนการเรียกที่มันถูกแปลงไป: <code>&lt;Card title=\"x\" /&gt;</code> คือ props record หนึ่งตัวที่ส่งให้ <code>Card</code> และแต่ละ attribute แสดงคู่กับ field ที่มันถูกตรวจ พร้อมคำตัดสินที่ argument ของการเรียกที่มี type เดียวกันจะได้"
+    },
+    {
+      "id": "h-25db2624",
+      "kind": "html",
+      "en": "Coverage is stated per search, and every node carries where it came from",
+      "tr": "ความครอบคลุมระบุทีละการค้นหา และทุก node บอกว่ามาจากไหน"
+    },
+    {
+      "id": "h-bed94cd7",
+      "kind": "html",
+      "en": "Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
+      "tr": "ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน"
     },
     {
       "id": "h-c647197d",
@@ -149,10 +305,46 @@
       "tr": "หยุดตรงไหน"
     },
     {
-      "id": "h-42652a98",
+      "id": "h-6c7cfe36",
       "kind": "html",
-      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
-      "tr": "ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น: Glyph ไม่เคยอนุมาน type ของ declaration จาก body ของมัน type ของฟังก์ชันที่ถูกเรียกจึงไปไม่ถึง signature ของผู้เรียก และการเปลี่ยน X ทำให้เป็นโมฆะได้เฉพาะ expression ที่ระบุชื่อ X ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน เพราะสิ่งที่ขั้นที่สองต้องใช้คือการแก้ที่ใครสักคนทำให้จุดแรก และการแก้นั้นยังไม่มี <code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก) <code>ABSORBS</code> คือตัวที่ต้องจับตา: จุดนั้นยังคอมไพล์ผ่านและถูกพิสูจน์แล้วว่าผิด ซึ่ง build ที่เขียวจะไม่มีวันแสดงให้คุณเห็น"
+      "en": "Depth is exact at one hop and empty past it",
+      "tr": "ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น"
+    },
+    {
+      "id": "h-c8aff8e3",
+      "kind": "html",
+      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X.",
+      "tr": "ความลึกแม่นยำที่หนึ่งขั้นและว่างเปล่าเลยจากนั้น: Glyph ไม่เคยอนุมาน type ของ declaration จาก body ของมัน type ของฟังก์ชันที่ถูกเรียกจึงไปไม่ถึง signature ของผู้เรียก และการเปลี่ยน X ทำให้เป็นโมฆะได้เฉพาะ expression ที่ระบุชื่อ X"
+    },
+    {
+      "id": "h-6fa44778",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead",
+      "tr": "ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน"
+    },
+    {
+      "id": "h-a7b177c5",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet.",
+      "tr": "ถ้าขอความลึก 2 คำตอบจะกลับมาพร้อม <code>next_query</code> ที่ระบุคำถามที่ถูกต้องแทน เพราะสิ่งที่ขั้นที่สองต้องใช้คือการแก้ที่ใครสักคนทำให้จุดแรก และการแก้นั้นยังไม่มี"
+    },
+    {
+      "id": "h-636febd9",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims",
+      "tr": "<code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ"
+    },
+    {
+      "id": "h-a63dd5a1",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
+      "tr": "<code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก)"
+    },
+    {
+      "id": "h-32f66691",
+      "kind": "html",
+      "en": "<code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
+      "tr": "<code>ABSORBS</code> คือตัวที่ต้องจับตา: จุดนั้นยังคอมไพล์ผ่านและถูกพิสูจน์แล้วว่าผิด ซึ่ง build ที่เขียวจะไม่มีวันแสดงให้คุณเห็น"
     }
   ]
 }

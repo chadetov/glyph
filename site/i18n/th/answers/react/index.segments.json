@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/react/index.html",
   "locale": "th",
-  "source_hash": "7cfdf0dbb16b7eaf",
+  "source_hash": "4d46f3d681c38c46",
   "segments": [
     {
       "id": "title",
@@ -59,46 +59,154 @@
       "tr": "ได้ <code>component</code> คอมไพล์เป็น function component ของ React, JSX ถูกแปลงเป็น <code>createElement</code>, hook ของ React เองถูก import ด้วยชื่อและ destructure คู่ค่าของมันได้ และ state ของ reducer ได้การตรวจความครบถ้วนที่ TypeScript ธรรมดาไม่มี ตัวหน้าเว็บเอง (title, จุด mount, state ที่บันทึกไว้) เข้าถึงผ่าน <code>std/dom</code> และ <code>std/storage</code> ช่องว่างที่ควรรู้ก่อน: ตัวตรวจของ Glyph เองไม่ได้ให้ type กับสิ่งที่ hook คืนมา <code>tsc</code> จึงเป็นคนตรวจค่าเหล่านั้น"
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "ทำไมเรื่องนี้สำคัญ"
-    },
-    {
-      "id": "h-7d3b54fa",
-      "kind": "html",
-      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI). React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
-      "tr": "โค้ดที่เอเจนต์เขียนจำนวนมากเป็น React Glyph ถือว่ามันเป็นเป้าหมายหลัก ไม่ใช่ของที่แปะเพิ่ม: <code>component</code> เป็น keyword ของตัวเอง (<code>grep \"^component \"</code> จึงตรวจ UI ทั้งหมดได้) hook ของ React import จาก <code>react</code> และเรียกด้วยชื่อและ type จริง ตรวจโดย <code>tsc</code> เทียบกับ declaration ของ React เอง"
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "ดูของจริง"
-    },
-    {
-      "id": "h-2f961bce",
-      "kind": "html",
-      "en": "React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:",
-      "tr": "<code>useReducer</code> ของ React จริง กับ reducer บน tagged union ทุก action ต้องถูกจัดการ และคอมไพเลอร์ตรวจให้:"
-    },
-    {
       "id": "h-a1d8437d",
       "kind": "html",
       "en": "counter.glyph, against react@18 and its types",
       "tr": "counter.glyph กับ react@18 และ type ของมัน"
     },
     {
-      "id": "h-158cdb40",
+      "id": "h-3ba54158",
       "kind": "html",
-      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship. The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type. Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
-      "tr": "เพิ่ม action <code>Double</code> แล้ว reducer จะคอมไพล์ไม่ผ่านด้วย <code>E0200</code> ที่ระบุชื่อมัน ซึ่ง <code>switch</code> ของ TypeScript ธรรมดาจะปล่อยให้ออกไป คู่ค่าถูก destructure ด้วย <code>let [count, dispatch]</code> และ TypeScript ที่ emit ออกมาเพิ่ม <code>satisfies readonly [unknown, unknown]</code> <code>tsc</code> จึงพิสูจน์ได้ว่า hook คืนคู่ค่าและยังอนุมาน type ของแต่ละตัวได้ ตัวตรวจของ Glyph เองไม่ให้ type กับค่าที่มาจาก React argument ที่ผิดสำหรับ <code>dispatch</code> หรือ state setter จึงถูกรายงานโดย <code>tsc</code> ใน build ไม่ใช่โดย editor หรือ <code>--no-tsc</code> React <strong>Context</strong> ใช้ได้วันนี้ผ่าน <code>createContext</code> / <code>useContext</code> และชื่อ element แบบ member expression (<code>&lt;ThemeContext.Provider&gt;</code>) ใช้ได้โดยตรง ไม่ต้องหาทางเลี่ยง"
+      "en": "<span>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it.</span>",
+      "tr": "<span><code>useReducer</code> ของ React จริง กับ reducer บน tagged union ทุก action ต้องถูกจัดการ และคอมไพเลอร์ตรวจให้</span>"
     },
     {
-      "id": "h-642c2c83",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch. The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
-      "tr": "การ spread prop ใน JSX ก็ใช้ได้: <code>&lt;input {...register(\"email\")} /&gt;</code> ถูกแปลงเป็น object spread ใน props idiom ของ react-hook-form จึงไม่ต้องมี adapter type ที่ derive จากค่าของ zod ใช้ได้เต็มที่: <code>type FormData = z.infer&lt;typeof schema&gt;</code> ใช้ได้โดยตรง ไม่ต้องใช้ทางออกฉุกเฉิน สิ่งเดียวที่ต่าง: component รับ props record ตัวเดียว ไม่ใช่หลาย parameter ตามตำแหน่ง ดู<a href=\"/answers/imports/\">การใช้ไลบรารีของคุณ</a>และ<a href=\"/hardening/\">หน้าการทดสอบความแข็งแรง</a>ว่าขอบเขตนั้นอยู่ตรงไหนพอดี"
+      "en": "On this page",
+      "tr": "ในหน้านี้"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">ทำไมเรื่องนี้สำคัญ</a>"
+    },
+    {
+      "id": "h-648d4d26",
+      "kind": "html",
+      "en": "<a href=\"#reducers-and-hooks\">Reducers and hooks</a>",
+      "tr": "<a href=\"#reducers-and-hooks\">reducer และ hook</a>"
+    },
+    {
+      "id": "h-fab18f8a",
+      "kind": "html",
+      "en": "<a href=\"#context-and-libraries\">Context and libraries</a>",
+      "tr": "<a href=\"#context-and-libraries\">Context และไลบรารี</a>"
+    },
+    {
+      "id": "h-c36db527",
+      "kind": "html",
+      "en": "<a href=\"#are-props-checked-before-tsc\">Props before tsc</a>",
+      "tr": "<a href=\"#are-props-checked-before-tsc\">props ก่อน tsc</a>"
+    },
+    {
+      "id": "h-4a33102f",
+      "kind": "html",
+      "en": "<a href=\"#is-a-match-in-jsx-checked-like-a-match\">&lt;match&gt; in JSX</a>",
+      "tr": "<a href=\"#is-a-match-in-jsx-checked-like-a-match\">&lt;match&gt; ใน JSX</a>"
+    },
+    {
+      "id": "h-5e0e70f5",
+      "kind": "html",
+      "en": "<a href=\"#how-does-a-page-start-it\">Starting a page</a>",
+      "tr": "<a href=\"#how-does-a-page-start-it\">การเริ่มหน้าเว็บ</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">สถานะตอนนี้</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "ทำไมเรื่องนี้สำคัญ"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "ลิงก์มายังหัวข้อนี้"
+    },
+    {
+      "id": "h-28be9792",
+      "kind": "html",
+      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI).",
+      "tr": "โค้ดที่เอเจนต์เขียนจำนวนมากเป็น React Glyph ถือว่ามันเป็นเป้าหมายหลัก ไม่ใช่ของที่แปะเพิ่ม: <code>component</code> เป็น keyword ของตัวเอง (<code>grep \"^component \"</code> จึงตรวจ UI ทั้งหมดได้)"
+    },
+    {
+      "id": "h-2bd4923e",
+      "kind": "html",
+      "en": "React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
+      "tr": "hook ของ React import จาก <code>react</code> และเรียกด้วยชื่อและ type จริง ตรวจโดย <code>tsc</code> เทียบกับ declaration ของ React เอง"
+    },
+    {
+      "id": "h-74654c54",
+      "kind": "html",
+      "en": "Reducers and hooks",
+      "tr": "reducer และ hook"
+    },
+    {
+      "id": "h-53271be7",
+      "kind": "html",
+      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship.",
+      "tr": "เพิ่ม action <code>Double</code> แล้ว reducer จะคอมไพล์ไม่ผ่านด้วย <code>E0200</code> ที่ระบุชื่อมัน ซึ่ง <code>switch</code> ของ TypeScript ธรรมดาจะปล่อยให้ออกไป"
+    },
+    {
+      "id": "h-ac3a0fb5",
+      "kind": "html",
+      "en": "Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>.",
+      "tr": "ตัวตรวจของ Glyph เองไม่ให้ type กับค่าที่มาจาก React argument ที่ผิดสำหรับ <code>dispatch</code> หรือ state setter จึงถูกรายงานโดย <code>tsc</code> ใน build ไม่ใช่โดย editor หรือ <code>--no-tsc</code>"
+    },
+    {
+      "id": "h-1e8f4517",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the hook's pair is destructured</span>",
+      "tr": "รายละเอียด <span class=\"hint\">คู่ค่าของ hook ถูก destructure อย่างไร</span>"
+    },
+    {
+      "id": "h-6f333972",
+      "kind": "html",
+      "en": "The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type.",
+      "tr": "คู่ค่าถูก destructure ด้วย <code>let [count, dispatch]</code> และ TypeScript ที่ emit ออกมาเพิ่ม <code>satisfies readonly [unknown, unknown]</code> <code>tsc</code> จึงพิสูจน์ได้ว่า hook คืนคู่ค่าและยังอนุมาน type ของแต่ละตัวได้"
+    },
+    {
+      "id": "h-c0563444",
+      "kind": "html",
+      "en": "Context and libraries",
+      "tr": "Context และไลบรารี"
+    },
+    {
+      "id": "h-1f310c7a",
+      "kind": "html",
+      "en": "React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
+      "tr": "React <strong>Context</strong> ใช้ได้วันนี้ผ่าน <code>createContext</code> / <code>useContext</code> และชื่อ element แบบ member expression (<code>&lt;ThemeContext.Provider&gt;</code>) ใช้ได้โดยตรง ไม่ต้องหาทางเลี่ยง"
+    },
+    {
+      "id": "h-e2a7d4d3",
+      "kind": "html",
+      "en": "<b>Prop spread</b>JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter.",
+      "tr": "<b>prop spread</b>การ spread prop ใน JSX ก็ใช้ได้: <code>&lt;input {...register(\"email\")} /&gt;</code> ถูกแปลงเป็น object spread ใน props idiom ของ react-hook-form จึงไม่ต้องมี adapter"
+    },
+    {
+      "id": "h-12d8f880",
+      "kind": "html",
+      "en": "<b>Zod types</b>Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch.",
+      "tr": "<b>type ของ zod</b>type ที่ derive จากค่าของ zod ใช้ได้เต็มที่: <code>type FormData = z.infer&lt;typeof schema&gt;</code> ใช้ได้โดยตรง ไม่ต้องใช้ทางออกฉุกเฉิน"
+    },
+    {
+      "id": "h-0aede100",
+      "kind": "html",
+      "en": "The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
+      "tr": "สิ่งเดียวที่ต่าง: component รับ props record ตัวเดียว ไม่ใช่หลาย parameter ตามตำแหน่ง ดู<a href=\"/answers/imports/\">การใช้ไลบรารีของคุณ</a>และ<a href=\"/hardening/\">หน้าการทดสอบความแข็งแรง</a>ว่าขอบเขตนั้นอยู่ตรงไหนพอดี"
     },
     {
       "id": "h-4eb7b3bf",
@@ -107,16 +215,28 @@
       "tr": "props ถูกตรวจก่อน tsc ไหม?"
     },
     {
-      "id": "h-e92662c3",
+      "id": "h-ca2fc926",
       "kind": "html",
-      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. You see them in the editor and over MCP, not only in a full build. It works the same whether the component was imported by name or through its module:",
-      "tr": "ใช่ Glyph เทียบแต่ละ element กับ props record ของ component เอง ค่าที่ผิด prop ที่สะกดผิด และ prop บังคับที่ขาดไป จึงเป็น error ของ Glyph ที่ระบุชื่อ prop คุณเห็นมันใน editor และผ่าน MCP ไม่ใช่แค่ใน build เต็ม และทำงานเหมือนกันไม่ว่า component จะถูก import ด้วยชื่อหรือผ่าน module ของมัน:"
+      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. It works the same whether the component was imported by name or through its module:",
+      "tr": "ใช่ Glyph เทียบแต่ละ element กับ props record ของ component เอง ค่าที่ผิด prop ที่สะกดผิด และ prop บังคับที่ขาดไป จึงเป็น error ของ Glyph ที่ระบุชื่อ prop และทำงานเหมือนกันไม่ว่า component จะถูก import ด้วยชื่อหรือผ่าน module ของมัน:"
     },
     {
       "id": "h-54e2228f",
       "kind": "html",
       "en": "main.glyph, with <code>Card</code> declared in <code>ui.glyph</code>",
       "tr": "main.glyph โดยมี <code>Card</code> ประกาศไว้ใน <code>ui.glyph</code>"
+    },
+    {
+      "id": "h-7ea6dcce",
+      "kind": "html",
+      "en": "You see them in the editor and over MCP, not only in a full build.",
+      "tr": "คุณเห็นมันใน editor และผ่าน MCP ไม่ใช่แค่ใน build เต็ม"
+    },
+    {
+      "id": "h-69ee0458",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">missing_fields in --json, and one props record (E0229)</span>",
+      "tr": "รายละเอียด <span class=\"hint\">missing_fields ใน --json และ props record ตัวเดียว (E0229)</span>"
     },
     {
       "id": "h-195deeff",
@@ -131,10 +251,22 @@
       "tr": "&lt;match&gt; ใน JSX ถูกตรวจเหมือน match ไหม?"
     },
     {
-      "id": "h-8df891da",
+      "id": "h-6e6e630f",
       "kind": "html",
-      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm. The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200. A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest:",
-      "tr": "มันคือสิ่งเดียวกัน แต่ละ <code>&lt;case&gt;</code> รับ pattern แบบเดียวกับที่ arm ของ <code>match</code> รับ และคอมไพเลอร์ส่งมันผ่านโค้ดเดียวกับที่ใช้กับ arm ชื่อที่ case bind ได้ type ของ payload field ที่ record ของ payload ไม่มีคือ E0210 และ variant ที่ขาดไปคือ E0200 case ที่ทดสอบค่าครอบคลุมแค่ส่วนหนึ่งของ variant จึงต้องมี case ข้างเคียงหรือ <code>&lt;case else&gt;</code> รับส่วนที่เหลือ:"
+      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm.",
+      "tr": "มันคือสิ่งเดียวกัน แต่ละ <code>&lt;case&gt;</code> รับ pattern แบบเดียวกับที่ arm ของ <code>match</code> รับ และคอมไพเลอร์ส่งมันผ่านโค้ดเดียวกับที่ใช้กับ arm"
+    },
+    {
+      "id": "h-d43c495c",
+      "kind": "html",
+      "en": "<b>Payload types</b>The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200.",
+      "tr": "<b>type ของ payload</b>ชื่อที่ case bind ได้ type ของ payload field ที่ record ของ payload ไม่มีคือ E0210 และ variant ที่ขาดไปคือ E0200"
+    },
+    {
+      "id": "h-f4ac1296",
+      "kind": "html",
+      "en": "<b>Partial cases</b>A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest.",
+      "tr": "<b>case ที่ครอบคลุมบางส่วน</b>case ที่ทดสอบค่าครอบคลุมแค่ส่วนหนึ่งของ variant จึงต้องมี case ข้างเคียงหรือ <code>&lt;case else&gt;</code> รับส่วนที่เหลือ"
     },
     {
       "id": "h-843c4890",
@@ -143,16 +275,34 @@
       "tr": "หน้าเว็บเริ่มมันอย่างไร?"
     },
     {
-      "id": "h-52a6173d",
+      "id": "h-dde6587c",
       "kind": "html",
-      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>. Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
-      "tr": "Glyph ไม่มี statement ระดับบนสุด หน้าเว็บจึงเรียก <code>main</code> ที่ export ไว้เอง แอปมีสอง module: ตัวหนึ่งเก็บ component อีกตัว mount มันบน <code>#root</code> ผ่าน <code>std/dom</code> และ <code>createRoot</code> ของ react-dom attribute ของ event เป็น snake case (<code>on_change</code> emit เป็น <code>onChange</code> ของ React) handler เป็น lambda และข้อความของ input คือ <code>e.currentTarget.value</code>"
+      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>.",
+      "tr": "Glyph ไม่มี statement ระดับบนสุด หน้าเว็บจึงเรียก <code>main</code> ที่ export ไว้เอง แอปมีสอง module: ตัวหนึ่งเก็บ component อีกตัว mount มันบน <code>#root</code> ผ่าน <code>std/dom</code> และ <code>createRoot</code> ของ react-dom"
+    },
+    {
+      "id": "h-4ae11d4d",
+      "kind": "html",
+      "en": "Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
+      "tr": "attribute ของ event เป็น snake case (<code>on_change</code> emit เป็น <code>onChange</code> ของ React) handler เป็น lambda และข้อความของ input คือ <code>e.currentTarget.value</code>"
     },
     {
       "id": "h-290d764b",
       "kind": "html",
       "en": "index.html, next to the two modules",
       "tr": "index.html วางข้างสอง module"
+    },
+    {
+      "id": "a-e2d000fb",
+      "kind": "attr:aria-label",
+      "en": "From modules to a bundle",
+      "tr": "จาก module ไปเป็น bundle"
+    },
+    {
+      "id": "h-0bd0d9ae",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the build, why this main takes nothing, the walkthrough</span>",
+      "tr": "รายละเอียด <span class=\"hint\">การ build ทำไม main ตัวนี้ไม่รับอะไร และ walkthrough</span>"
     },
     {
       "id": "h-23c5e497",
@@ -173,10 +323,76 @@
       "tr": "ใช้ได้วันนี้"
     },
     {
-      "id": "h-0bd5fa48",
+      "id": "h-f5b45cd6",
       "kind": "html",
-      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead. A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
-      "tr": "component, JSX, fragment (<code>&lt;&gt;...&lt;/&gt;</code>), ชื่อ element แบบ member expression (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props ที่ถูกตรวจเทียบกับ component ก่อน <code>tsc</code> ไม่ว่าจะ import แบบไหน, hook ของ React เองที่ import ด้วยชื่อ (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) โดย tsc ตรวจ type และ destructure คู่ค่าได้ (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> ที่มี action เป็น tagged union แบบครบทุกกรณี, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> ที่ถูกตรวจและแปลงเป็น <code>match</code> ด้วย pattern ของ arm, Context ผ่าน <code>createContext</code>/<code>useContext</code> และหน้าเว็บผ่าน <code>std/dom</code> (title, จุด mount, ที่อยู่), <code>std/storage</code> และ <code>std/console</code> ข้อความใน JSX อ่านแบบที่ TSX อ่าน <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> จึงเป็นข้อความธรรมดา ส่วน <code>}</code>, <code>&gt;</code>, <code>//</code> และ HTML entity อย่าง <code>&amp;amp;</code> ถูกปฏิเสธในข้อความ (E0012) พร้อมวิธีเขียนที่ควรใช้แทน การอ่าน member บน array ถูกตรวจ <code>{items.foo}</code> บน <code>Array&lt;string&gt;</code> จึงเป็น E0210 <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> เป็นแอปเต็มบน React 18 ที่ bundle ด้วย Vite และ render ในเบราว์เซอร์"
+      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>)",
+      "tr": "component, JSX, fragment (<code>&lt;&gt;...&lt;/&gt;</code>)"
+    },
+    {
+      "id": "h-a34f85e4",
+      "kind": "html",
+      "en": "Member-expression element names (<code>&lt;Ctx.Provider&gt;</code>)",
+      "tr": "ชื่อ element แบบ member expression (<code>&lt;Ctx.Provider&gt;</code>)"
+    },
+    {
+      "id": "h-a6643da6",
+      "kind": "html",
+      "en": "JSX prop spread (<code>{...register()}</code>)",
+      "tr": "JSX prop spread (<code>{...register()}</code>)"
+    },
+    {
+      "id": "h-94900fbd",
+      "kind": "html",
+      "en": "Props checked against the component before <code>tsc</code> under every import spelling",
+      "tr": "props ที่ถูกตรวจเทียบกับ component ก่อน <code>tsc</code> ไม่ว่าจะ import แบบไหน"
+    },
+    {
+      "id": "h-2f64f838",
+      "kind": "html",
+      "en": "React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>)",
+      "tr": "hook ของ React เองที่ import ด้วยชื่อ (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) โดย tsc ตรวจ type และ destructure คู่ค่าได้ (<code>let [count, set_count] = useState(0)</code>)"
+    },
+    {
+      "id": "h-ea8d7fbb",
+      "kind": "html",
+      "en": "<code>useReducer</code> with exhaustive tagged-union actions",
+      "tr": "<code>useReducer</code> ที่มี action เป็น tagged union แบบครบทุกกรณี"
+    },
+    {
+      "id": "h-38943cc7",
+      "kind": "html",
+      "en": "<code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns",
+      "tr": "<code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> ที่ถูกตรวจและแปลงเป็น <code>match</code> ด้วย pattern ของ arm"
+    },
+    {
+      "id": "h-ee4b2daa",
+      "kind": "html",
+      "en": "Context via <code>createContext</code>/<code>useContext</code>",
+      "tr": "Context ผ่าน <code>createContext</code>/<code>useContext</code>"
+    },
+    {
+      "id": "h-32aeed45",
+      "kind": "html",
+      "en": "The page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>",
+      "tr": "หน้าเว็บผ่าน <code>std/dom</code> (title, จุด mount, ที่อยู่), <code>std/storage</code> และ <code>std/console</code>"
+    },
+    {
+      "id": "h-c469d2ff",
+      "kind": "html",
+      "en": "JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead.",
+      "tr": "ข้อความใน JSX อ่านแบบที่ TSX อ่าน <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> จึงเป็นข้อความธรรมดา ส่วน <code>}</code>, <code>&gt;</code>, <code>//</code> และ HTML entity อย่าง <code>&amp;amp;</code> ถูกปฏิเสธในข้อความ (E0012) พร้อมวิธีเขียนที่ควรใช้แทน"
+    },
+    {
+      "id": "h-1251f92f",
+      "kind": "html",
+      "en": "A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210.",
+      "tr": "การอ่าน member บน array ถูกตรวจ <code>{items.foo}</code> บน <code>Array&lt;string&gt;</code> จึงเป็น E0210"
+    },
+    {
+      "id": "h-38058a13",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> เป็นแอปเต็มบน React 18 ที่ bundle ด้วย Vite และ render ในเบราว์เซอร์"
     },
     {
       "id": "h-b63a305d",
@@ -185,10 +401,34 @@
       "tr": "กำลังมา"
     },
     {
-      "id": "h-bf75ccec",
+      "id": "h-c06f1ed9",
       "kind": "html",
-      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
-      "tr": "ตัวตรวจของ Glyph ไม่ให้ type กับผลของ hook <code>set_count(\"x\")</code> บน state ที่เป็นตัวเลขจึงเป็น error ของ <code>tsc</code> ใน build แทนที่จะเป็นของ Glyph ใน editor <code>std/dom</code> หยุดที่การอ่านหน้าเว็บและตั้ง title: React เป็นเจ้าของ DOM ที่มัน render จึงไม่มี setter ของ element หรือ event listener effect ต้องเขียนเป็น <code>fn() -&gt; void { ... }</code> เพราะ lambda คืน expression สุดท้าย และ React จะเรียกมันเป็น cleanup type ของ props ที่เขียนแบบ inline ยังแสดงเป็น <code>record</code> ในข้อความเหล่านี้ ส่วนที่มีชื่อจะแสดงชื่อ การฝัง output ของ Glyph ในแอป Vite ที่มีอยู่ โดยที่ UI เป็น TypeScript อยู่ใน<a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">คู่มือการ deploy</a>"
+      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor.",
+      "tr": "ตัวตรวจของ Glyph ไม่ให้ type กับผลของ hook <code>set_count(\"x\")</code> บน state ที่เป็นตัวเลขจึงเป็น error ของ <code>tsc</code> ใน build แทนที่จะเป็นของ Glyph ใน editor"
+    },
+    {
+      "id": "h-4e5f4ea5",
+      "kind": "html",
+      "en": "<code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners.",
+      "tr": "<code>std/dom</code> หยุดที่การอ่านหน้าเว็บและตั้ง title: React เป็นเจ้าของ DOM ที่มัน render จึงไม่มี setter ของ element หรือ event listener"
+    },
+    {
+      "id": "h-b03a0096",
+      "kind": "html",
+      "en": "An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup.",
+      "tr": "effect ต้องเขียนเป็น <code>fn() -&gt; void { ... }</code> เพราะ lambda คืน expression สุดท้าย และ React จะเรียกมันเป็น cleanup"
+    },
+    {
+      "id": "h-b8bf0f07",
+      "kind": "html",
+      "en": "A props type written inline still shows as <code>record</code> in these messages; a named one shows its name.",
+      "tr": "type ของ props ที่เขียนแบบ inline ยังแสดงเป็น <code>record</code> ในข้อความเหล่านี้ ส่วนที่มีชื่อจะแสดงชื่อ"
+    },
+    {
+      "id": "h-37364243",
+      "kind": "html",
+      "en": "Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
+      "tr": "การฝัง output ของ Glyph ในแอป Vite ที่มีอยู่ โดยที่ UI เป็น TypeScript อยู่ใน<a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">คู่มือการ deploy</a>"
     }
   ]
 }

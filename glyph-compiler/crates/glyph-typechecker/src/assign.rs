@@ -12,7 +12,7 @@
 //! expressions — `a + b` has type `Unknown` even when both operands are
 //! `Number`.
 
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
@@ -371,6 +371,8 @@ pub fn assign_types_with_relations(
             sql_sink: RefCell::new(None),
             sql_call: RefCell::new(None),
             sql_refusals: RefCell::new(Vec::new()),
+            reassigned: OnceCell::new(),
+            narrowed_consts: HashMap::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -482,6 +484,8 @@ pub fn assignability(
         sql_sink: RefCell::new(None),
         sql_call: RefCell::new(None),
         sql_refusals: RefCell::new(Vec::new()),
+        reassigned: OnceCell::new(),
+        narrowed_consts: HashMap::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -539,6 +543,8 @@ pub fn declared_record_fields(
         sql_sink: RefCell::new(None),
         sql_call: RefCell::new(None),
         sql_refusals: RefCell::new(Vec::new()),
+        reassigned: OnceCell::new(),
+        narrowed_consts: HashMap::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1325,6 +1331,12 @@ struct Assigner<'a> {
     /// E0239s found by `value_refusal`, which reads `&self`; moved into
     /// `errors` after each declaration's walk.
     sql_refusals: RefCell<Vec<TypeError>>,
+    /// Which bindings a `mut` reassigns anywhere in the module, computed on
+    /// the first `is` arm that asks (record 134, B1).
+    reassigned: OnceCell<crate::reassign::Reassigned>,
+    /// A module `const` narrowed by the `is` arm being walked (record 134,
+    /// B2). Read before the declaration's own type.
+    narrowed_consts: HashMap<SymbolId, Ty>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1379,6 +1391,12 @@ impl NullChains {
 /// hard error (`UnknownAnnotation`, E0221), so a typo cannot masquerade as a
 /// working annotation. Names are stored without the leading `@`.
 const RECOGNIZED_ANNOTATIONS: &[&str] = &["example", "doc", "redact", "open", "pure", "public"];
+
+/// A name an `is` arm narrowed, with the type to put back after the arm.
+enum Narrowed {
+    Local(u32, Option<Ty>),
+    Const(SymbolId, Option<Ty>),
+}
 
 impl Assigner<'_> {
     // ----- decls -----
@@ -1827,29 +1845,30 @@ impl Assigner<'_> {
         }
     }
 
-    /// F3: inside an arm whose pattern is `is T`, a scrutinee that is a local
-    /// name has type `T` in that arm's body, as the emitted `typeof` or
-    /// descriptor check establishes it and as `tsc` reads it. Rebinds the
-    /// local's type and returns the binding with its previous type, which the
-    /// caller restores once the body is walked, so the name keeps its own type
-    /// outside the arm.
+    /// F3: inside an arm whose pattern is `is T`, a scrutinee that is a name
+    /// has type `T` in that arm's body, as the emitted `typeof` or descriptor
+    /// check establishes it and as `tsc` reads it. Rebinds the name's type and
+    /// returns what to restore once the body is walked, so the name keeps its
+    /// own type outside the arm.
+    ///
+    /// The name is a local, a parameter or a module `const` (record 134, B2),
+    /// and it narrows only when nothing can rebind it while the arm runs: no
+    /// `mut` reassigns it anywhere in its scope, nested lambdas included
+    /// (record 134, B1). A lambda defined before the `match` and called inside
+    /// the arm can rebind it, so looking inside the arm alone is not enough.
+    /// A `const` is never reassigned (E0212).
     ///
     /// `T` narrows when it lowers to a primitive or a declared type (or an
     /// application of a declared generic), as record 130 rules. Anything
     /// this checker cannot read (`Unknown`) leaves the name as it was rather
     /// than erasing what is known about it. A prelude container (`is
-    /// Record<K, V>`, `is Array<X>`) is neither, and does not narrow: doing
+    /// Record<K, V>`, `is Array<X>`) does not narrow in this release: doing
     /// so exposes E0224 on index reads `tsc` accepts, in tracked programs
-    /// (`examples/01_validator.glyph`), which is a separate decision. An arm
-    /// that rebinds the name with `mut` is not narrowed: after the assignment
-    /// the name holds whatever was assigned, and claiming `T` for the rest of
-    /// the arm would be a guess.
-    fn narrow_is_arm(&mut self, scrutinee: &Expr, arm: &MatchArm) -> Option<(u32, Option<Ty>)> {
+    /// (`examples/01_validator.glyph`), and G408 decides E0224 first.
+    fn narrow_is_arm(&mut self, scrutinee: &Expr, arm: &MatchArm) -> Option<Narrowed> {
         let Pattern::IsType { ty, .. } = &arm.pattern else { return None };
         let Expr::Ident { span, .. } = scrutinee else { return None };
-        let Some(ResolvedRef::Local(def)) = self.resolved.resolutions.get(*span) else {
-            return None;
-        };
+        let r = self.resolved.resolutions.get(*span)?;
         let narrowed = self.lowerer.lower(ty);
         if !matches!(
             narrowed,
@@ -1858,40 +1877,42 @@ impl Assigner<'_> {
         {
             return None;
         }
-        if self.arm_rebinds(def, &arm.body) {
+        let (module, resolved) = (self.module, self.resolved);
+        let never_reassigned = self
+            .reassigned
+            .get_or_init(|| crate::reassign::Reassigned::of(module, resolved))
+            .never_reassigned(r, resolved);
+        if !never_reassigned {
             return None;
         }
-        let before = self.local_tys.insert(def, narrowed);
-        Some((def, before))
+        match r {
+            ResolvedRef::Local(def) => {
+                let before = self.local_tys.insert(def, narrowed);
+                Some(Narrowed::Local(def, before))
+            }
+            ResolvedRef::Module(id) => {
+                let before = self.narrowed_consts.insert(id, narrowed);
+                Some(Narrowed::Const(id, before))
+            }
+            ResolvedRef::Prelude(_) => None,
+        }
     }
 
-    /// Whether an arm body contains a `mut name = ..` that rebinds the local
-    /// defined at `def`, at any depth (a nested block, a lambda body).
-    fn arm_rebinds(&self, def: u32, body: &MatchArmBody) -> bool {
-        fn in_expr(c: &Assigner<'_>, def: u32, e: &Expr) -> bool {
-            let mut hit = false;
-            glyph_ast::visit::child_exprs(e, &mut |x| hit = hit || in_expr(c, def, x));
-            glyph_ast::visit::child_blocks(e, &mut |b| hit = hit || in_block(c, def, b));
-            hit
-        }
-        fn in_block(c: &Assigner<'_>, def: u32, b: &Block) -> bool {
-            b.stmts.iter().any(|s| {
-                if let Stmt::Mut(m) = s {
-                    if let glyph_ast::MutKind::Assign { target: Expr::Ident { span, .. }, .. } = &m.kind {
-                        if c.resolved.resolutions.get(*span) == Some(ResolvedRef::Local(def)) {
-                            return true;
-                        }
-                    }
-                }
-                let mut hit = false;
-                glyph_ast::visit::stmt_exprs(s, &mut |x| hit = hit || in_expr(c, def, x));
-                glyph_ast::visit::stmt_blocks(s, &mut |b| hit = hit || in_block(c, def, b));
-                hit
-            })
-        }
-        match body {
-            MatchArmBody::Expr(e) => in_expr(self, def, e),
-            MatchArmBody::Block(b) => in_block(self, def, b),
+    /// Undo one `narrow_is_arm`, putting back the type the name had before.
+    fn restore_narrowed(&mut self, n: Narrowed) {
+        match n {
+            Narrowed::Local(def, Some(ty)) => {
+                self.local_tys.insert(def, ty);
+            }
+            Narrowed::Local(def, None) => {
+                self.local_tys.remove(&def);
+            }
+            Narrowed::Const(id, Some(ty)) => {
+                self.narrowed_consts.insert(id, ty);
+            }
+            Narrowed::Const(id, None) => {
+                self.narrowed_consts.remove(&id);
+            }
         }
     }
 
@@ -2924,11 +2945,8 @@ impl Assigner<'_> {
                         MatchArmBody::Expr(e) => self.walk_expr(e),
                         MatchArmBody::Block(b) => self.walk_block(b),
                     }
-                    if let Some((def, before)) = narrowed {
-                        match before {
-                            Some(ty) => self.local_tys.insert(def, ty),
-                            None => self.local_tys.remove(&def),
-                        };
+                    if let Some(n) = narrowed {
+                        self.restore_narrowed(n);
                     }
                 }
                 // `match` is Glyph's only branching construct (D: no `if`), so
@@ -3746,6 +3764,9 @@ impl Assigner<'_> {
                 .cloned()
                 .unwrap_or(Ty::Unknown),
             ResolvedRef::Module(id) => {
+                if let Some(ty) = self.narrowed_consts.get(&id) {
+                    return ty.clone();
+                }
                 let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                 match &sym.kind {
                     // G39. A `const` joins the two callable kinds here: its
@@ -10505,17 +10526,50 @@ mod tests {
         assert!(errs.is_empty(), "{errs:?}");
     }
 
-    /// A prelude container arm (`is Record<K, V>`, `is Array<X>`) does not
-    /// narrow: record 130 rules for a primitive or a declared type, and
-    /// narrowing a container exposes E0224 on an index read `tsc` accepts, in
-    /// `examples/01_validator.glyph`. Whether it should is a separate decision;
-    /// this pins today's behaviour so the decision is made on purpose.
+    /// G408: a prelude container arm (`is Record<K, V>`, `is Array<X>`) does
+    /// not narrow in this release. Narrowing one exposes E0224 on an index
+    /// read `tsc` accepts, in `examples/01_validator.glyph`; G408 first stops
+    /// E0224 firing when `V` is `unknown`, then containers narrow and this
+    /// test flips (record 134, fork 1).
     #[test]
-    fn a_prelude_container_is_arm_does_not_narrow() {
+    fn g408_a_prelude_container_is_arm_does_not_narrow() {
         let errs = errors_of(
             "module m\nfn a(v: unknown, k: string) -> unknown {\n  return match v { is Record<string, unknown> => v[k], else => v, }\n}\n",
         );
         assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// Record 134, B1: a name some `mut` reassigns anywhere in its scope is
+    /// not narrowed, because a lambda defined before the `match` and called
+    /// inside the arm can rebind it while the arm runs. Narrowing it here let
+    /// `v.name` type as `string` and `glyph run` print `undefined`.
+    #[test]
+    fn an_is_arm_does_not_narrow_a_name_a_closure_reassigns() {
+        let src = "module m\ntype User = { name: string, }\nfn g(v0: unknown) -> string {\n  let v = v0\n  let set = fn() -> void { mut v = 5 }\n  return match v {\n    is User => {\n      set()\n      v.nmae\n    },\n    else => \"none\",\n  }\n}\n";
+        let errs = errors_of(src);
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "{errs:?}"
+        );
+        // The same function without the reassigning lambda narrows.
+        let errs = errors_of(&src.replace("  let set = fn() -> void { mut v = 5 }\n", "").replace("      set()\n", ""));
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "nmae" && type_name == "User")),
+            "{errs:?}"
+        );
+    }
+
+    /// Record 134, B2: a module `const` cannot be reassigned (E0212), so an
+    /// `is` arm narrows it as it narrows a local.
+    #[test]
+    fn an_is_arm_narrows_a_module_const() {
+        let errs = errors_of(
+            "module m\ntype User = { name: string, }\nconst C: unknown = \"x\"\nfn k() -> string {\n  return match C { is User => C.nmae, else => \"none\", }\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "nmae" && type_name == "User")),
+            "{errs:?}"
+        );
     }
 
     /// The narrowing ends with the arm: after the `match`, and in a sibling
@@ -16871,6 +16925,8 @@ component View(props: { s: Status }) -> Component {
             sql_sink: RefCell::new(None),
             sql_call: RefCell::new(None),
             sql_refusals: RefCell::new(Vec::new()),
+            reassigned: OnceCell::new(),
+            narrowed_consts: HashMap::new(),
         };
         f(&assigner)
     }

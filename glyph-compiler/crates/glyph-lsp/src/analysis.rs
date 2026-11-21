@@ -567,9 +567,74 @@ pub fn hover_at(
     text: &str,
     offset: usize,
 ) -> Option<String> {
-    expression_hover_at(types, offset).or_else(|| {
-        declaration_hover_at(module, resolved, prelude, types, text, offset)
-    })
+    expression_hover_at(types, offset)
+        .or_else(|| declaration_hover_at(module, resolved, prelude, types, text, offset))
+        .or_else(|| omitted_lambda_param_note(module, resolved, offset))
+}
+
+/// What hover says at a use of a lambda parameter written without an
+/// annotation. Glyph's checker has no type for it ("not typed here"), and an
+/// empty answer would read the same as a failed query (record 134).
+pub const OMITTED_LAMBDA_PARAM_NOTE: &str =
+    "not typed here: the parameter has no annotation (contextual typing is G405)";
+
+/// [`OMITTED_LAMBDA_PARAM_NOTE`] when `offset` is on a use of a lambda
+/// parameter whose annotation is omitted; `None` otherwise.
+fn omitted_lambda_param_note(module: &Module, resolved: &ResolvedModule, offset: usize) -> Option<String> {
+    let ResolvedRef::Local(def) = innermost_ref(resolved, offset)? else {
+        return None;
+    };
+    let mut omitted = std::collections::HashSet::new();
+    for decl in &module.items {
+        match decl {
+            Decl::Fn(f) => omitted_params_in_block(&f.body, &mut omitted),
+            Decl::Component(c) => omitted_params_in_block(&c.body, &mut omitted),
+            Decl::Const(c) => omitted_params_in_expr(&c.value, &mut omitted),
+            Decl::Type(_) | Decl::Interface(_) | Decl::Import(_) => {}
+        }
+    }
+    omitted
+        .contains(&def)
+        .then(|| OMITTED_LAMBDA_PARAM_NOTE.to_string())
+}
+
+/// The definition-site span starts of every lambda parameter in `b` written
+/// without an annotation, at any depth.
+fn omitted_params_in_block(b: &Block, out: &mut std::collections::HashSet<u32>) {
+    for s in &b.stmts {
+        glyph_ast::visit::stmt_exprs(s, &mut |e| omitted_params_in_expr(e, out));
+        glyph_ast::visit::stmt_blocks(s, &mut |b| omitted_params_in_block(b, out));
+    }
+}
+
+fn omitted_params_in_expr(e: &Expr, out: &mut std::collections::HashSet<u32>) {
+    match e {
+        Expr::Lambda { params, .. } => {
+            out.extend(params.iter().filter(|p| p.ty.is_none()).map(|p| p.span.start));
+        }
+        Expr::Jsx(j) => {
+            omitted_params_in_jsx(j, out);
+            return;
+        }
+        _ => {}
+    }
+    glyph_ast::visit::child_exprs(e, &mut |x| omitted_params_in_expr(x, out));
+    glyph_ast::visit::child_blocks(e, &mut |b| omitted_params_in_block(b, out));
+}
+
+fn omitted_params_in_jsx(j: &JsxElement, out: &mut std::collections::HashSet<u32>) {
+    for a in &j.attrs {
+        if let JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } = a {
+            omitted_params_in_expr(value, out);
+        }
+    }
+    for c in &j.children {
+        match c {
+            JsxChild::Element(el) => omitted_params_in_jsx(el, out),
+            JsxChild::Expr(e) => omitted_params_in_expr(e, out),
+            JsxChild::Text { .. } => {}
+        }
+    }
 }
 
 /// The rendered type of the innermost typed expression covering `offset`.
@@ -2673,18 +2738,29 @@ mod tests {
         assert_eq!(a.hover(text, binding), Some("a pending `number`".to_string()));
     }
 
-    /// Record 130: an omitted lambda annotation is "not typed here", which
-    /// hover has no type to show for; a written `unknown` is the declared
-    /// `unknown`. The parser used to synthesize a written `unknown` for the
-    /// omitted form, so both hovered `unknown`.
+    /// Record 130: an omitted lambda annotation is "not typed here", and
+    /// hover says so in a note rather than answering nothing, which an agent
+    /// could not tell from a failed query (record 134); a written `unknown`
+    /// is the declared `unknown`. The parser used to synthesize a written
+    /// `unknown` for the omitted form, so both hovered `unknown`.
     #[test]
     fn hover_tells_an_omitted_lambda_annotation_from_a_written_unknown() {
         let text = "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  let a = array.map(xs, fn(p) -> number { return p })\n  return array.map(a, fn(q: unknown) -> number { return q })\n}\n";
         let a = analyze_full(text).expect("parses");
         let omitted = text.find("return p").unwrap() + 7;
-        assert_eq!(a.hover(text, omitted), None);
+        assert_eq!(a.hover(text, omitted), Some(OMITTED_LAMBDA_PARAM_NOTE.to_string()));
         let written = text.find("return q").unwrap() + 7;
         assert_eq!(a.hover(text, written), Some("unknown".to_string()));
+    }
+
+    /// Record 134, B1: a name a closure reassigns is not narrowed, so hover
+    /// inside the arm shows its declared type.
+    #[test]
+    fn hover_does_not_narrow_a_name_a_closure_reassigns() {
+        let text = "module x\ntype User = { name: string, }\npub fn g(v0: unknown) -> string {\n  let v = v0\n  let set = fn() -> void { mut v = 5 }\n  return match v { is User => v.name, else => \"none\", }\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let inside = text.find("v.name").unwrap();
+        assert_eq!(a.hover(text, inside), Some("unknown".to_string()));
     }
 
     /// F3 (record 130): inside an `is T` arm the scrutinee has type `T`, the

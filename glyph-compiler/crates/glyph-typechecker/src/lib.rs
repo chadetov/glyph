@@ -34,6 +34,7 @@ pub mod concurrency;
 pub mod lower;
 pub mod owned;
 pub mod pending;
+pub mod reassign;
 pub mod stdlib;
 pub mod ty;
 pub mod type_map;

@@ -1,7 +1,7 @@
 ---
 title: Isto é uma linguagem de verdade, ou um brinquedo cheio de buracos? · Glyph
 description: Visibilidade de módulos, interfaces estruturais para restringir genéricos, defer, concorrência estruturada e match como valor, e a semântica de JavaScript que ela herda.
-source_hash: 9a4735d3e9bad608
+source_hash: 747d0d2b7d4d7b01
 prev: /answers/state/ | &larr; Anterior | Como compartilho estado mutável entre funções?
 next: /answers/finance/ | Próxima &rarr; | Posso confiar nele com dinheiro, e com entrada que eu não controlo?
 ---
@@ -12,31 +12,52 @@ next: /answers/finance/ | Próxima &rarr; | Posso confiar nele com dinheiro, e c
         Ela tem o que você procura numa base de código real: <strong>visibilidade de módulos</strong>, <strong>interfaces</strong> para restringir genéricos, <strong>defer</strong> para limpeza e helpers de <strong>concorrência</strong>. Onde ela se apoia em JavaScript, ela diz isso em vez de fingir o contrário.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por que isso importa</h2>
-        <p>
-          Uma linguagem em que dá para escrever um arquivo mas não estruturar um projeto não é uma em que você vai apostar uma base de código. Os buracos que importam não são exóticos: dá para esconder um helper, um genérico pode exigir uma capacidade, dá para liberar um handle de arquivo em todo caminho de saída, dá para rodar duas coisas ao mesmo tempo e esperar as duas. O Glyph responde a essas quatro, e faz isso sem reabrir a direção cheia de anotações que abandonou de propósito.
-        </p>
-
-        <h2 class="block-label">Veja na prática</h2>
-        <p>
-          Declarações são privadas ao seu módulo até você marcá-las com <code>pub</code>, então a superfície pública é uma busca só (<code>grep '^pub'</code>) e um helper nunca vaza por acidente:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">visibilidade: privado por padrão</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">visibilidade: privado por padrão</span>
 <pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
 
 <span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Declarações são privadas ao seu módulo até você marcá-las com <code>pub</code>, então a superfície pública é uma busca só (<code>grep '^pub'</code>) e um helper nunca vaza por acidente.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Uma <code>interface</code> é estrutural, como uma do TypeScript: é um conjunto de assinaturas de membros que um genérico pode exigir. Sem <code>implements</code>, sem cerimônia nominal. Qualquer valor com os membros se qualifica, e o <code>tsc</code> garante isso.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Nesta página">
+        <p>Nesta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por que isso importa</a></li>
+          <li><a href="#interfaces">Interfaces</a></li>
+          <li><a href="#defer">defer e tarefas</a></li>
+          <li><a href="#javascript">O que ele herda</a></li>
+          <li><a href="#there-s-no-if-so-match-has-to-carry-everything">match como valor</a></li>
+          <li><a href="#a-pattern-can-name-a-shape-more-than-one-level-down">Padrões aninhados</a></li>
+          <li><a href="#and-the-compiler-knows-what-the-match-produced">Resultados de match tipados</a></li>
+          <li><a href="#do-i-have-to-write-pad-start-myself">Helpers de string e array</a></li>
+          <li><a href="#can-i-walk-a-directory-and-tell-what-broke">Diretórios e erros de fs</a></li>
+          <li><a href="#how-do-you-know-the-functions-are-the-right-ones">Como as funções foram conferidas</a></li>
+          <li><a href="#money-doesn-t-run-on-floats">Dinheiro</a></li>
+          <li><a href="#an-async-callback-finally-has-a-type">Tipos de função async</a></li>
+          <li><a href="#a-recursive-type-matched-all-the-way-down">Tipos recursivos</a></li>
+          <li><a href="#where-it-stands">Situação atual</a></li>
+        </ol>
+      </nav>
 
+      <h2 class="ak-h" id="why-it-matters">Por que isso importa<a class="ak-anchor" href="#why-it-matters" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Uma linguagem em que dá para escrever um arquivo mas não estruturar um projeto não é uma em que você vai apostar uma base de código. Os buracos que importam não são exóticos:
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b>Visibilidade</b>Dá para esconder um helper?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>Restrições de genéricos</b>Um genérico pode exigir uma capacidade?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b>Limpeza</b>Dá para liberar um handle de arquivo em todo caminho de saída?</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Concorrência</b>Dá para rodar duas coisas ao mesmo tempo e esperar as duas?</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O Glyph responde a essas quatro, e faz isso sem reabrir a direção cheia de anotações que abandonou de propósito.</p></div>
+
+      <h2 class="ak-h" id="interfaces">Interfaces restringem genéricos<a class="ak-anchor" href="#interfaces" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Uma <code>interface</code> é estrutural, como uma do TypeScript: é um conjunto de assinaturas de membros que um genérico pode exigir. Sem <code>implements</code>, sem cerimônia nominal. Qualquer valor com os membros se qualifica, e o <code>tsc</code> garante isso.
+      </p>
       <div class="code">
         <span class="cap">interfaces restringem genéricos</span>
 <pre><span class="add">interface</span> Named {
@@ -48,32 +69,34 @@ pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
 }</pre>
       </div>
 
-      <div class="detail">
-        <p>
-          O <code>defer</code> executa a limpeza quando o bloco termina, em todo caminho, inclusive num return antecipado ou num erro lançado. Vários defers rodam na ordem último a entrar, primeiro a sair, e ele se combina com handles <code>owned</code>. E o <code>std/task</code> junta trabalho concorrente sob um só tempo de vida, em vez de deixar promises soltas.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="defer"><code>defer</code> e concorrência estruturada<a class="ak-anchor" href="#defer" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O <code>defer</code> executa a limpeza quando o bloco termina, em todo caminho, inclusive num return antecipado ou num erro lançado. E o <code>std/task</code> junta trabalho concorrente sob um só tempo de vida, em vez de deixar promises soltas.
+      </p>
       <div class="code">
         <span class="cap">defer + concorrência estruturada</span>
 <pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
 
 let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">ordem de execução, e handles owned</span></summary><div class="body">
         <p>
-          O Glyph compila para TypeScript e roda em um motor JavaScript, então herda a ordem de avaliação, a semântica de referência para mutação e o modelo de thread única com coleta de lixo. A igualdade é onde ele difere: <code>==</code> compara valores, records campo a campo, enquanto o <code>===</code> do JavaScript compara referências. A especificação afirma isso como garantias em vez de deixar você descobrir sozinho. Memória manual e um modelo sem coleta de lixo não estão no roadmap; ficam fora do que uma linguagem que transpila para TypeScript é.
+          Vários defers rodam na ordem último a entrar, primeiro a sair, e ele se combina com handles <code>owned</code>.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Não existe <code>if</code>, então o <code>match</code> tem de carregar tudo</h2>
-        <p>
-          A primeira coisa que alguém que vem do TypeScript pergunta depois de ouvir sobre exaustividade é se o <code>match</code> é mesmo uma condicional de uso geral ou só um jeito bonito de desestruturar uma union. É a primeira opção, e o lugar que prova isso é a atribuição. Um <code>match</code> que é o valor inteiro de um <code>let</code> ou de um <code>mut</code> aceita tudo o que uma instrução aceita: um braço pode ser um bloco, um braço pode fazer <code>await</code>, um braço pode dar <code>break</code> no loop em volta, e um braço pode ler a variável que está atribuindo, que é como você acumula estado num loop sem <code>if</code>.
-        </p>
-      </div>
+      <h2 class="ak-h" id="javascript">O que ele herda do JavaScript<a class="ak-anchor" href="#javascript" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O Glyph compila para TypeScript e roda em um motor JavaScript, então herda a ordem de avaliação, a semântica de referência para mutação e o modelo de thread única com coleta de lixo. A especificação afirma isso como garantias em vez de deixar você descobrir sozinho.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A igualdade é onde ele difere: <code>==</code> compara valores, records campo a campo, enquanto o <code>===</code> do JavaScript compara referências.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Memória manual e um modelo sem coleta de lixo não estão no roadmap; ficam fora do que uma linguagem que transpila para TypeScript é.</p></div>
 
+      <h2 class="ak-h" id="there-s-no-if-so-match-has-to-carry-everything">Não existe <code>if</code>, então o <code>match</code> tem de carregar tudo<a class="ak-anchor" href="#there-s-no-if-so-match-has-to-carry-everything" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A primeira coisa que alguém que vem do TypeScript pergunta depois de ouvir sobre exaustividade é se o <code>match</code> é mesmo uma condicional de uso geral ou só um jeito bonito de desestruturar uma union. É a primeira opção, e o lugar que prova isso é a atribuição.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Um <code>match</code> que é o valor inteiro de um <code>let</code> ou de um <code>mut</code> aceita tudo o que uma instrução aceita: um braço pode ser um bloco, um braço pode fazer <code>await</code>, um braço pode dar <code>break</code> no loop em volta, e um braço pode ler a variável que está atribuindo, que é como você acumula estado num loop sem <code>if</code>.</p></div>
       <div class="code">
         <span class="cap">do verificador de links: rastreamento de blocos de código, e um braço com await</span>
 <pre>for raw in lines {
@@ -89,20 +112,17 @@ let cache = <span class="add">match</span> args.offline {
   false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">para o que ele compila, e de onde vêm os trechos</span></summary><div class="body">
         <p>
-          Os dois compilam para um <code>switch</code> simples que atribui a variável em cada braço, então o <code>await</code> fica na função async que o envolve e o acumulador é uma variável normal que o TypeScript consegue inferir. Um <code>match</code> usado <em>dentro</em> de uma expressão maior, como argumento ou operando, ainda vira uma closure, o que significa que os braços precisam ser expressões únicas. Levá-lo para um <code>let</code> próprio elimina essa limitação. Os dois trechos são de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>, um verificador de links em Markdown escrito justamente para encontrar esse tipo de coisa.
+          Os dois compilam para um <code>switch</code> simples que atribui a variável em cada braço, então o <code>await</code> fica na função async que o envolve e o acumulador é uma variável normal que o TypeScript consegue inferir. Os dois trechos são de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>, um verificador de links em Markdown escrito justamente para encontrar esse tipo de coisa.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Um <code>match</code> usado <em>dentro</em> de uma expressão maior, como argumento ou operando, ainda vira uma closure, o que significa que os braços precisam ser expressões únicas. Levá-lo para um <code>let</code> próprio elimina essa limitação.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Um padrão pode nomear um formato mais de um nível abaixo</h2>
-        <p>
-          Uma variante com vários campos carrega um record, então um braço que quer reconhecer um formato precisa entrar nos campos desse record. Até a 0.1.90, a posição de campo aceitava um nome e mais nada: dava para renomeá-lo, e só. Casar uma tag ali era erro de compilação, e um construtor aninhado derrubava o parser. O contorno era vincular cada campo e escrever um <code>match</code> aninhado por nível, o que, para algo como o rebalanceamento de uma árvore rubro-negra, é outro programa: os braços deixam de se alinhar com os casos e cada nível repassa as variáveis do nível de cima.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="a-pattern-can-name-a-shape-more-than-one-level-down">Um padrão pode nomear um formato mais de um nível abaixo<a class="ak-anchor" href="#a-pattern-can-name-a-shape-more-than-one-level-down" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Uma variante com vários campos carrega um record, então um braço que quer reconhecer um formato precisa entrar nos campos desse record. Um campo agora aceita qualquer padrão: uma tag de variante, um construtor aninhado, uma desestruturação aninhada, um literal, um padrão de array.
+      </p>
       <div class="code">
         <span class="cap">um caso de rotação do rebalanceamento rubro-negro, num braço só</span>
 <pre>type Tree =
@@ -115,23 +135,26 @@ match t {
   other =&gt; other,
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">o contorno antes da 0.1.90</span></summary><div class="body">
         <p>
-          Um campo agora aceita qualquer padrão: uma tag de variante, um construtor aninhado, uma desestruturação aninhada, um literal, um padrão de array. Há uma consequência que vale conhecer antes de escrever um. Um campo que testa um valor pode falhar, então o braço deixa de contar como cobertura da sua variante, e um match cujo único braço <code>Node</code> é <code>Node({ color: Red, ... })</code> é reportado como não exaustivo até que um braço irmão ou um <code>else</code> cuide do resto. O verificador prova cobertura sobre um conjunto de tags, não sobre um produto de campos, então ele não vai deduzir que um braço <code>Red</code> e um braço <code>Black</code> juntos esgotam <code>Node</code>. Exigir o catch-all é a leitura que não deixa um match passar do fim em tempo de execução. O mesmo vale onde não há variantes para contar: um match sobre um record simples em que todo braço testa um campo precisa de um <code>else</code> no final.
+          Até a 0.1.90, a posição de campo aceitava um nome e mais nada: dava para renomeá-lo, e só. Casar uma tag ali era erro de compilação, e um construtor aninhado derrubava o parser. O contorno era vincular cada campo e escrever um <code>match</code> aninhado por nível, o que, para algo como o rebalanceamento de uma árvore rubro-negra, é outro programa: os braços deixam de se alinhar com os casos e cada nível repassa as variáveis do nível de cima.
+        </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Há uma consequência que vale conhecer antes de escrever um. Um campo que testa um valor pode falhar, então o braço deixa de contar como cobertura da sua variante, e um match cujo único braço <code>Node</code> é <code>Node({ color: Red, ... })</code> é reportado como não exaustivo até que um braço irmão ou um <code>else</code> cuide do resto.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">por que ele exige o catch-all, e a posição de array</span></summary><div class="body">
+        <p>
+          O verificador prova cobertura sobre um conjunto de tags, não sobre um produto de campos, então ele não vai deduzir que um braço <code>Red</code> e um braço <code>Black</code> juntos esgotam <code>Node</code>. Exigir o catch-all é a leitura que não deixa um match passar do fim em tempo de execução. O mesmo vale onde não há variantes para contar: um match sobre um record simples em que todo braço testa um campo precisa de um <code>else</code> no final.
         </p>
         <p>
           Um lugar onde isso chega e que talvez você não espere é a posição de array. <code>[Black]</code> como braço inteiro contava como casar com qualquer array de um elemento, então um match que dependia dele era certificado como exaustivo e depois pegava esse braço também para <code>[Red]</code>. Um elemento em PascalCase é uma referência a variante aqui também, então um match assim agora dá <code>E0208</code> em arrays de tamanho 1. Vincule o elemento e faça o match nele separadamente. A tradução por baixo ainda é a antiga, e é por isso que a checagem foi a metade publicada primeiro.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-chips"><span class="chip code">E0208</span></div>
 
-      <div class="detail">
-        <h2 class="block-label">E o compilador sabe o que o <code>match</code> produziu</h2>
-        <p>
-          A pergunta seguinte é a que decide se algo disso sustenta peso: depois que você extrai um valor de um ramo, o Glyph sabe o tipo dele, ou dá de ombros e deixa o <code>tsc</code> resolver depois? Até a 0.1.45 dava de ombros. Toda expressão <code>match</code> era tipada como desconhecida, então um valor que saía da única construção de ramificação da linguagem ficava sem tipo dali em diante. Um <code>match</code> agora assume o tipo dos braços quando eles concordam, e o compilador sabe que <code>T.parse</code> retorna <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, que é o formato sobre o qual a maior parte do código real ramifica.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="and-the-compiler-knows-what-the-match-produced">E o compilador sabe o que o <code>match</code> produziu<a class="ak-anchor" href="#and-the-compiler-knows-what-the-match-produced" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        A pergunta seguinte é a que decide se algo disso sustenta peso: depois que você extrai um valor de um ramo, o Glyph sabe o tipo dele, ou dá de ombros e deixa o <code>tsc</code> resolver depois? Um <code>match</code> agora assume o tipo dos braços quando eles concordam, e o compilador sabe que <code>T.parse</code> retorna <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, que é o formato sobre o qual a maior parte do código real ramifica.
+      </p>
       <div class="code">
         <span class="cap">do divisor de despesas: sem anotação, e <code>i</code> é um number</span>
 <pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
@@ -145,13 +168,24 @@ for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", 
   ...
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">antes da 0.1.45</span></summary><div class="body">
         <p>
-          As duas metades disso são coisas que davam errado em silêncio. O loop emite <code>wire.expenses.entries()</code>; quando o tipo do que é iterado é desconhecido, ele emite <code>Object.entries(...)</code> no lugar e <code>i</code> é a <em>string</em> <code>"0"</code>, o que é TypeScript válido, então o build saía limpo e o programa imprimia <code>01:a</code> quando queria dizer <code>1:a</code>. E <code>wire.expensez</code> agora é <code>[E0210] type WireLedger has no field expensez</code> vindo do Glyph, na linha do <code>.glyph</code>, em vez de um <code>TS2339</code> no TypeScript gerado. A junção é igualdade no topo: um braço que termina em <code>return</code> não vota, e braços cujos tipos discordam deixam o resultado desconhecido, como antes. Ela olha um nível mais fundo só num argumento de tipo, então <code>None =&gt; []</code> concorda com um braço <code>Array&lt;string&gt;</code> em vez de derrubar o <code>match</code> inteiro, e o loop logo depois continua vinculando um number. A mesma cadeia sobre <code>record.get</code> funciona pelo mesmo motivo: as seis funções do <code>std/record</code> levam o tipo do valor do record que você passa. O trecho é de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>, que carregava a anotação que isso eliminou.
+          Até a 0.1.45 dava de ombros. Toda expressão <code>match</code> era tipada como desconhecida, então um valor que saía da única construção de ramificação da linguagem ficava sem tipo dali em diante.
         </p>
-      </div>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">o que dava errado em silêncio, e como a junção funciona</span></summary><div class="body">
+        <p>
+          As duas metades disso são coisas que davam errado em silêncio. O loop emite <code>wire.expenses.entries()</code>; quando o tipo do que é iterado é desconhecido, ele emite <code>Object.entries(...)</code> no lugar e <code>i</code> é a <em>string</em> <code>"0"</code>, o que é TypeScript válido, então o build saía limpo e o programa imprimia <code>01:a</code> quando queria dizer <code>1:a</code>. E <code>wire.expensez</code> agora é <code>[E0210] type WireLedger has no field expensez</code> vindo do Glyph, na linha do <code>.glyph</code>, em vez de um <code>TS2339</code> no TypeScript gerado.
+        </p>
+        <p>
+          A junção é igualdade no topo: um braço que termina em <code>return</code> não vota, e braços cujos tipos discordam deixam o resultado desconhecido, como antes. Ela olha um nível mais fundo só num argumento de tipo, então <code>None =&gt; []</code> concorda com um braço <code>Array&lt;string&gt;</code> em vez de derrubar o <code>match</code> inteiro, e o loop logo depois continua vinculando um number. A mesma cadeia sobre <code>record.get</code> funciona pelo mesmo motivo: as seis funções do <code>std/record</code> levam o tipo do valor do record que você passa. O trecho é de <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>, que carregava a anotação que isso eliminou.
+        </p>
+      </div></details>
 
+      <h3 class="ak-h3" id="empty-fallback">Uma busca com fallback vazio<a class="ak-anchor" href="#empty-fallback" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Esse é o formato em que isso mais custava. <code>record.get</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>[]</code> é um array de nada em particular, então os dois braços concordam em <code>Array</code> e o tipo do elemento vem do braço que tem um.
+      </p>
       <div class="code">
         <span class="cap">do resolvedor de dependências: uma busca, um fallback vazio, um percurso por índice</span>
 <pre>let path = <span class="add">match</span> record.get(res.reached, name) {
@@ -164,20 +198,16 @@ for i, hop in path {               <span class="cm"># i is a number, so the inde
   mut out = array.push(out, "${indent}${hop}")
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">antes da 0.1.55</span></summary><div class="body">
         <p>
-          Esse é o formato em que isso mais custava. <code>record.get</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>[]</code> é um array de nada em particular, então os dois braços concordam em <code>Array</code> e o tipo do elemento vem do braço que tem um. Até a 0.1.55 eles eram comparados por igualdade, <code>[]</code> contava como discordância, e o loop abaixo imprimia <code>01:x</code> num build sem diagnósticos em que o <code>tsc --strict</code> passava. O código é <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>, que antes abria com <code>let path: Array&lt;string&gt;</code> sob um comentário de três linhas explicando que a anotação era essencial.
+          Até a 0.1.55 eles eram comparados por igualdade, <code>[]</code> contava como discordância, e o loop abaixo imprimia <code>01:x</code> num build sem diagnósticos em que o <code>tsc --strict</code> passava. O código é <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/depsolve/main.glyph"><code>examples/apps/depsolve/main.glyph</code></a>, que antes abria com <code>let path: Array&lt;string&gt;</code> sob um comentário de três linhas explicando que a anotação era essencial.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Preciso escrever <code>pad_start</code> eu mesmo?</h2>
-        <p>
-          O primeiro buraco que você encontra num programa real não é um recurso do sistema de tipos. É procurar <code>string.slice</code> e não encontrar nada. Cinco rodadas seguidas de dogfooding registraram a mesma lista, e até a 0.1.47 seis apps neste repositório tinham o seu próprio <code>repeat</code>, cinco o seu próprio <code>pad_start</code>, e todos tinham um loop onde cabia um fold. Esses onze nomes vêm na biblioteca agora, e as cópias foram apagadas de todos os sete apps que as tinham.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="do-i-have-to-write-pad-start-myself">Preciso escrever <code>pad_start</code> eu mesmo?<a class="ak-anchor" href="#do-i-have-to-write-pad-start-myself" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O primeiro buraco que você encontra num programa real não é um recurso do sistema de tipos. É procurar <code>string.slice</code> e não encontrar nada.
+      </p>
       <div class="code">
         <span class="cap">o que entrou</span>
 <pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
@@ -189,29 +219,53 @@ string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span
 let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
 io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Esses onze nomes vêm na biblioteca agora, e as cópias foram apagadas de todos os sete apps que as tinham.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">as cópias que os apps carregavam antes da 0.1.47</span></summary><div class="body">
+        <p>
+          Cinco rodadas seguidas de dogfooding registraram a mesma lista, e até a 0.1.47 seis apps neste repositório tinham o seu próprio <code>repeat</code>, cinco o seu próprio <code>pad_start</code>, e todos tinham um loop onde cabia um fold.
+        </p>
+      </div></details>
+      <h3 class="ak-h3" id="namesakes">Onde eles diferem do TypeScript<a class="ak-anchor" href="#namesakes" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Três deles se afastam de propósito dos homônimos do TypeScript.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>repeat</code></b><code>repeat</code> retorna <code>""</code> com uma contagem negativa, onde o TS lança erro, e é isso que torna <code>repeat(pad, width - len(s))</code> seguro numa string que já é longa demais.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.8l5 2v4c0 3.2-2.2 5.3-5 6.4-2.8-1.1-5-3.2-5-6.4v-4z"/><path d="M5.8 8.1l1.6 1.6 2.9-3.1"/></svg></span><b><code>index_of</code></b>As duas funções <code>index_of</code> retornam <code>Option&lt;number&gt;</code> em vez de <code>-1</code>, porque <code>-1</code> é um number que passa na checagem de tipos em todo lugar onde um índice real passa e falha bem longe da chamada.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b><code>replace_all</code></b>A substituição existe só como <code>replace_all</code>, então não há uma forma que troca só a primeira ocorrência para confundir com <code>String.prototype.replace</code>, que troca uma ocorrência só, sem avisar.</li>
+      </ul>
+      <h3 class="ak-h3" id="fold">Por que o <code>fold</code> importa<a class="ak-anchor" href="#fold" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        O <code>fold</code> é o que compra um pilar em vez de só economizar digitação. <code>mut</code> é o registro buscável de todo lugar onde o estado muda, e sem fold, <code>grep mut</code> volta cheio de loops de contagem que não alteram nada que interesse a quem revisa.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Apagar as versões feitas à mão levou <code>examples/apps/</code> de 192 pontos de mutação para 161.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">como a reescrita foi conferida</span></summary><div class="body">
+        <p>
+          A reescrita foi conferida pela saída, não por revisão: os sete apps rodaram com entradas fixas antes e depois, 26 arquivos de stdout, códigos de saída e respostas HTTP, todos idênticos byte a byte.
+        </p>
+      </div></details>
 
-      <div class="detail">
+      <h2 class="ak-h" id="can-i-walk-a-directory-and-tell-what-broke">Dá para percorrer um diretório e saber o que quebrou?<a class="ak-anchor" href="#can-i-walk-a-directory-and-tell-what-broke" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O <code>std/fs</code> veio com seis funções e nenhuma listava um diretório.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b><code>fs.read_dir</code></b><code>fs.read_dir</code> retorna os nomes das entradas um nível abaixo.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 3.5h10v7H8.5L5.5 13v-2.5H3z"/><path d="M8 5.5v2.2M8 9v.1"/></svg></span><b><code>fs.is_dir</code></b><code>fs.is_dir</code> responde com um <code>bool</code> como o <code>fs.exists</code> faz.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg></span><b><code>fs.stat</code></b><code>fs.stat</code> retorna um <code>FileInfo</code> com <code>is_dir</code>, <code>is_file</code>, <code>size</code> em bytes e <code>modified</code> em milissegundos desde a epoch, que o <code>time.format_iso</code> formata diretamente.</li>
+      </ul>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Não há <code>walk</code> recursivo nem glob; um percurso são essas três mais <code>path.join</code> em umas dez linhas.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Histórico <span class="hint">o contorno que elas substituíram</span></summary><div class="body">
         <p>
-          Três deles se afastam de propósito dos homônimos do TypeScript. <code>repeat</code> retorna <code>""</code> com uma contagem negativa, onde o TS lança erro, e é isso que torna <code>repeat(pad, width - len(s))</code> seguro numa string que já é longa demais. As duas funções <code>index_of</code> retornam <code>Option&lt;number&gt;</code> em vez de <code>-1</code>, porque <code>-1</code> é um number que passa na checagem de tipos em todo lugar onde um índice real passa e falha bem longe da chamada. A substituição existe só como <code>replace_all</code>, então não há uma forma que troca só a primeira ocorrência para confundir com <code>String.prototype.replace</code>, que troca uma ocorrência só, sem avisar.
+          O verificador de links deste repositório passava por cima da stdlib e ia direto no <code>readdirSync</code> do Node, e descobria quais caminhos eram diretórios tentando lê-los e inspecionando o <code>errno</code> que voltava. As duas metades disso foram corrigidas.
         </p>
-        <p>
-          O <code>fold</code> é o que compra um pilar em vez de só economizar digitação. <code>mut</code> é o registro buscável de todo lugar onde o estado muda, e sem fold, <code>grep mut</code> volta cheio de loops de contagem que não alteram nada que interesse a quem revisa. Apagar as versões feitas à mão levou <code>examples/apps/</code> de 192 pontos de mutação para 161. A reescrita foi conferida pela saída, não por revisão: os sete apps rodaram com entradas fixas antes e depois, 26 arquivos de stdout, códigos de saída e respostas HTTP, todos idênticos byte a byte.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">Dá para percorrer um diretório e saber o que quebrou?</h2>
-        <p>
-          O <code>std/fs</code> veio com seis funções e nenhuma listava um diretório. O verificador de links deste repositório passava por cima da stdlib e ia direto no <code>readdirSync</code> do Node, e descobria quais caminhos eram diretórios tentando lê-los e inspecionando o <code>errno</code> que voltava. As duas metades disso foram corrigidas. <code>fs.read_dir</code> retorna os nomes das entradas um nível abaixo, <code>fs.is_dir</code> responde com um <code>bool</code> como o <code>fs.exists</code> faz, e <code>fs.stat</code> retorna um <code>FileInfo</code> com <code>is_dir</code>, <code>is_file</code>, <code>size</code> em bytes e <code>modified</code> em milissegundos desde a epoch, que o <code>time.format_iso</code> formata diretamente. Não há <code>walk</code> recursivo nem glob; um percurso são essas três mais <code>path.join</code> em umas dez linhas.
-        </p>
-        <p>
-          O lado das falhas mudou mais. <code>FsError.kind</code> era <code>{ tag: string }</code>, com <code>NotFound</code> como toda a taxonomia, então distinguir &ldquo;esse caminho é um diretório&rdquo; de &ldquo;esse caminho não existe&rdquo; significava comparar uma string de errno. Agora os cinco tipos de que um programa de fato se recupera têm nome, e um errno sem nome chega intacto na cauda <code>Other</code>.
-        </p>
-        <p>
-          O verificador sabe que essa taxonomia é fechada, então um <code>match</code> sobre <code>err.kind</code> é cobrado no mesmo nível de uma union que você mesmo declarou: cubra os seis e você não precisa de <code>else</code>, deixe um de fora e o build falha com <code>E0200</code> citando <code>fs.ErrorKind</code>. <code>fs.FsError</code> e <code>fs.FileInfo</code> também têm campos verificados, então <code>err.mesage</code> dá <code>E0210</code> no seu código Glyph em vez de um erro do <code>tsc</code> no TypeScript gerado.
-        </p>
-      </div>
-
+      </div></details>
+      <h3 class="ak-h3" id="fs-errors">As falhas têm nome<a class="ak-anchor" href="#fs-errors" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        O lado das falhas mudou mais. Agora os cinco tipos de que um programa de fato se recupera têm nome, e um errno sem nome chega intacto na cauda <code>Other</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O verificador sabe que essa taxonomia é fechada, então um <code>match</code> sobre <code>err.kind</code> é cobrado no mesmo nível de uma union que você mesmo declarou: cubra os seis e você não precisa de <code>else</code>, deixe um de fora e o build falha com <code>E0200</code> citando <code>fs.ErrorKind</code>.</p></div>
+      <div class="ak-chips"><span class="chip code">E0200</span><span class="chip code">E0210</span></div>
       <div class="code">
         <span class="cap">percorrer uma árvore, e dizer o que deu errado</span>
 <pre>let names = fs.<span class="add">read_dir</span>(dir)?
@@ -235,36 +289,50 @@ match err.<span class="add">kind</span> {                        <span class="cm
   fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
 }</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">a taxonomia antiga, campos verificados, e como testar a verificação você mesmo</span></summary><div class="body">
         <p>
-          Duas mudanças menores entraram junto, ambas vindas do mesmo app. <code>regex.captures_all</code> dá os grupos de captura de cada correspondência, em vez de só o texto casado, então uma varredura simples de <code>key=value</code> deixa de ser um loop feito à mão. E <code>task.pool_settled</code> é o <code>task.pool</code> com o comportamento de falha do <code>all_settled</code>: concorrência limitada, um resultado por tarefa, e um host fora do ar custa só o resultado daquele host, e não todos os resultados que o pool tinha juntado.
+          <code>FsError.kind</code> era <code>{ tag: string }</code>, com <code>NotFound</code> como toda a taxonomia, então distinguir &ldquo;esse caminho é um diretório&rdquo; de &ldquo;esse caminho não existe&rdquo; significava comparar uma string de errno.
+        </p>
+        <p>
+          <code>fs.FsError</code> e <code>fs.FileInfo</code> também têm campos verificados, então <code>err.mesage</code> dá <code>E0210</code> no seu código Glyph em vez de um erro do <code>tsc</code> no TypeScript gerado.
         </p>
         <p>
           Essa checagem está ativa. Apague o braço <code>PermissionDenied</code> do <code>match</code> acima e o <code>glyph check --no-tsc</code> para com <code>E0200</code>: match não exaustivo sobre <code>fs.ErrorKind</code>, faltando as variantes <code>PermissionDenied</code>. Quando o modelo da stdlib foi escrito, ele cobria só tipos de retorno, e um match como este compilava sem erro e lançava exceção em tempo de execução; os formatos de campos e variantes de <code>fs.FsError</code>, <code>fs.FileInfo</code> e <code>fs.ErrorKind</code> agora estão modelados.
         </p>
-      </div>
+      </div></details>
+      <h3 class="ak-h3" id="captures-all">Duas adições menores<a class="ak-anchor" href="#captures-all" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Duas mudanças menores entraram junto, ambas vindas do mesmo app.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>regex.captures_all</code></b><code>regex.captures_all</code> dá os grupos de captura de cada correspondência, em vez de só o texto casado, então uma varredura simples de <code>key=value</code> deixa de ser um loop feito à mão.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b><code>task.pool_settled</code></b><code>task.pool_settled</code> é o <code>task.pool</code> com o comportamento de falha do <code>all_settled</code>: concorrência limitada, um resultado por tarefa, e um host fora do ar custa só o resultado daquele host, e não todos os resultados que o pool tinha juntado.</li>
+      </ul>
 
-      <div class="detail">
-        <h2 class="block-label">Como saber se as funções são as certas?</h2>
-        <p>
-          Porque o app que as pediu teve de parar de contorná-las antes de a release contar como concluída. Uma função de biblioteca publicada e um contorno que sobrevive a ela são afirmações diferentes, então a mesma mudança que adicionou essas quatro apagou as cópias do verificador de links: o import de <code>readdirSync</code>, as duas comparações de string de <code>errno</code>, 97 linhas de scanner feito à mão e o pool que falhava no primeiro erro. Saíram 122 linhas.
-        </p>
-        <p>
-          Duas dessas remoções mudaram o que o programa faz, e a diferença foi medida em vez de discutida. Aponte a versão antiga e a nova para uma árvore com um diretório que você não consegue ler: a nova imprime <code>permission denied</code> e conta o caminho como ilegível, e a antiga, que só conseguia perguntar se o errno era <code>EISDIR</code>, deixava o caminho de fora do relatório. Faça uma de três URLs lançar erro: o <code>pool_settled</code> imprimiu as três linhas e apontou a falha, e o <code>pool</code> não imprimiu nada e morreu numa rejeição não tratada, levando junto os dois resultados bons.
-        </p>
+      <h2 class="ak-h" id="how-do-you-know-the-functions-are-the-right-ones">Como saber se as funções são as certas?<a class="ak-anchor" href="#how-do-you-know-the-functions-are-the-right-ones" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Porque o app que as pediu teve de parar de contorná-las antes de a release contar como concluída.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Uma função de biblioteca publicada e um contorno que sobrevive a ela são afirmações diferentes, então a mesma mudança que adicionou essas quatro apagou as cópias do verificador de links: o import de <code>readdirSync</code>, as duas comparações de string de <code>errno</code>, 97 linhas de scanner feito à mão e o pool que falhava no primeiro erro. Saíram 122 linhas.</p></div>
+      <h3 class="ak-h3" id="measured">Duas mudanças de comportamento, medidas<a class="ak-anchor" href="#measured" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Duas dessas remoções mudaram o que o programa faz, e a diferença foi medida em vez de discutida.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg></span><b>Um diretório ilegível</b>Aponte a versão antiga e a nova para uma árvore com um diretório que você não consegue ler: a nova imprime <code>permission denied</code> e conta o caminho como ilegível, e a antiga, que só conseguia perguntar se o errno era <code>EISDIR</code>, deixava o caminho de fora do relatório.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5l5.5 3L8 8.5 2.5 5.5z"/><path d="M2.5 8.5L8 11.5l5.5-3"/></svg></span><b>Uma URL que falha</b>Faça uma de três URLs lançar erro: o <code>pool_settled</code> imprimiu as três linhas e apontou a falha, e o <code>pool</code> não imprimiu nada e morreu numa rejeição não tratada, levando junto os dois resultados bons.</li>
+      </ul>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">a reescrita do scanner e a preocupação com a alternância</span></summary><div class="body">
         <p>
           A reescrita do scanner também resolveu uma dúvida de design. Como um grupo de captura que não participou aparece como <code>""</code>, igual a um que casou vazio, parecia que o <code>captures_all</code> não conseguia dizer qual ramo de uma alternância disparou. Consegue, se você escrever o grupo de cada ramo em volta da construção inteira, e não em volta da parte que você quer: um grupo que disparou começa então com <code>`</code>, <code>[</code>, <code>!</code> ou <code>&lt;</code>, e não pode estar vazio. A parte que pode ser vazia, o destino do link, fica aninhada dentro e nunca é o que você pergunta. Isso transformou um percurso de 180 linhas, caractere por caractere, em dois padrões e um despacho de 12 linhas, com saída idêntica byte a byte na própria documentação do repositório e numa fixture feita para quebrá-lo.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Dinheiro não roda em float</h2>
-        <p>
-          O buraco que encerraria na hora a avaliação de uma fintech é fazer contas de dinheiro com <code>number</code> IEEE-754, onde <code>0.1 + 0.2</code> não é <code>0.3</code> e valores acima de 2<sup>53</sup> perdem precisão em silêncio. O <code>std/decimal</code> é ponto fixo decimal exato sobre BigInt: um inteiro de precisão arbitrária com um número fixo de casas decimais, então adição, subtração e multiplicação são exatas e a divisão recebe uma escala e um arredondamento explícitos. Um valor malformado vira um <code>Err</code> no parse, nunca um <code>NaN</code> silencioso.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="money-doesn-t-run-on-floats">Dinheiro não roda em float<a class="ak-anchor" href="#money-doesn-t-run-on-floats" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        O buraco que encerraria na hora a avaliação de uma fintech é fazer contas de dinheiro com <code>number</code> IEEE-754, onde <code>0.1 + 0.2</code> não é <code>0.3</code> e valores acima de 2<sup>53</sup> perdem precisão em silêncio.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>O <code>std/decimal</code> é ponto fixo decimal exato sobre BigInt: um inteiro de precisão arbitrária com um número fixo de casas decimais, então adição, subtração e multiplicação são exatas e a divisão recebe uma escala e um arredondamento explícitos. Um valor malformado vira um <code>Err</code> no parse, nunca um <code>NaN</code> silencioso.</p></div>
       <div class="code">
         <span class="cap">std/decimal</span>
 <pre>let price = decimal("10.50")?
@@ -274,23 +342,16 @@ price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
 decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
 decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
       </div>
+      <h3 class="ak-h3" id="bigint">Inteiros grandes<a class="ak-anchor" href="#bigint" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Para números <em>inteiros</em> grandes e exatos, ids de conta e contadores, existe o tipo <code>bigint</code>: os literais são <code>123n</code>, ele vira um <code>bigint</code> de verdade no TypeScript, e um campo de record tipado como <code>bigint</code> valida <code>typeof === "bigint"</code> na fronteira, então um id enviado como <code>number</code> no JSON é rejeitado em vez de ser arredondado em silêncio acima de 2<sup>53</sup>.
+      </p>
 
-      <div class="detail">
-        <p>
-          Para números <em>inteiros</em> grandes e exatos, ids de conta e contadores, existe o tipo <code>bigint</code>: os literais são <code>123n</code>, ele vira um <code>bigint</code> de verdade no TypeScript, e um campo de record tipado como <code>bigint</code> valida <code>typeof === "bigint"</code> na fronteira, então um id enviado como <code>number</code> no JSON é rejeitado em vez de ser arredondado em silêncio acima de 2<sup>53</sup>.
-        </p>
-      </div>
-
-      <div class="detail">
-        <h2 class="block-label">Um callback async finalmente tem um tipo</h2>
-        <p>
-          Um tipo de função era <code>fn(A) -&gt; T</code> e mais nada, o que emite <code>(a: A) =&gt; T</code>. Um corpo async não cabe nisso, então uma função que retornava uma tarefa adiada, ou um record de handlers async, tinha de ficar sem anotação e o verificador deixava de olhar. <code>async fn(A) -&gt; T</code> é esse tipo que faltava. Ele emite <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, e <code>async fn()</code> sem retorno emite <code>() =&gt; Promise&lt;void&gt;</code>.
-        </p>
-        <p>
-          O próprio Glyph separa os dois, em vez de deixar isso para o <code>tsc</code>: uma função comum onde se espera uma async é <code>E0204</code> num return e <code>E0211</code> num argumento de chamada, e a mensagem cita os dois lados. O único caso que ele não julga é um retorno <code>void</code>, em que o TypeScript aceita qualquer função.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="an-async-callback-finally-has-a-type">Um callback async finalmente tem um tipo<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Um tipo de função era <code>fn(A) -&gt; T</code> e mais nada, o que emite <code>(a: A) =&gt; T</code>. Um corpo async não cabe nisso, então uma função que retornava uma tarefa adiada, ou um record de handlers async, tinha de ficar sem anotação e o verificador deixava de olhar.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>async fn(A) -&gt; T</code> é esse tipo que faltava. Ele emite <code>(a0: A) =&gt; Promise&lt;T&gt;</code>, e <code>async fn()</code> sem retorno emite <code>() =&gt; Promise&lt;void&gt;</code>.</p></div>
       <div class="code">
         <span class="cap">uma tarefa adiada, e um mapa de handlers</span>
 <pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
@@ -306,14 +367,17 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <h2 class="block-label">Um tipo recursivo, casado até o fundo</h2>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">como o Glyph distingue funções comuns de funções async</span></summary><div class="body">
         <p>
-          Uma union pode citar a si mesma dentro do próprio conteúdo, com seus parâmetros de tipo, e um braço de match pode aninhar um padrão de construtor dentro do campo de outro padrão de construtor. Junte as duas coisas e as regras de balanceamento de uma árvore rubro-negra viram quatro braços: cada um nomeia o formato exato que reescreve, e quem verifica o formato é o compilador, não um comentário acima dele afirmando isso. <code>examples/apps/leaderboard/main.glyph</code> é o programa inteiro, um placar que guarda todas as pontuações na árvore e responde consultas de posição, top-N e intervalo percorrendo-a, em vez de reordenar um log.
+          O próprio Glyph separa os dois, em vez de deixar isso para o <code>tsc</code>: uma função comum onde se espera uma async é <code>E0204</code> num return e <code>E0211</code> num argumento de chamada, e a mensagem cita os dois lados.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>O único caso que ele não julga é um retorno <code>void</code>, em que o TypeScript aceita qualquer função.</p></div>
 
+      <h2 class="ak-h" id="a-recursive-type-matched-all-the-way-down">Um tipo recursivo, casado até o fundo<a class="ak-anchor" href="#a-recursive-type-matched-all-the-way-down" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Uma union pode citar a si mesma dentro do próprio conteúdo, com seus parâmetros de tipo, e um braço de match pode aninhar um padrão de construtor dentro do campo de outro padrão de construtor. Junte as duas coisas e as regras de balanceamento de uma árvore rubro-negra viram quatro braços: cada um nomeia o formato exato que reescreve, e quem verifica o formato é o compilador, não um comentário acima dele afirmando isso.
+      </p>
       <div class="code">
         <span class="cap">um dos quatro casos de rotação</span>
 <pre>type Tree&lt;K, V&gt; =
@@ -334,15 +398,136 @@ fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
   }
 }</pre>
       </div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>examples/apps/leaderboard/main.glyph</code> é o programa inteiro, um placar que guarda todas as pontuações na árvore e responde consultas de posição, top-N e intervalo percorrendo-a, em vez de reordenar um log.</p></div>
 
-      <h2 class="block-label">Situação atual</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponível hoje</h3>
-          <p>Visibilidade <code>pub</code> aplicada nas duas formas de nomear o tipo de um módulo vizinho (o import nomeado e a anotação <code>lib.Secret</code>), restrições estruturais com <code>interface</code>, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> como tipo escrito, uma union que cita a si mesma no próprio conteúdo casada por um braço que aninha um padrão de construtor dentro do campo de outro, <code>match</code> como valor de um <code>let</code> ou de um <code>mut</code> com blocos, <code>await</code> e controle de loop nos braços, um <code>match</code> cujos braços concordam levando seu tipo para o resto do programa, um <code>T.parse</code> tipado, <code>std/decimal</code> para contas exatas com dinheiro, <code>bigint</code> para inteiros grandes exatos, separadores de dígitos, uma seção da especificação que assume a semântica herdada do JS, e uma biblioteca padrão com <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> e <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, além de <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, uma taxonomia <code>FsError.kind</code> que o verificador cobra de você, e <code>regex.captures_all</code>. A maior parte de <code>std/string</code> e <code>std/array</code> agora leva o tipo de retorno para dentro do seu programa, então <code>string.split</code> é um <code>Array&lt;string&gt;</code> e o loop sobre ele vincula um índice numérico. O <code>std/record</code> também está modelado, com o tipo do valor lido do record que você passa: <code>record.get(t, k)</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>record.keys(t)</code> é um <code>Array&lt;string&gt;</code>, então <code>array.sort(record.keys(t), cmp)</code> mantém o tipo do elemento.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Onde para</h3>
-          <p>Um import privado relata &ldquo;not exported by M&rdquo;, a mesma mensagem de um nome inexistente; distinguir &ldquo;privado, marque com <code>pub</code>&rdquo; de &ldquo;esse nome não existe&rdquo; é um refinamento na fila. A visibilidade é checada em anotações de tipo, não em valores lidos por um namespace: <code>lib.helper()</code> com <code>helper</code> privado ainda é um erro do <code>tsc</code>, não do Glyph. O contexto async agora é checado (<code>E0222</code>) exceto num ponto: o inicializador de um <code>const</code> no nível do módulo não tem função em volta, então um <code>await</code> no topo ali é permitido e o ESM emitido o executa. A junção dos braços ainda exige que eles concordem no topo do tipo: quando produzem tipos diferentes, o resultado é desconhecido para o Glyph e só o <code>tsc</code> verifica o que você faz com ele. Nove funções da stdlib estão na mesma situação. Seis recebem um argumento final opcional (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) e a checagem de aridade compara um número com um número, então modelá-las daria um erro falso em toda chamada que omite o último argumento; <code>array.map</code>, <code>flat_map</code> e <code>zip</code> tiram o tipo do elemento de um callback em que o verificador não entra. Um valor que sai direto dessas nove precisa de uma anotação antes de você iterá-lo com índice, e um <code>match</code> sobre <code>string.index_of</code> sem braço <code>None</code> ainda faz o build sem erro e lança exceção em tempo de execução. <code>array.index_of</code> está modelada e relata <code>E0200</code>. Membros e aridade de chamada sobre um valor que o verificador não conseguiu tipar continuam sem checagem nessa fronteira, em vez de virar erro. Do lado da biblioteca, <code>string</code> indexa unidades de código UTF-16, como <code>len</code> e <code>split</code> sempre fizeram, e isso está decidido: não existe <code>chars</code> nem <code>char_at</code> e nenhum está planejado, porque uma metade de par substituto devolvida parece um caractere até o momento em que é escrita. Codifique com <code>encoding.hex_encode</code> e leia dois dígitos hex por vez. O <code>captures_all</code> devolve grupos e nenhum offset, então um scanner que precisa saber em que ponto da linha uma correspondência começou ainda escreve o próprio loop, e o <code>fs.read_dir</code> devolve as entradas na ordem do sistema operacional, então ordene-as quando a saída precisar ser reproduzível. Um padrão de campo aninhado ainda tem uma limitação: um construtor que carrega conteúdo, num campo, numa union acessada por um import de namespace. <code>import tree { Node }</code> seguido de <code>Node({ left: Node({ key: k }) })</code> compila, e <code>import tree</code> seguido de <code>tree.Node({ left: tree.Node({ key: k }) })</code> dá <code>E0300</code> na mesma union. A outra limitação acabou: uma union genérica sobre o próprio parâmetro (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) recusava o braço aninhado que a mesma union sem o parâmetro aceita, e agora o aceita, tanto com um parâmetro de tipo aberto quanto numa instanciação concreta. A mesma busca decidia se o match era checado quanto a variantes faltando, então até esta release um <code>match</code> sobre <code>Tree&lt;K&gt;</code> podia omitir <code>Leaf</code>, fazer o build sem erro, passar no <code>tsc --strict</code> e lançar exceção em tempo de execução, enquanto a forma não genérica dava <code>E0200</code>. As duas formas relatam o erro, e mover a union para trás de um import não muda mais a resposta: um <code>match</code> sobre um <code>Tree&lt;string&gt;</code> importado que omite <code>Leaf</code> dá <code>E0200</code> citando <code>Leaf</code>, igual ao <code>Tree</code> não genérico importado. Esse era outro caminho de código, checado separadamente, e até esta release ia no sentido contrário, fazendo o build sem erro e lançando exceção em tempo de execução. Uma coisa sobre a cobertura de uma union importada ainda vale saber antes de confiar nela: o conteúdo das variantes também nunca é checado, então <code>B(X)</code>, onde <code>X</code> é uma variante da própria union do conteúdo, casa com todo <code>B</code> em vez de relatar o <code>Y</code> que falta, e isso não tem nada a ver com genéricos. Vincular um campo, ou casar nele uma tag sem conteúdo, funciona em todos os casos.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje <span class="count">19</span></h3>
+
+          <p class="ak-st-group">Módulos e tipos</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Visibilidade <code>pub</code> aplicada nas duas formas de nomear o tipo de um módulo vizinho (o import nomeado e a anotação <code>lib.Secret</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Restrições estruturais com <code>interface</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn(A) -&gt; T</code> como tipo escrito</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma union que cita a si mesma no próprio conteúdo casada por um braço que aninha um padrão de construtor dentro do campo de outro</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Fluxo de controle e <code>match</code></p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>defer</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>match</code> como valor de um <code>let</code> ou de um <code>mut</code> com blocos, <code>await</code> e controle de loop nos braços</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um <code>match</code> cujos braços concordam levando seu tipo para o resto do programa</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um <code>T.parse</code> tipado</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Números e semântica</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>std/decimal</code> para contas exatas com dinheiro</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>bigint</code> para inteiros grandes exatos</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Separadores de dígitos</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma seção da especificação que assume a semântica herdada do JS</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Biblioteca padrão</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma biblioteca padrão com <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> e <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma taxonomia <code>FsError.kind</code> que o verificador cobra de você</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>regex.captures_all</code></span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A maior parte de <code>std/string</code> e <code>std/array</code> leva o tipo de retorno para dentro do seu programa</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A maior parte de <code>std/string</code> e <code>std/array</code> agora leva o tipo de retorno para dentro do seu programa, então <code>string.split</code> é um <code>Array&lt;string&gt;</code> e o loop sobre ele vincula um índice numérico.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">O <code>std/record</code> está modelado, com o tipo do valor lido do record que você passa</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>O <code>std/record</code> também está modelado, com o tipo do valor lido do record que você passa: <code>record.get(t, k)</code> sobre um <code>Record&lt;string, Array&lt;string&gt;&gt;</code> é um <code>Option&lt;Array&lt;string&gt;&gt;</code>, e <code>record.keys(t)</code> é um <code>Array&lt;string&gt;</code>, então <code>array.sort(record.keys(t), cmp)</code> mantém o tipo do elemento.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Onde para <span class="count">11</span></h3>
+
+          <p class="ak-st-group">Visibilidade</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um import privado relata a mesma mensagem de um nome inexistente</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Um import privado relata &ldquo;not exported by M&rdquo;, a mesma mensagem de um nome inexistente; distinguir &ldquo;privado, marque com <code>pub</code>&rdquo; de &ldquo;esse nome não existe&rdquo; é um refinamento na fila.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um valor privado lido por um namespace é um erro do <code>tsc</code>, não do Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A visibilidade é checada em anotações de tipo, não em valores lidos por um namespace: <code>lib.helper()</code> com <code>helper</code> privado ainda é um erro do <code>tsc</code>, não do Glyph.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Async</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um <code>await</code> no topo, no inicializador de um <code>const</code> no nível do módulo, é permitido</span><span class="chip code">E0222</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>O contexto async agora é checado (<code>E0222</code>) exceto num ponto: o inicializador de um <code>const</code> no nível do módulo não tem função em volta, então um <code>await</code> no topo ali é permitido e o ESM emitido o executa.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Tipos inferidos</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Braços que discordam no topo do tipo deixam o resultado desconhecido para o Glyph</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A junção dos braços ainda exige que eles concordem no topo do tipo: quando produzem tipos diferentes, o resultado é desconhecido para o Glyph e só o <code>tsc</code> verifica o que você faz com ele.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Nove funções da stdlib estão na mesma situação</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Nove funções da stdlib estão na mesma situação. Seis recebem um argumento final opcional (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) e a checagem de aridade compara um número com um número, então modelá-las daria um erro falso em toda chamada que omite o último argumento; <code>array.map</code>, <code>flat_map</code> e <code>zip</code> tiram o tipo do elemento de um callback em que o verificador não entra.</p>
+                <p>Um valor que sai direto dessas nove precisa de uma anotação antes de você iterá-lo com índice, e um <code>match</code> sobre <code>string.index_of</code> sem braço <code>None</code> ainda faz o build sem erro e lança exceção em tempo de execução. <code>array.index_of</code> está modelada e relata <code>E0200</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Membros e aridade de chamada sobre um valor que o verificador não conseguiu tipar não são checados</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Membros e aridade de chamada sobre um valor que o verificador não conseguiu tipar continuam sem checagem nessa fronteira, em vez de virar erro.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Biblioteca</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>string</code> indexa unidades de código UTF-16, e nenhum <code>chars</code> ou <code>char_at</code> está planejado</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Do lado da biblioteca, <code>string</code> indexa unidades de código UTF-16, como <code>len</code> e <code>split</code> sempre fizeram, e isso está decidido: não existe <code>chars</code> nem <code>char_at</code> e nenhum está planejado, porque uma metade de par substituto devolvida parece um caractere até o momento em que é escrita. Codifique com <code>encoding.hex_encode</code> e leia dois dígitos hex por vez.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>captures_all</code> não dá offsets; <code>fs.read_dir</code> mantém a ordem do sistema operacional</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>O <code>captures_all</code> devolve grupos e nenhum offset, então um scanner que precisa saber em que ponto da linha uma correspondência começou ainda escreve o próprio loop, e o <code>fs.read_dir</code> devolve as entradas na ordem do sistema operacional, então ordene-as quando a saída precisar ser reproduzível.</p>
+              </div></details>
+            </li>
+          </ul>
+
+          <p class="ak-st-group">Padrões</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um construtor com conteúdo num campo falha numa union acessada por um import de namespace</span><span class="chip code">E0300</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Um padrão de campo aninhado ainda tem uma limitação: um construtor que carrega conteúdo, num campo, numa union acessada por um import de namespace. <code>import tree { Node }</code> seguido de <code>Node({ left: Node({ key: k }) })</code> compila, e <code>import tree</code> seguido de <code>tree.Node({ left: tree.Node({ key: k }) })</code> dá <code>E0300</code> na mesma union.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Uma union genérica sobre o próprio parâmetro aceita o braço aninhado e é checada quanto a variantes faltando</span><span class="chip code">E0200</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>A outra limitação acabou: uma union genérica sobre o próprio parâmetro (<code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code>) recusava o braço aninhado que a mesma union sem o parâmetro aceita, e agora o aceita, tanto com um parâmetro de tipo aberto quanto numa instanciação concreta. A mesma busca decidia se o match era checado quanto a variantes faltando, então até esta release um <code>match</code> sobre <code>Tree&lt;K&gt;</code> podia omitir <code>Leaf</code>, fazer o build sem erro, passar no <code>tsc --strict</code> e lançar exceção em tempo de execução, enquanto a forma não genérica dava <code>E0200</code>.</p>
+                <p>As duas formas relatam o erro, e mover a union para trás de um import não muda mais a resposta: um <code>match</code> sobre um <code>Tree&lt;string&gt;</code> importado que omite <code>Leaf</code> dá <code>E0200</code> citando <code>Leaf</code>, igual ao <code>Tree</code> não genérico importado. Esse era outro caminho de código, checado separadamente, e até esta release ia no sentido contrário, fazendo o build sem erro e lançando exceção em tempo de execução.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A cobertura de uma union importada nunca checa o conteúdo das variantes</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
+                <p>Uma coisa sobre a cobertura de uma union importada ainda vale saber antes de confiar nela: o conteúdo das variantes também nunca é checado, então <code>B(X)</code>, onde <code>X</code> é uma variante da própria union do conteúdo, casa com todo <code>B</code> em vez de relatar o <code>Y</code> que falta, e isso não tem nada a ver com genéricos.</p>
+                <p>Vincular um campo, ou casar nele uma tag sem conteúdo, funciona em todos os casos.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

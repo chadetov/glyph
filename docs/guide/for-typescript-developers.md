@@ -331,7 +331,7 @@ prop is E0210, and a `?` prop like `note` may be left out. An element whose
 name is dotted, such as `<ui.Card />` under `import ui`, is a component
 whatever the case of its first letter, the same rule TypeScript applies.
 
-## Async is the same, with one nicety
+## Async is the same, with two differences
 
 `async`/`await` work as you expect, and `?` composes with `await`:
 
@@ -341,6 +341,16 @@ async fn load(url: string) -> Result<string, string> {
   return Ok(response.body)
 }
 ```
+
+The other difference is the forgotten `await`. In TypeScript, `save(1);` on its
+own line compiles, starts the save, and moves on; a failure becomes an unhandled
+rejection, and `const n: number = load()` is caught only because the types
+differ. In Glyph a call to an async function is a pending value until something
+awaits it, and leaving one anywhere but `await`, a `return` from an async
+function, or a `let` you await later is E0238. That covers `let _ = save(1)`,
+which TypeScript lint rules often let through. Work that should run on its own,
+from a timer callback for example, is started with `task.detach(async fn() ->
+void { await save(1) })`, which prints a failure on stderr instead of losing it.
 
 ## Formatting is fixed, not configurable
 

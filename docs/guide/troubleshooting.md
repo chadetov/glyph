@@ -152,6 +152,15 @@ The innermost callable decides, so a synchronous lambda inside an `async fn` is
 its own context and cannot `await` either; write `async fn(x) { ... }` for the
 lambda or move the `await` out of it.
 
+**E0238: a call to an async function that nothing awaits.** The call starts and
+the program moves on, so whatever follows runs before it finishes and its
+failure is lost. Write `await` before it. `let _ = save(1)` is the same mistake,
+because it discards the pending call rather than its result; write `let _ =
+await save(1)`. In a function that cannot be async (a timer or socket callback),
+start the work on purpose with `task.detach(async fn() -> void { await save(1)
+})` from `std/task`; a failure is printed on stderr. If the call returns a
+`Result`, this is E0238 and not E0217: await it first, then `match` it.
+
 **TS2678, "type 'true' is not comparable to type 'false'", on a `bool` that came
 from another module.** Glyph gives a binding one type for its whole life;
 TypeScript narrows it to what it last saw assigned. `glyph build` pins the

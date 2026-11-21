@@ -120,7 +120,13 @@ within async functions and at the top levels of modules.</span></pre>
           used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is
           <code>E0222</code> now, and the innermost enclosing callable decides, so a
           synchronous lambda inside an <code>async fn</code> is its own context, the same
-          rule TypeScript uses.
+          rule TypeScript uses. The opposite mistake, a call nobody awaits, is
+          <code>E0238</code>: <code>save(1)</code> on its own line,
+          <code>let _ = save(1)</code> and <code>let n: number = load()</code> are refused,
+          because the call starts and the program moves on without it. A sync callback that
+          means to fire and forget writes
+          <code>task.detach(async fn() -&gt; void { await save(1) })</code>, which reports a
+          failure on stderr.
         </p>
       </div></details>
 
@@ -770,6 +776,7 @@ string.repeeat(s, 2)
           <p class="ak-st-group">Statements and syntax</p>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>await</code> outside an <code>async fn</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A call to an async function that nothing awaits, <code>let _ =</code> and a typed slot included</span><span class="chip code">E0238</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A value-position <code>match</code> arm that produces no value</span><span class="chip code">E0223</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">An assignment missing <code>mut</code></span><span class="chip code">E0008</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A variant given several positional payload fields where the record form is the one that exists</span><span class="chip code">E0010</span></span></li>
@@ -805,6 +812,11 @@ string.repeeat(s, 2)
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Getting sharper</h3>
           <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0238</code> sees a call as async only when Glyph's checker has its signature</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
+                <p><code>E0238</code> only knows a call is async when Glyph's checker has its signature, so a promise from an npm package or a node builtin can still be dropped silently. An <code>async</code> callback passed to <code>forEach</code> or a timer is not refused yet either: that rule needs the callback slots modeled, and it is planned.</p>
+              </div></details>
+            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
                 <p><code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open.</p>

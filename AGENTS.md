@@ -1159,12 +1159,18 @@ race<T>(tasks: Array<fn() -> T>) -> T                           // first task to
 pool<T>(limit: number, tasks: Array<fn() -> T>) -> Array<T>     // at most `limit` in flight (fail-fast)
 all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>    // one outcome per task, never rejects
 pool_settled<T>(limit: number, tasks: Array<fn() -> T>) -> Array<Settled<T>>  // bounded, never rejects
+detach(work: async fn() -> void) -> void                        // start work without waiting; a failure goes to stderr
 ```
 
-Each is `async`, so `await` the result. JavaScript can't force-cancel a
+Each join is `async`, so `await` the result. JavaScript can't force-cancel a
 running task, so a failure in `all`/`pool` abandons its siblings' work rather
 than halting it; the `_settled` forms exist for when you want every outcome
 instead. Read a failed outcome's `unknown` with `string.from(e)`.
+
+A call to an async function that nothing awaits is E0238, so `detach` is how a
+sync callback (a timer, a socket event) starts work on purpose:
+`task.detach(async fn() -> void { await save(x) })`. Pass the work as a
+function; `task.detach(save(x))` has already started the call.
 
 ### std/set
 
@@ -2036,7 +2042,7 @@ written. The full catalogue:
 | E0214 | Component declared with multiple parameters (use a props record) | Take a single props record |
 | E0215 | Aliasing an `owned` handle (D25) | Consume it directly, don't rebind |
 | E0216 | Unreachable `match` arm after a total pattern (D9) | Remove it, or move the catch-all last |
-| E0217 | Discarded `Result`. A warning rather than an error: its `Err` is silently ignored | `match`/`?` it, or `let _ = ...` to say it's intentional |
+| E0217 | Discarded `Result`. A warning rather than an error: its `Err` is silently ignored. A `Result` an async call has not produced yet (a pending one) is E0238 instead | `match`/`?` it, or `let _ = ...` to say it's intentional |
 | E0218 | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead, including one imported from another module, and a type whose declaration this compile cannot see is E0232) | Add an `else` arm |
 | E0219 | `@redact` names a field the type does not have (D24) | Fix the field name |
 | E0220 | A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes, for a union declared in the module and for one reached through a namespace import (`model.Loadign`); D9). Also a literal arm over a string-literal union for a value the union does not hold (`"c"` over `"a" \| "b"`, or `"manuel"` beside `"manual"`), with or without an `else`, for a local, imported or stdlib union (D30) | Fix the spelling (a `did you mean` suggestion names the nearest case no other arm already names), add the variant or value, or delete an arm for a value the union does not have |
@@ -2056,6 +2062,7 @@ written. The full catalogue:
 | E0234 | A method of an `Array<T>`, a `string` or a `number` read without being called: `let up = s.toUpperCase`, or `xs.map(s.trim)`. The read hands on a bare function, and an ES module is strict, so calling it later runs it with `this` undefined and throws a TypeError. `tsc` accepts the read. A call is never refused (`s.toUpperCase()`, `mut xs.push(x)`), and neither is a data property (`xs.length`). The methods are the ones in the table generated from TypeScript's library, which also types each call's arguments and result (G312). `.bind`, `.call` and `.apply` on the read are refused too: their results are untyped in Glyph, and `tsc` accepts them | Call the method where it is read, `s.toUpperCase()`; to hand it on as a value, wrap the call in a lambda, `fn() -> string { return s.toUpperCase() }`, or pass the `std/array`, `std/string` or `std/math` function. Not `.bind` or `.call` |
 | E0235 | A member read through a `Nullable` that does not handle the null (D45). `n.f` on a `Nullable<R>` (the value may be null), or the value of an optional chain over one (`n?.f`, `n?.a.b`) used anywhere but the left of `??` or an operand of `==`/`!=` (a binding, an argument, a `return`, a field value, an interpolation, a JSX child or attribute, a `match` scrutinee): that value is `F` or `undefined`, and Glyph has no type for `undefined`. TypeScript's TS18047; the escaping forms `tsc` accepts (a JSX child among them) and Glyph does not | Give the absent case a value with `??` (`n?.name ?? "none"`), or convert the whole value with `nullable.to_option(n)` and `match` on it |
 | E0236 | `?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)` | On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>` |
+| E0238 | A pending value nothing waits for (G384, D51): a call to a function the checker knows is async (an `async fn`, an async lambda, an `async fn(...)` value, a stdlib function modeled async) used anywhere but the operand of `await`, the return or tail value of an async function, a named `let` that is read, or an argument to a function with no Glyph signature. A statement (the last one in a block included), `let _ =`, a never-read `let`, a typed `let`, a `match` scrutinee, an operand, a `${}`, a field, an element, a member read, a Glyph-typed argument and a `return` from a sync function are refused. A pending `Result` is E0238, not E0217. A call whose callee the checker types `Unknown` is not judged. `tsc` accepts most of these | Write `await` before the call. In a function that cannot wait, make it `async fn`, or start the work on purpose with `task.detach(async fn() -> void { await f() })` from `std/task` |
 | E0300 | Either a construct the v1 TypeScript emitter does not handle yet, or a `where` refinement (D39) whose base resolves, by any spelling, to a string-literal union, a single string literal, a record or a tagged union: a `where` refines only `string`, `int`, `number`, `bool` and `bigint`. The refusal names the declaration, its base as written, the members a literal base resolves to and the predicate | Use a supported form. For a refined literal union, declare the members you mean as a union of their own; for a record, put the `where` on the field it constrains |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a `match` nested inside a larger expression (bind the match first) | Bind the match first (`let x = match ...`), then use `?` |
@@ -2218,6 +2225,7 @@ variants' `construct` in `glyph check --agent`.
 - **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
 - **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`
 - **run concurrently:** `await task.all([fn() { a() }, fn() { b() }])`
+- **await every async call:** a call to an `async fn` is a pending value until it is awaited; `save(1)` alone, `let _ = save(1)` and `let n: number = load()` are E0238. Write `await save(1)`; in a sync callback, `task.detach(async fn() -> void { await save(1) })`
 - **bounded concurrency:** `await task.pool(4, tasks)` runs the thunks with at most 4 in flight (fail-fast); `task.pool_settled(4, tasks)` keeps going past a failure
 - **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`, `regex.captures_all(pat, text)` for the groups of every match
 - **walk a directory:** `let names = fs.read_dir(dir)?` for entry names, `fs.is_dir(path.join([dir, name]))` to recurse, `let info = fs.stat(p)?` for size/mtime

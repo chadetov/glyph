@@ -901,6 +901,7 @@ race<T>(tasks: Array<fn() -> T>) -> T                    // first task to settle
 pool<T>(limit: number, tasks: Array<fn() -> T>) -> Array<T>   // at most `limit` in flight, join in order (fail-fast)
 all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>  // one outcome per task, never rejects
 pool_settled<T>(limit: number, tasks: Array<fn() -> T>) -> Array<Settled<T>>  // bounded, one outcome per task, never rejects
+detach(work: async fn() -> void) -> void                 // start work without waiting; a failure is reported, not lost
 ```
 
 `pool` is fail-fast: the first rejection rejects the pool. It does not stop the
@@ -910,10 +911,25 @@ still sends all 500. `pool_settled` is the same bound with `all_settled`'s
 behaviour: a task that throws costs one result, and you get the other 499. Read
 the `unknown` in a failed outcome with `string.from(e)`.
 
-Each is `async`, so `await` the result. JavaScript can't force-cancel a running
-task, so a failure in `all` abandons its siblings' results rather than halting
-their work; thread an AbortSignal into your task bodies for cooperative
-cancellation.
+Each of the joins is `async`, so `await` the result. JavaScript can't
+force-cancel a running task, so a failure in `all` abandons its siblings'
+results rather than halting their work; thread an AbortSignal into your task
+bodies for cooperative cancellation.
+
+`detach` is the one way to start work and not wait for it. A call to an async
+function that nothing awaits is E0238 (D51), and a sync callback (a timer, a
+socket event) cannot wait, so that is where it belongs:
+
+```
+let _pump = timers.every(200, fn() {
+  task.detach(async fn() -> void { await worker.drain(db) })
+})
+```
+
+It starts the work at once and returns. Nothing joins it, so a failure cannot
+reach the caller; it is printed to stderr as `std/task: a detached task failed:
+...` instead of becoming an unhandled rejection. Pass the work as a function:
+`task.detach(save(1))` has already started the call and is E0238 itself.
 
 ## std/regex
 

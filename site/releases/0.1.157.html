@@ -1,0 +1,24 @@
+---
+version: 0.1.157
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A value with no text form can't be turned into text by accident
+---
+            <p>Putting a record inside <code>${}</code> used to compile, and printed <code>[object Object]</code>. The same went for an <code>Option</code>, an array, or a function you forgot to call, and for joining any of them to a string with <code>+</code>. Now each of those is E0237:</p>
+
+<pre><code>[E0237] `${user}` turns a `User` into text, and a record has no text form: it prints `[object Object]`
+Help: Interpolate a field, such as `${user.id}`.</code></pre>
+
+            <p>One rule covers every implicit conversion: each <code>${}</code>, each operand of a <code>+</code> whose other side is a string, and the argument of <code>string.from</code>. The types that can become text are a short list (<code>string</code>, <code>number</code>, <code>int</code>, <code>bigint</code>, <code>bool</code>, string-literal unions, and aliases of these), and everything else is refused, including any type added to the language later. A <code>+</code> chain is judged as a whole, so <code>"Hello " + name + ", " + u</code> is caught at <code>u</code>.</p>
+
+            <p>The help depends on the type. For a record it suggests the first field that can be text. For an <code>Option</code> or a <code>Result</code> it suggests a <code>match</code>. For an array it points to <code>string.join</code>, for a <code>Decimal</code> to <code>to_string()</code>, and for <code>unknown</code> to an <code>is string</code> arm, which works now that 0.1.156 narrows those. Every suggested rewrite is applied in a test and has to pass the full check, <code>tsc</code> included. <code>glyph --explain E0237</code> has the full table.</p>
+
+            <p><code>string.from</code> still accepts a value declared <code>unknown</code>, because it is the explicit way to render one, such as a failed task's error. A call that was never awaited is left to E0238 from 0.1.154, so it gets one error rather than two. A <code>sqlite.Sql</code> counts as text, so <code>"SELECT " + sql</code> stays a constant query.</p>
+
+            <p><code>std/decimal</code> now has types in the checker: <code>decimal.decimal</code> returns a <code>Result</code>, and a <code>Decimal</code>'s methods are typed. As a side effect, a <code>match</code> on one of those methods' results now emits a <code>boolean</code> cast in the generated TypeScript.</p>
+
+            <p>Writing this rule turned up a real bug in one of the example apps. The site generator interpolated an issue's path, an array, and printed <code>items,0,name</code>. It joins the path with dots now.</p>
+
+            <h3>Breaking</h3>
+            <p>A record, <code>Option</code>, array or other value with no text form inside <code>${}</code>, joined with <code>+</code>, or passed to <code>string.from</code> no longer compiles (0.1.156 exits 0, 0.1.157 exits 1, with or without <code>tsc</code>). No tracked example app is newly refused.</p>

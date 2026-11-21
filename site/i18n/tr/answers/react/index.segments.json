@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/react/index.html",
   "locale": "tr",
-  "source_hash": "7cfdf0dbb16b7eaf",
+  "source_hash": "4d46f3d681c38c46",
   "segments": [
     {
       "id": "title",
@@ -59,46 +59,154 @@
       "tr": "Evet. Bir <code>component</code> bir React function component'ine derlenir, JSX <code>createElement</code>'e indirgenir, React'in kendi hook'ları adlarıyla import edilir ve döndürdükleri çiftler destructure edilir; reducer durumu da düz TypeScript'te olmayan bir kapsam kontrolü kazanır. Sayfanın kendisine (başlığı, mount noktası, kaydedilmiş durum) <code>std/dom</code> ve <code>std/storage</code> üzerinden erişilir. İlk bilinmesi gereken eksik: Glyph'in kendi checker'ı bir hook'un döndürdüğü değerin tipini belirlemez, bu yüzden o değerleri <code>tsc</code> kontrol eder."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Neden önemli"
-    },
-    {
-      "id": "h-7d3b54fa",
-      "kind": "html",
-      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI). React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
-      "tr": "Ajanların yazdığı kodun büyük kısmı React. Glyph onu sonradan eklenmiş bir şey olarak değil, birinci sınıf bir hedef olarak ele alır: <code>component</code> kendi anahtar kelimesidir (bu yüzden <code>grep \"^component \"</code> tüm arayüzünüzü denetler). React'in hook'ları <code>react</code>'ten import edilir ve gerçek isimleri ve tipleriyle çağrılır; <code>tsc</code> bunları React'in kendi tanımlarına göre kontrol eder."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Görün"
-    },
-    {
-      "id": "h-2f961bce",
-      "kind": "html",
-      "en": "React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it:",
-      "tr": "React'in gerçek <code>useReducer</code>'ı, bir tagged union üzerinde çalışan bir reducer ile. Her action ele alınmak zorunda ve derleyici bunu kontrol ediyor:"
-    },
-    {
       "id": "h-a1d8437d",
       "kind": "html",
       "en": "counter.glyph, against react@18 and its types",
       "tr": "counter.glyph, react@18 ve tiplerine karşı"
     },
     {
-      "id": "h-158cdb40",
+      "id": "h-3ba54158",
       "kind": "html",
-      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship. The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type. Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>. React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
-      "tr": "Bir <code>Double</code> action'ı ekleyin; reducer, onu adıyla söyleyen <code>E0200</code> ile derlenmeyi bırakır. Düz bir TypeScript <code>switch</code>'i bunun yayına çıkmasına izin verirdi. Çift <code>let [count, dispatch]</code> ile destructure edilir ve üretilen TypeScript <code>satisfies readonly [unknown, unknown]</code> ekler; böylece <code>tsc</code> hook'un bir çift döndürdüğünü kanıtlar ve her elemanın tipini yine de çıkarır. Glyph'in kendi checker'ı React'ten gelen değerlerin tipini belirlemez, bu yüzden <code>dispatch</code>'e ya da bir state setter'ına verilen yanlış bir argüman editör ya da <code>--no-tsc</code> tarafından değil, build sırasında <code>tsc</code> tarafından bildirilir. React <strong>Context</strong> bugün <code>createContext</code> / <code>useContext</code> üzerinden çalışıyor ve member-expression eleman isimleri (<code>&lt;ThemeContext.Provider&gt;</code>) doğrudan çalışıyor: geçici bir çözüme gerek yok."
+      "en": "<span>React's real <code>useReducer</code>, with a reducer over a tagged union. Every action has to be handled, and the compiler checks it.</span>",
+      "tr": "<span>React'in gerçek <code>useReducer</code>'ı, bir tagged union üzerinde çalışan bir reducer ile. Her action ele alınmak zorunda ve derleyici bunu kontrol ediyor.</span>"
     },
     {
-      "id": "h-642c2c83",
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
       "kind": "html",
-      "en": "JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch. The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
-      "tr": "JSX prop spread de çalışıyor: <code>&lt;input {...register(\"email\")} /&gt;</code>, props içinde bir object spread'e indirgenir, yani react-hook-form deyimi bir adaptöre ihtiyaç duymaz. Zod'un değerden türetilen tipleri birinci sınıftır: <code>type FormData = z.infer&lt;typeof schema&gt;</code> doğrudan çalışır, kaçış yoluna gerek yok. Farklı olan tek şey: bir component birden fazla konumsal parametre değil, tek bir props record'u alır. Bu sınırın tam olarak nerede olduğu için <a href=\"/answers/imports/\">kütüphanelerinizi kullanmak</a> ve <a href=\"/hardening/\">sağlamlaştırma sayfasına</a> bakın."
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden önemli</a>"
+    },
+    {
+      "id": "h-648d4d26",
+      "kind": "html",
+      "en": "<a href=\"#reducers-and-hooks\">Reducers and hooks</a>",
+      "tr": "<a href=\"#reducers-and-hooks\">Reducer'lar ve hook'lar</a>"
+    },
+    {
+      "id": "h-fab18f8a",
+      "kind": "html",
+      "en": "<a href=\"#context-and-libraries\">Context and libraries</a>",
+      "tr": "<a href=\"#context-and-libraries\">Context ve kütüphaneler</a>"
+    },
+    {
+      "id": "h-c36db527",
+      "kind": "html",
+      "en": "<a href=\"#are-props-checked-before-tsc\">Props before tsc</a>",
+      "tr": "<a href=\"#are-props-checked-before-tsc\">tsc'den önce props</a>"
+    },
+    {
+      "id": "h-4a33102f",
+      "kind": "html",
+      "en": "<a href=\"#is-a-match-in-jsx-checked-like-a-match\">&lt;match&gt; in JSX</a>",
+      "tr": "<a href=\"#is-a-match-in-jsx-checked-like-a-match\">JSX içinde &lt;match&gt;</a>"
+    },
+    {
+      "id": "h-5e0e70f5",
+      "kind": "html",
+      "en": "<a href=\"#how-does-a-page-start-it\">Starting a page</a>",
+      "tr": "<a href=\"#how-does-a-page-start-it\">Bir sayfayı başlatmak</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-28be9792",
+      "kind": "html",
+      "en": "A lot of the code agents write is React. Glyph treats it as a first-class target, not a bolt-on: <code>component</code> is its own keyword (so <code>grep \"^component \"</code> audits your whole UI).",
+      "tr": "Ajanların yazdığı kodun büyük kısmı React. Glyph onu sonradan eklenmiş bir şey olarak değil, birinci sınıf bir hedef olarak ele alır: <code>component</code> kendi anahtar kelimesidir (bu yüzden <code>grep \"^component \"</code> tüm arayüzünüzü denetler)."
+    },
+    {
+      "id": "h-2bd4923e",
+      "kind": "html",
+      "en": "React's hooks are imported from <code>react</code> and called with their real names and types, checked by <code>tsc</code> against React's own declarations.",
+      "tr": "React'in hook'ları <code>react</code>'ten import edilir ve gerçek isimleri ve tipleriyle çağrılır; <code>tsc</code> bunları React'in kendi tanımlarına göre kontrol eder."
+    },
+    {
+      "id": "h-74654c54",
+      "kind": "html",
+      "en": "Reducers and hooks",
+      "tr": "Reducer'lar ve hook'lar"
+    },
+    {
+      "id": "h-53271be7",
+      "kind": "html",
+      "en": "Add a <code>Double</code> action and the reducer stops compiling with <code>E0200</code> naming it, which a plain TypeScript <code>switch</code> would let ship.",
+      "tr": "Bir <code>Double</code> action'ı ekleyin; reducer, onu adıyla söyleyen <code>E0200</code> ile derlenmeyi bırakır. Düz bir TypeScript <code>switch</code>'i bunun yayına çıkmasına izin verirdi."
+    },
+    {
+      "id": "h-ac3a0fb5",
+      "kind": "html",
+      "en": "Glyph's own checker does not type values that come from React, so a wrong argument to <code>dispatch</code> or a state setter is reported by <code>tsc</code> in the build, not by the editor or <code>--no-tsc</code>.",
+      "tr": "Glyph'in kendi checker'ı React'ten gelen değerlerin tipini belirlemez, bu yüzden <code>dispatch</code>'e ya da bir state setter'ına verilen yanlış bir argüman editör ya da <code>--no-tsc</code> tarafından değil, build sırasında <code>tsc</code> tarafından bildirilir."
+    },
+    {
+      "id": "h-1e8f4517",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">how the hook's pair is destructured</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">hook'un döndürdüğü çiftin nasıl destructure edildiği</span>"
+    },
+    {
+      "id": "h-6f333972",
+      "kind": "html",
+      "en": "The pair is destructured with <code>let [count, dispatch]</code>, and the emitted TypeScript adds <code>satisfies readonly [unknown, unknown]</code>, so <code>tsc</code> proves the hook returned a pair and still infers each element's type.",
+      "tr": "Çift <code>let [count, dispatch]</code> ile destructure edilir ve üretilen TypeScript <code>satisfies readonly [unknown, unknown]</code> ekler; böylece <code>tsc</code> hook'un bir çift döndürdüğünü kanıtlar ve her elemanın tipini yine de çıkarır."
+    },
+    {
+      "id": "h-c0563444",
+      "kind": "html",
+      "en": "Context and libraries",
+      "tr": "Context ve kütüphaneler"
+    },
+    {
+      "id": "h-1f310c7a",
+      "kind": "html",
+      "en": "React <strong>Context</strong> works today through <code>createContext</code> / <code>useContext</code>, and member-expression element names (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.",
+      "tr": "React <strong>Context</strong> bugün <code>createContext</code> / <code>useContext</code> üzerinden çalışıyor ve member-expression eleman isimleri (<code>&lt;ThemeContext.Provider&gt;</code>) doğrudan çalışıyor: geçici bir çözüme gerek yok."
+    },
+    {
+      "id": "h-e2a7d4d3",
+      "kind": "html",
+      "en": "<b>Prop spread</b>JSX prop spreading works too: <code>&lt;input {...register(\"email\")} /&gt;</code> lowers to an object spread in the props, so the react-hook-form idiom needs no adapter.",
+      "tr": "<b>Prop spread</b>JSX prop spread de çalışıyor: <code>&lt;input {...register(\"email\")} /&gt;</code>, props içinde bir object spread'e indirgenir, yani react-hook-form deyimi bir adaptöre ihtiyaç duymaz."
+    },
+    {
+      "id": "h-12d8f880",
+      "kind": "html",
+      "en": "<b>Zod types</b>Zod's value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code> works directly, no escape hatch.",
+      "tr": "<b>Zod tipleri</b>Zod'un değerden türetilen tipleri birinci sınıftır: <code>type FormData = z.infer&lt;typeof schema&gt;</code> doğrudan çalışır, kaçış yoluna gerek yok."
+    },
+    {
+      "id": "h-0aede100",
+      "kind": "html",
+      "en": "The one thing that differs: a component takes a single props record, not multiple positional params. See <a href=\"/answers/imports/\">using your libraries</a> and the <a href=\"/hardening/\">hardening page</a> for exactly where that boundary is.",
+      "tr": "Farklı olan tek şey: bir component birden fazla konumsal parametre değil, tek bir props record'u alır. Bu sınırın tam olarak nerede olduğu için <a href=\"/answers/imports/\">kütüphanelerinizi kullanmak</a> ve <a href=\"/hardening/\">sağlamlaştırma sayfasına</a> bakın."
     },
     {
       "id": "h-4eb7b3bf",
@@ -107,16 +215,28 @@
       "tr": "Props tsc'den önce kontrol ediliyor mu?"
     },
     {
-      "id": "h-e92662c3",
+      "id": "h-ca2fc926",
       "kind": "html",
-      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. You see them in the editor and over MCP, not only in a full build. It works the same whether the component was imported by name or through its module:",
-      "tr": "Evet. Glyph her elemanı component'inin props record'uyla kendisi karşılaştırır; böylece yanlış bir değer, yanlış yazılmış bir prop ve eksik bir zorunlu prop, prop'u adıyla söyleyen Glyph hatalarıdır. Bunları yalnızca tam bir build'de değil, editörde ve MCP üzerinden de görürsünüz. Component ister adıyla ister modülü üzerinden import edilmiş olsun, aynı şekilde çalışır:"
+      "en": "Yes. Glyph compares each element with its component's props record itself, so a wrong value, a misspelled prop and a missing required one are Glyph errors that name the prop. It works the same whether the component was imported by name or through its module:",
+      "tr": "Evet. Glyph her elemanı component'inin props record'uyla kendisi karşılaştırır; böylece yanlış bir değer, yanlış yazılmış bir prop ve eksik bir zorunlu prop, prop'u adıyla söyleyen Glyph hatalarıdır. Component ister adıyla ister modülü üzerinden import edilmiş olsun, aynı şekilde çalışır:"
     },
     {
       "id": "h-54e2228f",
       "kind": "html",
       "en": "main.glyph, with <code>Card</code> declared in <code>ui.glyph</code>",
       "tr": "main.glyph, <code>Card</code> <code>ui.glyph</code> içinde tanımlı"
+    },
+    {
+      "id": "h-7ea6dcce",
+      "kind": "html",
+      "en": "You see them in the editor and over MCP, not only in a full build.",
+      "tr": "Bunları yalnızca tam bir build'de değil, editörde ve MCP üzerinden de görürsünüz."
+    },
+    {
+      "id": "h-69ee0458",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">missing_fields in --json, and one props record (E0229)</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">--json içinde missing_fields ve tek bir props record'u (E0229)</span>"
     },
     {
       "id": "h-195deeff",
@@ -131,10 +251,22 @@
       "tr": "JSX'teki bir &lt;match&gt; bir match gibi mi kontrol ediliyor?"
     },
     {
-      "id": "h-8df891da",
+      "id": "h-6e6e630f",
       "kind": "html",
-      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm. The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200. A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest:",
-      "tr": "İkisi aynı şey. Her <code>&lt;case&gt;</code>, bir <code>match</code> arm'ının aldığı pattern'i alır ve derleyici onu arm için kullandığı kodun içinden geçirir. Bir case'in bağladığı isimler payload'un tiplerine sahiptir, payload record'unda olmayan bir alan E0210'dur ve eksik bir variant E0200'dür. Bir değeri test eden bir case, variant'ının yalnızca bir kısmını kapsar; bu yüzden geri kalanını alacak kardeş bir case'e ya da bir <code>&lt;case else&gt;</code>'e ihtiyaç duyar:"
+      "en": "It is the same thing. Each <code>&lt;case&gt;</code> takes the pattern a <code>match</code> arm takes, and the compiler runs it through the code it uses for the arm.",
+      "tr": "İkisi aynı şey. Her <code>&lt;case&gt;</code>, bir <code>match</code> arm'ının aldığı pattern'i alır ve derleyici onu arm için kullandığı kodun içinden geçirir."
+    },
+    {
+      "id": "h-d43c495c",
+      "kind": "html",
+      "en": "<b>Payload types</b>The names a case binds have the payload's types, a field the payload record doesn't have is E0210, and a missing variant is E0200.",
+      "tr": "<b>Payload tipleri</b>Bir case'in bağladığı isimler payload'un tiplerine sahiptir, payload record'unda olmayan bir alan E0210'dur ve eksik bir variant E0200'dür."
+    },
+    {
+      "id": "h-f4ac1296",
+      "kind": "html",
+      "en": "<b>Partial cases</b>A case that tests a value only covers part of its variant, so it needs a sibling case or an <code>&lt;case else&gt;</code> to take the rest.",
+      "tr": "<b>Kısmi case'ler</b>Bir değeri test eden bir case, variant'ının yalnızca bir kısmını kapsar; bu yüzden geri kalanını alacak kardeş bir case'e ya da bir <code>&lt;case else&gt;</code>'e ihtiyaç duyar."
     },
     {
       "id": "h-843c4890",
@@ -143,16 +275,34 @@
       "tr": "Bir sayfa onu nasıl başlatır?"
     },
     {
-      "id": "h-52a6173d",
+      "id": "h-dde6587c",
       "kind": "html",
-      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>. Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
-      "tr": "Glyph'te üst seviye ifadeler yoktur, bu yüzden sayfa export edilmiş bir <code>main</code>'i kendisi çağırır. Uygulama iki modüldür: biri component'leri tutar, diğeri onları <code>std/dom</code> ve react-dom'un <code>createRoot</code>'u üzerinden <code>#root</code>'a mount eder. Event attribute'ları snake case'tir (<code>on_change</code>, React'in <code>onChange</code>'ini üretir), bir handler bir lambda'dır ve bir input'un metni <code>e.currentTarget.value</code>'dur."
+      "en": "Glyph has no top-level statements, so the page calls an exported <code>main</code> itself. The app is two modules: one holding the components, and one that mounts them on <code>#root</code> through <code>std/dom</code> and react-dom's <code>createRoot</code>.",
+      "tr": "Glyph'te üst seviye ifadeler yoktur, bu yüzden sayfa export edilmiş bir <code>main</code>'i kendisi çağırır. Uygulama iki modüldür: biri component'leri tutar, diğeri onları <code>std/dom</code> ve react-dom'un <code>createRoot</code>'u üzerinden <code>#root</code>'a mount eder."
+    },
+    {
+      "id": "h-4ae11d4d",
+      "kind": "html",
+      "en": "Event attributes are snake case (<code>on_change</code> emits React's <code>onChange</code>), a handler is a lambda, and an input's text is <code>e.currentTarget.value</code>.",
+      "tr": "Event attribute'ları snake case'tir (<code>on_change</code>, React'in <code>onChange</code>'ini üretir), bir handler bir lambda'dır ve bir input'un metni <code>e.currentTarget.value</code>'dur."
     },
     {
       "id": "h-290d764b",
       "kind": "html",
       "en": "index.html, next to the two modules",
       "tr": "index.html, iki modülün yanında"
+    },
+    {
+      "id": "a-e2d000fb",
+      "kind": "attr:aria-label",
+      "en": "From modules to a bundle",
+      "tr": "Modüllerden bir bundle'a"
+    },
+    {
+      "id": "h-0bd0d9ae",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the build, why this main takes nothing, the walkthrough</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">build, bu main'in neden hiçbir şey almadığı ve adım adım anlatım</span>"
     },
     {
       "id": "h-23c5e497",
@@ -173,10 +323,76 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-0bd5fa48",
+      "id": "h-f5b45cd6",
       "kind": "html",
-      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), props checked against the component before <code>tsc</code> under every import spelling, React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>), <code>useReducer</code> with exhaustive tagged-union actions, <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns, Context via <code>createContext</code>/<code>useContext</code>, and the page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>. JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead. A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
-      "tr": "Component'ler, JSX, fragment'lar (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression eleman isimleri (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), her import yazılışında <code>tsc</code>'den önce component'e karşı kontrol edilen props, adıyla import edilen React'in kendi hook'ları (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>; tiplerini tsc kontrol eder ve çiftleri destructure edilir: <code>let [count, set_count] = useState(0)</code>), kapsamı tam tagged union action'larıyla <code>useReducer</code>, arm pattern'leriyle bir <code>match</code> olarak kontrol edilip indirgenen <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>, <code>createContext</code>/<code>useContext</code> ile Context ve <code>std/dom</code> (başlık, mount noktası, adres), <code>std/storage</code> ve <code>std/console</code> üzerinden sayfa. JSX metni TSX'in okuduğu gibi okunur, yani <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> düz metindir; <code>}</code>, <code>&gt;</code>, <code>//</code> ve <code>&amp;amp;</code> gibi bir HTML entity'si metinde reddedilir (E0012) ve yerine kullanılacak yazılış söylenir. Bir array üzerindeki üye okuması kontrol edilir, yani bir <code>Array&lt;string&gt;</code> üzerinde <code>{items.foo}</code> E0210'dur. <a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a>, React 18 üzerinde Vite ile paketlenen ve bir tarayıcıda render edilen eksiksiz bir uygulamadır."
+      "en": "Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>)",
+      "tr": "Component'ler, JSX, fragment'lar (<code>&lt;&gt;...&lt;/&gt;</code>)"
+    },
+    {
+      "id": "h-a34f85e4",
+      "kind": "html",
+      "en": "Member-expression element names (<code>&lt;Ctx.Provider&gt;</code>)",
+      "tr": "Member-expression eleman isimleri (<code>&lt;Ctx.Provider&gt;</code>)"
+    },
+    {
+      "id": "h-a6643da6",
+      "kind": "html",
+      "en": "JSX prop spread (<code>{...register()}</code>)",
+      "tr": "JSX prop spread (<code>{...register()}</code>)"
+    },
+    {
+      "id": "h-94900fbd",
+      "kind": "html",
+      "en": "Props checked against the component before <code>tsc</code> under every import spelling",
+      "tr": "Her import yazılışında <code>tsc</code>'den önce component'e karşı kontrol edilen props"
+    },
+    {
+      "id": "h-2f64f838",
+      "kind": "html",
+      "en": "React's own hooks imported by name (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>) with tsc checking their types and their pairs destructured (<code>let [count, set_count] = useState(0)</code>)",
+      "tr": "Adıyla import edilen React'in kendi hook'ları (<code>useState</code>, <code>useReducer</code>, <code>useEffect</code>); tiplerini tsc kontrol eder ve çiftleri destructure edilir (<code>let [count, set_count] = useState(0)</code>)"
+    },
+    {
+      "id": "h-ea8d7fbb",
+      "kind": "html",
+      "en": "<code>useReducer</code> with exhaustive tagged-union actions",
+      "tr": "Kapsamı tam tagged union action'larıyla <code>useReducer</code>"
+    },
+    {
+      "id": "h-38943cc7",
+      "kind": "html",
+      "en": "<code>&lt;match&gt;</code>/<code>&lt;case&gt;</code> checked and lowered as a <code>match</code> with the arm's patterns",
+      "tr": "Arm pattern'leriyle bir <code>match</code> olarak kontrol edilip indirgenen <code>&lt;match&gt;</code>/<code>&lt;case&gt;</code>"
+    },
+    {
+      "id": "h-ee4b2daa",
+      "kind": "html",
+      "en": "Context via <code>createContext</code>/<code>useContext</code>",
+      "tr": "<code>createContext</code>/<code>useContext</code> ile Context"
+    },
+    {
+      "id": "h-32aeed45",
+      "kind": "html",
+      "en": "The page through <code>std/dom</code> (title, mount point, address), <code>std/storage</code> and <code>std/console</code>",
+      "tr": "<code>std/dom</code> (başlık, mount noktası, adres), <code>std/storage</code> ve <code>std/console</code> üzerinden sayfa"
+    },
+    {
+      "id": "h-c469d2ff",
+      "kind": "html",
+      "en": "JSX text is read as TSX reads it, so <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> is plain text; <code>}</code>, <code>&gt;</code>, <code>//</code> and an HTML entity such as <code>&amp;amp;</code> are refused in text (E0012), with the spelling to use instead.",
+      "tr": "JSX metni TSX'in okuduğu gibi okunur, yani <code>&lt;p&gt;Don't stop&lt;/p&gt;</code> düz metindir; <code>}</code>, <code>&gt;</code>, <code>//</code> ve <code>&amp;amp;</code> gibi bir HTML entity'si metinde reddedilir (E0012) ve yerine kullanılacak yazılış söylenir."
+    },
+    {
+      "id": "h-1251f92f",
+      "kind": "html",
+      "en": "A member read on an array is checked, so <code>{items.foo}</code> on an <code>Array&lt;string&gt;</code> is E0210.",
+      "tr": "Bir array üzerindeki üye okuması kontrol edilir, yani bir <code>Array&lt;string&gt;</code> üzerinde <code>{items.foo}</code> E0210'dur."
+    },
+    {
+      "id": "h-38058a13",
+      "kind": "html",
+      "en": "<a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a> is a whole app on React 18 that bundles with Vite and renders in a browser.",
+      "tr": "<a href=\"https://github.com/chadetov/glyph/tree/main/examples/apps/todo\">examples/apps/todo</a>, React 18 üzerinde Vite ile paketlenen ve bir tarayıcıda render edilen eksiksiz bir uygulamadır."
     },
     {
       "id": "h-b63a305d",
@@ -185,10 +401,34 @@
       "tr": "Yolda olanlar"
     },
     {
-      "id": "h-bf75ccec",
+      "id": "h-c06f1ed9",
       "kind": "html",
-      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor. <code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners. An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup. A props type written inline still shows as <code>record</code> in these messages; a named one shows its name. Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
-      "tr": "Glyph'in checker'ı bir hook'un sonucunun tipini belirlemez, bu yüzden sayı tipindeki bir state üzerinde <code>set_count(\"x\")</code>, editörde bir Glyph hatası değil build sırasında bir <code>tsc</code> hatasıdır. <code>std/dom</code> sayfayı okumak ve başlığını ayarlamakla sınırlı: render ettiği DOM'un sahibi React'tir, bu yüzden eleman setter'ları ya da event listener'ları yoktur. Bir effect <code>fn() -&gt; void { ... }</code> olarak yazılmak zorundadır, çünkü bir lambda son ifadesini döndürür ve React onu bir cleanup olarak çağırırdı. Satır içi yazılmış bir props tipi bu mesajlarda hâlâ <code>record</code> olarak görünür; adlandırılmış bir tip ise adıyla görünür. Arayüzü TypeScript'te olan mevcut bir Vite uygulamasına Glyph çıktısını gömmek <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment kılavuzunda</a> anlatılıyor."
+      "en": "Glyph's checker does not type a hook's result, so <code>set_count(\"x\")</code> on a number state is a <code>tsc</code> error in the build rather than a Glyph one in the editor.",
+      "tr": "Glyph'in checker'ı bir hook'un sonucunun tipini belirlemez, bu yüzden sayı tipindeki bir state üzerinde <code>set_count(\"x\")</code>, editörde bir Glyph hatası değil build sırasında bir <code>tsc</code> hatasıdır."
+    },
+    {
+      "id": "h-4e5f4ea5",
+      "kind": "html",
+      "en": "<code>std/dom</code> stops at reading the page and setting its title: React owns the DOM it renders, so there are no element setters or event listeners.",
+      "tr": "<code>std/dom</code> sayfayı okumak ve başlığını ayarlamakla sınırlı: render ettiği DOM'un sahibi React'tir, bu yüzden eleman setter'ları ya da event listener'ları yoktur."
+    },
+    {
+      "id": "h-b03a0096",
+      "kind": "html",
+      "en": "An effect has to be written <code>fn() -&gt; void { ... }</code>, because a lambda returns its last expression and React would call it as a cleanup.",
+      "tr": "Bir effect <code>fn() -&gt; void { ... }</code> olarak yazılmak zorundadır, çünkü bir lambda son ifadesini döndürür ve React onu bir cleanup olarak çağırırdı."
+    },
+    {
+      "id": "h-b8bf0f07",
+      "kind": "html",
+      "en": "A props type written inline still shows as <code>record</code> in these messages; a named one shows its name.",
+      "tr": "Satır içi yazılmış bir props tipi bu mesajlarda hâlâ <code>record</code> olarak görünür; adlandırılmış bir tip ise adıyla görünür."
+    },
+    {
+      "id": "h-37364243",
+      "kind": "html",
+      "en": "Embedding the Glyph output in an existing Vite app, with the UI in TypeScript, is in <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">the deployment guide</a>.",
+      "tr": "Arayüzü TypeScript'te olan mevcut bir Vite uygulamasına Glyph çıktısını gömmek <a href=\"https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md\">deployment kılavuzunda</a> anlatılıyor."
     }
   ]
 }

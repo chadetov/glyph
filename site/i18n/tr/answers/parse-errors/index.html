@@ -1,7 +1,7 @@
 ---
 title: Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum? · Glyph
 description: Başarısız bir parse alanı adıyla belirtir, değerin hangi kuralı ihlal ettiğini söyler, ihlal ettiği where koşulunu aynen aktarır ve sorunu üzerinde dallanabileceğiniz bir kodla etiketler.
-source_hash: 7f1a8b2bd45c7f9e
+source_hash: 4e3c1f0c9f2ab861
 prev: /answers/early-errors/ | &larr; Önceki | Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?
 next: /answers/debugging/ | Sonraki &rarr; | Gece 3'te production'da bozulduğunda nöbetçi ne görüyor?
 ---
@@ -12,37 +12,22 @@ next: /answers/debugging/ | Sonraki &rarr; | Gece 3'te production'da bozulduğun
         Evet. Her sorun alanı adıyla belirtir, <strong>değerin hangi kuralı ihlal ettiğini</strong> söyler ve üzerinde dallanabileceğiniz bir <code>code</code> taşır. Bir <code>where</code> koşuluyla kısıtlanmış bir alan koşulun kendisini bildirir; böylece reddetme, grep ile onu koyan satıra kadar izlenebilir.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          "Bu payload hatalı" diyen bir validator işin yarısını yapmıştır. Handler'ın yine de karar vermesi gerekir: bu bir alanı unutan bir istemci mi, yoksa dört karakterlik bir şifre gönderen bir istemci mi? Biri 400, diğeri 422'dir; validator bunu söylemezse, validator'ın zaten sahip olduğu bir bilgiyi geri kazanmak için aynı gövdeyi iki farklı tiple iki kez parse etmek zorunda kalırsınız.
-        </p>
-        <p>
-          Glyph'te bir kimlik doğrulama API'si geliştirirken tam olarak bu oldu. Hiç <code>password</code> anahtarı olmayan bir kayıt isteği <code>weak_password</code> olarak döndü, çünkü eksik olmak ve çok kısa olmak aynı string'i üretiyordu.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>Tek tip, tek kısıt:</p>
-      </div>
-
-      <div class="code">
-        <span class="cap">signup.glyph</span>
+      <figure class="ak-hero" id="see-it">
+        <p class="ak-lede">Tek tip, tek kısıt:</p>
+        <div class="code">
+          <span class="cap">signup.glyph</span>
 <pre>pub type Password = string where value.length &gt;= 8
 
 pub type Signup = {
   email: string,
   password: Password,
 }</pre>
-      </div>
-
-      <div class="detail">
-        <p>
+        </div>
+        <p class="ak-lede">
           Dört hatalı payload, dört farklı yanıt. Her biri, <code>code | path | message</code> olarak gösterilen tek bir <code>Issue</code>:
         </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">Signup.parse(...)</span>
+        <div class="code term">
+          <span class="cap">Signup.parse(...)</span>
 <pre><span class="cm">// { "email": "user@example.com" }</span>
 missing     ["password"]  field `password` is required
 
@@ -54,27 +39,60 @@ type        ["email"]     field `email` must be string
 
 <span class="cm">// [1, 2, 3]</span>
 type        []            expected Signup (an object), got an array</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Asıl nokta ikincisi. <code>value.length &gt;= 8</code> tipte bir kez yazılır ve reddetme onu kelimesi kelimesine aktarır.</span></figcaption>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">bir 422 gövdesinden tanıma geri dönmek</span></summary><div class="body">
+          <p>
+            O string'i bir HTTP 422 gövdesinden kopyalayıp <code>grep</code>'e yapıştırın, onu üreten tanıma ulaşırsınız. Kimsenin hata mesajı katmanında kuralın bir kopyasını tutması gerekmez; ikisinin birbirinden sapmasının yolu zaten budur.
+          </p>
+        </div></details>
+        <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">bir dizinin eskiden ne yaptığı</span></summary><div class="body">
+          <p>
+            Dördüncüsü eskiden kötü bir mesajdan da beterdi. <code>typeof</code> için bir dizi bir nesnedir; bu yüzden zorunlu alanı olmayan bir record onu doğrudan kabul ediyordu ve gönderilen bir <code>[1, 2, 3]</code>, tanımlanan her alan için kafa karıştırıcı birer sorun olarak dönüyordu; hiçbiri bir liste gönderdiğinizden bahsetmiyordu.
+          </p>
+        </div></details>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Asıl nokta ikincisi. <code>value.length &gt;= 8</code> tipte bir kez yazılır ve reddetme onu kelimesi kelimesine aktarır. O string'i bir HTTP 422 gövdesinden kopyalayıp <code>grep</code>'e yapıştırın, onu üreten tanıma ulaşırsınız. Kimsenin hata mesajı katmanında kuralın bir kopyasını tutması gerekmez; ikisinin birbirinden sapmasının yolu zaten budur.
-        </p>
-        <p>
-          Dördüncüsü eskiden kötü bir mesajdan da beterdi. <code>typeof</code> için bir dizi bir nesnedir; bu yüzden zorunlu alanı olmayan bir record onu doğrudan kabul ediyordu ve gönderilen bir <code>[1, 2, 3]</code>, tanımlanan her alan için kafa karıştırıcı birer sorun olarak dönüyordu; hiçbiri bir liste gönderdiğinizden bahsetmiyordu.
-        </p>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#nested-types-answer-for-themselves">İç içe tipler</a></li>
+          <li><a href="#the-code-not-the-string">String değil, kod</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">İç içe tipler kendi adlarına yanıt verir</h2>
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        "Bu payload hatalı" diyen bir validator işin yarısını yapmıştır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        Handler'ın yine de karar vermesi gerekir: bu bir alanı unutan bir istemci mi, yoksa dört karakterlik bir şifre gönderen bir istemci mi? Biri 400, diğeri 422'dir; validator bunu söylemezse, validator'ın zaten sahip olduğu bir bilgiyi geri kazanmak için aynı gövdeyi iki farklı tiple iki kez parse etmek zorunda kalırsınız.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">bunun nerede ortaya çıktığı</span></summary><div class="body">
         <p>
-          Tipinin kendi tanımlayıcısı olan bir alan, o tipin <code>parse</code>'ı ile doğrulanır ve sorunları, path'in başına alan adı eklenmiş olarak geri döner. Böylece iki seviye içeride bulunan bir <code>Password</code>, <code>["body", "password"]</code> bildirir ve yine kendi mesajını taşır. Konumu ve nedeni hiçbir şeyi yeniden çalıştırmadan aynı sorundan alırsınız.
+          Glyph'te bir kimlik doğrulama API'si geliştirirken tam olarak bu oldu. Hiç <code>password</code> anahtarı olmayan bir kayıt isteği <code>weak_password</code> olarak döndü, çünkü eksik olmak ve çok kısa olmak aynı string'i üretiyordu.
         </p>
+      </div></details>
 
-        <h2 class="block-label">String değil, kod</h2>
-        <p>
-          <code>Issue</code> isteğe bağlı bir <code>code</code> taşır: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code> ya da <code>"unexpected"</code>. Onun üzerinde dallanın. Mesaj metnine göre eşleştirmek, Glyph'in ortadan kaldırmak için var olduğu kırılganlıktır; mesaj, yanıt gövdesini okuyan insan içindir.
-        </p>
-      </div>
+      <h2 class="ak-h" id="nested-types-answer-for-themselves">İç içe tipler kendi adlarına yanıt verir<a class="ak-anchor" href="#nested-types-answer-for-themselves" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Tipinin kendi tanımlayıcısı olan bir alan, o tipin <code>parse</code>'ı ile doğrulanır ve sorunları, path'in başına alan adı eklenmiş olarak geri döner. Böylece iki seviye içeride bulunan bir <code>Password</code>, <code>["body", "password"]</code> bildirir ve yine kendi mesajını taşır.
+      </p>
+      <figure class="ak-fig">
+        <ol class="ak-path" aria-label="İç içe bir sorunun bildirdiği path">
+          <li><span>body</span></li>
+          <li><span>password</span></li>
+          <li><span>Password</span></li>
+        </ol>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Konumu ve nedeni hiçbir şeyi yeniden çalıştırmadan aynı sorundan alırsınız.</span></figcaption>
+      </figure>
 
+      <h2 class="ak-h" id="the-code-not-the-string">String değil, kod<a class="ak-anchor" href="#the-code-not-the-string" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Issue</code> isteğe bağlı bir <code>code</code> taşır: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, <code>"unexpected"</code> ya da <code>"depth"</code>. Onun üzerinde dallanın. Mesaj metnine göre eşleştirmek, Glyph'in ortadan kaldırmak için var olduğu kırılganlıktır; mesaj, yanıt gövdesini okuyan insan içindir.
+      </p>
       <div class="code">
         <span class="cap">Mesajı okumayan bir 400/422 ayrımı</span>
 <pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
@@ -85,21 +103,44 @@ type        []            expected Signup (an object), got an array</pre>
   }
 }</pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>
+        <code>code</code> isteğe bağlıdır; bu yüzden elle oluşturduğunuz bir <code>Issue</code> ve o var olmadan önce yazılmış her tüketici değişmeden derlenmeye devam eder.
+      </p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>"depth"</code> kodu</span></summary><div class="body">
         <p>
-          <code>code</code> isteğe bağlıdır; bu yüzden elle oluşturduğunuz bir <code>Issue</code> ve o var olmadan önce yazılmış her tüketici değişmeden derlenmeye devam eder.
+          <code>"depth"</code>, 1000'den fazla nesne ve dizi derinliğinde iç içe geçmiş bir gövdenin yanıtıdır (<code>std/schema</code> içindeki <code>MAX_DEPTH</code>): bunun olduğu alanda tek bir sorun. 0.1.150'den önce ise kontrol <code>RangeError: Maximum call stack size exceeded</code> fırlatıyor ve handler'ı da beraberinde götürüyordu.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Record'lar ve <code>where</code> tipleri yalnızca başarısız alanı değil, ihlal edilen kuralı da bildirir: eksik bir zorunlu alan için <code>"missing"</code>, yanlış yapı için (nesne olmayan bir değer ya da bir dizi dahil) <code>"type"</code>, temel tipinden geçip koşulda başarısız olan bir değer için <code>"refinement"</code> ve tipin tanımlamadığı bir anahtar için <code>"unexpected"</code>. Bir daraltma koşulunu aktarır. Tipinin bir tanımlayıcısı olan bir alan işi ona devreder, böylece iç içe sorunlar tam path ile gelir. İsteğe bağlı alanlar (<code>f?: T</code>) hiçbir zaman eksik olarak bildirilmez.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Daha da keskinleşiyor</h3>
-          <p>İki sınır var. Kendi tanımlayıcısı olmayan bir şeyle tiplenmiş bir alan (kısıtsız bir tip parametresi ya da elle yazılmış bir <code>.d.ts</code>'ten import edilen bir tip) hâlâ düz kontrolden geçer ve bir <code>"type"</code> sorunu alır; derleyici bunlar için tanımlayıcı sentezlemez, onlara bir tanımlayıcı veren şey tanım üzerinde <code>glyph gen dts</code> çalıştırmaktır. Kendi <code>Issue</code> tipini tanımlayan bir modül, eskiden üretilen dosyanın içinde prelude'dakini gölgeliyor ve o modüldeki her tanımlayıcıyı bozuyordu; 0.1.60'tan beri bu tanım, tipi adlandıran satırda <code>E0110</code> hatasıdır; böylece üretilmiş kod hakkında bir <code>tsc</code> hatası okumak yerine sorunun nerede olduğunu öğrenirsiniz.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Record'lar ve <code>where</code> tipleri yalnızca başarısız alanı değil, ihlal edilen kuralı da bildirir</span><span class="chip code">missing</span><span class="chip code">type</span><span class="chip code">refinement</span><span class="chip code">unexpected</span><span class="chip code">depth</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Record'lar ve <code>where</code> tipleri yalnızca başarısız alanı değil, ihlal edilen kuralı da bildirir: eksik bir zorunlu alan için <code>"missing"</code>, yanlış yapı için (nesne olmayan bir değer ya da bir dizi dahil) <code>"type"</code>, temel tipinden geçip koşulda başarısız olan bir değer için <code>"refinement"</code>, tipin tanımlamadığı bir anahtar için <code>"unexpected"</code> ve 1000'den fazla derinlikte iç içe geçmiş bir değer için <code>"depth"</code>.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir daraltma koşulunu aktarır.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tipinin bir tanımlayıcısı olan bir alan işi ona devreder, böylece iç içe sorunlar tam path ile gelir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İsteğe bağlı alanlar (<code>f?: T</code>) hiçbir zaman eksik olarak bildirilmez.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Keskinleşmekte olanlar <span class="count">2</span></h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Kendi tanımlayıcısı olmayan bir şeyle tiplenmiş bir alan hâlâ düz kontrolden geçer ve bir <code>"type"</code> sorunu alır</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>İki sınır var. Kendi tanımlayıcısı olmayan bir şeyle tiplenmiş bir alan (kısıtsız bir tip parametresi ya da elle yazılmış bir <code>.d.ts</code>'ten import edilen bir tip) hâlâ düz kontrolden geçer ve bir <code>"type"</code> sorunu alır; derleyici bunlar için tanımlayıcı sentezlemez, onlara bir tanımlayıcı veren şey tanım üzerinde <code>glyph gen dts</code> çalıştırmaktır.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Bir modülün kendi <code>Issue</code> tipi, onu adlandıran satırda reddedilir</span><span class="chip code">E0110</span><span class="chip since">0.1.60'tan beri</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Kendi <code>Issue</code> tipini tanımlayan bir modül, eskiden üretilen dosyanın içinde prelude'dakini gölgeliyor ve o modüldeki her tanımlayıcıyı bozuyordu; 0.1.60'tan beri bu tanım, tipi adlandıran satırda <code>E0110</code> hatasıdır; böylece üretilmiş kod hakkında bir <code>tsc</code> hatası okumak yerine sorunun nerede olduğunu öğrenirsiniz.</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

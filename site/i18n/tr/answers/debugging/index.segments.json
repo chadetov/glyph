@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/debugging/index.html",
   "locale": "tr",
-  "source_hash": "23c0350a6befa9fd",
+  "source_hash": "4049ecaf7d564dbf",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,76 @@
       "tr": "Sahibi olduğunuz okunabilir TypeScript ve üretilen her dosyanın yanında <strong><code>.glyph</code> dosyanıza geri götüren bir source map</strong>. Bir debugger, bir bundler ya da bir hata takip aracı çalışan kodu kaynağınıza kadar izler ve Glyph'i hiç görmemiş biri bile üretilen TS'i okuyabilir. Bunların hepsinden önce, <code>glyph build</code> ve <code>glyph run</code> aynı ağaç üzerinde aynı diagnostic'leri bildirir; böylece hızlı döngü, build'in yakalayacağı bir şeyi gizleyemez. İkisi de <code>glyph run</code> yolunda olan iki sınırlama aşağıda belirtiliyor."
     },
     {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-6cd9ee03",
+      "kind": "html",
+      "en": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Readable TypeScript</a>",
+      "tr": "<a href=\"#1-the-generated-typescript-is-yours-to-read\">Okunabilir TypeScript</a>"
+    },
+    {
+      "id": "h-646a3fde",
+      "kind": "html",
+      "en": "<a href=\"#2-source-maps-back-to-glyph\">Source maps</a>",
+      "tr": "<a href=\"#2-source-maps-back-to-glyph\">Source map'ler</a>"
+    },
+    {
+      "id": "h-7efdc0b7",
+      "kind": "html",
+      "en": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build and type errors</a>",
+      "tr": "<a href=\"#3-build-and-type-errors-already-point-at-glyph\">Build ve tip hataları</a>"
+    },
+    {
+      "id": "h-0e83535a",
+      "kind": "html",
+      "en": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run diagnostics</a>",
+      "tr": "<a href=\"#4-glyph-run-tells-you-the-same-things\">glyph run diagnostic'leri</a>"
+    },
+    {
+      "id": "h-1d802df0",
+      "kind": "html",
+      "en": "<a href=\"#two-current-limitations\">Two limitations</a>",
+      "tr": "<a href=\"#two-current-limitations\">İki sınırlama</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
       "id": "h-ddc2261b",
       "kind": "html",
       "en": "1 &middot; The generated TypeScript is yours to read",
       "tr": "1 &middot; Üretilen TypeScript'i okumak sizin elinizde"
     },
     {
-      "id": "h-d332c631",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-14b544d0",
       "kind": "html",
-      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS. So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
-      "tr": "Glyph opak bir çalışma zamanı ile gelmez. Diğer TS'ler gibi commit edip deploy ettiğiniz sıradan, biçimlendirilmiş TypeScript üretir. Yani en kötü durumda bile (Glyph bilmeyen bir nöbetçi mühendis, gece 3'te) okunan şey bir lehçe değil, düz TypeScript'tir. Kaynağınızla production arasında bir kara kutu yoktur."
+      "en": "Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you commit and deploy like any other TS.",
+      "tr": "Glyph opak bir çalışma zamanı ile gelmez. Diğer TS'ler gibi commit edip deploy ettiğiniz sıradan, biçimlendirilmiş TypeScript üretir."
+    },
+    {
+      "id": "h-5e597c9e",
+      "kind": "html",
+      "en": "So the worst case (an on-call engineer who doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's no black box between your source and production.",
+      "tr": "Yani en kötü durumda bile (Glyph bilmeyen bir nöbetçi mühendis, gece 3'te) okunan şey bir lehçe değil, düz TypeScript'tir. Kaynağınızla production arasında bir kara kutu yoktur."
     },
     {
       "id": "h-a717c0e5",
@@ -77,10 +137,10 @@
       "tr": "2 &middot; <code>.glyph</code>'e geri götüren source map'ler"
     },
     {
-      "id": "h-8bb7e6b3",
+      "id": "h-4d19e462",
       "kind": "html",
-      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
-      "tr": "Üretilen her <code>.ts</code>, yanında standart bir v3 source map (<code>.ts.map</code>) ile gelir; bir <code>sourceMappingURL</code> yorumu içerir ve Glyph kaynağınız gömülüdür (<code>sourcesContent</code>). Source map kullanan her şey (Chrome DevTools, bir Node debugger'ı, Sentry gibi bir hata takip aracı, bundler'ınız) zinciri takip edip size üretilen satırı değil, <code>.glyph</code> satırını gösterebilir."
+      "en": "Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded (<code>sourcesContent</code>).",
+      "tr": "Üretilen her <code>.ts</code>, yanında standart bir v3 source map (<code>.ts.map</code>) ile gelir; bir <code>sourceMappingURL</code> yorumu içerir ve Glyph kaynağınız gömülüdür (<code>sourcesContent</code>)."
     },
     {
       "id": "h-8723e53b",
@@ -89,16 +149,40 @@
       "tr": "dist/main.ts (son kısım)"
     },
     {
+      "id": "h-bbc36693",
+      "kind": "html",
+      "en": "Anything that consumes source maps (Chrome DevTools, a Node debugger, an error tracker like Sentry, your bundler) can chain through it and show you the <code>.glyph</code> line, not the generated one.",
+      "tr": "Source map kullanan her şey (Chrome DevTools, bir Node debugger'ı, Sentry gibi bir hata takip aracı, bundler'ınız) zinciri takip edip size üretilen satırı değil, <code>.glyph</code> satırını gösterebilir."
+    },
+    {
       "id": "h-00ec273b",
       "kind": "html",
       "en": "3 &middot; Build and type errors already point at Glyph",
       "tr": "3 &middot; Build ve tip hataları zaten Glyph'i gösteriyor"
     },
     {
-      "id": "h-a164aaf9",
+      "id": "h-094ec3e0",
       "kind": "html",
-      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved). The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it. And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
-      "tr": "Production'a bir tip hatasıyla nadiren ulaşırsınız, çünkü <code>glyph build</code>, <code>tsc --strict</code> çalıştırır ve <strong>her <code>tsc</code> hatasını <code>.glyph</code> kaynağınıza geri eşler</strong> (aynı işaretçi, TypeScript hata kodu korunur). İşaretçi, kodunu <code>tsc</code>'nin reddettiği en küçük Glyph ifadesinin altına konur: yanlış bir argüman o argümanın, bir JSX event handler'ı içindeki yanlış yazılmış bir alan ise etrafındaki tüm <code>return</code>'ün değil, o üye erişiminin altını çizer. <code>glyph build --json</code> ise CI'ınızın ya da araçlarınızın kullanması için her diagnostic'i yapılandırılmış JSON olarak (kod, önem derecesi, dosya, 1 tabanlı satır/sütun, yardım) üretir."
+      "en": "You rarely get to production with a type error, because <code>glyph build</code> runs <code>tsc --strict</code> and maps every <code>tsc</code> error back onto your <code>.glyph</code> source (same caret, the TypeScript error code preserved).",
+      "tr": "Production'a bir tip hatasıyla nadiren ulaşırsınız, çünkü <code>glyph build</code>, <code>tsc --strict</code> çalıştırır ve her <code>tsc</code> hatasını <code>.glyph</code> kaynağınıza geri eşler (aynı işaretçi, TypeScript hata kodu korunur)."
+    },
+    {
+      "id": "h-e0892f4d",
+      "kind": "html",
+      "en": "And <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity, file, 1-based line/col, help) for your CI or tooling to act on.",
+      "tr": "<code>glyph build --json</code> ise CI'ınızın ya da araçlarınızın kullanması için her diagnostic'i yapılandırılmış JSON olarak (kod, önem derecesi, dosya, 1 tabanlı satır/sütun, yardım) üretir."
+    },
+    {
+      "id": "h-d5fb5419",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">where the caret lands</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">işaretçinin nereye konduğu</span>"
+    },
+    {
+      "id": "h-82bd0b54",
+      "kind": "html",
+      "en": "The caret goes on the smallest Glyph expression whose code <code>tsc</code> rejected: a wrong argument underlines that argument, a misspelt field inside a JSX event handler underlines that member access, not the whole <code>return</code> around it.",
+      "tr": "İşaretçi, kodunu <code>tsc</code>'nin reddettiği en küçük Glyph ifadesinin altına konur: yanlış bir argüman o argümanın, bir JSX event handler'ı içindeki yanlış yazılmış bir alan ise etrafındaki tüm <code>return</code>'ün değil, o üye erişiminin altını çizer."
     },
     {
       "id": "h-e0bf31b5",
@@ -107,10 +191,10 @@
       "tr": "4 &middot; <code>glyph run</code> size aynı şeyleri söyler"
     },
     {
-      "id": "h-52859b2b",
+      "id": "h-205f9330",
       "kind": "html",
-      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count. The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
-      "tr": "Gün boyu yazdığınız komut <code>glyph run</code>'dır ve 0.1.40'a kadar build'den daha sessizdi. Tüm dizini derliyor, rapordan üretilen dosyaların listesini alıyor ve diagnostic'leri atıyordu. <code>glyph build</code>'in hata bildirdiği bir ağaç temiz çalışıp 0 ile çıkıyordu. Artık aynı kümeyi bildiriyor: uyarılar dahil, adını verdiğiniz dosyada ve kardeş dosyalarında, programın çıktısından sonra, tek satırlık bir sayımla. Çalıştırma önbelleği bunları taşır; böylece değişmemiş kaynakların ikinci çalıştırması susmak yerine ilkinin söylediğini söyler ve diagnostic'leri eksik olan bir önbellek girdisi ıskalama sayılıp yeniden build edilir."
+      "en": "The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter than the build. Now it reports the same set: warnings included, on the file you named and on its siblings, after the program's output, with a one-line count.",
+      "tr": "Gün boyu yazdığınız komut <code>glyph run</code>'dır ve 0.1.40'a kadar build'den daha sessizdi. Artık aynı kümeyi bildiriyor: uyarılar dahil, adını verdiğiniz dosyada ve kardeş dosyalarında, programın çıktısından sonra, tek satırlık bir sayımla."
     },
     {
       "id": "h-136e8e91",
@@ -119,22 +203,64 @@
       "tr": "kullanılmayan bir import, onu kullanacak koddan bir adım önce eklenmiş"
     },
     {
+      "id": "h-6172ffe9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the run cache</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">çalıştırma önbelleği</span>"
+    },
+    {
+      "id": "h-f83bcf81",
+      "kind": "html",
+      "en": "The run cache carries them, so a second run of unchanged sources says what the first one said rather than falling silent, and a cache entry whose diagnostics are missing counts as a miss and rebuilds.",
+      "tr": "Çalıştırma önbelleği bunları taşır; böylece değişmemiş kaynakların ikinci çalıştırması susmak yerine ilkinin söylediğini söyler ve diagnostic'leri eksik olan bir önbellek girdisi ıskalama sayılıp yeniden build edilir."
+    },
+    {
+      "id": "h-c498308c",
+      "kind": "html",
+      "en": "History <span class=\"hint\">before 0.1.40</span>",
+      "tr": "Geçmiş <span class=\"hint\">0.1.40 öncesi</span>"
+    },
+    {
+      "id": "h-8906eaf7",
+      "kind": "html",
+      "en": "It compiled the whole directory, took the list of emitted files out of the report, and threw the diagnostics away. A tree that <code>glyph build</code> called out would run clean and exit 0.",
+      "tr": "Tüm dizini derliyor, rapordan üretilen dosyaların listesini alıyor ve diagnostic'leri atıyordu. <code>glyph build</code>'in hata bildirdiği bir ağaç temiz çalışıp 0 ile çıkıyordu."
+    },
+    {
       "id": "h-4ffc5345",
       "kind": "html",
       "en": "Two current limitations",
       "tr": "Mevcut iki sınırlama"
     },
     {
-      "id": "h-2e9a04df",
+      "id": "h-afa28129",
       "kind": "html",
-      "en": "<strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
-      "tr": "<strong><code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satır numaralarını gösteriyor.</strong> <code>glyph run</code>, <code>tsx</code> üzerinden çalışır ve <code>tsx</code>, source map'i kendi <code>.ts</code>&rarr;<code>.js</code> dönüşümü boyunca zincirlemez; bu yüzden <code>glyph run</code> sırasında yakalanmayan bir exception üretilen satırı bildirir. Bu stack'i yeniden eşlemek sonraki bir iş. Yerel <code>run</code> döngüsü için önemli; gerçek bir deploy'da ise <code>.ts</code>'e <code>glyph build</code> yapar, normal araç zincirinizle paketlersiniz ve <code>.ts.map</code> her zamanki gibi zincirlenir; yani gerçekten alarm aldığınız production stack'i <code>.glyph</code>'e geri eşlenir."
+      "en": "<b><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line numbers.</b><code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code> doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform, so an uncaught throw during <code>glyph run</code> reports the generated line. Remapping that stack is a follow-up.",
+      "tr": "<b><code>glyph run</code>'ın kendi çökme stack'i hâlâ <code>.ts</code> satır numaralarını gösteriyor.</b><code>glyph run</code>, <code>tsx</code> üzerinden çalışır ve <code>tsx</code>, source map'i kendi <code>.ts</code>&rarr;<code>.js</code> dönüşümü boyunca zincirlemez; bu yüzden <code>glyph run</code> sırasında yakalanmayan bir exception üretilen satırı bildirir. Bu stack'i yeniden eşlemek sonraki bir iş."
     },
     {
-      "id": "h-853b7c0e",
+      "id": "h-d5a381c9",
       "kind": "html",
-      "en": "<strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</strong> A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
-      "tr": "<strong>Kardeş bir modüldeki hata <code>glyph run</code>'ın çıkış kodunu değiştirmiyor.</strong> Derlenemeyen bir modül import edilemez ve onu hiç import etmeyen bir program yine de çalışır. Artık hatayı görüyorsunuz, ama süreç yine <code>main</code>'in döndürdüğü değerle çıkıyor. Sıfırdan farklı bir kodla çıkmasını sağlamak bugün sorunsuz çalışan ağaçları başarısız kılar; bu yüzden bu bir gözden kaçırma değil, açık bir karar. Çıkış kodunu ağacın sağlığının belirlemesini istiyorsanız, bunun yolu <code>glyph build</code>."
+      "en": "<b>An error in a sibling module doesn't change <code>glyph run</code>'s exit code.</b>A module that failed to compile is unavailable to import, and a program that never imported it runs anyway. You see the error now, but the process still exits with whatever <code>main</code> returned.",
+      "tr": "<b>Kardeş bir modüldeki hata <code>glyph run</code>'ın çıkış kodunu değiştirmiyor.</b>Derlenemeyen bir modül import edilemez ve onu hiç import etmeyen bir program yine de çalışır. Artık hatayı görüyorsunuz, ama süreç yine <code>main</code>'in döndürdüğü değerle çıkıyor."
+    },
+    {
+      "id": "h-4320ed23",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">production stacks, and why the exit code stays</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">production stack'leri ve çıkış kodunun neden aynı kaldığı</span>"
+    },
+    {
+      "id": "h-b248d268",
+      "kind": "html",
+      "en": "It matters for the local <code>run</code> loop; in a real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you actually page on maps back to <code>.glyph</code>.",
+      "tr": "Yerel <code>run</code> döngüsü için önemli; gerçek bir deploy'da ise <code>.ts</code>'e <code>glyph build</code> yapar, normal araç zincirinizle paketlersiniz ve <code>.ts.map</code> her zamanki gibi zincirlenir; yani gerçekten alarm aldığınız production stack'i <code>.glyph</code>'e geri eşlenir."
+    },
+    {
+      "id": "h-f778d0a9",
+      "kind": "html",
+      "en": "Making it exit non-zero would fail trees that run fine today, so it's an open decision rather than an oversight. If you want the tree's health to decide the exit code, that's <code>glyph build</code>.",
+      "tr": "Sıfırdan farklı bir kodla çıkmasını sağlamak bugün sorunsuz çalışan ağaçları başarısız kılar; bu yüzden bu bir gözden kaçırma değil, açık bir karar. Çıkış kodunu ağacın sağlığının belirlemesini istiyorsanız, bunun yolu <code>glyph build</code>."
     },
     {
       "id": "h-b55f380c",
@@ -149,10 +275,40 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-5da7231a",
+      "id": "h-35d5883f",
       "kind": "html",
-      "en": "Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
-      "tr": "Commit edilen okunabilir TS, dosya başına bir v3 <code>.ts.map</code>, <code>.glyph</code>'e yeniden eşlenen <code>tsc</code> hataları ve <code>--json</code> diagnostic'leri. <code>glyph run</code>, sıcak önbellek dahil, <code>glyph build</code>'in bildirdiklerini bildirir. Deploy araç zincirinizin source map zinciri <code>.glyph</code>'e ulaşır."
+      "en": "Readable committed TS.",
+      "tr": "Commit edilen okunabilir TS."
+    },
+    {
+      "id": "h-a999d756",
+      "kind": "html",
+      "en": "A v3 <code>.ts.map</code> per file.",
+      "tr": "Dosya başına bir v3 <code>.ts.map</code>."
+    },
+    {
+      "id": "h-b02dde54",
+      "kind": "html",
+      "en": "<code>tsc</code> errors remapped onto <code>.glyph</code>.",
+      "tr": "<code>.glyph</code>'e yeniden eşlenen <code>tsc</code> hataları."
+    },
+    {
+      "id": "h-73412889",
+      "kind": "html",
+      "en": "<code>--json</code> diagnostics.",
+      "tr": "<code>--json</code> diagnostic'leri."
+    },
+    {
+      "id": "h-957cf9ca",
+      "kind": "html",
+      "en": "<code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included.",
+      "tr": "<code>glyph run</code>, sıcak önbellek dahil, <code>glyph build</code>'in bildirdiklerini bildirir."
+    },
+    {
+      "id": "h-f523a3fc",
+      "kind": "html",
+      "en": "Your deploy toolchain's source-map chain reaches <code>.glyph</code>.",
+      "tr": "Deploy araç zincirinizin source map zinciri <code>.glyph</code>'e ulaşır."
     },
     {
       "id": "h-b63a305d",
@@ -161,10 +317,22 @@
       "tr": "Yolda olanlar"
     },
     {
-      "id": "h-bd6c0e1c",
+      "id": "h-d493c944",
       "kind": "html",
-      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.",
-      "tr": "<code>glyph run</code> çökme stack'inin kendisini yeniden eşlemek (böylece yerel çalıştırma döngüsü de <code>.glyph</code> frame'lerini gösterir), kardeş bir modülün hatasının <code>glyph run</code>'ın sıfırdan farklı bir kodla çıkmasına yol açıp açmaması gerektiğine dair bir karar ve LSP üzerinden daha zengin editör debug desteği."
+      "en": "Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too).",
+      "tr": "<code>glyph run</code> çökme stack'inin kendisini yeniden eşlemek (böylece yerel çalıştırma döngüsü de <code>.glyph</code> frame'lerini gösterir)."
+    },
+    {
+      "id": "h-eb0e2b45",
+      "kind": "html",
+      "en": "A decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero.",
+      "tr": "Kardeş bir modülün hatasının <code>glyph run</code>'ın sıfırdan farklı bir kodla çıkmasına yol açıp açmaması gerektiğine dair bir karar."
+    },
+    {
+      "id": "h-b5b5ebde",
+      "kind": "html",
+      "en": "Richer editor debugging via the LSP.",
+      "tr": "LSP üzerinden daha zengin editör debug desteği."
     }
   ]
 }

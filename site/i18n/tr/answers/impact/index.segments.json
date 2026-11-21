@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "tr",
-  "source_hash": "42e24af1156f67f1",
+  "source_hash": "430fde319321c2e5",
   "segments": [
     {
       "id": "title",
@@ -59,36 +59,6 @@
       "tr": "Altı düzenleme türü için evet. <code>glyph_impact</code>, değiştirmek üzere olduğunuz tanımı ve değişikliğin kendisini (yeniden adlandırma, bir variant'ı kaldırma, bir parametrenin tipini değiştirme, arity'sini değiştirme, silme) alır ve kapalı bir listeden <strong>her yer için tek bir hükümle</strong> yanıt verir; her birinin yanında neden başka bir hüküm değil de o hüküm olduğunun gerekçesi bulunur."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Neden önemli"
-    },
-    {
-      "id": "h-113a4126",
-      "kind": "html",
-      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward. Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
-      "tr": "Bir fonksiyonu yeniden adlandırırken, bir union'ı genişletirken ya da bir parametrenin kabul ettiği şeyi değiştirirken ya eski ismi grep'leyip her çağrıyı bulduğunuzu umarsınız ya da düzenlemeyi yapıp derleyicinin sonrasında söylediklerini okursunuz. İki yaklaşım da hangi yerlerin derlenmeye devam edip sessizce yanlış hâle geleceğini söylemez: catch-all arm'ı olan bir <code>match</code>, bir variant eklediğinizde başarısız olmaz, sadece yeni durumu kimsenin seçmediği bir yere yönlendirmeye başlar. O yer hiçbir build'de görünmez. <code>glyph_impact</code>, derleyicinin çalıştırdığı analizin aynısı üzerinden, düzenlemeden önce yanıt verir."
-    },
-    {
-      "id": "h-5a7866e7",
-      "kind": "html",
-      "en": "What comes back",
-      "tr": "Ne döner"
-    },
-    {
-      "id": "h-da22973a",
-      "kind": "html",
-      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one. The verdicts are closed and each means one thing: <code>WILL_FAIL</code> (the compiler can prove the site stops compiling), <code>ABSORBS</code> (it can prove the change is taken here silently), <code>SAFE</code> (it can prove the site stays correct), <code>UNDETERMINED</code> (it looked at this site and can't establish the consequence), and <code>NOT_INDEXED</code> (the question isn't askable for a site of this shape at all).",
-      "tr": "İstek, bir varlığı <code>module::name</code> kimliğiyle ve kapalı bir listeden bir değişiklikle adlandırır: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu. Hükümler kapalıdır ve her biri tek bir şey anlamına gelir: <code>WILL_FAIL</code> (derleyici yerin derlenmeyi bırakacağını kanıtlayabilir), <code>ABSORBS</code> (değişikliğin burada sessizce kabul edileceğini kanıtlayabilir), <code>SAFE</code> (yerin doğru kalacağını kanıtlayabilir), <code>UNDETERMINED</code> (bu yere baktı ve sonucu belirleyemiyor) ve <code>NOT_INDEXED</code> (bu biçimdeki bir yer için soru hiç sorulamıyor)."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Görün"
-    },
-    {
       "id": "h-86ba488a",
       "kind": "html",
       "en": "A module declares <code>label(s: string) -&gt; number</code>. Three callers reach it: one passes a string literal, one passes a value whose type is an alias for <code>string</code> imported from another module, and one reads <code>label</code> as a value and never calls it. Asking what <code>change_signature_type</code> does to each gets three different verdicts, because they're three different claims:",
@@ -107,10 +77,148 @@
       "tr": "sonuç, üç yere kısaltılmış"
     },
     {
-      "id": "h-cdf2b702",
+      "id": "h-a1dce1aa",
       "kind": "html",
-      "en": "Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label. This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
-      "tr": "Aynı düzenleme, üç yer, üç hüküm ve her birindeki <code>because</code>, bir kategori etiketi değil, derleyicinin ürettiği cümlenin ta kendisidir. Bu, derleyicinin bu değişiklik için kendi testini yansıtır (<code>glyph-cli/tests/agent_loop.rs</code> içindeki <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>): test düzenlemeyi sonradan yapar ve E0211'in tam olarak <code>WILL_FAIL</code>'in söylediği yerde ortaya çıktığını ve derleyicinin diğer ikisinde sessiz kaldığını kontrol eder."
+      "en": "<span>Same edit, three sites, three verdicts, and the <code>because</code> on each is the actual sentence the compiler produces, not a category label.</span>",
+      "tr": "<span>Aynı düzenleme, üç yer, üç hüküm ve her birindeki <code>because</code>, bir kategori etiketi değil, derleyicinin ürettiği cümlenin ta kendisidir.</span>"
+    },
+    {
+      "id": "h-7ff698cb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">the compiler test this mirrors</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">bunun yansıttığı derleyici testi</span>"
+    },
+    {
+      "id": "h-b0f93c00",
+      "kind": "html",
+      "en": "This mirrors the compiler's own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code> in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the compiler stays silent at the other two.",
+      "tr": "Bu, derleyicinin bu değişiklik için kendi testini yansıtır (<code>glyph-cli/tests/agent_loop.rs</code> içindeki <code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>): test düzenlemeyi sonradan yapar ve E0211'in tam olarak <code>WILL_FAIL</code>'in söylediği yerde ortaya çıktığını ve derleyicinin diğer ikisinde sessiz kaldığını kontrol eder."
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-f24c2350",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why it matters</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden önemli</a>"
+    },
+    {
+      "id": "h-227b0659",
+      "kind": "html",
+      "en": "<a href=\"#what-comes-back\">What comes back</a>",
+      "tr": "<a href=\"#what-comes-back\">Ne döner</a>"
+    },
+    {
+      "id": "h-682c9014",
+      "kind": "html",
+      "en": "<a href=\"#on-a-real-application\">On a real application</a>",
+      "tr": "<a href=\"#on-a-real-application\">Gerçek bir uygulamada</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-9e5268ec",
+      "kind": "html",
+      "en": "Renaming a function, widening a union, or changing what a parameter accepts, you either grep for the old name and hope you found every call, or you make the edit and read what the compiler says afterward.",
+      "tr": "Bir fonksiyonu yeniden adlandırırken, bir union'ı genişletirken ya da bir parametrenin kabul ettiği şeyi değiştirirken ya eski ismi grep'leyip her çağrıyı bulduğunuzu umarsınız ya da düzenlemeyi yapıp derleyicinin sonrasında söylediklerini okursunuz."
+    },
+    {
+      "id": "h-db276c0c",
+      "kind": "html",
+      "en": "Neither approach tells you which sites will keep compiling while quietly becoming wrong: a <code>match</code> with a catch-all arm doesn't fail when you add a variant, it just starts routing the new case somewhere nobody chose. That site never shows up in a build. <code>glyph_impact</code> answers before the edit, over the same analysis the compiler runs.",
+      "tr": "İki yaklaşım da hangi yerlerin derlenmeye devam edip sessizce yanlış hâle geleceğini söylemez: catch-all arm'ı olan bir <code>match</code>, bir variant eklediğinizde başarısız olmaz, sadece yeni durumu kimsenin seçmediği bir yere yönlendirmeye başlar. O yer hiçbir build'de görünmez. <code>glyph_impact</code>, derleyicinin çalıştırdığı analizin aynısı üzerinden, düzenlemeden önce yanıt verir."
+    },
+    {
+      "id": "h-5a7866e7",
+      "kind": "html",
+      "en": "What comes back",
+      "tr": "Ne döner"
+    },
+    {
+      "id": "h-af924ab7",
+      "kind": "html",
+      "en": "The request names an entity by its <code>module::name</code> identity and a change from a closed list: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. The verdicts are closed and each means one thing:",
+      "tr": "İstek, bir varlığı <code>module::name</code> kimliğiyle ve kapalı bir listeden bir değişiklikle adlandırır: <code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>. Hükümler kapalıdır ve her biri tek bir şey anlamına gelir:"
+    },
+    {
+      "id": "h-4a36f89d",
+      "kind": "html",
+      "en": "Verdict",
+      "tr": "Hüküm"
+    },
+    {
+      "id": "h-1f5d64b9",
+      "kind": "html",
+      "en": "Meaning",
+      "tr": "Anlamı"
+    },
+    {
+      "id": "h-7654985b",
+      "kind": "html",
+      "en": "the compiler can prove the site stops compiling",
+      "tr": "derleyici yerin derlenmeyi bırakacağını kanıtlayabilir"
+    },
+    {
+      "id": "h-2e902292",
+      "kind": "html",
+      "en": "it can prove the change is taken here silently",
+      "tr": "değişikliğin burada sessizce kabul edileceğini kanıtlayabilir"
+    },
+    {
+      "id": "h-1cbbbfa0",
+      "kind": "html",
+      "en": "it can prove the site stays correct",
+      "tr": "yerin doğru kalacağını kanıtlayabilir"
+    },
+    {
+      "id": "h-199ea864",
+      "kind": "html",
+      "en": "it looked at this site and can't establish the consequence",
+      "tr": "bu yere baktı ve sonucu belirleyemiyor"
+    },
+    {
+      "id": "h-4e74c295",
+      "kind": "html",
+      "en": "the question isn't askable for a site of this shape at all",
+      "tr": "bu biçimdeki bir yer için soru hiç sorulamıyor"
+    },
+    {
+      "id": "h-aec68efa",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why the change is required, and what each entry holds</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">değişikliğin neden zorunlu olduğu ve her kaydın ne tuttuğu</span>"
+    },
+    {
+      "id": "h-3b307258",
+      "kind": "html",
+      "en": "The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an <code>impact</code> list: one entry per site, each with the declaration it sits in, a <code>relation</code>, a <code>verdict</code>, a <code>because</code>, and the diagnostic code the compiler raises when there is exactly one.",
+      "tr": "Değişiklik zorunludur, çünkü bir hüküm bir düzenleme hakkında bir olgudur; hiçbir düzenleme belirtilmezse her yer bir sonuç olarak değil, çıplak bir referans olarak dönerdi. Yanıt varlığı, değişikliği ve bir <code>impact</code> listesini belirtir: her yer için bir kayıt; her birinde içinde bulunduğu tanım, bir <code>relation</code>, bir <code>verdict</code>, bir <code>because</code> ve tam olarak bir tane olduğunda derleyicinin üreteceği diagnostic kodu."
     },
     {
       "id": "h-ed0c982f",
@@ -119,10 +227,22 @@
       "tr": "Gerçek bir uygulamada"
     },
     {
-      "id": "h-0a557626",
+      "id": "h-34192c8e",
       "kind": "html",
-      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant. Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after. A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
-      "tr": "Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor. Variant gerçekten eklendiğinde derleyici tam olarak 8 <code>E0200</code> hatası bildirir, tam olarak tahmin edilen 8 yerde, ve 2 <code>ABSORBS</code> yerinde önce de sonra da hiçbir şey söylemez. Aynı uygulamada catch-all arm'lar için bir metin araması, yani araç olmadan yapacağınız şey, aynı 2 gerçek yeri 20 sonuç arasına gömülü olarak bulur (precision 0.10) ve başarısız olan 8 yer hakkında hiçbir şey söylemez, çünkü bir <code>match</code>'in hangi tipi incelediğine dair hiçbir fikri yoktur."
+      "en": "<code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository, has one tagged union, <code>Value</code>, with four variants today. Asking <code>glyph_impact</code> what adding a fifth (<code>Blob</code>) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant.",
+      "tr": "Bu depodaki on bir dosyalı bir CSV sorgu motoru olan <code>examples/apps/csvql</code>'in bugün dört variant'lı tek bir tagged union'ı var: <code>Value</code>. <code>glyph_impact</code>'e beşinci bir variant (<code>Blob</code>) eklemenin ne yapacağını sormak, 4 dosyada 10 match yeri bulur: 8'i derlemede başarısız olacak, 2'si ise yeni variant'ı sessizce kabul edecek bir catch-all arm'ı içeriyor."
+    },
+    {
+      "id": "h-57529b83",
+      "kind": "html",
+      "en": "<b>Checked by the build</b>Adding the variant for real, the compiler reports exactly 8 <code>E0200</code> failures, at exactly the 8 predicted sites, and says nothing at the 2 <code>ABSORBS</code> sites, before or after.",
+      "tr": "<b>Build ile doğrulandı</b>Variant gerçekten eklendiğinde derleyici tam olarak 8 <code>E0200</code> hatası bildirir, tam olarak tahmin edilen 8 yerde, ve 2 <code>ABSORBS</code> yerinde önce de sonra da hiçbir şey söylemez."
+    },
+    {
+      "id": "h-44f82082",
+      "kind": "html",
+      "en": "<b>A text search instead</b>A text search for catch-all arms across the same app, the thing you'd do without the tool, finds those same 2 real sites buried in 20 hits (precision 0.10), and says nothing at all about the 8 that fail, because it has no notion of which type a <code>match</code> scrutinizes.",
+      "tr": "<b>Bunun yerine bir metin araması</b>Aynı uygulamada catch-all arm'lar için bir metin araması, yani araç olmadan yapacağınız şey, aynı 2 gerçek yeri 20 sonuç arasına gömülü olarak bulur (precision 0.10) ve başarısız olan 8 yer hakkında hiçbir şey söylemez, çünkü bir <code>match</code>'in hangi tipi incelediğine dair hiçbir fikri yoktur."
     },
     {
       "id": "h-b55f380c",
@@ -137,10 +257,46 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-b902e12f",
+      "id": "h-0d0ff806",
       "kind": "html",
-      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code. <code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments. A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get. Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
-      "tr": "Altı kapalı değişiklik türü (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) ve beş kapalı hüküm; etkilenen her yer için gerekçesi ve diagnostic koduyla bir kayıt. <code>change_signature_type</code>, checker'ın kendi karşılaştırma kurallarına göre çağrı argümanı başına belirlenir ve bir yer, argümanlarının en zayıfı kadardır. Bir JSX elemanı indirgendiği çağrı olarak belirlenir: <code>&lt;Card title=\"x\" /&gt;</code>, <code>Card</code>'a geçirilen tek bir props record'udur ve her attribute, kontrol edildiği alana karşı, aynı tipteki bir çağrı argümanının alacağı hükümle listelenir. Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır."
+      "en": "Six closed change kinds (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) and five closed verdicts, one entry per affected site with its reason and diagnostic code.",
+      "tr": "Altı kapalı değişiklik türü (<code>add_variant</code>, <code>remove_variant</code>, <code>rename</code>, <code>change_arity</code>, <code>change_signature_type</code>, <code>remove</code>) ve beş kapalı hüküm; etkilenen her yer için gerekçesi ve diagnostic koduyla bir kayıt."
+    },
+    {
+      "id": "h-d3ea45aa",
+      "kind": "html",
+      "en": "<code>change_signature_type</code> is decided per call argument against the checker's own comparison rules, and a site is the weakest of its arguments.",
+      "tr": "<code>change_signature_type</code>, checker'ın kendi karşılaştırma kurallarına göre çağrı argümanı başına belirlenir ve bir yer, argümanlarının en zayıfı kadardır."
+    },
+    {
+      "id": "h-e6408624",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to",
+      "tr": "Bir JSX elemanı indirgendiği çağrı olarak belirlenir"
+    },
+    {
+      "id": "h-45989de4",
+      "kind": "html",
+      "en": "Details",
+      "tr": "Ayrıntılar"
+    },
+    {
+      "id": "h-28ce4e1d",
+      "kind": "html",
+      "en": "A JSX element is decided as the call it lowers to: <code>&lt;Card title=\"x\" /&gt;</code> is one props record passed to <code>Card</code>, and each attribute is listed against the field it is checked against, with the verdict a call argument of the same type would get.",
+      "tr": "Bir JSX elemanı indirgendiği çağrı olarak belirlenir: <code>&lt;Card title=\"x\" /&gt;</code>, <code>Card</code>'a geçirilen tek bir props record'udur ve her attribute, kontrol edildiği alana karşı, aynı tipteki bir çağrı argümanının alacağı hükümle listelenir."
+    },
+    {
+      "id": "h-25db2624",
+      "kind": "html",
+      "en": "Coverage is stated per search, and every node carries where it came from",
+      "tr": "Kapsam arama başına belirtilir ve her düğüm nereden geldiğini taşır"
+    },
+    {
+      "id": "h-bed94cd7",
+      "kind": "html",
+      "en": "Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.",
+      "tr": "Kapsam (bir aramanın neyi okuyup neyi okuyamadığı) tüm yanıt için bir kez değil, arama başına belirtilir ve her düğüm Glyph kaynağından mı, bir <code>extern_ts</code> kaçışından mı yoksa opak bir <code>.d.ts</code>'ten mi geldiğini taşır."
     },
     {
       "id": "h-c647197d",
@@ -149,10 +305,46 @@
       "tr": "Nerede duruyor"
     },
     {
-      "id": "h-42652a98",
+      "id": "h-6c7cfe36",
       "kind": "html",
-      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X. Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet. <code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there). <code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
-      "tr": "Derinlik bir adımda kesin, ötesinde boştur: Glyph bir tanımın tipini asla gövdesinden çıkarmaz, bu yüzden çağrılan bir fonksiyonun tipi çağıranın imzasına ulaşamaz ve X'teki bir değişiklik yalnızca X'i adlandıran ifadeleri geçersiz kılabilir. Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner, çünkü ikinci bir adımın ihtiyaç duyduğu şey birinin ilk yere yapacağı onarımdır ve o onarım henüz yoktur. <code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı). Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez."
+      "en": "Depth is exact at one hop and empty past it",
+      "tr": "Derinlik bir adımda kesin, ötesinde boştur"
+    },
+    {
+      "id": "h-c8aff8e3",
+      "kind": "html",
+      "en": "Depth is exact at one hop and empty past it: Glyph never infers a declaration's type from its body, so a callee's type can't reach a caller's signature, and a change to X can only invalidate expressions that name X.",
+      "tr": "Derinlik bir adımda kesin, ötesinde boştur: Glyph bir tanımın tipini asla gövdesinden çıkarmaz, bu yüzden çağrılan bir fonksiyonun tipi çağıranın imzasına ulaşamaz ve X'teki bir değişiklik yalnızca X'i adlandıran ifadeleri geçersiz kılabilir."
+    },
+    {
+      "id": "h-6fa44778",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead",
+      "tr": "Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner"
+    },
+    {
+      "id": "h-a7b177c5",
+      "kind": "html",
+      "en": "Ask for depth 2 and the answer comes back with <code>next_query</code> naming the exact question instead, because what a second hop needs is the repair someone gives the first site, and that repair doesn't exist yet.",
+      "tr": "Derinlik 2 isterseniz yanıt, bunun yerine tam soruyu adlandıran bir <code>next_query</code> ile döner, çünkü ikinci bir adımın ihtiyaç duyduğu şey birinin ilk yere yapacağı onarımdır ve o onarım henüz yoktur."
+    },
+    {
+      "id": "h-636febd9",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims",
+      "tr": "<code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır"
+    },
+    {
+      "id": "h-a63dd5a1",
+      "kind": "html",
+      "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
+      "tr": "<code>UNDETERMINED</code> ve <code>NOT_INDEXED</code> farklı iddialardır: checker'ın tipini bilmediği bir argüman ya da hiçbir kuralın okumadığı bir alanla eşleşen bir record <code>UNDETERMINED</code>'dır (baktı ve karar veremedi); çağrılmak yerine bir değer olarak okunan bir fonksiyon <code>NOT_INDEXED</code>'dır (soru orada hiç sorulamazdı)."
+    },
+    {
+      "id": "h-32f66691",
+      "kind": "html",
+      "en": "<code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.",
+      "tr": "Dikkat edilmesi gereken <code>ABSORBS</code>'tur: yer derlenmeye devam eder ve yine de yanlış olduğu kanıtlanır; yeşil bir build bunu size asla göstermez."
     }
   ]
 }

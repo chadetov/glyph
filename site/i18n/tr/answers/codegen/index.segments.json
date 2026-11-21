@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/codegen/index.html",
   "locale": "tr",
-  "source_hash": "6bd6413e23269b0f",
+  "source_hash": "1458da457ddd2481",
   "segments": [
     {
       "id": "title",
@@ -59,34 +59,118 @@
       "tr": "Evet. <code>glyph gen openapi</code>'yi bir OpenAPI spesifikasyonuna yönlendirin: <code>--client</code>, her işlem için bir fonksiyon olacak şekilde tipli bir HTTP istemcisi üretir; <code>--handlers</code> ise sunucu taslakları ve çalışan bir <code>route</code> dağıtıcısı üretir. Doğruluk kaynağınız bir <code>zod</code> şemasıysa, <code>glyph gen zod</code> aynısını yapar. Her şey, gizli bir kod üretim adımı olarak değil, sahibi olduğunuz ve düzenlediğiniz <strong>commit edilmiş, grep'lenebilen Glyph</strong> olarak çıkar."
     },
     {
+      "id": "h-48772a26",
+      "kind": "html",
+      "en": "<span>See it: the client. Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>.</span>",
+      "tr": "<span>Görün: istemci. Her işlem, tipli path parametreleri ve tipli bir istek gövdesi alan ve HTTP <code>Response</code>'u döndüren bir <code>async fn</code> olur.</span>"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "Bu sayfada"
+    },
+    {
+      "id": "h-58489e97",
+      "kind": "html",
+      "en": "<a href=\"#why-it-matters\">Why generate</a>",
+      "tr": "<a href=\"#why-it-matters\">Neden üretmeli</a>"
+    },
+    {
+      "id": "h-cbb668d9",
+      "kind": "html",
+      "en": "<a href=\"#the-handlers-router\">The server router</a>",
+      "tr": "<a href=\"#the-handlers-router\">Sunucu router'ı</a>"
+    },
+    {
+      "id": "h-e1eb6c30",
+      "kind": "html",
+      "en": "<a href=\"#from-a-zod-schema-instead\">From a zod schema</a>",
+      "tr": "<a href=\"#from-a-zod-schema-instead\">Bir zod şemasından</a>"
+    },
+    {
+      "id": "h-754db10a",
+      "kind": "html",
+      "en": "<a href=\"#what-it-maps\">What it maps</a>",
+      "tr": "<a href=\"#what-it-maps\">Neyi eşlediği</a>"
+    },
+    {
+      "id": "h-94b5051a",
+      "kind": "html",
+      "en": "<a href=\"#keeping-it-in-sync\">Keeping it in sync</a>",
+      "tr": "<a href=\"#keeping-it-in-sync\">Senkron tutmak</a>"
+    },
+    {
+      "id": "h-f4560333",
+      "kind": "html",
+      "en": "<a href=\"#where-it-stands\">Where it stands</a>",
+      "tr": "<a href=\"#where-it-stands\">Şu anki durum</a>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Neden önemli"
     },
     {
-      "id": "h-6e5bdb9e",
-      "kind": "html",
-      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
-      "tr": "Elle yazılmış API istemcileri ve DTO'ları spesifikasyondan sapar ve bu sapma kimsenin sevmediği bir bug sınıfıdır. Glyph <em>gerçek</em> kod (tipli fonksiyonlar, çalışma zamanı tanımlayıcıları olan gerçek <code>type</code> tanımları) ürettiği için doğruluk kaynağı spesifikasyon olarak kalır ve yeniden üretim bir kara kutu değil, idempotent ve incelenebilir bir diff'tir."
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
     },
     {
-      "id": "h-a484bd7e",
+      "id": "h-b56e391d",
       "kind": "html",
-      "en": "See it: the client",
-      "tr": "Görün: istemci"
+      "en": "Hand-written API clients and their DTOs drift from the spec, and the drift is a class of bug nobody enjoys.",
+      "tr": "Elle yazılmış API istemcileri ve DTO'ları spesifikasyondan sapar ve bu sapma kimsenin sevmediği bir bug sınıfıdır."
     },
     {
-      "id": "h-009373ae",
+      "id": "h-6b7dbfe2",
       "kind": "html",
-      "en": "Each operation becomes an <code>async fn</code> with typed path parameters and a typed request body, returning the HTTP <code>Response</code>:",
-      "tr": "Her işlem, tipli path parametreleri ve tipli bir istek gövdesi alan ve HTTP <code>Response</code>'u döndüren bir <code>async fn</code> olur:"
+      "en": "Because Glyph generates <em>real</em> code (typed functions, real <code>type</code> declarations with runtime descriptors), the spec stays the source of truth, and regeneration is an idempotent, reviewable diff, not a black box.",
+      "tr": "Glyph <em>gerçek</em> kod (tipli fonksiyonlar, çalışma zamanı tanımlayıcıları olan gerçek <code>type</code> tanımları) ürettiği için doğruluk kaynağı spesifikasyon olarak kalır ve yeniden üretim bir kara kutu değil, idempotent ve incelenebilir bir diff'tir."
     },
     {
-      "id": "h-e40c10b9",
+      "id": "h-b367bcb9",
       "kind": "html",
-      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
-      "tr": "<code>--handlers</code> router'ı path'i dizi pattern'leriyle eşleştirir; böylece <code>/tasks/{id}</code>, <code>[\"tasks\", id]</code> olur ve parametreyi sizin için bağlar. Her taslak, gövde parse işlemini gösteren bir yorumla <code>501</code> olarak başlar; onları doldurur ve <code>await serve(PORT, route)</code> ile bağlarsınız."
+      "en": "The <code>--handlers</code> router",
+      "tr": "<code>--handlers</code> router'ı"
+    },
+    {
+      "id": "h-284ded24",
+      "kind": "html",
+      "en": "The <code>--handlers</code> router matches the path with array patterns, so <code>/tasks/{id}</code> becomes <code>[\"tasks\", id]</code> and binds the parameter for you.",
+      "tr": "<code>--handlers</code> router'ı path'i dizi pattern'leriyle eşleştirir; böylece <code>/tasks/{id}</code>, <code>[\"tasks\", id]</code> olur ve parametreyi sizin için bağlar."
+    },
+    {
+      "id": "a-43688790",
+      "kind": "attr:aria-label",
+      "en": "How a path reaches a handler",
+      "tr": "Bir path'in bir handler'a nasıl ulaştığı"
+    },
+    {
+      "id": "h-0350fae7",
+      "kind": "html",
+      "en": "<span>[\"tasks\", id]</span>",
+      "tr": "<span>[\"tasks\", id]</span>"
+    },
+    {
+      "id": "h-5e8779d7",
+      "kind": "html",
+      "en": "<span>getTask(req, id)</span>",
+      "tr": "<span>getTask(req, id)</span>"
+    },
+    {
+      "id": "h-3c7f5f99",
+      "kind": "html",
+      "en": "Each stub starts as a <code>501</code> with a comment showing the body-parse; you fill them in and wire it up with <code>await serve(PORT, route)</code>.",
+      "tr": "Her taslak, gövde parse işlemini gösteren bir yorumla <code>501</code> olarak başlar; onları doldurur ve <code>await serve(PORT, route)</code> ile bağlarsınız."
     },
     {
       "id": "h-06875f94",
@@ -101,16 +185,52 @@
       "tr": "Ekibiniz yapıları zaten <code>zod</code> ile tanımlıyorsa, doğrudan onlardan üretin. Şema, kendi tanımlayıcısı olan birinci sınıf bir Glyph tipine dönüşür:"
     },
     {
-      "id": "h-e545951d",
+      "id": "h-a9d87f56",
       "kind": "html",
-      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant. Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
-      "tr": "Polimorfik bir <strong>discriminated union</strong> (bir OpenAPI <code>discriminator</code>'ı), gerçek bir Glyph tagged union'ı artı discriminator özelliğini okuyup doğru variant'a doğrulayan, üretilmiş bir <code>parse_&lt;Name&gt;</code> olarak çıkar. Glyph keyfi bir özellikle değil constructor adıyla etiketlediği için, üretilen dağıtıcı wire nesnesi ile union arasındaki köprüyü sizin için kurar."
+      "en": "What it maps",
+      "tr": "Neyi eşlediği"
     },
     {
-      "id": "h-b5ade80b",
+      "id": "h-ad738665",
       "kind": "html",
-      "en": "Where it falls short: generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields, and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
-      "tr": "Yetersiz kaldığı yerler: üretim wire formatına sadıktır, bu yüzden yaygın %80'i eşler: nesneler, ilkel tipler, diziler, referanslar, isteğe bağlı ve nullable alanlar ve discriminated union'lar. Tam olarak temsil edemediği şeyleri (bir string enum, discriminator'ı <em>olmayan</em> bir union), gerçek veriyi reddedecek bir validator yerine yazdırılan bir notla daraltır. Daha zengin enum'lar sırada. Araçların da gerçek bağımlılıkları var: <code>gen dts</code>/<code>gen zod</code>, Node artı <code>typescript</code>/<code>zod</code> gerektirir. <code>gen dts</code> herhangi bir TypeScript ile (5, 6 ya da 7.x native port) çalışır, önce projenizden çözümlenir ve eksikse tam olarak neyi kurmanız gerektiğini söylerler."
+      "en": "A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>) comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code> that reads the discriminator property and validates into the right variant.",
+      "tr": "Polimorfik bir <strong>discriminated union</strong> (bir OpenAPI <code>discriminator</code>'ı), gerçek bir Glyph tagged union'ı artı discriminator özelliğini okuyup doğru variant'a doğrulayan, üretilmiş bir <code>parse_&lt;Name&gt;</code> olarak çıkar."
+    },
+    {
+      "id": "h-aba52bb9",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">why a dispatcher is generated</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">neden bir dağıtıcı üretildiği</span>"
+    },
+    {
+      "id": "h-becb56b5",
+      "kind": "html",
+      "en": "Because Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges the wire object to the union for you.",
+      "tr": "Glyph keyfi bir özellikle değil constructor adıyla etiketlediği için, üretilen dağıtıcı wire nesnesi ile union arasındaki köprüyü sizin için kurar."
+    },
+    {
+      "id": "h-8cf0e63d",
+      "kind": "html",
+      "en": "Where it falls short",
+      "tr": "Yetersiz kaldığı yerler"
+    },
+    {
+      "id": "h-3721ff3d",
+      "kind": "html",
+      "en": "Generation is wire-faithful, so it maps the common 80%: objects, primitives, arrays, references, optional and nullable fields (kept apart: a nullable field becomes <code>Nullable&lt;T&gt;</code>, and a field the schema does not require gets <code>?</code>, which takes no <code>null</code>), and discriminated unions. It narrows what it can't represent exactly (a string enum, an <em>un</em>discriminated union) with a printed note rather than a validator that would reject real data. Richer enums are next.",
+      "tr": "Üretim wire formatına sadıktır, bu yüzden yaygın %80'i eşler: nesneler, ilkel tipler, diziler, referanslar, isteğe bağlı ve nullable alanlar (ayrı tutulur: nullable bir alan <code>Nullable&lt;T&gt;</code> olur, şemanın zorunlu tutmadığı bir alan ise <code>null</code> kabul etmeyen <code>?</code> alır) ve discriminated union'lar. Tam olarak temsil edemediği şeyleri (bir string enum, discriminator'ı <em>olmayan</em> bir union), gerçek veriyi reddedecek bir validator yerine yazdırılan bir notla daraltır. Daha zengin enum'lar sırada."
+    },
+    {
+      "id": "h-9bac82eb",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">what the generators need installed</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">üreticilerin kurulu olmasını istediği şeyler</span>"
+    },
+    {
+      "id": "h-48a2aab0",
+      "kind": "html",
+      "en": "And the tooling has real dependencies: <code>gen dts</code>/<code>gen zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your project first, and they tell you exactly what to install if it's missing.",
+      "tr": "Araçların da gerçek bağımlılıkları var: <code>gen dts</code>/<code>gen zod</code>, Node artı <code>typescript</code>/<code>zod</code> gerektirir. <code>gen dts</code> herhangi bir TypeScript ile (5, 6 ya da 7.x native port) çalışır, önce projenizden çözümlenir ve eksikse tam olarak neyi kurmanız gerektiğini söylerler."
     },
     {
       "id": "h-9d3f5fa1",
@@ -119,10 +239,16 @@
       "tr": "Senkron tutmak"
     },
     {
-      "id": "h-c8254899",
+      "id": "h-1cae4884",
       "kind": "html",
-      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
-      "tr": "Üretilen her dosya, kendisini üreten komutu başlığına kaydeder. Bir spesifikasyon değiştiğinde hangi komutları yeniden çalıştıracağınızı aramazsınız: <code>glyph regen</code> bu başlıkları tarar ve her birini yeniden çalıştırarak çıktıyı yeniden yazar. İdempotenttir, yani spesifikasyon değişmeden yapılan bir regen hiçbir şeye dokunmaz; commit edilmiş kod spesifikasyondan saptığında başarısız olan bir pre-commit hook'una ya da bir CI kontrolüne sorunsuzca eklenir."
+      "en": "Every generated file records the exact command that made it in its header. When a spec changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans for those headers and re-runs each one, rewriting the output.",
+      "tr": "Üretilen her dosya, kendisini üreten komutu başlığına kaydeder. Bir spesifikasyon değiştiğinde hangi komutları yeniden çalıştıracağınızı aramazsınız: <code>glyph regen</code> bu başlıkları tarar ve her birini yeniden çalıştırarak çıktıyı yeniden yazar."
+    },
+    {
+      "id": "h-a851399c",
+      "kind": "html",
+      "en": "It's idempotent, so a regen with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check that fails if the committed code has drifted from the spec.",
+      "tr": "İdempotenttir, yani spesifikasyon değişmeden yapılan bir regen hiçbir şeye dokunmaz; commit edilmiş kod spesifikasyondan saptığında başarısız olan bir pre-commit hook'una ya da bir CI kontrolüne sorunsuzca eklenir."
     },
     {
       "id": "h-b55f380c",
@@ -143,10 +269,16 @@
       "tr": "<code>glyph gen openapi</code> (tipler, <code>--client</code>, gerçek bir router ile <code>--handlers</code>), <code>glyph gen dts</code>, <code>glyph gen zod</code> ve hepsini kaynaktan yenilemek için <code>glyph regen</code>: her komut commit edilen, tanımlayıcı taşıyan, idempotent şekilde yeniden üretilen Glyph üretir."
     },
     {
-      "id": "h-d9d35e28",
+      "id": "h-e97a207e",
       "kind": "html",
-      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
-      "tr": "Tek bir Glyph adı altında yazılacak iki tip, derlenemeyecek bir dosya üretmek yerine üreticiyi durdurur: çakışan her kaynağı adıyla belirtir, hiçbir şey yazmaz ve <code>--rename Source=GlyphName</code> bunu çözer. Bu seçim üretilen başlığa kaydedilir, böylece <code>glyph regen</code> onu yeniden uygular."
+      "en": "Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it.",
+      "tr": "Tek bir Glyph adı altında yazılacak iki tip, derlenemeyecek bir dosya üretmek yerine üreticiyi durdurur: çakışan her kaynağı adıyla belirtir, hiçbir şey yazmaz ve <code>--rename Source=GlyphName</code> bunu çözer."
+    },
+    {
+      "id": "h-4a14a711",
+      "kind": "html",
+      "en": "That choice is recorded in the generated header, so <code>glyph regen</code> replays it.",
+      "tr": "Bu seçim üretilen başlığa kaydedilir, böylece <code>glyph regen</code> onu yeniden uygular."
     },
     {
       "id": "h-b63a305d",
@@ -155,10 +287,22 @@
       "tr": "Yolda olanlar"
     },
     {
-      "id": "h-a232f27a",
+      "id": "h-d6518625",
       "kind": "html",
-      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
-      "tr": "Daha zengin enum eşlemesi ve daha geniş OpenAPI kapsamı; her biri aynı \"wire formatına sadık kal, daraltınca not düş\" kuralıyla gelecek. Bir paketin kendi <code>.d.ts</code>'inden üretim, onun <code>interface</code> ve <code>type</code> tanımlarını okur; bu yüzden API'si class'lardan oluşan ya da alanlarında <code>Omit</code> gibi hesaplanmış tipler kullanan bir kütüphane, üreticinin bir notta adını verdiği ve <code>glyph build</code>'in çözümlenemedi olarak bildirdiği referanslar bırakır. Böyle bir class'ı import edip <code>new</code> ile oluşturmak üretim gerektirmez ve <code>tsc</code> tarafından kontrol edilir; yani o yol etkilenmez."
+      "en": "Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule.",
+      "tr": "Daha zengin enum eşlemesi ve daha geniş OpenAPI kapsamı; her biri aynı \"wire formatına sadık kal, daraltınca not düş\" kuralıyla gelecek."
+    },
+    {
+      "id": "h-006226eb",
+      "kind": "html",
+      "en": "Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved.",
+      "tr": "Bir paketin kendi <code>.d.ts</code>'inden üretim, onun <code>interface</code> ve <code>type</code> tanımlarını okur; bu yüzden API'si class'lardan oluşan ya da alanlarında <code>Omit</code> gibi hesaplanmış tipler kullanan bir kütüphane, üreticinin bir notta adını verdiği ve <code>glyph build</code>'in çözümlenemedi olarak bildirdiği referanslar bırakır."
+    },
+    {
+      "id": "h-aee5dd1d",
+      "kind": "html",
+      "en": "Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.",
+      "tr": "Böyle bir class'ı import edip <code>new</code> ile oluşturmak üretim gerektirmez ve <code>tsc</code> tarafından kontrol edilir; yani o yol etkilenmez."
     }
   ]
 }

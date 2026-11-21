@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.159</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.160</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -518,9 +518,9 @@
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release cadence and the Breaking marker<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link to this section">#</a></h2>
         <p>
           The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0
-          to 0.1.159, 158 in all, and 32 of them shipped between 1 Nov 2026 and 21 Nov 2026. A
+          to 0.1.160, 159 in all, and 33 of them shipped between 1 Nov 2026 and 21 Nov 2026. A
           release is marked Breaking when it rejects a program the previous version accepted,
-          which is how most correctness fixes land. 42 entries carry the marker. It is applied by
+          which is how most correctness fixes land. 43 entries carry the marker. It is applied by
           running the smallest affected program under both versions, not by reading the diff, and
           releases before 0.1.99 were not tested this way, so an unmarked old release is
           untested rather than safe.
@@ -531,12 +531,12 @@
           newest Breaking releases, quoted from their notes:
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.160">0.1.160</a>: &ldquo;Across the 394 example apps and standalone files, the only new diagnostic is on the catch case for this mistake.&rdquo;</li>
           <li><a href="/versions/2026-11/#0.1.159">0.1.159</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.158">0.1.158</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.157">0.1.157</a>: &ldquo;Writing this rule turned up a real bug in one of the example apps.&rdquo;</li>
           <li><a href="/versions/2026-11/#0.1.156">0.1.156</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.155">0.1.155</a>: The note does not say.</li>
-          <li><a href="/versions/2026-11/#0.1.154">0.1.154</a>: &ldquo;In the repository, two example apps did, and both were real bugs: the chat server's <code>main</code> started <code>daemon.serve(port)</code> and returned before the server bound, and the job queue's timer dropped each <code>drain</code>.&rdquo;</li>
         </ul>
 
         <p>

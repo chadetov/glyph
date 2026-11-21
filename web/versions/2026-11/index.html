@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>November 2026 releases · Glyph</title>
-    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.159, 32 releases, 28 breaking. Each one with its ship date and its notes." />
+    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.160, 33 releases, 29 breaking. Each one with its ship date and its notes." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/versions/" />
     <meta property="og:title" content="November 2026 releases" />
-    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.159, 32 releases, 28 breaking. Each one with its ship date and its notes." />
+    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.160, 33 releases, 29 breaking. Each one with its ship date and its notes." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.159</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.160</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 32 releases · 28 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 33 releases · 29 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,49 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">32 releases, 28 breaking, 0.1.128 to 0.1.159</p>
+        <p class="month-sum">33 releases, 29 breaking, 0.1.128 to 0.1.160</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.160" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.160</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.160" data-url="https://glyphlang.io/versions/2026-11/#0.1.160" aria-label="Link to 0.1.160">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">A call that changes an array is written as a mut statement</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>Glyph has always said that <code>grep -n "^\s*mut "</code> lists every change a program makes. That held for assignment and not for methods: <code>xs.push(4)</code> and <code>xs.sort(cmp)</code> compiled without <code>mut</code>, so a helper like this one reordered its caller's array and nothing in the source said so:</p>
+
+<pre><code><span class="k">fn</span> smallest(xs: <span class="t">Array</span>&lt;<span class="t">number</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">return</span> xs.sort(cmp)[<span class="n">0</span>]
+}</code></pre>
+
+            <p>Now the nine array methods that change the array in place (<code>push</code>, <code>pop</code>, <code>shift</code>, <code>unshift</code>, <code>splice</code>, <code>sort</code>, <code>reverse</code>, <code>fill</code>, <code>copyWithin</code>) may only stand as the whole call of a <code>mut</code> statement. Anywhere else the call is E0240, and the help is worked out from the call:</p>
+
+<pre class="wraps"><code><span class="e">[E0240]</span> <span class="q">`xs.sort(cmp)`</span> changes <span class="q">`xs`</span> in place, and its value is used here
+<span class="f">Help:</span> <span class="q">`array.sort(xs, cmp)`</span> returns a sorted copy and leaves <span class="q">`xs`</span> alone (with <span class="q">`import std/array`</span>)</code></pre>
+
+            <p>A bare statement such as <code>xs.push(4)</code> gets the help <code>write `mut xs.push(4)`</code>, and <code>glyph fix</code> inserts the <code>mut</code> for you. It only does that where the value has nowhere to go. The last expression of a function that returns a number is a value, so there the help says to write the statement and return explicitly, and <code>fix</code> leaves the file alone. The receiver has to be something <code>mut x = ...</code> could write to: a name, a field, an index. <code>mut make().push(1)</code> and <code>xs.filter(f).sort(cmp)</code> change an array nothing keeps, and are refused. A write through an optional field is spelled <code>mut s.opt?.push(1)</code>, and a deferred change goes in a small function that <code>defer</code> calls.</p>
+
+            <p>The opposite mistake is E0241: <code>mut</code> in front of a call that changes nothing. <code>mut xs.concat(ys)</code> looked like a write and threw away the new array; the help says <code>mut xs = xs.concat(...)</code>. The same goes for a function through a module, such as <code>mut array.push(xs, 1)</code>.</p>
+
+            <p>Which methods count is a column in the method table generated from TypeScript's library. It is classified by hand, since <code>lib.d.ts</code> has no marker for it, and two checks keep it honest: every method must be classified exactly once, and node calls each array method on a fresh array to confirm the split.</p>
+
+            <p>What the audit does not cover yet: calls on npm values and anything else Glyph's checker cannot type, where <code>mut</code> is allowed and not required, and the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code>, whose receivers the checker does not type yet. That last one is G423, scheduled next.</p>
+
+            <h4>Breaking</h4>
+            <p>A program that calls one of the nine methods outside a <code>mut</code> statement, or puts <code>mut</code> before a call that changes nothing, now fails to compile. The smallest such program, with <code>xs.push(4)</code>, <code>let n = xs.pop()</code> and the helper above, exits 0 under 0.1.159 and 1 under 0.1.160 with <code>check --no-tsc</code>. Across the 394 example apps and standalone files, the only new diagnostic is on the catch case for this mistake.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.159" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.159</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.159" data-url="https://glyphlang.io/versions/2026-11/#0.1.159" aria-label="Link to 0.1.159">Link</a>
@@ -479,7 +513,7 @@
             <time class="rel-date" datetime="2026-11-21">21 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.157" data-url="https://glyphlang.io/versions/2026-11/#0.1.157" aria-label="Link to 0.1.157">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">A value with no text form can't be turned into text by accident</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>Putting a record inside <code>${}</code> used to compile, and printed <code>[object Object]</code>. The same went for an <code>Option</code>, an array, or a function you forgot to call, and for joining any of them to a string with <code>+</code>. Now each of those is E0237:</p>
@@ -1397,7 +1431,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

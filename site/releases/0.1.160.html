@@ -1,0 +1,28 @@
+---
+version: 0.1.160
+month: 2026-11
+date: 2026-11-21
+tags: breaking
+headline: A call that changes an array is written as a mut statement
+---
+            <p>Glyph has always said that <code>grep -n "^\s*mut "</code> lists every change a program makes. That held for assignment and not for methods: <code>xs.push(4)</code> and <code>xs.sort(cmp)</code> compiled without <code>mut</code>, so a helper like this one reordered its caller's array and nothing in the source said so:</p>
+
+<pre><code>fn smallest(xs: Array&lt;number&gt;) -&gt; number {
+  return xs.sort(cmp)[0]
+}</code></pre>
+
+            <p>Now the nine array methods that change the array in place (<code>push</code>, <code>pop</code>, <code>shift</code>, <code>unshift</code>, <code>splice</code>, <code>sort</code>, <code>reverse</code>, <code>fill</code>, <code>copyWithin</code>) may only stand as the whole call of a <code>mut</code> statement. Anywhere else the call is E0240, and the help is worked out from the call:</p>
+
+<pre><code>[E0240] `xs.sort(cmp)` changes `xs` in place, and its value is used here
+Help: `array.sort(xs, cmp)` returns a sorted copy and leaves `xs` alone (with `import std/array`)</code></pre>
+
+            <p>A bare statement such as <code>xs.push(4)</code> gets the help <code>write `mut xs.push(4)`</code>, and <code>glyph fix</code> inserts the <code>mut</code> for you. It only does that where the value has nowhere to go. The last expression of a function that returns a number is a value, so there the help says to write the statement and return explicitly, and <code>fix</code> leaves the file alone. The receiver has to be something <code>mut x = ...</code> could write to: a name, a field, an index. <code>mut make().push(1)</code> and <code>xs.filter(f).sort(cmp)</code> change an array nothing keeps, and are refused. A write through an optional field is spelled <code>mut s.opt?.push(1)</code>, and a deferred change goes in a small function that <code>defer</code> calls.</p>
+
+            <p>The opposite mistake is E0241: <code>mut</code> in front of a call that changes nothing. <code>mut xs.concat(ys)</code> looked like a write and threw away the new array; the help says <code>mut xs = xs.concat(...)</code>. The same goes for a function through a module, such as <code>mut array.push(xs, 1)</code>.</p>
+
+            <p>Which methods count is a column in the method table generated from TypeScript's library. It is classified by hand, since <code>lib.d.ts</code> has no marker for it, and two checks keep it honest: every method must be classified exactly once, and node calls each array method on a fresh array to confirm the split.</p>
+
+            <p>What the audit does not cover yet: calls on npm values and anything else Glyph's checker cannot type, where <code>mut</code> is allowed and not required, and the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code>, whose receivers the checker does not type yet. That last one is G423, scheduled next.</p>
+
+            <h3>Breaking</h3>
+            <p>A program that calls one of the nine methods outside a <code>mut</code> statement, or puts <code>mut</code> before a call that changes nothing, now fails to compile. The smallest such program, with <code>xs.push(4)</code>, <code>let n = xs.pop()</code> and the helper above, exits 0 under 0.1.159 and 1 under 0.1.160 with <code>check --no-tsc</code>. Across the 394 example apps and standalone files, the only new diagnostic is on the catch case for this mistake.</p>

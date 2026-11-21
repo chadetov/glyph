@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="the-fixtures">Fixture'lar<a class="h-anchor" href="#the-fixtures" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> altındaki her dizin <code>ts.ts</code>, <code>glyph.glyph</code> ve her birinin ne yaptığını söyleyen bir <code>case.toml</code> içerir. <code>scripts/check_catches.py</code> CI'da çalışır. Her <code>ts.ts</code>'in <code>tsc --strict</code>'ten geçmesini şart koşar, çünkü derlenmeyen bir TypeScript programı hiçbir şey kanıtlamaz; Glyph tarafını ise vakanın türüne göre kontrol eder. Toplam 50 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 8 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak). Kontrolün baktığı türe göre:
+          <a href="https://github.com/chadetov/glyph/tree/main/catches">catches/</a> altındaki her dizin <code>ts.ts</code>, <code>glyph.glyph</code> ve her birinin ne yaptığını söyleyen bir <code>case.toml</code> içerir. <code>scripts/check_catches.py</code> CI'da çalışır. Her <code>ts.ts</code>'in <code>tsc --strict</code>'ten geçmesini şart koşar, çünkü derlenmeyen bir TypeScript programı hiçbir şey kanıtlamaz; Glyph tarafını ise vakanın türüne göre kontrol eder. Toplam 49 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 7 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak). Kontrolün baktığı türe göre:
         </p>
       </div>
 
@@ -442,7 +442,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">Build geçer ve o kodu bir uyarı olarak bildirir</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">Program çalışır ve sınırdaki kontrol hatalı veriyi bir <code>Err</code>'e dönüştürür</td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">Program derlenir, sonra çalışırken belirtilen çıktıyla durur</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">8</td><td data-label="What the gate requires of the Glyph">Glyph programı kabul eder ve program yanlış şeyi yapar. Açık kapandığında kontrol başarısız olur ve vakanın taşınmasını söyler</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">7</td><td data-label="What the gate requires of the Glyph">Glyph programı kabul eder ve program yanlış şeyi yapar. Açık kapandığında kontrol başarısız olur ve vakanın taşınmasını söyler</td></tr>
           </tbody>
         </table>
       </div>
@@ -536,7 +536,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">Henüz yakalamadıkları<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          8 <code>gap</code> vakası, her biri gap numarasıyla, <a href="/tr/catches/#not-yet">yakaladıkları sayfasında</a>. Glyph'te uygulama geliştirirken bulunan her gap, kayıt defterinde, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>'dedir; orada tek geçerli durum köşeli parantez içindeki işarettir (<code>[FIXED]</code>, <code>[HALF FIXED]</code> ya da açık olanlar için hiçbiri) ve <code>scripts/check_gaps.py</code>, açık bir girdi en son beş sürümden daha önce yeniden üretildiyse CI'ı başarısız kılar.
+          7 <code>gap</code> vakası, her biri gap numarasıyla, <a href="/tr/catches/#not-yet">yakaladıkları sayfasında</a>. Glyph'te uygulama geliştirirken bulunan her gap, kayıt defterinde, <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>'dedir; orada tek geçerli durum köşeli parantez içindeki işarettir (<code>[FIXED]</code>, <code>[HALF FIXED]</code> ya da açık olanlar için hiçbiri) ve <code>scripts/check_gaps.py</code>, açık bir girdi en son beş sürümden daha önce yeniden üretildiyse CI'ı başarısız kılar.
         </p>
 
         <h2 class="block-label" id="how-a-release-is-marked-breaking">Bir sürüm nasıl Breaking olarak işaretlenir<a class="h-anchor" href="#how-a-release-is-marked-breaking" aria-label="Bu bölümün bağlantısı">#</a></h2>

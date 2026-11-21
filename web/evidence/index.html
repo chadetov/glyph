@@ -443,7 +443,7 @@
           what each one does. <code>scripts/check_catches.py</code> runs in CI. It requires
           every <code>ts.ts</code> to pass <code>tsc --strict</code>, since a TypeScript program
           that doesn't compile proves nothing, and checks the Glyph half according to the case's
-          kind. There are 50 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 8 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). By the kind the gate checks:
+          kind. There are 49 checked cases: 37 TypeScript cases, 5 JavaScript traps that do not exist in Glyph, and 7 holes Glyph does not close yet. Glyph refuses 28 of them when you build (23 TypeScript cases and 5 traps). By the kind the gate checks:
         </p>
       </div>
 
@@ -457,7 +457,7 @@
             <tr><td data-label="Kind"><code>warned</code></td><td data-label="Cases">3</td><td data-label="What the gate requires of the Glyph">The build passes and reports that code as a warning</td></tr>
             <tr><td data-label="Kind"><code>boundary</code></td><td data-label="Cases">9</td><td data-label="What the gate requires of the Glyph">The program runs, and the check at the boundary turns the bad data into an <code>Err</code></td></tr>
             <tr><td data-label="Kind"><code>runtime</code></td><td data-label="Cases">2</td><td data-label="What the gate requires of the Glyph">The program builds, then stops when it runs, with the stated output</td></tr>
-            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">8</td><td data-label="What the gate requires of the Glyph">Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case</td></tr>
+            <tr><td data-label="Kind"><code>gap</code></td><td data-label="Cases">7</td><td data-label="What the gate requires of the Glyph">Glyph accepts the program and it does the wrong thing. When the hole closes, the gate fails and says to move the case</td></tr>
           </tbody>
         </table>
       </div>
@@ -572,7 +572,7 @@ glyph check: 1 <span class="e">error</span>(s) across 1 module(s)</pre>
 
         <h2 class="block-label" id="what-it-does-not-catch-yet">What it does not catch yet<a class="h-anchor" href="#what-it-does-not-catch-yet" aria-label="Link to this section">#</a></h2>
         <p>
-          The 8 <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
+          The 7 <code>gap</code> cases are on <a href="/catches/#not-yet">the catches page</a>,
           each with its gap number. Every gap found by building apps in Glyph is in the ledger,
           <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>,
           where a bracketed marker is the only live status (<code>[FIXED]</code>,

@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "done\nsaved a"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0211] Error: typecheck: `forEach` calls its callback without waiting, so each call of this `async fn` runs on its own and its errors are lost\nHelp: This function is not async, so it cannot wait. Make it `async fn` and write `for id in ids { await save(id) }`, or start each call on purpose with `fn(id: string) { task.detach(async fn() -> void { await save(id) }) }` (with `import std/task`)."
+  }
+}

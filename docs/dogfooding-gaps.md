@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-415 entries, 310 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-85 are open. G144, the D28 boundary cast that never reached the returns a
+416 entries, 310 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+86 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13589,14 +13589,21 @@ and is the owner's to confirm.
   its runtime is an object, and `${d}` prints `[object Object]`. The pending
   value moved to 0.1.156 (G384, E0238).
 
-  Fixed in 0.1.154 (D51, E0237). Text-like is an allowlist: `string`, a
+  Fixed in 0.1.157 (D5y, numbered at ship, and E0237), on top of Release A
+  (records 130 and 131). Text-like is an allowlist: `string`, a
   string-literal union, `number`, `int`, `bigint`, `bool`, an alias or `where`
   refinement of one, `never`, and an inline union of those (`string |
   number`). A `${}` in `"..."` or `"""..."""`, an operand of `+` beside a
   string, and the argument of `string.from` are refused with E0237 for
   anything else, so a `Ty` variant added later is refused by default. A value
   Glyph's checker types as its internal `Unknown` is not judged, and a test
-  pins that edge. The message and the help are computed from the program:
+  pins that edge; since Release A that includes a lambda parameter written
+  without an annotation, so `array.map(users, fn(p) -> string { return
+  "${p}" })` is accepted until G405 gives it its type from context. Record
+  130 (F2): `string.from` takes a declared `unknown`, the documented way to
+  read a failed task's error, while `${}` and `+` refuse one with help to
+  write `${string.from(v)}` or a `match` with `is string` and `is number`
+  arms; how an `unknown` renders is G409. The message and the help are computed from the program:
   ``E0237: `${user}` turns a `User` into text, and a record has no text form:
   it prints `[object Object]` `` with ``Interpolate a field, such as
   `${user.id}`.`` A test applies every help that carries a snippet to its
@@ -14139,3 +14146,18 @@ and is the owner's to confirm.
   diagnostics under `check --no-tsc`, because the arm does not narrow; a
   declared `m: Record<string, unknown>` read `m[k]` is E0224 on the same
   binary.*
+
+- **G409. How an `unknown` renders as text.** `string.from(v)` is `String(v)`,
+  so an `unknown` holding a record prints `[object Object]` and one holding an
+  `Error` prints `Error: message`. Record 130 (F2) let `string.from` take a
+  declared `unknown`, since it is the explicit renderer and the documented
+  way to read a failed task's error, and left this hole open: the decision is
+  how an `unknown` should render (an `Error` to its message, an object to
+  JSON), whether through `string.from` or a new function. Deferred. Changing
+  `string.from`'s runtime would also change the five apps that join an
+  `Issue.path` with it (G407).
+
+  *Reproduced against 0.1.153 (the Release B branch build): `string.from(v)`
+  on the `unknown` that `json.parse("{\"code\":7}")` returns reports no
+  diagnostics under `check --no-tsc`, and `glyph run` prints `error: [object
+  Object]`.*

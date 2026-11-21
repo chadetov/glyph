@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/ai-authoring/index.html",
   "locale": "tr",
-  "source_hash": "dc044819d67c5db7",
+  "source_hash": "7b8c6d4dac416f54",
   "segments": [
     {
       "id": "title",
@@ -59,40 +59,58 @@
       "tr": "Çoğunlukla evet. Glyph TypeScript gibi okunur: aynı temel ve generic tipler (<code>string</code>, <code>number</code>, <code>Array&lt;T&gt;</code>), ifadelerin çoğu aynı ve npm paketleri adıyla import edilir. TypeScript'in bir alt kümesi değildir: <code>match</code>, <code>Result</code> ve <code>fn name(x: T) -&gt; R</code> TypeScript'te olmayan sözdizimleridir; <code>if</code>, ternary ve cast'ler ise Glyph'te yoktur. Bir modelin zaten bildiklerinin çoğu aynen geçerlidir ve geçerli olmadığı yerleri derleyici adıyla söyler."
     },
     {
-      "id": "h-b8bda68d",
-      "kind": "html",
-      "en": "Why it matters",
-      "tr": "Neden önemli"
-    },
-    {
-      "id": "h-2eedace6",
-      "kind": "html",
-      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write. The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
-      "tr": "Bu, makul bir şüphecinin sorusu: bir LLM sonraki token'ı mevcut dillerdeki devasa kod yığınından tahmin eder, bu yüzden neredeyse hiç eğitim verisi olmayan bir dili yazmak zor olmalı. Yanıt yapısal: Glyph yabancı değil. TypeScript'e benziyor, yani model onun çoğunu zaten biliyor; farklar az, sayılabilir ve her biri sessizce geçmek yerine derleme sırasında <em>hemen</em> başarısız oluyor."
-    },
-    {
-      "id": "h-90eb7554",
-      "kind": "html",
-      "en": "See it",
-      "tr": "Görün"
-    },
-    {
-      "id": "h-6a89d489",
-      "kind": "html",
-      "en": "An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop:",
-      "tr": "Yanlış tahmin eden bir ajan o tahmini yayına çıkarmaz. Kesin, düzeltilebilir bir hata alır ve aynı döngüde düzeltir:"
-    },
-    {
       "id": "h-ae716631",
       "kind": "html",
       "en": "the correction loop, in one step",
       "tr": "düzeltme döngüsü, tek adımda"
     },
     {
-      "id": "h-b8bb97f4",
+      "id": "h-91359c50",
       "kind": "html",
-      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data. One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
-      "tr": "Hata Glyph yapısını adıyla belirtir ve biçimini gösterir; düzeltme tek bir düzenleme uzağındadır: kaynak kodu karıştırmak da tahmin yürütmek de gerekmez. Eksik eğitim verisini telafi eden bu sıkı döngüdür. Tek bir belge, <a href=\"/llms.txt\">llms.txt</a>, bir ajana program yapısını, standart kütüphaneyi ve düzeltmesiyle birlikte her diagnostic'i verir; <code>glyph llms</code> aynı referansı çevrimdışı yazdırır."
+      "en": "<span>An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop.</span>",
+      "tr": "<span>Yanlış tahmin eden bir ajan o tahmini yayına çıkarmaz. Kesin, düzeltilebilir bir hata alır ve aynı döngüde düzeltir.</span>"
+    },
+    {
+      "id": "h-b8bda68d",
+      "kind": "html",
+      "en": "Why it matters",
+      "tr": "Neden önemli"
+    },
+    {
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
+    },
+    {
+      "id": "h-7b90c2b8",
+      "kind": "html",
+      "en": "It's the fair skeptic's question: an LLM predicts the next token from the huge body of existing-language code, so a language with almost no training data should be hard to write.",
+      "tr": "Bu, makul bir şüphecinin sorusu: bir LLM sonraki token'ı mevcut dillerdeki devasa kod yığınından tahmin eder, bu yüzden neredeyse hiç eğitim verisi olmayan bir dili yazmak zor olmalı."
+    },
+    {
+      "id": "h-d9715266",
+      "kind": "html",
+      "en": "The answer is structural: Glyph isn't alien. It looks like TypeScript, so the model already knows most of it; the differences are few, enumerable, and each one fails <em>fast</em> at compile time rather than passing silently.",
+      "tr": "Yanıt yapısal: Glyph yabancı değil. TypeScript'e benziyor, yani model onun çoğunu zaten biliyor; farklar az, sayılabilir ve her biri sessizce geçmek yerine derleme sırasında <em>hemen</em> başarısız oluyor."
+    },
+    {
+      "id": "h-2f7de78a",
+      "kind": "html",
+      "en": "The fix is one edit away",
+      "tr": "Düzeltme tek bir düzenleme uzağında"
+    },
+    {
+      "id": "h-40153cf8",
+      "kind": "html",
+      "en": "The error names the Glyph construct and shows the shape, so the fix is one edit away: no source-diving, no guessing. That tight loop is what compensates for the missing training data.",
+      "tr": "Hata Glyph yapısını adıyla belirtir ve biçimini gösterir; düzeltme tek bir düzenleme uzağındadır: kaynak kodu karıştırmak da tahmin yürütmek de gerekmez. Eksik eğitim verisini telafi eden bu sıkı döngüdür."
+    },
+    {
+      "id": "h-28c79279",
+      "kind": "html",
+      "en": "One document, <a href=\"/llms.txt\">llms.txt</a>, gives an agent the program shape, the standard library and every diagnostic with its fix, and <code>glyph llms</code> prints the same reference offline.",
+      "tr": "Tek bir belge, <a href=\"/llms.txt\">llms.txt</a>, bir ajana program yapısını, standart kütüphaneyi ve düzeltmesiyle birlikte her diagnostic'i verir; <code>glyph llms</code> aynı referansı çevrimdışı yazdırır."
     },
     {
       "id": "h-b55f380c",
@@ -107,10 +125,22 @@
       "tr": "Bugün yayında"
     },
     {
-      "id": "h-b8156a2d",
+      "id": "h-6e984118",
       "kind": "html",
-      "en": "A TypeScript-shaped syntax, errors with a stable code that name the fix, and <code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
-      "tr": "TypeScript'e benzeyen bir sözdizimi, düzeltmeyi adıyla söyleyen kararlı kodlu hatalar ve her ajan için tek referans belge olarak <code>llms.txt</code> / <code>glyph llms</code>."
+      "en": "A TypeScript-shaped syntax.",
+      "tr": "TypeScript'e benzeyen bir sözdizimi."
+    },
+    {
+      "id": "h-f92a0285",
+      "kind": "html",
+      "en": "Errors with a stable code that name the fix.",
+      "tr": "Düzeltmeyi adıyla söyleyen kararlı kodlu hatalar."
+    },
+    {
+      "id": "h-76133996",
+      "kind": "html",
+      "en": "<code>llms.txt</code> / <code>glyph llms</code> as one reference document for any agent.",
+      "tr": "Her ajan için tek referans belge olarak <code>llms.txt</code> / <code>glyph llms</code>."
     },
     {
       "id": "h-37be0e88",

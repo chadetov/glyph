@@ -1,7 +1,7 @@
 ---
 title: Glyph'i mevcut uygulamamın içinde benimseyebilir miyim? · Glyph
 description: Yeniden yazmak yok: uygulamayı TypeScript'te tutun, domain çekirdeğini Glyph'te yazın ve derlenmiş modülleri herhangi bir yerel dosya gibi import edin. Standart Vite ile çalışır.
-source_hash: 4dc0a3c1d0f26ab3
+source_hash: 407d584aaaf4d048
 prev: /answers/imports/ | &larr; Önceki | Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?
 next: /answers/typed-apis/ | Sonraki &rarr; | Her API için elle validator yazmam gerekiyor mu?
 ---
@@ -12,16 +12,7 @@ next: /answers/typed-apis/ | Sonraki &rarr; | Her API için elle validator yazma
         Yeniden yazmak yok. Uygulamayı TypeScript'te tutun ve yanlış yapmayı göze alamayacağınız kısmı (modeller, yetkiler, durum geçişleri, para hesapları) Glyph'te yazın. <code>glyph build</code>, uygulamanızın <strong>herhangi bir yerel dosya gibi</strong> import ettiği modüller üretir; bundler yapılandırması ya da path alias'ı gerekmez.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Çoğu ekip bir uygulamayı yeniden yazamaz ve bir uygulamanın çoğu kısmının Glyph'e ihtiyacı yoktur. İhtiyacı olan kısım domain çekirdeğidir: bir yapay zekâ ajanının önümüzdeki ay düzenleyeceği ve kimsenin sessizce yanlış olmasını istemediği kurallar. Bu çekirdeği Glyph'te tutmak, kapsamı tam <code>match</code>'i, cast'in olmamasını ve doğrulanmış sınırları tam da işe yaradıkları yerde verir; React component'leri, stiller ve altyapı ise düz TypeScript olarak kalır.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>Glyph kaynaklarından oluşan, uygulamanın içine derlenen ve arayüz tarafından import edilen tek bir dizin:</p>
-      </div>
-
+      <figure class="ak-hero" id="see-it">
       <div class="code">
         <span class="cap">Hibrit bir düzen: domain çekirdeği Glyph'te, geri kalan her şey TypeScript'te</span>
 <pre>src/
@@ -34,21 +25,41 @@ import { TaskCard, can_move } from "../generated/models";
 
 const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
       </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Glyph kaynaklarından oluşan, uygulamanın içine derlenen ve arayüz tarafından import edilen tek bir dizin.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Üretilen kodun ihtiyaç duyduğu her şey onunla birlikte gelir. Paketlenmiş standart kütüphane dahil import'lar relative'dir; bu yüzden projenizin <code>tsconfig.json</code>'una ve bundler'ına hiçbir şey eklemeniz gerekmez: standart bir Vite iskeleti çıktıyı olduğu gibi derler ve paketler, aynı dosyalar host projenin <code>tsc --strict</code>'inden de geçer. Uygulamanın import ettiklerini <code>pub</code> ile işaretleyin; bu işareti taşımayan bir tanım kendi modülüne özeldir. Bu bir varsayım değil: dışarıdan bir mühendis <a href="https://github.com/yildizadem/glyph-kanban">bu şekilde bir React Kanban panosu geliştirdi</a>; RBAC matrisi, analitik formülleri ve durum geçişleri, elle yazılmış bir React arayüzünün altında dört Glyph modülünde.
-        </p>
-      </div>
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Çoğu ekip bir uygulamayı yeniden yazamaz ve bir uygulamanın çoğu kısmının Glyph'e ihtiyacı yoktur. İhtiyacı olan kısım domain çekirdeğidir: bir yapay zekâ ajanının önümüzdeki ay düzenleyeceği ve kimsenin sessizce yanlış olmasını istemediği kurallar.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu çekirdeği Glyph'te tutmak, kapsamı tam <code>match</code>'i, cast'in olmamasını ve doğrulanmış sınırları tam da işe yaradıkları yerde verir; React component'leri, stiller ve altyapı ise düz TypeScript olarak kalır.</p></div>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p>Üretilen çıktı bir host projeye değiştirilmeden yerleşir: baştan sona relative belirteçler, kodun kendisinin taşıdığı prelude tipleri; standart bir Vite iskeletine, host <code>tsc --strict</code>'e, esbuild'e ve <code>tsx</code>'e karşı doğrulandı. <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deploy rehberi</a> hibrit düzeni anlatıyor.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Yolda olanlar</h3>
-          <p>Henüz watch modu yok: <code>.glyph</code> kaynaklarını düzenledikten sonra <code>glyph build</code>'i yeniden çalıştırın (<code>dev</code> script'inize bağlayın). <code>std/fs</code> ya da <code>std/net</code> kullanan modüller, Node'a dokunan her TypeScript gibi, host projede <code>@types/node</code> gerektirir.</p>
-        </div>
+      <h2 class="ak-h" id="nothing-to-add-in-the-host">Host projeye eklenecek bir şey yok<a class="ak-anchor" href="#nothing-to-add-in-the-host" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+          Üretilen kodun ihtiyaç duyduğu her şey onunla birlikte gelir.
+      </p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z"/></svg></span><b>Relative import'lar</b>Paketlenmiş standart kütüphane dahil import'lar relative'dir; bu yüzden projenizin <code>tsconfig.json</code>'una ve bundler'ına hiçbir şey eklemeniz gerekmez: standart bir Vite iskeleti çıktıyı olduğu gibi derler ve paketler, aynı dosyalar host projenin <code>tsc --strict</code>'inden de geçer.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>pub</code> export'ları</b>Uygulamanın import ettiklerini <code>pub</code> ile işaretleyin; bu işareti taşımayan bir tanım kendi modülüne özeldir.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bu bir varsayım değil: dışarıdan bir mühendis <a href="https://github.com/yildizadem/glyph-kanban">bu şekilde bir React Kanban panosu geliştirdi</a>; RBAC matrisi, analitik formülleri ve durum geçişleri, elle yazılmış bir React arayüzünün altında dört Glyph modülünde.</p></div>
+
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Üretilen çıktı bir host projeye değiştirilmeden yerleşir: baştan sona relative belirteçler, kodun kendisinin taşıdığı prelude tipleri.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Standart bir Vite iskeletine, host <code>tsc --strict</code>'e, esbuild'e ve <code>tsx</code>'e karşı doğrulandı.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">Deploy rehberi</a> hibrit düzeni anlatıyor.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Henüz watch modu yok: <code>.glyph</code> kaynaklarını düzenledikten sonra <code>glyph build</code>'i yeniden çalıştırın (<code>dev</code> script'inize bağlayın).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code> ya da <code>std/net</code> kullanan modüller, Node'a dokunan her TypeScript gibi, host projede <code>@types/node</code> gerektirir.</span></span></li>
+          </ul>
+        </section>
       </div>

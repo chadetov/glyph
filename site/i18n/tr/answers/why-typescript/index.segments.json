@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/why-typescript/index.html",
   "locale": "tr",
-  "source_hash": "9f7bf2e8baaad5d9",
+  "source_hash": "4df0de0ec8bd7ba2",
   "segments": [
     {
       "id": "title",
@@ -59,22 +59,34 @@
       "tr": "Çünkü TypeScript, ajanların zaten en çok kod yazdığı ve ekosisteminizin (npm, React, Node) bulunduğu yer. Glyph'in dosya dosya benimsenebilmesinin <strong>tek nedeni hedefinin TS olması</strong>."
     },
     {
+      "id": "h-2a66da79",
+      "kind": "html",
+      "en": "the same project: .glyph and .ts, side by side",
+      "tr": "aynı proje: .glyph ve .ts yan yana"
+    },
+    {
+      "id": "h-d0269c9c",
+      "kind": "html",
+      "en": "<span>Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly.</span>",
+      "tr": "<span>Glyph, zaten sahip olduğunuz <code>.ts</code> dosyalarının yanına yerleşir ve import'lar iki yönde de sorunsuz çalışır.</span>"
+    },
+    {
       "id": "h-b8bda68d",
       "kind": "html",
       "en": "Why it matters",
       "tr": "Neden önemli"
     },
     {
-      "id": "h-0a5dbd26",
-      "kind": "html",
-      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy. Glyph slots in beside the <code>.ts</code> files you already have, and both directions import cleanly:",
-      "tr": "Yeni bir dilin kaderi, sıfırdan yayına çıkmaya nasıl gittiğinize bağlıdır. TypeScript'e derlemek, kod tabanınızdan, bundler'ınızdan, test çalıştırıcınızdan ya da deploy sürecinizden hiç ayrılmamanız demektir. Glyph, zaten sahip olduğunuz <code>.ts</code> dosyalarının yanına yerleşir ve import'lar iki yönde de sorunsuz çalışır:"
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Bu bölüme bağlantı"
     },
     {
-      "id": "h-2a66da79",
+      "id": "h-5ee1e84f",
       "kind": "html",
-      "en": "the same project: .glyph and .ts, side by side",
-      "tr": "aynı proje: .glyph ve .ts yan yana"
+      "en": "A new language stands or falls on how you get from zero to shipping. Compiling to TypeScript means you never leave your codebase, your bundler, your test runner, or your deploy.",
+      "tr": "Yeni bir dilin kaderi, sıfırdan yayına çıkmaya nasıl gittiğinize bağlıdır. TypeScript'e derlemek, kod tabanınızdan, bundler'ınızdan, test çalıştırıcınızdan ya da deploy sürecinizden hiç ayrılmamanız demektir."
     },
     {
       "id": "h-4eb97fa1",
@@ -83,10 +95,22 @@
       "tr": "Go'yu bir TypeScript kod tabanına dosya dosya ekleyemezsiniz: farklı bir çalışma zamanı, farklı bir modül sistemi, farklı bir ekosistem. Hedefin TS olmasının nedeni bu tek gerçektir."
     },
     {
-      "id": "h-b0743097",
+      "id": "h-f9a17aa4",
       "kind": "html",
-      "en": "<strong>The fair point about Go:</strong> its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing. Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
-      "tr": "<strong>Go hakkında haklı bir nokta:</strong> küçük ve kararlı anahtar kelime yüzeyi, bir ajana yanılmak için daha az yol bırakır. Katılıyoruz: Glyph'in her şeyi yapmanın tek bir yolu olan, bilerek küçük tutulmuş bir çekirdeği korumasının nedeni de tam olarak bu. Go, doğrudan bir karşılaştırma için yoğunluk <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark'ımızda</a> yer alıyor."
+      "en": "The fair point about Go",
+      "tr": "Go hakkında haklı bir nokta"
+    },
+    {
+      "id": "h-dca0c488",
+      "kind": "html",
+      "en": "Its small, stable keyword surface gives an agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately small core with one way to do each thing.",
+      "tr": "Küçük ve kararlı anahtar kelime yüzeyi, bir ajana yanılmak için daha az yol bırakır. Katılıyoruz: Glyph'in her şeyi yapmanın tek bir yolu olan, bilerek küçük tutulmuş bir çekirdeği korumasının nedeni de tam olarak bu."
+    },
+    {
+      "id": "h-bbac4976",
+      "kind": "html",
+      "en": "Go is included in our density <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark</a> for a straight comparison.",
+      "tr": "Go, doğrudan bir karşılaştırma için yoğunluk <a href=\"https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md\">benchmark'ımızda</a> yer alıyor."
     },
     {
       "id": "h-b55f380c",
@@ -95,22 +119,34 @@
       "tr": "Şu anki durum"
     },
     {
-      "id": "h-c16590d1",
+      "id": "h-4f2da421",
       "kind": "html",
-      "en": "Shipping today",
-      "tr": "Bugün yayında"
+      "en": "Shipping today <span class=\"count\">3</span>",
+      "tr": "Bugün yayında <span class=\"count\">3</span>"
     },
     {
-      "id": "h-93871ba6",
+      "id": "h-12991ef7",
       "kind": "html",
-      "en": "Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.",
-      "tr": "Temiz TypeScript çıktısı, mevcut <code>.ts</code> dosyalarınızla iki yönlü import'lar ve Node'un ya da bir tarayıcı bundle'ının çalıştığı her yerde çalışan küçük bir çekirdek."
+      "en": "Clean TypeScript output.",
+      "tr": "Temiz TypeScript çıktısı."
     },
     {
-      "id": "h-0abde815",
+      "id": "h-a6b7a39e",
       "kind": "html",
-      "en": "Being measured",
-      "tr": "Ölçülüyor"
+      "en": "Bidirectional imports with your existing <code>.ts</code>.",
+      "tr": "Mevcut <code>.ts</code> dosyalarınızla iki yönlü import'lar."
+    },
+    {
+      "id": "h-4ec09cc2",
+      "kind": "html",
+      "en": "A small core that runs anywhere Node or a browser bundle does.",
+      "tr": "Node'un ya da bir tarayıcı bundle'ının çalıştığı her yerde çalışan küçük bir çekirdek."
+    },
+    {
+      "id": "h-a86ec4ab",
+      "kind": "html",
+      "en": "Being measured <span class=\"count\">1</span>",
+      "tr": "Ölçülüyor <span class=\"count\">1</span>"
     },
     {
       "id": "h-5cb4379c",

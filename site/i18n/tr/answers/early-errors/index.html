@@ -1,7 +1,7 @@
 ---
 title: Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor? · Glyph
 description: Glyph, async bir fn dışındaki await'i, değer üretmeyen bir match arm'ını ve eksik bir mut'u tsc'den önce, kuralı ve düzeltmesiyle birlikte kendi kaynak kodunuza göre bildirir.
-source_hash: 0f97abca4b650947
+source_hash: 9388fb478e6fc44c
 prev: /answers/tooling/ | &larr; Önceki | Editör, debug ve hata deneyimi nasıl?
 next: /answers/parse-errors/ | Sonraki &rarr; | Bir parse başarısız olduğunda nedenini öğrenebiliyor muyum?
 ---
@@ -12,23 +12,9 @@ next: /answers/parse-errors/ | Sonraki &rarr; | Bir parse başarısız olduğund
         Çünkü üretilen TypeScript'e göre verilen bir hata, sizin yazmadığınız kod hakkında bir hatadır. Glyph bunları kendi kaynak kodunuza göre, ihlal ettiğiniz kural ve onu düzelten düzenlemeyle birlikte bildirir.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Neden önemli</h2>
-        <p>
-          Glyph TypeScript'e derler ve ardından çıktının tip kontrolünü <code>tsc --strict</code> ile yapar; dolayısıyla Glyph'in modellemediği bir hata kaybolmaz. Bir aşama sonra, üretilen dosyanın terimleriyle ifade edilmiş olarak geri gelir: hiç yazmadığınız bir fonksiyondaki <code>await</code>'i gösteren bir <code>TS1308</code> ya da sizin yazmadığınız bir <code>switch</code> hakkında bir <code>TS2366</code>. Satır <code>.glyph</code> dosyanıza geri eşlenir, ama açıklama eşlenmez.
-        </p>
-        <p>
-          Derleyicinin öğretmeyi bıraktığı yer bu boşluktur. Bu yüzden Glyph'in kendi başına karar verebildiği her kural öne alınır: <code>async fn</code> dışındaki <code>await</code> (<code>E0222</code>), <code>match</code> bir değer olarak kullanılırken değer üretmeyen bir <code>match</code> arm'ı (<code>E0223</code>) ve <code>mut</code> olmadan yazılmış bir atama (<code>E0008</code>). Her biri kuralı adıyla söyler, arkasındaki kararı belirtir ve öncesini ve sonrasını gösterir.
-        </p>
-
-        <h2 class="block-label">Görün</h2>
-        <p>
-          Eskiden tamamen gözden kaçan, arm durumuydu. Arm konumundaki <code>{}</code> boş bir record değil, boş bir <em>blok</em>tur; bu yüzden arm çalışıyor ve hiçbir şey üretmiyordu:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">status.glyph: değer gereken bir konumda hiçbir şey üretmeyen bir arm</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code">
+          <span class="cap">status.glyph: değer gereken bir konumda hiçbir şey üretmeyen bir arm</span>
 <pre>fn label(s: Status) -&gt; string {
   let text = match s {
 <span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
@@ -37,27 +23,64 @@ next: /answers/parse-errors/ | Sonraki &rarr; | Bir parse başarısız olduğund
   }
   return text
 }</pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build</span>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph build</span>
 <pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
    ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
       only where the `match` is a statement.
    note: A value-position arm lowers to `case X: { break; }` when it yields
          nothing, so the value would be `undefined` at run time.</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Eskiden tamamen gözden kaçan, arm durumuydu. Arm konumundaki <code>{}</code> boş bir record değil, boş bir <em>blok</em>tur; bu yüzden arm çalışıyor ve hiçbir şey üretmiyordu.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Bundan önce, üretilen <code>switch</code> kendi case'lerinin dışına düşüyor ve tipi <code>string</code> derken <code>text</code> içinde <code>undefined</code> tutuluyordu. <code>tsc</code> bunun bazı biçimlerini yakalar, bazılarını kaçırır. Glyph artık konumun karar verilebilir olduğu her yerde buna karar veriyor: bir <code>let</code>, bir <code>mut</code>, bir <code>return</code> ya da dönüş tipi bildiren bir fonksiyonun son ifadesi. Bir deyim olarak kullanılan <code>match</code>, <code>X =&gt; {}</code>'yi bilinçli bir no-op olarak korur.
-        </p>
-        <p>
-          <code>await</code> da aynı adımı izliyor. Glyph'te kullanıcının gördüğü bir <code>Promise</code> yoktur: bir <code>async fn -&gt; T</code> beklenince bir <code>T</code> olur; dolayısıyla başka herhangi bir yerdeki <code>await</code>'in askıya alacağı bir şey yoktur. Bu eskiden üretilen dosyada <code>tsc</code>'nin <code>TS1308</code> hatasıydı. Artık <code>E0222</code> ve karar en içteki çevreleyen callable'a aittir; yani bir <code>async fn</code> içindeki senkron bir lambda kendi bağlamıdır, TypeScript'in kullandığı kuralın aynısı.
-        </p>
-      </div>
+      <nav class="ak-toc" aria-label="Bu sayfada">
+        <p>Bu sayfada</p>
+        <ol>
+          <li><a href="#why-it-matters">Neden önemli</a></li>
+          <li><a href="#value-arm">Değeri olmayan bir arm</a></li>
+          <li><a href="#await">async dışında await</a></li>
+          <li><a href="#missing-mut">Eksik bir mut</a></li>
+          <li><a href="#the-worse-case-when-tsc-is-happy-too">tsc de memnunken</a></li>
+          <li><a href="#a-wrong-message-is-worse-than-no-message">Yanlış bir mesaj</a></li>
+          <li><a href="#naming-the-rule-not-the-token">Token değil, kural</a></li>
+          <li><a href="#two-more-the-checker-took-over-in-0-1-121">0.1.121'de devralınanlar</a></li>
+          <li><a href="#and-three-more-since-0-1-133">0.1.133'ten beri</a></li>
+          <li><a href="#and-two-more-in-0-1-122">0.1.122'de</a></li>
+          <li><a href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">Literal tipler, 0.1.123</a></li>
+          <li><a href="#a-module-under-std-was-dead-code-with-no-diagnostic">std/ altında bir modül</a></li>
+          <li><a href="#nesting-limit">İç içelik sınırı</a></li>
+          <li><a href="#when-neither-compiler-is-wrong">İkisi de yanılmadığında</a></li>
+          <li><a href="#the-same-typo-two-answers">Aynı yazım hatası</a></li>
+          <li><a href="#where-it-stands">Şu anki durum</a></li>
+        </ol>
+      </nav>
 
-      <div class="code">
+      <h2 class="ak-h" id="why-it-matters">Neden önemli<a class="ak-anchor" href="#why-it-matters" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Glyph TypeScript'e derler ve ardından çıktının tip kontrolünü <code>tsc --strict</code> ile yapar; dolayısıyla Glyph'in modellemediği bir hata kaybolmaz. Bir aşama sonra, üretilen dosyanın terimleriyle ifade edilmiş olarak geri gelir: hiç yazmadığınız bir fonksiyondaki <code>await</code>'i gösteren bir <code>TS1308</code> ya da sizin yazmadığınız bir <code>switch</code> hakkında bir <code>TS2366</code>.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Satır <code>.glyph</code> dosyanıza geri eşlenir, ama açıklama eşlenmez. Derleyicinin öğretmeyi bıraktığı yer bu boşluktur.</p></div>
+      <p class="ak-lede">Bu yüzden Glyph'in kendi başına karar verebildiği her kural öne alınır:</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5V8l2.3 1.6"/></svg></span><b>E0222</b><code>async fn</code> dışındaki <code>await</code></li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="2.5" width="5" height="5" rx="1"/><rect x="9" y="2.5" width="5" height="5" rx="1"/><rect x="2" y="9.5" width="5" height="5" rx="1"/><rect x="9" y="9.5" width="5" height="5" rx="1"/></svg></span><b>E0223</b><code>match</code> bir değer olarak kullanılırken değer üretmeyen bir <code>match</code> arm'ı</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 13l.7-2.8 7-7 2.1 2.1-7 7z"/><path d="M9.3 4.6l2.1 2.1"/></svg></span><b>E0008</b>ve <code>mut</code> olmadan yazılmış bir atama</li>
+      </ul>
+      <p class="ak-lede">Her biri kuralı adıyla söyler, arkasındaki kararı belirtir ve öncesini ve sonrasını gösterir.</p>
+
+      <h2 class="ak-h" id="value-arm">Değer üretmeyen bir arm<a class="ak-anchor" href="#value-arm" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Bundan önce, üretilen <code>switch</code> kendi case'lerinin dışına düşüyor ve tipi <code>string</code> derken <code>text</code> içinde <code>undefined</code> tutuluyordu. <code>tsc</code> bunun bazı biçimlerini yakalar, bazılarını kaçırır.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Glyph artık konumun karar verilebilir olduğu her yerde buna karar veriyor: bir <code>let</code>, bir <code>mut</code>, bir <code>return</code> ya da dönüş tipi bildiren bir fonksiyonun son ifadesi. Bir deyim olarak kullanılan <code>match</code>, <code>X =&gt; {}</code>'yi bilinçli bir no-op olarak korur.</p></div>
+
+      <h2 class="ak-h" id="await">async fn dışında await<a class="ak-anchor" href="#await" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>await</code> da aynı adımı izliyor. Glyph'te kullanıcının gördüğü bir <code>Promise</code> yoktur: bir <code>async fn -&gt; T</code> beklenince bir <code>T</code> olur; dolayısıyla başka herhangi bir yerdeki <code>await</code>'in askıya alacağı bir şey yoktur.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build, `fn total() -&gt; number { return await fetch_count() }` üzerinde</span>
 <pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
    ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
@@ -66,27 +89,30 @@ next: /answers/parse-errors/ | Sonraki &rarr; | Bir parse başarısız olduğund
 <span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
 within async functions and at the top levels of modules.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">kararı hangi callable veriyor</span></summary><div class="body">
         <p>
-          Üçüncüsü, insanların ilk gün çiğnediği bir kural hakkında. Glyph her değişikliği işaretler; bu yüzden bir binding'i yeniden atamak <code>mut x = e</code>, yeni bir binding tanımlamak <code>let x = e</code> ile yazılır. Çıplak bir <code>x = e</code> eskiden "unexpected token: Equals" bildiriyordu; bu, kuralı değil bir karakteri adlandırır. Artık <code>E0008</code> ve <code>glyph --explain E0008</code> işaretin neden var olduğunu açıklıyor: bir değerin değiştiği her yer <code>mut</code> ile başlar, dolayısıyla <code>grep "mut total"</code> hepsini bulur.
+          Bu eskiden üretilen dosyada <code>tsc</code>'nin <code>TS1308</code> hatasıydı. Artık <code>E0222</code> ve karar en içteki çevreleyen callable'a aittir; yani bir <code>async fn</code> içindeki senkron bir lambda kendi bağlamıdır, TypeScript'in kullandığı kuralın aynısı.
         </p>
+      </div></details>
+
+      <h2 class="ak-h" id="missing-mut">mut olmadan bir atama<a class="ak-anchor" href="#missing-mut" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Üçüncüsü, insanların ilk gün çiğnediği bir kural hakkında. Glyph her değişikliği işaretler; bu yüzden bir binding'i yeniden atamak <code>mut x = e</code>, yeni bir binding tanımlamak <code>let x = e</code> ile yazılır.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0008</span><span class="chip code">E0302</span><span class="chip code">E0303</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Çıplak bir <code>x = e</code> eskiden "unexpected token: Equals" bildiriyordu; bu, kuralı değil bir karakteri adlandırır. Artık <code>E0008</code> ve <code>glyph --explain E0008</code> işaretin neden var olduğunu açıklıyor: bir değerin değiştiği her yer <code>mut</code> ile başlar, dolayısıyla <code>grep "mut total"</code> hepsini bulur.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>?</code> operatörü, E0302 ve E0303</span></summary><div class="body">
         <p>
           <code>?</code> operatörü de diğer yönden aynı muameleyi görüyor. <code>?</code>, içinde bulunduğu deyimden önce yerleştirilen bir binding artı erken bir <code>return</code>'e açılır; bu yüzden açılabileceği bir deyime ihtiyaç duyar. Bir <code>let</code>'te, bir <code>return</code>'de, bir argümanda ve artık bir <code>match</code> arm gövdesinde çalışır. Çalışamadığı yerde mesaj, operatörün implement edilmediğini iddia etmek yerine hangi konum olduğunu ve oradan nasıl binding'e çıkarılacağını söyler (<code>E0302</code> ve <code>E0303</code>).
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Daha kötü durum: tsc de memnunken</h2>
-        <p>
-          Yanlış yerdeki bir <code>tsc</code> hatası can sıkıcıdır. Başka bir şey ifade eden bir programda temiz geçen bir build ise asıl sorundur ve Glyph'te böyle bir durum vardı. Tanımladığınız her üst düzey isim, bir tagged union'ın variant constructor'ları dahil, üretilen modüle olduğu gibi girer; bu yüzden <code>Error</code> adlı bir variant, modülün üst düzeyinde <code>export function Error(...)</code> üretir. Derleyicinin bunun altına yazdığı <code>new Error(...)</code> ise sizin variant'ınızı çağırır.
-        </p>
-        <p>
-          <code>type Key = string | number</code> aynı kusurun daha masum görünen hâli. Glyph'te <code>A | B</code>, üyeleri variant <em>constructor</em>'ları olan bir tagged union tanımlar; dolayısıyla o satır <code>string</code> ve <code>number</code> adlı variant'lar tanımlar. Derleniyor, <code>tsc --strict</code>'ten geçiyor ve prelude'daki <code>number</code> namespace'ini gölgeleyen bir <code>export const number</code> üretiyordu. Daha sonraki bir <code>number.to_string</code> çağrısı başarısız olana kadar hiçbir şey başarısız olmuyordu.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-worse-case-when-tsc-is-happy-too">Daha kötü durum: tsc de memnunken<a class="ak-anchor" href="#the-worse-case-when-tsc-is-happy-too" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Yanlış yerdeki bir <code>tsc</code> hatası can sıkıcıdır. Başka bir şey ifade eden bir programda temiz geçen bir build ise asıl sorundur ve Glyph'te böyle bir durum vardı.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Tanımladığınız her üst düzey isim, bir tagged union'ın variant constructor'ları dahil, üretilen modüle olduğu gibi girer; bu yüzden <code>Error</code> adlı bir variant, modülün üst düzeyinde <code>export function Error(...)</code> üretir. Derleyicinin bunun altına yazdığı <code>new Error(...)</code> ise sizin variant'ınızı çağırır.</p></div>
+      <div class="code term">
         <span class="cap">glyph build, `Error` variant'ı olan bir union üzerinde</span>
 <pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
         references the JavaScript global `Error`, and this declaration would
@@ -100,51 +126,62 @@ within async functions and at the top levels of modules.</span></pre>
 <span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
 assignable to parameter of type ...</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0110</span><span class="chip code">E0111</span><span class="chip code">E0109</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>type Key = string | number</code>, korunan liste, E0111</span></summary><div class="body">
+        <p>
+          <code>type Key = string | number</code> aynı kusurun daha masum görünen hâli. Glyph'te <code>A | B</code>, üyeleri variant <em>constructor</em>'ları olan bir tagged union tanımlar; dolayısıyla o satır <code>string</code> ve <code>number</code> adlı variant'lar tanımlar. Derleniyor, <code>tsc --strict</code>'ten geçiyor ve prelude'daki <code>number</code> namespace'ini gölgeleyen bir <code>export const number</code> üretiyordu. Daha sonraki bir <code>number.to_string</code> çağrısı başarısız olana kadar hiçbir şey başarısız olmuyordu.
+        </p>
         <p>
           Span tanımın kendisidir; yeniden adlandırma da oraya yapılır. Korunan liste, JavaScript global'lerinin genel bir listesinden değil emitter'dan türetilir ve bir test emitter'ı grep'leyip eşleşen bir girdi olmadan yeni bir global referans ortaya çıktığında başarısız olur. Asıl önemli olan o test: <code>Number</code>, <code>int</code> çıkıp <code>Number.isInteger</code> üretmeye başlayana kadar zararsızdı ve bu sorunun bir sürüme ulaşmasının nedeni de buydu. <code>Date</code>, <code>Math</code> ve <code>JSON</code> serbest kalıyor, çünkü Glyph'in ürettiği hiçbir şey onlardan bahsetmiyor.
         </p>
         <p>
           İlkel tiplerden oluşan union durumu kendi kodunu alıyor, <code>E0111</code>, çünkü onu açıklamadan reddetmek hiçbir şey öğretmez. Satırın aslında neye parse edildiğini söyler, isimli variant'lara yönlendirir ve ham TypeScript union'ını istediğiniz sınır için <code>extern_ts("string | number")</code>'ı önerir. Glyph'in kullanmanıza izin vermediği her isim <code>docs/reference/reserved-words.md</code> içinde tablo hâlinde listelenir: 32 anahtar kelime, <code>E0109</code>'un arkasındaki 33 TypeScript ayrılmış kelimesi ve gölgeleme listesi, her biri ismin neden alınmış olduğuyla birlikte.
         </p>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Bunun neyi yapmadığını açıkça söylemek gerekir. Bir tipe ya da variant'a hâlâ <code>Error</code> adını veremezsiniz ve bu sorunu ortaya çıkaran spreadsheet uygulaması bu yüzden <code>Cellerr</code> adlı bir variant ile geliyor. Olmak istediği program hâlâ yazılamıyor; değişen şey, derleyicinin build'in yeşil geçip başka bir şey ifade etmesine izin vermek yerine bunu artık tanımın olduğu yerde söylemesi.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">isim neden basitçe kullanılabilir yapılmıyor</span></summary><div class="body">
         <p>
-          Bunun neyi yapmadığını açıkça söylemek gerekir. Bir tipe ya da variant'a hâlâ <code>Error</code> adını veremezsiniz ve bu sorunu ortaya çıkaran spreadsheet uygulaması bu yüzden <code>Cellerr</code> adlı bir variant ile geliyor. Olmak istediği program hâlâ yazılamıyor; değişen şey, derleyicinin build'in yeşil geçip başka bir şey ifade etmesine izin vermek yerine bunu artık tanımın olduğu yerde söylemesi. İsmi kullanılabilir yapmak, Glyph isimlerini TypeScript'e geçerken mangle etmek demektir; bu da bir stack trace'in, <code>dist/</code> üzerindeki bir <code>grep</code>'in ve elle yazılmış bir <code>extern/</code> shim'inin gördüğünü değiştirir, yani sessizce yapabileceğimiz bir yama değil.
+          İsmi kullanılabilir yapmak, Glyph isimlerini TypeScript'e geçerken mangle etmek demektir; bu da bir stack trace'in, <code>dist/</code> üzerindeki bir <code>grep</code>'in ve elle yazılmış bir <code>extern/</code> shim'inin gördüğünü değiştirir, yani sessizce yapabileceğimiz bir yama değil.
         </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Yanlış bir mesaj, hiç mesaj olmamasından kötüdür</h2>
-        <p>
-          Gölgeleme listesi, emitter'ın <em>değer</em> olarak yazdığı isimlerle başladı. Emitter'ın <em>tip</em> olarak yazdıkları eksikti ve bu, tüm bu sorunun en keskin hâlini ortaya çıkardı. Her descriptor'ın <code>parse</code>'ı <code>Result&lt;T, Issue[]&gt;</code> döndürür; dolayısıyla siz yazsanız da yazmasanız da üretilen modül <code>Issue</code> yazar. Kendi modülünüzde <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> tanımlayın, sizinki kazanır; üretilen <code>Issue</code> nesneleri sizinkinin hiç duymadığı bir <code>code</code> alanı taşır ve build, başka bir yeri gösteren bir span'de, üretilen kod hakkında bir <code>tsc</code> hatasıyla başarısız olur.
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, önce: bunlardan on beş tane, hiçbiri nedenin yakınında değil</span>
+      <h2 class="ak-h" id="a-wrong-message-is-worse-than-no-message">Yanlış bir mesaj, hiç mesaj olmamasından kötüdür<a class="ak-anchor" href="#a-wrong-message-is-worse-than-no-message" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Gölgeleme listesi, emitter'ın <em>değer</em> olarak yazdığı isimlerle başladı. Emitter'ın <em>tip</em> olarak yazdıkları eksikti ve bu, tüm bu sorunun en keskin hâlini ortaya çıkardı.
+      </p>
+      <div class="ak-compare">
+        <div class="ak-pane bad">
+          <div class="code term">
+            <span class="cap">glyph build, önce: bunlardan on beş tane, hiçbiri nedenin yakınında değil</span>
 <pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
 specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph build, şimdi</span>
+          </div>
+        </div>
+        <div class="ak-pane good">
+          <div class="code term">
+            <span class="cap">glyph build, şimdi</span>
 <pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
         references the Glyph prelude global `Issue`, and this declaration
         would shadow it</span>
    ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
       the rebinding.</pre>
+          </div>
+        </div>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>Issue</code> neden çakışıyor, bir de <code>Record</code></span></summary><div class="body">
+        <p>
+          Her descriptor'ın <code>parse</code>'ı <code>Result&lt;T, Issue[]&gt;</code> döndürür; dolayısıyla siz yazsanız da yazmasanız da üretilen modül <code>Issue</code> yazar. Kendi modülünüzde <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> tanımlayın, sizinki kazanır; üretilen <code>Issue</code> nesneleri sizinkinin hiç duymadığı bir <code>code</code> alanı taşır ve build, başka bir yeri gösteren bir span'de, üretilen kod hakkında bir <code>tsc</code> hatasıyla başarısız olur.
+        </p>
         <p>
           <code>Record</code> da aynı anda listeye katıldı; prelude isimleri yerine JavaScript global'leriyle birlikte kaydedildi, çünkü bir TypeScript built-in'i ve aksini iddia etmek mesajı ismin nereden geldiği konusunda yanlış yapardı. Emitter'ı grep'leyen kayma testi artık ambient tipleri de kapsıyor ve <code>Issue[]</code>'ı bir tip konumunda görmeyi öğrenmesi gerekti; bu sorunun bir sürüme ulaşmasının nedeni de buydu. <code>Schema</code>, <code>Component</code> ve <code>Option</code>, <code>Date</code>'i serbest bırakan aynı kural gereği yasal kalıyor: emitter onları yalnızca siz bir annotation'da yazdığınız için yazar; dolayısıyla birini tanımlamak hiçbir şeyi gölgelemez.
         </p>
-        <p>
-          Bu sınıftaki diğer örnek bir import'tu. Yerel bir import yolu, import eden dosyanın dizininden değil, build kökünden, yani <code>glyph build</code>'e verdiğiniz dizinden çözülür. Kapsayan bir ağacı build edin, <code>import catalog</code> hiçbir şey bulmaz ve şimdiye kadar bunu söyleyen bir şey yoktu. Tip unknown'a düşüyor, onun üzerindeki bir <code>match</code> eşleştirdiği variant'ları kaybediyordu ve sonuçta karşınıza her durumu kapsayan bir <code>match</code> üzerinde <code>E0218</code>, kapsamı eksik match, çıkıyordu. O mesajın istediğini yapmak, doğru koda ölü bir <code>else</code> arm'ı eklemek olurdu.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h3 class="ak-h3" id="wrong-cause-import">Bir match'i suçlayan bir import<a class="ak-anchor" href="#wrong-cause-import" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bu sınıftaki diğer örnek bir import'tu. Yerel bir import yolu, import eden dosyanın dizininden değil, build kökünden, yani <code>glyph build</code>'e verdiğiniz dizinden çözülür.
+      </p>
+      <div class="code term">
         <span class="cap">glyph build examples/apps, csvql/ içindeki `import catalog` üzerinde</span>
 <pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
         root `examples/apps`. There is a `csvql/catalog.glyph` under the
@@ -156,24 +193,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// before: no import diagnostic, then</span>
 <span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">eskiden ne bildiriyordu ve yanlış pozitiflerden nasıl kaçınıyor</span></summary><div class="body">
+        <p>
+          Kapsayan bir ağacı build edin, <code>import catalog</code> hiçbir şey bulmaz ve şimdiye kadar bunu söyleyen bir şey yoktu. Tip unknown'a düşüyor, onun üzerindeki bir <code>match</code> eşleştirdiği variant'ları kaybediyordu ve sonuçta karşınıza her durumu kapsayan bir <code>match</code> üzerinde <code>E0218</code>, kapsamı eksik match, çıkıyordu. O mesajın istediğini yapmak, doğru koda ölü bir <code>else</code> arm'ı eklemek olurdu.
+        </p>
         <p>
           Böyle bir kontrolün riski, sorunsuz şeyler için de tetiklenmesidir; her npm paketi için yanlış alarm veren bir import denetleyicisi, yerini aldığı sessizlikten daha kötüdür. Bu yüzden build önce bir <code>.glyph</code> dosyası olmadan çözebildiği modül isimlerini toplar: <code>&lt;root&gt;/.types/</code> altındaki ve paketle gelen Node shim'indeki her <code>declare module "X"</code>, artı projenin <code>node_modules</code> klasöründeki her paket. Bu listedeki bir isim, yerel bir dosya aynı temel adı taşısa bile hiçbir zaman bildirilmez. Bir projede hiç <code>node_modules</code> yoksa derleyici kurulmamış bir bağımlılığı bir yazım hatasından ayıramaz; bu yüzden yalnızca kanıtlayabildiğini bildirir: kök altındaki bir <code>.glyph</code> dosyasının karşılık geldiği bir import.
         </p>
-        <p>
-          Çözümlemenin kendisi değişmedi. Aynı programlar build olur, aynı programlar başarısız olur. Değişen, başarısızlığın artık iki dosya ötedeki bir <code>match</code>'i suçlamak yerine import'u adıyla söylemesi ve meselenin tamamı bu: yanlış nedeni bildiren bir derleyici size onu kovalamakla geçen saate, ardından da sonraki her mesajda şüpheden yararlanma hakkına mal olur.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Çözümlemenin kendisi değişmedi. Aynı programlar build olur, aynı programlar başarısız olur. Değişen, başarısızlığın artık iki dosya ötedeki bir <code>match</code>'i suçlamak yerine import'u adıyla söylemesi ve meselenin tamamı bu: yanlış nedeni bildiren bir derleyici size onu kovalamakla geçen saate, ardından da sonraki her mesajda şüpheden yararlanma hakkına mal olur.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Token'ı değil kuralı adlandırmak</h2>
-        <p>
-          Aynı sorunun daha sessiz bir hâli, doğru olan ama yine de size hiçbir şey söylemeyen bir hatadır. Red-black tree yazan bir ajan, ML ailesindeki her dilde bulunan konumsal constructor'a uzandı ve parser ilk virgülde &ldquo;expected <code>)</code>&rdquo; ve &ldquo;add the expected token&rdquo; tavsiyesiyle durdu. Oraya bir <code>)</code> eklemek çalışan bir program değil, farklı bir program üretir. Bir Glyph variant'ı tek bir payload taşır ve birkaç alanlı bir payload bir record'dur. Bu iki cümleden hiçbiri çıktıda yoktu.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="naming-the-rule-not-the-token">Token'ı değil kuralı adlandırmak<a class="ak-anchor" href="#naming-the-rule-not-the-token" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Aynı sorunun daha sessiz bir hâli, doğru olan ama yine de size hiçbir şey söylemeyen bir hatadır.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, önce ve şimdi</span>
 <pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
    ╰─ Add the expected token.</span>
@@ -185,27 +219,21 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
               /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
       and destructure it by those names in a match arm.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">red-black tree ve düzeltmenin programınızı nasıl adlandırdığı</span></summary><div class="body">
+        <p>
+          Red-black tree yazan bir ajan, ML ailesindeki her dilde bulunan konumsal constructor'a uzandı ve parser ilk virgülde &ldquo;expected <code>)</code>&rdquo; ve &ldquo;add the expected token&rdquo; tavsiyesiyle durdu. Oraya bir <code>)</code> eklemek çalışan bir program değil, farklı bir program üretir. Bir Glyph variant'ı tek bir payload taşır ve birkaç alanlı bir payload bir record'dur. Bu iki cümleden hiçbiri çıktıda yoktu.
+        </p>
         <p>
           Bunu söyleyebilmek için parser'ın listeyi reddetmeden önce tamamını okuması gerekti; sayabilmesini sağlayan da bu. Span, tesadüfen takıldığı ayırıcının değil altı alanın tamamının altını çizer ve önerilen record, variant adından ve dosyadaki altı tipten kurulur; böylece düzeltme başka birinin örneğini değil sizin programınızı anar. Alan adları derleyicinin sağlayamayacağı tek şeydir, bu yüzden onları boş bırakır.
         </p>
-        <p>
-          Mesajın arkasındaki kural bir eksiklik değil, bir tercih. <code>Node(Black, l, x, b, h, r)</code>, tip kontrolünden geçen argüman yer değiştirmesinin ta kendisidir ve dördüncü konum okuyana hiçbir şey söylemez. Record yazımı her alanı adlandırır, bir match arm'ı yalnızca kullandığı alanları adlandırır ve ikisi de <code>grep</code>'in bulabileceği şeylerdir.
-        </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Mesajın arkasındaki kural bir eksiklik değil, bir tercih. <code>Node(Black, l, x, b, h, r)</code>, tip kontrolünden geçen argüman yer değiştirmesinin ta kendisidir ve dördüncü konum okuyana hiçbir şey söylemez. Record yazımı her alanı adlandırır, bir match arm'ı yalnızca kullandığı alanları adlandırır ve ikisi de <code>grep</code>'in bulabileceği şeylerdir.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Checker'ın 0.1.121'de devraldığı iki tane daha</h2>
-        <p>
-          <code>Order { id: "a", total: 1 }</code>, TypeScript'ten gelen birinin bir record oluşturmak için yazdığı şeydir ve Glyph'te böyle bir biçim yoktur: değer kendi başına yazılır, tip annotation'a gider. Derleyicinin eskiden o satır hakkında söylediği, 0 ile çıkan bir build'de <code>E0108</code>, erişilemeyen kod idi; çünkü isim tipe çözülüyor ve süslü parantezler <code>return</code>'den sonra bir blok olarak parse ediliyordu. Değer olarak yazılmış bir tip adı <code>E0228</code>'dir ve mesaj tanımdan okunur; böylece bir record alanlarını, bir tagged union variant'larını payload biçimleriyle, bir string-literal union da literal'lerini listeler. <code>Order.parse(raw)</code> ve <code>Order.is(v)</code> yasal kalır, çünkü bir tipin kendi descriptor'ının alıcısı, tip adının ait olduğu tek ifade konumudur.
-        </p>
-        <p>
-          Bu, ismin bir tip olduğu durumu düzeltti ama parse'a dokunmadı; dolayısıyla <code>return h() { k: 2 }</code> hâlâ <code>h()</code> döndürüyor ve süslü parantezleri bir uyarıyla atıyordu. 0.1.146'dan beri bir deyimin bittiği satırdaki bir <code>{</code>, önündeki isim ne olursa olsun parse sırasında <code>E0013</code>'tür ve yardım metni aynı yeniden yazımı verir. 0.1.149'dan beri kural yalnızca süslü parantezle açılanları değil her deyimi kapsıyor: <code>let s = "a" "b"</code> eskiden <code>"a"</code>'yı bağlayıp <code>"b"</code>'yi atıyordu ve Glyph'te cast olmadığı için <code>return x as User</code> üç deyimdi. Bir bloktaki her deyim kendi satırında başlar.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="two-more-the-checker-took-over-in-0-1-121">Checker'ın 0.1.121'de devraldığı iki tane daha<a class="ak-anchor" href="#two-more-the-checker-took-over-in-0-1-121" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>Order { id: "a", total: 1 }</code>, TypeScript'ten gelen birinin bir record oluşturmak için yazdığı şeydir ve Glyph'te böyle bir biçim yoktur: değer kendi başına yazılır, tip annotation'a gider.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, TypeScript usulü oluşturulmuş bir record üzerinde</span>
 <pre><span class="del">[E0013] a statement cannot begin on the line where
         `return Order` ends</span>
@@ -215,43 +243,71 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
 <span class="cm">// 0.1.121 to 0.1.145: [E0228] on `Order`, then [E0108] on the braces</span>
 <span class="cm">// before that: [E0108] Warning: lint: unreachable code, and exit 0</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-chips"><span class="chip code">E0228</span><span class="chip code">E0013</span><span class="chip since">0.1.146'dan beri</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">E0108'den E0228'e, oradan E0013'e</span></summary><div class="body">
         <p>
-          Diğeri, bir ilkel tipe atanan bir prelude container'ı. <code>o: Option&lt;int&gt;</code> iken <code>let x: string = o</code>, Glyph checker'dan hiçbir tepki almıyordu; <code>int</code> olarak bildirilmiş bir parametreye <code>Nullable&lt;int&gt;</code> geçmek de öyle. Artık beş container iki yönde de kapsanıyor: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> ve <code>Nullable</code>, argümanları ne olursa olsun asla bir <code>string</code>, <code>number</code> ya da <code>bool</code> değildir ve bir skalere karşı <code>Nullable&lt;T&gt;</code> bir seviye içeride, <code>T</code>'ye karşı karara bağlanır; böylece <code>let v: Nullable&lt;int&gt; = 3</code> doğru kalır, <code>let v: Nullable&lt;int&gt; = "three"</code> ise <code>E0204</code>'tür. <code>Nullable</code> durumu bu sayfaya diğerlerinden daha çok ait, çünkü <code>tsc</code>'nin veremeyeceği bir karar: üretilen <code>const v: number | null = 3</code>, çağrı kontrol edilmeden önce <code>number</code>'a geri daralır; dolayısıyla <code>null</code>'ı görünür kılmak için var olan bir sınır tipi, <code>int</code> bildirilen yerde sessizce geçiyordu ve bunun yakalanabileceği tek yer Glyph checker'dı.
+          Derleyicinin eskiden o satır hakkında söylediği, 0 ile çıkan bir build'de <code>E0108</code>, erişilemeyen kod idi; çünkü isim tipe çözülüyor ve süslü parantezler <code>return</code>'den sonra bir blok olarak parse ediliyordu. Değer olarak yazılmış bir tip adı <code>E0228</code>'dir ve mesaj tanımdan okunur; böylece bir record alanlarını, bir tagged union variant'larını payload biçimleriyle, bir string-literal union da literal'lerini listeler. <code>Order.parse(raw)</code> ve <code>Order.is(v)</code> yasal kalır, çünkü bir tipin kendi descriptor'ının alıcısı, tip adının ait olduğu tek ifade konumudur.
         </p>
-      </div>
+        <p>
+          Bu, ismin bir tip olduğu durumu düzeltti ama parse'a dokunmadı; dolayısıyla <code>return h() { k: 2 }</code> hâlâ <code>h()</code> döndürüyor ve süslü parantezleri bir uyarıyla atıyordu. 0.1.146'dan beri bir deyimin bittiği satırdaki bir <code>{</code>, önündeki isim ne olursa olsun parse sırasında <code>E0013</code>'tür ve yardım metni aynı yeniden yazımı verir. 0.1.149'dan beri kural yalnızca süslü parantezle açılanları değil her deyimi kapsıyor: <code>let s = "a" "b"</code> eskiden <code>"a"</code>'yı bağlayıp <code>"b"</code>'yi atıyordu ve Glyph'te cast olmadığı için <code>return x as User</code> üç deyimdi.
+        </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir bloktaki her deyim kendi satırında başlar.</p></div>
 
-      <div class="detail">
+      <h3 class="ak-h3" id="prelude-containers">İlkel tip bildirilen yerde bir container<a class="ak-anchor" href="#prelude-containers" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Diğeri, bir ilkel tipe atanan bir prelude container'ı. <code>o: Option&lt;int&gt;</code> iken <code>let x: string = o</code>, Glyph checker'dan hiçbir tepki almıyordu; <code>int</code> olarak bildirilmiş bir parametreye <code>Nullable&lt;int&gt;</code> geçmek de öyle.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Artık beş container iki yönde de kapsanıyor: <code>Option</code>, <code>Result</code>, <code>Array</code>, <code>Record</code> ve <code>Nullable</code>, argümanları ne olursa olsun asla bir <code>string</code>, <code>number</code> ya da <code>bool</code> değildir ve bir skalere karşı <code>Nullable&lt;T&gt;</code> bir seviye içeride, <code>T</code>'ye karşı karara bağlanır; böylece <code>let v: Nullable&lt;int&gt; = 3</code> doğru kalır, <code>let v: Nullable&lt;int&gt; = "three"</code> ise <code>E0204</code>'tür.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">yalnızca Glyph'in yakalayabildiği durum ve 0.1.130'dan beri record'lar</span></summary><div class="body">
+        <p>
+          <code>Nullable</code> durumu bu sayfaya diğerlerinden daha çok ait, çünkü <code>tsc</code>'nin veremeyeceği bir karar: üretilen <code>const v: number | null = 3</code>, çağrı kontrol edilmeden önce <code>number</code>'a geri daralır; dolayısıyla <code>null</code>'ı görünür kılmak için var olan bir sınır tipi, <code>int</code> bildirilen yerde sessizce geçiyordu ve bunun yakalanabileceği tek yer Glyph checker'dı.
+        </p>
         <p>
           Sırada, aynı container'ların bildirilmiş bir record'a ya da union'a karşı durumu vardı. 0.1.130'dan beri <code>let user: User = json.parse(body)</code>, <code>E0204</code>'tür: expected <code>User</code>, found <code>Result&lt;unknown, Array&lt;Issue&gt;&gt;</code>. Önceden bunu yalnızca <code>tsc</code> söylüyordu; bu da <code>glyph check --no-tsc</code>, editör ve playground'un, bir sınırın doğru yapmak için var olduğu tek satırda temiz bir dosya gösterdiği anlamına geliyordu.
         </p>
-        <p>
-          Bir dizi ya da string üzerindeki yanlış yazılmış bir üye, eskiden <code>tsc</code>'yi bekleyen diğer durumdu. <code>xs.lenght</code>, "did you mean <code>length</code>" ile birlikte <code>E0210</code>'dur; bir record'ın alan okuması nasıl alanlarına karşı kontrol ediliyorsa, bu da TypeScript kütüphanesinin diziler ve string'ler için bildirdiği üyelere karşı kontrol edilir. <code>tsc</code> ikisini de reddederdi, yani onu çalıştıran bir build zaten kırmızıydı; değişen, checker'ın ve onun üzerine kurulu her şeyin bunları önce görmesi.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">Ve 0.1.133'ten beri üç tane daha</h2>
-        <p>
-          <code>let up = s.toUpperCase</code>, TypeScript'te tip kontrolünden geçer ve <code>up()</code> çalıştığında hata fırlatır, çünkü okuma işlemi ait olduğu string'i düşürür. Glyph bunu <code>E0234</code> olarak reddeder, üzerindeki <code>.bind(s)</code>'yi de reddeder: bunun yerine çağrıyı bir lambda'ya sarın. Checker artık her dizi ve string metodunun ne döndürdüğünü, TypeScript'in kendi bildirimlerinden üretilen bir tablodan biliyor.
-        </p>
-        <p>
-          Bir <code>Result</code> üzerinde <code>r?.label</code>, "hatayı yukarı ilet, sonra alanı oku" gibi okunur. Oysa bu optional chaining'dir ve bir <code>Result</code> asla null değildir; dolayısıyla alanı <code>Result</code> nesnesinin üzerinden okur ve hiçbir şeyi iletmez. Bir ajan, bir CSV sorgu aracı yazarken tam olarak bunu yazdı. Artık bu <code>E0236</code>, bir <code>Option</code> üzerinde de, ve yardım metni önce <code>?</code> ile bağlamanızı söylüyor.
-        </p>
-        <p>
-          Tip argümanı olmadan <code>json.parse(body)</code>, kontrolsüz okumadır, bir <code>Result&lt;unknown, ...&gt;</code>. Bir <code>Result&lt;User, ...&gt;</code> bildirilen yerde yazıldığında <code>tsc</code> eskiden bildirimden <code>User</code> çıkarıyordu ve program ilk alan okumasında çöküyordu. Emitter artık <code>unknown</code>'u açıkça yazıyor, böylece <code>glyph check</code> bunu <code>tsc</code> üzerinden reddediyor. Glyph'in kendi checker'ı bildirilmiş bir tipin içine düşen bir <code>unknown</code>'u henüz yakalamıyor; bu yüzden <code>--no-tsc</code> ve editör, <code>Result&lt;User, ...&gt;</code> bildirilen yerde yazılmış <code>Result&lt;unknown, ...&gt;</code>'u hâlâ kaçırıyor. (Çıplak bir <code>let user: User = json.parse(body)</code>, dış tip zaten yanlış olduğu için Glyph'in kendi checker'ından <code>E0204</code> alır.) <code>unknown</code>'u her derinlikte reddetmek G325 olarak <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">sürüm yol haritasında</a> planlandı.
-        </p>
-      </div>
+      <h3 class="ak-h3" id="member-typo">Bir dizi ya da string üzerinde yanlış yazılmış bir üye<a class="ak-anchor" href="#member-typo" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bir dizi ya da string üzerindeki yanlış yazılmış bir üye, eskiden <code>tsc</code>'yi bekleyen diğer durumdu. <code>xs.lenght</code>, "did you mean <code>length</code>" ile birlikte <code>E0210</code>'dur; bir record'ın alan okuması nasıl alanlarına karşı kontrol ediliyorsa, bu da TypeScript kütüphanesinin diziler ve string'ler için bildirdiği üyelere karşı kontrol edilir.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p><code>tsc</code> ikisini de reddederdi, yani onu çalıştıran bir build zaten kırmızıydı; değişen, checker'ın ve onun üzerine kurulu her şeyin bunları önce görmesi.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label">Ve 0.1.122'de iki tane daha</h2>
-        <p>
-          <code>type Mode = "read" | "write"</code> sonlu bir string kümesi tanımlar ve Glyph checker bir değeri ona karşı hiçbir şeyle karşılaştırmıyordu. Bir sayı, bir <code>bool</code>, bir record ve kümenin dışındaki bir string, kullanılmayan değişken uyarılarından başka bir şey almadan <code>glyph check --no-tsc</code>'den geçiyordu; oysa <code>tsc</code> üretilen TypeScript üzerinde hepsini reddediyordu. Yani tam bir <code>glyph build</code> bu konuda hiç yanılmadı, ama döngüde <code>tsc</code> olmayan dört yüzey yanılıyordu: <code>--no-tsc</code>, dil sunucusu, MCP araçları ve playground.
-        </p>
-      </div>
+      <h2 class="ak-h" id="and-three-more-since-0-1-133">Ve 0.1.133'ten beri üç tane daha<a class="ak-anchor" href="#and-three-more-since-0-1-133" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
 
-      <div class="code">
+      <h3 class="ak-h3" id="detached-method">String'inden koparılarak okunan bir metot<a class="ak-anchor" href="#detached-method" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        <code>let up = s.toUpperCase</code>, TypeScript'te tip kontrolünden geçer ve <code>up()</code> çalıştığında hata fırlatır, çünkü okuma işlemi ait olduğu string'i düşürür. Glyph bunu <code>E0234</code> olarak reddeder, üzerindeki <code>.bind(s)</code>'yi de reddeder: bunun yerine çağrıyı bir lambda'ya sarın.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0234</span></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">metot tipleri nereden geliyor</span></summary><div class="body">
+        <p>
+          Checker artık her dizi ve string metodunun ne döndürdüğünü, TypeScript'in kendi bildirimlerinden üretilen bir tablodan biliyor.
+        </p>
+      </div></details>
+
+      <h3 class="ak-h3" id="optional-chain-result">Bir Result üzerinde optional chaining<a class="ak-anchor" href="#optional-chain-result" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Bir <code>Result</code> üzerinde <code>r?.label</code>, "hatayı yukarı ilet, sonra alanı oku" gibi okunur. Oysa bu optional chaining'dir ve bir <code>Result</code> asla null değildir; dolayısıyla alanı <code>Result</code> nesnesinin üzerinden okur ve hiçbir şeyi iletmez.
+      </p>
+      <div class="ak-chips"><span class="chip code">E0236</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Bir ajan, bir CSV sorgu aracı yazarken tam olarak bunu yazdı. Artık bu <code>E0236</code>, bir <code>Option</code> üzerinde de, ve yardım metni önce <code>?</code> ile bağlamanızı söylüyor.</p></div>
+
+      <h3 class="ak-h3" id="unchecked-parse">Kontrolsüz bir json.parse<a class="ak-anchor" href="#unchecked-parse" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <p class="ak-lede">
+        Tip argümanı olmadan <code>json.parse(body)</code>, kontrolsüz okumadır, bir <code>Result&lt;unknown, ...&gt;</code>. Bir <code>Result&lt;User, ...&gt;</code> bildirilen yerde yazıldığında <code>tsc</code> eskiden bildirimden <code>User</code> çıkarıyordu ve program ilk alan okumasında çöküyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Emitter artık <code>unknown</code>'u açıkça yazıyor, böylece <code>glyph check</code> bunu <code>tsc</code> üzerinden reddediyor.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph'in kendi checker'ı bildirilmiş bir tipin içine düşen bir <code>unknown</code>'u henüz yakalamıyor; bu yüzden <code>--no-tsc</code> ve editör, <code>Result&lt;User, ...&gt;</code> bildirilen yerde yazılmış <code>Result&lt;unknown, ...&gt;</code>'u hâlâ kaçırıyor. (Çıplak bir <code>let user: User = json.parse(body)</code>, dış tip zaten yanlış olduğu için Glyph'in kendi checker'ından <code>E0204</code> alır.) <code>unknown</code>'u her derinlikte reddetmek G325 olarak <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">sürüm yol haritasında</a> planlandı.</p></div>
+      <div class="ak-chips"><span class="chip gap">G325</span></div>
+
+      <h2 class="ak-h" id="and-two-more-in-0-1-122">Ve 0.1.122'de iki tane daha<a class="ak-anchor" href="#and-two-more-in-0-1-122" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> sonlu bir string kümesi tanımlar ve Glyph checker bir değeri ona karşı hiçbir şeyle karşılaştırmıyordu. Bir sayı, bir <code>bool</code>, bir record ve kümenin dışındaki bir string, kullanılmayan değişken uyarılarından başka bir şey almadan <code>glyph check --no-tsc</code>'den geçiyordu; oysa <code>tsc</code> üretilen TypeScript üzerinde hepsini reddediyordu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yani tam bir <code>glyph build</code> bu konuda hiç yanılmadı, ama döngüde <code>tsc</code> olmayan dört yüzey yanılıyordu: <code>--no-tsc</code>, dil sunucusu, MCP araçları ve playground.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, yasal string'lerini listeleyen bir tip üzerinde</span>
 <pre>type Mode = "read" | "write"
 
@@ -265,30 +321,26 @@ let d: Mode = { x: 1 }
 [E0211] argument type mismatch: expected `Mode`, found `bool`
 [E0204] type mismatch: expected `Mode`, found `record`</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">union nasıl karşılaştırılıyor</span></summary><div class="body">
         <p>
           Bunlar, <code>tsc</code>'nin aynı dört deyimde bildirdiği dört hata; <code>tsc</code> çalıştırılmadan. Kural, union'ı çalışma zamanında ne ise o olarak, bir <code>string</code> olarak okur ve her yönde checker'a karşılık gelen <code>string</code> sorusunu sorar; böylece bir record'ı ya da container'ı bir <code>string</code>'e karşı zaten reddeden kuralları, onları her biçim için tek tek yeniden yazmak yerine devralır. İki literal kümesi küme olarak karşılaştırılır, yani daha dar bir union daha geniş birinin bildirildiği yere girebilir; bir alias zinciri iki tarafta da takip edilir; import edilmiş bir union yerel bir union gibi karara bağlanır ve <code>Nullable&lt;Mode&gt;</code>'un içine union bozulmadan inilir.
         </p>
         <p>
           Bir record alanının ya da generic bir argümanın içine gömülü bir union, 0.1.122'de <code>tsc</code>'ye bırakılmıştı ve 0.1.123'te karara bağlanıyor. Aşağıya bakın.
         </p>
-        <p>
-          İkincisi hiç de bir <code>tsc</code> hikâyesi değil. Parser, derinlik koruması olmayan bir recursive descent parser'ı; bu yüzden iki bin seviye iç içe bir ifade sürecin stack'ini tüketiyor ve exit 134 ile abort ediyordu. Bu <code>glyph check</code>'te kötü, kök altındaki her dosyayı okuyan <code>glyph lsp</code> ve <code>glyph mcp</code>'de daha kötü: patolojik tek bir dosya sunucuyu bütün workspace için çökertiyordu. Artık bu <code>E0011</code> ve 65. seviyeyi açacak olan token'da bildiriliyor.
-        </p>
-      </div>
+      </div></details>
 
-      <div class="detail">
-        <h2 class="block-label">0.1.123: bir değerin olduğu literal, üretildiği <code>string</code> değil</h2>
+      <h2 class="ak-h" id="0-1-123-the-literal-a-value-is-not-the-string-it-emits-to">0.1.123: bir değerin olduğu literal, üretildiği <code>string</code> değil<a class="ak-anchor" href="#0-1-123-the-literal-a-value-is-not-the-string-it-emits-to" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>type Mode = "read" | "write"</code> kümeyi tanıma koyuyor, değere hiçbir şey koymuyordu; bu yüzden <code>"read"</code> bir <code>string</code>, <code>["read", "write"]</code> da bir <code>Array&lt;string&gt;</code> idi.
+      </p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">0.1.122'nin neyden vazgeçtiği</span></summary><div class="body">
         <p>
-          <code>type Mode = "read" | "write"</code> kümeyi tanıma koyuyor, değere hiçbir şey koymuyordu; bu yüzden <code>"read"</code> bir <code>string</code>, <code>["read", "write"]</code> da bir <code>Array&lt;string&gt;</code> idi. Bu, iki programı birbirinden ayırt edilemez kılıyordu: bir <code>Array&lt;Mode&gt;</code> bildirilen yerde <code>tsc</code>'nin derlediği <code>return ["read", "write"]</code> ve <code>xs: Array&lt;string&gt;</code> için onun reddettiği <code>return xs</code>. 0.1.122 yanlış yapmaktansa bu eşleşmeye karar vermeyi reddetti ve doğru programı yanlış olanı feda ederek kazandı: bir <code>{ mode: Mode }</code>'a karşı <code>{ mode: "nope" }</code> hiçbir tepki almıyordu.
+          Bu, iki programı birbirinden ayırt edilemez kılıyordu: bir <code>Array&lt;Mode&gt;</code> bildirilen yerde <code>tsc</code>'nin derlediği <code>return ["read", "write"]</code> ve <code>xs: Array&lt;string&gt;</code> için onun reddettiği <code>return xs</code>. 0.1.122 yanlış yapmaktansa bu eşleşmeye karar vermeyi reddetti ve doğru programı yanlış olanı feda ederek kazandı: bir <code>{ mode: Mode }</code>'a karşı <code>{ mode: "nope" }</code> hiçbir tepki almıyordu.
         </p>
-        <p>
-          Yazılmış bir string literal artık yazdığı tek-literal tipine sahip, bir dizi literal'inin eleman tipi elemanlarının tiplerinin birleşimi ve yazılmış bir dizi ya da nesne literal'i bildirilen tipe karşı eleman eleman ve alan alan kontrol ediliyor; böylece diagnostic literal'i adlandırıyor ve altını çiziyor.
-        </p>
-      </div>
-
-      <div class="code">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Yazılmış bir string literal artık yazdığı tek-literal tipine sahip, bir dizi literal'inin eleman tipi elemanlarının tiplerinin birleşimi ve yazılmış bir dizi ya da nesne literal'i bildirilen tipe karşı eleman eleman ve alan alan kontrol ediliyor; böylece diagnostic literal'i adlandırıyor ve altını çiziyor.</p></div>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, bir container içindeki bir literal üzerinde</span>
 <pre>type Mode = "read" | "write"
 type Cfg = { mode: Mode }
@@ -299,24 +351,21 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// 0.1.122: nothing, on all three</span>
 <span class="del">[E0204] type mismatch: expected `Mode`, found `"nope"`   (twice)</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">literal nerede genişliyor ve 0.1.153'ten beri <code>Record</code> anahtarları</span></summary><div class="body">
         <p>
           Literal, TypeScript'in genişlettiği yerde <code>string</code>'e geri genişler: annotation'sız bir <code>let</code>'te (üretilen TypeScript <code>let</code>'i de aynı şekilde genişler) ve yazılmış bir dizi üzerindeki bir <code>for</code>'un eleman binding'inde. Yani <code>let l = "read"</code> ardından <code>takes_mode(l)</code> burada reddedilir, orada <code>TS2345</code>'tir. Bir <code>const</code>, TypeScript'te bir <code>const</code> üretir ve literal'ini korur; dolayısıyla <code>takes_mode(CM)</code> ikisinde de derlenir. Bir isim üzerinden gelmiş bir literal tipi genişletilmez; bu TypeScript'in kendi freshness kuralıdır. Bunun her satırı, üzerine akıl yürütülerek değil, eşdeğer TypeScript üzerinde <code>tsc --strict</code> çalıştırılarak karara bağlandı.
         </p>
         <p>
-          Bir eşleşmeye hâlâ karar verilmiyor: bir <code>Record</code>'ın key argümanının başka bir <code>Record</code>'ınkine karşı durumu. TypeScript <code>Record&lt;string, V&gt;</code>'yi, bir <code>Record&lt;Mode, V&gt;</code>'nin bildirdiği her key'i kapsayan bir index signature olarak yazar ve iki yönde de kabul eder; dolayısıyla bunu reddetmek derlenen bir programı reddetmek olurdu. Checker'ın hâlâ hiçbir şey söylemediği iki biçim daha var: <code>Some(...)</code> içindeki bir literal, çünkü bir prelude constructor'ının burada henüz bir tipi yok, ve annotation'sız bir <code>let</code>'e bağlanan bir record literal'i, çünkü bir nesne literal'i için record tipi sentezlenmiyor.
+          0.1.153'ten beri bir <code>Record</code>'ın key argümanı, <code>tsc</code>'nin tuttuğundan daha sıkı tutuluyor. TypeScript <code>Record&lt;string, V&gt;</code>'yi bir index signature olarak yazar ve onu bir <code>Record&lt;Mode, V&gt;</code>'ye karşı iki yönde de kabul eder. Glyph ikisini de reddeder: açık map <code>Mode</code> dışında key'ler tutabilir ya da birini eksik bırakabilir, açık olan yerine geçirilen bir <code>Record&lt;Mode, V&gt;</code>'ye de başıboş bir key yazılabilir. Birinden diğerine geçmenin yolu bir <code>is</code> arm'ı ya da bir <code>json.parse</code>'tır.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Checker'ın hâlâ hiçbir şey söylemediği iki biçim: <code>Some(...)</code> içindeki bir literal, çünkü bir prelude constructor'ının burada henüz bir tipi yok, ve annotation'sız bir <code>let</code>'e bağlanan bir record literal'i, çünkü bir nesne literal'i için record tipi sentezlenmiyor.</p></div>
 
-      <div class="detail">
-        <h2 class="block-label"><code>std/</code> altındaki bir modül, diagnostic olmadan ölü koddu</h2>
-        <p>
-          <code>std/</code> ve <code>extern/</code>, derleyicinin taşıdığı modülleri adlandırır ve resolver bunları import'lar için ayırmıştı. Bir proje dosyasının bunlardan birini <em>tanımlamasını</em> engelleyen bir şey yoktu. Kendi <code>src/io.glyph</code> dosyanızdaki <code>module std/io</code> temiz derleniyordu, ardından <code>import std/io { shout }</code> stub'a çözülüyor ve <code>shout</code>'un export edilmediğini bildiriyordu: dosyanız hiç okunmamıştı. Hiç diagnostic almayan ve hiç kod çalıştırmayan bir dosya, bir derleyicinin sizi bırakabileceği en kötü durumdur, çünkü onunla ilgili hiçbir şey yanlış görünmez.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="a-module-under-std-was-dead-code-with-no-diagnostic"><code>std/</code> altındaki bir modül, diagnostic olmadan ölü koddu<a class="ak-anchor" href="#a-module-under-std-was-dead-code-with-no-diagnostic" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>std/</code> ve <code>extern/</code>, derleyicinin taşıdığı modülleri adlandırır ve resolver bunları import'lar için ayırmıştı. Bir proje dosyasının bunlardan birini <em>tanımlamasını</em> engelleyen bir şey yoktu.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check --no-tsc, `module std/io` tanımlayan src/io.glyph üzerinde</span>
 <pre><span class="cm">// before: glyph check: 2 module(s) checked, no diagnostics.  (exit 0)</span>
 
@@ -326,14 +375,22 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
    &#9474; &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
    &#9584;&#9472; Rename the module to a path of your own (`io`, `app/io`).</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">eskiden ne oluyordu ve hangi yollar ayrılmış</span></summary><div class="body">
+        <p>
+          Kendi <code>src/io.glyph</code> dosyanızdaki <code>module std/io</code> temiz derleniyordu, ardından <code>import std/io { shout }</code> stub'a çözülüyor ve <code>shout</code>'un export edilmediğini bildiriyordu: dosyanız hiç okunmamıştı.
+        </p>
         <p>
           Önek, ilk segmentin tamamı olarak eşleştirilir; dolayısıyla <code>standard</code>, <code>externals/io</code>, <code>app/std</code> ve <code>app/extern/helper</code> etkilenmez ve iki önekten biri altında import etmek her zaman olduğu gibi çalışır.
         </p>
-      </div>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Hiç diagnostic almayan ve hiç kod çalıştırmayan bir dosya, bir derleyicinin sizi bırakabileceği en kötü durumdur, çünkü onunla ilgili hiçbir şey yanlış görünmez.</p></div>
 
-      <div class="code">
+      <p class="ak-kicker">0.1.122'deki ikincisi</p>
+      <h2 class="ak-h" id="nesting-limit">Bir parser derinlik sınırı<a class="ak-anchor" href="#nesting-limit" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        İkincisi hiç de bir <code>tsc</code> hikâyesi değil. Parser, derinlik koruması olmayan bir recursive descent parser'ı; bu yüzden iki bin seviye iç içe bir ifade sürecin stack'ini tüketiyor ve exit 134 ile abort ediyordu.
+      </p>
+      <div class="code term">
         <span class="cap">glyph check, `const x = ` ardından 2.000 iç içe köşeli parantez üzerinde</span>
 <pre><span class="cm">// before: thread 'main' has overflowed its stack
 //         fatal runtime error: stack overflow, aborting   (exit 134)</span>
@@ -343,23 +400,23 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
       `fn` that returns one of them, so no single expression, type or
       pattern is more than 64 levels deep.</pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">dil sunucusu için neden önemliydi</span></summary><div class="body">
         <p>
-          Sınır 64 ve seçilmedi, ölçüldü. En maliyetli yapının, iç içe bir dizi literal'inin bir seviyesi release build'de 7.792 bayt, debug build'de 8.810 bayt stack tutuyor; bu, belirli bir derinliğin parse edilebildiği en küçük thread stack'i ikili aramayla bulunarak ölçüldü. Parser'ın üzerinde çalıştığı en ince stack, spawn edilmiş bir thread'in 2 MiB'ı, yani dil sunucusunun worker'larının aldığı; 64 seviye, daha maliyetli build'de bunun üçte birinden azını harcıyor. Bu repodaki 343 <code>.glyph</code> dosyası içindeki en derin iç içelik 16. Sınır ifadeleri, tipleri, pattern'leri, blokları ve JSX çocuklarını aynı şekilde kapsıyor ve bin tane kardeş dizi hâlâ parse ediliyor, çünkü derinlik dosya boyunca harcanan bir bütçe değil, yapı başına iç içeliktir.
+          Bu <code>glyph check</code>'te kötü, kök altındaki her dosyayı okuyan <code>glyph lsp</code> ve <code>glyph mcp</code>'de daha kötü: patolojik tek bir dosya sunucuyu bütün workspace için çökertiyordu. Artık bu <code>E0011</code> ve 65. seviyeyi açacak olan token'da bildiriliyor.
         </p>
-      </div>
-
-      <h2 class="block-label">İki derleyici de yanılmadığında</h2>
-      <div class="detail">
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Sınır 64 ve seçilmedi, ölçüldü.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">64 nasıl ölçüldü</span></summary><div class="body">
         <p>
-          Üçüncü bir biçim daha var ve en kötü okunan da bu. Glyph hiçbir şey bildirmiyor, <code>tsc</code> doğru bir şey bildiriyor ve yazdığınız program sorunsuzdu. Başarısız olan, ikisi arasındaki çeviriydi.
+          En maliyetli yapının, iç içe bir dizi literal'inin bir seviyesi release build'de 7.792 bayt, debug build'de 8.810 bayt stack tutuyor; bu, belirli bir derinliğin parse edilebildiği en küçük thread stack'i ikili aramayla bulunarak ölçüldü. Parser'ın üzerinde çalıştığı en ince stack, spawn edilmiş bir thread'in 2 MiB'ı, yani dil sunucusunun worker'larının aldığı; 64 seviye, daha maliyetli build'de bunun üçte birinden azını harcıyor. Bu repodaki 343 <code>.glyph</code> dosyası içindeki en derin iç içelik 16. Sınır ifadeleri, tipleri, pattern'leri, blokları ve JSX çocuklarını aynı şekilde kapsıyor ve bin tane kardeş dizi hâlâ parse ediliyor, çünkü derinlik dosya boyunca harcanan bir bütçe değil, yapı başına iç içeliktir.
         </p>
-        <p>
-          Glyph'te bir binding'in tüm ömrü boyunca tek bir tipi vardır. TypeScript bir binding'i en son atandığını gördüğü değere göre daraltır ve onun <code>boolean</code>'ı <code>true | false</code> union'ıdır; bu yüzden <code>let done = false</code>, <code>tsc</code>'ye <code>false</code> tipinde ulaşıyordu ve üretilen <code>switch</code>'in <code>true</code> arm'ının eşleşecek bir şeyi yoktu.
-        </p>
-      </div>
+      </div></details>
 
+      <h2 class="ak-h" id="when-neither-compiler-is-wrong">İki derleyici de yanılmadığında<a class="ak-anchor" href="#when-neither-compiler-is-wrong" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Üçüncü bir biçim daha var ve en kötü okunan da bu. Glyph hiçbir şey bildirmiyor, <code>tsc</code> doğru bir şey bildiriyor ve yazdığınız program sorunsuzdu.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Başarısız olan, ikisi arasındaki çeviriydi.</p></div>
       <div class="code">
         <span class="cap">poll.glyph ve 0.1.89'dan önce tsc'nin onun hakkında söyledikleri</span>
 <pre>fn classify() -&gt; int {
@@ -373,13 +430,18 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
 <span class="cm">// no Glyph diagnostic, then</span>
 <span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
       </div>
-
-      <div class="detail">
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint"><code>tsc</code> neden <code>false</code> gördü ve buna takılan uygulama</span></summary><div class="body">
+        <p>
+          Glyph'te bir binding'in tüm ömrü boyunca tek bir tipi vardır. TypeScript bir binding'i en son atandığını gördüğü değere göre daraltır ve onun <code>boolean</code>'ı <code>true | false</code> union'ıdır; bu yüzden <code>let done = false</code>, <code>tsc</code>'ye <code>false</code> tipinde ulaşıyordu ve üretilen <code>switch</code>'in <code>true</code> arm'ının eşleşecek bir şeyi yoktu.
+        </p>
         <p>
           String literal'lerinden oluşan bir küme olarak tanımlanan bir tip de aynı şekilde başarısız oluyordu, <code>==</code> de öyle; o da <code>TS2367</code> olarak geri geliyordu: iki mesaj, iki kod, tek neden. Buna takılan uygulama, bir timer callback'inin set ettiği bir flag'i yokluyordu; Glyph'te elle oluşturabileceğiniz bir <code>Promise</code> yokken olay tabanlı bir API'yi bir değere dönüştürmenin yolu bu. Callback'in konuyla ilgisi olmadığı ortaya çıktı: callback'siz dört satır da aynı şeyi yapıyor.
         </p>
+      </div></details>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Düzeltme yeni bir diagnostic değil, çünkü teşhis edilecek bir şey yok. Emitter artık checker'ın zaten karar verdiği tipi, bir değer üzerinde ayrım yapan iki yerde yeniden belirtiyor: <code>match</code>'in incelenen ifadesi ve bir <code>==</code> ya da <code>!=</code>'in iki tarafı.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">hâlâ devreye giren kontroller ve maliyeti</span></summary><div class="body">
         <p>
-          Düzeltme yeni bir diagnostic değil, çünkü teşhis edilecek bir şey yok. Emitter artık checker'ın zaten karar verdiği tipi, bir değer üzerinde ayrım yapan iki yerde yeniden belirtiyor: <code>match</code>'in incelenen ifadesi ve bir <code>==</code> ya da <code>!=</code>'in iki tarafı. Her taraf kendi tipine göre karara bağlanır ve yanındakini dikkate almaz; böylece iki binding arasındaki bir karşılaştırma, bir literal'e karşı karşılaştırmayla aynı şekilde kapsanır.
+          Her taraf kendi tipine göre karara bağlanır ve yanındakini dikkate almaz; böylece iki binding arasındaki bir karşılaştırma, bir literal'e karşı karşılaştırmayla aynı şekilde kapsanır.
         </p>
         <p>
           İstediğiniz kontroller hâlâ tetikleniyor. <code>m</code> bir <code>Mode</code> iken <code>m == "nope"</code> hâlâ reddediliyor ve mesaj artık <code>m</code>'nin o an tuttuğu tek üyeyi değil <code>Mode</code>'u adlandırıyor. Bunu atamada yapmak daha az kod olurdu ve bunu çöpe atardı: <code>Mode</code>'a bir cast, annotation'lı atamanın kabul edilmediği yerde kabul edilir ve üyelik kontrolü, Glyph'in bilerek <code>tsc</code>'ye bıraktığı kısımdır.
@@ -387,45 +449,108 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
         <p>
           Bedeli küçük ama söylemeye değer. Bir cast doğrulamanın yanı sıra daraltabilir de; dolayısıyla Glyph'in <code>bool</code> olarak tiplendirdiği ama TypeScript tipi <code>unknown</code> çıkan bir değer, artık <code>switch</code>'in eskiden şikâyet ettiği yerde geçiyor. İki tipin yine de karşılaştırılabilir olması gerekiyor; dolayısıyla önemli olacak kadar kaymış bir model, <code>bool</code>'a karşı <code>string</code>, hiçbir şey yerine <code>TS2352</code> bildiriyor.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Aynı yazım hatası, iki cevap</h2>
-      <div class="detail">
-        <p>
-          Yanlış yazılmış bir standart kütüphane fonksiyonu, import'u nasıl yazdığınıza bağlı olarak eskiden farklı bir cevap alıyordu; bu da size iki cevaba da güvenmemeyi öğreten türden bir tutarsızlık.
-        </p>
-      </div>
-
+      <h2 class="ak-h" id="the-same-typo-two-answers">Aynı yazım hatası, iki cevap<a class="ak-anchor" href="#the-same-typo-two-answers" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Yanlış yazılmış bir standart kütüphane fonksiyonu, import'u nasıl yazdığınıza bağlı olarak eskiden farklı bir cevap alıyordu; bu da size iki cevaba da güvenmemeyi öğreten türden bir tutarsızlık.
+      </p>
       <div class="code">
         <span class="cap">isimli import, her zaman E0105</span>
 <pre>import std/string { repeeat }
 <span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
       </div>
-
       <div class="code">
         <span class="cap">namespace okuması, 0.1.72'den önce</span>
 <pre>import std/string
 string.repeeat(s, 2)
 <span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Artık iki yazım da export listesinden geçiyor ve ikisi de <code>E0105</code> diyor, eksik üyeyi ve eksik olduğu modülü adlandırarak.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">iki yazım neden farklıydı ve kontrolü açmak neler buldu</span></summary><div class="body">
         <p>
-          İlk yazım, çözümleme sırasında modülün export listesine karşı kontrol ediliyordu. İkincisi hiç kontrol edilmiyordu, bu yüzden <code>tsc</code>'ye düşüyordu; o da bir nesne üzerinde property erişimi görüp o terimlerle cevap veriyordu. Artık iki yazım da export listesinden geçiyor ve ikisi de <code>E0105</code> diyor, eksik üyeyi ve eksik olduğu modülü adlandırarak.
+          İlk yazım, çözümleme sırasında modülün export listesine karşı kontrol ediliyordu. İkincisi hiç kontrol edilmiyordu, bu yüzden <code>tsc</code>'ye düşüyordu; o da bir nesne üzerinde property erişimi görüp o terimlerle cevap veriyordu.
         </p>
         <p>
           Bunu açmak, kimsenin aramadığı bir şeyi hemen buldu: bir test fixture'ı, fonksiyonun adı <code>write_text</code> iken <code>fs.write</code> çağırıyordu. Aylardır geçiyordu, çünkü o fixture tip kontrolü kapalı çalışıyor ve derleyicideki başka hiçbir şey namespace üyelerine bakmıyordu. Export listesi artık iki yazımın da otoritesi; bu yüzden ayrı bir kontrol onu runtime'ın gerçekten export ettikleriyle senkron tutuyor. O kontrol yazıldı, sonra başarısız olduğunu doğrulamak için bilerek bozuldu ve ilk sürümünün sessizce hiçbir şeyi kontrol etmediğini böyle bulduk.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Şu anki durum</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Bugün yayında</h3>
-          <p><code>async fn</code> dışındaki <code>await</code> için <code>E0222</code>, değer üretmeyen değer konumundaki bir <code>match</code> arm'ı için <code>E0223</code>, <code>mut</code>'u eksik bir atama için <code>E0008</code>, var olan biçim record biçimiyken birkaç konumsal payload alanı verilmiş bir variant için <code>E0010</code>, iletemeyeceği bir konumdaki <code>?</code> için <code>E0302</code>/<code>E0303</code>, üretilen modülün zaten bağımlı olduğu bir ismi gölgeleyecek bir tanım için <code>E0110</code>/<code>E0111</code>, build kökü altında hiçbir modülü adlandırmayan yerel bir import için <code>E0104</code>, bir modülün export etmediği bir isim için, ister isimli bir import ister bir namespace üzerinden ulaşılmış olsun, <code>E0105</code>, değer beklenen yerde yazılmış bir tip adı için <code>E0228</code>, başka bir deyimin bittiği satırda başlayan ve eskiden kendisinden sonraki değeri atan bir deyim için <code>E0013</code>, bir ilkel tipe ya da bildirilmiş bir record'a veya union'a atanan ya da onlar olarak geçirilen bir prelude container'ı için, <code>tsc</code>'nin daraltıp yok ettiği <code>Nullable&lt;T&gt;</code> durumu dahil, <code>E0204</code>/<code>E0211</code>, bir dizinin ya da string'in sahip olmadığı bir üye için <code>E0210</code>, bir string-literal union'ın bildirilmiş kümesinde olmayan bir değer için aynı iki kod, 64 seviyeyi aşan iç içe bir yapı için <code>E0011</code>, eskiden parser'da genel bir "expected module path segment" ile duran göreli bir import yolu için <code>E0101</code> ve eskiden temiz derlenip erişilemez olan, <code>std/</code> ya da <code>extern/</code> altında tanımlanmış bir proje modülü için <code>E0113</code>. Gölgeleme listesi emitter'ın kendiliğinden yazdığı tipleri de kapsıyor; böylece <code>Issue</code> ve <code>Record</code> tanımın olduğu yerde yakalanıyor. Her kodun tek satırlık bir düzeltmesi, kuralı açıklayan bir notu ve uzun biçimli bir <code>glyph --explain</code> metni var; <code>docs/error-codes.md</code> kataloğu listeliyor ve bir test ikisini senkron tutuyor.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Daha da keskinleşiyor</h3>
-          <p><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor ve <code>[object Promise]</code> olarak yazdırılan, bekleyen değerlerden oluşan bir dizi döndürüyor; predicate alan beş dizi fonksiyonu ise bunu callback'te <code>E0211</code> ile durduruyor. Diğer üçünü aynı şekilde modellemek, Glyph'in işleri eşzamanlı çalıştırma yolu olan <code>par.all(array.map(items, async fn ...))</code>'yi de reddeder, çünkü bekleyen değerlerden oluşan bir dizinin dilde bir yazımı yok. Bu eksik bir girdi değil bir tip sistemi kararı, bu yüzden açık. Modül düzeyindeki bir <code>const</code> başlatıcısının çevreleyen bir callable'ı yok; bu yüzden üst düzey bir <code>await</code>'e izin veriliyor ve üretilen ESM onu çalıştırıyor; Glyph'in örtük async modül başlatma isteyip istemediği hâlâ açık bir spec sorusu. <code>E0223</code>, son konumdaki bir <code>match</code>'i ancak fonksiyon bir dönüş tipi bildiriyorsa değerlendirebiliyor; bu yüzden annotation'sız bir lambda içindeki bir arm hâlâ <code>tsc</code>'ye ulaşıyor. Gölgeleme tarafında iki şey yarım kaldı. <code>E0110</code> ismi tutmanıza izin vermek yerine yeniden adlandırmanızı söylüyor; bu yüzden <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> ve <code>Promise</code> bir tip ya da variant için hâlâ yasak. <code>E0111</code> ise <code>type Key = string | number</code>'ın yanlış bir şey ifade etmesini, onu söylemenin bir yolunu vermeden engelliyor: iki ilkel tipten oluşan bir union'ın Glyph'te, içeriğini kendi checker'ının opak saydığı <code>extern_ts</code> dışında bir yazımı yok. Etiketsiz union'lar kapsam kontrolüne, runtime descriptor'larına ve <code>is</code>'e dokunuyor; bu yüzden o bir tip sistemi kararı ve planlanmış değil. <code>E0104</code>, <code>glyph build</code> ve <code>glyph check</code>'e ulaşıyor ama editöre ulaşmıyor: LSP bir belgenin metnini build kökü olmadan analiz ediyor, workspace klasörü de bir build kökü değil; dolayısıyla tahmin etmek, kontrolün kaçınmak için tasarlandığı yanlış pozitifleri üretirdi. Ayrıca ayrılmış kelime olan bir parametre, aynı dosyadaki ilgisiz bir hatanın arkasında hâlâ saklanıyor, çünkü collect aşamasındaki bir hata, onu bulacak olan resolve aşamasını atlatıyor. Bunlardan ayrı olarak, bir <code>bool</code> ya da string-literal union binding'ini eşleştirilebilir tutan okuma noktası sabitlemesi, bir tip alias'ını yalnızca üretilmekte olan modülün içinde takip ediyor; bu yüzden bir modülde <code>pub type Ready = bool</code> ve başka bir modülde <code>let r: catalog.Ready = false</code> hâlâ <code>tsc</code>'ye <code>TS2678</code> olarak ulaşıyor. String-literal union'lar üç import yazımında da modüller arasında kapsanıyor ve 0.1.123'ten beri diagnostic, yazımlardan birinde literal kümesini yazdırmak yerine her yazımda tanımı adlandırıyor (expected <code>Mode</code>).</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
+
+          <p class="ak-st-group">Deyimler ve sözdizimi</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>async fn</code> dışındaki <code>await</code></span><span class="chip code">E0222</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değer üretmeyen, değer konumundaki bir <code>match</code> arm'ı</span><span class="chip code">E0223</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>mut</code>'u eksik bir atama</span><span class="chip code">E0008</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Var olan biçim record biçimiyken birkaç konumsal payload alanı verilmiş bir variant</span><span class="chip code">E0010</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">İletemeyeceği bir konumdaki <code>?</code></span><span class="chip code">E0302</span><span class="chip code">E0303</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değer beklenen yerde yazılmış bir tip adı</span><span class="chip code">E0228</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Başka bir deyimin bittiği satırda başlayan ve eskiden kendisinden sonraki değeri atan bir deyim</span><span class="chip code">E0013</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">64 seviyeyi aşan iç içe bir yapı</span><span class="chip code">E0011</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">İsimler ve modüller</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Üretilen modülün zaten bağımlı olduğu bir ismi gölgeleyecek bir tanım</span><span class="chip code">E0110</span><span class="chip code">E0111</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Gölgeleme listesi emitter'ın kendiliğinden yazdığı tipleri de kapsıyor; böylece <code>Issue</code> ve <code>Record</code> tanımın olduğu yerde yakalanıyor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Build kökü altında hiçbir modülü adlandırmayan yerel bir import</span><span class="chip code">E0104</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir modülün export etmediği bir isim, ister isimli bir import ister bir namespace üzerinden ulaşılmış olsun</span><span class="chip code">E0105</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eskiden parser'da genel bir "expected module path segment" ile duran göreli bir import yolu</span><span class="chip code">E0101</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eskiden temiz derlenip erişilemez olan, <code>std/</code> ya da <code>extern/</code> altında tanımlanmış bir proje modülü</span><span class="chip code">E0113</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Tipler</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir ilkel tipe ya da bildirilmiş bir record'a veya union'a atanan ya da onlar olarak geçirilen bir prelude container'ı, <code>tsc</code>'nin daraltıp yok ettiği <code>Nullable&lt;T&gt;</code> durumu dahil</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir dizinin ya da string'in sahip olmadığı bir üye</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir string-literal union'ın bildirilmiş kümesinde olmayan bir değer için aynı iki kod</span><span class="chip code">E0204</span><span class="chip code">E0211</span></span></li>
+          </ul>
+
+          <p class="ak-st-group">Her kod</p>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her kodun tek satırlık bir düzeltmesi, kuralı açıklayan bir notu ve uzun biçimli bir <code>glyph --explain</code> metni var; <code>docs/error-codes.md</code> kataloğu listeliyor ve bir test ikisini senkron tutuyor.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Daha da keskinleşiyor</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>array.map</code>, <code>flat_map</code> ve <code>zip</code> hâlâ şikâyet etmeden <code>async</code> bir callback alıyor ve <code>[object Promise]</code> olarak yazdırılan, bekleyen değerlerden oluşan bir dizi döndürüyor; predicate alan beş dizi fonksiyonu ise bunu callback'te <code>E0211</code> ile durduruyor. Diğer üçünü aynı şekilde modellemek, Glyph'in işleri eşzamanlı çalıştırma yolu olan <code>par.all(array.map(items, async fn ...))</code>'yi de reddeder, çünkü bekleyen değerlerden oluşan bir dizinin dilde bir yazımı yok. Bu eksik bir girdi değil bir tip sistemi kararı, bu yüzden açık.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Üst düzey bir <code>await</code>'e izin veriliyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Modül düzeyindeki bir <code>const</code> başlatıcısının çevreleyen bir callable'ı yok; bu yüzden üst düzey bir <code>await</code>'e izin veriliyor ve üretilen ESM onu çalıştırıyor; Glyph'in örtük async modül başlatma isteyip istemediği hâlâ açık bir spec sorusu.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0223</code>, son konumdaki bir <code>match</code>'i ancak fonksiyon bir dönüş tipi bildiriyorsa değerlendirebiliyor; bu yüzden annotation'sız bir lambda içindeki bir arm hâlâ <code>tsc</code>'ye ulaşıyor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0110</code> ismi tutmanıza izin vermek yerine yeniden adlandırmanızı söylüyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Gölgeleme tarafında iki şey yarım kaldı. <code>E0110</code> ismi tutmanıza izin vermek yerine yeniden adlandırmanızı söylüyor; bu yüzden <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> ve <code>Promise</code> bir tip ya da variant için hâlâ yasak.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0111</code>, <code>type Key = string | number</code>'ın yanlış bir şey ifade etmesini, onu söylemenin bir yolunu vermeden engelliyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>E0111</code> ise <code>type Key = string | number</code>'ın yanlış bir şey ifade etmesini, onu söylemenin bir yolunu vermeden engelliyor: iki ilkel tipten oluşan bir union'ın Glyph'te, içeriğini kendi checker'ının opak saydığı <code>extern_ts</code> dışında bir yazımı yok. Etiketsiz union'lar kapsam kontrolüne, runtime descriptor'larına ve <code>is</code>'e dokunuyor; bu yüzden o bir tip sistemi kararı ve planlanmış değil.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>E0104</code>, <code>glyph build</code> ve <code>glyph check</code>'e ulaşıyor ama editöre ulaşmıyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p><code>E0104</code>, <code>glyph build</code> ve <code>glyph check</code>'e ulaşıyor ama editöre ulaşmıyor: LSP bir belgenin metnini build kökü olmadan analiz ediyor, workspace klasörü de bir build kökü değil; dolayısıyla tahmin etmek, kontrolün kaçınmak için tasarlandığı yanlış pozitifleri üretirdi.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ayrılmış kelime olan bir parametre, aynı dosyadaki ilgisiz bir hatanın arkasında hâlâ saklanıyor, çünkü collect aşamasındaki bir hata, onu bulacak olan resolve aşamasını atlatıyor.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Okuma noktası sabitlemesi bir tip alias'ını yalnızca üretilmekte olan modülün içinde takip ediyor</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
+                <p>Bunlardan ayrı olarak, bir <code>bool</code> ya da string-literal union binding'ini eşleştirilebilir tutan okuma noktası sabitlemesi, bir tip alias'ını yalnızca üretilmekte olan modülün içinde takip ediyor; bu yüzden bir modülde <code>pub type Ready = bool</code> ve başka bir modülde <code>let r: catalog.Ready = false</code> hâlâ <code>tsc</code>'ye <code>TS2678</code> olarak ulaşıyor. String-literal union'lar üç import yazımında da modüller arasında kapsanıyor ve 0.1.123'ten beri diagnostic, yazımlardan birinde literal kümesini yazdırmak yerine her yazımda tanımı adlandırıyor (expected <code>Mode</code>).</p>
+              </div></details>
+            </li>
+          </ul>
+        </section>
       </div>

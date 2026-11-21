@@ -20299,3 +20299,114 @@ fn record_remove_on_a_finite_key_is_e0211_by_every_spelling() {
     }
     assert_eq!(d.len(), 5, "the refined and open keys are not refused: {d:?}");
 }
+
+/// G387's probe (record 129): five ways of building a query from a run-time
+/// `name`, and two constant queries beside them. One line is added to the
+/// record's file, the `built` count: the rows the five built queries return or
+/// change. `rows` also counts `f`, a parameterized query that runs after the
+/// `UPDATE` and so matches the payload once the `UPDATE` stores it.
+const G387_PROBE: &str = r#"module main
+
+import std/sqlite
+import std/io
+
+const TABLE: string = "users"
+
+fn count(db: sqlite.Db, name: string) -> number {
+  let a = db.query("SELECT * FROM users WHERE name = '${name}'", [])
+  let q = "SELECT * FROM users WHERE name = '${name}'"
+  let b = db.query(q, [])
+  let c = db.query("SELECT * FROM users WHERE name = '" + name + "'", [])
+  let d = db.query_one("SELECT * FROM ${TABLE} WHERE name = ?", [name])
+  let e = db.run("DELETE FROM users WHERE name = '${name}'", [])
+  db.exec("UPDATE users SET name = '${name}'")
+  let f = db.query("SELECT * FROM users WHERE name = ?", [name])
+  let n = match d { Some(_) => 1, None => 0, }
+  let built = a.length + b.length + c.length + e
+  io.println("built ${built}")
+  return a.length + b.length + c.length + f.length + e + n
+}
+
+fn main(argv: Array<string>) -> number {
+  let db = sqlite.open(":memory:")
+  db.exec("CREATE TABLE users (name TEXT)")
+  db.exec("INSERT INTO users VALUES ('ada'), ('linus')")
+  let evil = "x' OR '1'='1"
+  let total = count(db, evil)
+  io.println("rows ${total}")
+  return 0
+}
+"#;
+
+/// The backticked snippets of a help, in order.
+fn backticked(help: &str) -> Vec<String> {
+    help.split('`').skip(1).step_by(2).map(str::to_string).collect()
+}
+
+/// G387, D52: every E0239 on the probe carries a rewrite, and applying each
+/// one as written gives a program that `glyph check` accepts (with `tsc`) and
+/// that returns no rows for the injection payload. The help is applied the
+/// way an agent would: a `let q = ...` snippet replaces that `let`, and a call
+/// snippet replaces the call on the diagnostic's line. Nothing is typed in
+/// by hand, so a help that does not compile fails here.
+#[test]
+fn g387_applying_every_e0239_rewrite_compiles_and_returns_no_rows() {
+    if !js_toolchain_available() {
+        eprintln!("skipping G387 rewrite run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("g387_rewrite");
+    write_file(&root, "src/main.glyph", G387_PROBE);
+    let (code, stdout, stderr) = glyph_in(&root, &["check", "--no-tsc", "--json", "{src}"]);
+    assert_eq!(code, 1, "the probe is refused:\n{stdout}\n{stderr}");
+    let v: serde_json::Value = serde_json::from_str(&stdout).expect("check --json prints JSON");
+    let diags: Vec<&serde_json::Value> = v["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["code"] == "E0239")
+        .collect();
+    assert_eq!(diags.len(), 5, "one E0239 per built query:\n{stdout}");
+
+    let mut lines: Vec<String> = G387_PROBE.lines().map(str::to_string).collect();
+    for d in &diags {
+        let line = d["range"]["start"]["line"].as_u64().expect("line") as usize - 1;
+        let help = d["help"].as_str().expect("help");
+        let snippets: Vec<String> = backticked(help)
+            .into_iter()
+            .filter(|s| s.starts_with("let ") || (s.starts_with("db.") && s.contains('[') && !s.contains("[values]")))
+            .collect();
+        assert!(!snippets.is_empty(), "the help carries a rewrite: {help}");
+        for s in snippets {
+            if let Some(rest) = s.strip_prefix("let ") {
+                let name = rest.split(' ').next().expect("a name");
+                let at = lines
+                    .iter()
+                    .position(|l| l.trim_start().starts_with(&format!("let {name} = ")))
+                    .expect("the let the help rewrites");
+                lines[at] = format!("  {s}");
+            } else {
+                let l = &lines[line];
+                let start = l.find("db.").expect("the call on the diagnostic's line");
+                let end = l.rfind(')').expect("the call's close") + 1;
+                lines[line] = format!("{}{s}{}", &l[..start], &l[end..]);
+            }
+        }
+    }
+    let fixed = lines.join("\n") + "\n";
+    write_file(&root, "src/main.glyph", &fixed);
+    let check_args: &[&str] = if tsc_available() {
+        &["check", "{src}"]
+    } else {
+        &["check", "--no-tsc", "{src}"]
+    };
+    let (code, stdout, stderr) = glyph_in(&root, check_args);
+    assert_eq!(code, 0, "the rewritten probe compiles:\n{fixed}\n{stdout}\n{stderr}");
+    let (code, stdout, stderr) = glyph_in(&root, &["run", "--no-tsc", "{src}"]);
+    assert_eq!(code, 0, "{fixed}\n{stdout}\n{stderr}");
+    assert!(
+        stdout.contains("built 0"),
+        "the payload matches nothing once it is a parameter:\n{fixed}\n{stdout}\n{stderr}"
+    );
+    assert!(stdout.contains("rows 2"), "only `f`, after the `UPDATE`:\n{fixed}\n{stdout}");
+}

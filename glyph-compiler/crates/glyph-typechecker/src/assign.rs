@@ -25,6 +25,8 @@ use glyph_resolver::{
     Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind,
 };
 
+mod sql_query;
+
 use crate::lower::Lowerer;
 use crate::ty::{
     builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
@@ -365,12 +367,18 @@ pub fn assign_types_with_relations(
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
+            sql_facts: sql_query::SqlFacts::collect(module, resolved),
+            sql_sink: RefCell::new(None),
+            sql_call: RefCell::new(None),
+            sql_refusals: RefCell::new(Vec::new()),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
             assigner.declare_record_fields(decl);
             assigner.walk_decl(decl);
             assigner.report_unhandled_null_chains();
+            let sql = std::mem::take(&mut *assigner.sql_refusals.borrow_mut());
+            assigner.errors.extend(sql);
         }
     }
     // D25: a second pass over the completed `TypeMap`. `owned` single-
@@ -470,6 +478,10 @@ pub fn assignability(
         local_type_exprs: HashMap::new(),
         awaited_calls: HashSet::new(),
         refused_lambdas: HashSet::new(),
+        sql_facts: sql_query::SqlFacts::default(),
+        sql_sink: RefCell::new(None),
+        sql_call: RefCell::new(None),
+        sql_refusals: RefCell::new(Vec::new()),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -523,6 +535,10 @@ pub fn declared_record_fields(
         local_type_exprs: HashMap::new(),
         awaited_calls: HashSet::new(),
         refused_lambdas: HashSet::new(),
+        sql_facts: sql_query::SqlFacts::default(),
+        sql_sink: RefCell::new(None),
+        sql_call: RefCell::new(None),
+        sql_refusals: RefCell::new(Vec::new()),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1294,6 +1310,21 @@ struct Assigner<'a> {
     /// value, by span: E0238 refuses the tail, and nothing else refuses the
     /// lambda for the same mistake.
     refused_lambdas: HashSet<Span>,
+    /// G387, D52: each local `let`'s initializer and the locals a `mut`
+    /// reassigns, read to decide whether a `sqlite.Sql` value's text is fixed
+    /// when the program is written. See `sql_query`.
+    sql_facts: sql_query::SqlFacts<'a>,
+    /// The `sqlite.Sql` slot whose value `value_refusal` is about to judge,
+    /// by the value's span, so E0239 can say where the text is run. A slot
+    /// reached at another span (a field inside a written literal) is
+    /// described generically.
+    sql_sink: RefCell<Option<(Span, sql_query::SqlSink)>>,
+    /// The parameter array written at the `Db` call whose `sql` argument is
+    /// at the span, for the rewrite E0239's help computes.
+    sql_call: RefCell<Option<(Span, Option<Vec<String>>)>>,
+    /// E0239s found by `value_refusal`, which reads `&self`; moved into
+    /// `errors` after each declaration's walk.
+    sql_refusals: RefCell<Vec<TypeError>>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1663,6 +1694,10 @@ impl Assigner<'_> {
                 if let Some(te) = &c.ty {
                     let expected = self.lowerer.lower(te);
                     let found = self.tm.get(c.value.span()).clone();
+                    self.note_sql_slot(
+                        &c.value,
+                        sql_query::SqlSink::Binding { name: c.name.to_string() },
+                    );
                     if let Some(mut r) = self.value_refusal(&c.value, &found, &expected) {
                         self.spell_declared(&mut r, Some(te));
                         let accepted = self.accepted_values(&r.expected);
@@ -1856,6 +1891,12 @@ impl Assigner<'_> {
                 // value, not the annotation.
                 if l.ty.is_some() {
                     let found = self.tm.get(l.value.span()).clone();
+                    if let Some(name) = l.binding.as_name() {
+                        self.note_sql_slot(
+                            &l.value,
+                            sql_query::SqlSink::Binding { name: name.to_string() },
+                        );
+                    }
                     if let Some(mut r) = self.value_refusal(&l.value, &found, &ty) {
                         self.spell_declared(&mut r, l.ty.as_ref());
                         let accepted = self.accepted_values(&r.expected);
@@ -2665,6 +2706,9 @@ impl Assigner<'_> {
                     for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
+                        if self.is_sql_ty(&expected) {
+                            self.note_sql_call_arg(callee, args, i, p);
+                        }
                         if let Some(mut r) = self.value_refusal(a, &found, &expected) {
                             let written = self.callee_param_written(callee, i);
                             self.spell_declared(&mut r, written);
@@ -4530,6 +4574,7 @@ impl Assigner<'_> {
             }
             other => other,
         };
+        self.note_sql_slot(value, sql_query::SqlSink::Return);
         if let Some(mut r) = self.value_refusal(value, &found, &expected) {
             self.spell_declared(&mut r, written.as_ref());
             let accepted = self.accepted_values(&r.expected);
@@ -6802,6 +6847,17 @@ impl Assigner<'_> {
                 return None;
             }
         }
+        let refusal = self.value_refusal_by_type(value, found, expected);
+        // G387, D52. A `sqlite.Sql` slot takes a string only when its text is
+        // fixed when the program is written. Judged once the type is accepted,
+        // so a `number` there stays E0211 and is not also E0239.
+        if refusal.is_none() && self.is_sql_ty(expected) {
+            self.judge_sql_value(value);
+        }
+        refusal
+    }
+
+    fn value_refusal_by_type(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<Refusal> {
         // A written array or object literal is checked element by element and
         // field by field first, so the refusal names the one that is wrong and
         // underlines it rather than the whole literal (G237).
@@ -7396,6 +7452,28 @@ impl Assigner<'_> {
     fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, position: Position) -> bool {
         if position == Position::RecordKey {
             return self.record_keys_differ(found, expected);
+        }
+        // G387, D52. `sqlite.Sql` is a `string` whose text is fixed when the
+        // program is written. As a type it is compared as `string` both ways;
+        // the constant rule is judged on the value by `value_refusal` (E0239),
+        // because it is about where the text came from, not its type.
+        let string = Ty::Prim(Primitive::String);
+        if self.is_sql_ty(expected) {
+            return !self.is_sql_ty(found) && self.assign_incompatible_at(found, &string, position);
+        }
+        if self.is_sql_ty(found) {
+            return self.assign_incompatible_at(&string, expected, position);
+        }
+        // `taint.Trusted<T>` and `taint.Tainted<T>` are branded objects, never
+        // a bare string or number, so a primitive where one is declared is
+        // refused here and not left to `tsc`. It is what keeps
+        // `sqlite.from_trusted(name)` from laundering a plain `string` into a
+        // query under `--no-tsc`.
+        if is_taint_wrapper(expected)
+            && matches!(found, Ty::Prim(_) | Ty::StringLiteralUnion(_))
+            && !matches!(found, Ty::Prim(Primitive::Void))
+        {
+            return true;
         }
         // G373. Two `Record` maps compare their keys invariantly, however
         // either map is spelled: written out, or through a `type` whose body
@@ -8992,8 +9070,19 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("net", "ServerError")
             | ("dom", "Element")
             | ("storage", "StorageError")
+            | ("sqlite", "Db")
+            | ("sqlite", "Sql")
     )
     .then(|| stdlib_named(module, name))
+}
+
+/// Whether `ty` is `taint.Trusted<T>` or `taint.Tainted<T>`, the branded
+/// wrappers `std/taint` declares.
+fn is_taint_wrapper(ty: &Ty) -> bool {
+    let Ty::App { base, .. } = ty else {
+        return false;
+    };
+    matches!(stdlib_type_path(base), Some(("taint", "Trusted" | "Tainted")))
 }
 
 /// The two lexical segments of a stdlib type name (`fs.FsError` → `("fs",
@@ -9069,6 +9158,44 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
         // (`createRoot`) or back to `std/dom`. React owns the DOM it renders,
         // and a write underneath it is a bug.
         ("dom", "Element") => Vec::new(),
+        // G387, D52. A database handle's methods, read off
+        // `runtime/std/sqlite.ts`. Each `sql` is a `sqlite.Sql`, which is what
+        // holds a query's text to a constant (E0239); the parameter array
+        // stays unjudged, as it was, and a row stays `unknown` until it is
+        // validated into a record.
+        ("sqlite", "Db") => {
+            let sql = || FnParam {
+                name: Some(Ident::from("sql")),
+                owned: false,
+                ty: stdlib_named("sqlite", "Sql"),
+                optional: false,
+            };
+            let params = || FnParam {
+                name: Some(Ident::from("params")),
+                owned: false,
+                ty: Ty::Unknown,
+                optional: false,
+            };
+            let method = |params: Vec<FnParam>, ret: Ty| Ty::Fn {
+                params,
+                return_ty: Arc::new(ret),
+                is_async: false,
+                type_params: None,
+            };
+            let number = || Ty::Prim(Primitive::Number);
+            let void = || Ty::Prim(Primitive::Void);
+            vec![
+                ("exec", method(vec![sql()], void())),
+                ("run", method(vec![sql(), params()], number())),
+                ("last_insert_id", method(Vec::new(), number())),
+                ("query", method(vec![sql(), params()], a.array_ty(Ty::Unknown))),
+                (
+                    "query_one",
+                    method(vec![sql(), params()], a.stdlib_option_ty(Ty::Unknown)?),
+                ),
+                ("close", method(Vec::new(), void())),
+            ]
+        }
         // `kind` is a string-literal union for the reason `ServerError`'s is:
         // a full store and a refused one lead to different decisions, and a
         // `match` over the two is exhaustive with no catch-all.
@@ -16584,6 +16711,10 @@ component View(props: { s: Status }) -> Component {
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
+            sql_facts: sql_query::SqlFacts::default(),
+            sql_sink: RefCell::new(None),
+            sql_call: RefCell::new(None),
+            sql_refusals: RefCell::new(Vec::new()),
         };
         f(&assigner)
     }

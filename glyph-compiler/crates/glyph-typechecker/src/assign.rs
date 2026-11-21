@@ -7618,7 +7618,9 @@ impl Assigner<'_> {
         ) = (&found, &expected)
         {
             if ty_is_decidable(&found) && ty_is_decidable(&expected) {
-                return !matches!(**fr, Ty::Prim(Primitive::Void))
+                // The same guards as `definitely_incompatible`, the value's
+                // `Unknown` return among them (D51).
+                return !matches!(**fr, Ty::Prim(Primitive::Void) | Ty::Unknown)
                     && !matches!(**er, Ty::Prim(Primitive::Void))
                     && (fa != ea || self.assign_incompatible(fr, er));
             }
@@ -8799,7 +8801,11 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
                 ..
             },
         ) => {
-            !matches!(**fr, Ty::Prim(Primitive::Void))
+            // An `Unknown` return on the value's side is undecided, the way
+            // `void` is: it is what a sync lambda whose pending tail is
+            // E0238 returns (D51), and comparing its `async` flag would
+            // report the one mistake a second time as E0211.
+            !matches!(**fr, Ty::Prim(Primitive::Void) | Ty::Unknown)
                 && !matches!(**er, Ty::Prim(Primitive::Void))
                 && (fa != ea || definitely_incompatible(fr, er))
         }

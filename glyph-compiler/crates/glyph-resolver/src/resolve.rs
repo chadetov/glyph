@@ -605,7 +605,9 @@ impl Resolver<'_> {
                 self.push_scope();
                 for p in params {
                     self.bind_local(p.name.clone(), p.span);
-                    self.walk_type_expr(&p.ty);
+                    if let Some(te) = &p.ty {
+                        self.walk_type_expr(te);
+                    }
                 }
                 if let Some(rt) = return_ty {
                     self.walk_type_expr(rt);

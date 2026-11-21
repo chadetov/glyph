@@ -1,0 +1,6 @@
+module main
+
+pub fn f(xs: Array<number>) -> Array<number> {
+  let a = array.map(xs, fn(p) -> number { return p + 1 })
+  return array.map(a, fn(q: unknown) -> number { return 0 })
+}

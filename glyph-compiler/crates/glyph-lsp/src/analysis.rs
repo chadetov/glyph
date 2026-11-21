@@ -2673,6 +2673,20 @@ mod tests {
         assert_eq!(a.hover(text, binding), Some("a pending `number`".to_string()));
     }
 
+    /// Record 130: an omitted lambda annotation is "not typed here", which
+    /// hover has no type to show for; a written `unknown` is the declared
+    /// `unknown`. The parser used to synthesize a written `unknown` for the
+    /// omitted form, so both hovered `unknown`.
+    #[test]
+    fn hover_tells_an_omitted_lambda_annotation_from_a_written_unknown() {
+        let text = "module x\nimport std/array\npub fn f(xs: Array<number>) -> Array<number> {\n  let a = array.map(xs, fn(p) -> number { return p })\n  return array.map(a, fn(q: unknown) -> number { return q })\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let omitted = text.find("return p").unwrap() + 7;
+        assert_eq!(a.hover(text, omitted), None);
+        let written = text.find("return q").unwrap() + 7;
+        assert_eq!(a.hover(text, written), Some("unknown".to_string()));
+    }
+
     /// The file the agent-surface audit probed, cut down to the positions
     /// hover used to answer `null` at.
     const HOVER_SRC: &str = "module orders\n\

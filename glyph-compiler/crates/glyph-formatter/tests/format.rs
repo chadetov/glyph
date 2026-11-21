@@ -291,6 +291,19 @@ fn async_closure_round_trips() {
     assert_eq!(fmt(&out), out, "async closure format is not stable");
 }
 
+/// Record 130: the formatter prints a lambda parameter as written. A written
+/// `: unknown` survives byte for byte; it used to be read as "omitted" and
+/// deleted, after which the emitter dropped it and `tsc` inferred `number`
+/// for a parameter the program had declared `unknown`. An omitted annotation
+/// stays omitted.
+#[test]
+fn lambda_parameter_annotation_is_printed_as_written() {
+    let written = "module m\n\nimport std/array\n\npub fn f(xs: Array<number>) -> Array<number> {\n  return array.map(xs, fn(p: unknown) -> number { return p + 1 })\n}\n";
+    assert_eq!(fmt(written), written, "a written `: unknown` must survive fmt");
+    let omitted = "module m\n\nimport std/array\n\npub fn f(xs: Array<number>) -> Array<number> {\n  return array.map(xs, fn(p) -> number { return p + 1 })\n}\n";
+    assert_eq!(fmt(omitted), omitted, "an omitted annotation must stay omitted");
+}
+
 #[test]
 fn jsx_fragment_round_trips() {
     let src = "module x\ncomponent P(props: { name: string }) -> Component {\n  return <>\n    <h1>{props.name}</h1>\n    <p>{props.name}</p>\n  </>\n}\n";

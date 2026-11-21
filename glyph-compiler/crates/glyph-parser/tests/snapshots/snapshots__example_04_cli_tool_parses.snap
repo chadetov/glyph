@@ -4399,18 +4399,9 @@ Module {
                                                                     },
                                                                     Lambda {
                                                                         params: [
-                                                                            Param {
+                                                                            LambdaParam {
                                                                                 name: "t",
-                                                                                owned: false,
-                                                                                ty: Path {
-                                                                                    segments: [
-                                                                                        "unknown",
-                                                                                    ],
-                                                                                    span: Span {
-                                                                                        start: 4384,
-                                                                                        end: 4385,
-                                                                                    },
-                                                                                },
+                                                                                ty: None,
                                                                                 span: Span {
                                                                                     start: 4384,
                                                                                     end: 4385,
@@ -5005,18 +4996,9 @@ Module {
                                                                     },
                                                                     Lambda {
                                                                         params: [
-                                                                            Param {
+                                                                            LambdaParam {
                                                                                 name: "t",
-                                                                                owned: false,
-                                                                                ty: Path {
-                                                                                    segments: [
-                                                                                        "unknown",
-                                                                                    ],
-                                                                                    span: Span {
-                                                                                        start: 4910,
-                                                                                        end: 4911,
-                                                                                    },
-                                                                                },
+                                                                                ty: None,
                                                                                 span: Span {
                                                                                     start: 4910,
                                                                                     end: 4911,
@@ -5256,18 +5238,9 @@ Module {
                                                                                                             },
                                                                                                             Lambda {
                                                                                                                 params: [
-                                                                                                                    Param {
+                                                                                                                    LambdaParam {
                                                                                                                         name: "t",
-                                                                                                                        owned: false,
-                                                                                                                        ty: Path {
-                                                                                                                            segments: [
-                                                                                                                                "unknown",
-                                                                                                                            ],
-                                                                                                                            span: Span {
-                                                                                                                                start: 5157,
-                                                                                                                                end: 5158,
-                                                                                                                            },
-                                                                                                                        },
+                                                                                                                        ty: None,
                                                                                                                         span: Span {
                                                                                                                             start: 5157,
                                                                                                                             end: 5158,
@@ -5852,18 +5825,9 @@ Module {
                                                                                 },
                                                                                 Lambda {
                                                                                     params: [
-                                                                                        Param {
+                                                                                        LambdaParam {
                                                                                             name: "t",
-                                                                                            owned: false,
-                                                                                            ty: Path {
-                                                                                                segments: [
-                                                                                                    "unknown",
-                                                                                                ],
-                                                                                                span: Span {
-                                                                                                    start: 5750,
-                                                                                                    end: 5751,
-                                                                                                },
-                                                                                            },
+                                                                                            ty: None,
                                                                                             span: Span {
                                                                                                 start: 5750,
                                                                                                 end: 5751,

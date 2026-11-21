@@ -1,0 +1,323 @@
+---
+source: crates/glyph-parser/tests/snapshots.rs
+expression: ast
+---
+Module {
+    module_path: Some(
+        ModulePath {
+            segments: [
+                "main",
+            ],
+            span: Span {
+                start: 0,
+                end: 11,
+            },
+        },
+    ),
+    items: [
+        Fn(
+            FnDecl {
+                name: "f",
+                annotations: [],
+                is_public: true,
+                is_async: false,
+                generics: [],
+                params: [
+                    Param {
+                        name: "xs",
+                        owned: false,
+                        ty: Generic {
+                            base: Path {
+                                segments: [
+                                    "Array",
+                                ],
+                                span: Span {
+                                    start: 26,
+                                    end: 31,
+                                },
+                            },
+                            args: [
+                                Path {
+                                    segments: [
+                                        "number",
+                                    ],
+                                    span: Span {
+                                        start: 32,
+                                        end: 38,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                start: 26,
+                                end: 39,
+                            },
+                        },
+                        span: Span {
+                            start: 22,
+                            end: 39,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Array",
+                            ],
+                            span: Span {
+                                start: 44,
+                                end: 49,
+                            },
+                        },
+                        args: [
+                            Path {
+                                segments: [
+                                    "number",
+                                ],
+                                span: Span {
+                                    start: 50,
+                                    end: 56,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 44,
+                            end: 57,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                binding: Name(
+                                    "a",
+                                ),
+                                owned: false,
+                                ty: None,
+                                value: Call {
+                                    callee: Member {
+                                        object: Ident {
+                                            name: "array",
+                                            span: Span {
+                                                start: 70,
+                                                end: 75,
+                                            },
+                                        },
+                                        field: "map",
+                                        optional: false,
+                                        span: Span {
+                                            start: 70,
+                                            end: 79,
+                                        },
+                                    },
+                                    type_args: [],
+                                    args: [
+                                        Ident {
+                                            name: "xs",
+                                            span: Span {
+                                                start: 80,
+                                                end: 82,
+                                            },
+                                        },
+                                        Lambda {
+                                            params: [
+                                                LambdaParam {
+                                                    name: "p",
+                                                    ty: None,
+                                                    span: Span {
+                                                        start: 87,
+                                                        end: 88,
+                                                    },
+                                                },
+                                            ],
+                                            return_ty: Some(
+                                                Path {
+                                                    segments: [
+                                                        "number",
+                                                    ],
+                                                    span: Span {
+                                                        start: 93,
+                                                        end: 99,
+                                                    },
+                                                },
+                                            ),
+                                            body: Block {
+                                                stmts: [
+                                                    Return(
+                                                        ReturnStmt {
+                                                            value: Some(
+                                                                Binary {
+                                                                    op: Add,
+                                                                    left: Ident {
+                                                                        name: "p",
+                                                                        span: Span {
+                                                                            start: 109,
+                                                                            end: 110,
+                                                                        },
+                                                                    },
+                                                                    right: Number {
+                                                                        raw: "1",
+                                                                        span: Span {
+                                                                            start: 113,
+                                                                            end: 114,
+                                                                        },
+                                                                    },
+                                                                    span: Span {
+                                                                        start: 109,
+                                                                        end: 114,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            span: Span {
+                                                                start: 102,
+                                                                end: 114,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                span: Span {
+                                                    start: 100,
+                                                    end: 116,
+                                                },
+                                            },
+                                            is_async: false,
+                                            span: Span {
+                                                start: 84,
+                                                end: 116,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 70,
+                                        end: 117,
+                                    },
+                                },
+                                span: Span {
+                                    start: 62,
+                                    end: 117,
+                                },
+                            },
+                        ),
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Call {
+                                        callee: Member {
+                                            object: Ident {
+                                                name: "array",
+                                                span: Span {
+                                                    start: 127,
+                                                    end: 132,
+                                                },
+                                            },
+                                            field: "map",
+                                            optional: false,
+                                            span: Span {
+                                                start: 127,
+                                                end: 136,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Ident {
+                                                name: "a",
+                                                span: Span {
+                                                    start: 137,
+                                                    end: 138,
+                                                },
+                                            },
+                                            Lambda {
+                                                params: [
+                                                    LambdaParam {
+                                                        name: "q",
+                                                        ty: Some(
+                                                            Path {
+                                                                segments: [
+                                                                    "unknown",
+                                                                ],
+                                                                span: Span {
+                                                                    start: 146,
+                                                                    end: 153,
+                                                                },
+                                                            },
+                                                        ),
+                                                        span: Span {
+                                                            start: 143,
+                                                            end: 153,
+                                                        },
+                                                    },
+                                                ],
+                                                return_ty: Some(
+                                                    Path {
+                                                        segments: [
+                                                            "number",
+                                                        ],
+                                                        span: Span {
+                                                            start: 158,
+                                                            end: 164,
+                                                        },
+                                                    },
+                                                ),
+                                                body: Block {
+                                                    stmts: [
+                                                        Return(
+                                                            ReturnStmt {
+                                                                value: Some(
+                                                                    Number {
+                                                                        raw: "0",
+                                                                        span: Span {
+                                                                            start: 174,
+                                                                            end: 175,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                                span: Span {
+                                                                    start: 167,
+                                                                    end: 175,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        start: 165,
+                                                        end: 177,
+                                                    },
+                                                },
+                                                is_async: false,
+                                                span: Span {
+                                                    start: 140,
+                                                    end: 177,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 127,
+                                            end: 178,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 120,
+                                    end: 178,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 58,
+                        end: 180,
+                    },
+                },
+                span: Span {
+                    start: 17,
+                    end: 180,
+                },
+            },
+        ),
+    ],
+    span: Span {
+        start: 0,
+        end: 181,
+    },
+}

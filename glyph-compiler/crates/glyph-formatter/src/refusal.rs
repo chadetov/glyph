@@ -190,7 +190,11 @@ impl<'a> Walk<'a> {
                             span,
                         } if contains(*span, at) => {
                             self.anchor = format!("the member `{name}`");
-                            return self.signature(params, return_ty.as_ref(), name);
+                            return self.signature(
+                                params.iter().map(|p| (&p.name, p.span, Some(&p.ty))),
+                                return_ty.as_ref(),
+                                name,
+                            );
                         }
                         glyph_ast::InterfaceMember::Field(f) if contains(f.span, at) => {
                             self.anchor = format!("the member `{}`", f.name);
@@ -215,14 +219,24 @@ impl<'a> Walk<'a> {
         if contains(body.span, self.at) {
             return self.block(body);
         }
-        self.signature(params, ret, name)
+        self.signature(params.iter().map(|p| (&p.name, p.span, Some(&p.ty))), ret, name)
     }
 
-    fn signature(&mut self, params: &[glyph_ast::Param], ret: Option<&TypeExpr>, name: &str) -> Found {
-        for p in params {
-            if contains(p.span, self.at) {
-                self.anchor = format!("the parameter `{}`", p.name);
-                return self.type_expr(&p.ty, &format!("the type of parameter `{}`", p.name));
+    /// A signature's parameters, each as its name, its span and its written
+    /// annotation (`None` for a lambda parameter written without one).
+    fn signature<'p>(
+        &mut self,
+        params: impl Iterator<Item = (&'p glyph_ast::Ident, glyph_ast::Span, Option<&'p TypeExpr>)>,
+        ret: Option<&TypeExpr>,
+        name: &str,
+    ) -> Found {
+        for (pname, span, ty) in params {
+            if contains(span, self.at) {
+                self.anchor = format!("the parameter `{pname}`");
+                return match ty {
+                    Some(te) => self.type_expr(te, &format!("the type of parameter `{pname}`")),
+                    None => self.found(format!("comment at parameter `{pname}`")),
+                };
             }
         }
         if let Some(t) = ret.filter(|t| contains(t.span(), self.at)) {
@@ -419,7 +433,11 @@ impl<'a> Walk<'a> {
                 if contains(body.span, at) {
                     return Some(self.block(body));
                 }
-                self.signature(params, return_ty.as_ref(), "fn")
+                self.signature(
+                    params.iter().map(|p| (&p.name, p.span, p.ty.as_ref())),
+                    return_ty.as_ref(),
+                    "fn",
+                )
             }
             Expr::Jsx(j) => self.jsx(j),
             Expr::TemplateString { .. } => self.found("comment inside a string interpolation"),

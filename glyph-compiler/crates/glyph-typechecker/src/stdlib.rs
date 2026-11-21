@@ -512,7 +512,7 @@ pub(crate) fn string_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
         // The element type is deliberately left off. `string.join` is where
         // an `array.map` result lands, and an un-annotated callable's return
         // lowers to `void` rather than to what it returns
-        // (`lower_callable_signature`), so `array.map(xs, fn(i: Note) {
+        // (`lower_lambda_signature`), so `array.map(xs, fn(i: Note) {
         // i.message })` is an `Array<void>` and `Array<string>` here would
         // reject a program that runs and that `tsc` accepts. Saying `Array`
         // and nothing more still rejects `string.join("abc", ",")`, which is

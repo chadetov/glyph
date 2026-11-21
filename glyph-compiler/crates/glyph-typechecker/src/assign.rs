@@ -19,7 +19,7 @@ use std::sync::Arc;
 use glyph_ast::{
     jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild,
     JsxElement, JsxKind, LetBinding, LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField,
-    ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
+    LambdaParam, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
 use glyph_resolver::{
     Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind,
@@ -1827,6 +1827,25 @@ impl Assigner<'_> {
         }
     }
 
+    /// A lambda's parameters. A written annotation lowers like a
+    /// declaration's (a written `unknown` is the judged `unknown`); an omitted
+    /// one is `Ty::Unknown`, "not typed here", which no rule judges, and it
+    /// records no written type for diagnostics to quote.
+    fn bind_lambda_param_tys(&mut self, params: &[LambdaParam]) {
+        for p in params {
+            match &p.ty {
+                Some(te) => {
+                    let ty = self.lowerer.lower(te);
+                    self.local_tys.insert(p.span.start, ty);
+                    self.local_type_exprs.insert(p.span.start, te.clone());
+                }
+                None => {
+                    self.local_tys.insert(p.span.start, Ty::Unknown);
+                }
+            }
+        }
+    }
+
     fn walk_block(&mut self, b: &Block) {
         let n = b.stmts.len();
         for (i, s) in b.stmts.iter().enumerate() {
@@ -2855,8 +2874,8 @@ impl Assigner<'_> {
                 is_async,
                 span,
             } => {
-                for p in params {
-                    self.check_nullable_args(&p.ty);
+                for te in params.iter().filter_map(|p| p.ty.as_ref()) {
+                    self.check_nullable_args(te);
                 }
                 if let Some(rt) = return_ty {
                     self.check_nullable_args(rt);
@@ -2864,18 +2883,13 @@ impl Assigner<'_> {
                 let er = self.enclosing_return(return_ty.as_ref(), *is_async);
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
-                self.bind_param_tys(params);
+                self.bind_lambda_param_tys(params);
                 self.walk_block(body);
                 if wants_value {
                     self.check_value_match_tail(body);
                 }
                 self.return_stack.pop();
-                let mut ty = self.lowerer.lower_callable_signature(
-                    &[],
-                    params,
-                    return_ty.as_ref(),
-                    *is_async,
-                );
+                let mut ty = self.lowerer.lower_lambda_signature(params, return_ty.as_ref(), *is_async);
                 // A sync lambda with no written return type returns its tail
                 // (the emitter's rule) and lowers to `void`. When that tail is
                 // a pending value it is E0238 at the tail, and a call of the

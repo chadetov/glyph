@@ -729,28 +729,25 @@ fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
     p.expect(&Token::Fn, "`fn` (lambda)")?;
     p.expect(&Token::LParen, "`(` after `fn`")?;
     // Type annotations are optional inside a lambda (corpus has both
-    // `fn(input) { ... }` and `fn(post: Post) { ... }`); missing types fall
-    // back to a sentinel `unknown` path.
+    // `fn(input) { ... }` and `fn(post: Post) { ... }`). An omitted one is
+    // recorded as `None`, never as a type: "not typed here" and a written
+    // `unknown` are different things to the checker, the formatter and the
+    // emitter alike.
     let params = p.parse_comma_separated(&Token::RParen, true, |p| {
-        let param_start = p.peek_span();
-        let (name, _) = p.expect_ident("parameter name")?;
+        let (name, name_span) = p.expect_ident("parameter name")?;
         let ty = if matches!(p.peek(), Token::Colon) {
             p.advance();
-            crate::types::parse_type(p)?
+            Some(crate::types::parse_type(p)?)
         } else {
-            glyph_ast::TypeExpr::Path {
-                segments: vec![std::sync::Arc::from("unknown")],
-                span: param_start,
-            }
+            None
         };
-        let end = ty.span().end;
-        Ok(glyph_ast::Param {
+        let end = ty.as_ref().map_or(name_span.end, |t| t.span().end);
+        // D25: lambda parameters borrow in v1; `owned` consumers are declared
+        // `fn`s. A lambda taking ownership is forward-compatible.
+        Ok(glyph_ast::LambdaParam {
             name,
-            // D25: lambda parameters borrow in v1; `owned` consumers are
-            // declared `fn`s. A lambda taking ownership is forward-compatible.
-            owned: false,
             ty,
-            span: Span::new(param_start.start, end),
+            span: Span::new(name_span.start, end),
         })
     })?;
     p.expect(&Token::RParen, "`)`")?;

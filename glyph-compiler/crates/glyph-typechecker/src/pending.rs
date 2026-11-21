@@ -441,7 +441,10 @@ impl Pass<'_> {
                         slot,
                         params: params
                             .iter()
-                            .map(|p| format!("{}: {}", p.name, crate::assign::type_expr_source(&p.ty)))
+                            .map(|p| match &p.ty {
+                                Some(te) => format!("{}: {}", p.name, crate::assign::type_expr_source(te)),
+                                None => p.name.to_string(),
+                            })
                             .collect::<Vec<_>>()
                             .join(", "),
                     }),

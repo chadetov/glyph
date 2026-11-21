@@ -12,7 +12,7 @@
 
 use std::sync::Arc;
 
-use glyph_ast::{Decl, GenericParam, Ident, Param, TypeExpr};
+use glyph_ast::{Decl, GenericParam, Ident, LambdaParam, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::ty::{
@@ -254,10 +254,9 @@ impl<'a> Lowerer<'a> {
     }
 
     /// Lower a callable signature (`fn` or `component`) to a `Ty::Fn`. Used
-    /// from `assign.rs` for `Expr::Lambda` and from `lower_decl_signature`;
-    /// downstream crates should call `lower_decl_signature` rather than this
-    /// helper directly. `generics` is the declaration's `<...>` list, empty
-    /// for a lambda, which cannot declare one.
+    /// from `lower_decl_signature`; downstream crates should call that rather
+    /// than this helper directly. `generics` is the declaration's `<...>`
+    /// list. A lambda's signature is `lower_lambda_signature`.
     pub(crate) fn lower_callable_signature(
         &self,
         generics: &[GenericParam],
@@ -282,6 +281,36 @@ impl<'a> Lowerer<'a> {
             return_ty: Arc::new(return_ty),
             is_async,
             type_params: Some(generics.iter().map(|g| g.name.clone()).collect()),
+        }
+    }
+
+    /// Lower a lambda's signature to a `Ty::Fn`. A parameter written without
+    /// an annotation is `Ty::Unknown` ("not typed here"), never the `unknown`
+    /// a program can write, which lowers to `Ty::UnknownTop` like any other
+    /// written type. A lambda declares no generics and no `owned` parameter.
+    pub(crate) fn lower_lambda_signature(
+        &self,
+        params: &[LambdaParam],
+        return_ty: Option<&TypeExpr>,
+        is_async: bool,
+    ) -> Ty {
+        let params = params
+            .iter()
+            .map(|p| FnParam {
+                name: Some(p.name.clone()),
+                owned: false,
+                ty: p.ty.as_ref().map_or(Ty::Unknown, |te| self.lower(te)),
+                optional: false,
+            })
+            .collect();
+        let return_ty = return_ty
+            .map(|rt| self.lower(rt))
+            .unwrap_or(Ty::Prim(Primitive::Void));
+        Ty::Fn {
+            params,
+            return_ty: Arc::new(return_ty),
+            is_async,
+            type_params: Some(Vec::new()),
         }
     }
 

@@ -1,7 +1,7 @@
 ---
 title: ¿El compilador le dice a mi agente cómo arreglarlo? · Glyph
 description: Cada diagnóstico lleva los tipos, el símbolo culpable y las alternativas válidas, y glyph fix escribe las reparaciones que el compilador puede resolver por su cuenta.
-source_hash: 4b15cc7a1cc4e288
+source_hash: 777385c3f729126e
 prev: /answers/ask-the-compiler/ | &larr; Anterior | ¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?
 next: /answers/generated-docs/ | Siguiente &rarr; | ¿La documentación que lee mi agente se genera, o está escrita a mano y desactualizada?
 ---
@@ -12,23 +12,9 @@ next: /answers/generated-docs/ | Siguiente &rarr; | ¿La documentación que lee 
         Te dice qué está mal en forma de datos, no como una frase que haya que parsear: los dos tipos, el símbolo culpable como <code>module::name</code> y la lista finita de cosas que podrían ir legalmente donde está lo que está mal. <code>glyph check --agent</code> añade lo que la edición de reparación no debe romper. Cuando la respuesta está totalmente determinada, <code>glyph fix</code> la escribe.
       </p>
 
-      <div class="detail">
-        <h2 class="block-label">Por qué importa</h2>
-        <p>
-          El ciclo de un agente alrededor de un compilador es leer el error, adivinar la edición, recompilar. El paso de adivinar es donde se produce el daño, y se produce porque el error es un string. Un agente que lee "non-exhaustive match on <code>OrderStatus</code>" sabe que a un match le faltan brazos. No sabe qué llevan las variantes que faltan, así que escribe <code>Paid("tx_1")</code> y se entera por el siguiente diagnóstico. O lee la palabra "exhaustive", añade un brazo <code>else</code>, y el build se pone en verde habiendo tirado la garantía que el diagnóstico existía para proteger.
-        </p>
-        <p>
-          El compilador lo sabía todo. Conocía las variantes de la unión y sus payloads, sabía que un <code>else</code> renunciaría a la garantía, y descartaba las dos cosas una línea antes de responder.
-        </p>
-
-        <h2 class="block-label">Míralo</h2>
-        <p>
-          Un proyecto de dos módulos. <code>orders</code> declara la unión; <code>main</code> escribe un <code>match</code> sobre ella y maneja un caso. <code>glyph check --agent</code>, recortado a las claves que importan aquí:
-        </p>
-      </div>
-
-      <div class="code">
-        <span class="cap">glyph check --agent --no-tsc src</span>
+      <figure class="ak-hero" id="see-it">
+        <div class="code term">
+          <span class="cap">glyph check --agent --no-tsc src</span>
 <pre>{
   "code": "E0200",
   "severity": "error",
@@ -68,29 +54,58 @@ next: /answers/generated-docs/ | Siguiente &rarr; | ¿La documentación que lee 
   "explain": { "command": "glyph --explain E0200",
                "docs": "https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#e0200" }
 }</pre>
-      </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>Un proyecto de dos módulos. <code>orders</code> declara la unión; <code>main</code> escribe un <code>match</code> sobre ella y maneja un caso. <code>glyph check --agent</code>, recortado a las claves que importan aquí.</span></figcaption>
+      </figure>
 
-      <div class="detail">
-        <p>
-          Merece la pena destacar tres cosas. <code>cause</code> es el símbolo culpable, y es algo distinto de <code>entity</code>, que es la declaración en la que está el diagnóstico: aquí la edición ocurre en <code>main::describe</code> y la forma con la que tiene que encajar viene de <code>orders::OrderStatus</code>. Las dos son direcciones que aceptan las demás herramientas, así que una respuesta se encadena sin volver a calcular nada.
-        </p>
-        <p>
-          Las <code>constraints</code> no son la reparación. Cada una es algo que el compilador ya hace cumplir, escrito para que la edición que satisface el diagnóstico no rompa la garantía que hay detrás. La segunda restricción es la razón de que exista la clave: un brazo <code>else</code> es válido, pondría el build en verde, y la restricción dice lo que cuesta elegirlo.
-        </p>
-        <p>
-          <code>symbols</code> es la respuesta de <code>glyph_symbol</code> para cada símbolo que nombra el diagnóstico, así que la siguiente edición del agente no necesita una segunda llamada. Un símbolo que la herramienta rechaza aparece en <code>symbols_absent</code> con el motivo, lo que separa "no miramos" de "miramos y no está".
-        </p>
-        <p>
-          Todas las claves están siempre presentes. Un dato que el compilador no tiene llega como un <code>null</code> explícito, nunca como una clave que falta, así que la ausencia se escribe de una sola forma en todos los códigos y tanto en la CLI como en la superficie MCP.
-        </p>
+      <nav class="ak-toc" aria-label="En esta página">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#why-it-matters">Por qué importa</a></li>
+          <li><a href="#reading-the-answer">Leer la respuesta</a></li>
+          <li><a href="#where-the-answer-is-determined-the-compiler-writes-it">Lo que escribe glyph fix</a></li>
+          <li><a href="#the-code-s-own-explanation-as-data">Explicaciones como datos</a></li>
+          <li><a href="#where-it-stands">Dónde está</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="block-label">Cuando la respuesta está determinada, el compilador la escribe</h2>
+      <h2 class="ak-h" id="why-it-matters">Por qué importa<a class="ak-anchor" href="#why-it-matters" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        El ciclo de un agente alrededor de un compilador es leer el error, adivinar la edición, recompilar. El paso de adivinar es donde se produce el daño, y se produce porque el error es un string.
+      </p>
+      <ol class="ak-path" aria-label="El ciclo del agente"><li><span>leer el error</span></li><li><span>adivinar la edición</span></li><li><span>recompilar</span></li></ol>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>El compilador lo sabía todo. Conocía las variantes de la unión y sus payloads, sabía que un <code>else</code> renunciaría a la garantía, y descartaba las dos cosas una línea antes de responder.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">las dos ediciones incorrectas a las que invita un string</span></summary><div class="body">
         <p>
-          <code>glyph fix</code> aplica solo las reparaciones que el compilador resuelve por su cuenta: imports sin usar, la cabeza de un brazo que no es una variante cuando el checker calculó exactamente una sugerencia, y un campo que el record no declara cuando exactamente un campo declarado está a un carácter de distancia. El <code>match</code> de arriba no es uno de ellos.
+          Un agente que lee "non-exhaustive match on <code>OrderStatus</code>" sabe que a un match le faltan brazos. No sabe qué llevan las variantes que faltan, así que escribe <code>Paid("tx_1")</code> y se entera por el siguiente diagnóstico. O lee la palabra "exhaustive", añade un brazo <code>else</code>, y el build se pone en verde habiendo tirado la garantía que el diagnóstico existía para proteger.
         </p>
-      </div>
+      </div></details>
 
-      <div class="code">
+      <h2 class="ak-h" id="reading-the-answer">Leer la respuesta<a class="ak-anchor" href="#reading-the-answer" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">Merece la pena destacar tres cosas.</p>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="7" r="3"/><path d="M8 10v4.5M5.5 14.5h5"/></svg></span><b><code>cause</code></b><code>cause</code> es el símbolo culpable, y es algo distinto de <code>entity</code>, que es la declaración en la que está el diagnóstico: aquí la edición ocurre en <code>main::describe</code> y la forma con la que tiene que encajar viene de <code>orders::OrderStatus</code>.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></svg></span><b><code>constraints</code></b>Las <code>constraints</code> no son la reparación. Cada una es algo que el compilador ya hace cumplir, escrito para que la edición que satisface el diagnóstico no rompa la garantía que hay detrás.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg></span><b><code>symbols</code></b><code>symbols</code> es la respuesta de <code>glyph_symbol</code> para cada símbolo que nombra el diagnóstico, así que la siguiente edición del agente no necesita una segunda llamada.</li>
+      </ul>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>Todas las claves están siempre presentes. Un dato que el compilador no tiene llega como un <code>null</code> explícito, nunca como una clave que falta, así que la ausencia se escribe de una sola forma en todos los códigos y tanto en la CLI como en la superficie MCP.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">direcciones que se encadenan, la restricción del else, symbols_absent</span></summary><div class="body">
+        <p>
+          Las dos son direcciones que aceptan las demás herramientas, así que una respuesta se encadena sin volver a calcular nada.
+        </p>
+        <p>
+          La segunda restricción es la razón de que exista la clave: un brazo <code>else</code> es válido, pondría el build en verde, y la restricción dice lo que cuesta elegirlo.
+        </p>
+        <p>
+          Un símbolo que la herramienta rechaza aparece en <code>symbols_absent</code> con el motivo, lo que separa "no miramos" de "miramos y no está".
+        </p>
+      </div></details>
+
+      <h2 class="ak-h" id="where-the-answer-is-determined-the-compiler-writes-it">Cuando la respuesta está determinada, el compilador la escribe<a class="ak-anchor" href="#where-the-answer-is-determined-the-compiler-writes-it" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph fix</code> aplica solo las reparaciones que el compilador resuelve por su cuenta: imports sin usar, la cabeza de un brazo que no es una variante cuando el checker calculó exactamente una sugerencia, y un campo que el record no declara cuando exactamente un campo declarado está a un carácter de distancia. El <code>match</code> de arriba no es uno de ellos.
+      </p>
+      <div class="code term">
         <span class="cap">glyph fix src, sobre el match de arriba</span>
 <pre>glyph fix: removed 0 unused import(s) across 0 file(s).
 glyph fix: declined E0200 in src/main.glyph: the compiler does not
@@ -100,25 +115,27 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
 
 <span class="cm">// src/main.glyph is unchanged, and glyph check still fails with E0200.</span></pre>
       </div>
-
-      <div class="detail">
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>El compilador sabe qué casos faltan y el patrón que lleva cada uno. No sabe qué tiene que hacer el programa cuando un pedido está <code>Paid</code>, y cualquier cuerpo que escribiera sería una suposición que compila.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">lo que escribía glyph fix hasta la 0.1.128</span></summary><div class="body">
         <p>
-          El compilador sabe qué casos faltan y el patrón que lleva cada uno. No sabe qué tiene que hacer el programa cuando un pedido está <code>Paid</code>, y cualquier cuerpo que escribiera sería una suposición que compila. Hasta la 0.1.128 <code>glyph fix</code> escribía esa suposición: un brazo por caso cuyo cuerpo imprimía el caso y llamaba a <code>process.exit(1)</code>. El programa pasaba entonces <code>check</code>, <code>tsc</code> y <code>build</code>, y <code>glyph query variants</code> informaba del match como exhaustivo, así que el caso que faltaba había pasado de error de compilación a fallo en tiempo de ejecución sin nada que lo señalara.
+          Hasta la 0.1.128 <code>glyph fix</code> escribía esa suposición: un brazo por caso cuyo cuerpo imprimía el caso y llamaba a <code>process.exit(1)</code>. El programa pasaba entonces <code>check</code>, <code>tsc</code> y <code>build</code>, y <code>glyph query variants</code> informaba del match como exhaustivo, así que el caso que faltaba había pasado de error de compilación a fallo en tiempo de ejecución sin nada que lo señalara.
         </p>
+      </div></details>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">de dónde salen los brazos, y cómo se informan las abstenciones</span></summary><div class="body">
         <p>
           Así que la regla se abstiene, y nombra los casos. Todo lo necesario para escribir los brazos ya está en la respuesta de <code>--agent</code> de arriba: <code>missing_variants</code>, y la forma <code>construct</code> de cada variante bajo <code>symbols</code>. Los brazos los escribes tú o tu agente, igual que cualquier otro código cuyo comportamiento el compilador no puede inferir.
         </p>
         <p>
           Lo que <code>glyph fix</code> sí escribe, lo escribe sin adivinar, y cada regla que no puede resolver una respuesta imprime que se abstiene y el motivo en la misma salida que lo que aplicó. Dos campos a un carácter de una errata son dos, no uno, y lo dice en lugar de elegir.
         </p>
+      </div></details>
 
-        <h2 class="block-label">La explicación del propio código, como datos</h2>
-        <p>
-          <code>glyph --explain &lt;CODE&gt; --json</code> responde con la explicación larga, la <code>help</code> de una línea, la URL de la documentación y un programa incorrecto del corpus negativo del compilador emparejado con el diagnóstico que este compilador genera para él. El diagnóstico se compila cuando lo pides, no se guarda, así que no puede desviarse de lo que dice el compilador de verdad.
-        </p>
-      </div>
-
-      <div class="code">
+      <h2 class="ak-h" id="the-code-s-own-explanation-as-data">La explicación del propio código, como datos<a class="ak-anchor" href="#the-code-s-own-explanation-as-data" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>glyph --explain &lt;CODE&gt; --json</code> responde con la explicación larga, la <code>help</code> de una línea, la URL de la documentación y un programa incorrecto del corpus negativo del compilador emparejado con el diagnóstico que este compilador genera para él.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>El diagnóstico se compila cuando lo pides, no se guarda, así que no puede desviarse de lo que dice el compilador de verdad.</p></div>
+      <div class="code term">
         <span class="cap">glyph --explain E0200 --json</span>
 <pre>{
   "code": "E0200",
@@ -145,24 +162,37 @@ glyph fix: declined E0200 in src/main.glyph: the compiler does not
   }
 }</pre>
       </div>
-
-      <div class="detail">
-        <p>
-          Un código que el corpus no cubre vuelve con <code>counter_example: null</code> y una frase que dice que el corpus no tiene ningún caso para él, en lugar de un ejemplo inventado. El corpus afirma lo que cubre y nada sobre el resto.
-        </p>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Un código que el corpus no cubre vuelve con <code>counter_example: null</code> y una frase que dice que el corpus no tiene ningún caso para él, en lugar de un ejemplo inventado. El corpus afirma lo que cubre y nada sobre el resto.</p></div>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">el corpus entero, con glyph llms --negative</span></summary><div class="body">
         <p>
           <code>glyph --explain</code> entrega un caso por código. El corpus entero también se puede leer: <code>glyph llms --negative E0200</code> imprime cada programa incorrecto que genera el código, cada uno compilado cuando lo pides, y cuando un segundo corpus empareja un programa que <code>tsc --strict</code> acepta con el Glyph que lo rechaza, vuelve a su lado. Sin código, lista 102 casos sobre 46 de los 70 códigos y nombra los 24 que no tienen ninguno, así que la cobertura se declara en lugar de deducirse de lo que vuelve. Eso y el resto de lo que el compilador publica sobre sí mismo está en <a href="/answers/generated-docs/">su propia página</a>.
         </p>
-      </div>
+      </div></details>
 
-      <h2 class="block-label">Dónde está</h2>
-      <div class="status-row">
-        <div class="status-card today">
-          <h3 class="h">Disponible hoy</h3>
-          <p>Cada diagnóstico lleva <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (con <code>alternatives_kind</code> indicando si lista <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> o <code>exports</code>, fijado donde se genera el error), <code>related</code>, <code>module</code>, <code>file</code> y <code>explain</code>, rellenados a partir del error que generó el compilador en lugar de recalculados, y cada uno es un <code>null</code> explícito cuando el compilador no tiene ese dato. <code>file</code> es una ruta relativa a la raíz de resolución, y el informe nombra esa raíz en <code>project_root</code>, así que se puede abrir. <code>glyph check --agent</code> añade <code>constraints</code> y <code>symbols</code> a cada diagnóstico. <code>glyph fix</code> aplica tres reglas (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) y declara cada abstención con su motivo, incluido cada <code>E0200</code>, que informa y nunca escribe. <code>glyph --explain &lt;CODE&gt; --json</code> devuelve la explicación con un contraejemplo compilado, y <code>glyph llms --negative &lt;CODE&gt;</code> devuelve todo el corpus de programas incorrectos que lo generan.</p>
-        </div>
-        <div class="status-card next">
-          <h3 class="h">Dónde se detiene</h3>
-          <p><code>cause</code> en <code>E0211</code> es <code>null</code>: el símbolo culpable en un argumento de llamada es un parámetro, y <code>module::fn.param</code> no es algo que el vocabulario de identidades sepa escribir, así que el null es deliberado y no un descuido. <code>corrected</code> en un contraejemplo siempre es <code>null</code>, porque el corpus negativo no empareja ningún programa reparado con un caso, y 24 de los 70 códigos no tienen ningún caso. <code>glyph fix</code> escribe tres reglas y nada más, y no escribe ningún brazo para un <code>match</code> no exhaustivo: esos quedan para ti o tu agente, con los casos y sus patrones en el diagnóstico. Todo aquello de lo que se abstiene, lo dice en voz alta.</p>
-        </div>
+      <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Cada diagnóstico lleva <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code>, <code>related</code>, <code>module</code>, <code>file</code> y <code>explain</code>, cada uno un <code>null</code> explícito cuando el compilador no tiene ese dato</span></span>
+              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
+                <p>Cada diagnóstico lleva <code>expected</code>, <code>actual</code>, <code>cause</code>, <code>alternatives</code> (con <code>alternatives_kind</code> indicando si lista <code>fields</code>, <code>members</code>, <code>variants</code>, <code>literals</code> o <code>exports</code>, fijado donde se genera el error), <code>related</code>, <code>module</code>, <code>file</code> y <code>explain</code>, rellenados a partir del error que generó el compilador en lugar de recalculados, y cada uno es un <code>null</code> explícito cuando el compilador no tiene ese dato.</p>
+              </div></details>
+            </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>file</code> es una ruta relativa a la raíz de resolución, y el informe nombra esa raíz en <code>project_root</code>, así que se puede abrir.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph check --agent</code> añade <code>constraints</code> y <code>symbols</code> a cada diagnóstico.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph fix</code> aplica tres reglas (<code>E0106</code>, <code>E0210</code>, <code>E0220</code>) y declara cada abstención con su motivo, incluido cada <code>E0200</code>, que informa y nunca escribe.</span><span class="chip code">E0106</span><span class="chip code">E0210</span><span class="chip code">E0220</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>glyph --explain &lt;CODE&gt; --json</code> devuelve la explicación con un contraejemplo compilado, y <code>glyph llms --negative &lt;CODE&gt;</code> devuelve todo el corpus de programas incorrectos que lo generan.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Dónde se detiene</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>cause</code> en <code>E0211</code> es <code>null</code>: el símbolo culpable en un argumento de llamada es un parámetro, y <code>module::fn.param</code> no es algo que el vocabulario de identidades sepa escribir, así que el null es deliberado y no un descuido.</span><span class="chip code">E0211</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>corrected</code> en un contraejemplo siempre es <code>null</code>, porque el corpus negativo no empareja ningún programa reparado con un caso, y 24 de los 70 códigos no tienen ningún caso.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph fix</code> escribe tres reglas y nada más, y no escribe ningún brazo para un <code>match</code> no exhaustivo: esos quedan para ti o tu agente, con los casos y sus patrones en el diagnóstico.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Todo aquello de lo que se abstiene, lo dice en voz alta.</span></span></li>
+          </ul>
+        </section>
       </div>

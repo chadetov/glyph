@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-426 entries, 316 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-90 are open. G144, the D28 boundary cast that never reached the returns a
+428 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+91 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13859,7 +13859,7 @@ and is the owner's to confirm.
   `!== undefined && !== null` predicate turns both red, the second on the
   `TypeError` again.
 
-- **G392. `xs.find(...)` as a method is not an `Option` to Glyph's checker.** `users.find(fn(u: User) -> bool { u.id == id }).name` passes `--no-tsc`; only
+- **G392. [FIXED] `xs.find(...)` as a method is not an `Option` to Glyph's checker.** `users.find(fn(u: User) -> bool { u.id == id }).name` passes `--no-tsc`; only
   `tsc` refuses it (TS2532). The `std/array` form `array.find(users, ...)` is
   E0210, `Option<User>` has no field `name`. The editor, MCP and the applyEdit
   gate run without `tsc`. Same family as G381.
@@ -13867,6 +13867,22 @@ and is the owner's to confirm.
   *Reproduced against 0.1.149 (the release build): `--no-tsc` reports an unused-import warning only; full `check` reports `[TS2532] Error: tsc: Object is possibly 'undefined'`.*
 
   *Reproduced against 0.1.155 (the release build): `--no-tsc` reports an unused-import warning only; full `check` reports `[TS2532] Error: tsc: Object is possibly 'undefined'`.*
+
+  Fixed in 0.1.161 (decision records 153 and 154; D56). The gap was wider
+  than `find`: every method whose TypeScript return can hold `undefined` or
+  `null` handed back a value Glyph's checker could not see, and `xs.at(-1) ??
+  0` passed `tsc` as well. The generated method rows carry `absent`, read off
+  the declarations (`find`, `findLast`, `at`, `pop`, `shift` on an array;
+  `at`, `codePointAt`, `match` on a string), and generation fails on an
+  absent row with no entry in the hand table `ABSENT_REPLACEMENT`. A call to
+  one is E0242 in every position, through an index and a `?.` call included,
+  with help naming the `std/*` function that returns an `Option`; `pop` and
+  `shift` stay E0240's, a call under `mut` stays E0241's, and an `Unknown`
+  receiver is not judged. `array.find_last`, `string.char_at` and
+  `string.code_point_at` are new. `glyph fix` writes the array rewrites and
+  adds `import std/array`; it declines the string ones. Breaking: the
+  catch's `xs.at(-1) ?? 0` program passes full check on 0.1.160 and fails on
+  0.1.161.
 
 - **G393. Glyph's checker reads an optional field as its type.** With
   `type Opts = { timeout_ms?: number, }` and `fn twice(o: Opts) -> number {
@@ -14522,3 +14538,31 @@ and is the owner's to confirm.
   s.opt?.pop()` names `array.get(s.opt, array.len(s.opt) - 1)` and `mut
   s.opt.pop()`.*
 
+- **G427. The built-in method table is read from `esnext`, and the emitted
+  tsconfig asks for `es2022`.** `builtin_methods.rs` is generated from `lib:
+  ["esnext", "dom"]`, while `glyph build` writes `"lib": ["es2022", "dom"]`
+  (`glyph-cli/src/runtime.rs`). So Glyph's checker types `toSorted`,
+  `toReversed`, `toSpliced`, `with`, `findLast` and `findLastIndex`, and `tsc`
+  refuses them: `xs.toSorted(cmp)` passes `check --no-tsc` and full `check`
+  reports `[TS2550] Property 'toSorted' does not exist on type 'number[]'. Do
+  you need to change your target library?`. The decision is whether the table
+  follows the tsconfig or the tsconfig moves to `es2023`; nothing shipped
+  depends on the newer methods, since record 150 kept them out of every help.
+  Found by record 153.
+
+  *Reproduced against 0.1.160 (the release build): `let t =
+  xs.toSorted(fn(p: number, q: number) -> number { return p - q })` gives no
+  error under `--no-tsc` (two unused-name warnings) and TS2550 under full
+  `check`.*
+
+- **G428. String indexing, `charAt` and a one-unit `slice` hand back half a
+  surrogate pair.** On `s = "a😀"`, `s[2]`, `s.charAt(2)` and `string.slice(s,
+  2, 3)` all give the lone second half `"\ude00"`, which reads as a character
+  until it is written out. Spec line 11 rules such an accessor out, and 0.1.161
+  added `string.char_at`, which answers `None` there, but these three spellings
+  still return the half, as they always have. Whether to refuse or redirect them
+  is open. Found by record 154.
+
+  *Reproduced against 0.1.160 (the release build): with `s = "a😀"`, a program
+  binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check`
+  and prints `1 1 1 true true`: three one-unit strings, all the same half.*

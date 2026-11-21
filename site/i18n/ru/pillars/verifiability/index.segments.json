@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "pillars/verifiability/index.html",
   "locale": "ru",
-  "source_hash": "b8ae04a4b3228182",
+  "source_hash": "27017c2e0eebfe6d",
   "segments": [
     {
       "id": "title",
@@ -59,16 +59,106 @@
       "tr": "Glyph закрывает дыры, в которые проваливается агент: <strong>нет <code>any</code> и нет <code>as</code>, которые можно написать</strong>, <code>match</code> <strong>доказуемо исчерпывающий</strong>, а объявленные типы получают <strong>строгие валидаторы для времени выполнения</strong>, и всё это обеспечивается строгим слоем поверх <code>tsc</code>. Сам он проверяет не всё, и ниже прямо сказано, где именно кончается гарантия."
     },
     {
+      "id": "h-efbb175b",
+      "kind": "html",
+      "en": "TypeScript: compiles, then crashes",
+      "tr": "TypeScript: компилируется, а потом падает"
+    },
+    {
+      "id": "h-fd3640a0",
+      "kind": "html",
+      "en": "Glyph: the narrowing is the proof",
+      "tr": "Glyph: сужение типа и есть доказательство"
+    },
+    {
+      "id": "a-92dc7c75",
+      "kind": "attr:aria-label",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-b5658fc8",
+      "kind": "html",
+      "en": "On this page",
+      "tr": "На этой странице"
+    },
+    {
+      "id": "h-14006a10",
+      "kind": "html",
+      "en": "<a href=\"#the-lie-a-type-can-tell\">The lie a type can tell</a>",
+      "tr": "<a href=\"#the-lie-a-type-can-tell\">Как тип может соврать</a>"
+    },
+    {
+      "id": "h-4335a2ef",
+      "kind": "html",
+      "en": "<a href=\"#there-is-no-any\">No any</a>",
+      "tr": "<a href=\"#there-is-no-any\">Нет any</a>"
+    },
+    {
+      "id": "h-14dde7ec",
+      "kind": "html",
+      "en": "<a href=\"#types-are-real-at-runtime\">Types at runtime</a>",
+      "tr": "<a href=\"#types-are-real-at-runtime\">Типы во время выполнения</a>"
+    },
+    {
+      "id": "h-d0911bf6",
+      "kind": "html",
+      "en": "<a href=\"#every-case-or-it-doesn-t-compile\">Every case</a>",
+      "tr": "<a href=\"#every-case-or-it-doesn-t-compile\">Каждый вариант</a>"
+    },
+    {
+      "id": "h-b0fd3fd0",
+      "kind": "html",
+      "en": "<a href=\"#errors-are-values-not-surprises\">Errors as values</a>",
+      "tr": "<a href=\"#errors-are-values-not-surprises\">Ошибки как значения</a>"
+    },
+    {
+      "id": "h-75be2a29",
+      "kind": "html",
+      "en": "<a href=\"#even-pii-is-type-level\">PII</a>",
+      "tr": "<a href=\"#even-pii-is-type-level\">Персональные данные</a>"
+    },
+    {
+      "id": "h-d47b2d7f",
+      "kind": "html",
+      "en": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Where the guarantee stops</a>",
+      "tr": "<a href=\"#how-it-s-enforced-and-where-the-guarantee-stops\">Где кончается гарантия</a>"
+    },
+    {
+      "id": "h-76653b3e",
+      "kind": "html",
+      "en": "<a href=\"#the-benchmark-coming\">The benchmark</a>",
+      "tr": "<a href=\"#the-benchmark-coming\">Бенчмарк</a>"
+    },
+    {
+      "id": "h-c5be8c0b",
+      "kind": "html",
+      "en": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Strict TS and lint</a>",
+      "tr": "<a href=\"#strict-typescript-and-a-lint-config-do-this\">Строгий TS и линтер</a>"
+    },
+    {
       "id": "h-639f009d",
       "kind": "html",
       "en": "The lie a type can tell",
       "tr": "Ложь, которую может сказать тип"
     },
     {
-      "id": "h-075a79f0",
+      "id": "a-1878a025",
+      "kind": "attr:aria-label",
+      "en": "Link to this section",
+      "tr": "Ссылка на этот раздел"
+    },
+    {
+      "id": "h-51680a37",
       "kind": "html",
-      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all. Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
-      "tr": "В TypeScript тип это обещание времени компиляции, которое испаряется до запуска кода. Аннотация <code>User</code> стирается в ничто; объект, который вы на самом деле получаете из сетевого вызова, разбора JSON или поля формы, может иметь любую форму. Хуже того, язык даёт три законных способа соврать проверке типов: <code>any</code>, приведение <code>as</code> и non-null <code>!</code>. Агент, работающий быстро, хватается за все три, а <code>tsc --strict</code> остаётся зелёным, пока ошибка уходит в продакшен."
+      "en": "In TypeScript a type is a compile-time promise that evaporates before your code runs. A <code>User</code> annotation is erased to nothing; the object you actually get from a network call, a JSON parse, or a form field could be any shape at all.",
+      "tr": "В TypeScript тип это обещание времени компиляции, которое испаряется до запуска кода. Аннотация <code>User</code> стирается в ничто; объект, который вы на самом деле получаете из сетевого вызова, разбора JSON или поля формы, может иметь любую форму."
+    },
+    {
+      "id": "h-e2e3672a",
+      "kind": "html",
+      "en": "Worse, the language hands you three legal ways to lie to the checker about it: <code>any</code>, an <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all three, and <code>tsc --strict</code> stays green while the bug ships.",
+      "tr": "Хуже того, язык даёт три законных способа соврать проверке типов: <code>any</code>, приведение <code>as</code> и non-null <code>!</code>. Агент, работающий быстро, хватается за все три, а <code>tsc --strict</code> остаётся зелёным, пока ошибка уходит в продакшен."
     },
     {
       "id": "h-3e057639",
@@ -83,22 +173,22 @@
       "tr": "<span class=\"ex-label\">01</span> <code>any</code> нет"
     },
     {
-      "id": "h-5f3593d9",
+      "id": "h-bc245dbd",
       "kind": "html",
-      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
-      "tr": "<code>any</code> самое дорогое ключевое слово в TypeScript: оно выключает систему типов для значения <em>и для всего, чего это значение касается</em>. Один <code>any</code> на границе незаметно отравляет весь граф вызовов ниже. В Glyph его нет. Верхний тип это <code>unknown</code>, а <code>unknown</code> инертен: его нельзя вызвать, индексировать или передать куда-либо типизированное, пока вы не <em>доказали</em>, что это такое."
+      "en": "Glyph doesn't have it. The top type is <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it, or pass it anywhere typed until you have <em>proven</em> what it is.",
+      "tr": "В Glyph его нет. Верхний тип это <code>unknown</code>, а <code>unknown</code> инертен: его нельзя вызвать, индексировать или передать куда-либо типизированное, пока вы не <em>доказали</em>, что это такое."
     },
     {
-      "id": "h-efbb175b",
+      "id": "h-11d21731",
       "kind": "html",
-      "en": "TypeScript: compiles, then crashes",
-      "tr": "TypeScript: компилируется, а потом падает"
+      "en": "Details <span class=\"hint\">why one any costs so much</span>",
+      "tr": "Подробнее <span class=\"hint\">почему один any обходится так дорого</span>"
     },
     {
-      "id": "h-fd3640a0",
+      "id": "h-76bc3093",
       "kind": "html",
-      "en": "Glyph: the narrowing is the proof",
-      "tr": "Glyph: сужение типа и есть доказательство"
+      "en": "<code>any</code> is the single most expensive keyword in TypeScript: it switches off the type system for a value <em>and everything that value touches</em>. One <code>any</code> at a boundary quietly poisons the call graph downstream.",
+      "tr": "<code>any</code> самое дорогое ключевое слово в TypeScript: оно выключает систему типов для значения <em>и для всего, чего это значение касается</em>. Один <code>any</code> на границе незаметно отравляет весь граф вызовов ниже."
     },
     {
       "id": "h-f01c689a",
@@ -113,10 +203,10 @@
       "tr": "<span class=\"ex-label\">02</span> Типы существуют во время выполнения"
     },
     {
-      "id": "h-6b3971a1",
+      "id": "h-1a69a996",
       "kind": "html",
-      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>. The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
-      "tr": "Откуда берётся <code>User.parse</code>? Каждый тип записи и каждое необобщённое размеченное объединение генерирует рядом с собой <strong>дескриптор для времени выполнения</strong>: guard <code>is</code>, функцию <code>parse</code>, которая валидирует <code>unknown</code> в <code>Result</code>, и составную <code>schema</code>. Форма записи действительно проверяется во время выполнения, а не предполагается, так что проверка <code>is User</code> настоящая, а не стёртая пустышка."
+      "en": "How does <code>User.parse</code> exist? Because every record type, and every non-generic tagged union, generates a <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a composable <code>schema</code>.",
+      "tr": "Откуда берётся <code>User.parse</code>? Каждый тип записи и каждое необобщённое размеченное объединение генерирует рядом с собой <strong>дескриптор для времени выполнения</strong>: guard <code>is</code>, функцию <code>parse</code>, которая валидирует <code>unknown</code> в <code>Result</code>, и составную <code>schema</code>."
     },
     {
       "id": "h-14c2cb86",
@@ -125,16 +215,40 @@
       "tr": "тип, который вы пишете, и дескриптор, сгенерированный из него"
     },
     {
-      "id": "h-013d9e91",
+      "id": "h-c3e4b6d5",
       "kind": "html",
-      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator. A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
-      "tr": "Это ответ на «для каждого API нужен рукописный валидатор». Тип и есть валидатор. Граница (тело запроса, файл конфигурации, ответ стороннего сервиса) становится типизированной только после проверки, которая действительно может отклонить плохие данные."
+      "en": "This is the answer to \"every API needs a hand-written validator.\" The type is the validator.",
+      "tr": "Это ответ на «для каждого API нужен рукописный валидатор». Тип и есть валидатор."
     },
     {
-      "id": "h-10d713ab",
+      "id": "h-0271b6cb",
       "kind": "html",
-      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields. What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
-      "tr": "Где это заканчивается: дескриптор записи по умолчанию строгий. Он подтверждает объявленные поля и отклоняет значение с необъявленными ключами (поставьте на тип <code>@open</code>, чтобы разрешить лишние). Дескриптор получают типы записей, включая обобщённые, так что <code>Paginated&lt;User&gt;</code> проверяет каждый элемент как <code>User</code>, а дескриптор размеченного объединения проверяет тег, а затем поля данных этого варианта. Дескриптора всё ещё нет у обобщённого размеченного объединения (у <code>Box&lt;T&gt; = Empty | Full({ value: T })</code> нет <code>Box.parse</code>) и у типа, импортированного из <code>.d.ts</code>, на который вы только ссылаетесь. Где проверка может доказать только часть формы, компилятор так и говорит, а не намекает на гарантию, которую не может дать."
+      "en": "Details <span class=\"hint\">what the descriptor checks</span>",
+      "tr": "Подробнее <span class=\"hint\">что проверяет дескриптор</span>"
+    },
+    {
+      "id": "h-c49f1369",
+      "kind": "html",
+      "en": "The record's shape is actually inspected at runtime, not assumed, so an <code>is User</code> check is a real check, not an erased no-op.",
+      "tr": "Форма записи действительно проверяется во время выполнения, а не предполагается, так что проверка <code>is User</code> настоящая, а не стёртая пустышка."
+    },
+    {
+      "id": "h-7ec41b58",
+      "kind": "html",
+      "en": "A boundary (a request body, a config file, a third-party response) becomes typed only by passing through a check that can actually reject bad data.",
+      "tr": "Граница (тело запроса, файл конфигурации, ответ стороннего сервиса) становится типизированной только после проверки, которая действительно может отклонить плохие данные."
+    },
+    {
+      "id": "h-c1597e84",
+      "kind": "html",
+      "en": "Where this stops: a record's descriptor is strict by default. It confirms the declared fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to allow extras). Record types get a descriptor, generic ones included, so <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>, and a tagged union's descriptor checks the tag and then that variant's payload fields.",
+      "tr": "Где это заканчивается: дескриптор записи по умолчанию строгий. Он подтверждает объявленные поля и отклоняет значение с необъявленными ключами (поставьте на тип <code>@open</code>, чтобы разрешить лишние). Дескриптор получают типы записей, включая обобщённые, так что <code>Paginated&lt;User&gt;</code> проверяет каждый элемент как <code>User</code>, а дескриптор размеченного объединения проверяет тег, а затем поля данных этого варианта."
+    },
+    {
+      "id": "h-9ae0aa14",
+      "kind": "html",
+      "en": "What still doesn't get one is a generic tagged union (<code>Box&lt;T&gt; = Empty | Full({ value: T })</code> has no <code>Box.parse</code>), or a type imported from a <code>.d.ts</code> you only reference. Where a check can prove only part of a shape, the compiler says so instead of implying a guarantee it can't make.",
+      "tr": "Дескриптора всё ещё нет у обобщённого размеченного объединения (у <code>Box&lt;T&gt; = Empty | Full({ value: T })</code> нет <code>Box.parse</code>) и у типа, импортированного из <code>.d.ts</code>, на который вы только ссылаетесь. Где проверка может доказать только часть формы, компилятор так и говорит, а не намекает на гарантию, которую не может дать."
     },
     {
       "id": "h-7f6e1258",
@@ -143,10 +257,10 @@
       "tr": "<span class=\"ex-label\">03</span> Все варианты, иначе не компилируется"
     },
     {
-      "id": "h-0adab77f",
+      "id": "h-714a5971",
       "kind": "html",
-      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>). The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
-      "tr": "<code>match</code> по закрытому union обязан обработать каждый вариант. Добавьте вариант позже, и <em>каждый</em> match, который его не учёл, перестанет компилироваться (<code>E0200</code>). Новый вариант не может молча провалиться в <code>undefined</code>, как это бывает с забытой веткой <code>switch</code>. И это касается не только union: сопоставление <code>number</code> или <code>string</code> с литералами требует <code>else</code> (<code>E0218</code>), потому что эти множества не ограничены и набор литералов никогда не будет полным."
+      "en": "A <code>match</code> over a sealed union must handle every variant. Add a variant later and <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).",
+      "tr": "<code>match</code> по закрытому union обязан обработать каждый вариант. Добавьте вариант позже, и <em>каждый</em> match, который его не учёл, перестанет компилироваться (<code>E0200</code>)."
     },
     {
       "id": "h-b6cc05d4",
@@ -155,16 +269,34 @@
       "tr": "ошибка компиляции, а не undefined во время выполнения"
     },
     {
+      "id": "h-1e14f808",
+      "kind": "html",
+      "en": "Details <span class=\"hint\">number and string matches</span>",
+      "tr": "Подробнее <span class=\"hint\">match по числам и строкам</span>"
+    },
+    {
+      "id": "h-2121973b",
+      "kind": "html",
+      "en": "The new case cannot silently fall through to <code>undefined</code> the way a forgotten <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>), because those domains are unbounded and a set of literals can never be complete.",
+      "tr": "Новый вариант не может молча провалиться в <code>undefined</code>, как это бывает с забытой веткой <code>switch</code>. И это касается не только union: сопоставление <code>number</code> или <code>string</code> с литералами требует <code>else</code> (<code>E0218</code>), потому что эти множества не ограничены и набор литералов никогда не будет полным."
+    },
+    {
       "id": "h-85b49cf2",
       "kind": "html",
       "en": "<span class=\"ex-label\">04</span> Errors are values, not surprises",
       "tr": "<span class=\"ex-label\">04</span> Ошибки это значения, а не сюрпризы"
     },
     {
-      "id": "h-9f7ae855",
+      "id": "h-8cad6d11",
       "kind": "html",
-      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch). Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
-      "tr": "Функция, которая может завершиться ошибкой, возвращает <code>Result&lt;T, E&gt;</code>. Его обрабатывают через <code>match</code> или передают выше оператором <code>?</code>, и тип ошибки должен совпадать (неявного преобразования, скрывающего несовпадение, нет). Если полностью проигнорировать <code>Result</code> (вызвать ради эффекта и выбросить результат), Glyph предупредит (<code>E0217</code>), потому что отброшенная ошибка это проглоченный сбой. Заглушить предупреждение можно только намеренно, через <code>let _ = ...</code>, но никогда случайно."
+      "en": "A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with <code>match</code>, or propagate it with the <code>?</code> operator, and the error type has to line up (there is no implicit conversion hiding a mismatch).",
+      "tr": "Функция, которая может завершиться ошибкой, возвращает <code>Result&lt;T, E&gt;</code>. Его обрабатывают через <code>match</code> или передают выше оператором <code>?</code>, и тип ошибки должен совпадать (неявного преобразования, скрывающего несовпадение, нет)."
+    },
+    {
+      "id": "h-51e3ca2c",
+      "kind": "html",
+      "en": "Ignore a <code>Result</code> entirely (call it for effect and drop what it returned) and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>, never by accident.",
+      "tr": "Если полностью проигнорировать <code>Result</code> (вызвать ради эффекта и выбросить результат), Glyph предупредит (<code>E0217</code>), потому что отброшенная ошибка это проглоченный сбой. Заглушить предупреждение можно только намеренно, через <code>let _ = ...</code>, но никогда случайно."
     },
     {
       "id": "h-bc93cc11",
@@ -173,10 +305,16 @@
       "tr": "<span class=\"ex-label\">05</span> Даже персональные данные на уровне типов"
     },
     {
-      "id": "h-b6234b6d",
+      "id": "h-559df4dc",
       "kind": "html",
-      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
-      "tr": "Тот же подход «пусть это будет работой компилятора, а не соглашением» доходит до чувствительных данных. Поставьте <code>@redact</code> на тип, и его дескриптор получит <code>redact()</code>, который маскирует эти поля, так что случайный <code>json.stringify(User.redact(u))</code> не сможет их слить. Если назвать поле, которого у типа нет, будет ошибка компиляции (<code>E0219</code>), а не маскировка, которая молча ничего не защищает."
+      "en": "The same \"make it the compiler's job, not a convention\" instinct reaches all the way to sensitive data. Put <code>@redact</code> on a type and its descriptor gains a <code>redact()</code> that masks those fields, so a stray <code>json.stringify(User.redact(u))</code> can't leak them.",
+      "tr": "Тот же подход «пусть это будет работой компилятора, а не соглашением» доходит до чувствительных данных. Поставьте <code>@redact</code> на тип, и его дескриптор получит <code>redact()</code>, который маскирует эти поля, так что случайный <code>json.stringify(User.redact(u))</code> не сможет их слить."
+    },
+    {
+      "id": "h-e0c731d9",
+      "kind": "html",
+      "en": "Name a field the type doesn't have and it's a compile error (<code>E0219</code>), not a redaction that silently protects nothing.",
+      "tr": "Если назвать поле, которого у типа нет, будет ошибка компиляции (<code>E0219</code>), а не маскировка, которая молча ничего не защищает."
     },
     {
       "id": "h-725757af",
@@ -191,10 +329,34 @@
       "tr": "Как это обеспечивается и где кончается гарантия"
     },
     {
-      "id": "h-4641dcd8",
+      "id": "h-c91b558b",
       "kind": "html",
-      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation. The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
-      "tr": "Скажем точно, потому что разница важна: Glyph это <strong>строгий, принудительный диалект поверх <code>tsc</code></strong>, а не независимый верификатор. Некоторые вещи он доказывает сам: исчерпываемость, тип ошибки для <code>?</code>, отсутствие <code>any</code>/<code>as</code> в вашем исходном коде, валидацию строгих ключей. Остальную совместимость типов он обеспечивает, генерируя TypeScript и запуская <code>tsc --strict</code>, который валит сборку. Суть в том, что эти проверки это <em>язык</em>, а не опциональный линтер, который агент может отключить, и вовсе не в том, что Glyph заново реализует проверку типов."
+      "en": "Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect over <code>tsc</code></strong>, not an independent verifier.",
+      "tr": "Скажем точно, потому что разница важна: Glyph это <strong>строгий, принудительный диалект поверх <code>tsc</code></strong>, а не независимый верификатор."
+    },
+    {
+      "id": "h-540f13a2",
+      "kind": "html",
+      "en": "<b>Proved by Glyph</b>Some things it proves itself: exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code> in your source, strict-key validation.",
+      "tr": "<b>Доказывает Glyph</b>Некоторые вещи он доказывает сам: исчерпываемость, тип ошибки для <code>?</code>, отсутствие <code>any</code>/<code>as</code> в вашем исходном коде, валидацию строгих ключей."
+    },
+    {
+      "id": "h-3251c604",
+      "kind": "html",
+      "en": "<b>Enforced through tsc</b>The rest of type compatibility it enforces by emitting TypeScript and running <code>tsc --strict</code>, which fails the build.",
+      "tr": "<b>Обеспечивается через tsc</b>Остальную совместимость типов он обеспечивает, генерируя TypeScript и запуская <code>tsc --strict</code>, который валит сборку."
+    },
+    {
+      "id": "h-afd82d3a",
+      "kind": "html",
+      "en": "The wedge is that these checks are the <em>language</em>, not opt-in lint the agent can disable, not that Glyph re-implements a type checker.",
+      "tr": "Суть в том, что эти проверки это <em>язык</em>, а не опциональный линтер, который агент может отключить, и вовсе не в том, что Glyph заново реализует проверку типов."
+    },
+    {
+      "id": "h-d0732969",
+      "kind": "html",
+      "en": "History <span class=\"hint\">edges closed in 0.1.10, deep generic validation</span>",
+      "tr": "История <span class=\"hint\">ограничения, закрытые в 0.1.10, глубокая валидация обобщённых типов</span>"
     },
     {
       "id": "h-c25c2286",
@@ -203,10 +365,16 @@
       "tr": "Два прежних ограничения здесь закрыты в 0.1.10. Раньше эмиттер вставлял приведение возвращаемого значения, проверенное Glyph, а не <code>tsc</code>, в <em>каждую</em> обобщённую функцию; теперь оно появляется только там, где комбинатор валидатора собирает значение типа, выведенного из формы (<code>infer_output&lt;Shape&gt;</code>), а каждая честная обобщённая функция генерируется вообще без приведения. И выходному типу валидатора больше не доверяют на слово: <code>infer_output</code> выводит его из переданной формы, а <code>tsc</code> сверяет с ним вашу аннотацию: форма, в которой нет поля заявленного типа, теперь не компилируется."
     },
     {
-      "id": "h-3ae3435e",
+      "id": "h-84808e67",
       "kind": "html",
-      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence. One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
-      "tr": "Обобщённые типы теперь тоже валидируются глубоко: дескриптор <code>Paginated&lt;User&gt;</code> проверяет каждый элемент <em>как <code>User</code></em>, а не только его наличие. Остаётся одно ограничение, назовём его прямо: <em>импортированный</em> тип из внешнего <code>.d.ts</code>, на который вы только ссылаетесь, не имеет дескриптора, пока вы не материализуете его через <code>glyph gen dts</code>, поэтому у поля такого типа проверяется наличие, а не форма. Эта граница намеренная (тип, который сгенерировал не Glyph, не может обещать проверку во время выполнения), и материализация её закрывает."
+      "en": "Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor checks every element <em>as a <code>User</code></em>, not just for presence.",
+      "tr": "Обобщённые типы теперь тоже валидируются глубоко: дескриптор <code>Paginated&lt;User&gt;</code> проверяет каждый элемент <em>как <code>User</code></em>, а не только его наличие."
+    },
+    {
+      "id": "h-20559d87",
+      "kind": "html",
+      "en": "One edge remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you only reference carries no descriptor until you materialize it with <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape. That boundary is deliberate (a type Glyph didn't emit can't promise runtime validation) and materializing it closes it.",
+      "tr": "Остаётся одно ограничение, назовём его прямо: <em>импортированный</em> тип из внешнего <code>.d.ts</code>, на который вы только ссылаетесь, не имеет дескриптора, пока вы не материализуете его через <code>glyph gen dts</code>, поэтому у поля такого типа проверяется наличие, а не форма. Эта граница намеренная (тип, который сгенерировал не Glyph, не может обещать проверку во время выполнения), и материализация её закрывает."
     },
     {
       "id": "h-71727b66",
@@ -215,10 +383,16 @@
       "tr": "Бенчмарк: скоро"
     },
     {
-      "id": "h-e396933a",
+      "id": "h-d5addd8d",
       "kind": "html",
-      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches. Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
-      "tr": "Это утверждение эмпирическое, поэтому мы собираемся его измерить: взять корпус реальных изменений, написанных агентами, прогнать каждое через <code>tsc --strict</code> и через Glyph и посчитать, что на самом деле ловит каждый. Glyph пока не используется в реальных проектах, так что чисел нет. График ниже это заглушка, и он заполнится настоящими данными, как только появится реальное использование."
+      "en": "This claim is empirical, so we intend to measure it: take a corpus of real agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and count what each one actually catches.",
+      "tr": "Это утверждение эмпирическое, поэтому мы собираемся его измерить: взять корпус реальных изменений, написанных агентами, прогнать каждое через <code>tsc --strict</code> и через Glyph и посчитать, что на самом деле ловит каждый."
+    },
+    {
+      "id": "h-3d020067",
+      "kind": "html",
+      "en": "Glyph isn't in real-world use yet, so there are no numbers to report. The chart below is a placeholder, and it fills in with real data the moment there is real usage.",
+      "tr": "Glyph пока не используется в реальных проектах, так что чисел нет. График ниже это заглушка, и он заполнится настоящими данными, как только появится реальное использование."
     },
     {
       "id": "h-53997b9b",
@@ -269,16 +443,22 @@
       "tr": "«Строгий TypeScript и конфиг линтера это и так делают»"
     },
     {
-      "id": "h-9a1829dc",
+      "id": "h-129ba306",
       "kind": "html",
-      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges. <code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
-      "tr": "Внутри программы они подходят близко. <code>strict</code>, <code>noUncheckedIndexedAccess</code> и правило против явного <code>any</code> ловят большую часть того, что агент иначе пропустил бы. Останавливаются они на границах. <code>JSON.parse(body) as User</code> компилируется при любых настройках, а обычное исправление, схема zod, это второе описание <code>User</code>, которое приходится вручную держать в согласии с первым. В Glyph тип и есть валидатор: <code>json.parse&lt;User&gt;(body)</code> проверяется по самому <code>User</code>, а тип, который Glyph не может проверить во время выполнения, отклоняется, а не принимается на веру."
+      "en": "Inside a program they get close. <code>strict</code>, <code>noUncheckedIndexedAccess</code> and a rule against explicit <code>any</code> catch most of what an agent would otherwise slip past. They stop at the edges.",
+      "tr": "Внутри программы они подходят близко. <code>strict</code>, <code>noUncheckedIndexedAccess</code> и правило против явного <code>any</code> ловят большую часть того, что агент иначе пропустил бы. Останавливаются они на границах."
     },
     {
-      "id": "h-df4adf7a",
+      "id": "h-62c1627b",
       "kind": "html",
-      "en": "The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
-      "tr": "Другая разница в том, кто может на это полагаться. Конфиг линтера это выбор одного репозитория. Агент, открывший незнакомую кодовую базу на TypeScript, не может считать, что <code>any</code> там запрещён; в Glyph его нельзя написать нигде."
+      "en": "<b>At the boundary</b><code>JSON.parse(body) as User</code> compiles under every setting there is, and the usual fix, a zod schema, is a second description of <code>User</code> that has to be kept in step with the first by hand. In Glyph the type is the validator: <code>json.parse&lt;User&gt;(body)</code> is checked against <code>User</code> itself, and a type Glyph can't check at runtime is refused rather than trusted.",
+      "tr": "<b>На границе</b><code>JSON.parse(body) as User</code> компилируется при любых настройках, а обычное исправление, схема zod, это второе описание <code>User</code>, которое приходится вручную держать в согласии с первым. В Glyph тип и есть валидатор: <code>json.parse&lt;User&gt;(body)</code> проверяется по самому <code>User</code>, а тип, который Glyph не может проверить во время выполнения, отклоняется, а не принимается на веру."
+    },
+    {
+      "id": "h-4e201e12",
+      "kind": "html",
+      "en": "<b>Across repositories</b>The other difference is who can rely on it. A lint config is a choice one repository made. An agent opening an unfamiliar TypeScript codebase can't assume <code>any</code> is banned there; in Glyph it can't be written anywhere.",
+      "tr": "<b>Между репозиториями</b>Другая разница в том, кто может на это полагаться. Конфиг линтера это выбор одного репозитория. Агент, открывший незнакомую кодовую базу на TypeScript, не может считать, что <code>any</code> там запрещён; в Glyph его нельзя написать нигде."
     },
     {
       "id": "h-339efe42",

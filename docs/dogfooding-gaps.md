@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-408 entries, 306 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-82 are open. G144, the D28 boundary cast that never reached the returns a
+410 entries, 307 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+83 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -13536,12 +13536,40 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `3` and `90`.*
 
-- **G387. `std/sqlite` accepts a query built by interpolation.** `db.query("SELECT * FROM users WHERE name = '${name}'", [])` checks clean, so
+- **G387. [FIXED] `std/sqlite` accepts a query built by interpolation.** `db.query("SELECT * FROM users WHERE name = '${name}'", [])` checks clean, so
   the stdlib's own database API takes an injectable string. `std/taint` exists
   but each sink has to opt in. The query parameter should refuse an
   interpolated string and point at the parameter array.
 
   *Reproduced against 0.1.149 (the release build): no diagnostics.*
+
+  Record 129 found it wider than written: refusing only an interpolated
+  literal at the argument stops nothing, because `let q = "...'${name}'"`
+  then `db.query(q, [])` and `"...'" + name + "'"` both pass, and Glyph's own
+  guidance produces the hoist. Its probe (`p387/a.glyph`) printed `rows 8` for
+  the payload `x' OR '1'='1` on 0.1.152.
+
+  Fixed in 0.1.155 (D52), as record 129 decided (option c). The `sql`
+  parameter of `Db.exec`, `run`, `query` and `query_one` is `sqlite.Sql`,
+  which takes a constant string expression (a literal, a literal whose every
+  `${}` is constant, a `+` of constants, a module `const` or a `let` no `mut`
+  reassigns whose initializer is constant) or a `sqlite.Sql` value. A name is
+  followed to its initializer, so the hoist and the `+` are refused like the
+  literal. Anything else is E0239, with a help that rewrites a literal (or
+  the `let` holding one) to `?` placeholders and the parameter array, and
+  sends `exec` to `run`. `sqlite.Db` is a modeled type now and `sqlite.open`
+  returns it, so every call through the handle is checked; the emitted
+  TypeScript still writes `string`. The escape is
+  `sqlite.from_trusted(t: taint.Trusted<string>)`, and a plain `string` there
+  is E0211. `g387_applying_every_e0239_rewrite_compiles_and_returns_no_rows`
+  applies each help to the record's probe as written, then checks that the
+  result passes `glyph check` with `tsc` and that the five built queries
+  return or change 0 rows for the payload, where they gave 8.
+
+  *Evidence for the fix, against the published 0.1.152 (`npx -y
+  @glyphlang/glyph@0.1.152`) and this build: `check --no-tsc` on record
+  129's `p387/a.glyph` exits 0 and then 1 with five E0239, and on
+  `catches/sql-by-interpolation` exits 0 and then 1.*
 
 - **G388. `.sort()` on numbers sorts them as text.** `mut scores.sort()` on `[100, 9, 25]` gives `100,25,9`. Require a comparator
   when the element type is not `string`, or route `.sort` to a numeric default.
@@ -13859,3 +13887,33 @@ and is the owner's to confirm.
   bump): `check --no-tsc` gives no
   diagnostics, exit 0; full `check` gives the TS2345 above, exit 1.*
 
+
+- **G409. A `regex` pattern built from a run-time value is accepted.** Every
+  `std/regex` function takes its pattern as a plain `string`, so
+  `regex.matches(term, text)` with `term` from a user treats `.`, `*`, `(`
+  and the rest as pattern syntax: `regex.matches("a.c", "abc")` is `true`,
+  and a term like `(a+)+$` is a ReDoS. The constant rule D52 gives
+  `std/sqlite` fits the pattern parameter, but it cannot land alone: the
+  corpus passes `let`-bound patterns, which the rule accepts, and a pattern
+  that has to include user text has no correct spelling until a
+  `regex.escape` exists to quote it. Filed by record 129 when it cut "the
+  other stdlib injection sinks" from 0.1.155.
+
+  *Reproduced against 0.1.152 (the published package, `npx -y
+  @glyphlang/glyph@0.1.152`): `check` exits 0 with no diagnostics and
+  `tsc --strict` passes; `glyph run` prints `matches true` for
+  `regex.matches("a.c", "abc")`.*
+
+- **G410. `http.html` sends its body unescaped.** `http.html(200, "<p>Hello,
+  ${name}</p>")` with `name` from a request is an XSS: the body goes out as
+  `text/html` exactly as built. A constant rule is wrong here, because an
+  HTML body is dynamic by nature (`examples/apps/webhook_ingress/api.glyph`
+  renders an admin page from data). It needs an escaping builder that
+  interpolates text as text, a design of its own. Filed by record 129 when it
+  cut "the other stdlib injection sinks" from 0.1.155.
+
+  *Reproduced against 0.1.152 (the published package, `npx -y
+  @glyphlang/glyph@0.1.152`): `check` exits 0 with no diagnostics and
+  `tsc --strict` passes; the response body for
+  `name = "<script>alert(1)</script>"` is
+  `"<p>Hello, <script>alert(1)</script></p>"`.*

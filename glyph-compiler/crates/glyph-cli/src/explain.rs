@@ -542,7 +542,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `value` are how the emitted TypeScript encodes the two types (D49), \
             not members of them, so `o.tag == \"Some\"` and `r.value` are refused \
             although `tsc` accepts both; `match` is the one place an `Option` or a \
-            `Result` is opened. `?.` on either is E0236.",
+            `Result` is opened. `?.` and `??` on either are E0236.",
         "E0211" => "E0211: argument type mismatch\n\n\
             A call argument's type is incompatible with the parameter it is passed \
             to. v1 reports this only when both types are fully known and provably \
@@ -1027,7 +1027,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
             To use the whole value instead, convert it with \
             `nullable.to_option(n)` and `match` on the `Option`. That call is the \
             greppable record of where null enters the program.",
-        "E0236" => "E0236: `?.` on an `Option` or a `Result`\n\n\
+        "E0236" => "E0236: `?.` and `??` on an `Option` or a `Result`\n\n\
             `?.` short-circuits on null, and an `Option` or a `Result` is never \
             null: at run time each is a tagged object. So `?.` on one never \
             skips anything. It reads the member off the tag object itself, \
@@ -1058,7 +1058,29 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `r?.tag`, `r?.value`, `r?.map(...)` and `r?.map_err(...)`; Glyph \
             refuses all of them, under `--no-tsc` as well. A plain `.` on an \
             `Option`, or on a `Result` naming anything but `map` or `map_err`, \
-            is E0210.",
+            is E0210.\n\n\
+            `??` is the same fact from the other side. Its default stands in \
+            for null or undefined, and an `Option` or a `Result` is neither, so \
+            `u ?? 0` on an `Option<number>` is the `Option` itself, never `0`, \
+            and it prints `[object Object]`. `tsc` accepts it. Glyph refuses it \
+            whatever the default is, with help toward the `match` that gives \
+            the value or the default:\n\n\
+            let port = array.find(ports, fn(p: number) -> bool { return p > 9000 }) ?? 3000   // E0236\n\
+            let port = match array.find(ports, fn(p: number) -> bool { return p > 9000 }) { Some(p) => p, None => 3000 }\n\n\
+            A left side that can itself be missing is different: a `?.` chain \
+            (`b.inner?.opt`), a field declared `f?:`, or an index read. There \
+            the default does stand in for the missing case, and a present value \
+            is still the `Option`. So `b.o ?? 0` is refused, while `b.o ?? \
+            None` is accepted and typed as the `Option<number>` it always is, \
+            which keeps a `match` over it held to both arms. A `Result` takes \
+            `?? Err(e)` the same way.\n\n\
+            Not judged: a value the checker does not type, a type parameter \
+            (it may be instantiated as a `Nullable`), and a `Nullable`, whose \
+            `??` is E0235's rule. `glyph fix` writes the `match` for an \
+            `Option` when the default is a value of its payload type, re-checks \
+            the file, and keeps the rewrite only when no new error appears. It \
+            never rewrites a `Result`: whether an `Err` is dropped, propagated \
+            or handled is the program's decision.",
 
         "E0237" => "E0237: a value with no text form is converted to text\n\n\
             A value becomes text in three places, and one rule (D54) judges \
@@ -2433,8 +2455,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0236",
         phase: "typechecker",
-        meaning: "`?.` on a receiver that resolves to an `Option` or a `Result` (G311, D18), through any alias. Neither is ever null, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)`",
-        fix: "On an `Option`, `match` on it; on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>`",
+        meaning: "`?.` or `??` on a value that resolves to an `Option` or a `Result` (G311, G429, D18), through any alias. Neither is ever null or undefined, so `?.` never short-circuits: it reads the member off the tag object. On a `Result` it is also not `?` followed by `.`, and propagates no `Err` (csvql's `bind_agg(...)?.label`). A method called through `?.` (`r?.map(f)`) is refused too. Reported once, where the chain starts. `u ?? 0` never applies its default and is the tag object, which `tsc` accepts; a left side that can itself be missing (a `?.` chain, a field declared `f?:`, an index read) is refused unless the default is the container (`b.o ?? None`), which is then typed as it. A type parameter, a `Nullable` and a value the checker does not type are not judged. `tsc` accepts `o?.tag`, `r?.tag`, `r?.value`, `r?.map(..)` and `r?.map_err(..)`",
+        fix: "On an `Option`, `match` on it (`match u { Some(n) => n, None => 0 }`, or `match b.o ?? None { .. }` for a left side that can be missing); on a `Result`, propagate first (`let n = f()?`, then `n.name`), or drop the `?` before a method (`r.map(f)`). A JSON `null` from the wire is a `Nullable<T>`. `glyph fix` writes the `match` for an `Option` with a payload-typed default, after re-checking",
     },
     CodeEntry {
         code: "E0237",

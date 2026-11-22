@@ -25,6 +25,7 @@ use glyph_resolver::{
     Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolId, SymbolKind,
 };
 
+mod coalesce;
 mod sql_query;
 mod text;
 
@@ -2914,7 +2915,7 @@ impl Assigner<'_> {
                 self.walk_expr(left);
                 self.walk_expr(right);
                 let ty = match op {
-                    glyph_ast::BinOp::NullishCoalesce => self.coalesce_ty(left, right),
+                    glyph_ast::BinOp::NullishCoalesce => self.coalesce_ty(left, right, *span),
                     // A comparison reads the chain's value without holding
                     // it, so `n?.f == "x"` handles the `undefined` (D45).
                     glyph_ast::BinOp::Eq | glyph_ast::BinOp::NotEq => {
@@ -3570,33 +3571,6 @@ impl Assigner<'_> {
             span,
         });
         true
-    }
-
-    /// The type of `left ?? right` (G304, D45).
-    ///
-    /// Two lefts have a type here, and each removes an absence: an optional
-    /// chain over a `Nullable` (its `undefined`, and also the field's own null
-    /// when the field is a `Nullable<T>`), and a `Nullable<T>` value itself.
-    /// The expression is the field's type, or `T`, when the default is
-    /// accepted there by a rule of the relation. Anything else stays `Unknown`
-    /// and `tsc` decides, because the union TypeScript would give it has no
-    /// Glyph spelling.
-    fn coalesce_ty(&mut self, left: &Expr, right: &Expr) -> Ty {
-        let left_ty = self.tm.get(left.span()).clone();
-        let target = if self.null_chains.handle(left.span()) {
-            self.nullable_inner(&left_ty).unwrap_or(left_ty)
-        } else {
-            match self.nullable_inner(&left_ty) {
-                Some(inner) => inner,
-                None => return Ty::Unknown,
-            }
-        };
-        let default = self.tm.get(right.span()).clone();
-        if ty_is_decidable(&target) && self.accepting_rule(&default, &target).is_some() {
-            target
-        } else {
-            Ty::Unknown
-        }
     }
 
     /// E0235 for every optional chain over a `Nullable` the walk opened and

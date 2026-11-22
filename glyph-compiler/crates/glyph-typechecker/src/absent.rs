@@ -44,6 +44,15 @@ pub enum AbsentRepair {
         binding: String,
         import: Option<&'static str>,
     },
+    /// Byte-range edits applied together, like `Rewrite`, that change what
+    /// the expression's type is (an E0236 `??` becomes a `match`, G429), so
+    /// `glyph fix` re-checks the module after writing them and keeps them
+    /// only when no new error appears. `what` is the line the command prints
+    /// when it keeps them: what the program does differently.
+    Checked {
+        edits: Vec<(u32, u32, String)>,
+        what: String,
+    },
     /// The repair is not determined, and why.
     Decline(String),
 }
@@ -283,14 +292,28 @@ fn rewrite(
         // A newline in an edit continues the indentation of the line it is
         // written on (`glyph fix` applies it), so the `match` is laid out the
         // way `glyph fmt` lays it out and a later `fmt` leaves it alone.
-        edits.push((c.call.end, d.value.start, " {\n  Some(v) => v,\n  None => ".to_string()));
-        edits.push((d.value.end, d.whole.end, ",\n}".to_string()));
+        edits.extend(coalesce_match_edits(c.call.end, d, "", "v"));
     }
     AbsentRepair::Rewrite {
         edits,
         binding: ns.name.clone(),
         import: (!ns.imported).then_some(ns.path),
     }
+}
+
+/// The edits after a `match`'s subject that turn `subject ?? default` into
+/// `match subject { Some(b) => b, None => default, }`, laid out the way
+/// `glyph fmt` lays it out: `subject_end` is where the subject ends, and
+/// `suffix` is written after it (` ?? None` keeps an absent subject's
+/// absence a `None`). Every byte of the default is kept as written, so it is
+/// still evaluated only when the value is missing. Shared by E0242 (G392) and
+/// E0236's `??` (G429). A newline in an edit continues the indentation of the
+/// line it is written on, which `glyph fix` supplies.
+pub(crate) fn coalesce_match_edits(subject_end: u32, d: &Default, suffix: &str, binding: &str) -> [(u32, u32, String); 2] {
+    [
+        (subject_end, d.value.start, format!("{suffix} {{\n  Some({binding}) => {binding},\n  None => ")),
+        (d.value.end, d.whole.end, ",\n}".to_string()),
+    ]
 }
 
 fn array_lookup(c: &AbsentCall, module: &Module, f: &str, recv: &str, args: &str) -> (String, AbsentRepair) {

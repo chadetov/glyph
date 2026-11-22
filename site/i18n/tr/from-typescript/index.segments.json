@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "tr",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "Yeni bir dil öğrenmiyorsunuz, yalnızca şu dördünü. Bu sitedeki her örnekte bunlar var."
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "Kapsamı tam bir <code>switch</code>: bir union üzerinde, derleyici her durumu ele almanızı zorunlu kılar. Aynı zamanda tek koşul yapısıdır: <code>if</code>/<code>else</code> ve ternary yoktur, <a href=\"#there-is-no-if\">aşağıda açıklanıyor</a>."
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "Kapsamı tam bir <code>switch</code>: bir union üzerinde, derleyici her durumu ele almanızı zorunlu kılar. Deyimlerde ve ifadelerde aynı zamanda tek koşul yapısıdır: <code>if</code>/<code>else</code> ve ternary yoktur, <a href=\"#there-is-no-if-statement\">aşağıda açıklanıyor</a>. JSX'te <code>&lt;if&gt;</code> ve <code>&lt;match&gt;</code> öğeleri vardır."
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "İkisinde de bir React bileşeni"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph <code>&lt;match&gt;</code> kullanır; bir değer alır ve her desen için bir <code>&lt;case&gt;</code> içerir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir."
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph JSX öğeleri kullanır: bir değer alıp her desen için bir <code>&lt;case&gt;</code> içeren <code>&lt;match&gt;</code> ve isteğe bağlı bir <code>&lt;else&gt;</code> ile <code>&lt;if&gt;</code>; ikincisi düz bir boolean için daha hafif biçimdir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir."
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "Glyph yarısı daha uzun. <code>&amp;&amp;</code>, boş bir <code>false</code> durumu olan bir <code>&lt;match&gt;</code> olur ve o durumu atlamak <code>E0209</code> hatasıdır, çünkü bir <code>bool</code> üzerindeki <code>match</code> iki değeri de kapsamak zorundadır. Bir union üzerinde aynı öğe her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href=\"/answers/react/\">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor."
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph yarısı daha uzun, çoğunlukla her dal ayrı bir öğe olduğu için. Bir <code>&lt;match&gt;</code> her değeri kapsamak zorundadır: buradan <code>&lt;case else&gt;</code> öğesini çıkarırsanız build <code>E0218</code> ile durur. Bir union üzerinde her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href=\"/answers/react/\">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor."
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "Bu sitede \"ajanlar\", Claude, Copilot ve Cursor gibi yapay zekâ kodlama asistanları anlamına gelir. Glyph en çok onlara yardım eder, ama kodu bir insan da yazsa bir model de yazsa kontroller aynıdır. Zaten zod ve eslint ile strict TypeScript kullanıyorsanız, <a href=\"/answers/vs-tooled-ts/\">bir dilin bunun üzerine neler eklediği burada</a>."
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "if yok"
+      "en": "There is no if statement",
+      "tr": "if deyimi yok"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "Bir boolean üzerindeki dallanma, <code>true</code> ve <code>false</code> üzerinde bir <code>match</code>'tir. Yalnızca bir tarafta işlem yapıyorsanız, diğer arm boş bir bloktur."
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "Bir boolean üzerindeki dallanma, <code>true</code> ve <code>false</code> üzerinde bir <code>match</code>'tir. Yalnızca bir tarafta işlem yapıyorsanız, diğer arm boş bir bloktur. JSX bunun istisnasıdır: yukarıdaki bileşendeki <code>&lt;if&gt;</code> öğesi koşul sağlandığında çocuklarını çizer, sağlanmadığında hiçbir şey çizmez."
     },
     {
       "id": "h-ed0504f7",

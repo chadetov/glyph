@@ -1,7 +1,7 @@
 ---
 title: Si vienes de TypeScript · qué cambia en Glyph · Glyph
 description: Glyph se lee casi como TypeScript y compila a TypeScript. Lo que cambia: unas pocas diferencias de sintaxis, sin any, as ni !, una única vía de escape que se puede buscar con grep, y cómo funciona npm.
-source_hash: e2d355cb18462c09
+source_hash: 7953c266df09fb67
 next_steps: |
   Adónde ir ahora
   Recomendado | /catches/ | catches | Mira lo que TypeScript deja pasar | Cada caso ejecutado con <code>tsc --strict</code> y con Glyph, con el error. | Ver los casos
@@ -25,7 +25,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. También es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href="#there-is-no-if">se explica más abajo</a>.</dd>
+          <dd>Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. En sentencias y expresiones también es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href="#there-is-no-if-statement">se explica más abajo</a>. JSX tiene los elementos <code>&lt;if&gt;</code> y <code>&lt;match&gt;</code>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -44,7 +44,7 @@ next_steps: |
       <div class="detail">
         <h2 class="block-label">Un componente de React en los dos</h2>
         <p>
-          El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>.
+          El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa elementos JSX: <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón, y <code>&lt;if&gt;</code> con un <code>&lt;else&gt;</code> opcional, la forma más ligera para un booleano simple. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>.
         </p>
       </div>
 
@@ -89,12 +89,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return &lt;section&gt;
-    &lt;match value={waiting &gt; 0}&gt;
-      &lt;case true&gt;
-        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
-      &lt;/case&gt;
-      &lt;case false&gt;&lt;/case&gt;
-    &lt;/match&gt;
+    &lt;if cond={waiting &gt; 0}&gt;
+      &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+    &lt;/if&gt;
     &lt;match value={props.invites.length}&gt;
       &lt;case 0&gt;
         &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
@@ -104,14 +101,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           &lt;for invite in={props.invites} key={invite.email}&gt;
             &lt;li&gt;
               {invite.email}
-              &lt;match value={invite.accepted}&gt;
-                &lt;case true&gt;
-                  &lt;span class="ok"&gt;joined&lt;/span&gt;
-                &lt;/case&gt;
-                &lt;case false&gt;
-                  &lt;span class="wait"&gt;pending&lt;/span&gt;
-                &lt;/case&gt;
-              &lt;/match&gt;
+              &lt;if cond={invite.accepted}&gt;
+                &lt;span class="ok"&gt;joined&lt;/span&gt;
+              &lt;/if&gt;
+              &lt;else&gt;
+                &lt;span class="wait"&gt;pending&lt;/span&gt;
+              &lt;/else&gt;
             &lt;/li&gt;
           &lt;/for&gt;
         &lt;/ul&gt;
@@ -124,7 +119,7 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
 
       <div class="detail">
         <p>
-          La mitad en Glyph es más larga. El <code>&amp;&amp;</code> se convierte en un <code>&lt;match&gt;</code> con un caso <code>false</code> vacío, y omitir ese caso es <code>E0209</code>, porque un <code>match</code> sobre un <code>bool</code> tiene que cubrir los dos valores. Sobre una unión, el mismo elemento tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href="/answers/react/">¿Funciona con React?</a> muestra uno, con hooks y Context.
+          La mitad en Glyph es más larga, sobre todo porque cada rama es su propio elemento. Un <code>&lt;match&gt;</code> tiene que cubrir todos los valores: quita aquí el <code>&lt;case else&gt;</code> y el build se detiene con <code>E0218</code>. Sobre una unión tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href="/answers/react/">¿Funciona con React?</a> muestra uno, con hooks y Context.
         </p>
         <p>
           El soporte de editor y la depuración tienen sus propias respuestas: <a href="/answers/tooling/">la respuesta sobre herramientas</a> cubre el language server y la extensión de VS Code, y <a href="/answers/debugging/">la respuesta sobre depuración</a> cubre los source maps que vuelven al archivo <code>.glyph</code>. Para el ciclo de desarrollo, <code>glyph build --watch</code> recompila el TypeScript cada vez que guardas un archivo <code>.glyph</code>. Un servidor de desarrollo de Vite que importa esa salida recarga la página entera después de cada recompilación en lugar de reemplazar el componente en caliente, así que el estado del componente se pierde; tus propios archivos <code>.tsx</code> conservan el hot reload de Vite. Escribe la salida fuera del directorio de build de Vite (<code>dist/</code> por defecto), porque su servidor de desarrollo no vigila ese directorio.
@@ -136,9 +131,9 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           En este sitio, "agentes" son asistentes de programación con IA como Claude, Copilot y Cursor. Glyph es a ellos a quienes más ayuda, pero las comprobaciones son las mismas tanto si el código lo escribió una persona como un modelo. Si ya usas TypeScript estricto con zod y eslint, <a href="/answers/vs-tooled-ts/">esto es lo que añade un lenguaje a eso</a>.
         </p>
 
-        <h2 class="block-label">No hay if</h2>
+        <h2 class="block-label">No hay sentencia if</h2>
         <p>
-          Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío.
+          Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío. JSX es la excepción: el elemento <code>&lt;if&gt;</code> del componente de arriba renderiza sus hijos cuando la condición se cumple y nada en caso contrario.
         </p>
       </div>
 

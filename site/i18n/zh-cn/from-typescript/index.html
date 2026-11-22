@@ -1,7 +1,7 @@
 ---
 title: 从 TypeScript 迁移过来 · Glyph 里有哪些变化 · Glyph
 description: Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。
-source_hash: e2d355cb18462c09
+source_hash: 7953c266df09fb67
 next_steps: |
   接下来去哪里
   推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下运行，附报错。 | 查看案例
@@ -25,7 +25,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href="#there-is-no-if">原因见下文</a>。</dd>
+          <dd>穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。在语句和表达式中，它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href="#there-is-no-if-statement">原因见下文</a>。JSX 里有 <code>&lt;if&gt;</code> 和 <code>&lt;match&gt;</code> 元素。</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -44,7 +44,7 @@ next_steps: |
       <div class="detail">
         <h2 class="block-label">同一个 React 组件，两种写法</h2>
         <p>
-          同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 <code>&lt;match&gt;</code>：它接收一个值，每个模式写一个 <code>&lt;case&gt;</code>。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。
+          同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 JSX 元素：<code>&lt;match&gt;</code> 接收一个值，每个模式写一个 <code>&lt;case&gt;</code>；<code>&lt;if&gt;</code> 可带一个可选的 <code>&lt;else&gt;</code>，是处理普通布尔值的更轻的写法。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。
         </p>
       </div>
 
@@ -89,12 +89,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return &lt;section&gt;
-    &lt;match value={waiting &gt; 0}&gt;
-      &lt;case true&gt;
-        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
-      &lt;/case&gt;
-      &lt;case false&gt;&lt;/case&gt;
-    &lt;/match&gt;
+    &lt;if cond={waiting &gt; 0}&gt;
+      &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+    &lt;/if&gt;
     &lt;match value={props.invites.length}&gt;
       &lt;case 0&gt;
         &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
@@ -104,14 +101,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           &lt;for invite in={props.invites} key={invite.email}&gt;
             &lt;li&gt;
               {invite.email}
-              &lt;match value={invite.accepted}&gt;
-                &lt;case true&gt;
-                  &lt;span class="ok"&gt;joined&lt;/span&gt;
-                &lt;/case&gt;
-                &lt;case false&gt;
-                  &lt;span class="wait"&gt;pending&lt;/span&gt;
-                &lt;/case&gt;
-              &lt;/match&gt;
+              &lt;if cond={invite.accepted}&gt;
+                &lt;span class="ok"&gt;joined&lt;/span&gt;
+              &lt;/if&gt;
+              &lt;else&gt;
+                &lt;span class="wait"&gt;pending&lt;/span&gt;
+              &lt;/else&gt;
             &lt;/li&gt;
           &lt;/for&gt;
         &lt;/ul&gt;
@@ -124,7 +119,7 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
 
       <div class="detail">
         <p>
-          Glyph 这一半更长。<code>&amp;&amp;</code> 变成一个带空 <code>false</code> 分支的 <code>&lt;match&gt;</code>，省略这个分支就是 <code>E0209</code>，因为对 <code>bool</code> 的 <code>match</code> 必须覆盖两个值。对 union 来说，同一个元素必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href="/answers/react/">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。
+          Glyph 这一半更长，主要因为每个分支都是一个单独的元素。<code>&lt;match&gt;</code> 必须覆盖所有值：在这里去掉 <code>&lt;case else&gt;</code>，构建就会以 <code>E0218</code> 停下。对 union 来说，它必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href="/answers/react/">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。
         </p>
         <p>
           编辑器支持和调试各有专门的回答：<a href="/answers/tooling/">工具的回答</a> 介绍语言服务器和 VS Code 扩展，<a href="/answers/debugging/">调试的回答</a> 介绍映射回 <code>.glyph</code> 文件的 source map。开发时，<code>glyph build --watch</code> 会在你每次保存 <code>.glyph</code> 文件时重新构建 TypeScript。导入这份输出的 Vite 开发服务器在每次重新构建后会整页刷新，而不是热替换组件，所以组件状态会重置；你自己的 <code>.tsx</code> 文件仍然有 Vite 的热重载。请把输出写到 Vite 的构建目录（默认是 <code>dist/</code>）之外，因为它的开发服务器不监视那个目录。
@@ -136,9 +131,9 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           本站说的“智能体”指 Claude、Copilot、Cursor 这样的 AI 编程助手。Glyph 对它们帮助最大，但无论代码是人写的还是模型写的，检查都一样。如果你已经在用严格模式的 TypeScript 加 zod 和 eslint，<a href="/answers/vs-tooled-ts/">这里说明一门语言能在此之上多带来什么</a>。
         </p>
 
-        <h2 class="block-label">没有 if</h2>
+        <h2 class="block-label">没有 if 语句</h2>
         <p>
-          对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。
+          对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。JSX 是例外：上面组件里的 <code>&lt;if&gt;</code> 元素在条件成立时渲染子元素，否则什么都不渲染。
         </p>
       </div>
 

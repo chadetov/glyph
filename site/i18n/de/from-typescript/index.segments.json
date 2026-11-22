@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "de",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "Du lernst keine neue Sprache, nur diese vier Dinge. Sie kommen in jedem Beispiel auf dieser Website vor."
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "Ein erschöpfender <code>switch</code>: Über einer Union zwingt dich der Compiler, jeden Fall zu behandeln. Es ist auch die einzige Bedingung: Es gibt kein <code>if</code>/<code>else</code> und keinen ternären Operator, <a href=\"#there-is-no-if\">unten erklärt</a>."
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "Ein erschöpfender <code>switch</code>: Über einer Union zwingt dich der Compiler, jeden Fall zu behandeln. In Anweisungen und Ausdrücken ist es auch die einzige Bedingung: Es gibt kein <code>if</code>/<code>else</code> und keinen ternären Operator, <a href=\"#there-is-no-if-statement\">unten erklärt</a>. JSX hat die Elemente <code>&lt;if&gt;</code> und <code>&lt;match&gt;</code>."
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "Eine React-Komponente in beiden"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "Dieselbe Komponente zweimal: eine Liste von Einladungen mit leerem Zustand, eine Zeile, die die noch offenen zählt, und ein Label in jeder Zeile. Wo das TSX <code>&amp;&amp;</code> und <code>? :</code> verwendet, verwendet Glyph <code>&lt;match&gt;</code>: Es nimmt einen Wert und ein <code>&lt;case&gt;</code> pro Muster. Listen schreibst du mit <code>&lt;for&gt;</code>, und das Attribut heißt <code>class</code>, das zu <code>className</code> kompiliert."
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "Dieselbe Komponente zweimal: eine Liste von Einladungen mit leerem Zustand, eine Zeile, die die noch offenen zählt, und ein Label in jeder Zeile. Wo das TSX <code>&amp;&amp;</code> und <code>? :</code> verwendet, verwendet Glyph JSX-Elemente: <code>&lt;match&gt;</code>, das einen Wert und ein <code>&lt;case&gt;</code> pro Muster nimmt, und <code>&lt;if&gt;</code> mit einem optionalen <code>&lt;else&gt;</code>, die leichtere Form für einen einfachen Boolean. Listen schreibst du mit <code>&lt;for&gt;</code>, und das Attribut heißt <code>class</code>, das zu <code>className</code> kompiliert."
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "Die Glyph-Hälfte ist länger. Aus <code>&amp;&amp;</code> wird ein <code>&lt;match&gt;</code> mit einem leeren <code>false</code>-Fall, und diesen Fall wegzulassen ist <code>E0209</code>, weil ein <code>match</code> über einen <code>bool</code> beide Werte abdecken muss. Über einer Union muss dasselbe Element jede Variante abdecken (<code>E0200</code>), und dort zahlen sich die zusätzlichen Zeilen aus: <a href=\"/answers/react/\">Funktioniert es mit React?</a> zeigt ein Beispiel mit Hooks und Context."
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Die Glyph-Hälfte ist länger, vor allem weil jeder Zweig ein eigenes Element ist. Ein <code>&lt;match&gt;</code> muss jeden Wert abdecken: Nimm hier <code>&lt;case else&gt;</code> weg, und der Build bricht mit <code>E0218</code> ab. Über einer Union muss es jede Variante abdecken (<code>E0200</code>), und dort zahlen sich die zusätzlichen Zeilen aus: <a href=\"/answers/react/\">Funktioniert es mit React?</a> zeigt ein Beispiel mit Hooks und Context."
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "\"Agenten\" meint auf dieser Website KI-Coding-Assistenten wie Claude, Copilot und Cursor. Glyph hilft ihnen am meisten, aber die Prüfungen sind dieselben, egal ob ein Mensch oder ein Modell den Code geschrieben hat. Wenn du schon striktes TypeScript mit zod und eslint einsetzt, <a href=\"/answers/vs-tooled-ts/\">steht hier, was eine Sprache darüber hinaus bringt</a>."
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "Es gibt kein if"
+      "en": "There is no if statement",
+      "tr": "Es gibt keine if-Anweisung"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "Eine Verzweigung über einem Boolean ist ein <code>match</code> auf <code>true</code> und <code>false</code>. Wenn du nur auf einer Seite etwas tust, ist der andere Arm ein leerer Block."
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "Eine Verzweigung über einem Boolean ist ein <code>match</code> auf <code>true</code> und <code>false</code>. Wenn du nur auf einer Seite etwas tust, ist der andere Arm ein leerer Block. JSX ist die Ausnahme: Das <code>&lt;if&gt;</code>-Element in der Komponente oben rendert seine Kinder, wenn die Bedingung gilt, und sonst nichts."
     },
     {
       "id": "h-ed0504f7",

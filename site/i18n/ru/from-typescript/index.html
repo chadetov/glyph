@@ -1,7 +1,7 @@
 ---
 title: Если вы пишете на TypeScript · что меняется в Glyph · Glyph
 description: Glyph читается почти как TypeScript и компилируется в него. Что меняется: несколько отличий в синтаксисе, нет any, as и !, одна лазейка, которую легко найти grep, и то, как работает npm.
-source_hash: e2d355cb18462c09
+source_hash: 7953c266df09fb67
 next_steps: |
   Куда дальше
   Рекомендуем | /catches/ | catches | Что пропускает TypeScript | Каждый случай запущен под <code>tsc --strict</code> и под Glyph, с ошибкой. | Посмотреть случаи
@@ -25,7 +25,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Исчерпывающий <code>switch</code>: для union компилятор заставляет обработать каждый вариант. Это ещё и единственная условная конструкция: нет ни <code>if</code>/<code>else</code>, ни тернарного оператора, <a href="#there-is-no-if">объяснение ниже</a>.</dd>
+          <dd>Исчерпывающий <code>switch</code>: для union компилятор заставляет обработать каждый вариант. В инструкциях и выражениях это ещё и единственная условная конструкция: нет ни <code>if</code>/<code>else</code>, ни тернарного оператора, <a href="#there-is-no-if-statement">объяснение ниже</a>. В JSX есть элементы <code>&lt;if&gt;</code> и <code>&lt;match&gt;</code>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -44,7 +44,7 @@ next_steps: |
       <div class="detail">
         <h2 class="block-label">Один React-компонент на обоих языках</h2>
         <p>
-          Один и тот же компонент дважды: список приглашений с пустым состоянием, строка с числом тех, кто ещё не ответил, и метка в каждой строке. Там, где TSX использует <code>&amp;&amp;</code> и <code>? :</code>, Glyph использует <code>&lt;match&gt;</code>: он принимает значение и по одному <code>&lt;case&gt;</code> на каждый образец. Списки пишутся через <code>&lt;for&gt;</code>, а атрибут называется <code>class</code> и компилируется в <code>className</code>.
+          Один и тот же компонент дважды: список приглашений с пустым состоянием, строка с числом тех, кто ещё не ответил, и метка в каждой строке. Там, где TSX использует <code>&amp;&amp;</code> и <code>? :</code>, Glyph использует элементы JSX: <code>&lt;match&gt;</code>, который принимает значение и по одному <code>&lt;case&gt;</code> на каждый образец, и <code>&lt;if&gt;</code> с необязательным <code>&lt;else&gt;</code>, более лёгкую форму для простого булева значения. Списки пишутся через <code>&lt;for&gt;</code>, а атрибут называется <code>class</code> и компилируется в <code>className</code>.
         </p>
       </div>
 
@@ -89,12 +89,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return &lt;section&gt;
-    &lt;match value={waiting &gt; 0}&gt;
-      &lt;case true&gt;
-        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
-      &lt;/case&gt;
-      &lt;case false&gt;&lt;/case&gt;
-    &lt;/match&gt;
+    &lt;if cond={waiting &gt; 0}&gt;
+      &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+    &lt;/if&gt;
     &lt;match value={props.invites.length}&gt;
       &lt;case 0&gt;
         &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
@@ -104,14 +101,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           &lt;for invite in={props.invites} key={invite.email}&gt;
             &lt;li&gt;
               {invite.email}
-              &lt;match value={invite.accepted}&gt;
-                &lt;case true&gt;
-                  &lt;span class="ok"&gt;joined&lt;/span&gt;
-                &lt;/case&gt;
-                &lt;case false&gt;
-                  &lt;span class="wait"&gt;pending&lt;/span&gt;
-                &lt;/case&gt;
-              &lt;/match&gt;
+              &lt;if cond={invite.accepted}&gt;
+                &lt;span class="ok"&gt;joined&lt;/span&gt;
+              &lt;/if&gt;
+              &lt;else&gt;
+                &lt;span class="wait"&gt;pending&lt;/span&gt;
+              &lt;/else&gt;
             &lt;/li&gt;
           &lt;/for&gt;
         &lt;/ul&gt;
@@ -124,7 +119,7 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
 
       <div class="detail">
         <p>
-          Половина на Glyph длиннее. <code>&amp;&amp;</code> превращается в <code>&lt;match&gt;</code> с пустым случаем <code>false</code>, и если этот случай опустить, будет <code>E0209</code>, потому что <code>match</code> по <code>bool</code> должен покрывать оба значения. Для union тот же элемент должен покрыть каждый вариант (<code>E0200</code>), и именно там лишние строки окупаются: <a href="/answers/react/">Работает ли это с React?</a> показывает пример с хуками и Context.
+          Половина на Glyph длиннее, в основном потому, что каждая ветка это отдельный элемент. <code>&lt;match&gt;</code> должен покрыть все значения: уберите здесь <code>&lt;case else&gt;</code>, и сборка остановится с <code>E0218</code>. Для union он должен покрыть каждый вариант (<code>E0200</code>), и именно там лишние строки окупаются: <a href="/answers/react/">Работает ли это с React?</a> показывает пример с хуками и Context.
         </p>
         <p>
           Поддержке редакторов и отладке посвящены отдельные ответы: <a href="/answers/tooling/">ответ об инструментах</a> описывает языковой сервер и расширение для VS Code, а <a href="/answers/debugging/">ответ об отладке</a> описывает source map обратно к файлу <code>.glyph</code>. Во время разработки <code>glyph build --watch</code> пересобирает TypeScript при каждом сохранении файла <code>.glyph</code>. Dev-сервер Vite, который импортирует этот вывод, после каждой пересборки перезагружает всю страницу, а не подменяет компонент на лету, поэтому состояние компонента сбрасывается; ваши собственные файлы <code>.tsx</code> сохраняют hot reload Vite. Пишите вывод за пределами каталога сборки Vite (по умолчанию <code>dist/</code>), потому что его dev-сервер этот каталог не отслеживает.
@@ -136,9 +131,9 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           «Агенты» на этом сайте означают ИИ-ассистентов для программирования, таких как Claude, Copilot и Cursor. Им Glyph помогает больше всего, но проверки одинаковы, кто бы ни написал код: человек или модель. Если вы уже используете строгий TypeScript с zod и eslint, <a href="/answers/vs-tooled-ts/">вот что добавляет к этому язык</a>.
         </p>
 
-        <h2 class="block-label">Здесь нет if</h2>
+        <h2 class="block-label">Здесь нет инструкции if</h2>
         <p>
-          Ветвление по булеву значению это <code>match</code> по <code>true</code> и <code>false</code>. Если действие нужно только в одном случае, другая ветка это пустой блок.
+          Ветвление по булеву значению это <code>match</code> по <code>true</code> и <code>false</code>. Если действие нужно только в одном случае, другая ветка это пустой блок. Исключение составляет JSX: элемент <code>&lt;if&gt;</code> в компоненте выше отрисовывает дочерние элементы, когда условие выполняется, и ничего в противном случае.
         </p>
       </div>
 

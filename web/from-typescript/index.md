@@ -12,7 +12,7 @@ You don't learn a new language, just these four. They are the ones in every samp
 
 `match`
 
-An exhaustive `switch`: over a union, the compiler makes you handle every case. It is also the only conditional: there is no `if`/`else` and no ternary, explained below.
+An exhaustive `switch`: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no `if`/`else` and no ternary, explained below. JSX has `<if>` and `<match>` elements.
 
 `Result<T, E>`
 
@@ -28,7 +28,7 @@ Reassignment is explicit and greppable. A plain `let` binding never changes unde
 
 ## A React component in both
 
-The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses `&&` and `? :`, the Glyph uses `<match>`, which takes a value and one `<case>` per pattern. Lists use `<for>`, and the attribute is `class`, which compiles to `className`.
+The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses `&&` and `? :`, the Glyph uses JSX elements: `<match>`, which takes a value and one `<case>` per pattern, and `<if>` with an optional `<else>`, the lighter form for a plain boolean. Lists use `<for>`, and the attribute is `class`, which compiles to `className`.
 
 InviteList.tsx
 
@@ -73,12 +73,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array<Invite> }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return <section>
-    <match value={waiting > 0}>
-      <case true>
-        <p class="note">{waiting} waiting for a reply</p>
-      </case>
-      <case false></case>
-    </match>
+    <if cond={waiting > 0}>
+      <p class="note">{waiting} waiting for a reply</p>
+    </if>
     <match value={props.invites.length}>
       <case 0>
         <p class="empty">No invites sent yet.</p>
@@ -88,14 +85,12 @@ pub component InviteList(props: { invites: Array<Invite> }) {
           <for invite in={props.invites} key={invite.email}>
             <li>
               {invite.email}
-              <match value={invite.accepted}>
-                <case true>
-                  <span class="ok">joined</span>
-                </case>
-                <case false>
-                  <span class="wait">pending</span>
-                </case>
-              </match>
+              <if cond={invite.accepted}>
+                <span class="ok">joined</span>
+              </if>
+              <else>
+                <span class="wait">pending</span>
+              </else>
             </li>
           </for>
         </ul>
@@ -105,15 +100,15 @@ pub component InviteList(props: { invites: Array<Invite> }) {
 }
 ```
 
-The Glyph half is longer. The `&&` becomes a `<match>` with an empty `false` case, and leaving that case out is `E0209`, because a `match` on a `bool` has to cover both values. Over a union, the same element has to cover every variant (`E0200`), which is where it pays for the extra lines: [Does it work with React?](https://glyphlang.io/answers/react/) shows one, with hooks and Context.
+The Glyph half is longer, mostly because each branch is its own element. A `<match>` has to cover every value: drop `<case else>` here and the build stops with `E0218`. Over a union, it has to cover every variant (`E0200`), which is where it pays for the extra lines: [Does it work with React?](https://glyphlang.io/answers/react/) shows one, with hooks and Context.
 
 Editor support and debugging have their own answers: [the tooling answer](https://glyphlang.io/answers/tooling/) covers the language server and the VS Code extension, and [the debugging answer](https://glyphlang.io/answers/debugging/) covers source maps back to the `.glyph` file. For the dev loop, `glyph build --watch` rebuilds the TypeScript each time you save a `.glyph` file. A Vite dev server that imports that output reloads the whole page after each rebuild instead of hot-swapping the component, so component state resets, while your own `.tsx` files keep Vite's hot reload. Write the output outside Vite's build directory (`dist/` by default), because its dev server does not watch that directory.
 
 "Agents" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, [here is what a language adds over that](https://glyphlang.io/answers/vs-tooled-ts/).
 
-## There is no if
+## There is no if statement
 
-A branch on a boolean is a `match` on `true` and `false`. Where you only act on one side, the other arm is an empty block.
+A branch on a boolean is a `match` on `true` and `false`. Where you only act on one side, the other arm is an empty block. JSX is the exception: the `<if>` element in the component above renders its children when the condition holds and nothing otherwise.
 
 TypeScript
 

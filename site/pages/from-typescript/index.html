@@ -29,7 +29,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href="#there-is-no-if">explained below</a>.</dd>
+          <dd>An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href="#there-is-no-if-statement">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -50,9 +50,11 @@ next_steps: |
         <p>
           The same component twice: a list of invites with an empty state, a line counting the
           ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code>
-          and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and
-          one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the
-          attribute is <code>class</code>, which compiles to <code>className</code>.
+          and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and
+          one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional
+          <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use
+          <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to
+          <code>className</code>.
         </p>
       </div>
 
@@ -97,12 +99,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return &lt;section&gt;
-    &lt;match value={waiting &gt; 0}&gt;
-      &lt;case true&gt;
-        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
-      &lt;/case&gt;
-      &lt;case false&gt;&lt;/case&gt;
-    &lt;/match&gt;
+    &lt;if cond={waiting &gt; 0}&gt;
+      &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+    &lt;/if&gt;
     &lt;match value={props.invites.length}&gt;
       &lt;case 0&gt;
         &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
@@ -112,14 +111,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           &lt;for invite in={props.invites} key={invite.email}&gt;
             &lt;li&gt;
               {invite.email}
-              &lt;match value={invite.accepted}&gt;
-                &lt;case true&gt;
-                  &lt;span class="ok"&gt;joined&lt;/span&gt;
-                &lt;/case&gt;
-                &lt;case false&gt;
-                  &lt;span class="wait"&gt;pending&lt;/span&gt;
-                &lt;/case&gt;
-              &lt;/match&gt;
+              &lt;if cond={invite.accepted}&gt;
+                &lt;span class="ok"&gt;joined&lt;/span&gt;
+              &lt;/if&gt;
+              &lt;else&gt;
+                &lt;span class="wait"&gt;pending&lt;/span&gt;
+              &lt;/else&gt;
             &lt;/li&gt;
           &lt;/for&gt;
         &lt;/ul&gt;
@@ -132,10 +129,9 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
 
       <div class="detail">
         <p>
-          The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code>
-          with an empty <code>false</code> case, and leaving that case out is
-          <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover
-          both values. Over a union, the same element has to cover every variant
+          The Glyph half is longer, mostly because each branch is its own element. A
+          <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code>
+          here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant
           (<code>E0200</code>), which is where it pays for the extra lines:
           <a href="/answers/react/">Does it work with React?</a> shows one, with hooks and Context.
         </p>
@@ -160,10 +156,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           <a href="/answers/vs-tooled-ts/">here is what a language adds over that</a>.
         </p>
 
-        <h2 class="block-label">There is no if</h2>
+        <h2 class="block-label">There is no if statement</h2>
         <p>
           A branch on a boolean is a <code>match</code> on <code>true</code> and
           <code>false</code>. Where you only act on one side, the other arm is an empty block.
+          JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders
+          its children when the condition holds and nothing otherwise.
         </p>
       </div>
 

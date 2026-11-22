@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "ko",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "새 언어를 배우는 것이 아니라 이 네 가지만 익히면 됩니다. 이 사이트의 모든 예제에 나오는 것들입니다."
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "망라적인 <code>switch</code>: 유니언에 대해 쓰면 컴파일러가 모든 case를 처리하게 합니다. 이것이 유일한 조건문이기도 합니다. <code>if</code>/<code>else</code>도 삼항 연산자도 없으며, 이유는 <a href=\"#there-is-no-if\">아래에서 설명합니다</a>."
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "망라적인 <code>switch</code>: 유니언에 대해 쓰면 컴파일러가 모든 case를 처리하게 합니다. 문과 식에서는 이것이 유일한 조건문이기도 합니다. <code>if</code>/<code>else</code>도 삼항 연산자도 없으며, 이유는 <a href=\"#there-is-no-if-statement\">아래에서 설명합니다</a>. JSX에는 <code>&lt;if&gt;</code>과 <code>&lt;match&gt;</code> 요소가 있습니다."
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "같은 React 컴포넌트를 양쪽으로"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "같은 컴포넌트를 두 번 썼습니다. 빈 상태가 있는 초대 목록, 아직 답을 기다리는 수를 세는 줄, 행마다 붙는 라벨입니다. TSX가 <code>&amp;&amp;</code>와 <code>? :</code>을 쓰는 자리에 Glyph는 <code>&lt;match&gt;</code>을 씁니다. 값을 하나 받고, 패턴마다 <code>&lt;case&gt;</code>를 하나 둡니다. 목록은 <code>&lt;for&gt;</code>로 쓰고, 속성은 <code>class</code>이며 <code>className</code>으로 컴파일됩니다."
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "같은 컴포넌트를 두 번 썼습니다. 빈 상태가 있는 초대 목록, 아직 답을 기다리는 수를 세는 줄, 행마다 붙는 라벨입니다. TSX가 <code>&amp;&amp;</code>와 <code>? :</code>을 쓰는 자리에 Glyph는 JSX 요소를 씁니다. 값을 하나 받고 패턴마다 <code>&lt;case&gt;</code>를 하나 두는 <code>&lt;match&gt;</code>, 그리고 생략할 수 있는 <code>&lt;else&gt;</code>과 함께 쓰는 <code>&lt;if&gt;</code>인데, 뒤의 것이 단순한 불리언에 쓰는 가벼운 형태입니다. 목록은 <code>&lt;for&gt;</code>로 쓰고, 속성은 <code>class</code>이며 <code>className</code>으로 컴파일됩니다."
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "Glyph 쪽이 더 깁니다. <code>&amp;&amp;</code>는 빈 <code>false</code> 케이스가 있는 <code>&lt;match&gt;</code>이 되고, 그 케이스를 빼면 <code>E0209</code>입니다. <code>bool</code>에 대한 <code>match</code>는 두 값을 모두 다뤄야 하기 때문입니다. union에서는 같은 요소가 모든 variant를 다뤄야 하고(<code>E0200</code>), 늘어난 줄이 값을 하는 곳이 바로 거기입니다. <a href=\"/answers/react/\">React와 함께 쓸 수 있나요?</a>에 hooks와 Context를 쓴 예가 있습니다."
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph 쪽이 더 깁니다. 주로 분기마다 요소가 하나씩 필요하기 때문입니다. <code>&lt;match&gt;</code>은 모든 값을 다뤄야 해서, 여기서 <code>&lt;case else&gt;</code>를 빼면 빌드가 <code>E0218</code>로 멈춥니다. union에서는 모든 variant를 다뤄야 하고(<code>E0200</code>), 늘어난 줄이 값을 하는 곳이 바로 거기입니다. <a href=\"/answers/react/\">React와 함께 쓸 수 있나요?</a>에 hooks와 Context를 쓴 예가 있습니다."
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "이 사이트에서 \"에이전트\"는 Claude, Copilot, Cursor 같은 AI 코딩 도우미를 뜻합니다. Glyph가 가장 도움이 되는 대상은 에이전트이지만, 사람이 썼든 모델이 썼든 검사는 같습니다. 이미 zod와 eslint를 곁들인 strict TypeScript를 쓰고 있다면, <a href=\"/answers/vs-tooled-ts/\">언어가 그 위에 더하는 것은 이것입니다</a>."
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "if가 없습니다"
+      "en": "There is no if statement",
+      "tr": "if 문이 없습니다"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "불리언에 대한 분기는 <code>true</code>와 <code>false</code>에 대한 <code>match</code>입니다. 한쪽에서만 무언가를 할 때는 다른 arm을 빈 블록으로 둡니다."
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "불리언에 대한 분기는 <code>true</code>와 <code>false</code>에 대한 <code>match</code>입니다. 한쪽에서만 무언가를 할 때는 다른 arm을 빈 블록으로 둡니다. JSX는 예외입니다. 위 컴포넌트의 <code>&lt;if&gt;</code> 요소는 조건이 맞으면 자식을 렌더링하고, 아니면 아무것도 렌더링하지 않습니다."
     },
     {
       "id": "h-ed0504f7",

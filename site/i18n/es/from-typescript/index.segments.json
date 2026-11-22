@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "es",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "No aprendes un lenguaje nuevo, solo estas cuatro cosas. Son las que aparecen en todos los ejemplos de este sitio."
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. También es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href=\"#there-is-no-if\">se explica más abajo</a>."
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. En sentencias y expresiones también es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href=\"#there-is-no-if-statement\">se explica más abajo</a>. JSX tiene los elementos <code>&lt;if&gt;</code> y <code>&lt;match&gt;</code>."
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "Un componente de React en los dos"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>."
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa elementos JSX: <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón, y <code>&lt;if&gt;</code> con un <code>&lt;else&gt;</code> opcional, la forma más ligera para un booleano simple. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>."
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "La mitad en Glyph es más larga. El <code>&amp;&amp;</code> se convierte en un <code>&lt;match&gt;</code> con un caso <code>false</code> vacío, y omitir ese caso es <code>E0209</code>, porque un <code>match</code> sobre un <code>bool</code> tiene que cubrir los dos valores. Sobre una unión, el mismo elemento tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href=\"/answers/react/\">¿Funciona con React?</a> muestra uno, con hooks y Context."
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "La mitad en Glyph es más larga, sobre todo porque cada rama es su propio elemento. Un <code>&lt;match&gt;</code> tiene que cubrir todos los valores: quita aquí el <code>&lt;case else&gt;</code> y el build se detiene con <code>E0218</code>. Sobre una unión tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href=\"/answers/react/\">¿Funciona con React?</a> muestra uno, con hooks y Context."
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "En este sitio, \"agentes\" son asistentes de programación con IA como Claude, Copilot y Cursor. Glyph es a ellos a quienes más ayuda, pero las comprobaciones son las mismas tanto si el código lo escribió una persona como un modelo. Si ya usas TypeScript estricto con zod y eslint, <a href=\"/answers/vs-tooled-ts/\">esto es lo que añade un lenguaje a eso</a>."
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "No hay if"
+      "en": "There is no if statement",
+      "tr": "No hay sentencia if"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío."
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío. JSX es la excepción: el elemento <code>&lt;if&gt;</code> del componente de arriba renderiza sus hijos cuando la condición se cumple y nada en caso contrario."
     },
     {
       "id": "h-ed0504f7",

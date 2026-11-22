@@ -435,7 +435,7 @@
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Um <code>switch</code> exaustivo: sobre uma union, o compilador obriga você a tratar todos os casos. Também é a única condicional: não existe <code>if</code>/<code>else</code> nem ternário, <a href="#there-is-no-if">como explicado abaixo</a>.</dd>
+          <dd>Um <code>switch</code> exaustivo: sobre uma union, o compilador obriga você a tratar todos os casos. Em instruções e expressões, também é a única condicional: não existe <code>if</code>/<code>else</code> nem ternário, <a href="#there-is-no-if-statement">como explicado abaixo</a>. O JSX tem os elementos <code>&lt;if&gt;</code> e <code>&lt;match&gt;</code>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -454,7 +454,7 @@
       <div class="detail">
         <h2 class="block-label" id="a-react-component-in-both">Um componente React nas duas linguagens<a class="h-anchor" href="#a-react-component-in-both" aria-label="Link para esta seção">#</a></h2>
         <p>
-          O mesmo componente duas vezes: uma lista de convites com estado vazio, uma linha que conta os que ainda aguardam resposta e um rótulo em cada linha. Onde o TSX usa <code>&amp;&amp;</code> e <code>? :</code>, o Glyph usa <code>&lt;match&gt;</code>, que recebe um valor e um <code>&lt;case&gt;</code> por padrão. Listas usam <code>&lt;for&gt;</code>, e o atributo é <code>class</code>, que compila para <code>className</code>.
+          O mesmo componente duas vezes: uma lista de convites com estado vazio, uma linha que conta os que ainda aguardam resposta e um rótulo em cada linha. Onde o TSX usa <code>&amp;&amp;</code> e <code>? :</code>, o Glyph usa elementos JSX: <code>&lt;match&gt;</code>, que recebe um valor e um <code>&lt;case&gt;</code> por padrão, e <code>&lt;if&gt;</code> com um <code>&lt;else&gt;</code> opcional, a forma mais leve para um booleano simples. Listas usam <code>&lt;for&gt;</code>, e o atributo é <code>class</code>, que compila para <code>className</code>.
         </p>
       </div>
 
@@ -499,12 +499,9 @@
 <span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
   <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
   <span class="k">return</span> &lt;<span class="t">section</span>&gt;
-    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
-      &lt;<span class="t">case</span> true&gt;
-        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
-      &lt;/<span class="t">case</span>&gt;
-      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
-    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">if</span> cond={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+    &lt;/<span class="t">if</span>&gt;
     &lt;<span class="t">match</span> value={props.invites.length}&gt;
       &lt;<span class="t">case</span> 0&gt;
         &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
@@ -514,14 +511,12 @@
           &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
             &lt;<span class="t">li</span>&gt;
               <span class="ip">{</span>invite.email<span class="ip">}</span>
-              &lt;<span class="t">match</span> value={invite.accepted}&gt;
-                &lt;<span class="t">case</span> true&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-                &lt;<span class="t">case</span> false&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-              &lt;/<span class="t">match</span>&gt;
+              &lt;<span class="t">if</span> cond={invite.accepted}&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">if</span>&gt;
+              &lt;<span class="t">else</span>&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">else</span>&gt;
             &lt;/<span class="t">li</span>&gt;
           &lt;/<span class="t">for</span>&gt;
         &lt;/<span class="t">ul</span>&gt;
@@ -534,7 +529,7 @@
 
       <div class="detail">
         <p>
-          A metade em Glyph é mais longa. O <code>&amp;&amp;</code> vira um <code>&lt;match&gt;</code> com um caso <code>false</code> vazio, e omitir esse caso é <code>E0209</code>, porque um <code>match</code> sobre um <code>bool</code> precisa cobrir os dois valores. Sobre uma union, o mesmo elemento precisa cobrir todas as variantes (<code>E0200</code>), e é aí que as linhas a mais se pagam: <a href="/pt-br/answers/react/">Funciona com React?</a> mostra um caso, com hooks e Context.
+          A metade em Glyph é mais longa, sobretudo porque cada ramo é um elemento próprio. Um <code>&lt;match&gt;</code> precisa cobrir todos os valores: tire o <code>&lt;case else&gt;</code> daqui e o build para com <code>E0218</code>. Sobre uma union, ele precisa cobrir todas as variantes (<code>E0200</code>), e é aí que as linhas a mais se pagam: <a href="/pt-br/answers/react/">Funciona com React?</a> mostra um caso, com hooks e Context.
         </p>
         <p>
           Suporte a editor e depuração têm respostas próprias: <a href="/pt-br/answers/tooling/">a resposta sobre ferramentas</a> trata do language server e da extensão para VS Code, e <a href="/pt-br/answers/debugging/">a resposta sobre depuração</a> trata dos source maps de volta ao arquivo <code>.glyph</code>. No ciclo de desenvolvimento, <code>glyph build --watch</code> recompila o TypeScript sempre que você salva um arquivo <code>.glyph</code>. Um dev server do Vite que importa essa saída recarrega a página inteira depois de cada recompilação em vez de trocar o componente a quente, então o estado do componente se perde; seus próprios arquivos <code>.tsx</code> continuam com o hot reload do Vite. Grave a saída fora do diretório de build do Vite (<code>dist/</code> por padrão), porque o dev server não observa esse diretório.
@@ -546,9 +541,9 @@
           "Agentes", neste site, são assistentes de código com IA como Claude, Copilot e Cursor. Glyph ajuda mais a eles, mas as verificações são as mesmas seja o código escrito por uma pessoa ou por um modelo. Se você já usa TypeScript estrito com zod e eslint, <a href="/pt-br/answers/vs-tooled-ts/">veja o que uma linguagem acrescenta a isso</a>.
         </p>
 
-        <h2 class="block-label" id="there-is-no-if">Não existe if<a class="h-anchor" href="#there-is-no-if" aria-label="Link para esta seção">#</a></h2>
+        <h2 class="block-label" id="there-is-no-if-statement">Não existe instrução if<a class="h-anchor" href="#there-is-no-if-statement" aria-label="Link para esta seção">#</a></h2>
         <p>
-          Um desvio sobre um booleano é um <code>match</code> em <code>true</code> e <code>false</code>. Quando você só age em um dos lados, o outro braço é um bloco vazio.
+          Um desvio sobre um booleano é um <code>match</code> em <code>true</code> e <code>false</code>. Quando você só age em um dos lados, o outro braço é um bloco vazio. O JSX é a exceção: o elemento <code>&lt;if&gt;</code> do componente acima renderiza os filhos quando a condição vale e nada caso contrário.
         </p>
       </div>
 

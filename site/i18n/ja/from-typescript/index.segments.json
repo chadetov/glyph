@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "ja",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "新しい言語を覚えるのではなく、この 4 つだけです。このサイトのどのサンプルにも出てくるものです。"
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "網羅的な <code>switch</code>：ユニオンに対しては、コンパイラがすべてのケースを扱うように求めます。これは唯一の条件分岐でもあります。<code>if</code>/<code>else</code> も三項演算子もありません（理由は<a href=\"#there-is-no-if\">下で説明します</a>）。"
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "網羅的な <code>switch</code>：ユニオンに対しては、コンパイラがすべてのケースを扱うように求めます。文と式の中では唯一の条件分岐でもあります。<code>if</code>/<code>else</code> も三項演算子もありません（理由は<a href=\"#there-is-no-if-statement\">下で説明します</a>）。JSX には <code>&lt;if&gt;</code> 要素と <code>&lt;match&gt;</code> 要素があります。"
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "同じ React コンポーネントを両方で"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "同じコンポーネントを 2 回書いています。招待のリストで、空のときの表示、返事待ちの数を数える行、各行のラベルがあります。TSX が <code>&amp;&amp;</code> と <code>? :</code> を使うところで、Glyph は <code>&lt;match&gt;</code> を使います。値を 1 つ受け取り、パターンごとに <code>&lt;case&gt;</code> を 1 つ書きます。リストは <code>&lt;for&gt;</code> で書き、属性は <code>class</code> で、<code>className</code> にコンパイルされます。"
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "同じコンポーネントを 2 回書いています。招待のリストで、空のときの表示、返事待ちの数を数える行、各行のラベルがあります。TSX が <code>&amp;&amp;</code> と <code>? :</code> を使うところで、Glyph は JSX の要素を使います。値を 1 つ受け取りパターンごとに <code>&lt;case&gt;</code> を 1 つ書く <code>&lt;match&gt;</code> と、省略できる <code>&lt;else&gt;</code> を伴う <code>&lt;if&gt;</code> で、後者は単純な真偽値向けの軽い書き方です。リストは <code>&lt;for&gt;</code> で書き、属性は <code>class</code> で、<code>className</code> にコンパイルされます。"
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "Glyph 側のほうが長くなります。<code>&amp;&amp;</code> は空の <code>false</code> ケースを持つ <code>&lt;match&gt;</code> になり、そのケースを省くと <code>E0209</code> です。<code>bool</code> に対する <code>match</code> は両方の値を扱う必要があるからです。union に対しては、同じ要素がすべてのバリアントを扱う必要があり (<code>E0200</code>)、増えた行数が役に立つのはそこです。<a href=\"/answers/react/\">React で使えますか?</a> に、フックと Context を使った例があります。"
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph 側のほうが長くなります。主に、分岐ごとに要素が 1 つずつ必要だからです。<code>&lt;match&gt;</code> はすべての値を扱う必要があり、ここで <code>&lt;case else&gt;</code> を外すとビルドは <code>E0218</code> で止まります。union に対してはすべてのバリアントを扱う必要があり (<code>E0200</code>)、増えた行数が役に立つのはそこです。<a href=\"/answers/react/\">React で使えますか?</a> に、フックと Context を使った例があります。"
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "このサイトでいう「エージェント」は、Claude、Copilot、Cursor のような AI コーディングアシスタントのことです。Glyph が最も役立つのはこうしたエージェントですが、検査は人が書いたコードでもモデルが書いたコードでも同じです。すでに strict な TypeScript を zod や eslint と一緒に使っているなら、<a href=\"/answers/vs-tooled-ts/\">それに対して言語が何を加えるのか</a>を読んでください。"
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "if は存在しない"
+      "en": "There is no if statement",
+      "tr": "if 文は存在しない"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "真偽値での分岐は、<code>true</code> と <code>false</code> に対する <code>match</code> です。片方の場合にだけ処理をするときは、もう一方のアームを空のブロックにします。"
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "真偽値での分岐は、<code>true</code> と <code>false</code> に対する <code>match</code> です。片方の場合にだけ処理をするときは、もう一方のアームを空のブロックにします。JSX は例外で、上のコンポーネントの <code>&lt;if&gt;</code> 要素は、条件が成り立つときに子要素を描画し、そうでなければ何も描画しません。"
     },
     {
       "id": "h-ed0504f7",

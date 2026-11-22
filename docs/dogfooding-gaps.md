@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-439 entries, 320 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-99 are open. G144, the D28 boundary cast that never reached the returns a
+441 entries, 321 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+100 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14989,3 +14989,28 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): the program above draws
   E0204 with ``found `record`: missing field `name` `` under `check
   --no-tsc`.*
+
+- **G438. An `==` or `!=` whose operands can never be equal passes without
+  `tsc`.** With `m: Mode` and `type Mode = "read" | "write"`, `m == "zzz"`
+  is `no diagnostics` under `check --no-tsc`; full `check` reports `[TS2367]
+  This comparison appears to be unintentional because the types 'Mode' and
+  '"zzz"' have no overlap`. Glyph's checker should refuse a comparison whose
+  decided operands are disjoint string-literal sets. Once it does, the
+  emitter can write `===` again for a comparison with an unannotated string
+  `const`: G433 keeps `__glyph_eq` there because `tsc` gives the emitted
+  `const` a literal type and `===` would make it refuse comparisons Glyph
+  accepts. A `number` or `bool` constant keeps the helper until Glyph has
+  literal types for those. Found by record 163.
+
+  *Reproduced against 0.1.161 (the published build) and the dev-g433 build:
+  `--no-tsc` reports no diagnostics; full `check` reports the TS2367.*
+
+- **G439. An array index read is not compared where a type is declared.**
+  `let ys = [1, 2]` then `let b: string = ys[0]` is `no diagnostics` under
+  `check --no-tsc`; full `check` reports `[TS2322] Type 'number' is not
+  assignable to type 'string'`. The same holds for `XS[0]` on a typed
+  `const`, while `let c: string = XS` is refused. The index read should carry
+  the element type into the comparison. Found by record 163 (probe k08).
+
+  *Reproduced against 0.1.161 (the published build) and the dev-g433 build:
+  `--no-tsc` reports no diagnostics; full `check` reports the TS2322.*

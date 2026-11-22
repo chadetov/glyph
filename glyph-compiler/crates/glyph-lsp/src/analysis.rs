@@ -883,17 +883,22 @@ fn render(ty: Ty) -> Option<String> {
 /// are assembled into the record shape a value satisfying it has, each member
 /// lowered by the same `Lowerer`.
 ///
-/// An unannotated `const` answers `None`, and the initializer beside it is
-/// deliberately not read. The checker lowers such a declaration to
-/// `Ty::Unknown` on purpose rather than inferring one from the value (G39), so
-/// no check reads a declared type for it. Handing back the initializer's type
-/// would report a type the checker does not hold the declaration to, which is
-/// the one thing this surface must never do: a caller would read it as the
-/// type its uses are checked against, and nothing checks them.
-pub fn declaration_ty(decl: &Decl, lowerer: &Lowerer<'_>, _types: &TypeMap) -> Option<Ty> {
+/// An unannotated `const` is the type its initializer has under `tsc`'s
+/// `const` widening (G433), read off the file's `types` through
+/// `const_binding_ty`, the rule the checker holds every use of the name to.
+/// `None` when the initializer is undecidable, which no check reads either.
+pub fn declaration_ty(decl: &Decl, lowerer: &Lowerer<'_>, types: &TypeMap) -> Option<Ty> {
     match decl {
         Decl::Fn(_) | Decl::Component(_) => Some(lowerer.lower_decl_signature(decl)),
-        Decl::Const(c) => c.ty.as_ref().map(|te| lowerer.lower(te)),
+        Decl::Const(c) => match &c.ty {
+            Some(te) => Some(lowerer.lower(te)),
+            None => Some(glyph_typechecker::const_binding_ty(
+                &c.value,
+                types.get(c.value.span()).clone(),
+                types,
+            ))
+            .filter(|t| !t.is_unknown()),
+        },
         Decl::Type(t) => Some(lowerer.lower(&t.body)),
         Decl::Interface(i) => Some(Ty::Record {
             fields: i.members.iter().map(|m| interface_field(m, lowerer)).collect(),
@@ -2977,20 +2982,21 @@ mod tests {
         );
     }
 
-    /// Hover reads the compiler's lowering, never the source text, so a
-    /// position that resolves to nothing stays `null` rather than echoing the
-    /// word under the cursor.
-    /// The checker lowers an unannotated `const`'s declaration to `Unknown`
-    /// on purpose. Hovering it as the initializer's type would say the binding
-    /// is a `string` and that its uses are checked against one; neither is so.
+    /// An unannotated `const` hovers as the type its uses are checked
+    /// against (G433): a string literal standing as the whole value keeps its
+    /// literal type, and a literal inside an array widens.
     #[test]
-    fn hover_declines_an_unannotated_const() {
-        let text = "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\n";
+    fn hover_reads_an_unannotated_consts_type() {
+        let text = "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\npub const NAMES = [\"x\"]\n";
         assert_eq!(
             hover_at_text(text, "LIMIT", 0),
             Some("number".to_string())
         );
-        assert_eq!(hover_at_text(text, "NAMED", 0), None);
+        assert_eq!(hover_at_text(text, "NAMED", 0), Some("\"x\"".to_string()));
+        assert_eq!(
+            hover_at_text(text, "NAMES", 0),
+            Some("Array<string>".to_string())
+        );
     }
 
     #[test]

@@ -15732,7 +15732,8 @@ fn an_imported_const_carries_its_annotation_under_both_import_spellings() {
     // silent, where the same const read in its own module has been E0210
     // since 0.1.116. `glyph_db::exported_const` reads the annotation across
     // the boundary and both spellings now report the typo naming the record.
-    // An unannotated const stays `Unknown`, as in its own module.
+    // An unannotated const has its initializer's type (G433), the structural
+    // record here, so its typo is E0210 as well, naming no declaration.
     let root = unique_tmp("g205const");
     let src = root.join("src");
     write_file(
@@ -15761,13 +15762,102 @@ fn an_imported_const_carries_its_annotation_under_both_import_spellings() {
         .collect();
     assert_eq!(
         e0210.len(),
+        3,
+        "one per annotated spelling, and one for the unannotated const: {:?}",
+        report.diagnostics
+    );
+    assert_eq!(
+        e0210.iter().filter(|d| d.contains("Sheet")).count(),
         2,
-        "one per annotated spelling, none for the unannotated const: {:?}",
+        "the annotated spellings name the record: {:?}",
         report.diagnostics
     );
     for diag in e0210 {
-        assert!(diag.contains("Sheet"), "names the record: {diag}");
         assert!(diag.contains("rowz"), "names the field: {diag}");
+    }
+}
+
+#[test]
+fn two_siblings_whose_unannotated_consts_read_each_other_build_without_a_panic() {
+    // G433. `pub const X = b.Y` beside `pub const Y = a.X` is a query cycle
+    // through `exported_const` and `decl_ty`, entered from either side. Both
+    // answer `Unknown` there, so the consts are untyped and nothing is
+    // refused, where the first build of the rule panicked inside salsa.
+    let root = unique_tmp("g433cycle");
+    let src = root.join("src");
+    write_file(&src, "a.glyph", "module a\nimport b\npub const X = b.Y\n");
+    write_file(&src, "b.glyph", "module b\nimport a { X }\npub const Y = X\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import a\n\
+         import b { Y }\n\
+         pub fn f() -> string {\n  let s: string = a.X\n  let t: string = Y\n  return s + t\n}\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("[E0204]")),
+        "{:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn an_imported_unannotated_const_has_one_type_under_both_import_spellings() {
+    // G433 (record 158). An unannotated `pub const` reaches a consumer with
+    // the type its initializer has in its own module, through one query per
+    // declaration, so `import lib { ITEMS }` and `lib.ITEMS` are judged
+    // against the same type: the `push` outside `mut` is E0240, the field
+    // read where a `string` is declared is E0204, and the string literal
+    // keeps its literal type, so passing it where a `Mode` is declared is
+    // accepted under both spellings. A type the declaring module names
+    // crosses as that declaration, so `COPY.rowz` names `Sheet`.
+    let root = unique_tmp("g433const");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib
+         pub type Mode = \"read\" | \"write\"
+         pub type Sheet = { rows: number, cols: number, }
+         pub const MODE = \"read\"
+         pub const ITEMS = [1, 2]
+         pub const CFG = { n: 1, }
+         pub const ORIGIN: Sheet = { rows: 0, cols: 0, }
+         pub const COPY = ORIGIN
+",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main
+         import lib { MODE, ITEMS, CFG, COPY, Mode }
+         import lib as l
+         fn takes(m: Mode) -> number {
+  return 0
+}
+         pub fn named() -> number {
+  ITEMS.push(3)
+  let x: string = CFG.n
+  return takes(MODE) + COPY.rowz
+}
+         pub fn spaced() -> number {
+  l.ITEMS.push(3)
+  let x: string = l.CFG.n
+  return takes(l.MODE) + l.COPY.rowz
+}
+",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let count = |code: &str| report.diagnostics.iter().filter(|d| d.contains(code)).count();
+    assert_eq!(count("[E0240]"), 2, "one push per spelling: {:?}", report.diagnostics);
+    assert_eq!(count("[E0204]"), 2, "one field read per spelling: {:?}", report.diagnostics);
+    assert_eq!(count("[E0211]"), 0, "the literal stands where `Mode` is declared: {:?}", report.diagnostics);
+    let e0210: Vec<&String> = report.diagnostics.iter().filter(|d| d.contains("[E0210]")).collect();
+    assert_eq!(e0210.len(), 2, "{:?}", report.diagnostics);
+    for diag in e0210 {
+        assert!(diag.contains("Sheet") && diag.contains("rowz"), "{diag}");
     }
 }
 

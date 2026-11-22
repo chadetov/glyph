@@ -44,7 +44,8 @@ pub mod type_map;
 
 pub use assign::{
     alias_target, assign_types, assign_types_with_coverage, assign_types_with_relations,
-    assign_types_with_resolver, assignability, direct_type_decl, imported_decl_chain_end,
+    assign_types_with_resolver, assignability, const_binding_ty, decl_signature_ty,
+    direct_type_decl, imported_decl_chain_end, unannotated_const_ty,
     imported_string_literal_union_values,
     prelude_app, prelude_container, declared_record_fields, resolve_alias_chain, split_type_app,
     Assignability,

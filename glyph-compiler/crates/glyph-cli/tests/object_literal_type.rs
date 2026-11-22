@@ -441,9 +441,9 @@ const ACCEPTED: &[Program] = &[
              }\n",
         )],
     },
-    // An unannotated `const` still lowers to no type at all (G39). The
-    // synthesized record types the *expression*; what a `const` declaration
-    // infers is untouched, so a use of one is as unchecked as it was.
+    // An unannotated `const` has its initializer's type since G433, so
+    // `ANON` is the structural record its literal writes, and it stands where
+    // the `User` it matches is declared, as `tsc` accepts it.
     Program {
         name: "unannotated_const",
         modules: &[(

@@ -5615,6 +5615,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Rolling lane · G431, an unknown member on a `boolean` is refused without `tsc`** (found re-reproducing G272): `same.to_string()` on a `boolean` passes `--no-tsc` and is TS2339 under `tsc`. Extend the generated method table to `boolean` so the checker judges its members, as it does for `number`.
 
+**Rolling lane · G437, a literal missing a required field is named by its shape** (record 160): ``expected `Opt`, found `record`: missing field `name` `` prints the category word for the literal's side. Render a structural record by its fields there, with G245, which is the same display on an inline props record.
+
 **Rolling lane · G440, `string.from` without its import is E0103** (found re-reproducing G416): the name `string` resolves to the primitive type in value position, so `string.from(5)` with no `import std/string` passes `--no-tsc` and `tsc` refuses it (TS2693). Refuse it as `array.len` without its import is refused, with help naming the import.
 
 **Planned, its own release · G427, the built-in method table follows the library the emitted tsconfig declares** (record 153, finding 4). `builtin_methods.rs` is generated from `esnext` and `glyph build` writes `"lib": ["es2022", "dom"]`, so Glyph's checker types `toSorted`, `toReversed`, `toSpliced`, `with`, `findLast` and `findLastIndex` and `tsc` refuses them (TS2550). Decide whether the table follows the tsconfig or the tsconfig moves to `es2023`; record 150 kept the newer methods out of every help, so nothing shipped depends on them.

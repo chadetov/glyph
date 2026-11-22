@@ -14936,3 +14936,17 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.164 (the dev build): `zz` underlined at column 27
   where it starts at column 29.*
+
+- **G437. An object literal missing a required field is named `record` in
+  the refusal.** With `type Opt = { name: string, nick?: string, }`, `let o:
+  Opt = { nick: "n", }` draws ``type mismatch: expected `Opt`, found
+  `record`: missing field `name` ``. The declared side is named; the found
+  side, the literal's own structural type, prints as the category word,
+  where G75's rule is that a diagnostic names a type the reader can check.
+  `tsc` prints the shape (`'{ nick: string; }'`). Same display as G245's
+  inline props record, on the found side of a literal. Found by record 160
+  reviewing G273.
+
+  *Reproduced against 0.1.161 (the release build): the program above draws
+  E0204 with ``found `record`: missing field `name` `` under `check
+  --no-tsc`.*

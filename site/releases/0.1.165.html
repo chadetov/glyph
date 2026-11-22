@@ -1,0 +1,20 @@
+---
+version: 0.1.165
+month: 2026-11
+date: 2026-11-22
+tags: breaking
+headline: A literal can only name fields its type declares
+---
+            <p>With <code>type Opt = { name: string, nick?: string, }</code>, writing <code>{ name: "a", nik: "b", }</code> where an <code>Opt</code> is expected passed Glyph's own checker. The misspelled optional field was silently dropped. Only <code>tsc</code> caught it, so the editor, the MCP tools and the <code>applyEdit</code> gate let it through. Now a key that the declared record does not have is E0210, underlined at the key:</p>
+
+<pre><code>[E0210] type `Opt` has no field `nik`; did you mean `nick`?</code></pre>
+
+            <p>It is checked wherever a literal is written for a declared type: a <code>let</code> or <code>const</code> with an annotation, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, nested fields, array elements, the arms of a <code>match</code> in one of those places, a lambda's return where its type is declared, a JSX component attribute, and inside <code>Some(...)</code>, <code>Ok(...)</code> and <code>Err(...)</code>. That last group goes beyond <code>tsc</code>, which lets an extra field through there. Values written in those last positions are compared too, so <code>Some({ name: 4, })</code> under <code>Option&lt;Opt&gt;</code> is refused. Fields that come from a spread, a variable holding a wider record, and <code>Record&lt;K, V&gt;</code> are not judged.</p>
+
+            <p><code>glyph fix</code> renames a key that is one letter away from a declared field, unless the literal already has that field.</p>
+
+            <h3>A safer glyph fix inside templates</h3>
+            <p>An escape inside a <code>${}</code>, as in <code>"a${f(\"x\") + b.nik}"</code>, still shifts positions after it. Review of this release showed a fix could land on the wrong copy of identical text there, so every fix rule now declines in that region, using the lexer's record of where the escapes are. 0.1.168 makes those escapes a parse error.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. A literal with an undeclared key now fails <code>check --no-tsc</code>, and under full <code>check</code> too inside <code>Some</code>, <code>Ok</code> and <code>Err</code>: <code>let f: Option&lt;Opt&gt; = Some({ name: "x", extra: 6, })</code> exits 0 under 0.1.164 and 1 under 0.1.165. Across 383 tracked programs, nothing else changed.</p>

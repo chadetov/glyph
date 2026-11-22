@@ -485,6 +485,14 @@
           Detalhes em <a href="/pt-br/answers/upgrades/">Uma release nova do Glyph vai quebrar meu build?</a>
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">O que uma release Breaking costuma significar<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="Link para esta seção">#</a></h2>
+        <p>
+          Em geral, que o compilador passa a recusar um programa que já estava errado. A 0.1.159 recusou <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> não espera o callback, então cada save rodava por conta própria e uma falha em um deles se perdia. A 0.1.162 recusou <code>array.find(xs, f) ?? 0</code>: um <code>Option</code> nunca é null, então o valor padrão nunca se aplicava e o resultado era o próprio <code>Option</code>. Algumas apertam uma regra. Desde a 0.1.160, uma chamada que altera um array no lugar, como <code>xs.push(4)</code>, precisa ser escrita como uma instrução <code>mut</code>, então código que funcionava teve de mudar de grafia (<code>glyph fix</code> insere o <code>mut</code>).
+        </p>
+        <p>
+          Uma release só chega ao seu projeto quando você move a versão fixada. Se um upgrade recusar código que você ainda não pode corrigir, fique na versão que tinha, já que versões publicadas nunca são retiradas. O TypeScript que o seu último build emitiu compila só com <code>tsc</code>, então continua utilizável aconteça o que acontecer com o compilador.
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Frequência de releases e a marca Breaking<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link para esta seção">#</a></h2>
         <p>
           A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à 0.1.166, 165 no total, e 39 delas saíram entre 1 nov 2026 e 22 nov 2026. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. 48 entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.

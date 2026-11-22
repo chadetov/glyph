@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "th",
-  "source_hash": "f88e17b45c203ca8",
+  "source_hash": "e671c7332b99f6a8",
   "segments": [
     {
       "id": "title",
@@ -207,6 +207,24 @@
       "kind": "html",
       "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
       "tr": "รายละเอียดใน <a href=\"/answers/upgrades/\">รุ่นใหม่ของ Glyph จะทำให้ build ของฉันพังไหม?</a>"
+    },
+    {
+      "id": "h-02e84e8b",
+      "kind": "html",
+      "en": "What a Breaking release usually means",
+      "tr": "รุ่น Breaking มักหมายถึงอะไร"
+    },
+    {
+      "id": "h-7a180765",
+      "kind": "html",
+      "en": "Usually that the compiler starts refusing a program that was already wrong. 0.1.159 refused <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> does not wait for its callback, so each save ran on its own and a failure in one was lost. 0.1.162 refused <code>array.find(xs, f) ?? 0</code>: an <code>Option</code> is never null, so the default never applied and the value was the <code>Option</code> itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in place, such as <code>xs.push(4)</code>, has to be written as a <code>mut</code> statement, so code that worked had to change its spelling (<code>glyph fix</code> inserts the <code>mut</code>).",
+      "tr": "ส่วนใหญ่หมายความว่าคอมไพเลอร์เริ่มปฏิเสธโปรแกรมที่ผิดอยู่แล้ว 0.1.159 ปฏิเสธ <code>ids.forEach(async fn(id) { await save(id) })</code> เพราะ <code>forEach</code> ไม่รอ callback ของมัน save แต่ละครั้งจึงทำงานแยกกันเอง และถ้าครั้งใดล้มเหลว ความล้มเหลวนั้นก็หายไป 0.1.162 ปฏิเสธ <code>array.find(xs, f) ?? 0</code> เพราะ <code>Option</code> ไม่มีวันเป็น null ค่าเริ่มต้นจึงไม่เคยถูกใช้ และค่าที่ได้คือ <code>Option</code> ตัวนั้นเอง บางรุ่นก็เป็นการเข้มงวดกฎขึ้น ตั้งแต่ 0.1.160 การเรียกที่แก้ไขอาร์เรย์ในที่ เช่น <code>xs.push(4)</code> ต้องเขียนเป็นคำสั่ง <code>mut</code> โค้ดที่เคยทำงานได้จึงต้องเปลี่ยนวิธีเขียน (<code>glyph fix</code> จะเติม <code>mut</code> ให้)"
+    },
+    {
+      "id": "h-e4000ea7",
+      "kind": "html",
+      "en": "A release reaches your project only when you move the pin. If an upgrade refuses code you can't fix yet, stay on the version you had, since published versions are never yanked. The TypeScript your last build emitted compiles with <code>tsc</code> alone, so it stays usable whatever happens to the compiler.",
+      "tr": "รุ่นใหม่จะเข้ามาในโปรเจกต์ของคุณก็ต่อเมื่อคุณขยับเวอร์ชันที่ pin ไว้เอง ถ้าอัปเกรดแล้วโค้ดที่คุณยังแก้ไม่ได้ถูกปฏิเสธ ก็อยู่กับเวอร์ชันเดิมต่อไปได้ เพราะเวอร์ชันที่เผยแพร่แล้วจะไม่ถูกถอนออก TypeScript ที่ build ล่าสุดของคุณสร้างไว้คอมไพล์ได้ด้วย <code>tsc</code> อย่างเดียว จึงยังใช้งานได้ไม่ว่าคอมไพเลอร์จะเป็นอย่างไรต่อไป"
     },
     {
       "id": "h-b04fdb5f",

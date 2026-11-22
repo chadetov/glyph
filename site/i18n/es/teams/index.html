@@ -1,7 +1,7 @@
 ---
 title: Para equipos · qué garantiza Glyph y qué cuesta · Glyph
 description: Para quien lidera un equipo y está evaluando Glyph: qué garantiza el compilador y dónde se detiene, cómo adoptarlo en una app TypeScript, cómo salir, cómo fijar versiones y el estado previo a la 1.0.
-source_hash: f88e17b45c203ca8
+source_hash: e671c7332b99f6a8
 next_steps: |
   Adónde ir ahora
   Recomendado | /catches/ | catches | Mira lo que TypeScript deja pasar | Los casos que acepta un proyecto TypeScript estricto, ordenados, cada uno ejecutado con <code>tsc --strict</code> y con Glyph. | Ver los casos
@@ -73,6 +73,14 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       <div class="detail">
         <p>
           Los detalles están en <a href="/answers/upgrades/">¿Una nueva versión de Glyph va a romper mi build?</a>
+        </p>
+
+        <h2 class="block-label">Qué suele significar una versión Breaking</h2>
+        <p>
+          Normalmente, que el compilador empieza a rechazar un programa que ya estaba mal. La 0.1.159 rechazó <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> no espera a su callback, así que cada save corría por su cuenta y un fallo en uno se perdía. La 0.1.162 rechazó <code>array.find(xs, f) ?? 0</code>: un <code>Option</code> nunca es null, así que el valor por defecto nunca se aplicaba y el resultado era el propio <code>Option</code>. Otras endurecen una regla. Desde la 0.1.160, una llamada que modifica un array en su sitio, como <code>xs.push(4)</code>, tiene que escribirse como una sentencia <code>mut</code>, así que código que funcionaba tuvo que cambiar de forma (<code>glyph fix</code> inserta el <code>mut</code>).
+        </p>
+        <p>
+          Una versión llega a tu proyecto solo cuando mueves la versión fijada. Si una actualización rechaza código que todavía no puedes arreglar, quédate en la versión que tenías, porque las versiones publicadas nunca se retiran. El TypeScript que emitió tu último build compila solo con <code>tsc</code>, así que sigue sirviendo pase lo que pase con el compilador.
         </p>
 
         <h2 class="block-label">Ritmo de versiones y la marca Breaking</h2>

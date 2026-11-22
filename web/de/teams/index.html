@@ -485,6 +485,14 @@
           Details in <a href="/de/answers/upgrades/">Macht ein neues Glyph-Release meinen Build kaputt?</a>
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">Was ein Breaking-Release meistens bedeutet<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Meistens, dass der Compiler anfängt, ein Programm abzulehnen, das schon vorher falsch war. 0.1.159 lehnte <code>ids.forEach(async fn(id) { await save(id) })</code> ab: <code>forEach</code> wartet nicht auf seinen Callback, also lief jedes save für sich, und ein Fehler in einem davon ging verloren. 0.1.162 lehnte <code>array.find(xs, f) ?? 0</code> ab: Ein <code>Option</code> ist nie null, also griff der Standardwert nie, und der Wert war das <code>Option</code> selbst. Manche verschärfen stattdessen eine Regel. Seit 0.1.160 muss ein Aufruf, der ein Array an Ort und Stelle ändert, etwa <code>xs.push(4)</code>, als <code>mut</code>-Anweisung geschrieben werden, also musste Code, der funktionierte, anders geschrieben werden (<code>glyph fix</code> fügt das <code>mut</code> ein).
+        </p>
+        <p>
+          Ein Release erreicht dein Projekt nur, wenn du den Pin verschiebst. Lehnt ein Upgrade Code ab, den du noch nicht reparieren kannst, bleib bei der Version, die du hattest, denn veröffentlichte Versionen werden nie zurückgezogen. Das TypeScript, das dein letzter Build erzeugt hat, kompiliert mit <code>tsc</code> allein und bleibt damit brauchbar, egal was mit dem Compiler passiert.
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release-Takt und die Breaking-Markierung<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
           Die <a href="/versions/">Versionsseite</a> hat einen Eintrag für jedes Release von 0.1.0 bis 0.1.166, insgesamt 165, und 39 davon erschienen zwischen dem 1. Nov. 2026 und dem 22. Nov. 2026. Ein Release wird als Breaking markiert, wenn es ein Programm ablehnt, das die vorherige Version akzeptiert hat, und so landen die meisten Korrektheits-Fixes. 48 Einträge tragen die Markierung. Sie wird gesetzt, indem das kleinste betroffene Programm unter beiden Versionen ausgeführt wird, nicht durch Lesen des Diffs, und Releases vor 0.1.99 wurden nicht so getestet, ein unmarkiertes altes Release ist also ungetestet und nicht sicher.

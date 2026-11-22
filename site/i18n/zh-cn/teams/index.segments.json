@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "zh-cn",
-  "source_hash": "f88e17b45c203ca8",
+  "source_hash": "e671c7332b99f6a8",
   "segments": [
     {
       "id": "title",
@@ -207,6 +207,24 @@
       "kind": "html",
       "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
       "tr": "详见<a href=\"/answers/upgrades/\">新的 Glyph 版本会破坏我的构建吗？</a>"
+    },
+    {
+      "id": "h-02e84e8b",
+      "kind": "html",
+      "en": "What a Breaking release usually means",
+      "tr": "Breaking 版本通常意味着什么"
+    },
+    {
+      "id": "h-7a180765",
+      "kind": "html",
+      "en": "Usually that the compiler starts refusing a program that was already wrong. 0.1.159 refused <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> does not wait for its callback, so each save ran on its own and a failure in one was lost. 0.1.162 refused <code>array.find(xs, f) ?? 0</code>: an <code>Option</code> is never null, so the default never applied and the value was the <code>Option</code> itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in place, such as <code>xs.push(4)</code>, has to be written as a <code>mut</code> statement, so code that worked had to change its spelling (<code>glyph fix</code> inserts the <code>mut</code>).",
+      "tr": "通常是编译器开始拒绝一个本来就有错的程序。0.1.159 拒绝了 <code>ids.forEach(async fn(id) { await save(id) })</code>：<code>forEach</code> 不会等待回调，所以每次 save 各自运行，其中一次失败就丢了。0.1.162 拒绝了 <code>array.find(xs, f) ?? 0</code>：<code>Option</code> 永远不是 null，所以默认值从未生效，得到的值就是那个 <code>Option</code> 本身。也有一些是收紧规则。从 0.1.160 起，原地修改数组的调用（比如 <code>xs.push(4)</code>）必须写成 <code>mut</code> 语句，所以本来能运行的代码也得换个写法（<code>glyph fix</code> 会插入 <code>mut</code>）。"
+    },
+    {
+      "id": "h-e4000ea7",
+      "kind": "html",
+      "en": "A release reaches your project only when you move the pin. If an upgrade refuses code you can't fix yet, stay on the version you had, since published versions are never yanked. The TypeScript your last build emitted compiles with <code>tsc</code> alone, so it stays usable whatever happens to the compiler.",
+      "tr": "只有你移动固定的版本，新版本才会进入你的项目。如果升级后拒绝了你暂时修不了的代码，就留在原来的版本上，已发布的版本永远不会被撤下。你上一次构建输出的 TypeScript 只用 <code>tsc</code> 就能编译，所以无论编译器将来怎样，它都还能用。"
     },
     {
       "id": "h-b04fdb5f",

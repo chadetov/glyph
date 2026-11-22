@@ -1,7 +1,7 @@
 ---
 title: Für Teams · was Glyph garantiert und was es kostet · Glyph
 description: Für Leads, die Glyph abwägen: was der Compiler garantiert und wo er aufhört, die Einführung in einer TypeScript-App, der Ausstiegsweg, Versions-Pinning und der Status vor 1.0.
-source_hash: f88e17b45c203ca8
+source_hash: e671c7332b99f6a8
 next_steps: |
   Wie es weitergeht
   Empfohlen | /catches/ | catches | Sehen, was TypeScript durchlässt | Die Fälle, die ein striktes TypeScript-Projekt akzeptiert, nach Rang sortiert, jeder unter <code>tsc --strict</code> und unter Glyph ausgeführt. | Die Fälle ansehen
@@ -73,6 +73,14 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       <div class="detail">
         <p>
           Details in <a href="/answers/upgrades/">Macht ein neues Glyph-Release meinen Build kaputt?</a>
+        </p>
+
+        <h2 class="block-label">Was ein Breaking-Release meistens bedeutet</h2>
+        <p>
+          Meistens, dass der Compiler anfängt, ein Programm abzulehnen, das schon vorher falsch war. 0.1.159 lehnte <code>ids.forEach(async fn(id) { await save(id) })</code> ab: <code>forEach</code> wartet nicht auf seinen Callback, also lief jedes save für sich, und ein Fehler in einem davon ging verloren. 0.1.162 lehnte <code>array.find(xs, f) ?? 0</code> ab: Ein <code>Option</code> ist nie null, also griff der Standardwert nie, und der Wert war das <code>Option</code> selbst. Manche verschärfen stattdessen eine Regel. Seit 0.1.160 muss ein Aufruf, der ein Array an Ort und Stelle ändert, etwa <code>xs.push(4)</code>, als <code>mut</code>-Anweisung geschrieben werden, also musste Code, der funktionierte, anders geschrieben werden (<code>glyph fix</code> fügt das <code>mut</code> ein).
+        </p>
+        <p>
+          Ein Release erreicht dein Projekt nur, wenn du den Pin verschiebst. Lehnt ein Upgrade Code ab, den du noch nicht reparieren kannst, bleib bei der Version, die du hattest, denn veröffentlichte Versionen werden nie zurückgezogen. Das TypeScript, das dein letzter Build erzeugt hat, kompiliert mit <code>tsc</code> allein und bleibt damit brauchbar, egal was mit dem Compiler passiert.
         </p>
 
         <h2 class="block-label">Release-Takt und die Breaking-Markierung</h2>

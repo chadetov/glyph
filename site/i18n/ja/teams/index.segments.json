@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "ja",
-  "source_hash": "f88e17b45c203ca8",
+  "source_hash": "e671c7332b99f6a8",
   "segments": [
     {
       "id": "title",
@@ -207,6 +207,24 @@
       "kind": "html",
       "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
       "tr": "詳しくは <a href=\"/answers/upgrades/\">Glyph の新しいリリースでビルドが壊れることはあるか</a> にあります。"
+    },
+    {
+      "id": "h-02e84e8b",
+      "kind": "html",
+      "en": "What a Breaking release usually means",
+      "tr": "Breaking のリリースがたいてい意味すること"
+    },
+    {
+      "id": "h-7a180765",
+      "kind": "html",
+      "en": "Usually that the compiler starts refusing a program that was already wrong. 0.1.159 refused <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> does not wait for its callback, so each save ran on its own and a failure in one was lost. 0.1.162 refused <code>array.find(xs, f) ?? 0</code>: an <code>Option</code> is never null, so the default never applied and the value was the <code>Option</code> itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in place, such as <code>xs.push(4)</code>, has to be written as a <code>mut</code> statement, so code that worked had to change its spelling (<code>glyph fix</code> inserts the <code>mut</code>).",
+      "tr": "たいていは、もともと間違っていたプログラムをコンパイラが拒否するようになったということです。0.1.159 は <code>ids.forEach(async fn(id) { await save(id) })</code> を拒否しました。<code>forEach</code> はコールバックを待たないので、各 save はばらばらに走り、どれかの失敗は失われていました。0.1.162 は <code>array.find(xs, f) ?? 0</code> を拒否しました。<code>Option</code> は null にならないので、デフォルト値は一度も使われず、値は <code>Option</code> そのものでした。ルールを厳しくするものもあります。0.1.160 からは、<code>xs.push(4)</code> のように配列をその場で変更する呼び出しは <code>mut</code> 文として書く必要があり、動いていたコードも書き方を変えることになりました (<code>glyph fix</code> が <code>mut</code> を挿入します)。"
+    },
+    {
+      "id": "h-e4000ea7",
+      "kind": "html",
+      "en": "A release reaches your project only when you move the pin. If an upgrade refuses code you can't fix yet, stay on the version you had, since published versions are never yanked. The TypeScript your last build emitted compiles with <code>tsc</code> alone, so it stays usable whatever happens to the compiler.",
+      "tr": "リリースがプロジェクトに入るのは、固定したバージョンを自分で動かしたときだけです。アップグレードでまだ直せないコードが拒否されたら、元のバージョンのままでいられます。公開済みのバージョンが取り下げられることはありません。最後のビルドが出力した TypeScript は <code>tsc</code> だけでコンパイルできるので、コンパイラがどうなっても使い続けられます。"
     },
     {
       "id": "h-b04fdb5f",

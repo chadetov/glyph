@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "pt-br",
-  "source_hash": "f88e17b45c203ca8",
+  "source_hash": "e671c7332b99f6a8",
   "segments": [
     {
       "id": "title",
@@ -207,6 +207,24 @@
       "kind": "html",
       "en": "Details in <a href=\"/answers/upgrades/\">Will a new Glyph release break my build?</a>",
       "tr": "Detalhes em <a href=\"/answers/upgrades/\">Uma release nova do Glyph vai quebrar meu build?</a>"
+    },
+    {
+      "id": "h-02e84e8b",
+      "kind": "html",
+      "en": "What a Breaking release usually means",
+      "tr": "O que uma release Breaking costuma significar"
+    },
+    {
+      "id": "h-7a180765",
+      "kind": "html",
+      "en": "Usually that the compiler starts refusing a program that was already wrong. 0.1.159 refused <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> does not wait for its callback, so each save ran on its own and a failure in one was lost. 0.1.162 refused <code>array.find(xs, f) ?? 0</code>: an <code>Option</code> is never null, so the default never applied and the value was the <code>Option</code> itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in place, such as <code>xs.push(4)</code>, has to be written as a <code>mut</code> statement, so code that worked had to change its spelling (<code>glyph fix</code> inserts the <code>mut</code>).",
+      "tr": "Em geral, que o compilador passa a recusar um programa que já estava errado. A 0.1.159 recusou <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> não espera o callback, então cada save rodava por conta própria e uma falha em um deles se perdia. A 0.1.162 recusou <code>array.find(xs, f) ?? 0</code>: um <code>Option</code> nunca é null, então o valor padrão nunca se aplicava e o resultado era o próprio <code>Option</code>. Algumas apertam uma regra. Desde a 0.1.160, uma chamada que altera um array no lugar, como <code>xs.push(4)</code>, precisa ser escrita como uma instrução <code>mut</code>, então código que funcionava teve de mudar de grafia (<code>glyph fix</code> insere o <code>mut</code>)."
+    },
+    {
+      "id": "h-e4000ea7",
+      "kind": "html",
+      "en": "A release reaches your project only when you move the pin. If an upgrade refuses code you can't fix yet, stay on the version you had, since published versions are never yanked. The TypeScript your last build emitted compiles with <code>tsc</code> alone, so it stays usable whatever happens to the compiler.",
+      "tr": "Uma release só chega ao seu projeto quando você move a versão fixada. Se um upgrade recusar código que você ainda não pode corrigir, fique na versão que tinha, já que versões publicadas nunca são retiradas. O TypeScript que o seu último build emitiu compila só com <code>tsc</code>, então continua utilizável aconteça o que acontecer com o compilador."
     },
     {
       "id": "h-b04fdb5f",

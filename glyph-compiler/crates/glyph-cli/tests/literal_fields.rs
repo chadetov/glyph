@@ -313,3 +313,173 @@ fn a_key_reached_twice_is_reported_once() {
     one_e0210(&dir);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A `match` in a D57 position hands back one of its arms, so a key an arm
+/// writes is judged: an arm expression, the tail of an arm block, and a
+/// nested `match` (record 160, probe g02; `tsc` refuses each as TS2353).
+#[test]
+fn match_arms_in_a_declared_position_are_judged() {
+    let cases: &[(&str, &str)] = &[
+        (
+            "arm_expression",
+            "  let m: Opt = match argv.length > 0 {\n    true => { name: \"m\", extra: 8, },\n    false => { name: \"n\", },\n  }\n  io.println(m.name)\n",
+        ),
+        (
+            "arm_block_tail",
+            "  let m: Opt = match argv.length > 0 {\n    true => {\n      let n = \"m\"\n      { name: n, extra: 8, }\n    },\n    false => { name: \"n\", },\n  }\n  io.println(m.name)\n",
+        ),
+        (
+            "nested_match",
+            "  let m: Opt = match argv.length > 0 {\n    true => match argv.length > 1 {\n      true => { name: \"a\", extra: 8, },\n      false => { name: \"b\", },\n    },\n    false => { name: \"n\", },\n  }\n  io.println(m.name)\n",
+        ),
+    ];
+    for (name, body) in cases {
+        let dir = project(name, &[("main.glyph", &program(body))]);
+        let d = one_e0210(&dir);
+        assert!(
+            d["message"].as_str().unwrap_or_default().contains("type `Opt` has no field `extra`"),
+            "{name}: {d}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// A lambda with no written return type passed to `array.map` returns what
+/// its own body returns: D55 gives it parameter types only, the slot's `U`
+/// is bound from the lambda, and `tsc` accepts the extra key too. Pinned as
+/// accepted (record 160).
+#[test]
+fn a_map_lambda_tail_with_no_declared_return_is_not_judged() {
+    let source = "module main\n\nimport std/io\nimport std/array\n\ntype Opt = { name: string, nick?: string, }\n\npub fn main(argv: Array<string>) -> number {\n  let mapped = array.map([\"a\"], fn(x) { { name: x, extra: 9, } })\n  io.println(\"${array.len(mapped)}\")\n  return 0\n}\n";
+    let dir = project("map_tail", &[("main.glyph", source)]);
+    let (code, out) = check(&dir);
+    assert!(!out.contains("E0210"), "{out}");
+    assert_eq!(code, 0, "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The values at the positions D57 added are compared too (record 160, item
+/// 2): a `Some`, `Ok` or `Err` argument, a variant payload, a `mut` target's
+/// literal and a `match` arm, each refused where `tsc` refuses it (TS2322).
+/// A variant payload is a constructor argument, so it is E0211; the rest
+/// stand in a binding or a `return` and are E0204.
+#[test]
+fn values_at_the_added_positions_are_compared() {
+    let cases: &[(&str, &str, &str)] = &[
+        ("some_value", "  let f: Option<Opt> = Some({ name: 4, })\n  match f { Some(x) => io.println(x.name), None => io.println(\"n\"), }\n", "E0204"),
+        ("payload_value", "  let g = Loaded({ name: 3, })\n  match g { Loaded(x) => io.println(x.name), Loading => io.println(\"l\"), }\n", "E0211"),
+        ("mut_field_value", "  let o: Outer = { inner: { name: \"x\", }, }\n  mut o.inner = { name: 6, }\n  io.println(o.inner.name)\n", "E0204"),
+        ("mut_binding_value", "  let l: Local = { name: \"l\", }\n  mut l = { name: 7, }\n  io.println(l.name)\n", "E0204"),
+        ("arm_value", "  let m: Opt = match argv.length > 0 {\n    true => { name: 8, },\n    false => { name: \"n\", },\n  }\n  io.println(m.name)\n", "E0204"),
+        ("some_primitive", "  let s: Option<string> = Some(5)\n  match s { Some(x) => io.println(x), None => io.println(\"n\"), }\n", "E0204"),
+    ];
+    for (name, body, code) in cases {
+        let dir = project(name, &[("main.glyph", &program(body))]);
+        let (exit, out) = glyph(&dir, &["check", "--no-tsc", "--json", "src"]);
+        assert_eq!(exit, 1, "{name}: {out}");
+        let json: serde_json::Value = serde_json::from_str(&out).expect("check --json is JSON");
+        let errors: Vec<&serde_json::Value> = json["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|d| d["severity"] == "error")
+            .collect();
+        assert_eq!(errors.len(), 1, "{name}: one refusal, not two: {out}");
+        assert_eq!(errors[0]["code"], *code, "{name}: {out}");
+        assert_eq!(errors[0]["actual"], "number", "{name}: {out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+    for (name, f) in [
+        ("ok_value", "fn ret() -> Result<Opt, string> {\n  return Ok({ name: 2, })\n}\n"),
+        ("err_value", "fn ret() -> Result<number, Opt> {\n  return Err({ name: 2, })\n}\n"),
+    ] {
+        let source = format!("{DECLS}{f}");
+        let dir = project(name, &[("main.glyph", &source)]);
+        let (exit, out) = check(&dir);
+        assert_eq!(exit, 1, "{name}: {out}");
+        assert_eq!(out.matches("[E0204]").count(), 1, "{name}: {out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+/// Correct values at the same positions draw nothing, a generic payload is
+/// not compared against its unbound parameter, and a container the relation
+/// refuses as a whole is one refusal.
+#[test]
+fn correct_values_and_generic_payloads_are_accepted() {
+    let body = "\
+\x20 let f: Option<Opt> = Some({ name: \"x\", })\n\
+\x20 let g = Loaded({ name: \"y\", nick: \"n\", })\n\
+\x20 let q = Good(5)\n\
+\x20 let r: Res<number> = Good(6)\n\
+\x20 let o: Outer = { inner: { name: \"x\", }, }\n\
+\x20 mut o.inner = { name: \"z\", }\n\
+\x20 match f { Some(x) => io.println(x.name), None => io.println(\"n\"), }\n\
+\x20 match g { Loaded(x) => io.println(x.name), Loading => io.println(\"l\"), }\n\
+\x20 match q { Good(_) => io.println(\"g\"), Bad => io.println(\"b\"), }\n\
+\x20 match r { Good(x) => io.println(\"${x}\"), Bad => io.println(\"b\"), }\n\
+\x20 io.println(o.inner.name)\n";
+    let dir = project("values_ok", &[("main.glyph", &program(body))]);
+    let (code, out) = check(&dir);
+    assert!(!out.contains("Error"), "{out}");
+    assert_eq!(code, 0, "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Record 160, departure 3: the constructor judgment follows what the callee
+/// resolves to, never its spelling. A variant reached by each of the three
+/// spellings (declared here, imported by name, read through a namespace) is
+/// judged under a declared union; a local function that happens to be named
+/// like a variant of that union is not, and its own parameter decides.
+#[test]
+fn a_constructor_is_judged_by_what_its_name_resolves_to() {
+    let shapes = "module shapes\n\
+\n\
+pub type Opt = { name: string, nick?: string, }\n\
+pub type Load = Loading | Loaded(Opt)\n";
+    let cases: &[(&str, &str)] = &[
+        (
+            "declared_here",
+            "module main\n\ntype Opt = { name: string, }\ntype Load = Loading | Loaded(Opt)\n\npub fn f() -> Load {\n  let l: Load = Loaded({ name: \"a\", extra: 1, })\n  return l\n}\n",
+        ),
+        (
+            "imported_by_name",
+            "module main\n\nimport shapes { Load, Loaded }\n\npub fn f() -> Load {\n  let l: Load = Loaded({ name: \"a\", extra: 1, })\n  return l\n}\n",
+        ),
+        (
+            "through_a_namespace",
+            "module main\n\nimport shapes\n\npub fn f() -> shapes.Load {\n  let l: shapes.Load = shapes.Loaded({ name: \"a\", extra: 1, })\n  return l\n}\n",
+        ),
+    ];
+    for (name, main) in cases {
+        let dir = project(name, &[("shapes.glyph", shapes), ("main.glyph", main)]);
+        let d = one_e0210(&dir);
+        assert!(
+            d["message"].as_str().unwrap_or_default().contains("has no field `extra`"),
+            "{name}: {d}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    let lookalike = "module main\n\
+\n\
+import shapes { Load }\n\
+\n\
+fn Loaded(o: { name: string, extra: number, }) -> Load {\n\
+\x20 return pick(o.extra)\n\
+}\n\
+\n\
+fn pick(n: number) -> Load {\n\
+\x20 return pick(n)\n\
+}\n\
+\n\
+pub fn f() -> Load {\n\
+\x20 let l: Load = Loaded({ name: \"a\", extra: 1, })\n\
+\x20 return l\n\
+}\n";
+    let dir = project("lookalike", &[("shapes.glyph", shapes), ("main.glyph", lookalike)]);
+    let (code, out) = check(&dir);
+    assert!(!out.contains("E0210") && !out.contains("Error"), "{out}");
+    assert_eq!(code, 0, "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

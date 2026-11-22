@@ -526,9 +526,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `return`, a call argument (a variant payload such as `Loaded({ .. })` \
             included), `mut x = ..` and `mut x.f = ..`, a field of such a \
             literal, an element under a declared `Array`, the argument of `Some`, \
-            `Ok` or `Err` under a declared `Option` or `Result`, and what a \
-            lambda with no written return type returns where its position \
-            declares one. Fields that arrive through a `...spread` are not \
+            `Ok` or `Err` under a declared `Option` or `Result`, an arm of a \
+            `match` in one of these positions, and what a lambda with no \
+            written return type returns where its position declares one. At \
+            the `Some`, `Ok` and `Err` arguments, a variant payload, a `match` \
+            arm and a literal written to a `mut` target the values are compared \
+            too (E0204, or E0211 for a payload), as `tsc` compares them. Fields that arrive through a `...spread` are not \
             judged, nor is a binding that holds a wider record (`let l: Opt = \
             wide`), nor a declared `Record<K, V>`, `unknown` or type parameter. \
             Rename the key to the declared field, delete it, or declare it in \
@@ -2320,7 +2323,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`, or a key an object literal writes where a record type is declared (`let b: Opt = { name: \"b\", extra: 1 }`, D57), at a `let`, `const`, `return`, argument, variant payload, `mut`, nested field, array element, `Some`/`Ok`/`Err` argument or lambda return; fields from a spread and a declared `Record<K, V>`, `unknown` or type parameter are not judged. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`, or a key an object literal writes where a record type is declared (`let b: Opt = { name: \"b\", extra: 1 }`, D57), at a `let`, `const`, `return`, argument, variant payload, `mut`, nested field, array element, `Some`/`Ok`/`Err` argument, `match` arm or lambda return; fields from a spread and a declared `Record<K, V>`, `unknown` or type parameter are not judged. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

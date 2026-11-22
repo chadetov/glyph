@@ -381,6 +381,7 @@ pub fn assign_types_with_relations(
             narrowed_consts: HashMap::new(),
             lambda_contexts: HashMap::new(),
             judged_literal_keys: HashSet::new(),
+            judged_literal_values: HashSet::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -500,6 +501,7 @@ pub fn assignability(
         narrowed_consts: HashMap::new(),
         lambda_contexts: HashMap::new(),
         judged_literal_keys: HashSet::new(),
+        judged_literal_values: HashSet::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -565,6 +567,7 @@ pub fn declared_record_fields(
         narrowed_consts: HashMap::new(),
         lambda_contexts: HashMap::new(),
         judged_literal_keys: HashSet::new(),
+        judged_literal_values: HashSet::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1389,6 +1392,10 @@ struct Assigner<'a> {
     /// variant payload is judged at its constructor and again under a
     /// declared union), and one key draws one E0210.
     judged_literal_keys: HashSet<Span>,
+    /// The values the same walk compared at a boundary nothing else compares
+    /// (a `Some`/`Ok`/`Err` argument, a variant payload, a `match` arm, a
+    /// `mut` target's literal), by span, so each draws one refusal.
+    judged_literal_values: HashSet<Span>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1785,7 +1792,7 @@ impl Assigner<'_> {
                             span: r.span,
                         });
                     }
-                    self.judge_literal_fields(&c.value, &expected);
+                    self.judge_literal_fields(&c.value, &expected, false);
                 }
             }
         }
@@ -2313,7 +2320,7 @@ impl Assigner<'_> {
                             span: r.span,
                         });
                     }
-                    self.judge_literal_fields(&l.value, &ty);
+                    self.judge_literal_fields(&l.value, &ty, false);
                 }
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
@@ -2377,7 +2384,13 @@ impl Assigner<'_> {
                     // held to it (D57). An index target is typed `Unknown`
                     // and judges nothing.
                     let target_ty = self.tm.get(target.span()).clone();
-                    self.judge_literal_fields(value, &target_ty);
+                    // Nothing else compares a value written to a `mut`
+                    // target, so a written object or array literal has its
+                    // values compared here, as `tsc` compares them (TS2322).
+                    if matches!(value, Expr::Object { .. } | Expr::Array { .. }) {
+                        self.judge_boundary_value(value, &target_ty, false);
+                    }
+                    self.judge_literal_fields(value, &target_ty, false);
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
                     let outer = self.mut_call.replace(call.span());
@@ -3275,7 +3288,7 @@ impl Assigner<'_> {
                         // the callee's own type parameter is exempt (D57),
                         // whatever the call binds it to.
                         let declared = p.ty.clone();
-                        self.judge_literal_fields(a, &declared);
+                        self.judge_literal_fields(a, &declared, true);
                     }
                     let returned = match mentions_any_param(return_ty, &refused_params) {
                         true => Ty::Unknown,
@@ -3896,7 +3909,7 @@ impl Assigner<'_> {
             }
             if let Some(value) = written {
                 let declared = field.ty.clone();
-                self.judge_literal_fields(value, &declared);
+                self.judge_literal_fields(value, &declared, true);
             }
         }
         self.check_jsx_required_props(j, &props_ty, &shape);
@@ -5160,7 +5173,7 @@ impl Assigner<'_> {
                 span: r.span,
             });
         }
-        self.judge_literal_fields(value, &expected);
+        self.judge_literal_fields(value, &expected, false);
     }
 
     // ----- match coverage: the writes the dispatch makes as it goes -----
@@ -8180,7 +8193,16 @@ impl Assigner<'_> {
     /// subtyping, as in `tsc`). `Some({ .. })` under `Option<Opt>` is judged
     /// although `tsc` lets it through by inferring `T` from the literal: the
     /// field is just as dead.
-    fn judge_literal_fields(&mut self, value: &Expr, expected: &Ty) {
+    ///
+    /// The walk also compares *values* where nothing else does (G273's
+    /// review, record 160): the argument of `Some`, `Ok` or `Err`, a variant
+    /// payload, and a written arm of a `match` standing in the position. The
+    /// `let`, `const`, `return` and argument sites compare the value they hold
+    /// themselves, and a written object's or array's own fields and elements
+    /// are compared from there (`written_literal_refusal`), so the walk adds a
+    /// comparison only at those boundaries. `argument` says which code a
+    /// refusal carries: E0211 under a call argument, E0204 elsewhere.
+    fn judge_literal_fields(&mut self, value: &Expr, expected: &Ty, argument: bool) {
         let canonical = self.canonicalize_aliases(expected);
         match value {
             Expr::Object { fields, .. } => {
@@ -8202,7 +8224,7 @@ impl Assigner<'_> {
                     match shape.fields.iter().find(|d| d.name == *key) {
                         Some(declared) => {
                             let ty = declared.ty.clone();
-                            self.judge_literal_fields(value, &ty);
+                            self.judge_literal_fields(value, &ty, argument);
                         }
                         None => {
                             if !self.judged_literal_keys.insert(*key_span) {
@@ -8240,7 +8262,7 @@ impl Assigner<'_> {
                 };
                 for el in elements {
                     if let ArrayElem::Expr(e) = el {
-                        self.judge_literal_fields(e, &elem);
+                        self.judge_literal_fields(e, &elem, argument);
                     }
                 }
             }
@@ -8265,7 +8287,36 @@ impl Assigner<'_> {
                     None => None,
                 };
                 if let Some(payload) = payload {
-                    self.judge_literal_fields(arg, &payload);
+                    // A container the relation already refuses as a whole is
+                    // one refusal, not that one and another inside it.
+                    let whole = self.tm.get(value.span()).clone();
+                    if !self.assign_incompatible(&whole, expected) {
+                        self.judge_boundary_value(arg, &payload, argument);
+                    }
+                    self.judge_literal_fields(arg, &payload, argument);
+                }
+            }
+            // A `match` standing in the position hands back one of its arms,
+            // so each arm's value is written for the declared type: an arm
+            // expression, or the tail of an arm block, at any depth. A written
+            // literal arm also has its values compared, unless the relation
+            // already refused the joined type of the whole `match`.
+            Expr::Match { arms, span, .. } => {
+                let whole = self.tm.get(*span).clone();
+                let compare = !self.assign_incompatible(&whole, expected);
+                for arm in arms {
+                    let produced = match &arm.body {
+                        MatchArmBody::Expr(e) => Some(e),
+                        MatchArmBody::Block(b) => match b.stmts.last() {
+                            Some(Stmt::Expr(e)) => Some(e),
+                            _ => None,
+                        },
+                    };
+                    let Some(e) = produced else { continue };
+                    if compare && matches!(e, Expr::Object { .. } | Expr::Array { .. }) {
+                        self.judge_boundary_value(e, expected, argument);
+                    }
+                    self.judge_literal_fields(e, expected, argument);
                 }
             }
             // A lambda that writes no return type returns what the position's
@@ -8276,7 +8327,7 @@ impl Assigner<'_> {
             Expr::Lambda { return_ty: None, is_async: false, body, .. } => {
                 let Some(ret) = self.fn_return_of(expected) else { return };
                 for v in lambda_returned_values(body) {
-                    self.judge_literal_fields(v, &ret);
+                    self.judge_literal_fields(v, &ret, argument);
                 }
             }
             _ => {}
@@ -8297,6 +8348,63 @@ impl Assigner<'_> {
             };
         }
         None
+    }
+
+    /// Compare a value the walk reaches at a boundary nothing else compares
+    /// (see `judge_literal_fields`) with the type the position gives it, and
+    /// report a refusal under the position's code. Once per value, since a
+    /// variant payload is reached from its constructor and again under a
+    /// declared union. A type naming a type parameter is not compared: the
+    /// walk reads a generic payload or parameter before any binding, and
+    /// `T` is not the type the call gives it.
+    ///
+    /// Only a value written out at the boundary is compared: an object or
+    /// array literal, or a string, number or bool literal. A name, a call or
+    /// a member read there carries the type the checker recorded where it was
+    /// read, which does not follow an `is` arm's narrowing (`is Record<Mode,
+    /// number> => Some(r)` holds the narrowed `r`, and `tsc` accepts it), so
+    /// comparing one would refuse correct programs.
+    fn judge_boundary_value(&mut self, value: &Expr, expected: &Ty, argument: bool) {
+        let written = matches!(
+            value,
+            Expr::Object { .. }
+                | Expr::Array { .. }
+                | Expr::String { .. }
+                | Expr::TemplateString { .. }
+                | Expr::Number { .. }
+                | Expr::Bool { .. }
+        );
+        if !written || ty_has_param(expected) || !self.judged_literal_values.insert(value.span()) {
+            return;
+        }
+        let found = self.tm.get(value.span()).clone();
+        let Some(r) = self.value_refusal(value, &found, expected) else { return };
+        let accepted = self.accepted_values(&r.expected);
+        let expected = ty_display(&r.expected);
+        self.errors.push(if argument {
+            TypeError::ArgumentTypeMismatch {
+                expected,
+                found: r.found,
+                accepted,
+                missing_fields: r.missing_fields,
+                no_common_field: r.no_common_field,
+                children_between_tags: false,
+                sql_escape: false,
+                record_key: r.record_key,
+                kind_help: None,
+                span: r.span,
+            }
+        } else {
+            TypeError::TypeMismatch {
+                expected,
+                found: r.found,
+                accepted,
+                missing_fields: r.missing_fields,
+                no_common_field: r.no_common_field,
+                record_key: r.record_key,
+                span: r.span,
+            }
+        });
     }
 
     /// The prelude constructor `callee` names, when it is `Some`, `Ok` or
@@ -8358,7 +8466,8 @@ impl Assigner<'_> {
             return;
         }
         if let Some(payload) = self.constructor_payload(callee) {
-            self.judge_literal_fields(arg, &payload);
+            self.judge_boundary_value(arg, &payload, true);
+            self.judge_literal_fields(arg, &payload, true);
         }
     }
 
@@ -18228,6 +18337,7 @@ component View(props: { s: Status }) -> Component {
             narrowed_consts: HashMap::new(),
             lambda_contexts: HashMap::new(),
             judged_literal_keys: HashSet::new(),
+            judged_literal_values: HashSet::new(),
         };
         f(&assigner)
     }

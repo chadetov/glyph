@@ -484,16 +484,17 @@ pub fn f() -> Load {\n\
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// Record 160, item 3, against the fix driver's range guard (record 159,
-/// B1). Inside a `${}` a diagnostic's range can start one column early
-/// (G435), so a rename written there could land on the wrong bytes: before
-/// the guard, a literal key in a template's second interpolation was
-/// rewritten to `nickc`. Both renames E0210 drives decline inside a template
-/// now and leave the file as it was. Written against the behaviour before
-/// G435's span fix; when that lands these may apply correctly instead.
+/// Record 160, item 3. Inside a `${}` a diagnostic's range used to start one
+/// column early (G435, fixed in 0.1.164), and a rename written there landed
+/// on the wrong bytes: a literal key in a template's second interpolation
+/// became `nickc`. With exact spans, and the fix driver's guard reading a
+/// literal key by its text, every distance-one rename inside an
+/// interpolation applies at the right bytes and the file re-checks clean;
+/// a name with no distance-one match (`nikc`, a transposition) declines and
+/// leaves the file byte-identical.
 #[test]
-fn renames_inside_an_interpolation_decline() {
-    let literal = "module main\n\
+fn renames_inside_an_interpolation_apply_at_the_right_bytes() {
+    let decls = "module main\n\
 \n\
 import std/io\n\
 \n\
@@ -502,32 +503,80 @@ type Opt = { name: string, nick?: string }\n\
 fn take(o: Opt) -> string {\n\
 \x20 return o.name\n\
 }\n\
-\n\
-pub fn main(argv: Array<string>) -> number {\n\
+\n";
+    let literal = |second: &str| {
+        format!(
+            "{decls}pub fn main(argv: Array<string>) -> number {{\n\
 \x20 let n = \"a\"\n\
 \x20 let k = \"b\"\n\
-\x20 io.println(\"t=${take({ name: n, nickx: k })} end\")\n\
-\x20 io.println(\"u=${take({ name: n, xnick: k })} end\")\n\
-\x20 io.println(\"v=${take({ name: n, nicks: k })} w=${take({ name: n, nikc: k })}\")\n\
+\x20 io.println(\"t=${{take({{ name: n, nickx: k }})}} end\")\n\
+\x20 io.println(\"u=${{take({{ name: n, xnick: k }})}} end\")\n\
+\x20 io.println(\"v=${{take({{ name: n, nicks: k }})}} w=${{take({{ name: n, {second}: k }})}}\")\n\
 \x20 return 0\n\
-}\n";
-    let read = "module main\n\
+}}\n"
+        )
+    };
+    let read = |second: &str| {
+        format!(
+            "module main\n\
 \n\
 import std/io\n\
 \n\
-type B = { nick: string, name: string }\n\
+type B = {{ nick: string, name: string }}\n\
 \n\
-pub fn main(argv: Array<string>) -> number {\n\
-\x20 let b: B = { nick: \"a\", name: \"c\" }\n\
-\x20 io.println(\"v=${b.name} w=${b.nikc}\")\n\
+pub fn main(argv: Array<string>) -> number {{\n\
+\x20 let b: B = {{ nick: \"a\", name: \"c\" }}\n\
+\x20 io.println(\"v=${{b.name}} w=${{b.{second}}}\")\n\
 \x20 return 0\n\
-}\n";
-    for (name, source) in [("x02_literal_keys", literal), ("x03_field_read", read)] {
-        let dir = project(name, &[("main.glyph", source)]);
-        let (_, out) = glyph(&dir, &["fix", "src"]);
-        assert!(!out.contains("applied E0210"), "{name}: {out}");
-        assert!(out.contains("declined E0210"), "{name}: {out}");
-        assert_eq!(source_of(&dir), source, "{name}: the file is untouched");
-        let _ = std::fs::remove_dir_all(&dir);
-    }
+}}\n"
+        )
+    };
+
+    // x02 as written: three keys a character from `nick` are renamed in
+    // place, `nikc` is left and still refused.
+    let dir = project("x02", &[("main.glyph", &literal("nikc"))]);
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert_eq!(out.matches("applied E0210").count(), 3, "{out}");
+    assert!(out.contains("declined E0210") && out.contains("`nikc`"), "{out}");
+    let after = source_of(&dir);
+    assert_eq!(
+        after,
+        literal("nikc")
+            .replace("nickx: k", "nick: k")
+            .replace("xnick: k", "nick: k")
+            .replace("nicks: k", "nick: k"),
+        "only the three keys change"
+    );
+    let (code, out) = check(&dir);
+    assert_eq!(code, 1, "{out}");
+    assert_eq!(out.matches("[E0210]").count(), 1, "only `nikc` is left: {out}");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    // The same with a distance-one key in the second interpolation: all four
+    // apply and the file checks clean.
+    let dir = project("x02_clean", &[("main.glyph", &literal("nik"))]);
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert_eq!(out.matches("applied E0210").count(), 4, "{out}");
+    let after = source_of(&dir);
+    assert!(after.contains("w=${take({ name: n, nick: k })}"), "{after}");
+    let (code, out) = check(&dir);
+    assert_eq!(code, 0, "{out}\n{after}");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    // x03 as written: `nikc` has no distance-one match, so the read rename
+    // declines and the file is untouched.
+    let dir = project("x03", &[("main.glyph", &read("nikc"))]);
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert!(!out.contains("applied E0210") && out.contains("declined E0210"), "{out}");
+    assert_eq!(source_of(&dir), read("nikc"), "the file is untouched");
+    let _ = std::fs::remove_dir_all(&dir);
+
+    // A distance-one read in the second interpolation is renamed in place.
+    let dir = project("x03_clean", &[("main.glyph", &read("nik"))]);
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert!(out.contains("applied E0210"), "{out}");
+    assert_eq!(source_of(&dir), read("nick"));
+    let (code, out) = check(&dir);
+    assert_eq!(code, 0, "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
 }

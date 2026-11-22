@@ -331,6 +331,29 @@ pub struct StdlibExport {
     /// `unknown`, so a reader is never handed a `?` with nothing said about it.
     /// `None` for a complete signature and for an export with none at all.
     pub signature_partial: Option<String>,
+    /// For a type whose members the checker models (`set.Set`, `sqlite.Db`,
+    /// `fs.FsError`), the member table it checks a member access against, each
+    /// rendered by `display_ty`. `None` for every other export. The table is
+    /// what `check_stdlib_signatures.py` holds against the runtime's own type,
+    /// so a member on one side only fails CI (G423).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub members: Option<StdlibMembers>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StdlibMembers {
+    /// The type's own parameters, in declaration order (`["T"]` for
+    /// `set.Set<T>`), over which each member is written.
+    pub type_params: Vec<String>,
+    pub members: Vec<StdlibMember>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct StdlibMember {
+    pub name: String,
+    /// The member's type. A `?` in it is a position the table holds no type
+    /// for, as in an export's signature.
+    pub signature: String,
 }
 
 /// The three coverage counts and the export total, for the test that pins
@@ -423,15 +446,30 @@ fn stdlib() -> Stdlib {
                     )
                 }
             };
+            let kind = match is_stdlib_type_only(path, &name) {
+                true => "type",
+                false => "value",
+            };
+            let members = (kind == "type")
+                .then(|| glyph_typechecker::stdlib::stdlib_type_member_table(&built, path, &name))
+                .flatten()
+                .map(|(params, fields)| StdlibMembers {
+                    type_params: params.iter().map(|p| p.to_string()).collect(),
+                    members: fields
+                        .into_iter()
+                        .map(|f| StdlibMember {
+                            name: f.name.to_string(),
+                            signature: display_ty(&f.ty),
+                        })
+                        .collect(),
+                });
             out.push(StdlibExport {
-                kind: match is_stdlib_type_only(path, &name) {
-                    true => "type",
-                    false => "value",
-                },
+                kind,
                 name,
                 signature,
                 signature_absent: absent,
                 signature_partial: partial,
+                members,
             });
         }
         by_path.insert(path.to_string(), out);

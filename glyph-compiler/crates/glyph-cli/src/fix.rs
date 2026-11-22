@@ -805,6 +805,11 @@ type Edit = (u32, u32, String);
 
 /// Why a rewrite declines when the source at its node's range no longer
 /// parses to that node (record 159, B1).
+/// Why every rule declines a range after an escape inside the `${}` of a
+/// `"..."` string (record 168, G441).
+const ESCAPE_DRIFT: &str = "the range sits after an escape inside the `${}` of a string, where Glyph \
+     cannot yet place it exactly (G441), so no rewrite there is safe; the help names the change";
+
 const NODE_DRIFT: &str = "the diagnostic's range does not hold the expression the rewrite was planned \
      against, so writing it would splice into the wrong text; the help names the change";
 
@@ -910,6 +915,15 @@ impl SpanIndex {
     /// is that node; otherwise why the rule declines.
     fn holds(&self, source: &str, d: &Diagnostic) -> Result<(), String> {
         let (s, e) = (d.range.start.offset, d.range.end.offset);
+        // First, and for every rule: a range after an escape inside the
+        // `${}` of a `"..."` string is not trusted at all (record 168). Each
+        // such escape still moves later ranges one byte (G441), and two
+        // identical pieces of text can sit exactly that far apart, so no
+        // comparison of text or structure can vouch for the range. Decided
+        // from the lexer's own escape positions.
+        if self.follows_interpolation_escape(source, s, e) {
+            return Err(ESCAPE_DRIFT.to_string());
+        }
         let at: Vec<&(u32, u32, String, String)> = self.nodes.iter().filter(|n| n.0 == s && n.1 == e).collect();
         if at.is_empty() {
             return Err(NODE_DRIFT.to_string());
@@ -952,6 +966,66 @@ impl SpanIndex {
 }
 
 impl SpanIndex {
+    /// Whether `s..e` lies in a `${}` of a `"..."` string literal that holds
+    /// an escape before the range could start. The escapes are the lexer's
+    /// own (`string_char_spans`): a character of the string's value whose
+    /// source begins with a backslash. A range there may sit up to one byte
+    /// early per escape, so the test allows that much: an escape counts when
+    /// it starts before the range's end plus the number of escapes in that
+    /// interpolation. Braces and quotes are tracked in the decoded value, so
+    /// a `}` inside a nested string does not end the interpolation early;
+    /// any doubt widens the region, which only declines more.
+    fn follows_interpolation_escape(&self, source: &str, s: u32, e: u32) -> bool {
+        for t in self.nodes.iter().filter(|n| n.2 == "TemplateString" && n.0 <= s && e <= n.1) {
+            let Some(spans) = glyph_lexer::string_char_spans(source, t.0 as usize) else {
+                continue;
+            };
+            let bytes = source.as_bytes();
+            let text = |i: usize| -> u8 {
+                let (a, b) = spans[i];
+                if b - a == 1 { bytes[a as usize] } else { 0 }
+            };
+            let is_escape = |i: usize| bytes.get(spans[i].0 as usize) == Some(&b'\\');
+            let mut i = 0;
+            while i < spans.len() {
+                if text(i) == b'$' && i + 1 < spans.len() && text(i + 1) == b'{' {
+                    // One interpolation: from its `${` to the matching `}`.
+                    let open = spans[i].0;
+                    let mut depth = 0u32;
+                    let mut in_str = false;
+                    let mut escapes: Vec<u32> = Vec::new();
+                    let mut j = i + 1;
+                    let mut close = t.1;
+                    while j < spans.len() {
+                        if is_escape(j) {
+                            escapes.push(spans[j].0);
+                            if text(j) == 0 && source[spans[j].0 as usize..spans[j].1 as usize] == *"\\\"" {
+                                in_str = !in_str;
+                            }
+                        } else if !in_str && text(j) == b'{' {
+                            depth += 1;
+                        } else if !in_str && text(j) == b'}' {
+                            depth -= 1;
+                            if depth == 0 {
+                                close = spans[j].1;
+                                break;
+                            }
+                        }
+                        j += 1;
+                    }
+                    let drift = escapes.len() as u32;
+                    if open <= s && e <= close + drift && escapes.iter().any(|&x| x < e + drift) {
+                        return true;
+                    }
+                    i = j + 1;
+                    continue;
+                }
+                i += 1;
+            }
+        }
+        false
+    }
+
     /// `Ok` when the key range `s..e` is a key of the innermost object
     /// literal containing it, and that object's own span re-parses to it.
     fn key_anchored(&self, source: &str, s: u32, e: u32) -> Result<(), String> {

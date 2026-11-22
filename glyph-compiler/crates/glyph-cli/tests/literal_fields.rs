@@ -620,3 +620,66 @@ pub fn main(argv: Array<string>) -> number {\n\
     assert_eq!(source_of(&dir), source, "the file is untouched");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Record 168. Identical object literals at exactly the distance escapes
+/// move a range (G441) pass any check of text or structure: in d05 the
+/// second literal's key range lands on the first, whose `nik` is a correct
+/// key of `Other`, and the rename moved that value to another field. Every
+/// rule now declines a range after an escape inside the `${}` of a `"..."`
+/// string, decided from the lexer's own escape positions, with the anchor
+/// kept as a second line. d04 (both literals of one type) and d05 decline
+/// and leave the file byte-identical.
+#[test]
+fn every_rule_declines_after_an_escape_inside_an_interpolation() {
+    for (name, source) in [("d04", D04), ("d05", D05)] {
+        let dir = project(name, &[("main.glyph", source)]);
+        let (code, out) = check(&dir);
+        assert_eq!(code, 1, "{name}: {out}");
+        let (_, out) = glyph(&dir, &["fix", "src"]);
+        assert!(!out.contains("applied"), "{name}: {out}");
+        assert!(out.contains("after an escape inside the `${}`"), "{name}: {out}");
+        assert_eq!(source_of(&dir), source, "{name}: the file is untouched");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+const D04: &str = r##"module main
+
+import std/io
+
+type Opt = { name: string, nick?: string }
+
+fn f(s: string) -> string {
+  return s
+}
+fn two(a: string, o: Opt, p: Opt) -> string {
+  return o.name
+}
+
+fn main(argv: Array<string>) -> number {
+  let k = "w"
+  io.println("r=${two(f(\"\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\"), { name: k, nik: k }, { name: k, nik: k })}")
+  return 0
+}
+"##;
+
+const D05: &str = r##"module main
+
+import std/io
+
+type Opt = { name: string, nick?: string }
+type Other = { name: string, nik?: string, nick?: string }
+
+fn f(s: string) -> string {
+  return s
+}
+fn two(a: string, o: Other, p: Opt) -> string {
+  return o.name
+}
+
+fn main(argv: Array<string>) -> number {
+  let k = "w"
+  io.println("r=${two(f(\"\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\"), { name: k, nik: k }, { name: k, nik: k })}")
+  return 0
+}
+"##;

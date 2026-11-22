@@ -12076,6 +12076,13 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the release build): unchanged; `fn g<T>(x: Array<T>) -> Array<string> { return x }` and an `Array<T>` placed in a `Record<string, Array<string>>` field are `no diagnostics` under `--no-tsc` and ``[TS2322] Error: tsc: Type 'T[]' is not assignable to type 'string[]'.`` under full `check`; record 157's e02 is still ``expected `Record<string, string>`, found `One<?>` ``.*
 
+  Step 1 has more rows to give the callee as owner than record 88 listed.
+  0.1.163 (G423, step 1) added `set.create`, `set.unique`, `store.create` and
+  `collections.deque`, each generic in `T` with `ParamOwner::Unresolved`, and
+  the member tables of `set.Set<T>`, `store.Store<T>` and
+  `collections.Deque<T>` in `stdlib.rs`, whose `T` is the type's own
+  parameter (decision record 157, section 4).
+
 - **G315. A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
@@ -14574,6 +14581,25 @@ and is the owner's to confirm.
   diagnostics. On the 0.1.160 branch build, `seen.add("a")` and
   `mut seen.add("a")` on a `set.create<string>()` are both accepted, pinned by
   `a_stdlib_set_receiver_is_not_judged_until_g423`.*
+
+  Step 1 landed on the 0.1.163 branch (decision record 157, section 2a): the
+  checker types `set.Set<T>`, `store.Store<T>` and `collections.Deque<T>`,
+  their four constructors and their member tables, so both `let` annotations
+  above are E0204, `seen.add(5)` is E0211 and `seen.nope()` is E0210. The
+  claim this entry makes still holds in full until step 2 (0.1.164) marks the
+  writing members: no member is classified as changing its receiver yet, and
+  the pin above still passes. Two things step 2 has to know. An unannotated
+  `const` is `Unknown` by a standing lowering rule, so `const HITS =
+  store.create(0)` reads nothing off `HITS`; most of the ~50 corpus sites
+  (auth_api's `repo.glyph` and `clock.glyph`, csvql's `cursor` and `tokens`,
+  resilient's three counters) are declared that way, and marking the members
+  will not reach them while the rule stands. The local and parameter sites
+  (workflow, linkcheck, depsolve, resilient's client) are typed now.
+
+  *Reproduced against 0.1.161 (the published release) with record 157's probe
+  b01: `check --no-tsc` exits 0 with only an E0107 warning; the 0.1.163 branch
+  build exits 1 with three E0204, one E0211 and one E0210. `seen.add("a")`
+  and `mut seen.add("a")` are still accepted there.*
 
 - **G424. A function declared non-`void` whose body ends in a `mut`
   statement passes Glyph's checker.** `fn f(ys: Array<number>) -> number {

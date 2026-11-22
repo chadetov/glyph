@@ -1287,8 +1287,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Not judged: a receiver the checker cannot type (an npm value, an \
             `extern_ts` result, a lambda parameter with no annotation whose \
             position gives no type), and the standard library's `Set`, \
-            `Store` and `Deque`, whose receivers Glyph's checker does not \
-            type yet (G423). `tsc` accepts every one of these programs.",
+            `Store` and `Deque`, which Glyph's checker types but whose writes \
+            it does not judge yet (G423). `tsc` accepts every one of these \
+            programs.",
 
         "E0241" => "E0241: `mut` on a call that changes nothing\n\n\
             `mut` marks a change (D5). Before a call Glyph knows changes \

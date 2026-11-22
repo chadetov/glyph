@@ -326,8 +326,9 @@ fn the_writes_that_stay_accepted() {
     );
 }
 
-/// The stdlib `Set` is not typed by Glyph's checker yet (G423), so a write
-/// to one is judged in neither direction until that gap closes.
+/// The stdlib `Set` is typed by Glyph's checker since 0.1.163 (G423, step 1),
+/// but which of its members change it is not classified until step 2, so a
+/// write to one is judged in neither direction until then.
 #[test]
 fn a_stdlib_set_receiver_is_not_judged_until_g423() {
     for line in ["  mut seen.add(\"a\")", "  seen.add(\"b\")"] {

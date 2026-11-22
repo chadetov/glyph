@@ -3077,8 +3077,21 @@ impl Assigner<'_> {
                         });
                     }
                     let mut subst: HashMap<Ident, Ty> = HashMap::new();
+                    // A row whose `T` sits inside its result (`store.create`
+                    // returns a `Store<T>`) binds a fresh literal argument's
+                    // widened type, which is TypeScript's inference for the
+                    // same call: `store.create("a")` holds a `string`, and a
+                    // later `s.set("b")` is not a mismatch.
+                    let widens = self
+                        .stdlib_callee(callee)
+                        .is_some_and(|(key, field)| crate::stdlib::widens_literal_bindings(&key, &field));
                     for (p, a) in params.iter().zip(args.iter()) {
-                        collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
+                        let found = self.tm.get(a.span()).clone();
+                        let found = match widens {
+                            true => self.widen_fresh_literals(a, found),
+                            false => found,
+                        };
+                        collect_type_param_bindings(&p.ty, &found, &mut subst);
                     }
                     // A stdlib parameter a type argument can name
                     // (`json.parse`'s `T`, G289; `json.parse_with`'s, G298) is
@@ -4875,10 +4888,6 @@ impl Assigner<'_> {
 
     fn stdlib_result_ty(&self, ok: Ty, err: Ty) -> Option<Ty> {
         crate::stdlib::result_ty(self.lowerer.prelude, ok, err)
-    }
-
-    fn stdlib_option_ty(&self, inner: Ty) -> Option<Ty> {
-        crate::stdlib::option_ty(self.lowerer.prelude, inner)
     }
 
     #[allow(dead_code)]
@@ -7275,11 +7284,18 @@ impl Assigner<'_> {
             // Dispatch on the base so a generic sibling record
             // (`type Box<T> = { value: T }` used as `Box<string>`) substitutes
             // its arguments the same way a local one does.
+            //
+            // A generic stdlib type (`set.Set<string>`, G423) is read off its
+            // table with the argument in place, first for the reason the
+            // `Named` arm reads the table first.
             Ty::App { base, args } => match base.as_ref() {
                 Ty::Imported { module, name } => {
                     self.imported_record_shape(module.as_str(), name, args)
                 }
-                _ => self.named_record_shape(base, args),
+                _ => match stdlib_type_fields(self, ty) {
+                    Some(fields) => Some(undeclared(fields)),
+                    None => self.named_record_shape(base, args),
+                },
             },
             _ => None,
         }
@@ -8535,8 +8551,14 @@ impl Assigner<'_> {
         // how much of assignability should become decidable is a separate
         // decision, and answering it wrongly rejects correct programs, which
         // costs more than the silence did.
+        //
+        // A generic stdlib state holder (`set.Set<T>`, `store.Store<T>`,
+        // `collections.Deque<T>`, G423) is an object of methods, so it is
+        // decided here the same way, in both directions.
         if let Ty::Prim(p) = expected {
-            if is_concrete_scalar(*p) && self.is_declared_union_or_record(found) {
+            if is_concrete_scalar(*p)
+                && (self.is_declared_union_or_record(found) || is_generic_stdlib_type(found))
+            {
                 return true;
             }
         }
@@ -8554,6 +8576,9 @@ impl Assigner<'_> {
         // accepts. The exclusion is one-directional: `{}` is not a `string`
         // under tsc either, so the arm above keeps firing on the empty record.
         if let Ty::Prim(p) = found {
+            if is_concrete_scalar(*p) && is_generic_stdlib_type(expected) {
+                return true;
+            }
             if is_concrete_scalar(*p) {
                 if let Some(body) = self.declared_union_or_record_body(expected) {
                     let empty_record = matches!(body, TypeExpr::Record { fields, .. } if fields.is_empty());
@@ -10089,8 +10114,20 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("taint", "Trusted")
             | ("taint", "Tainted")
             | ("decimal", "Decimal")
+            | ("set", "Set")
+            | ("store", "Store")
+            | ("collections", "Deque")
     )
     .then(|| stdlib_named(module, name))
+}
+
+/// Whether `ty` is one of the generic stdlib types whose members the checker
+/// models (`set.Set<T>`, `store.Store<T>`, `collections.Deque<T>`, G423),
+/// applied or bare. Each is an object of methods at run time, never a
+/// `string`, a `number` or a `bool`.
+fn is_generic_stdlib_type(ty: &Ty) -> bool {
+    stdlib_type_path(split_type_app(ty).0)
+        .is_some_and(|(m, n)| !crate::stdlib::stdlib_type_params(m, n).is_empty())
 }
 
 /// Whether `ty` is `taint.Trusted<T>` or `taint.Tainted<T>`, the branded
@@ -10106,7 +10143,7 @@ fn is_taint_wrapper(ty: &Ty) -> bool {
 /// "FsError")`), or `None` for anything that is not one. Keys the three tables
 /// below off the `path` rather than the symbol, because `stdlib_named` gives
 /// every stdlib type the same `u32::MAX` sentinel.
-fn stdlib_type_path(ty: &Ty) -> Option<(&str, &str)> {
+pub(crate) fn stdlib_type_path(ty: &Ty) -> Option<(&str, &str)> {
     let Ty::Named { symbol, path } = ty else {
         return None;
     };
@@ -10116,187 +10153,10 @@ fn stdlib_type_path(ty: &Ty) -> Option<(&str, &str)> {
     Some((path[0].as_ref(), path[1].as_ref()))
 }
 
-/// The field set of a stdlib named type, read off the TypeScript the runtime
-/// ships. Without it a value of a stdlib type is an opaque blob: `e.kind` on an
-/// `fs.FsError` typed `Unknown`, so the `match` over it had an undecidable
-/// scrutinee and needed an `else` arm to be safe.
-///
-/// A field here that `runtime/std/fs.ts` does not declare would be a signature
-/// for a member that is not there, so the two are kept in step by hand — the
-/// same contract `descriptor_member_ty` keeps with the emitter.
+/// The member table of a stdlib type the checker models, read from
+/// `crate::stdlib::stdlib_type_members`, which is where the table lives.
 fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
-    let fields: Vec<(&str, Ty)> = match stdlib_type_path(ty)? {
-        ("fs", "FsError") => vec![
-            ("kind", stdlib_named("fs", "ErrorKind")),
-            ("message", Ty::Prim(Primitive::String)),
-        ],
-        ("fs", "FileInfo") => vec![
-            ("is_dir", Ty::Prim(Primitive::Bool)),
-            ("is_file", Ty::Prim(Primitive::Bool)),
-            ("size", Ty::Prim(Primitive::Number)),
-            ("modified", Ty::Prim(Primitive::Number)),
-        ],
-        // `index` is a position in the rejected input, so a decode failure can
-        // be reported against the source rather than as "somewhere in here".
-        // There is no `kind`: every failure in this module is one shape of the
-        // same thing, and a one-variant union would be a match with one arm.
-        ("url", "Url") => vec![
-            ("scheme", Ty::Prim(Primitive::String)),
-            ("host", Ty::Prim(Primitive::String)),
-            ("port", a.stdlib_option_ty(Ty::Prim(Primitive::Number))?),
-            ("path", Ty::Prim(Primitive::String)),
-            ("query", Ty::Prim(Primitive::String)),
-            ("fragment", a.stdlib_option_ty(Ty::Prim(Primitive::String))?),
-        ],
-        ("url", "Param") => vec![
-            ("key", Ty::Prim(Primitive::String)),
-            ("value", Ty::Prim(Primitive::String)),
-        ],
-        // `kind` is a string-literal union, so a `match` over it is exhaustive
-        // under D30 with no catch-all: three named reasons that lead to three
-        // different decisions, and `other` keeps the raw errno reachable.
-        // The field's type is `ServerErrorKind` by name, so a mismatch on it
-        // says `ServerErrorKind` and the literals come from the one table the
-        // runtime is checked against (G294).
-        ("net", "ServerError") => vec![
-            (
-                "kind",
-                Ty::Imported {
-                    module: "std/net".into(),
-                    name: Ident::from("ServerErrorKind"),
-                },
-            ),
-            ("message", Ty::Prim(Primitive::String)),
-            ("code", Ty::Prim(Primitive::String)),
-        ],
-        // A live page element, the host's `HTMLElement` in the TypeScript.
-        // Opaque on purpose: an empty field set makes every member read E0210,
-        // so the only things a program does with one are hand it to a library
-        // (`createRoot`) or back to `std/dom`. React owns the DOM it renders,
-        // and a write underneath it is a bug.
-        ("dom", "Element") => Vec::new(),
-        // G387, D52. A database handle's methods, read off
-        // `runtime/std/sqlite.ts`. Each `sql` is a `sqlite.Sql`, which is what
-        // holds a query's text to a constant (E0239); the parameter array
-        // stays unjudged, as it was, and a row stays `unknown` until it is
-        // validated into a record.
-        ("sqlite", "Db") => {
-            let sql = || FnParam {
-                name: Some(Ident::from("sql")),
-                owned: false,
-                ty: stdlib_named("sqlite", "Sql"),
-                optional: false,
-            };
-            let params = || FnParam {
-                name: Some(Ident::from("params")),
-                owned: false,
-                ty: Ty::Unknown,
-                optional: false,
-            };
-            let method = |params: Vec<FnParam>, ret: Ty| Ty::Fn {
-                params,
-                return_ty: Arc::new(ret),
-                is_async: false,
-                type_params: None,
-            };
-            let number = || Ty::Prim(Primitive::Number);
-            let void = || Ty::Prim(Primitive::Void);
-            vec![
-                ("exec", method(vec![sql()], void())),
-                ("run", method(vec![sql(), params()], number())),
-                ("last_insert_id", method(Vec::new(), number())),
-                ("query", method(vec![sql(), params()], a.array_ty(Ty::Unknown))),
-                (
-                    "query_one",
-                    method(vec![sql(), params()], a.stdlib_option_ty(Ty::Unknown)?),
-                ),
-                ("close", method(Vec::new(), void())),
-            ]
-        }
-        // `kind` is a string-literal union for the reason `ServerError`'s is:
-        // a full store and a refused one lead to different decisions, and a
-        // `match` over the two is exhaustive with no catch-all.
-        ("storage", "StorageError") => vec![
-            (
-                "kind",
-                Ty::StringLiteralUnion(vec!["quota".to_string(), "unavailable".to_string()]),
-            ),
-            ("message", Ty::Prim(Primitive::String)),
-        ],
-        ("dns", "MailHost") => vec![
-            ("priority", Ty::Prim(Primitive::Number)),
-            ("host", Ty::Prim(Primitive::String)),
-        ],
-        ("bytes", "BytesError") => vec![
-            ("message", Ty::Prim(Primitive::String)),
-            ("index", Ty::Prim(Primitive::Number)),
-        ],
-        // A `Decimal` is an object of methods (`runtime/std/decimal.ts`):
-        // Glyph has no operator overloading, so `price.add(tax)` is how it
-        // computes. Each member is its method's signature, so a call is
-        // checked and `d.to_string()` is a `string`.
-        ("decimal", "Decimal") => {
-            let d = || stdlib_named("decimal", "Decimal");
-            let n = || Ty::Prim(Primitive::Number);
-            let method = |params: Vec<Ty>, ret: Ty| Ty::Fn {
-                params: params
-                    .into_iter()
-                    .map(|ty| FnParam {
-                        name: None,
-                        owned: false,
-                        ty,
-                        optional: false,
-                    })
-                    .collect(),
-                return_ty: Arc::new(ret),
-                is_async: false,
-                type_params: Some(Vec::new()),
-            };
-            vec![
-                ("add", method(vec![d()], d())),
-                ("sub", method(vec![d()], d())),
-                ("mul", method(vec![d()], d())),
-                ("div", method(vec![d(), n()], d())),
-                ("round", method(vec![n()], d())),
-                ("neg", method(vec![], d())),
-                ("abs", method(vec![], d())),
-                ("cmp", method(vec![d()], n())),
-                ("eq", method(vec![d()], Ty::Prim(Primitive::Bool))),
-                ("is_zero", method(vec![], Ty::Prim(Primitive::Bool))),
-                ("is_negative", method(vec![], Ty::Prim(Primitive::Bool))),
-                ("scale", method(vec![], n())),
-                ("to_string", method(vec![], Ty::Prim(Primitive::String))),
-                ("to_number", method(vec![], n())),
-            ]
-        }
-        // `kind` is a string-literal union rather than a tagged one, so it
-        // needs no variant table: D30 exhaustiveness reads the members off
-        // `HttpErrorKind`'s entry in `BUILTIN_STRING_LITERAL_UNIONS`. Without this a caller matching `e.kind` gets E0218
-        // ("a string match can never be exhaustive") and is told to add a
-        // catch-all, which is advice to switch the check off.
-        ("http", "HttpError") => vec![
-            ("status", Ty::Prim(Primitive::Number)),
-            ("message", Ty::Prim(Primitive::String)),
-            (
-                "kind",
-                Ty::Imported {
-                    module: "std/http".into(),
-                    name: Ident::from("HttpErrorKind"),
-                },
-            ),
-        ],
-        _ => return None,
-    };
-    Some(
-        fields
-            .into_iter()
-            .map(|(name, ty)| RecordField {
-                name: Ident::from(name),
-                ty,
-                optional: false,
-            })
-            .collect(),
-    )
+    crate::stdlib::stdlib_type_members(a.lowerer.prelude, ty)
 }
 
 /// The variant set of a stdlib tagged union, in declaration order so the E0200

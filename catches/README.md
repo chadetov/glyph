@@ -11,9 +11,9 @@ The cases are also the source for the "mistakes TypeScript lets through" page.
 A case with a `section` is on that page, so the page cannot claim something the
 compiler stopped doing.
 
-There are 53 cases. By pillar, 45 are evidence for verifiability, 3 for
+There are 54 cases. By pillar, 46 are evidence for verifiability, 3 for
 greppability and 5 for abstraction. None is evidence for diff stability, and the
-check prints that zero rather than leaving it off. By kind, 33 are refused, 3
+check prints that zero rather than leaving it off. By kind, 34 are refused, 3
 warned, 10 checked at the boundary, 2 stopped at run time, and 5 are gaps Glyph
 does not catch yet. The check prints these counts on every run.
 
@@ -276,6 +276,12 @@ It is a `refused` case now, with `E0242`, and off the page:
 nothing matches, with the help to call `array.find`, which returns an
 `Option<User>`, where the TypeScript throws `Cannot read properties of
 undefined (reading 'name')`.
+
+`default-that-never-applies` is a `refused` case off the page, added with
+G429 in 0.1.162: `array.find(...) ?? 3000` is refused with `E0236`, because an
+`Option` is never null or undefined and the default never applies. The help
+writes the `match` that gives the value or `3000`. The TypeScript half uses the
+same tagged shape Glyph emits, and it prints `listening on [object Object]`.
 
 ## Adding one
 

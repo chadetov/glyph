@@ -1,0 +1,6 @@
+code = "E0236"
+pillar = "verifiability"
+title = "A default that never applies to an Option"
+kind = "refused"
+ts_output = "listening on [object Object]"
+fullconfig = "lint:no-unnecessary-condition"

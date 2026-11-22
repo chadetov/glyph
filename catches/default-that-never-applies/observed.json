@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "listening on [object Object]"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0236] Error: typecheck: `??` on an `Option<number>`: an `Option` is never null or undefined, so `?? 3000` never applies and the value is the `Option` itself\nHelp: Open it with `match array.find(...) { Some(n) => n, None => 3000 }`. If the absence is a JSON `null` from the wire, declare the type `Nullable<number>` (D45)."
+  }
+}

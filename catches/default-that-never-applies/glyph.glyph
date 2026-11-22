@@ -1,0 +1,13 @@
+module main
+
+import std/array
+import std/string
+
+fn main(argv: Array<string>) -> number {
+  let ports = [80, 8080]
+  // show
+  let port = array.find(ports, fn(p: number) -> bool { return p > 9000 }) ?? 3000
+  // end show
+  print("listening on " + string.from(port))
+  return 0
+}

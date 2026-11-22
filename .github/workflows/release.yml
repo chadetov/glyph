@@ -331,7 +331,7 @@ jobs:
             runnable: true
     steps:
       - name: Download this platform's staged package
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: platform-${{ matrix.key }}
           path: staged
@@ -430,7 +430,7 @@ jobs:
       # Restore each platform package's staged binary over the (binary-less)
       # checked-in package directories.
       - name: Download staged platform packages
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: staged
 
@@ -714,7 +714,7 @@ jobs:
       TAG: ${{ github.ref_name }}
     steps:
       - name: Download the staged platform binaries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: staged
 

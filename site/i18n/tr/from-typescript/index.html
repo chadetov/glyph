@@ -1,7 +1,7 @@
 ---
 title: TypeScript'ten geliyorsanız · Glyph'te neler değişiyor · Glyph
 description: Glyph neredeyse TypeScript gibi okunur ve ona derlenir. Değişenler: birkaç sözdizimi farkı, any, as ya da ! yok, grep'lenebilen tek bir kaçış yolu ve npm'in nasıl çalıştığı.
-source_hash: e2d355cb18462c09
+source_hash: 7953c266df09fb67
 next_steps: |
   Buradan sonra nereye
   Önerilen | /catches/ | catches | TypeScript'in neleri geçirdiğini görün | Her vaka <code>tsc --strict</code> altında ve Glyph altında, hatasıyla birlikte çalıştırıldı. | Yakaladıklarını görün
@@ -25,7 +25,7 @@ next_steps: |
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Kapsamı tam bir <code>switch</code>: bir union üzerinde, derleyici her durumu ele almanızı zorunlu kılar. Aynı zamanda tek koşul yapısıdır: <code>if</code>/<code>else</code> ve ternary yoktur, <a href="#there-is-no-if">aşağıda açıklanıyor</a>.</dd>
+          <dd>Kapsamı tam bir <code>switch</code>: bir union üzerinde, derleyici her durumu ele almanızı zorunlu kılar. Deyimlerde ve ifadelerde aynı zamanda tek koşul yapısıdır: <code>if</code>/<code>else</code> ve ternary yoktur, <a href="#there-is-no-if-statement">aşağıda açıklanıyor</a>. JSX'te <code>&lt;if&gt;</code> ve <code>&lt;match&gt;</code> öğeleri vardır.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -44,7 +44,7 @@ next_steps: |
       <div class="detail">
         <h2 class="block-label">İkisinde de bir React bileşeni</h2>
         <p>
-          Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph <code>&lt;match&gt;</code> kullanır; bir değer alır ve her desen için bir <code>&lt;case&gt;</code> içerir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir.
+          Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph JSX öğeleri kullanır: bir değer alıp her desen için bir <code>&lt;case&gt;</code> içeren <code>&lt;match&gt;</code> ve isteğe bağlı bir <code>&lt;else&gt;</code> ile <code>&lt;if&gt;</code>; ikincisi düz bir boolean için daha hafif biçimdir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir.
         </p>
       </div>
 
@@ -89,12 +89,9 @@ pub type Invite = { email: string, accepted: bool }
 pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
   let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
   return &lt;section&gt;
-    &lt;match value={waiting &gt; 0}&gt;
-      &lt;case true&gt;
-        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
-      &lt;/case&gt;
-      &lt;case false&gt;&lt;/case&gt;
-    &lt;/match&gt;
+    &lt;if cond={waiting &gt; 0}&gt;
+      &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+    &lt;/if&gt;
     &lt;match value={props.invites.length}&gt;
       &lt;case 0&gt;
         &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
@@ -104,14 +101,12 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           &lt;for invite in={props.invites} key={invite.email}&gt;
             &lt;li&gt;
               {invite.email}
-              &lt;match value={invite.accepted}&gt;
-                &lt;case true&gt;
-                  &lt;span class="ok"&gt;joined&lt;/span&gt;
-                &lt;/case&gt;
-                &lt;case false&gt;
-                  &lt;span class="wait"&gt;pending&lt;/span&gt;
-                &lt;/case&gt;
-              &lt;/match&gt;
+              &lt;if cond={invite.accepted}&gt;
+                &lt;span class="ok"&gt;joined&lt;/span&gt;
+              &lt;/if&gt;
+              &lt;else&gt;
+                &lt;span class="wait"&gt;pending&lt;/span&gt;
+              &lt;/else&gt;
             &lt;/li&gt;
           &lt;/for&gt;
         &lt;/ul&gt;
@@ -124,7 +119,7 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
 
       <div class="detail">
         <p>
-          Glyph yarısı daha uzun. <code>&amp;&amp;</code>, boş bir <code>false</code> durumu olan bir <code>&lt;match&gt;</code> olur ve o durumu atlamak <code>E0209</code> hatasıdır, çünkü bir <code>bool</code> üzerindeki <code>match</code> iki değeri de kapsamak zorundadır. Bir union üzerinde aynı öğe her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href="/answers/react/">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor.
+          Glyph yarısı daha uzun, çoğunlukla her dal ayrı bir öğe olduğu için. Bir <code>&lt;match&gt;</code> her değeri kapsamak zorundadır: buradan <code>&lt;case else&gt;</code> öğesini çıkarırsanız build <code>E0218</code> ile durur. Bir union üzerinde her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href="/answers/react/">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor.
         </p>
         <p>
           Editör desteği ve hata ayıklamanın kendi cevapları var: <a href="/answers/tooling/">araçlar cevabı</a> dil sunucusunu ve VS Code eklentisini, <a href="/answers/debugging/">hata ayıklama cevabı</a> ise <code>.glyph</code> dosyasına geri dönen source map'leri anlatıyor. Geliştirme döngüsünde <code>glyph build --watch</code>, bir <code>.glyph</code> dosyasını her kaydettiğinizde TypeScript'i yeniden derler. Bu çıktıyı import eden bir Vite dev sunucusu her yeniden derlemeden sonra bileşeni sıcak değiştirmek yerine sayfanın tamamını yeniden yükler, bu yüzden bileşenin state'i sıfırlanır; kendi <code>.tsx</code> dosyalarınız Vite'ın hot reload'unu korur. Çıktıyı Vite'ın build dizininin (varsayılan olarak <code>dist/</code>) dışına yazın, çünkü dev sunucusu o dizini izlemez.
@@ -136,9 +131,9 @@ pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
           Bu sitede "ajanlar", Claude, Copilot ve Cursor gibi yapay zekâ kodlama asistanları anlamına gelir. Glyph en çok onlara yardım eder, ama kodu bir insan da yazsa bir model de yazsa kontroller aynıdır. Zaten zod ve eslint ile strict TypeScript kullanıyorsanız, <a href="/answers/vs-tooled-ts/">bir dilin bunun üzerine neler eklediği burada</a>.
         </p>
 
-        <h2 class="block-label">if yok</h2>
+        <h2 class="block-label">if deyimi yok</h2>
         <p>
-          Bir boolean üzerindeki dallanma, <code>true</code> ve <code>false</code> üzerinde bir <code>match</code>'tir. Yalnızca bir tarafta işlem yapıyorsanız, diğer arm boş bir bloktur.
+          Bir boolean üzerindeki dallanma, <code>true</code> ve <code>false</code> üzerinde bir <code>match</code>'tir. Yalnızca bir tarafta işlem yapıyorsanız, diğer arm boş bir bloktur. JSX bunun istisnasıdır: yukarıdaki bileşendeki <code>&lt;if&gt;</code> öğesi koşul sağlandığında çocuklarını çizer, sağlanmadığında hiçbir şey çizmez.
         </p>
       </div>
 

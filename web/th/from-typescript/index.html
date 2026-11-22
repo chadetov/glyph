@@ -437,7 +437,7 @@
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd><code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และมันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href="#there-is-no-if">อธิบายไว้ด้านล่าง</a></dd>
+          <dd><code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และในคำสั่งกับนิพจน์ มันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href="#there-is-no-if-statement">อธิบายไว้ด้านล่าง</a> ส่วน JSX มีอิลิเมนต์ <code>&lt;if&gt;</code> และ <code>&lt;match&gt;</code></dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -456,7 +456,7 @@
       <div class="detail">
         <h2 class="block-label" id="a-react-component-in-both">คอมโพเนนต์ React ตัวเดียวกันในทั้งสองภาษา<a class="h-anchor" href="#a-react-component-in-both" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          คอมโพเนนต์เดียวกันเขียนสองแบบ: รายการคำเชิญที่มีสถานะว่าง บรรทัดที่นับคนที่ยังรอตอบ และป้ายกำกับในแต่ละแถว ตรงที่ TSX ใช้ <code>&amp;&amp;</code> และ <code>? :</code> ฝั่ง Glyph ใช้ <code>&lt;match&gt;</code> ซึ่งรับค่าหนึ่งค่าและมี <code>&lt;case&gt;</code> หนึ่งตัวต่อหนึ่งแพตเทิร์น รายการเขียนด้วย <code>&lt;for&gt;</code> และแอตทริบิวต์คือ <code>class</code> ซึ่งคอมไพล์เป็น <code>className</code>
+          คอมโพเนนต์เดียวกันเขียนสองแบบ: รายการคำเชิญที่มีสถานะว่าง บรรทัดที่นับคนที่ยังรอตอบ และป้ายกำกับในแต่ละแถว ตรงที่ TSX ใช้ <code>&amp;&amp;</code> และ <code>? :</code> ฝั่ง Glyph ใช้อิลิเมนต์ JSX: <code>&lt;match&gt;</code> ซึ่งรับค่าหนึ่งค่าและมี <code>&lt;case&gt;</code> หนึ่งตัวต่อหนึ่งแพตเทิร์น และ <code>&lt;if&gt;</code> ที่มี <code>&lt;else&gt;</code> หรือไม่ก็ได้ ซึ่งเป็นรูปแบบที่เบากว่าสำหรับ boolean ธรรมดา รายการเขียนด้วย <code>&lt;for&gt;</code> และแอตทริบิวต์คือ <code>class</code> ซึ่งคอมไพล์เป็น <code>className</code>
         </p>
       </div>
 
@@ -501,12 +501,9 @@
 <span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
   <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
   <span class="k">return</span> &lt;<span class="t">section</span>&gt;
-    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
-      &lt;<span class="t">case</span> true&gt;
-        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
-      &lt;/<span class="t">case</span>&gt;
-      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
-    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">if</span> cond={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+    &lt;/<span class="t">if</span>&gt;
     &lt;<span class="t">match</span> value={props.invites.length}&gt;
       &lt;<span class="t">case</span> 0&gt;
         &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
@@ -516,14 +513,12 @@
           &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
             &lt;<span class="t">li</span>&gt;
               <span class="ip">{</span>invite.email<span class="ip">}</span>
-              &lt;<span class="t">match</span> value={invite.accepted}&gt;
-                &lt;<span class="t">case</span> true&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-                &lt;<span class="t">case</span> false&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-              &lt;/<span class="t">match</span>&gt;
+              &lt;<span class="t">if</span> cond={invite.accepted}&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">if</span>&gt;
+              &lt;<span class="t">else</span>&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">else</span>&gt;
             &lt;/<span class="t">li</span>&gt;
           &lt;/<span class="t">for</span>&gt;
         &lt;/<span class="t">ul</span>&gt;
@@ -536,7 +531,7 @@
 
       <div class="detail">
         <p>
-          ฝั่ง Glyph ยาวกว่า <code>&amp;&amp;</code> กลายเป็น <code>&lt;match&gt;</code> ที่มีเคส <code>false</code> ว่างอยู่ และถ้าตัดเคสนั้นออกจะได้ <code>E0209</code> เพราะ <code>match</code> บน <code>bool</code> ต้องครอบคลุมทั้งสองค่า ถ้าเป็น union อิลิเมนต์เดียวกันนี้ต้องครอบคลุมทุก variant (<code>E0200</code>) และตรงนั้นแหละที่บรรทัดที่เพิ่มขึ้นคุ้มค่า <a href="/th/answers/react/">ใช้กับ React ได้ไหม?</a> มีตัวอย่างพร้อม hooks และ Context
+          ฝั่ง Glyph ยาวกว่า ส่วนใหญ่เพราะแต่ละ branch เป็นอิลิเมนต์ของตัวเอง <code>&lt;match&gt;</code> ต้องครอบคลุมทุกค่า: ถ้าเอา <code>&lt;case else&gt;</code> ตรงนี้ออก build จะหยุดด้วย <code>E0218</code> ถ้าเป็น union มันต้องครอบคลุมทุก variant (<code>E0200</code>) และตรงนั้นแหละที่บรรทัดที่เพิ่มขึ้นคุ้มค่า <a href="/th/answers/react/">ใช้กับ React ได้ไหม?</a> มีตัวอย่างพร้อม hooks และ Context
         </p>
         <p>
           การรองรับในเอดิเตอร์และการดีบักมีคำตอบแยกไว้แล้ว: <a href="/th/answers/tooling/">คำตอบเรื่องเครื่องมือ</a> อธิบาย language server และส่วนขยาย VS Code ส่วน <a href="/th/answers/debugging/">คำตอบเรื่องการดีบัก</a> อธิบาย source map ที่ชี้กลับไปยังไฟล์ <code>.glyph</code> ระหว่างพัฒนา <code>glyph build --watch</code> จะ build TypeScript ใหม่ทุกครั้งที่คุณบันทึกไฟล์ <code>.glyph</code> dev server ของ Vite ที่ import ผลลัพธ์นั้นจะโหลดทั้งหน้าใหม่หลัง build แต่ละครั้งแทนการสลับคอมโพเนนต์แบบ hot ดังนั้น state ของคอมโพเนนต์จะถูกรีเซ็ต ส่วนไฟล์ <code>.tsx</code> ของคุณเองยังได้ hot reload ของ Vite ตามเดิม ให้เขียนผลลัพธ์ไว้นอกไดเรกทอรี build ของ Vite (ค่าเริ่มต้นคือ <code>dist/</code>) เพราะ dev server ไม่เฝ้าดูไดเรกทอรีนั้น
@@ -548,9 +543,9 @@
           "เอเจนต์" ในเว็บนี้หมายถึงผู้ช่วยเขียนโค้ดด้วย AI อย่าง Claude, Copilot และ Cursor Glyph ช่วยพวกมันได้มากที่สุด แต่การตรวจเหมือนกันไม่ว่าคนหรือโมเดลจะเป็นคนเขียนโค้ด ถ้าคุณใช้ TypeScript แบบ strict ร่วมกับ zod และ eslint อยู่แล้ว <a href="/th/answers/vs-tooled-ts/">นี่คือสิ่งที่ภาษาเพิ่มให้จากตรงนั้น</a>
         </p>
 
-        <h2 class="block-label" id="there-is-no-if">ไม่มี if<a class="h-anchor" href="#there-is-no-if" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
+        <h2 class="block-label" id="there-is-no-if-statement">ไม่มีคำสั่ง if<a class="h-anchor" href="#there-is-no-if-statement" aria-label="ลิงก์มายังหัวข้อนี้">#</a></h2>
         <p>
-          การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง
+          การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง JSX เป็นข้อยกเว้น: อิลิเมนต์ <code>&lt;if&gt;</code> ในคอมโพเนนต์ด้านบนจะเรนเดอร์ลูกของมันเมื่อเงื่อนไขเป็นจริง และไม่เรนเดอร์อะไรเลยเมื่อไม่จริง
         </p>
       </div>
 

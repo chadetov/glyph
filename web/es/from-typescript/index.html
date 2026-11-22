@@ -435,7 +435,7 @@
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. También es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href="#there-is-no-if">se explica más abajo</a>.</dd>
+          <dd>Un <code>switch</code> exhaustivo: sobre una unión, el compilador te obliga a manejar cada caso. En sentencias y expresiones también es el único condicional: no hay <code>if</code>/<code>else</code> ni operador ternario, <a href="#there-is-no-if-statement">se explica más abajo</a>. JSX tiene los elementos <code>&lt;if&gt;</code> y <code>&lt;match&gt;</code>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -454,7 +454,7 @@
       <div class="detail">
         <h2 class="block-label" id="a-react-component-in-both">Un componente de React en los dos<a class="h-anchor" href="#a-react-component-in-both" aria-label="Enlace a esta sección">#</a></h2>
         <p>
-          El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>.
+          El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa elementos JSX: <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón, y <code>&lt;if&gt;</code> con un <code>&lt;else&gt;</code> opcional, la forma más ligera para un booleano simple. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>.
         </p>
       </div>
 
@@ -499,12 +499,9 @@
 <span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
   <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
   <span class="k">return</span> &lt;<span class="t">section</span>&gt;
-    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
-      &lt;<span class="t">case</span> true&gt;
-        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
-      &lt;/<span class="t">case</span>&gt;
-      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
-    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">if</span> cond={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+    &lt;/<span class="t">if</span>&gt;
     &lt;<span class="t">match</span> value={props.invites.length}&gt;
       &lt;<span class="t">case</span> 0&gt;
         &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
@@ -514,14 +511,12 @@
           &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
             &lt;<span class="t">li</span>&gt;
               <span class="ip">{</span>invite.email<span class="ip">}</span>
-              &lt;<span class="t">match</span> value={invite.accepted}&gt;
-                &lt;<span class="t">case</span> true&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-                &lt;<span class="t">case</span> false&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-              &lt;/<span class="t">match</span>&gt;
+              &lt;<span class="t">if</span> cond={invite.accepted}&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">if</span>&gt;
+              &lt;<span class="t">else</span>&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">else</span>&gt;
             &lt;/<span class="t">li</span>&gt;
           &lt;/<span class="t">for</span>&gt;
         &lt;/<span class="t">ul</span>&gt;
@@ -534,7 +529,7 @@
 
       <div class="detail">
         <p>
-          La mitad en Glyph es más larga. El <code>&amp;&amp;</code> se convierte en un <code>&lt;match&gt;</code> con un caso <code>false</code> vacío, y omitir ese caso es <code>E0209</code>, porque un <code>match</code> sobre un <code>bool</code> tiene que cubrir los dos valores. Sobre una unión, el mismo elemento tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href="/es/answers/react/">¿Funciona con React?</a> muestra uno, con hooks y Context.
+          La mitad en Glyph es más larga, sobre todo porque cada rama es su propio elemento. Un <code>&lt;match&gt;</code> tiene que cubrir todos los valores: quita aquí el <code>&lt;case else&gt;</code> y el build se detiene con <code>E0218</code>. Sobre una unión tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href="/es/answers/react/">¿Funciona con React?</a> muestra uno, con hooks y Context.
         </p>
         <p>
           El soporte de editor y la depuración tienen sus propias respuestas: <a href="/es/answers/tooling/">la respuesta sobre herramientas</a> cubre el language server y la extensión de VS Code, y <a href="/es/answers/debugging/">la respuesta sobre depuración</a> cubre los source maps que vuelven al archivo <code>.glyph</code>. Para el ciclo de desarrollo, <code>glyph build --watch</code> recompila el TypeScript cada vez que guardas un archivo <code>.glyph</code>. Un servidor de desarrollo de Vite que importa esa salida recarga la página entera después de cada recompilación en lugar de reemplazar el componente en caliente, así que el estado del componente se pierde; tus propios archivos <code>.tsx</code> conservan el hot reload de Vite. Escribe la salida fuera del directorio de build de Vite (<code>dist/</code> por defecto), porque su servidor de desarrollo no vigila ese directorio.
@@ -546,9 +541,9 @@
           En este sitio, "agentes" son asistentes de programación con IA como Claude, Copilot y Cursor. Glyph es a ellos a quienes más ayuda, pero las comprobaciones son las mismas tanto si el código lo escribió una persona como un modelo. Si ya usas TypeScript estricto con zod y eslint, <a href="/es/answers/vs-tooled-ts/">esto es lo que añade un lenguaje a eso</a>.
         </p>
 
-        <h2 class="block-label" id="there-is-no-if">No hay if<a class="h-anchor" href="#there-is-no-if" aria-label="Enlace a esta sección">#</a></h2>
+        <h2 class="block-label" id="there-is-no-if-statement">No hay sentencia if<a class="h-anchor" href="#there-is-no-if-statement" aria-label="Enlace a esta sección">#</a></h2>
         <p>
-          Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío.
+          Una bifurcación sobre un booleano es un <code>match</code> sobre <code>true</code> y <code>false</code>. Cuando solo actúas en un lado, el otro brazo es un bloque vacío. JSX es la excepción: el elemento <code>&lt;if&gt;</code> del componente de arriba renderiza sus hijos cuando la condición se cumple y nada en caso contrario.
         </p>
       </div>
 

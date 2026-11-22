@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "th",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "คุณไม่ต้องเรียนภาษาใหม่ แค่สี่อย่างนี้ ซึ่งเป็นสิ่งที่อยู่ในทุกตัวอย่างบนเว็บนี้"
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "<code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และมันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href=\"#there-is-no-if\">อธิบายไว้ด้านล่าง</a>"
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "<code>switch</code> ที่ต้องครบทุกกรณี: เมื่อใช้กับ union คอมไพเลอร์บังคับให้คุณจัดการทุก case และในคำสั่งกับนิพจน์ มันเป็นเงื่อนไขแบบเดียวที่มี: ไม่มี <code>if</code>/<code>else</code> และไม่มี ternary <a href=\"#there-is-no-if-statement\">อธิบายไว้ด้านล่าง</a> ส่วน JSX มีอิลิเมนต์ <code>&lt;if&gt;</code> และ <code>&lt;match&gt;</code>"
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "คอมโพเนนต์ React ตัวเดียวกันในทั้งสองภาษา"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "คอมโพเนนต์เดียวกันเขียนสองแบบ: รายการคำเชิญที่มีสถานะว่าง บรรทัดที่นับคนที่ยังรอตอบ และป้ายกำกับในแต่ละแถว ตรงที่ TSX ใช้ <code>&amp;&amp;</code> และ <code>? :</code> ฝั่ง Glyph ใช้ <code>&lt;match&gt;</code> ซึ่งรับค่าหนึ่งค่าและมี <code>&lt;case&gt;</code> หนึ่งตัวต่อหนึ่งแพตเทิร์น รายการเขียนด้วย <code>&lt;for&gt;</code> และแอตทริบิวต์คือ <code>class</code> ซึ่งคอมไพล์เป็น <code>className</code>"
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "คอมโพเนนต์เดียวกันเขียนสองแบบ: รายการคำเชิญที่มีสถานะว่าง บรรทัดที่นับคนที่ยังรอตอบ และป้ายกำกับในแต่ละแถว ตรงที่ TSX ใช้ <code>&amp;&amp;</code> และ <code>? :</code> ฝั่ง Glyph ใช้อิลิเมนต์ JSX: <code>&lt;match&gt;</code> ซึ่งรับค่าหนึ่งค่าและมี <code>&lt;case&gt;</code> หนึ่งตัวต่อหนึ่งแพตเทิร์น และ <code>&lt;if&gt;</code> ที่มี <code>&lt;else&gt;</code> หรือไม่ก็ได้ ซึ่งเป็นรูปแบบที่เบากว่าสำหรับ boolean ธรรมดา รายการเขียนด้วย <code>&lt;for&gt;</code> และแอตทริบิวต์คือ <code>class</code> ซึ่งคอมไพล์เป็น <code>className</code>"
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "ฝั่ง Glyph ยาวกว่า <code>&amp;&amp;</code> กลายเป็น <code>&lt;match&gt;</code> ที่มีเคส <code>false</code> ว่างอยู่ และถ้าตัดเคสนั้นออกจะได้ <code>E0209</code> เพราะ <code>match</code> บน <code>bool</code> ต้องครอบคลุมทั้งสองค่า ถ้าเป็น union อิลิเมนต์เดียวกันนี้ต้องครอบคลุมทุก variant (<code>E0200</code>) และตรงนั้นแหละที่บรรทัดที่เพิ่มขึ้นคุ้มค่า <a href=\"/answers/react/\">ใช้กับ React ได้ไหม?</a> มีตัวอย่างพร้อม hooks และ Context"
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "ฝั่ง Glyph ยาวกว่า ส่วนใหญ่เพราะแต่ละ branch เป็นอิลิเมนต์ของตัวเอง <code>&lt;match&gt;</code> ต้องครอบคลุมทุกค่า: ถ้าเอา <code>&lt;case else&gt;</code> ตรงนี้ออก build จะหยุดด้วย <code>E0218</code> ถ้าเป็น union มันต้องครอบคลุมทุก variant (<code>E0200</code>) และตรงนั้นแหละที่บรรทัดที่เพิ่มขึ้นคุ้มค่า <a href=\"/answers/react/\">ใช้กับ React ได้ไหม?</a> มีตัวอย่างพร้อม hooks และ Context"
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "\"เอเจนต์\" ในเว็บนี้หมายถึงผู้ช่วยเขียนโค้ดด้วย AI อย่าง Claude, Copilot และ Cursor Glyph ช่วยพวกมันได้มากที่สุด แต่การตรวจเหมือนกันไม่ว่าคนหรือโมเดลจะเป็นคนเขียนโค้ด ถ้าคุณใช้ TypeScript แบบ strict ร่วมกับ zod และ eslint อยู่แล้ว <a href=\"/answers/vs-tooled-ts/\">นี่คือสิ่งที่ภาษาเพิ่มให้จากตรงนั้น</a>"
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "ไม่มี if"
+      "en": "There is no if statement",
+      "tr": "ไม่มีคำสั่ง if"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง"
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "การแตก branch ตาม boolean คือ <code>match</code> บน <code>true</code> และ <code>false</code> ถ้าต้องทำอะไรแค่ฝั่งเดียว arm อีกฝั่งก็เป็น block ว่าง JSX เป็นข้อยกเว้น: อิลิเมนต์ <code>&lt;if&gt;</code> ในคอมโพเนนต์ด้านบนจะเรนเดอร์ลูกของมันเมื่อเงื่อนไขเป็นจริง และไม่เรนเดอร์อะไรเลยเมื่อไม่จริง"
     },
     {
       "id": "h-ed0504f7",

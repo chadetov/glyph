@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "zh-cn",
-  "source_hash": "e2d355cb18462c09",
+  "source_hash": "7953c266df09fb67",
   "segments": [
     {
       "id": "title",
@@ -101,10 +101,10 @@
       "tr": "你不需要学一门新语言，只要学这四样。本站每个示例里都有它们。"
     },
     {
-      "id": "h-46e350dd",
+      "id": "h-0305fe2e",
       "kind": "html",
-      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. It is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if\">explained below</a>.",
-      "tr": "穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href=\"#there-is-no-if\">原因见下文</a>。"
+      "en": "An exhaustive <code>switch</code>: over a union, the compiler makes you handle every case. In statements and expressions it is also the only conditional: there is no <code>if</code>/<code>else</code> and no ternary, <a href=\"#there-is-no-if-statement\">explained below</a>. JSX has <code>&lt;if&gt;</code> and <code>&lt;match&gt;</code> elements.",
+      "tr": "穷尽的 <code>switch</code>：对联合类型分支时，编译器要求你处理每一种情况。在语句和表达式中，它也是唯一的条件结构：没有 <code>if</code>/<code>else</code>，也没有三元运算符，<a href=\"#there-is-no-if-statement\">原因见下文</a>。JSX 里有 <code>&lt;if&gt;</code> 和 <code>&lt;match&gt;</code> 元素。"
     },
     {
       "id": "h-12d01dfb",
@@ -131,16 +131,16 @@
       "tr": "同一个 React 组件，两种写法"
     },
     {
-      "id": "h-d04c5e5a",
+      "id": "h-805c37c6",
       "kind": "html",
-      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
-      "tr": "同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 <code>&lt;match&gt;</code>：它接收一个值，每个模式写一个 <code>&lt;case&gt;</code>。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。"
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses JSX elements: <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern, and <code>&lt;if&gt;</code> with an optional <code>&lt;else&gt;</code>, the lighter form for a plain boolean. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 JSX 元素：<code>&lt;match&gt;</code> 接收一个值，每个模式写一个 <code>&lt;case&gt;</code>；<code>&lt;if&gt;</code> 可带一个可选的 <code>&lt;else&gt;</code>，是处理普通布尔值的更轻的写法。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。"
     },
     {
-      "id": "h-9e878e46",
+      "id": "h-36cdad87",
       "kind": "html",
-      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
-      "tr": "Glyph 这一半更长。<code>&amp;&amp;</code> 变成一个带空 <code>false</code> 分支的 <code>&lt;match&gt;</code>，省略这个分支就是 <code>E0209</code>，因为对 <code>bool</code> 的 <code>match</code> 必须覆盖两个值。对 union 来说，同一个元素必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href=\"/answers/react/\">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。"
+      "en": "The Glyph half is longer, mostly because each branch is its own element. A <code>&lt;match&gt;</code> has to cover every value: drop <code>&lt;case else&gt;</code> here and the build stops with <code>E0218</code>. Over a union, it has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph 这一半更长，主要因为每个分支都是一个单独的元素。<code>&lt;match&gt;</code> 必须覆盖所有值：在这里去掉 <code>&lt;case else&gt;</code>，构建就会以 <code>E0218</code> 停下。对 union 来说，它必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href=\"/answers/react/\">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。"
     },
     {
       "id": "h-708040f1",
@@ -155,16 +155,16 @@
       "tr": "本站说的“智能体”指 Claude、Copilot、Cursor 这样的 AI 编程助手。Glyph 对它们帮助最大，但无论代码是人写的还是模型写的，检查都一样。如果你已经在用严格模式的 TypeScript 加 zod 和 eslint，<a href=\"/answers/vs-tooled-ts/\">这里说明一门语言能在此之上多带来什么</a>。"
     },
     {
-      "id": "h-06d12c99",
+      "id": "h-cf2d0db5",
       "kind": "html",
-      "en": "There is no if",
-      "tr": "没有 if"
+      "en": "There is no if statement",
+      "tr": "没有 if 语句"
     },
     {
-      "id": "h-aaf8fd69",
+      "id": "h-ca034494",
       "kind": "html",
-      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block.",
-      "tr": "对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。"
+      "en": "A branch on a boolean is a <code>match</code> on <code>true</code> and <code>false</code>. Where you only act on one side, the other arm is an empty block. JSX is the exception: the <code>&lt;if&gt;</code> element in the component above renders its children when the condition holds and nothing otherwise.",
+      "tr": "对布尔值分支，就是对 <code>true</code> 和 <code>false</code> 做 <code>match</code>。如果只需处理其中一边，另一个分支写成空块。JSX 是例外：上面组件里的 <code>&lt;if&gt;</code> 元素在条件成立时渲染子元素，否则什么都不渲染。"
     },
     {
       "id": "h-ed0504f7",

@@ -435,7 +435,7 @@
       <dl class="gloss-list">
         <div>
           <dt><code>match</code></dt>
-          <dd>Ein erschöpfender <code>switch</code>: Über einer Union zwingt dich der Compiler, jeden Fall zu behandeln. Es ist auch die einzige Bedingung: Es gibt kein <code>if</code>/<code>else</code> und keinen ternären Operator, <a href="#there-is-no-if">unten erklärt</a>.</dd>
+          <dd>Ein erschöpfender <code>switch</code>: Über einer Union zwingt dich der Compiler, jeden Fall zu behandeln. In Anweisungen und Ausdrücken ist es auch die einzige Bedingung: Es gibt kein <code>if</code>/<code>else</code> und keinen ternären Operator, <a href="#there-is-no-if-statement">unten erklärt</a>. JSX hat die Elemente <code>&lt;if&gt;</code> und <code>&lt;match&gt;</code>.</dd>
         </div>
         <div>
           <dt><code>Result&lt;T, E&gt;</code></dt>
@@ -454,7 +454,7 @@
       <div class="detail">
         <h2 class="block-label" id="a-react-component-in-both">Eine React-Komponente in beiden<a class="h-anchor" href="#a-react-component-in-both" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Dieselbe Komponente zweimal: eine Liste von Einladungen mit leerem Zustand, eine Zeile, die die noch offenen zählt, und ein Label in jeder Zeile. Wo das TSX <code>&amp;&amp;</code> und <code>? :</code> verwendet, verwendet Glyph <code>&lt;match&gt;</code>: Es nimmt einen Wert und ein <code>&lt;case&gt;</code> pro Muster. Listen schreibst du mit <code>&lt;for&gt;</code>, und das Attribut heißt <code>class</code>, das zu <code>className</code> kompiliert.
+          Dieselbe Komponente zweimal: eine Liste von Einladungen mit leerem Zustand, eine Zeile, die die noch offenen zählt, und ein Label in jeder Zeile. Wo das TSX <code>&amp;&amp;</code> und <code>? :</code> verwendet, verwendet Glyph JSX-Elemente: <code>&lt;match&gt;</code>, das einen Wert und ein <code>&lt;case&gt;</code> pro Muster nimmt, und <code>&lt;if&gt;</code> mit einem optionalen <code>&lt;else&gt;</code>, die leichtere Form für einen einfachen Boolean. Listen schreibst du mit <code>&lt;for&gt;</code>, und das Attribut heißt <code>class</code>, das zu <code>className</code> kompiliert.
         </p>
       </div>
 
@@ -499,12 +499,9 @@
 <span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
   <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
   <span class="k">return</span> &lt;<span class="t">section</span>&gt;
-    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
-      &lt;<span class="t">case</span> true&gt;
-        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
-      &lt;/<span class="t">case</span>&gt;
-      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
-    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">if</span> cond={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+    &lt;/<span class="t">if</span>&gt;
     &lt;<span class="t">match</span> value={props.invites.length}&gt;
       &lt;<span class="t">case</span> 0&gt;
         &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
@@ -514,14 +511,12 @@
           &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
             &lt;<span class="t">li</span>&gt;
               <span class="ip">{</span>invite.email<span class="ip">}</span>
-              &lt;<span class="t">match</span> value={invite.accepted}&gt;
-                &lt;<span class="t">case</span> true&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-                &lt;<span class="t">case</span> false&gt;
-                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
-                &lt;/<span class="t">case</span>&gt;
-              &lt;/<span class="t">match</span>&gt;
+              &lt;<span class="t">if</span> cond={invite.accepted}&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">if</span>&gt;
+              &lt;<span class="t">else</span>&gt;
+                &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              &lt;/<span class="t">else</span>&gt;
             &lt;/<span class="t">li</span>&gt;
           &lt;/<span class="t">for</span>&gt;
         &lt;/<span class="t">ul</span>&gt;
@@ -534,7 +529,7 @@
 
       <div class="detail">
         <p>
-          Die Glyph-Hälfte ist länger. Aus <code>&amp;&amp;</code> wird ein <code>&lt;match&gt;</code> mit einem leeren <code>false</code>-Fall, und diesen Fall wegzulassen ist <code>E0209</code>, weil ein <code>match</code> über einen <code>bool</code> beide Werte abdecken muss. Über einer Union muss dasselbe Element jede Variante abdecken (<code>E0200</code>), und dort zahlen sich die zusätzlichen Zeilen aus: <a href="/de/answers/react/">Funktioniert es mit React?</a> zeigt ein Beispiel mit Hooks und Context.
+          Die Glyph-Hälfte ist länger, vor allem weil jeder Zweig ein eigenes Element ist. Ein <code>&lt;match&gt;</code> muss jeden Wert abdecken: Nimm hier <code>&lt;case else&gt;</code> weg, und der Build bricht mit <code>E0218</code> ab. Über einer Union muss es jede Variante abdecken (<code>E0200</code>), und dort zahlen sich die zusätzlichen Zeilen aus: <a href="/de/answers/react/">Funktioniert es mit React?</a> zeigt ein Beispiel mit Hooks und Context.
         </p>
         <p>
           Editor-Unterstützung und Debugging haben eigene Antworten: <a href="/de/answers/tooling/">die Antwort zu den Werkzeugen</a> behandelt den Language Server und die VS-Code-Erweiterung, <a href="/de/answers/debugging/">die Antwort zum Debugging</a> die Source Maps zurück zur <code>.glyph</code>-Datei. In der Entwicklung baut <code>glyph build --watch</code> das TypeScript bei jedem Speichern einer <code>.glyph</code>-Datei neu. Ein Vite-Dev-Server, der diese Ausgabe importiert, lädt nach jedem Neubau die ganze Seite neu, statt die Komponente im laufenden Betrieb auszutauschen, also geht der State der Komponente verloren; deine eigenen <code>.tsx</code>-Dateien behalten Vites Hot Reload. Schreib die Ausgabe außerhalb von Vites Build-Verzeichnis (<code>dist/</code> standardmäßig), weil der Dev-Server dieses Verzeichnis nicht beobachtet.
@@ -546,9 +541,9 @@
           "Agenten" meint auf dieser Website KI-Coding-Assistenten wie Claude, Copilot und Cursor. Glyph hilft ihnen am meisten, aber die Prüfungen sind dieselben, egal ob ein Mensch oder ein Modell den Code geschrieben hat. Wenn du schon striktes TypeScript mit zod und eslint einsetzt, <a href="/de/answers/vs-tooled-ts/">steht hier, was eine Sprache darüber hinaus bringt</a>.
         </p>
 
-        <h2 class="block-label" id="there-is-no-if">Es gibt kein if<a class="h-anchor" href="#there-is-no-if" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <h2 class="block-label" id="there-is-no-if-statement">Es gibt keine if-Anweisung<a class="h-anchor" href="#there-is-no-if-statement" aria-label="Link zu diesem Abschnitt">#</a></h2>
         <p>
-          Eine Verzweigung über einem Boolean ist ein <code>match</code> auf <code>true</code> und <code>false</code>. Wenn du nur auf einer Seite etwas tust, ist der andere Arm ein leerer Block.
+          Eine Verzweigung über einem Boolean ist ein <code>match</code> auf <code>true</code> und <code>false</code>. Wenn du nur auf einer Seite etwas tust, ist der andere Arm ein leerer Block. JSX ist die Ausnahme: Das <code>&lt;if&gt;</code>-Element in der Komponente oben rendert seine Kinder, wenn die Bedingung gilt, und sonst nichts.
         </p>
       </div>
 

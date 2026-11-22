@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"기존 앱 안에서 Glyph를 도입할 수 있나요?","item":"https://glyphlang.io/ko/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/embedding/#article","headline":"기존 앱 안에서 Glyph를 도입할 수 있나요?","description":"다시 작성할 필요가 없습니다. 앱은 TypeScript로 두고 도메인 핵심을 Glyph로 작성한 다음, 컴파일된 모듈을 여느 로컬 파일처럼 import합니다. 기본 Vite에서 그대로 동작합니다.","url":"https://glyphlang.io/ko/answers/embedding/","inLanguage":"ko","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/embedding/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/answers/embedding/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"답변","item":"https://glyphlang.io/ko/answers/"},{"@type":"ListItem","position":3,"name":"기존 앱 안에서 Glyph를 도입할 수 있나요?","item":"https://glyphlang.io/ko/answers/embedding/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/answers/embedding/#article","headline":"기존 앱 안에서 Glyph를 도입할 수 있나요?","description":"다시 작성할 필요가 없습니다. 앱은 TypeScript로 두고 도메인 핵심을 Glyph로 작성한 다음, 컴파일된 모듈을 여느 로컬 파일처럼 import합니다. 기본 Vite에서 그대로 동작합니다.","url":"https://glyphlang.io/ko/answers/embedding/","inLanguage":"ko","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/answers/embedding/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/embedding/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/embedding/" />
@@ -526,12 +526,12 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 앞으로 할 것</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">아직 watch 모드는 없습니다. <code>.glyph</code> 소스를 편집한 뒤에는 <code>glyph build</code>를 다시 실행하세요(<code>dev</code> 스크립트에 연결해 두면 됩니다).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code>는 <code>.glyph</code> 파일을 저장할 때마다 다시 빌드하지만, Vite 개발 서버와 함께 쓰면 Glyph를 바꿀 때 컴포넌트를 핫 스왑하지 않고 페이지 전체를 새로 고칩니다. 출력은 Vite의 빌드 디렉터리(기본값 <code>dist/</code>) 밖에 두세요. 개발 서버가 그 디렉터리를 감시하지 않습니다.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code>나 <code>std/net</code>을 쓰는 모듈은 Node를 다루는 여느 TypeScript처럼 호스트에 <code>@types/node</code>가 필요합니다.</span></span></li>
           </ul>
         </section>
       </div>
-      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.166으로 검사합니다. 마지막 변경: <time datetime="2026-11-21">2026년 11월 21일</time>.</p>
+      <p class="page-stamp">이 페이지의 코드 예제는 빌드할 때마다 Glyph 0.1.166으로 검사합니다. 마지막 변경: <time datetime="2026-11-22">2026년 11월 22일</time>.</p>
       <nav class="prevnext" aria-label="이전과 다음">
         <a href="/ko/answers/imports/">
           <span class="dir">&larr; 이전</span>

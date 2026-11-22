@@ -1,7 +1,7 @@
 ---
 title: 能在现有应用里引入 Glyph 吗？ · Glyph
 description: 不需要重写：应用继续用 TypeScript，领域核心用 Glyph 编写，编译出的模块像任何本地文件一样导入。在标准的 Vite 下就能工作。
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; 上一篇 | 我能使用现有的 TypeScript、JavaScript 和 npm 库吗？
 next: /answers/typed-apis/ | 下一篇 &rarr; | 每个 API 都要手写校验器吗？
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 正在进行</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">还没有 watch 模式：编辑 <code>.glyph</code> 源码后需要重新运行 <code>glyph build</code>（可以把它接入你的 <code>dev</code> 脚本）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> 会在每次保存 <code>.glyph</code> 文件时重新构建，但和 Vite 开发服务器一起用时，Glyph 的改动会让整页刷新，而不是热替换组件。请把输出放在 Vite 的构建目录（默认是 <code>dist/</code>）之外，它的开发服务器不监视那个目录。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">使用 <code>std/fs</code> 或 <code>std/net</code> 的模块需要宿主项目安装 <code>@types/node</code>，和任何涉及 Node 的 TypeScript 一样。</span></span></li>
           </ul>
         </section>

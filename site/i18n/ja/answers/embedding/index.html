@@ -1,7 +1,7 @@
 ---
 title: 既存のアプリの中で Glyph を導入できるか · Glyph
 description: 書き直しは不要です。アプリは TypeScript のまま、ドメインの中核を Glyph で書き、コンパイルされたモジュールをローカルファイルと同じように import します。素の Vite でそのまま動きます。
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; 前へ | 既存の TypeScript、JavaScript、npm のライブラリは使えますか。
 next: /answers/typed-apis/ | 次へ &rarr; | API ごとにバリデータを手書きする必要がありますか？
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 予定</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">watch モードはまだありません。<code>.glyph</code> のソースを編集したら <code>glyph build</code> を再実行してください（<code>dev</code> スクリプトに組み込むと便利です）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> は <code>.glyph</code> ファイルを保存するたびに再ビルドしますが、Vite の開発サーバーと並べると、Glyph の変更ではコンポーネントの差し替えではなくページ全体の再読み込みになります。出力は Vite のビルドディレクトリ (デフォルトは <code>dist/</code>) の外に置いてください。開発サーバーはそこを監視しません。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code> や <code>std/net</code> を使うモジュールは、Node に触れる TypeScript と同じく、ホスト側に <code>@types/node</code> が必要です。</span></span></li>
           </ul>
         </section>

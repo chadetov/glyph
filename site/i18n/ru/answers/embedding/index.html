@@ -1,7 +1,7 @@
 ---
 title: Можно ли внедрить Glyph в моё существующее приложение? · Glyph
 description: Без переписывания: приложение остаётся на TypeScript, ядро предметной области пишется на Glyph, а скомпилированные модули импортируются как любой локальный файл. Работает в стандартном Vite.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; Назад | Можно ли использовать мой существующий TypeScript, JavaScript и библиотеки из npm?
 next: /answers/typed-apis/ | Далее &rarr; | Нужно ли писать валидатор для каждого API вручную?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> В работе</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Режима наблюдения пока нет: после правки исходников <code>.glyph</code> запускайте <code>glyph build</code> заново (добавьте это в свой скрипт <code>dev</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> пересобирает при каждом сохранении файла <code>.glyph</code>, но рядом с dev-сервером Vite изменение в Glyph перезагружает всю страницу, а не подменяет компонент на лету. Держите вывод за пределами каталога сборки Vite (по умолчанию <code>dist/</code>): его dev-сервер этот каталог не отслеживает.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Модулям, использующим <code>std/fs</code> или <code>std/net</code>, нужен <code>@types/node</code> в основном проекте, как любому TypeScript, который работает с Node.</span></span></li>
           </ul>
         </section>

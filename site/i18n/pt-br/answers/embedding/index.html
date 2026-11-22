@@ -1,7 +1,7 @@
 ---
 title: Posso adotar o Glyph dentro da minha aplicação atual? · Glyph
 description: Sem reescrever: mantenha a aplicação em TypeScript, escreva o núcleo de domínio em Glyph e importe os módulos compilados como qualquer arquivo local. Funciona com o Vite padrão.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; Anterior | Posso usar minhas bibliotecas de TypeScript, JavaScript e npm?
 next: /answers/typed-apis/ | Próxima &rarr; | Preciso escrever um validador à mão para cada API?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> A caminho</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Ainda não há modo watch: rode o <code>glyph build</code> de novo depois de editar fontes <code>.glyph</code> (ligue isso ao seu script <code>dev</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> recompila a cada vez que você salva um arquivo <code>.glyph</code>, mas ao lado de um dev server do Vite uma mudança no Glyph recarrega a página inteira em vez de trocar o componente a quente. Mantenha a saída fora do diretório de build do Vite (<code>dist/</code> por padrão), que o dev server não observa.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Módulos que usam <code>std/fs</code> ou <code>std/net</code> precisam de <code>@types/node</code> no hospedeiro, como qualquer TypeScript que mexe com Node.</span></span></li>
           </ul>
         </section>

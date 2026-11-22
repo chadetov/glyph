@@ -1,7 +1,7 @@
 ---
 title: 기존 앱 안에서 Glyph를 도입할 수 있나요? · Glyph
 description: 다시 작성할 필요가 없습니다. 앱은 TypeScript로 두고 도메인 핵심을 Glyph로 작성한 다음, 컴파일된 모듈을 여느 로컬 파일처럼 import합니다. 기본 Vite에서 그대로 동작합니다.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; 이전 | 기존 TypeScript, JavaScript, npm 라이브러리를 쓸 수 있나요?
 next: /answers/typed-apis/ | 다음 &rarr; | API마다 검증기를 직접 작성해야 하나요?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 앞으로 할 것</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">아직 watch 모드는 없습니다. <code>.glyph</code> 소스를 편집한 뒤에는 <code>glyph build</code>를 다시 실행하세요(<code>dev</code> 스크립트에 연결해 두면 됩니다).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code>는 <code>.glyph</code> 파일을 저장할 때마다 다시 빌드하지만, Vite 개발 서버와 함께 쓰면 Glyph를 바꿀 때 컴포넌트를 핫 스왑하지 않고 페이지 전체를 새로 고칩니다. 출력은 Vite의 빌드 디렉터리(기본값 <code>dist/</code>) 밖에 두세요. 개발 서버가 그 디렉터리를 감시하지 않습니다.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code>나 <code>std/net</code>을 쓰는 모듈은 Node를 다루는 여느 TypeScript처럼 호스트에 <code>@types/node</code>가 필요합니다.</span></span></li>
           </ul>
         </section>

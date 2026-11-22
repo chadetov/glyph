@@ -78,7 +78,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> On the way</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> rebuilds on every save of a <code>.glyph</code> file, but beside a Vite dev server a Glyph change reloads the whole page rather than hot-swapping the component. Keep the output outside Vite's build directory (<code>dist/</code> by default), which its dev server does not watch.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.</span></span></li>
           </ul>
         </section>

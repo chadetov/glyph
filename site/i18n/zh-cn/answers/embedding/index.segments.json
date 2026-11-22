@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/embedding/index.html",
   "locale": "zh-cn",
-  "source_hash": "407d584aaaf4d048",
+  "source_hash": "44473fdf285d315a",
   "segments": [
     {
       "id": "title",
@@ -161,10 +161,10 @@
       "tr": "正在进行"
     },
     {
-      "id": "h-94f9623f",
+      "id": "h-a9a4fcb1",
       "kind": "html",
-      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).",
-      "tr": "还没有 watch 模式：编辑 <code>.glyph</code> 源码后需要重新运行 <code>glyph build</code>（可以把它接入你的 <code>dev</code> 脚本）。"
+      "en": "<code>glyph build --watch</code> rebuilds on every save of a <code>.glyph</code> file, but beside a Vite dev server a Glyph change reloads the whole page rather than hot-swapping the component. Keep the output outside Vite's build directory (<code>dist/</code> by default), which its dev server does not watch.",
+      "tr": "<code>glyph build --watch</code> 会在每次保存 <code>.glyph</code> 文件时重新构建，但和 Vite 开发服务器一起用时，Glyph 的改动会让整页刷新，而不是热替换组件。请把输出放在 Vite 的构建目录（默认是 <code>dist/</code>）之外，它的开发服务器不监视那个目录。"
     },
     {
       "id": "h-19a4b124",

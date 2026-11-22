@@ -1,7 +1,7 @@
 ---
 title: Glyph'i mevcut uygulamamın içinde benimseyebilir miyim? · Glyph
 description: Yeniden yazmak yok: uygulamayı TypeScript'te tutun, domain çekirdeğini Glyph'te yazın ve derlenmiş modülleri herhangi bir yerel dosya gibi import edin. Standart Vite ile çalışır.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; Önceki | Mevcut TypeScript, JavaScript ve npm kütüphanelerimi kullanabilir miyim?
 next: /answers/typed-apis/ | Sonraki &rarr; | Her API için elle validator yazmam gerekiyor mu?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Yolda olanlar</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Henüz watch modu yok: <code>.glyph</code> kaynaklarını düzenledikten sonra <code>glyph build</code>'i yeniden çalıştırın (<code>dev</code> script'inize bağlayın).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> her <code>.glyph</code> dosyası kaydında yeniden derler, ama bir Vite dev sunucusunun yanında Glyph'teki bir değişiklik bileşeni sıcak değiştirmek yerine sayfanın tamamını yeniden yükler. Çıktıyı Vite'ın build dizininin (varsayılan olarak <code>dist/</code>) dışında tutun; dev sunucusu o dizini izlemez.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/fs</code> ya da <code>std/net</code> kullanan modüller, Node'a dokunan her TypeScript gibi, host projede <code>@types/node</code> gerektirir.</span></span></li>
           </ul>
         </section>

@@ -8,6 +8,13 @@
   <updated>2026-11-22T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.164</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.164" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.164</id>
+    <updated>2026-11-22T00:00:00Z</updated>
+    <summary>Positions inside ${} point at the text they name</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.163 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.163" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.163</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.135</id>
     <updated>2026-11-17T00:00:00Z</updated>
     <summary>JSX text is read as text.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.134</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.134" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.134</id>
-    <updated>2026-11-11T00:00:00Z</updated>
-    <summary>This release changes how the parser reads a file and nothing about what a program means.</summary>
   </entry>
 </feed>

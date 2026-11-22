@@ -267,4 +267,4 @@ It stays interop-only: Glyph has no `class` of its own, and `new` only construct
 
   On the `extern/` side, the source root differs between the two commands: `glyph run app.glyph` roots at the file's own directory, `glyph build src/` roots at the directory you name. A program in a subdirectory therefore looks for its shim in two different places, and until we pick one root, a project laid out that way needs the shim reachable from both. It fails loudly when it does not.
 
-Code examples on this page are checked against Glyph 0.1.163 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.164 on every build. Last changed 21 Nov 2026.

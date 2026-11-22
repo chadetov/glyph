@@ -50,7 +50,7 @@ Details in [Will a new Glyph release break my build?](https://glyphlang.io/answe
 
 ## Release cadence and the Breaking marker
 
-The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.163, 162 in all, and 36 of them shipped between 1 Nov 2026 and 22 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 46 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
+The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.164, 163 in all, and 37 of them shipped between 1 Nov 2026 and 22 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 46 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
 
 What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:
 

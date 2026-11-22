@@ -569,7 +569,9 @@ pub fn from_type_error(
         _ => None,
     })
     .with_repair(match err {
-        TypeError::AbsentBuiltinResult { repair, .. } => Some(repair.clone()),
+        TypeError::AbsentBuiltinResult { repair, .. } | TypeError::CoalesceOnTagged { repair, .. } => {
+            Some(repair.clone())
+        }
         _ => None,
     })
 }
@@ -661,6 +663,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::NullableNested { .. }
         | T::NullableRead { .. }
         | T::OptionalChainOnTagged { .. }
+        | T::CoalesceOnTagged { .. }
         | T::SqlFromRuntimeValue { .. }
         | T::MutationOutsideMut { .. }
         | T::MutOnNonMutatingCall { .. }

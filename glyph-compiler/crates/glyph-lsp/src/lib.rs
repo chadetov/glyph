@@ -2011,6 +2011,22 @@ fn split_introduced(
     (introduced, preexisting)
 }
 
+/// The diagnostics of `after` that byte-range edits `spans` (sorted, not
+/// overlapping, into `text`) introduced, by the identity `split_introduced`
+/// uses for an edit through the protocol (review 88, 4b): code, severity,
+/// subject and range, with each of `before` mapped through the edited
+/// regions. `glyph fix` asks this after a rewrite that changes an
+/// expression's type, and keeps the rewrite only when nothing new appears.
+pub fn introduced_by_edits(
+    text: &str,
+    before: &[diagnostic::Diagnostic],
+    spans: &[(usize, usize, &str)],
+    after: Vec<diagnostic::Diagnostic>,
+) -> Vec<diagnostic::Diagnostic> {
+    let regions = edit_regions(text, spans);
+    split_introduced(before, &regions, after).0
+}
+
 /// Apply LSP `TextEdit`s to `text`, producing the candidate document. Edits are
 /// resolved to byte offsets, checked for overlap, and spliced from the end
 /// backwards so earlier offsets stay valid. Returns `Err(reason)` for an

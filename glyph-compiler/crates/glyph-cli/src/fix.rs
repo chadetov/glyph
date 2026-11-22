@@ -29,6 +29,15 @@
 //!   the module has no `import std/array`, one is added (`ensure_import`),
 //!   unless another binding already has that name.
 //!
+//! * **E0236**, `??` on an `Option` (G429, decision record 157), takes the
+//!   `match` the checker attached: `u ?? 0` becomes `match u { Some(n) => n,
+//!   None => 0, }`. That changes what the program does, to the one thing the
+//!   text can mean, and it changes the expression's type from unchecked to
+//!   the payload's, so the rewrite is written, the tree is checked again, and
+//!   it is kept only when no new error appears (`apply_checked_rewrites`).
+//!   A `Result` is declined: whether an `Err` is dropped, propagated or
+//!   handled is not determined.
+//!
 //! Neither guesses. Where the compiler does not hold the answer the rule
 //! declines and says why, and the reason reaches the command's output beside
 //! what it did apply.
@@ -175,7 +184,9 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
     // The import rule has written its edits, so a check now reads the text the
     // diagnostic offsets below are counted against. Running it the other way
     // round would hand every rule a set of offsets one import-removal stale.
-    apply_diagnostic_rules(src, &files, &mut report)?;
+    if apply_diagnostic_rules(src, &files, &mut report)? {
+        apply_checked_rewrites(src, &files, &mut report)?;
+    }
 
     Ok(report)
 }
@@ -270,14 +281,17 @@ fn collect_glyph_files(path: &Path, out: &mut Vec<PathBuf>) {
 /// The codes this pass reads. A diagnostic with any other code is left alone.
 ///
 /// `E0210`, `E0220`, `E0240` and `E0242` are repaired when the compiler
-/// determines the repair.
+/// determines the repair. `E0236` on a `??` is repaired afterwards, one
+/// rewrite at a time with a check after each (`apply_checked_rewrites`); here
+/// only its declines are reported.
 /// `E0200` is read and never repaired: each one is reported as declined, and
 /// its `missing_variants` is what the `E0220` rule asks to learn whether the
 /// variant it would rename a head to is still free.
-const RULE_CODES: [&str; 5] = ["E0200", "E0210", "E0220", "E0240", "E0242"];
+const RULE_CODES: [&str; 6] = ["E0200", "E0210", "E0220", "E0236", "E0240", "E0242"];
 
 /// Check the tree, then apply every rule that the resulting diagnostics fully
-/// determine.
+/// determine. Answers whether the check attached a rewrite that has to be
+/// re-checked (E0236's), which `apply_checked_rewrites` then applies.
 ///
 /// The check is the real one (`glyph check --no-tsc`, the same call the command
 /// makes), so the offsets, the union identities and the checker's own
@@ -287,16 +301,20 @@ fn apply_diagnostic_rules(
     src: &Path,
     files: &[PathBuf],
     report: &mut FixReport,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let check = match crate::check::check_path(src, false, false) {
         Ok(c) => c,
         Err(e) => {
             report.notices.push(format!(
                 "the tree did not check, so only the unused-import rule ran: {e}"
             ));
-            return Ok(());
+            return Ok(false);
         }
     };
+    let has_checked = check
+        .structured
+        .iter()
+        .any(|d| matches!(d.repair, Some(glyph_typechecker::AbsentRepair::Checked { .. })));
 
     // Group by the file the diagnostic is in, resolved to a path this run
     // actually collected. A diagnostic whose file cannot be placed in exactly
@@ -322,7 +340,164 @@ fn apply_diagnostic_rules(
             .map(|c| &c.coverage);
         fix_one_file(&path, &diags, coverage, report)?;
     }
+    Ok(has_checked)
+}
+
+/// E0236 on a `??` (G429): write each `match` the checker attached, check the
+/// tree again, and keep the rewrite only when no new error appears; otherwise
+/// put the file back and decline, naming the error it would have caused.
+///
+/// The rewrite changes what the expression is: `u ?? 0` was an unchecked
+/// value and becomes a `number`, so a slot that took it unchecked may now be
+/// refused. "New" is the identity an edit through the protocol is held to
+/// (review 88, 4b): code, severity, subject and range, with the file's
+/// earlier diagnostics mapped through the edited regions, and an exact match
+/// in every other file. Runs after the other rules, on a fresh check, so its
+/// offsets are the file's current ones.
+fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport) -> Result<(), String> {
+    let Ok(check) = crate::check::check_path(src, false, false) else {
+        return Ok(());
+    };
+    let mut before: BTreeMap<PathBuf, Vec<Diagnostic>> = BTreeMap::new();
+    let mut elsewhere_before: Vec<Diagnostic> = Vec::new();
+    for d in &check.structured {
+        match place_diagnostic(&check.project_srcs, files, d) {
+            Some(path) => before.entry(path).or_default().push(d.clone()),
+            None => elsewhere_before.push(d.clone()),
+        }
+    }
+    // Per file, each rewrite's edits and the line that says what it changes.
+    type Rewrites = Vec<(Vec<Edit>, String)>;
+    let targets: Vec<(PathBuf, Rewrites)> = before
+        .iter()
+        .map(|(path, diags)| {
+            let rewrites = diags
+                .iter()
+                .filter(|d| d.code == "E0236")
+                .filter_map(|d| match &d.repair {
+                    Some(glyph_typechecker::AbsentRepair::Checked { edits, what }) => {
+                        Some((edits.clone(), what.clone()))
+                    }
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            (path.clone(), rewrites)
+        })
+        .filter(|(_, r)| !r.is_empty())
+        .collect();
+
+    for (path, rewrites) in targets {
+        let source = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let file_before = before.get(&path).cloned().unwrap_or_default();
+        let mut kept: Vec<Edit> = Vec::new();
+        for (edits, what) in rewrites {
+            let overlaps = edits
+                .iter()
+                .any(|(s, e, _)| kept.iter().any(|(ks, ke, _)| s < ke && ks < e && !(s == e && ks == ke)));
+            if overlaps {
+                report.declined.push(Declined {
+                    code: "E0236".to_string(),
+                    file: path.clone(),
+                    why: "another repair in this file rewrites the same text; run `glyph fix` again".to_string(),
+                });
+                continue;
+            }
+            let mut candidate_edits = kept.clone();
+            candidate_edits.extend(indent_edits(&source, &edits));
+            candidate_edits.sort_by_key(|(s, _, _)| *s);
+            let candidate = apply_edits(&source, candidate_edits.clone());
+            if glyph_parser::parse(&candidate).is_err() {
+                return Err(format!(
+                    "{}: the rewritten file does not parse, so nothing was written. \
+                     This is a bug in `glyph fix`; please report it with the file.",
+                    path.display()
+                ));
+            }
+            std::fs::write(&path, &candidate).map_err(|e| format!("{}: {e}", path.display()))?;
+            let new_error = match crate::check::check_path(src, false, false) {
+                Ok(after) => {
+                    first_new_error(&source, &file_before, &elsewhere_before, &candidate_edits, &path, files, &after)
+                }
+                Err(e) => Some(format!("the tree no longer checks ({e})")),
+            };
+            match new_error {
+                None => {
+                    kept = candidate_edits;
+                    report.applied.push(Applied { code: "E0236".to_string(), file: path.clone(), what });
+                }
+                Some(error) => report.declined.push(Declined {
+                    code: "E0236".to_string(),
+                    file: path.clone(),
+                    why: format!(
+                        "the rewrite gives the expression its payload's type, and the check then reports {error}, \
+                         so it was reverted; the help names the `match` to write"
+                    ),
+                }),
+            }
+        }
+        let settled = apply_edits(&source, kept.clone());
+        std::fs::write(&path, &settled).map_err(|e| format!("{}: {e}", path.display()))?;
+        if !kept.is_empty() && !report.changed.iter().any(|c| same_file(c, &path)) {
+            report.changed.push(path.clone());
+        }
+    }
     Ok(())
+}
+
+/// The first error the check `after` reports that the tree did not have
+/// before the edits, as `[code] message (file:line)`, or `None`.
+fn first_new_error(
+    source: &str,
+    file_before: &[Diagnostic],
+    elsewhere_before: &[Diagnostic],
+    edits: &[Edit],
+    path: &Path,
+    files: &[PathBuf],
+    after: &crate::check::CheckReport,
+) -> Option<String> {
+    let mut here = Vec::new();
+    let mut elsewhere = Vec::new();
+    for d in &after.structured {
+        match place_diagnostic(&after.project_srcs, files, d) {
+            Some(p) if same_file(&p, path) => here.push(d.clone()),
+            _ => elsewhere.push(d.clone()),
+        }
+    }
+    let spans: Vec<(usize, usize, &str)> =
+        edits.iter().map(|(s, e, t)| (*s as usize, *e as usize, t.as_str())).collect();
+    let introduced = glyph_lsp::introduced_by_edits(source, file_before, &spans, here);
+    let key = |d: &Diagnostic| {
+        (d.file.clone(), d.code.clone(), d.severity.clone(), d.subject().to_string(), d.range.start.offset, d.range.end.offset)
+    };
+    let mut unmatched: Vec<_> = elsewhere_before.iter().map(key).collect();
+    let mut new_elsewhere = Vec::new();
+    for d in elsewhere {
+        match unmatched.iter().position(|k| *k == key(&d)) {
+            Some(i) => {
+                unmatched.swap_remove(i);
+            }
+            None => new_elsewhere.push(d),
+        }
+    }
+    introduced
+        .into_iter()
+        .chain(new_elsewhere)
+        .find(|d| d.severity == "error")
+        .map(|d| format!("[{}] {} ({}:{})", d.code, d.message, d.file, d.range.start.line))
+}
+
+/// Each edit's newlines continued at the indentation of the line the edit
+/// starts on, the way the checker's multi-line rewrites expect.
+fn indent_edits(source: &str, edits: &[Edit]) -> Vec<Edit> {
+    edits
+        .iter()
+        .map(|(s, e, text)| {
+            let line_start = source[..*s as usize].rfind('\n').map(|i| i + 1).unwrap_or(0);
+            let indent: String =
+                source[line_start..].chars().take_while(|c| *c == ' ' || *c == '\t').collect();
+            (*s, *e, text.replace('\n', &format!("\n{indent}")))
+        })
+        .collect()
 }
 
 /// The absolute path a diagnostic is about.
@@ -446,6 +621,14 @@ fn fix_one_file(
                     why,
                 }),
             },
+            // A `??` on an `Option` or a `Result`: its rewrite is applied
+            // by `apply_checked_rewrites`, after a check of its own, and a
+            // `?.` on one carries no repair and stays the help's.
+            "E0236" => {
+                if let Some(glyph_typechecker::AbsentRepair::Decline(why)) = &d.repair {
+                    report.declined.push(Declined { code: d.code.clone(), file: path.to_path_buf(), why: why.clone() });
+                }
+            }
             "E0200" => report.declined.push(Declined {
                 code: d.code.clone(),
                 file: path.to_path_buf(),
@@ -559,7 +742,7 @@ fn plan_e0242(
     let (edits, binding, import) = match &d.repair {
         Some(glyph_typechecker::AbsentRepair::Rewrite { edits, binding, import }) => (edits, binding, *import),
         Some(glyph_typechecker::AbsentRepair::Decline(why)) => return Err(why.clone()),
-        None => return Err("the checker attached no rewrite to this diagnostic".to_string()),
+        Some(glyph_typechecker::AbsentRepair::Checked { .. }) | None => return Err("the checker attached no rewrite to this diagnostic".to_string()),
     };
     for (s, e, _) in edits {
         if *e as usize > source.len() || s > e {
@@ -580,16 +763,7 @@ fn plan_e0242(
             }
         }
     };
-    let edits = edits
-        .iter()
-        .map(|(s, e, text)| {
-            let line_start = source[..*s as usize].rfind('\n').map(|i| i + 1).unwrap_or(0);
-            let indent: String =
-                source[line_start..].chars().take_while(|c| *c == ' ' || *c == '\t').collect();
-            (*s, *e, text.replace('\n', &format!("\n{indent}")))
-        })
-        .collect();
-    Ok((edits, import))
+    Ok((indent_edits(source, edits), import))
 }
 
 /// The edit that adds `import <path>` to a module, binding `binding`, or why

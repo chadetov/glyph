@@ -929,6 +929,27 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G429, decision record 157 (D18): `??` whose left operand resolves to
+    /// the prelude `Option<T>` or `Result<T, E>`, through any alias. Neither
+    /// is ever null or undefined, so the default replaces only the absence
+    /// of an operand that can itself be absent (a `?.` chain, a field
+    /// declared `f?:`, an index read), and a present one hands back the tag
+    /// object. Same fact as `?.` on one, so the same code, E0236.
+    ///
+    /// An operand that cannot be absent is refused whatever the default is.
+    /// One that can is refused unless the default is accepted where the
+    /// container is declared (`b.o ?? None` is accepted and typed as the
+    /// container). The node is `Unknown`, so nothing cascades. `message`
+    /// and `help` are computed where the `??` is, in the program's own
+    /// names, and `repair` is the `match` `glyph fix` writes and re-checks.
+    #[error("{message}")]
+    CoalesceOnTagged {
+        message: String,
+        help: String,
+        repair: AbsentRepair,
+        span: Span,
+    },
+
     /// G385, record 129 (D54): a value with no text form converted to text.
     /// One rule covers the three implicit conversions: a `${}` in a `"..."`
     /// or `"""..."""` literal, an operand of `+` whose other operand is a
@@ -1531,6 +1552,7 @@ impl TypeError {
             TypeError::NullableNested { span, .. } => *span,
             TypeError::NullableRead { span, .. } => *span,
             TypeError::OptionalChainOnTagged { span, .. } => *span,
+            TypeError::CoalesceOnTagged { span, .. } => *span,
             TypeError::SqlFromRuntimeValue { span, .. } => *span,
             TypeError::MutationOutsideMut { span, .. } => *span,
             TypeError::MutOnNonMutatingCall { span, .. } => *span,
@@ -1584,7 +1606,7 @@ impl TypeError {
             TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::NullableNested { .. } => "E0227",
             TypeError::NullableRead { .. } => "E0235",
-            TypeError::OptionalChainOnTagged { .. } => "E0236",
+            TypeError::OptionalChainOnTagged { .. } | TypeError::CoalesceOnTagged { .. } => "E0236",
             TypeError::SqlFromRuntimeValue { .. } => "E0239",
             TypeError::MutationOutsideMut { .. } => "E0240",
             TypeError::MutOnNonMutatingCall { .. } => "E0241",
@@ -1747,7 +1769,7 @@ impl TypeError {
                 builtin.runtime_name(),
             )));
         }
-        if let TypeError::NoTextForm { help, .. } = self {
+        if let TypeError::NoTextForm { help, .. } | TypeError::CoalesceOnTagged { help, .. } = self {
             return Some(Cow::Owned(help.clone()));
         }
         if let TypeError::OptionalChainOnTagged {
@@ -1937,6 +1959,7 @@ impl TypeError {
             TypeError::UncalledBuiltinMethod { .. } => unreachable!("answered above with the method it names"),
             TypeError::OptionalChainOnTagged { .. } => unreachable!("answered above with the receiver it names"),
             TypeError::NoTextForm { .. } => unreachable!("answered above with the value it names"),
+            TypeError::CoalesceOnTagged { .. } => unreachable!("answered above with its computed help"),
             TypeError::RecordRemoveFiniteKey { .. } => unreachable!("answered above with the key it names"),
             TypeError::SqlFromRuntimeValue { .. } => unreachable!("answered above with its computed help"),
             TypeError::MutationOutsideMut { .. } => unreachable!("answered above with its computed help"),
@@ -1987,6 +2010,9 @@ impl TypeError {
             ),
             TypeError::OptionalChainOnTagged { .. } => Some(
                 "`Option` and `Result` are tagged values at run time and never null, so `?.` never short-circuits on one: it reads the member off the tag object. `match` is the one place either is opened, and `?` is the one way a `Result` propagates.",
+            ),
+            TypeError::CoalesceOnTagged { .. } => Some(
+                "`Option` and `Result` are tagged values at run time and never null or undefined, so `??` never replaces one: its default stands in only for an operand that is missing, and a present `Option` comes back as the tag object, which prints as `[object Object]`. `tsc` accepts it. `match` is the one place either is opened.",
             ),
             TypeError::MutationOutsideMut { .. } => Some(
                 "Every change to a value whose type Glyph knows is a `mut` statement (D5), so `grep -n \"^\\s*mut \"` lists all of them. A call that changes its receiver counts, and it writes to a place, the same places `mut x = e` can: a name, a field, an index.",

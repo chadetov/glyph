@@ -1125,6 +1125,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "command",
+                                                                                        key_span: Span {
+                                                                                            start: 1512,
+                                                                                            end: 1519,
+                                                                                        },
                                                                                         value: String {
                                                                                             value: "add",
                                                                                             span: Span {
@@ -1139,6 +1143,10 @@ Module {
                                                                                     },
                                                                                     KeyValue {
                                                                                         key: "arg",
+                                                                                        key_span: Span {
+                                                                                            start: 1528,
+                                                                                            end: 1531,
+                                                                                        },
                                                                                         value: String {
                                                                                             value: "text",
                                                                                             span: Span {
@@ -1207,6 +1215,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "text",
+                                                                                        key_span: Span {
+                                                                                            start: 1568,
+                                                                                            end: 1572,
+                                                                                        },
                                                                                         value: Call {
                                                                                             callee: Member {
                                                                                                 object: Ident {
@@ -1330,6 +1342,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "show_done",
+                                                                        key_span: Span {
+                                                                            start: 1636,
+                                                                            end: 1645,
+                                                                        },
                                                                         value: Bool {
                                                                             value: false,
                                                                             span: Span {
@@ -1419,6 +1435,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "show_done",
+                                                                        key_span: Span {
+                                                                            start: 1693,
+                                                                            end: 1702,
+                                                                        },
                                                                         value: Bool {
                                                                             value: true,
                                                                             span: Span {
@@ -1551,6 +1571,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "id",
+                                                                                        key_span: Span {
+                                                                                            start: 1790,
+                                                                                            end: 1792,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "id",
                                                                                             span: Span {
@@ -1631,6 +1655,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "value",
+                                                                                        key_span: Span {
+                                                                                            start: 1839,
+                                                                                            end: 1844,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "id_str",
                                                                                             span: Span {
@@ -1645,6 +1673,10 @@ Module {
                                                                                     },
                                                                                     KeyValue {
                                                                                         key: "reason",
+                                                                                        key_span: Span {
+                                                                                            start: 1854,
+                                                                                            end: 1860,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "reason",
                                                                                             span: Span {
@@ -1789,6 +1821,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "id",
+                                                                                        key_span: Span {
+                                                                                            start: 1961,
+                                                                                            end: 1963,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "id",
                                                                                             span: Span {
@@ -1869,6 +1905,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "value",
+                                                                                        key_span: Span {
+                                                                                            start: 2010,
+                                                                                            end: 2015,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "id_str",
                                                                                             span: Span {
@@ -1883,6 +1923,10 @@ Module {
                                                                                     },
                                                                                     KeyValue {
                                                                                         key: "reason",
+                                                                                        key_span: Span {
+                                                                                            start: 2025,
+                                                                                            end: 2031,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "reason",
                                                                                             span: Span {
@@ -1980,6 +2024,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "name",
+                                                                        key_span: Span {
+                                                                            start: 2095,
+                                                                            end: 2099,
+                                                                        },
                                                                         value: Ident {
                                                                             name: "other",
                                                                             span: Span {
@@ -2839,6 +2887,10 @@ Module {
                                                                         fields: [
                                                                             KeyValue {
                                                                                 key: "next_id",
+                                                                                key_span: Span {
+                                                                                    start: 2972,
+                                                                                    end: 2979,
+                                                                                },
                                                                                 value: Number {
                                                                                     raw: "1",
                                                                                     span: Span {
@@ -2853,6 +2905,10 @@ Module {
                                                                             },
                                                                             KeyValue {
                                                                                 key: "items",
+                                                                                key_span: Span {
+                                                                                    start: 2984,
+                                                                                    end: 2989,
+                                                                                },
                                                                                 value: Array {
                                                                                     elements: [],
                                                                                     span: Span {
@@ -2915,6 +2971,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "path",
+                                                                                        key_span: Span {
+                                                                                            start: 3034,
+                                                                                            end: 3038,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "path",
                                                                                             span: Span {
@@ -2929,6 +2989,10 @@ Module {
                                                                                     },
                                                                                     KeyValue {
                                                                                         key: "reason",
+                                                                                        key_span: Span {
+                                                                                            start: 3046,
+                                                                                            end: 3052,
+                                                                                        },
                                                                                         value: Member {
                                                                                             object: Ident {
                                                                                                 name: "e",
@@ -3141,6 +3205,10 @@ Module {
                                                                                 fields: [
                                                                                     KeyValue {
                                                                                         key: "path",
+                                                                                        key_span: Span {
+                                                                                            start: 3199,
+                                                                                            end: 3203,
+                                                                                        },
                                                                                         value: Ident {
                                                                                             name: "path",
                                                                                             span: Span {
@@ -3155,6 +3223,10 @@ Module {
                                                                                     },
                                                                                     KeyValue {
                                                                                         key: "reason",
+                                                                                        key_span: Span {
+                                                                                            start: 3211,
+                                                                                            end: 3217,
+                                                                                        },
                                                                                         value: Member {
                                                                                             object: Index {
                                                                                                 object: Ident {
@@ -3361,6 +3433,10 @@ Module {
                                             fields: [
                                                 KeyValue {
                                                     key: "indent",
+                                                    key_span: Span {
+                                                        start: 3365,
+                                                        end: 3371,
+                                                    },
                                                     value: Number {
                                                         raw: "2",
                                                         span: Span {
@@ -3529,6 +3605,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "path",
+                                                                        key_span: Span {
+                                                                            start: 3479,
+                                                                            end: 3483,
+                                                                        },
                                                                         value: Ident {
                                                                             name: "path",
                                                                             span: Span {
@@ -3543,6 +3623,10 @@ Module {
                                                                     },
                                                                     KeyValue {
                                                                         key: "reason",
+                                                                        key_span: Span {
+                                                                            start: 3491,
+                                                                            end: 3497,
+                                                                        },
                                                                         value: Member {
                                                                             object: Ident {
                                                                                 name: "e",
@@ -3884,6 +3968,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "id",
+                                                                        key_span: Span {
+                                                                            start: 3955,
+                                                                            end: 3957,
+                                                                        },
                                                                         value: Member {
                                                                             object: Ident {
                                                                                 name: "file",
@@ -3906,6 +3994,10 @@ Module {
                                                                     },
                                                                     KeyValue {
                                                                         key: "text",
+                                                                        key_span: Span {
+                                                                            start: 3973,
+                                                                            end: 3977,
+                                                                        },
                                                                         value: Ident {
                                                                             name: "text",
                                                                             span: Span {
@@ -3920,6 +4012,10 @@ Module {
                                                                     },
                                                                     KeyValue {
                                                                         key: "done",
+                                                                        key_span: Span {
+                                                                            start: 3985,
+                                                                            end: 3989,
+                                                                        },
                                                                         value: Bool {
                                                                             value: false,
                                                                             span: Span {
@@ -3955,6 +4051,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "next_id",
+                                                                        key_span: Span {
+                                                                            start: 4021,
+                                                                            end: 4028,
+                                                                        },
                                                                         value: Binary {
                                                                             op: Add,
                                                                             left: Member {
@@ -3991,6 +4091,10 @@ Module {
                                                                     },
                                                                     KeyValue {
                                                                         key: "items",
+                                                                        key_span: Span {
+                                                                            start: 4048,
+                                                                            end: 4053,
+                                                                        },
                                                                         value: Array {
                                                                             elements: [
                                                                                 Spread(
@@ -5181,6 +5285,10 @@ Module {
                                                                                             fields: [
                                                                                                 KeyValue {
                                                                                                     key: "next_id",
+                                                                                                    key_span: Span {
+                                                                                                        start: 5061,
+                                                                                                        end: 5068,
+                                                                                                    },
                                                                                                     value: Member {
                                                                                                         object: Ident {
                                                                                                             name: "file",
@@ -5203,6 +5311,10 @@ Module {
                                                                                                 },
                                                                                                 KeyValue {
                                                                                                     key: "items",
+                                                                                                    key_span: Span {
+                                                                                                        start: 5096,
+                                                                                                        end: 5101,
+                                                                                                    },
                                                                                                     value: Call {
                                                                                                         callee: Member {
                                                                                                             object: Ident {
@@ -5312,6 +5424,10 @@ Module {
                                                                                                                                                             },
                                                                                                                                                             KeyValue {
                                                                                                                                                                 key: "done",
+                                                                                                                                                                key_span: Span {
+                                                                                                                                                                    start: 5238,
+                                                                                                                                                                    end: 5242,
+                                                                                                                                                                },
                                                                                                                                                                 value: Bool {
                                                                                                                                                                     value: true,
                                                                                                                                                                     span: Span {
@@ -5768,6 +5884,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "next_id",
+                                                                        key_span: Span {
+                                                                            start: 5684,
+                                                                            end: 5691,
+                                                                        },
                                                                         value: Member {
                                                                             object: Ident {
                                                                                 name: "file",
@@ -5790,6 +5910,10 @@ Module {
                                                                     },
                                                                     KeyValue {
                                                                         key: "items",
+                                                                        key_span: Span {
+                                                                            start: 5715,
+                                                                            end: 5720,
+                                                                        },
                                                                         value: Call {
                                                                             callee: Member {
                                                                                 object: Ident {

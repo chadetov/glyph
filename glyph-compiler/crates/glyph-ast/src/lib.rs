@@ -929,8 +929,11 @@ pub enum TemplatePart {
 pub enum ObjectField {
     /// `key: expr`. `key` holds the field name verbatim; a key that is not a
     /// valid identifier (e.g. `"Content-Type"`) was written quoted in source and
-    /// is re-quoted on output (see `render_object_key`).
-    KeyValue { key: Ident, value: Expr, span: Span },
+    /// is re-quoted on output (see `render_object_key`). `key_span` is the
+    /// key as written, quotes included, so a diagnostic about the field
+    /// itself (a field the declared record does not declare, D57) underlines
+    /// the name rather than the whole `key: value`.
+    KeyValue { key: Ident, key_span: Span, value: Expr, span: Span },
     /// `...expr` (D11)
     Spread { value: Expr, span: Span },
 }

@@ -4323,8 +4323,9 @@ impl<'a> Emitter<'a> {
                 let mut fs = Vec::with_capacity(fields.len());
                 for f in fields {
                     fs.push(match f {
-                        ObjectField::KeyValue { key, value, span } => ObjectField::KeyValue {
+                        ObjectField::KeyValue { key, key_span, value, span } => ObjectField::KeyValue {
                             key: key.clone(),
+                            key_span: *key_span,
                             value: self.hoist_tries(value)?,
                             span: *span,
                         },
@@ -11168,8 +11169,9 @@ fn place_awaits(e: &Expr) -> Expr {
             fields: fields
                 .iter()
                 .map(|f| match f {
-                    ObjectField::KeyValue { key, value, span } => ObjectField::KeyValue {
+                    ObjectField::KeyValue { key, key_span, value, span } => ObjectField::KeyValue {
                         key: key.clone(),
+                        key_span: *key_span,
                         value: place_awaits(value),
                         span: *span,
                     },

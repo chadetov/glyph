@@ -7299,6 +7299,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build), with the same coarse proxy over `tests/negative`, the 53 `catches/` cases and all 32 `examples/apps`: 15,703 diagnostics, 9,521 of them (60.6%) on a line indented two or more spaces; errors alone, 8,900 of 12,301 (72.4%). Counting only each `tests/negative` entry's own files gives 152 diagnostics, 104 indented (68.4%). Within about a point of 0.1.154; the conclusion stands.*
 
+  *Reproduced against 0.1.166 (the release build), with the same coarse proxy over `tests/negative`, the 54 `catches/` cases and all 32 `examples/apps`: 15,705 diagnostics, 9,523 of them (60.6%) on a line indented two or more spaces; errors alone, 8,902 of 12,303 (72.4%). Counting only each `tests/negative` entry's own files gives 152 diagnostics, 104 indented (68.4%). Unchanged from 0.1.160; the conclusion stands.*
+
 - **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
   `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
   key a file by where it sits. The typechecker keys a locally declared type by
@@ -7363,6 +7365,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
 
   *Reproduced against 0.1.160 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
+
+  *Reproduced against 0.1.166 (the release build): `src/models.glyph` headed `module app/models` and imported from `main` as `models` is `glyph check --no-tsc --no-test` with one unused-import warning and exit 0, nothing naming the disagreement.*
 
 - **G173. [FIXED] `glyph fix` welded a pruned import onto the line below it and
   reported success.** Pruning some names out of an `import M { a, b }` spliced
@@ -10248,6 +10252,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
 
+  *Reproduced against 0.1.166 (the release build): the same element draws ``argument type mismatch: expected `record`, found `record`: missing field `count` `` (E0211).*
+
 - **G246. [FIXED] A component whose one parameter is `unknown` or a bare generic
   passes Glyph and fails `tsc` once it is given attributes.**
   `component Greeting(p: unknown)` with `<Greeting name="x" />`, and
@@ -12622,6 +12628,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
 
+  *Reproduced against 0.1.166 (the release build): `json` / `// generic head` / `.stringify<number>(1)` / `.length` is a fixed point of `glyph fmt`, and `json.stringify<number>(1)` followed by a comment is laid out with `.stringify<number>(1)` on its own line.*
+
 - **G337. A chain broken inside a JSX attribute value glues the closing `}`
   onto its last step.** `title={props` / `.title` / `// attr` / `.trim()}
   class="c">` keeps the brace, the next attribute and the element's `>` on
@@ -12640,6 +12648,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`.*
 
   *Reproduced against 0.1.160 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`.*
+
+  *Reproduced against 0.1.166 (the release build): `.trim()} class="c">` stays on the step's line after `glyph fmt`, and `fmt --check` exits 0.*
 
 - **G338. [FIXED] `glyph fmt` deletes a `where` refinement on a tagged union.**
   `pub type Salary = A | B where value >= 1` is E0300 (a refinement on a
@@ -13028,6 +13038,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
 
+  *Reproduced against 0.1.166 (the release build) by reading `glyph-wasm`: `compile_inner` still calls `emit_module` past type errors ("Emit best-effort: the playground shows the TypeScript even when later-phase diagnostics exist").*
+
 - **G353. An applyEdit that writes one of an E0200's missing arms is refused
   as introducing an E0200.** An E0200's identity includes its list of missing
   variants (record 88 §4b), so adding one arm of two leaves an E0200 with a
@@ -13068,6 +13080,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
 
   *Reproduced against 0.1.160 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
+
+  *Reproduced against 0.1.166 (the release build): `import std/string` above `import std/array` is left in that order by `glyph fmt`, and `fmt --check` exits 0.*
 
 - **G359. `glyph fix` removes the imports an E0200 in the same file needs.**
   With a `match` that has only `Pending` and `import orders { OrderStatus,
@@ -13115,6 +13129,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build) by record 106's probe `g/g5_first`: the decline still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
 
   *Reproduced against 0.1.160 (the release build) by record 106's probe `g/g5_first`: the decline still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
+
+  *Reproduced against 0.1.166 (the release build) by record 106's probe `g5_first`: the decline still says "its arm `other` handles `Loaded` now, so renaming this head to `Loaded` would move that case out of it".*
 
 - **G361. After `glyph fix` applies a rename that completes a match, it still
   declines the E0200 the rename fixed.** With a lowercase variant, `fix`
@@ -13246,6 +13262,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304.*
 
   *Reproduced against 0.1.160 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304.*
+
+  *Reproduced against 0.1.166 (the release build) by record 108's probes `fa-twoerr` and `twoerr-is`: two refused `is` patterns, and two refused `Doc.is(v)` calls, in two functions draw one E0304 (at `main:3` only) under `check --no-tsc`.*
 
 - **G364. E0304 names a nested generic application instead of the field
   inside it that has no check.** With a private `Box<T> = { v: T, h: H }`
@@ -13547,6 +13565,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member.*
 
+  *Reproduced against 0.1.166 (the release build) by record 115's probe m1: ``field `m` must be Record<Tier, int>`` with path `["m"]`, for a map with a stray key and a missing member; the probe passes full `check`.*
+
 - **G377. [FIXED] A refined string-literal union key is checked by its predicate, not
   as an exact set.** With `type Tier = "a" | "b" | "c"` and `type T2 = Tier
   where value != "c"`, `json.parse<Record<T2, int>>` returns `Ok` for `{}` and
@@ -13619,6 +13639,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.154 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1240, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, a lower depth than 0.1.148 reached.*
 
   *Reproduced against 0.1.160 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1248, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, the same depth as 0.1.154.*
+
+  *Reproduced against 0.1.166 (the release build) by record 116's probe `d/` (mode `eq`): passes at 1249, throws `RangeError: Maximum call stack size exceeded` in `__glyph_eq` at 1250 and 1300, the same depth as 0.1.160.*
 
   Scheduled after G272 is decided, in its own release (record 116).
 
@@ -14635,6 +14657,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.160 (the release build): `let cb: fn(number) -> void = save_void`, a `return` of it and a record field holding it each give ``[E0204] type mismatch: expected `function`, found `async function` `` with the general help.*
 
+  *Reproduced against 0.1.166 (the release build): `let cb: fn(number) -> void = save_void`, a `return` of it and a record field holding it each give ``[E0204] type mismatch: expected `function`, found `async function` `` with the general help "Change the value, or the declared type, so the two agree."*
+
 - **G422. A refused callback erases a result its argument does not decide.**
   When an argument is refused for its kind of function (E0211), the call's
   result is erased to `Unknown` if its declared return mentions a type
@@ -14737,6 +14761,8 @@ and is the owner's to confirm.
   s.opt?.pop()` names `array.get(s.opt, array.len(s.opt) - 1)` and `mut
   s.opt.pop()`.*
 
+  *Reproduced against 0.1.166 (the release build): the E0240 help on `let n = s.opt?.pop()` still names `array.get(s.opt, array.len(s.opt) - 1)` and `mut s.opt.pop()`, a program (record 152's x09) that passes `check --no-tsc` and fails full `check` with TS2345 twice and TS18048; E0241 on `mut s.opt?.map(...)` still says ``write `mut s.opt = ` before the call``; and E0242 on `rows[0].opt?.at(0)` still writes `array.get(rows[0].opt, 0)`.*
+
   A second instance, found by record 155 (F4): with `type R = { opt?:
   Array<number>, }`, the E0242 help for `rows[0].opt?.at(0)` writes
   `array.get(rows[0].opt, 0)`, which drops the `?.` the same way and which
@@ -14759,6 +14785,8 @@ and is the owner's to confirm.
   error under `--no-tsc` (two unused-name warnings) and TS2550 under full
   `check`.*
 
+  *Reproduced against 0.1.166 (the release build): `xs.toSorted(cmp)` and `xs.findLastIndex(pred)` give no diagnostics under `--no-tsc` and TS2550 ("Try changing the 'lib' compiler option to 'es2023' or later") under full `check`; the emitted tsconfig lib is still `["es2022", "dom"]`.*
+
 - **G428. String indexing, `charAt` and a one-unit `slice` hand back half a
   surrogate pair.** On `s = "a😀"`, `s[2]`, `s.charAt(2)` and `string.slice(s,
   2, 3)` all give the lone second half `"\ude00"`, which reads as a character
@@ -14770,6 +14798,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.160 (the release build): with `s = "a😀"`, a program
   binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check`
   and prints `1 1 1 true true`: three one-unit strings, all the same half.*
+
+  *Reproduced against 0.1.166 (the release build): with `s = "a😀"`, a program binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check` and prints `1 1 1 true true 56832`: three one-unit strings, all the lone low surrogate `0xDE00`, while `string.char_at(s, 2)` answers `None`.*
 
 - **G429. [FIXED] `??` on an `Option` or a `Result` hands back the object.** An
   `Option` and a `Result` are tagged objects at run time and never nullish,
@@ -14990,6 +15020,11 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): the program above draws
   E0204 with ``found `record`: missing field `name` `` under `check
   --no-tsc`.*
+
+  Since 0.1.166 the same display reaches a value held by an unannotated
+  `const`: with a structural record declared, a `const` missing a field
+  draws ``expected `record`, found `record`: missing field ...``, both sides
+  the category word (record 170).
 
 - **G438. An `==` or `!=` whose operands can never be equal passes without
   `tsc`.** With `m: Mode` and `type Mode = "read" | "write"`, `m == "zzz"`

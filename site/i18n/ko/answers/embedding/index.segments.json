@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/embedding/index.html",
   "locale": "ko",
-  "source_hash": "407d584aaaf4d048",
+  "source_hash": "44473fdf285d315a",
   "segments": [
     {
       "id": "title",
@@ -161,10 +161,10 @@
       "tr": "앞으로 할 것"
     },
     {
-      "id": "h-94f9623f",
+      "id": "h-a9a4fcb1",
       "kind": "html",
-      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).",
-      "tr": "아직 watch 모드는 없습니다. <code>.glyph</code> 소스를 편집한 뒤에는 <code>glyph build</code>를 다시 실행하세요(<code>dev</code> 스크립트에 연결해 두면 됩니다)."
+      "en": "<code>glyph build --watch</code> rebuilds on every save of a <code>.glyph</code> file, but beside a Vite dev server a Glyph change reloads the whole page rather than hot-swapping the component. Keep the output outside Vite's build directory (<code>dist/</code> by default), which its dev server does not watch.",
+      "tr": "<code>glyph build --watch</code>는 <code>.glyph</code> 파일을 저장할 때마다 다시 빌드하지만, Vite 개발 서버와 함께 쓰면 Glyph를 바꿀 때 컴포넌트를 핫 스왑하지 않고 페이지 전체를 새로 고칩니다. 출력은 Vite의 빌드 디렉터리(기본값 <code>dist/</code>) 밖에 두세요. 개발 서버가 그 디렉터리를 감시하지 않습니다."
     },
     {
       "id": "h-19a4b124",

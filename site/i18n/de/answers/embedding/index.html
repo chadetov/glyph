@@ -1,7 +1,7 @@
 ---
 title: Kann ich Glyph in meiner bestehenden App einführen? · Glyph
 description: Kein Rewrite: Die App bleibt in TypeScript, der Domänenkern wird in Glyph geschrieben, und die kompilierten Module importierst du wie jede lokale Datei. Es funktioniert mit einem normalen Vite.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; Zurück | Kann ich meine bestehenden TypeScript-, JavaScript- und npm-Bibliotheken verwenden?
 next: /answers/typed-apis/ | Weiter &rarr; | Muss ich für jede API einen Validator von Hand schreiben?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> In Arbeit</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Noch kein Watch-Modus: Führ <code>glyph build</code> nach dem Bearbeiten von <code>.glyph</code>-Quellen erneut aus (bind es in dein <code>dev</code>-Skript ein).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> baut bei jedem Speichern einer <code>.glyph</code>-Datei neu, aber neben einem Vite-Dev-Server lädt eine Glyph-Änderung die ganze Seite neu, statt die Komponente im laufenden Betrieb auszutauschen. Leg die Ausgabe außerhalb von Vites Build-Verzeichnis ab (<code>dist/</code> standardmäßig), denn der Dev-Server beobachtet es nicht.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Module, die <code>std/fs</code> oder <code>std/net</code> verwenden, brauchen <code>@types/node</code> im Host, wie jedes TypeScript, das Node anfasst.</span></span></li>
           </ul>
         </section>

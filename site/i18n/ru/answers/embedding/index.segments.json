@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/embedding/index.html",
   "locale": "ru",
-  "source_hash": "407d584aaaf4d048",
+  "source_hash": "44473fdf285d315a",
   "segments": [
     {
       "id": "title",
@@ -161,10 +161,10 @@
       "tr": "В работе"
     },
     {
-      "id": "h-94f9623f",
+      "id": "h-a9a4fcb1",
       "kind": "html",
-      "en": "No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script).",
-      "tr": "Режима наблюдения пока нет: после правки исходников <code>.glyph</code> запускайте <code>glyph build</code> заново (добавьте это в свой скрипт <code>dev</code>)."
+      "en": "<code>glyph build --watch</code> rebuilds on every save of a <code>.glyph</code> file, but beside a Vite dev server a Glyph change reloads the whole page rather than hot-swapping the component. Keep the output outside Vite's build directory (<code>dist/</code> by default), which its dev server does not watch.",
+      "tr": "<code>glyph build --watch</code> пересобирает при каждом сохранении файла <code>.glyph</code>, но рядом с dev-сервером Vite изменение в Glyph перезагружает всю страницу, а не подменяет компонент на лету. Держите вывод за пределами каталога сборки Vite (по умолчанию <code>dist/</code>): его dev-сервер этот каталог не отслеживает."
     },
     {
       "id": "h-19a4b124",

@@ -1,7 +1,7 @@
 ---
 title: ¿Puedo adoptar Glyph dentro de mi app actual? · Glyph
 description: Sin reescribir: mantén la app en TypeScript, escribe el núcleo del dominio en Glyph e importa los módulos compilados como cualquier archivo local. Funciona con Vite estándar.
-source_hash: 407d584aaaf4d048
+source_hash: 44473fdf285d315a
 prev: /answers/imports/ | &larr; Anterior | ¿Puedo usar mis librerías de TypeScript, JavaScript y npm?
 next: /answers/typed-apis/ | Siguiente &rarr; | ¿Tengo que escribir a mano un validador para cada API?
 ---
@@ -58,7 +58,7 @@ const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> En camino</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Todavía no hay modo watch: vuelve a ejecutar <code>glyph build</code> después de editar el código <code>.glyph</code> (conéctalo a tu script <code>dev</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>glyph build --watch</code> recompila cada vez que guardas un archivo <code>.glyph</code>, pero junto a un servidor de desarrollo de Vite un cambio en Glyph recarga la página entera en lugar de reemplazar el componente en caliente. Deja la salida fuera del directorio de build de Vite (<code>dist/</code> por defecto), que su servidor de desarrollo no vigila.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Los módulos que usan <code>std/fs</code> o <code>std/net</code> necesitan <code>@types/node</code> en el proyecto anfitrión, como cualquier TypeScript que toque Node.</span></span></li>
           </ul>
         </section>

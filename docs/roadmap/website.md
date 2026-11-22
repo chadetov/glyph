@@ -102,13 +102,15 @@ new structure, including the answers that were behind their English
 **2026-11-22 · A React component on `/from-typescript/`; what Breaking means
 on `/teams/`.** `/from-typescript/` now shows, right after the four deltas, an
 invite list written in TSX and in Glyph side by side: an empty state, a count
-line and a label per row, with `&&` and `? :` on the TSX side and `<match>` on
-the Glyph side. The Glyph half is compiled by `check_docs_compile.py` against
+line and a label per row, with `&&` and `? :` on the TSX side and `<if>` and
+`<match>` elements on the Glyph side. The page's "there is no if" now says
+that holds for statements and expressions, and that JSX has `<if>`. The Glyph half is compiled by `check_docs_compile.py` against
 React 18. A line under it points at `/answers/tooling/` and
 `/answers/debugging/` and says what `glyph build --watch` does with a Vite dev
 server, as measured on 0.1.166: a rebuild on every save of a `.glyph` file, a
 full page reload rather than a hot swap, and no reload at all when the output
-sits in Vite's `dist/`. `/teams/` has a short section on what a Breaking release
+sits in Vite's `dist/`; `/answers/embedding/`, which still said there was no
+watch mode, now says the same. `/teams/` has a short section on what a Breaking release
 usually means (the compiler refusing a program that was already wrong, with
 0.1.159 and 0.1.162 as examples and 0.1.160 as the counterexample), that a
 release reaches a project only when its pin moves, and that the emitted

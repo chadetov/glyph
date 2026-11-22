@@ -1,0 +1,16 @@
+---
+version: 0.1.164
+month: 2026-11
+date: 2026-11-22
+headline: Positions inside ${} point at the text they name
+---
+            <p>Every position inside a <code>${}</code> was off. In <code>"n=${b.nik} end"</code>, E0210 underlined <code>{b.ni</code> instead of <code>b.nik</code>, because each interpolation was placed from the opening quote plus its index in the decoded string, which skipped the quote. An escape, a <code>\${</code> or a non-ASCII character earlier in the string pushed it further. The editor's ranges, hover and go-to-definition inside a template were off by the same amount, and so were the ranges agents edit against.</p>
+
+            <p>The lexer now records which source bytes produced each character of a string, and each interpolation is placed at its exact bytes. Underlines, hover, definition and <code>glyph fix</code> land on the right text after an escape, a <code>\${</code>, accented text, an emoji or a line break, in plain and triple-quoted strings. A one-letter typo inside a template is now renamed by <code>glyph fix</code> instead of declined.</p>
+
+            <p>It also fixes a crash. A diagnostic inside a <code>${}</code> after an emoji made 0.1.162 and 0.1.163 panic with "end byte index ... is not a char boundary" (exit 101). It is now reported normally.</p>
+
+            <p>One case is left: an escape written inside the interpolation itself, such as <code>"a${f(\"x\") + zz}"</code>, still leaves later positions early, and <code>glyph fix</code> declines there. That spelling only exists to get a nested string past the rule that says to bind it with <code>let</code> first, so 0.1.168 makes it a parse error (G441).</p>
+
+            <h3>Not breaking</h3>
+            <p>Nothing that compiled before is refused. Across 283 example apps, files, catch cases and test programs, every diagnostic's code and message is the same as on 0.1.163; four positions move by one column, all inside a <code>${}</code>. The emitted TypeScript is byte-identical; source maps change only inside interpolations.</p>

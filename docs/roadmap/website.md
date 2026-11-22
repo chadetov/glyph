@@ -99,6 +99,21 @@ are the ones the pages had. The translations in the nine languages follow the
 new structure, including the answers that were behind their English
 (`codegen`, `parse-errors`, `typed-apis`, `early-errors`).
 
+**2026-11-22 · A React component on `/from-typescript/`; what Breaking means
+on `/teams/`.** `/from-typescript/` now shows, right after the four deltas, an
+invite list written in TSX and in Glyph side by side: an empty state, a count
+line and a label per row, with `&&` and `? :` on the TSX side and `<match>` on
+the Glyph side. The Glyph half is compiled by `check_docs_compile.py` against
+React 18. A line under it points at `/answers/tooling/` and
+`/answers/debugging/` and says what `glyph build --watch` does with a Vite dev
+server, as measured on 0.1.166: a rebuild on every save of a `.glyph` file, a
+full page reload rather than a hot swap, and no reload at all when the output
+sits in Vite's `dist/`. `/teams/` has a short section on what a Breaking release
+usually means (the compiler refusing a program that was already wrong, with
+0.1.159 and 0.1.162 as examples and 0.1.160 as the counterexample), that a
+release reaches a project only when its pin moves, and that the emitted
+TypeScript stays usable. Both in the nine languages.
+
 ## Next
 
 1. **Launch readiness.** An FAQ that answers why the compiler is written in
@@ -115,14 +130,3 @@ new structure, including the answers that were behind their English
 4. **Launch.** Show HN, then r/typescript and the other channels in the launch
    plan, posted by the author. Target: the week of 8 December 2026, or mid
    January.
-5. **A React component on `/from-typescript/`.** One component written in
-   Glyph beside the same component in TSX, conditional rendering included, so
-   a React developer sees what `match` in JSX costs before reading further.
-   With it, one line on editor support, debugging and hot reload that links
-   `/answers/tooling/` and `/answers/debugging/`; check whether the Glyph half
-   has a watch mode (G123) before the page claims hot reload for it. From two
-   outside reviews read on 2026-11-22, both of which missed the tooling pages.
-6. **A stability note on `/teams/`.** What a breaking release usually
-   means here (the compiler starts refusing a program that was already wrong),
-   how to pin an exact version, and that the emitted TypeScript stays as the
-   fallback. The same reviews read the count of breaking releases as churn.

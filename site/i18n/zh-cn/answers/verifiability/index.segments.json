@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "不带标注的 <code>const</code> 什么也不声称，有意保持为 <code>Unknown</code>：从初始化表达式推断它的类型是另一个问题，误报的范围也不同。在 <code>glyph check --no-tsc</code>、语言服务器和 playground 下，两个修复都是 Breaking，因为每个都开始拒绝上一个版本接受的程序；而完整的 <code>glyph build</code> 在两种情况下早已通过 <code>tsc</code> 报错。"
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "多余的字段仍由 <code>tsc</code> 发现"
+      "en": "A field the record does not declare",
+      "tr": "记录没有声明的字段"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "有一项记录字面量检查仍归 <code>tsc</code> 而不归 Glyph。<code>glyph build</code> 会因它停止；<code>glyph check --no-tsc</code>、语言服务器和 playground 则不报（G273）。"
+      "en": "a misspelled optional field: now E0210",
+      "tr": "拼错的可选字段：现在是 E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph：多余的字段，留给 tsc"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "声明的记录中没有的键，过去能通过 Glyph 的检查器，所以可选字段里的拼写错误会丢掉它的值，只有 <code>tsc</code> 会发现。现在编辑器、智能体工具和 <code>glyph check --no-tsc</code> 都会拒绝它，报出与读取同一字段相同的错误，<code>glyph fix</code> 会把 <code>nik</code> 改名为 <code>nick</code>。"
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "来自 tsc 的 TS2353"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "详情 <span class=\"hint\">在哪里判定，哪些不判定</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "详情 <span class=\"hint\">tsc 如何报告它</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "带有声明的记录中没有的字段的字面量能通过 Glyph 的检查器，而 <code>tsc</code> 会在生成的 TypeScript 上以 <code>TS2353</code> 拒绝它，并映射回该字面量。"
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。"
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "当前状态"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "现已提供 <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "现已提供 <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "带标注的模块级 <code>const</code> 上的字段拼写错误"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "声明的记录中没有的对象字面量键"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "拼写检查（<code>E0220</code>）现在同样覆盖模块中声明的联合类型和通过命名空间导入得到的联合类型（<code>model.Nooo(_)</code>），无论是构造器形式还是不带参数的形式：直到 0.1.115，导入联合类型上拼错的不带参数分支头（<code>Loadign</code>，没有参数）会被当作覆盖了某个变体而不报任何东西，而本地联合类型上同样的拼写错误早已报告 <code>E0220</code>；现在两种写法都会报告。拼错的不带参数分支还会提前一个阶段触发 <code>E0103</code>，所以同一个名字你会得到两行。"
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "包含展开的字面量没有类型，多余的字段仍被接受"
+      "en": "A literal holding a spread has no type",
+      "tr": "包含展开的字面量没有类型"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "包含展开的字面量没有类型，多余的字段仍被接受，而 <code>tsc</code> 会在新建的字面量上以 TS2353 拒绝它（G273）。"
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "包含展开的字面量没有类型，所以缺少的字段或类型不对的字段交给 <code>tsc</code>。写在展开旁边的键仍会按声明的记录检查。"
     },
     {
       "id": "h-cf31f508",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "型注釈のない <code>const</code> は何も主張せず、意図して <code>Unknown</code> のままにしています。初期化式から推論するのは別の問題で、誤検出の範囲も異なります。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、Playground では破壊的です。どちらも前のリリースが受け入れていたプログラムを検出し始めるからです。完全な <code>glyph build</code> は、どちらの場合もすでに <code>tsc</code> によって赤になっていました。"
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "余分なフィールドは、今も <code>tsc</code> が捕まえる"
+      "en": "A field the record does not declare",
+      "tr": "レコードが宣言していないフィールド"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "レコードリテラルの検査のうち 1 つは、今も Glyph ではなく <code>tsc</code> の担当です。<code>glyph build</code> はそこで止まりますが、<code>glyph check --no-tsc</code>、言語サーバー、Playground は何も言いません（G273）。"
+      "en": "a misspelled optional field: now E0210",
+      "tr": "綴りを間違えた省略可能フィールド: 現在は E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph：余分なフィールド、tsc に任せている"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "宣言されたレコードにないキーは、以前は Glyph のチェッカーを通っていました。そのため省略可能なフィールドのタイプミスはその値を捨ててしまい、気づくのは <code>tsc</code> だけでした。今はエディタ、エージェントのツール、<code>glyph check --no-tsc</code> がこれを拒否し、同じフィールドを読んだときと同じエラーを出します。<code>glyph fix</code> は <code>nik</code> を <code>nick</code> に書き換えます。"
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "tsc の TS2353"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "詳細 <span class=\"hint\">どこで判定され、何が対象外か</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "詳細 <span class=\"hint\">tsc がどう報告するか</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "宣言されたレコードにないフィールドを持つリテラルは Glyph のチェッカーを通過し、<code>tsc</code> が出力された TypeScript に対して <code>TS2353</code> として拒否します。エラーはリテラルの位置に対応付けられます。"
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。"
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "現状"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "提供中 <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "提供中 <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "型注釈付きのモジュールレベルの <code>const</code> でのフィールドのタイプミス"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "宣言されたレコードにないオブジェクトリテラルのキー"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "タイプミスの検査（<code>E0220</code>）は今、モジュール内で宣言したユニオンにも、名前空間インポート経由で届くユニオン（<code>model.Nooo(_)</code>）にも、コンストラクタの形でも素の形でも同じように働きます。0.1.115 までは、インポートしたユニオンに対する綴り間違いの素の先頭（引数のない <code>Loadign</code>）はバリアントを網羅したものとみなされ、何も言われませんでした。ローカルのユニオンなら同じタイプミスがすでに <code>E0220</code> を報告していたのにです。今はどちらの書き方でも報告されます。綴りを間違えた素のアームは 1 段前で <code>E0103</code> にも引っかかるので、同じ名前について両方の行が出ます。"
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられる"
+      "en": "A literal holding a spread has no type",
+      "tr": "スプレッドを含むリテラルは型を持たない"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられます。<code>tsc</code> は新しいリテラルでは TS2353 として拒否します（G273）。"
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "スプレッドを含むリテラルは型を持たないため、欠けているフィールドや型の違うフィールドは <code>tsc</code> に任されます。スプレッドの横に書かれたキーは、引き続き宣言されたレコードに照らして検査されます。"
     },
     {
       "id": "h-cf31f508",

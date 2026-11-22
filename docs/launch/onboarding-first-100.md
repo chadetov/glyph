@@ -113,7 +113,7 @@ point where they were stuck, surprised or annoyed. Specifically:
   tested.
 - Claim only what `catches/` demonstrates and `check_catches.py` keeps true.
   Glyph does not catch every error TypeScript misses, and in some places it
-  catches less than `tsc` does on its own (G273), with `tsc` running in the
-  build to cover it.
+  catches less than `tsc` does on its own (npm values, G257), with `tsc`
+  running in the build to cover it.
 - Say plainly that values from npm are typed by `tsc`, not by Glyph's checker
   (G257). People will find it in their first hour with React.

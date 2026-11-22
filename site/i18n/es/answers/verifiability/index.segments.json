@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "es",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "Un <code>const</code> sin anotar no afirma nada y se queda en <code>Unknown</code> a propósito: inferirlo a partir del inicializador es otra cuestión, con otro margen de falsos positivos. Los dos arreglos son breaking con <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground, ya que cada uno empieza a detectar un programa que la versión anterior aceptaba; un <code>glyph build</code> completo ya estaba en rojo a través de <code>tsc</code> en los dos casos."
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "Un campo de más todavía lo detecta <code>tsc</code>"
+      "en": "A field the record does not declare",
+      "tr": "Un campo que el record no declara"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "Hay una comprobación de literales de record que todavía es de <code>tsc</code> y no de Glyph. <code>glyph build</code> se detiene en ella; <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground no dicen nada (G273)."
+      "en": "a misspelled optional field: now E0210",
+      "tr": "un campo opcional mal escrito: ahora E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph: un campo de más, que se deja a tsc"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "Una clave que el record declarado no tiene pasaba antes el checker de Glyph, así que una errata en un campo opcional tiraba su valor y solo <code>tsc</code> lo notaba. El editor, las herramientas para agentes y <code>glyph check --no-tsc</code> la rechazan ahora, con el mismo error que da leer ese campo, y <code>glyph fix</code> renombra <code>nik</code> a <code>nick</code>."
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "TS2353 de tsc"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "Detalles <span class=\"hint\">dónde se comprueba y qué queda fuera</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "Detalles <span class=\"hint\">cómo lo informa tsc</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "Un literal con un campo que el record declarado no tiene pasa el checker de Glyph, y <code>tsc</code> lo rechaza sobre el TypeScript generado como <code>TS2353</code>, trasladado de vuelta al literal."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Se comprueba dondequiera que un literal escrito se encuentra con un tipo declarado: un <code>let</code>, un <code>return</code>, un argumento de llamada, la carga de una variante, una asignación <code>mut</code>, un campo anidado, un elemento de array y el argumento de <code>Some</code>, <code>Ok</code> o <code>Err</code>, que <code>tsc</code> deja pasar. Un binding que guarda un record más amplio se sigue aceptando, como lo acepta <code>tsc</code>, y también los campos que vienen de un spread y las claves escritas para un <code>Record&lt;K, V&gt;</code>."
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "Dónde está"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "Disponible hoy <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "Disponible hoy <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "Una errata en un campo de un <code>const</code> anotado de nivel de módulo"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "Una clave de un literal de objeto que su record declarado no tiene"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "La comprobación de erratas (<code>E0220</code>) cubre ahora por igual una unión declarada en el módulo y una a la que se llega a través de un import de namespace (<code>model.Nooo(_)</code>), con forma de constructor o sin argumentos: hasta la 0.1.115, una cabeza sin argumentos mal escrita sobre una unión importada (<code>Loadign</code>, sin argumentos) contaba como si cubriera una variante y no decía nada, mientras que la misma errata sobre una unión local ya informaba <code>E0220</code>; ahora las dos formas lo informan. Un brazo sin argumentos mal escrito también dispara <code>E0103</code>, una etapa antes, así que recibes las dos líneas para el mismo nombre."
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "Un literal con un spread no tiene tipo, y un campo de más se sigue aceptando"
+      "en": "A literal holding a spread has no type",
+      "tr": "Un literal con un spread no tiene tipo"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "Un literal con un spread no tiene tipo, y un campo de más se sigue aceptando, mientras que <code>tsc</code> lo rechaza en un literal nuevo como TS2353 (G273)."
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "Un literal con un spread no tiene tipo, así que un campo que le falta o que tiene el tipo equivocado queda en manos de <code>tsc</code>. Una clave escrita junto al spread se sigue comprobando contra el record declarado."
     },
     {
       "id": "h-cf31f508",

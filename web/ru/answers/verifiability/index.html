@@ -952,34 +952,31 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">Лишнее поле по-прежнему ловит <code>tsc</code><a class="ak-anchor" href="#extra-field" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        Одна проверка литерала записи всё ещё за <code>tsc</code>, а не за Glyph. <code>glyph build</code> на ней останавливается; <code>glyph check --no-tsc</code>, языковой сервер и песочница молчат (G273).
-      </p>
+      <h3 class="ak-h3" id="extra-field">Поле, которого запись не объявляет<a class="ak-anchor" href="#extra-field" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: лишнее поле, оставленное tsc</span>
-<pre data-check="expect-error TS2353"><span class="k">module</span> point
+        <span class="cap">опечатка в необязательном поле: теперь E0210</span>
+<pre data-check="expect-error E0210"><span class="k">module</span> profile
 
-<span class="k">pub</span> <span class="k">type</span> <span class="t">Point</span> = {
-  x: <span class="t">number</span>,
-  y: <span class="t">number</span>,
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Profile</span> = {
+  name: <span class="t">string</span>,
+  nick<span class="op">?</span>: <span class="t">string</span>,
 }
 
-<span class="k">pub</span> <span class="k">fn</span> origin() <span class="op">-&gt;</span> <span class="t">Point</span> {
-  <span class="k">return</span> { x: <span class="n">0</span>, y: <span class="n">0</span>, z: <span class="n">0</span> }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+<span class="k">pub</span> <span class="k">fn</span> guest() <span class="op">-&gt;</span> <span class="t">Profile</span> {
+  <span class="k">return</span> { name: <span class="s">"guest"</span>, nik: <span class="s">"g"</span> }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">TS2353 от tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">как об этом сообщает tsc</span></summary><div class="body">
+      <p class="ak-lede">Ключ, которого нет в объявленной записи, раньше проходил проверку Glyph, поэтому опечатка в необязательном поле выбрасывала его значение, и замечал это только <code>tsc</code>. Теперь редактор, инструменты для агентов и <code>glyph check --no-tsc</code> отклоняют его с той же ошибкой, что и чтение этого поля, а <code>glyph fix</code> переименовывает <code>nik</code> в <code>nick</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее <span class="hint">где это проверяется и что остаётся без проверки</span></summary><div class="body">
         <p>
-          Литерал с полем, которого нет у объявленной записи, проходит проверку Glyph, а <code>tsc</code> отклоняет его в сгенерированном TypeScript как <code>TS2353</code>, с привязкой обратно к литералу.
+          Проверка идёт везде, где написанный литерал встречается с объявленным типом: <code>let</code>, <code>return</code>, аргумент вызова, полезная нагрузка варианта, присваивание через <code>mut</code>, вложенное поле, элемент массива и аргумент <code>Some</code>, <code>Ok</code> или <code>Err</code>, который <code>tsc</code> пропускает. Привязка, хранящая более широкую запись, по-прежнему принимается, как её принимает <code>tsc</code>, как и поля, пришедшие из spread, и ключи, написанные для <code>Record&lt;K, V&gt;</code>.
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">20</span></h3>
 
           <p class="ak-st-group">Сопоставление</p>
           <ul class="ak-list">
@@ -1002,6 +999,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Объявленный union или запись, переданные туда, где ожидается <code>string</code>/<code>number</code>/<code>bool</code></span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Опечатка в поле аннотированного <code>const</code> уровня модуля</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ключ объектного литерала, которого нет в объявленной записи</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> как равенство значений для любого типа</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чтение ключа из map отклоняется</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Встроенный метод, отвечающий <code>undefined</code>, например <code>find</code> или <code>at</code>, отклоняется с указанием формы через <code>Option</code></span><span class="chip code">E0242</span><span class="chip since">с 0.1.161</span></span></li>
@@ -1058,9 +1056,9 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">Типы, записи и литералы</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Литерал со spread не имеет типа</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p>Литерал со spread не имеет типа, и лишнее поле по-прежнему принимается, тогда как <code>tsc</code> отклоняет такое поле в свежем литерале как TS2353 (G273).</p>
+                <p>Литерал со spread не имеет типа, поэтому отсутствующее поле или поле неверного типа остаётся на <code>tsc</code>. Ключ, написанный рядом со spread, по-прежнему проверяется по объявленной записи.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Члены импортированного <code>interface</code> и тип импортированного <code>const</code> пока не пересекают границу</span></span>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "tr",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "Annotation'sız bir <code>const</code> hiçbir şey iddia etmez ve bilerek <code>Unknown</code> kalır: tipini başlatıcıdan çıkarmak, farklı bir yanlış pozitif yüzeyi olan farklı bir soru. İki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında breaking, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlıyor; tam bir <code>glyph build</code> iki durumda da <code>tsc</code> üzerinden zaten kırmızıydı."
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "Fazladan bir alanı yakalamak hâlâ <code>tsc</code>'nin işi"
+      "en": "A field the record does not declare",
+      "tr": "Record'un bildirmediği bir alan"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "Bir record-literal kontrolü hâlâ Glyph'in değil <code>tsc</code>'nin. <code>glyph build</code> bunda durur; <code>glyph check --no-tsc</code>, dil sunucusu ve playground hiçbir şey söylemez (G273)."
+      "en": "a misspelled optional field: now E0210",
+      "tr": "yanlış yazılmış isteğe bağlı bir alan: artık E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph: fazladan bir alan, tsc'ye bırakılmış"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "Bildirilen record'da olmayan bir anahtar eskiden Glyph'in denetleyicisinden geçiyordu; bu yüzden isteğe bağlı bir alandaki yazım hatası değerini atıyor ve bunu yalnızca <code>tsc</code> fark ediyordu. Artık editör, ajan araçları ve <code>glyph check --no-tsc</code> onu, aynı alanı okumanın verdiği hatayla reddediyor; <code>glyph fix</code> de <code>nik</code> adını <code>nick</code> olarak değiştiriyor."
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "tsc'den TS2353"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "Ayrıntılar <span class=\"hint\">nerede denetlendiği ve neyin dışarıda kaldığı</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "Ayrıntılar <span class=\"hint\">tsc'nin bunu nasıl bildirdiği</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "Bildirilen record'da olmayan bir alana sahip bir literal, Glyph'in checker'ından geçer; <code>tsc</code> ise onu üretilen TypeScript üzerinde <code>TS2353</code> olarak reddeder ve hata literal'in üzerine geri eşlenir."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle."
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "Şu anki durum"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "Bugün sunulanlar <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "Bugün sunulanlar <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "Annotation'lı modül düzeyindeki bir <code>const</code> üzerinde alan yazım hatası"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "Bildirilen record'unda olmayan bir nesne literal'i anahtarı"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "Yazım hatası kontrolü (<code>E0220</code>) artık modülde tanımlanmış bir union'ı ve namespace import'u üzerinden ulaşılan bir union'ı (<code>model.Nooo(_)</code>), constructor biçiminde ya da çıplak, aynı şekilde kapsıyor: 0.1.115'e kadar import edilmiş bir union üzerinde çıplak, yanlış yazılmış bir baş (<code>Loadign</code>, argümansız) bir variant'ı kapsıyor sayılıyor ve hiçbir şey söylemiyordu; oysa yerel bir union üzerindeki aynı yazım hatası zaten <code>E0220</code> bildiriyordu. Artık iki yazım da bunu bildiriyor. Yanlış yazılmış çıplak bir arm, bir aşama önce <code>E0103</code>'ü de tetikliyor; böylece aynı isim için iki satır alıyorsunuz."
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor"
+      "en": "A literal holding a spread has no type",
+      "tr": "Spread içeren bir literal'in tipi yok"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor; oysa <code>tsc</code> taze bir literal üzerinde bunu TS2353 olarak reddediyor (G273)."
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "Spread içeren bir literal'in tipi yoktur, bu yüzden eksik bir alan ya da yanlış tipte bir alan <code>tsc</code>'ye kalır. Spread'in yanına yazılmış bir anahtar yine de bildirilen record'a göre denetlenir."
     },
     {
       "id": "h-cf31f508",

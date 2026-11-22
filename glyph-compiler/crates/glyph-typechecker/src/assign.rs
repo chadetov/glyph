@@ -8552,12 +8552,12 @@ impl Assigner<'_> {
         // decision, and answering it wrongly rejects correct programs, which
         // costs more than the silence did.
         //
-        // A generic stdlib state holder (`set.Set<T>`, `store.Store<T>`,
-        // `collections.Deque<T>`, G423) is an object of methods, so it is
-        // decided here the same way, in both directions.
+        // A stdlib type whose shape the checker models (`decimal.Decimal`,
+        // `url.Url`, `store.Store<T>`, record 158) is an object at run time,
+        // so it is decided here the same way, in both directions.
         if let Ty::Prim(p) = expected {
             if is_concrete_scalar(*p)
-                && (self.is_declared_union_or_record(found) || is_generic_stdlib_type(found))
+                && (self.is_declared_union_or_record(found) || modeled_stdlib_path(found).is_some())
             {
                 return true;
             }
@@ -8576,7 +8576,7 @@ impl Assigner<'_> {
         // accepts. The exclusion is one-directional: `{}` is not a `string`
         // under tsc either, so the arm above keeps firing on the empty record.
         if let Ty::Prim(p) = found {
-            if is_concrete_scalar(*p) && is_generic_stdlib_type(expected) {
+            if is_concrete_scalar(*p) && modeled_stdlib_path(expected).is_some() {
                 return true;
             }
             if is_concrete_scalar(*p) {
@@ -8596,6 +8596,27 @@ impl Assigner<'_> {
         // and has no declaration to look up.
         let found = self.canonicalize_aliases(found);
         let expected = self.canonicalize_aliases(expected);
+        // Record 158, F-B. A modeled stdlib type is a declaration of its own
+        // (D49), whatever its arguments: another stdlib type, or a record or
+        // union this program declares, is refused where it is declared, even
+        // one carrying the same fields. Without this a user `Fake` with
+        // `Store`'s three members passed where a `store.Store<number>` was
+        // declared, while a `FakeUrl` where `url.Url` was declared was
+        // refused, so the check depended on which stdlib type was named.
+        if let Some(declared) = modeled_stdlib_path(&expected) {
+            match modeled_stdlib_path(&found) {
+                Some(have) => {
+                    if have != declared {
+                        return true;
+                    }
+                }
+                None => {
+                    if self.is_declared_type_with_identity(&found) {
+                        return true;
+                    }
+                }
+            }
+        }
         // G215, G226. An imported declaration is decided like a local one.
         // Read after canonicalization, because a local second name for an
         // import is the `Ty::Imported` it names by now, and that is the form
@@ -10121,13 +10142,22 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
     .then(|| stdlib_named(module, name))
 }
 
-/// Whether `ty` is one of the generic stdlib types whose members the checker
-/// models (`set.Set<T>`, `store.Store<T>`, `collections.Deque<T>`, G423),
-/// applied or bare. Each is an object of methods at run time, never a
-/// `string`, a `number` or a `bool`.
-fn is_generic_stdlib_type(ty: &Ty) -> bool {
-    stdlib_type_path(split_type_app(ty).0)
-        .is_some_and(|(m, n)| !crate::stdlib::stdlib_type_params(m, n).is_empty())
+/// The stdlib path of `ty` when it is a stdlib type whose shape the checker
+/// models, applied or bare (`set.Set<string>` and `set.Set` both answer
+/// `("set", "Set")`): a type `stdlib_modeled_type` lists, or a stdlib tagged
+/// union (`fs.ErrorKind`). Every one is an object at run time, never a
+/// `string`, a `number` or a `bool`, and each is its own declaration (D49).
+///
+/// `sqlite.Sql` is the one exception: the runtime declares it as `string`,
+/// and the relation compares it as one before this is asked.
+fn modeled_stdlib_path(ty: &Ty) -> Option<(&str, &str)> {
+    let base = split_type_app(ty).0;
+    let (module, name) = stdlib_type_path(base)?;
+    if (module, name) == ("sqlite", "Sql") {
+        return None;
+    }
+    (stdlib_modeled_type(module, name).is_some() || stdlib_union_variants(base).is_some())
+        .then_some((module, name))
 }
 
 /// Whether `ty` is `taint.Trusted<T>` or `taint.Tainted<T>`, the branded

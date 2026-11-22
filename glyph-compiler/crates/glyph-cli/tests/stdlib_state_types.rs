@@ -7,7 +7,11 @@
 //! refused them. Each refusal here is one `tsc` makes too (TS2322, TS2345,
 //! TS2339) or D54's, and each test runs the binary the way an agent does.
 //!
-//! What these types change about mutation is the next release's: a call that
+//! Record 158 (F-B) widened the object rule to every modeled stdlib type:
+//! `decimal.Decimal` and `url.Url` are never a scalar either, and a record the
+//! program declares is refused where any of them is declared.
+//!
+//! What these types change about mutation is G423b's (0.1.166): a call that
 //! changes a `Set` is not judged by E0240 or E0241 yet, and
 //! `mutation_needs_mut.rs` pins that edge.
 
@@ -260,9 +264,9 @@ fn interpolating_a_set_is_refused() {
     assert!(found[0].1.contains("`set.Set<string>`"), "{found:?}");
 }
 
-/// An unannotated `const` is `Unknown` by a standing rule (an annotated one is
-/// its annotation), so b01's `const HITS = store.create(0)` spelling still
-/// reads nothing off `HITS`. Pinned so the edge is seen when that rule moves.
+/// An unannotated `const` is `Unknown` until G433 (0.1.165, record 158 F-A)
+/// gives it its initializer's type, so b01's `const HITS = store.create(0)`
+/// spelling still reads nothing off `HITS`. Pinned so G433 has to flip it.
 #[test]
 fn an_unannotated_const_store_is_not_typed() {
     let src = "module main\n\
@@ -277,4 +281,149 @@ fn an_unannotated_const_store_is_not_typed() {
                \x20 return 0\n\
                }\n";
     assert_eq!(refusals(src), Vec::<(String, String)>::new());
+}
+
+/// A project of several modules, as `(file name, source)`.
+fn project_modules(modules: &[(&str, &str)]) -> PathBuf {
+    let dir = project("module main\n");
+    for (name, src) in modules {
+        std::fs::write(dir.join("src").join(name), src).expect("write module");
+    }
+    dir
+}
+
+/// Every error in a multi-module project under `--no-tsc`, as `(code, message)`.
+fn project_refusals(modules: &[(&str, &str)]) -> Vec<(String, String)> {
+    check(&project_modules(modules), true)["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .filter(|d| d["severity"] == "error")
+        .map(|d| {
+            (
+                d["code"].as_str().unwrap_or("").to_string(),
+                d["message"].as_str().unwrap_or("").to_string(),
+            )
+        })
+        .collect()
+}
+
+fn pair(code: &str, message: &str) -> (String, String) {
+    (code.to_string(), message.to_string())
+}
+
+/// Record 158, F-B. Every stdlib type whose shape the checker models is an
+/// object at run time, so a `number` is refused where one is declared and one
+/// is refused where a `number` is declared, `decimal.Decimal` and `url.Url`
+/// as much as `store.Store<T>`. `tsc` refuses each (TS2322, TS2345).
+#[test]
+fn a_modeled_stdlib_type_is_never_a_scalar_in_either_direction() {
+    let src = "module main\n\
+               \n\
+               import std/decimal\n\
+               import std/url\n\
+               \n\
+               fn num(n: number) -> number { return n }\n\
+               \n\
+               fn host(u: url.Url) -> string { return u.host }\n\
+               \n\
+               fn main(argv: Array<string>) -> number {\n\
+               \x20 let d = decimal.from_int(1, 2)\n\
+               \x20 let e: number = d\n\
+               \x20 let f: decimal.Decimal = 5\n\
+               \x20 let u = match url.parse(\"https://a.b/\") { Ok(v) => v, Err(_) => { return 1 }, }\n\
+               \x20 let p = num(u)\n\
+               \x20 let h = host(3)\n\
+               \x20 return num(d) + e + p + string.len(h) + num(f.to_number())\n\
+               }\n";
+    assert_eq!(
+        refusals(src),
+        vec![
+            pair("E0204", "type mismatch: expected `number`, found `decimal.Decimal`"),
+            pair("E0204", "type mismatch: expected `decimal.Decimal`, found `number`"),
+            pair("E0211", "argument type mismatch: expected `number`, found `url.Url`"),
+            pair("E0211", "argument type mismatch: expected `url.Url`, found `number`"),
+            pair("E0211", "argument type mismatch: expected `number`, found `decimal.Decimal`"),
+        ],
+        "{src}"
+    );
+}
+
+/// Record 158, F-B. A record this program declares is a different declaration
+/// from a modeled stdlib type even when it carries the same members (D49), so
+/// it is refused where a `store.Store<number>` is declared, as a `FakeUrl` is
+/// where a `url.Url` is. `tsc` accepts the `Fake` structurally; Glyph does not.
+#[test]
+fn a_lookalike_record_is_refused_where_a_stdlib_type_is_declared() {
+    let src = "module main\n\
+               \n\
+               import std/store\n\
+               \n\
+               type Fake = { get: fn() -> number, set: fn(number) -> void, update: fn(fn(number) -> number) -> void, }\n\
+               \n\
+               fn takes(s: store.Store<number>) -> number { return s.get() }\n\
+               \n\
+               fn main(argv: Array<string>) -> number {\n\
+               \x20 let f: Fake = { get: fn() -> number { return 1 }, set: fn(x: number) -> void { }, update: fn(g: fn(number) -> number) -> void { }, }\n\
+               \x20 let s: store.Store<number> = f\n\
+               \x20 return takes(f) + takes(s)\n\
+               }\n";
+    assert_eq!(
+        refusals(src),
+        vec![
+            pair("E0204", "type mismatch: expected `store.Store<number>`, found `Fake`"),
+            pair("E0211", "argument type mismatch: expected `store.Store<number>`, found `Fake`"),
+        ],
+        "{src}"
+    );
+}
+
+/// A sibling module's function that returns a `store.Store<number>` hands its
+/// caller the typed store under both import spellings.
+#[test]
+fn a_store_from_a_sibling_module_is_typed_under_both_spellings() {
+    let counter = "module counter\n\
+                   \n\
+                   import std/store\n\
+                   \n\
+                   pub fn make() -> store.Store<number> {\n\
+                   \x20 return store.create(0)\n\
+                   }\n";
+    for (import, call) in [("import counter", "counter.make()"), ("import counter { make }", "make()")] {
+        let main = format!(
+            "module main\n\
+             \n\
+             {import}\n\
+             \n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 let s = {call}\n\
+             \x20 s.set(\"x\")\n\
+             \x20 let w: string = s.get()\n\
+             \x20 print(w)\n\
+             \x20 return 0\n\
+             }}\n"
+        );
+        assert_eq!(
+            project_refusals(&[("main.glyph", &main), ("counter.glyph", counter)]),
+            vec![
+                pair("E0211", "argument type mismatch: expected `number`, found `string`"),
+                pair("E0204", "type mismatch: expected `string`, found `number`"),
+            ],
+            "{main}"
+        );
+    }
+}
+
+/// A catch `tsc` does not make: `pop_front` returns an `Option`, so a `match`
+/// over it with no `None` arm is E0200. Under 0.1.161 the receiver was
+/// `Unknown`, both checkers passed it, and an empty deque bound `undefined`.
+#[test]
+fn a_match_on_pop_front_without_none_is_refused() {
+    let found = refusals(&program(
+        "  let top = match q.pop_front() {\n    Some(x) => x,\n  }\n  io.println(\"${top}\")",
+    ));
+    assert_eq!(
+        found,
+        vec![pair("E0200", "non-exhaustive match on `Option`: missing variants `None`")]
+    );
 }

@@ -483,3 +483,51 @@ pub fn f() -> Load {\n\
     assert_eq!(code, 0, "{out}");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Record 160, item 3, against the fix driver's range guard (record 159,
+/// B1). Inside a `${}` a diagnostic's range can start one column early
+/// (G435), so a rename written there could land on the wrong bytes: before
+/// the guard, a literal key in a template's second interpolation was
+/// rewritten to `nickc`. Both renames E0210 drives decline inside a template
+/// now and leave the file as it was. Written against the behaviour before
+/// G435's span fix; when that lands these may apply correctly instead.
+#[test]
+fn renames_inside_an_interpolation_decline() {
+    let literal = "module main\n\
+\n\
+import std/io\n\
+\n\
+type Opt = { name: string, nick?: string }\n\
+\n\
+fn take(o: Opt) -> string {\n\
+\x20 return o.name\n\
+}\n\
+\n\
+pub fn main(argv: Array<string>) -> number {\n\
+\x20 let n = \"a\"\n\
+\x20 let k = \"b\"\n\
+\x20 io.println(\"t=${take({ name: n, nickx: k })} end\")\n\
+\x20 io.println(\"u=${take({ name: n, xnick: k })} end\")\n\
+\x20 io.println(\"v=${take({ name: n, nicks: k })} w=${take({ name: n, nikc: k })}\")\n\
+\x20 return 0\n\
+}\n";
+    let read = "module main\n\
+\n\
+import std/io\n\
+\n\
+type B = { nick: string, name: string }\n\
+\n\
+pub fn main(argv: Array<string>) -> number {\n\
+\x20 let b: B = { nick: \"a\", name: \"c\" }\n\
+\x20 io.println(\"v=${b.name} w=${b.nikc}\")\n\
+\x20 return 0\n\
+}\n";
+    for (name, source) in [("x02_literal_keys", literal), ("x03_field_read", read)] {
+        let dir = project(name, &[("main.glyph", source)]);
+        let (_, out) = glyph(&dir, &["fix", "src"]);
+        assert!(!out.contains("applied E0210"), "{name}: {out}");
+        assert!(out.contains("declined E0210"), "{name}: {out}");
+        assert_eq!(source_of(&dir), source, "{name}: the file is untouched");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why does Glyph catch what tsc catches, but earlier?","item":"https://glyphlang.io/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/early-errors/#article","headline":"Why does Glyph catch what tsc catches, but earlier?","description":"Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.","url":"https://glyphlang.io/answers/early-errors/","inLanguage":"en","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/early-errors/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why does Glyph catch what tsc catches, but earlier?","item":"https://glyphlang.io/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/early-errors/#article","headline":"Why does Glyph catch what tsc catches, but earlier?","description":"Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.","url":"https://glyphlang.io/answers/early-errors/","inLanguage":"en","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/early-errors/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/early-errors/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/early-errors/" />
@@ -944,7 +944,12 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
       <div class="ak-chips"><span class="chip code">E0236</span></div>
       <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>An agent wrote
         exactly that while building a CSV query tool. It is <code>E0236</code> now, on an
-        <code>Option</code> as well, and the help says to bind with <code>?</code> first.</p></div>
+        <code>Option</code> as well, and the help says to bind with <code>?</code> first.
+        Since 0.1.162 the same code covers <code>??</code>: <code>u ?? 0</code> on an
+        <code>Option</code> never uses the <code>0</code>, because an <code>Option</code> is
+        never null, and it printed <code>[object Object]</code> with <code>tsc</code> passing.
+        The help writes <code>match u { Some(n) =&gt; n, None =&gt; 0 }</code>, and
+        <code>glyph fix</code> applies it when the default is the payload's type.</p></div>
 
       <h3 class="ak-h3" id="unchecked-parse">An unchecked json.parse<a class="ak-anchor" href="#unchecked-parse" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <p class="ak-lede">
@@ -1324,7 +1329,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.161 on every build. Last changed <time datetime="2026-11-21">21 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.161 on every build. Last changed <time datetime="2026-11-22">22 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/tooling/">
           <span class="dir">&larr; Previous</span>

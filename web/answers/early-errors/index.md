@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-22. -->
 
 26 · Caught earlier
 
@@ -261,7 +261,7 @@ The checker now knows what each array and string method returns, from a table ge
 
 E0236
 
-An agent wrote exactly that while building a CSV query tool. It is `E0236` now, on an `Option` as well, and the help says to bind with `?` first.
+An agent wrote exactly that while building a CSV query tool. It is `E0236` now, on an `Option` as well, and the help says to bind with `?` first. Since 0.1.162 the same code covers `??`: `u ?? 0` on an `Option` never uses the `0`, because an `Option` is never null, and it printed `[object Object]` with `tsc` passing. The help writes `match u { Some(n) => n, None => 0 }`, and `glyph fix` applies it when the default is the payload's type.
 
 ### An unchecked json.parse
 
@@ -529,4 +529,4 @@ Every code
 
   Separately, the read-site pin that keeps a `bool` or string-literal-union binding matchable follows a type alias only inside the module being emitted, so `pub type Ready = bool` in one module and `let r: catalog.Ready = false` in another still reaches `tsc` as `TS2678`. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected `Mode`) under every spelling instead of printing its literal set under one of them.
 
-Code examples on this page are checked against Glyph 0.1.161 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.161 on every build. Last changed 22 Nov 2026.

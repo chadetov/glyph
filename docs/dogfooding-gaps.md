@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-432 entries, 318 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-94 are open. G144, the D28 boundary cast that never reached the returns a
+433 entries, 318 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+95 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12300,7 +12300,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.171 (record 89; renumbered by records 157 and 158): `unknown` is
+  Planned for 0.1.172 (record 89; renumbered by records 157 to 159): `unknown` is
   assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -14659,11 +14659,15 @@ and is the owner's to confirm.
   the `b.o ?? None` a help would write was typed `Unknown`, so a `match` over
   it went unchecked. E0236 now covers `??`. A left side that cannot be absent
   is refused whatever the default is; one that can (a `?.` chain, a field
-  declared `f?:`, an index read) is refused unless the default is the
-  container, which is then the expression's type. The help writes the
+  declared `f?:`) is refused unless the default is the container, which is
+  then the expression's type. An index read counts as never absent, since
+  Glyph's emitted index throws a `RangeError` out of range (record 159). The help writes the
   `match`, and `glyph fix` writes it for an `Option` with a payload-typed
   default, re-checks the file and reverts on a new error. A `Result` is never
-  rewritten. Record 157's probe a01 goes from exit 0 to exit 1 under
+  rewritten. Inside a `${}` both this rewrite and E0242's decline, and every
+  fix rule now declines when the text at its range does not parse to the
+  node the range names (record 159, B1; the span defect itself is G435).
+  Record 157's probe a01 goes from exit 0 to exit 1 under
   `--no-tsc` and full `check`. The neighbouring defect, a default that
   disagrees with a `Nullable` or optional left side, is G432.
 
@@ -14698,8 +14702,31 @@ and is the owner's to confirm.
   and draws nothing. G429 settled `??` on an `Option` or a `Result`; these two
   carry a different risk (operands that disagree, and false refusals around
   index reads, which Glyph types as their element), so record 157 kept them
-  out of that release. Found by record 157.
+  out of that release. An index read never yields `undefined` in Glyph: the
+  emitted index throws a `RangeError` out of range (record 159, probe i02),
+  so `xs[i] ?? d` is a dead default too, whatever `xs` holds; on an `Array`
+  of `Option` or `Result` it is G429's E0236 since 0.1.162. Found by record
+  157.
 
   *Reproduced against 0.1.161 (the release build) by record 157's probe a02:
   of seven `??` bound to a `let ...: string`, only `n ?? 0` draws E0204;
   `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` are silent.*
+
+- **G435. Spans inside a `${}` start one column early.** In `"n=${b.nik}
+  end"`, E0210 underlines `{b.ni`, and its fix reads the field name as `ni`
+  and declines. In a second interpolation the drift reaches a byte that
+  still looks like a name: on 0.1.161, `"v=${b.name} w=${b.nikc}"` is
+  rewritten to `b.nickc` by the E0210 read fix (record 160, x03), and the
+  E0242 rewrite of a `??` default inside a `${}` writes its `match` into the
+  string's text, which then passes full `check` and prints garbage (record
+  159, f06). The diagnostic ranges agents and the editor edit against are
+  wrong by the same column. 0.1.162 makes every `glyph fix` rule decline
+  when the text at its range does not parse to the node it names, so no
+  fix writes at a drifted range; the positions themselves are a lexer and
+  parser change with its own risk, so they are their own release. Found by
+  record 159.
+
+  *Reproduced against 0.1.161 (the release build) by record 159's probes
+  f04, f06 and f07 and record 160's x03: E0210 underlines `{b.ni`, and
+  `glyph fix` on f06 prints `applied E0242` and then `tsc --strict passed.`
+  over a corrupted string.*

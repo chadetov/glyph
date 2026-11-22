@@ -20363,9 +20363,11 @@ fn f(a: Answer) -> number {
              fn arg_ok() -> string {{\n  return takes(\"read\")\n}}\n\
              fn arg_bad() -> string {{\n  return takes(\"nope\")\n}}\n"
         ));
+        // Six since D57's value comparison (record 160): `Some("nope")` under
+        // `Option<Mode>` is refused as `tsc` refuses it (TS2322).
         assert_eq!(
             mismatch_found(&errs),
-            vec!["\"nope\""; 5],
+            vec!["\"nope\""; 6],
             "each refusal names the literal that is not in the set: {errs:?}"
         );
     }

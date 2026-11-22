@@ -2421,21 +2421,21 @@ Module {
                                                             Text {
                                                                 content: "unknown command: ",
                                                                 span: Span {
-                                                                    start: 2433,
-                                                                    end: 2459,
+                                                                    start: 2434,
+                                                                    end: 2451,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "name",
                                                                     span: Span {
-                                                                        start: 2452,
-                                                                        end: 2456,
+                                                                        start: 2453,
+                                                                        end: 2457,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2433,
-                                                                    end: 2459,
+                                                                    start: 2451,
+                                                                    end: 2458,
                                                                 },
                                                             },
                                                         ],
@@ -2493,33 +2493,33 @@ Module {
                                                                 value: Ident {
                                                                     name: "command",
                                                                     span: Span {
-                                                                        start: 2499,
-                                                                        end: 2506,
+                                                                        start: 2500,
+                                                                        end: 2507,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2497,
-                                                                    end: 2525,
+                                                                    start: 2498,
+                                                                    end: 2508,
                                                                 },
                                                             },
                                                             Text {
                                                                 content: ": missing ",
                                                                 span: Span {
-                                                                    start: 2497,
-                                                                    end: 2525,
+                                                                    start: 2508,
+                                                                    end: 2518,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "arg",
                                                                     span: Span {
-                                                                        start: 2519,
-                                                                        end: 2522,
+                                                                        start: 2520,
+                                                                        end: 2523,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2497,
-                                                                    end: 2525,
+                                                                    start: 2518,
+                                                                    end: 2524,
                                                                 },
                                                             },
                                                         ],
@@ -2576,41 +2576,41 @@ Module {
                                                             Text {
                                                                 content: "invalid id `",
                                                                 span: Span {
-                                                                    start: 2563,
-                                                                    end: 2597,
+                                                                    start: 2564,
+                                                                    end: 2576,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "value",
                                                                     span: Span {
-                                                                        start: 2577,
-                                                                        end: 2582,
+                                                                        start: 2578,
+                                                                        end: 2583,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2563,
-                                                                    end: 2597,
+                                                                    start: 2576,
+                                                                    end: 2584,
                                                                 },
                                                             },
                                                             Text {
                                                                 content: "`: ",
                                                                 span: Span {
-                                                                    start: 2563,
-                                                                    end: 2597,
+                                                                    start: 2584,
+                                                                    end: 2587,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "reason",
                                                                     span: Span {
-                                                                        start: 2588,
-                                                                        end: 2594,
+                                                                        start: 2589,
+                                                                        end: 2595,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 2563,
-                                                                    end: 2597,
+                                                                    start: 2587,
+                                                                    end: 2596,
                                                                 },
                                                             },
                                                         ],
@@ -4135,8 +4135,8 @@ Module {
                                                                         Text {
                                                                             content: "added #",
                                                                             span: Span {
-                                                                                start: 4165,
-                                                                                end: 4215,
+                                                                                start: 4166,
+                                                                                end: 4173,
                                                                             },
                                                                         },
                                                                         Expr {
@@ -4145,15 +4145,15 @@ Module {
                                                                                     object: Ident {
                                                                                         name: "number",
                                                                                         span: Span {
-                                                                                            start: 4174,
-                                                                                            end: 4180,
+                                                                                            start: 4175,
+                                                                                            end: 4181,
                                                                                         },
                                                                                     },
                                                                                     field: "to_string",
                                                                                     optional: false,
                                                                                     span: Span {
-                                                                                        start: 4174,
-                                                                                        end: 4190,
+                                                                                        start: 4175,
+                                                                                        end: 4191,
                                                                                     },
                                                                                 },
                                                                                 type_args: [],
@@ -4162,46 +4162,46 @@ Module {
                                                                                         object: Ident {
                                                                                             name: "new_item",
                                                                                             span: Span {
-                                                                                                start: 4191,
-                                                                                                end: 4199,
+                                                                                                start: 4192,
+                                                                                                end: 4200,
                                                                                             },
                                                                                         },
                                                                                         field: "id",
                                                                                         optional: false,
                                                                                         span: Span {
-                                                                                            start: 4191,
-                                                                                            end: 4202,
+                                                                                            start: 4192,
+                                                                                            end: 4203,
                                                                                         },
                                                                                     },
                                                                                 ],
                                                                                 span: Span {
-                                                                                    start: 4174,
-                                                                                    end: 4203,
+                                                                                    start: 4175,
+                                                                                    end: 4204,
                                                                                 },
                                                                             },
                                                                             span: Span {
-                                                                                start: 4165,
-                                                                                end: 4215,
+                                                                                start: 4173,
+                                                                                end: 4205,
                                                                             },
                                                                         },
                                                                         Text {
                                                                             content: ": ",
                                                                             span: Span {
-                                                                                start: 4165,
-                                                                                end: 4215,
+                                                                                start: 4205,
+                                                                                end: 4207,
                                                                             },
                                                                         },
                                                                         Expr {
                                                                             value: Ident {
                                                                                 name: "text",
                                                                                 span: Span {
-                                                                                    start: 4208,
-                                                                                    end: 4212,
+                                                                                    start: 4209,
+                                                                                    end: 4213,
                                                                                 },
                                                                             },
                                                                             span: Span {
-                                                                                start: 4165,
-                                                                                end: 4215,
+                                                                                start: 4207,
+                                                                                end: 4214,
                                                                             },
                                                                         },
                                                                     ],
@@ -4686,20 +4686,20 @@ Module {
                                                                                                                         value: Ident {
                                                                                                                             name: "mark",
                                                                                                                             span: Span {
-                                                                                                                                start: 4677,
-                                                                                                                                end: 4681,
+                                                                                                                                start: 4678,
+                                                                                                                                end: 4682,
                                                                                                                             },
                                                                                                                         },
                                                                                                                         span: Span {
-                                                                                                                            start: 4675,
-                                                                                                                            end: 4727,
+                                                                                                                            start: 4676,
+                                                                                                                            end: 4683,
                                                                                                                         },
                                                                                                                     },
                                                                                                                     Text {
                                                                                                                         content: " ",
                                                                                                                         span: Span {
-                                                                                                                            start: 4675,
-                                                                                                                            end: 4727,
+                                                                                                                            start: 4683,
+                                                                                                                            end: 4684,
                                                                                                                         },
                                                                                                                     },
                                                                                                                     Expr {
@@ -4708,15 +4708,15 @@ Module {
                                                                                                                                 object: Ident {
                                                                                                                                     name: "number",
                                                                                                                                     span: Span {
-                                                                                                                                        start: 4685,
-                                                                                                                                        end: 4691,
+                                                                                                                                        start: 4686,
+                                                                                                                                        end: 4692,
                                                                                                                                     },
                                                                                                                                 },
                                                                                                                                 field: "to_string",
                                                                                                                                 optional: false,
                                                                                                                                 span: Span {
-                                                                                                                                    start: 4685,
-                                                                                                                                    end: 4701,
+                                                                                                                                    start: 4686,
+                                                                                                                                    end: 4702,
                                                                                                                                 },
                                                                                                                             },
                                                                                                                             type_args: [],
@@ -4725,33 +4725,33 @@ Module {
                                                                                                                                     object: Ident {
                                                                                                                                         name: "item",
                                                                                                                                         span: Span {
-                                                                                                                                            start: 4702,
-                                                                                                                                            end: 4706,
+                                                                                                                                            start: 4703,
+                                                                                                                                            end: 4707,
                                                                                                                                         },
                                                                                                                                     },
                                                                                                                                     field: "id",
                                                                                                                                     optional: false,
                                                                                                                                     span: Span {
-                                                                                                                                        start: 4702,
-                                                                                                                                        end: 4709,
+                                                                                                                                        start: 4703,
+                                                                                                                                        end: 4710,
                                                                                                                                     },
                                                                                                                                 },
                                                                                                                             ],
                                                                                                                             span: Span {
-                                                                                                                                start: 4685,
-                                                                                                                                end: 4710,
+                                                                                                                                start: 4686,
+                                                                                                                                end: 4711,
                                                                                                                             },
                                                                                                                         },
                                                                                                                         span: Span {
-                                                                                                                            start: 4675,
-                                                                                                                            end: 4727,
+                                                                                                                            start: 4684,
+                                                                                                                            end: 4712,
                                                                                                                         },
                                                                                                                     },
                                                                                                                     Text {
                                                                                                                         content: "  ",
                                                                                                                         span: Span {
-                                                                                                                            start: 4675,
-                                                                                                                            end: 4727,
+                                                                                                                            start: 4712,
+                                                                                                                            end: 4714,
                                                                                                                         },
                                                                                                                     },
                                                                                                                     Expr {
@@ -4759,20 +4759,20 @@ Module {
                                                                                                                             object: Ident {
                                                                                                                                 name: "item",
                                                                                                                                 span: Span {
-                                                                                                                                    start: 4715,
-                                                                                                                                    end: 4719,
+                                                                                                                                    start: 4716,
+                                                                                                                                    end: 4720,
                                                                                                                                 },
                                                                                                                             },
                                                                                                                             field: "text",
                                                                                                                             optional: false,
                                                                                                                             span: Span {
-                                                                                                                                start: 4715,
-                                                                                                                                end: 4724,
+                                                                                                                                start: 4716,
+                                                                                                                                end: 4725,
                                                                                                                             },
                                                                                                                         },
                                                                                                                         span: Span {
-                                                                                                                            start: 4675,
-                                                                                                                            end: 4727,
+                                                                                                                            start: 4714,
+                                                                                                                            end: 4726,
                                                                                                                         },
                                                                                                                     },
                                                                                                                 ],
@@ -5090,8 +5090,8 @@ Module {
                                                                                         Text {
                                                                                             content: "no todo with id ",
                                                                                             span: Span {
-                                                                                                start: 4958,
-                                                                                                end: 4999,
+                                                                                                start: 4959,
+                                                                                                end: 4975,
                                                                                             },
                                                                                         },
                                                                                         Expr {
@@ -5100,15 +5100,15 @@ Module {
                                                                                                     object: Ident {
                                                                                                         name: "number",
                                                                                                         span: Span {
-                                                                                                            start: 4976,
-                                                                                                            end: 4982,
+                                                                                                            start: 4977,
+                                                                                                            end: 4983,
                                                                                                         },
                                                                                                     },
                                                                                                     field: "to_string",
                                                                                                     optional: false,
                                                                                                     span: Span {
-                                                                                                        start: 4976,
-                                                                                                        end: 4992,
+                                                                                                        start: 4977,
+                                                                                                        end: 4993,
                                                                                                     },
                                                                                                 },
                                                                                                 type_args: [],
@@ -5116,19 +5116,19 @@ Module {
                                                                                                     Ident {
                                                                                                         name: "id",
                                                                                                         span: Span {
-                                                                                                            start: 4993,
-                                                                                                            end: 4995,
+                                                                                                            start: 4994,
+                                                                                                            end: 4996,
                                                                                                         },
                                                                                                     },
                                                                                                 ],
                                                                                                 span: Span {
-                                                                                                    start: 4976,
-                                                                                                    end: 4996,
+                                                                                                    start: 4977,
+                                                                                                    end: 4997,
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 4958,
-                                                                                                end: 4999,
+                                                                                                start: 4975,
+                                                                                                end: 4998,
                                                                                             },
                                                                                         },
                                                                                     ],
@@ -5501,8 +5501,8 @@ Module {
                                                                                                     Text {
                                                                                                         content: "marked #",
                                                                                                         span: Span {
-                                                                                                            start: 5434,
-                                                                                                            end: 5472,
+                                                                                                            start: 5435,
+                                                                                                            end: 5443,
                                                                                                         },
                                                                                                     },
                                                                                                     Expr {
@@ -5511,15 +5511,15 @@ Module {
                                                                                                                 object: Ident {
                                                                                                                     name: "number",
                                                                                                                     span: Span {
-                                                                                                                        start: 5444,
-                                                                                                                        end: 5450,
+                                                                                                                        start: 5445,
+                                                                                                                        end: 5451,
                                                                                                                     },
                                                                                                                 },
                                                                                                                 field: "to_string",
                                                                                                                 optional: false,
                                                                                                                 span: Span {
-                                                                                                                    start: 5444,
-                                                                                                                    end: 5460,
+                                                                                                                    start: 5445,
+                                                                                                                    end: 5461,
                                                                                                                 },
                                                                                                             },
                                                                                                             type_args: [],
@@ -5527,26 +5527,26 @@ Module {
                                                                                                                 Ident {
                                                                                                                     name: "id",
                                                                                                                     span: Span {
-                                                                                                                        start: 5461,
-                                                                                                                        end: 5463,
+                                                                                                                        start: 5462,
+                                                                                                                        end: 5464,
                                                                                                                     },
                                                                                                                 },
                                                                                                             ],
                                                                                                             span: Span {
-                                                                                                                start: 5444,
-                                                                                                                end: 5464,
+                                                                                                                start: 5445,
+                                                                                                                end: 5465,
                                                                                                             },
                                                                                                         },
                                                                                                         span: Span {
-                                                                                                            start: 5434,
-                                                                                                            end: 5472,
+                                                                                                            start: 5443,
+                                                                                                            end: 5466,
                                                                                                         },
                                                                                                     },
                                                                                                     Text {
                                                                                                         content: " done",
                                                                                                         span: Span {
-                                                                                                            start: 5434,
-                                                                                                            end: 5472,
+                                                                                                            start: 5466,
+                                                                                                            end: 5471,
                                                                                                         },
                                                                                                     },
                                                                                                 ],
@@ -5977,8 +5977,8 @@ Module {
                                                                                         Text {
                                                                                             content: "no todo with id ",
                                                                                             span: Span {
-                                                                                                start: 5856,
-                                                                                                end: 5897,
+                                                                                                start: 5857,
+                                                                                                end: 5873,
                                                                                             },
                                                                                         },
                                                                                         Expr {
@@ -5987,15 +5987,15 @@ Module {
                                                                                                     object: Ident {
                                                                                                         name: "number",
                                                                                                         span: Span {
-                                                                                                            start: 5874,
-                                                                                                            end: 5880,
+                                                                                                            start: 5875,
+                                                                                                            end: 5881,
                                                                                                         },
                                                                                                     },
                                                                                                     field: "to_string",
                                                                                                     optional: false,
                                                                                                     span: Span {
-                                                                                                        start: 5874,
-                                                                                                        end: 5890,
+                                                                                                        start: 5875,
+                                                                                                        end: 5891,
                                                                                                     },
                                                                                                 },
                                                                                                 type_args: [],
@@ -6003,19 +6003,19 @@ Module {
                                                                                                     Ident {
                                                                                                         name: "id",
                                                                                                         span: Span {
-                                                                                                            start: 5891,
-                                                                                                            end: 5893,
+                                                                                                            start: 5892,
+                                                                                                            end: 5894,
                                                                                                         },
                                                                                                     },
                                                                                                 ],
                                                                                                 span: Span {
-                                                                                                    start: 5874,
-                                                                                                    end: 5894,
+                                                                                                    start: 5875,
+                                                                                                    end: 5895,
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 5856,
-                                                                                                end: 5897,
+                                                                                                start: 5873,
+                                                                                                end: 5896,
                                                                                             },
                                                                                         },
                                                                                     ],
@@ -6142,8 +6142,8 @@ Module {
                                                                                                     Text {
                                                                                                         content: "removed #",
                                                                                                         span: Span {
-                                                                                                            start: 6009,
-                                                                                                            end: 6043,
+                                                                                                            start: 6010,
+                                                                                                            end: 6019,
                                                                                                         },
                                                                                                     },
                                                                                                     Expr {
@@ -6152,15 +6152,15 @@ Module {
                                                                                                                 object: Ident {
                                                                                                                     name: "number",
                                                                                                                     span: Span {
-                                                                                                                        start: 6020,
-                                                                                                                        end: 6026,
+                                                                                                                        start: 6021,
+                                                                                                                        end: 6027,
                                                                                                                     },
                                                                                                                 },
                                                                                                                 field: "to_string",
                                                                                                                 optional: false,
                                                                                                                 span: Span {
-                                                                                                                    start: 6020,
-                                                                                                                    end: 6036,
+                                                                                                                    start: 6021,
+                                                                                                                    end: 6037,
                                                                                                                 },
                                                                                                             },
                                                                                                             type_args: [],
@@ -6168,19 +6168,19 @@ Module {
                                                                                                                 Ident {
                                                                                                                     name: "id",
                                                                                                                     span: Span {
-                                                                                                                        start: 6037,
-                                                                                                                        end: 6039,
+                                                                                                                        start: 6038,
+                                                                                                                        end: 6040,
                                                                                                                     },
                                                                                                                 },
                                                                                                             ],
                                                                                                             span: Span {
-                                                                                                                start: 6020,
-                                                                                                                end: 6040,
+                                                                                                                start: 6021,
+                                                                                                                end: 6041,
                                                                                                             },
                                                                                                         },
                                                                                                         span: Span {
-                                                                                                            start: 6009,
-                                                                                                            end: 6043,
+                                                                                                            start: 6019,
+                                                                                                            end: 6042,
                                                                                                         },
                                                                                                     },
                                                                                                 ],
@@ -6363,41 +6363,41 @@ Module {
                                                             Text {
                                                                 content: "cannot read ",
                                                                 span: Span {
-                                                                    start: 6383,
-                                                                    end: 6415,
+                                                                    start: 6384,
+                                                                    end: 6396,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "path",
                                                                     span: Span {
-                                                                        start: 6397,
-                                                                        end: 6401,
+                                                                        start: 6398,
+                                                                        end: 6402,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6383,
-                                                                    end: 6415,
+                                                                    start: 6396,
+                                                                    end: 6403,
                                                                 },
                                                             },
                                                             Text {
                                                                 content: ": ",
                                                                 span: Span {
-                                                                    start: 6383,
-                                                                    end: 6415,
+                                                                    start: 6403,
+                                                                    end: 6405,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "reason",
                                                                     span: Span {
-                                                                        start: 6406,
-                                                                        end: 6412,
+                                                                        start: 6407,
+                                                                        end: 6413,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6383,
-                                                                    end: 6415,
+                                                                    start: 6405,
+                                                                    end: 6414,
                                                                 },
                                                             },
                                                         ],
@@ -6454,41 +6454,41 @@ Module {
                                                             Text {
                                                                 content: "corrupt todo file ",
                                                                 span: Span {
-                                                                    start: 6459,
-                                                                    end: 6497,
+                                                                    start: 6460,
+                                                                    end: 6478,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "path",
                                                                     span: Span {
-                                                                        start: 6479,
-                                                                        end: 6483,
+                                                                        start: 6480,
+                                                                        end: 6484,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6459,
-                                                                    end: 6497,
+                                                                    start: 6478,
+                                                                    end: 6485,
                                                                 },
                                                             },
                                                             Text {
                                                                 content: ": ",
                                                                 span: Span {
-                                                                    start: 6459,
-                                                                    end: 6497,
+                                                                    start: 6485,
+                                                                    end: 6487,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "reason",
                                                                     span: Span {
-                                                                        start: 6488,
-                                                                        end: 6494,
+                                                                        start: 6489,
+                                                                        end: 6495,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6459,
-                                                                    end: 6497,
+                                                                    start: 6487,
+                                                                    end: 6496,
                                                                 },
                                                             },
                                                         ],
@@ -6621,41 +6621,41 @@ Module {
                                                             Text {
                                                                 content: "cannot write ",
                                                                 span: Span {
-                                                                    start: 6613,
-                                                                    end: 6646,
+                                                                    start: 6614,
+                                                                    end: 6627,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "path",
                                                                     span: Span {
-                                                                        start: 6628,
-                                                                        end: 6632,
+                                                                        start: 6629,
+                                                                        end: 6633,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6613,
-                                                                    end: 6646,
+                                                                    start: 6627,
+                                                                    end: 6634,
                                                                 },
                                                             },
                                                             Text {
                                                                 content: ": ",
                                                                 span: Span {
-                                                                    start: 6613,
-                                                                    end: 6646,
+                                                                    start: 6634,
+                                                                    end: 6636,
                                                                 },
                                                             },
                                                             Expr {
                                                                 value: Ident {
                                                                     name: "reason",
                                                                     span: Span {
-                                                                        start: 6637,
-                                                                        end: 6643,
+                                                                        start: 6638,
+                                                                        end: 6644,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 6613,
-                                                                    end: 6646,
+                                                                    start: 6636,
+                                                                    end: 6645,
                                                                 },
                                                             },
                                                         ],
@@ -6873,8 +6873,8 @@ Module {
                                                                         Text {
                                                                             content: "error: ",
                                                                             span: Span {
-                                                                                start: 7262,
-                                                                                end: 7295,
+                                                                                start: 7263,
+                                                                                end: 7270,
                                                                             },
                                                                         },
                                                                         Expr {
@@ -6882,8 +6882,8 @@ Module {
                                                                                 callee: Ident {
                                                                                     name: "format_parse_error",
                                                                                     span: Span {
-                                                                                        start: 7271,
-                                                                                        end: 7289,
+                                                                                        start: 7272,
+                                                                                        end: 7290,
                                                                                     },
                                                                                 },
                                                                                 type_args: [],
@@ -6891,19 +6891,19 @@ Module {
                                                                                     Ident {
                                                                                         name: "e",
                                                                                         span: Span {
-                                                                                            start: 7290,
-                                                                                            end: 7291,
+                                                                                            start: 7291,
+                                                                                            end: 7292,
                                                                                         },
                                                                                     },
                                                                                 ],
                                                                                 span: Span {
-                                                                                    start: 7271,
-                                                                                    end: 7292,
+                                                                                    start: 7272,
+                                                                                    end: 7293,
                                                                                 },
                                                                             },
                                                                             span: Span {
-                                                                                start: 7262,
-                                                                                end: 7295,
+                                                                                start: 7270,
+                                                                                end: 7294,
                                                                             },
                                                                         },
                                                                     ],
@@ -7128,21 +7128,21 @@ Module {
                                                                                         Text {
                                                                                             content: "error: ",
                                                                                             span: Span {
-                                                                                                start: 7481,
-                                                                                                end: 7496,
+                                                                                                start: 7482,
+                                                                                                end: 7489,
                                                                                             },
                                                                                         },
                                                                                         Expr {
                                                                                             value: Ident {
                                                                                                 name: "msg",
                                                                                                 span: Span {
-                                                                                                    start: 7490,
-                                                                                                    end: 7493,
+                                                                                                    start: 7491,
+                                                                                                    end: 7494,
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 7481,
-                                                                                                end: 7496,
+                                                                                                start: 7489,
+                                                                                                end: 7495,
                                                                                             },
                                                                                         },
                                                                                     ],

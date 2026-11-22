@@ -357,10 +357,11 @@ fn fix_declines_inside_an_interpolation_for_both_rules() {
     assert_eq!(left.len(), 3, "{left:#?}");
 }
 
-/// Record 159, f07: a field typo inside a `${}` keeps declining, and the
-/// file is left as it was.
+/// Record 159, f07, and G435: the E0210 range inside a `${}` is the
+/// member read itself, as it is outside a string, so the read fix renames
+/// `nik` to `nick` and the file checks clean.
 #[test]
-fn a_field_typo_inside_an_interpolation_is_not_rewritten_wrong() {
+fn a_field_typo_inside_an_interpolation_is_renamed() {
     let src = "module main\n\
         \n\
         import std/io\n\
@@ -372,16 +373,26 @@ fn a_field_typo_inside_an_interpolation_is_not_rewritten_wrong() {
         \x20 io.println(\"n=${b.nik} end\")\n\
         \x20 return 0\n\
         }\n";
-    let (_, fixed, out) = fix(src);
-    assert!(fixed.contains("io.println(\"n=${b.nik} end\")"), "{fixed}");
-    assert!(!out.contains("applied"), "{out}");
+    let dir = project("typo_range", src);
+    let found = errors(&check(&dir, true));
+    assert_eq!(found.len(), 1, "{found:#?}");
+    let range = &found[0]["range"];
+    let (s, e) = (range["start"]["offset"].as_u64().unwrap(), range["end"]["offset"].as_u64().unwrap());
+    assert_eq!(&src[s as usize..e as usize], "b.nik", "{found:#?}");
+    assert_eq!(range["start"]["col"], 19, "{found:#?}");
+    let (dir, fixed, out) = fix(src);
+    assert!(fixed.contains("io.println(\"n=${b.nick} end\")"), "{fixed}");
+    assert!(out.contains("applied E0210"), "{out}");
+    assert_fix_settles(&dir, &fixed);
 }
 
-/// Record 160, x03: the E0210 read rename in a second interpolation wrote
-/// `b.nickc` on 0.1.161, because the range inside a `${}` is one column
-/// early. The range guard every fix rule passes declines it instead.
+/// Record 160, x03: on 0.1.161 the read rename in a second interpolation
+/// wrote `b.nickc`, because the range inside a `${}` was one column early.
+/// With the range on `b.nikc` the rule judges the name written there, which
+/// is a transposition and not one character away, so it declines for that
+/// reason, as it does outside a string.
 #[test]
-fn a_field_read_rename_in_a_second_interpolation_declines() {
+fn a_field_read_rename_in_a_second_interpolation_reads_the_right_name() {
     let src = "module main\n\
         \n\
         import std/io\n\
@@ -396,7 +407,29 @@ fn a_field_read_rename_in_a_second_interpolation_declines() {
     let (_, fixed, out) = fix(src);
     assert!(fixed.contains("io.println(\"v=${b.name} w=${b.nikc}\")"), "{fixed}");
     assert!(out.contains("declined E0210") && !out.contains("applied"), "{out}");
-    assert!(out.contains("does not hold the expression the rewrite was planned against"), "{out}");
+    assert!(out.contains("nothing the type declares is one character away from `nikc`"), "{out}");
+}
+
+/// G435: a one-character typo in a later interpolation is renamed in place,
+/// after an escaped quote, a `\${`, non-ASCII text and a line break earlier
+/// in the string.
+#[test]
+fn a_field_typo_after_escapes_and_non_ascii_text_is_renamed_in_place() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        \n\
+        type B = { nick: string, name: string, }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let b: B = { nick: \"a\", name: \"c\", }\n\
+        \x20 io.println(\"v=${b.name} \\\" \\${b} \u{e9}\u{1F600}\nw=${b.nik} ${b.nme}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (dir, fixed, out) = fix(src);
+    assert_eq!(out.matches("applied E0210").count(), 2, "{out}");
+    assert!(fixed.contains("\"v=${b.name} \\\" \\${b} \u{e9}\u{1F600}\nw=${b.nick} ${b.name}\""), "{fixed}");
+    assert_fix_settles(&dir, &fixed);
 }
 
 /// F3: a revert names the line in the file as `glyph fix` leaves it, after

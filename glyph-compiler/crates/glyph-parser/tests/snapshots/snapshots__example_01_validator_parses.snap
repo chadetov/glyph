@@ -2810,8 +2810,8 @@ Module {
                                                             Text {
                                                                 content: "hello ",
                                                                 span: Span {
-                                                                    start: 5147,
-                                                                    end: 5167,
+                                                                    start: 5148,
+                                                                    end: 5154,
                                                                 },
                                                             },
                                                             Expr {
@@ -2819,20 +2819,20 @@ Module {
                                                                     object: Ident {
                                                                         name: "user",
                                                                         span: Span {
-                                                                            start: 5155,
-                                                                            end: 5159,
+                                                                            start: 5156,
+                                                                            end: 5160,
                                                                         },
                                                                     },
                                                                     field: "name",
                                                                     optional: false,
                                                                     span: Span {
-                                                                        start: 5155,
-                                                                        end: 5164,
+                                                                        start: 5156,
+                                                                        end: 5165,
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 5147,
-                                                                    end: 5167,
+                                                                    start: 5154,
+                                                                    end: 5166,
                                                                 },
                                                             },
                                                         ],
@@ -3072,20 +3072,20 @@ Module {
                                                                                             value: Ident {
                                                                                                 name: "location",
                                                                                                 span: Span {
-                                                                                                    start: 5513,
-                                                                                                    end: 5521,
+                                                                                                    start: 5514,
+                                                                                                    end: 5522,
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 5511,
-                                                                                                end: 5542,
+                                                                                                start: 5512,
+                                                                                                end: 5523,
                                                                                             },
                                                                                         },
                                                                                         Text {
                                                                                             content: ": ",
                                                                                             span: Span {
-                                                                                                start: 5511,
-                                                                                                end: 5542,
+                                                                                                start: 5523,
+                                                                                                end: 5525,
                                                                                             },
                                                                                         },
                                                                                         Expr {
@@ -3093,20 +3093,20 @@ Module {
                                                                                                 object: Ident {
                                                                                                     name: "issue",
                                                                                                     span: Span {
-                                                                                                        start: 5526,
-                                                                                                        end: 5531,
+                                                                                                        start: 5527,
+                                                                                                        end: 5532,
                                                                                                     },
                                                                                                 },
                                                                                                 field: "message",
                                                                                                 optional: false,
                                                                                                 span: Span {
-                                                                                                    start: 5526,
-                                                                                                    end: 5539,
+                                                                                                    start: 5527,
+                                                                                                    end: 5540,
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 5511,
-                                                                                                end: 5542,
+                                                                                                start: 5525,
+                                                                                                end: 5541,
                                                                                             },
                                                                                         },
                                                                                     ],

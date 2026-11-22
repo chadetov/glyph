@@ -818,14 +818,15 @@ const NODE_DRIFT: &str = "the diagnostic's range does not hold the expression th
 /// it edits (record 159, B1; record 160).
 ///
 /// A rule edits at the byte range its diagnostic carries. If that range
-/// has drifted from the node it names (spans inside a `${}` start one column
-/// early, G435), the rule writes into the wrong text and the result can
-/// pass every check. So before a rule reads a range, the range must be the
-/// span of a node in this parse; when the text there parses as an
-/// expression, it must parse to that node's shape. A node whose text does
-/// not parse as an expression (a pattern, a JSX attribute) is accepted
-/// outside a template string and declined inside one, since that is where
-/// spans are known to drift.
+/// has drifted from the node it names (until G435, spans inside a `${}`
+/// started one column early), the rule writes into the wrong text and the
+/// result can pass every check. So before a rule reads a range, the range
+/// must be the span of a node in this parse; when the text there parses as
+/// an expression, it must parse to that node's shape. A node whose text
+/// does not parse as an expression (a pattern, a JSX attribute) is accepted
+/// outside a template string and declined inside one: an escape written
+/// inside a `${}` (`${f(\"x\")}`) still moves the nodes after it, since the
+/// expression is parsed from the string's value.
 struct SpanIndex {
     /// (start, end, variant name, shape) per node.
     nodes: Vec<(u32, u32, String, String)>,

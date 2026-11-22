@@ -27,7 +27,7 @@ mod lexer;
 mod token;
 
 pub use error::{JsxTextError, JsxTextRefusal, LexError};
-pub use lexer::{tokenize, LexState, Lexer};
+pub use lexer::{string_char_spans, tokenize, LexState, Lexer};
 pub use token::{keywords, Spanned, Token};
 
 /// Internal escape marker in a lexed string's value, so a literal `${`
@@ -321,6 +321,29 @@ mod tests {
         assert_eq!(resolve_escaped_dollars(strings[0]), "a$b");
         assert_eq!(resolve_escaped_dollars(strings[1]), "a\u{E000}b");
         assert_eq!(resolve_escaped_dollars(strings[3]), "\u{E000}");
+    }
+
+    /// Each character of a string's value maps to the source bytes it came
+    /// from (G435): an escape spans the whole escape, a multi-byte character
+    /// its bytes, and both halves of a marker pair the one character.
+    #[test]
+    fn string_char_spans_point_at_the_source_of_each_character() {
+        let src = "x = \"a\\n\u{e9}\\$\u{1F600}\u{E000}\\u{41}\"";
+        let start = src.find('"').unwrap();
+        let spans = string_char_spans(src, start).unwrap();
+        let toks = tokenize(src).unwrap();
+        let Token::String(value) = &toks[2].token else { panic!("{toks:?}") };
+        assert_eq!(spans.len(), value.chars().count());
+        let texts: Vec<&str> = spans.iter().map(|&(s, e)| &src[s as usize..e as usize]).collect();
+        assert_eq!(
+            texts,
+            vec!["a", "\\n", "\u{e9}", "\\$", "\\$", "\u{1F600}", "\u{E000}", "\u{E000}", "\\u{41}"]
+        );
+        let triple = "\"\"\"\u{e9}\n${b}\"\"\"";
+        let spans = string_char_spans(triple, 0).unwrap();
+        assert_eq!(spans.first(), Some(&(3, 5)));
+        assert_eq!(spans.last(), Some(&(9, 10)));
+        assert_eq!(string_char_spans("x", 0), None);
     }
 
     #[test]

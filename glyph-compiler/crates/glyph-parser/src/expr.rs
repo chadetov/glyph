@@ -433,7 +433,7 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             // D22: split into a TemplateString iff the value contains a `${...}`.
             // `split_template_parts` walks the bytes once; absent any
             // interpolation it returns `None` and we keep the plain String.
-            match split_template_parts(&value, span)? {
+            match split_template_parts(p.source(), &value, span)? {
                 Some(parts) => Ok(Expr::TemplateString { parts, span }),
                 // No interpolation: resolve any escaped-`$` marker to a literal
                 // `$` so the AST carries the real value.
@@ -770,18 +770,28 @@ fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
 
 /// D22: split a de-escaped string value into template parts.
 ///
-/// Returns `Ok(None)` when the string contains no `${` — the caller keeps it
+/// Returns `Ok(None)` when the string contains no `${`; the caller keeps it
 /// as a plain `Expr::String`. Returns `Ok(Some(parts))` when interpolation is
 /// present; parts alternate `Text` and `Expr` and the expression inside each
 /// `${...}` is parsed via `crate::parse_expression`.
 ///
-/// Spans for inner parts are conservatively set to the parent string's span;
-/// proper span mapping requires a lexer-level template-literal mode (v1.1).
+/// Every span inside the template is a byte range of `source`, the text the
+/// string literal at `span` was lexed from (G435). The lexer reports which
+/// source bytes each character of the value came from
+/// ([`glyph_lexer::string_char_spans`]), so text before an interpolation
+/// may hold escapes, `\${`, non-ASCII characters or line breaks without
+/// moving it. A `Text` part spans its run of text and an `Expr` part spans
+/// `${` through `}`. The expression is parsed at the offset its first byte
+/// was written at, so its nodes land on their own text. One case stays
+/// approximate: an escape written inside the interpolation itself
+/// (`${f(\"x\")}`) is shorter in the value than in the source, and the nodes
+/// after it sit that many bytes early.
 ///
 /// Brace nesting inside an interpolation is tracked so `${{a: 1}.a}` works
 /// (the outer `{` belongs to the interpolation, the inner `{` is an object
 /// literal). String literals inside interpolations are also handled.
 fn split_template_parts(
+    source: &str,
     value: &str,
     span: glyph_lexer::Span,
 ) -> Result<Option<Vec<TemplatePart>>, ParseError> {
@@ -790,7 +800,12 @@ fn split_template_parts(
     let chars: Vec<char> = value.chars().collect();
     let mut parts: Vec<TemplatePart> = Vec::new();
     let mut text_buf = String::new();
+    // The char index where the pending text run began.
+    let mut text_start = 0;
     let mut saw_interp = false;
+    // The source bytes of each char of `value`, read once the string turns
+    // out to be a template.
+    let mut char_spans: Option<Vec<(u32, u32)>> = None;
     let mut i = 0;
     while i < chars.len() {
         let c = chars[i];
@@ -806,12 +821,16 @@ fn split_template_parts(
         }
         if c == '$' && i + 1 < chars.len() && chars[i + 1] == '{' {
             saw_interp = true;
+            let at = char_spans
+                .get_or_insert_with(|| template_char_spans(source, value, span, chars.len()))
+                .as_slice();
             if !text_buf.is_empty() {
                 parts.push(TemplatePart::Text {
                     content: std::mem::take(&mut text_buf),
-                    span,
+                    span: Span::new(at[text_start].0, at[i - 1].1),
                 });
             }
+            let dollar = i;
             i += 2;
             let interp_start = i;
             let mut depth: i32 = 1;
@@ -855,16 +874,13 @@ fn split_template_parts(
                 });
             }
             let interp_source: String = chars[interp_start..i].iter().collect();
-            // Resolve any escaped-`$` marker inside the interpolation before
-            // parsing it as an expression. Prepend whitespace so the parsed
-            // sub-expression's spans are offset to (roughly) their real source
-            // position rather than a 0-based one: two interpolations parsed from
-            // offset 0 produce colliding spans (`${mark} ${name}` would give the
-            // two idents the same `(0,4)` key), and the resolution map is keyed
-            // by span — the second silently overwrites the first, dropping a
-            // resolution. The offset only needs to be unique, not byte-exact
-            // (a lexer template-literal mode for exact spans is a v1.1 item).
-            let base = span.start as usize + interp_start;
+            // Parse the interpolation behind as many spaces as there are bytes
+            // before its first character in the source, so every node's span
+            // is its byte range in the file. The ranges are also what keeps
+            // two interpolations apart: the resolution map is keyed by span,
+            // and `${mark} ${name}` parsed from offset 0 would give both idents
+            // the key `(0,4)`.
+            let base = at[interp_start].0 as usize;
             let padded = format!(
                 "{}{}",
                 " ".repeat(base),
@@ -877,9 +893,10 @@ fn split_template_parts(
             })?;
             parts.push(TemplatePart::Expr {
                 value: inner_expr,
-                span,
+                span: Span::new(at[dollar].0, at[i].1),
             });
             i += 1;
+            text_start = i;
             continue;
         }
         text_buf.push(c);
@@ -889,12 +906,28 @@ fn split_template_parts(
         return Ok(None);
     }
     if !text_buf.is_empty() {
+        let at = char_spans.as_deref().unwrap_or_default();
         parts.push(TemplatePart::Text {
             content: text_buf,
-            span,
+            span: Span::new(at[text_start].0, at[chars.len() - 1].1),
         });
     }
     Ok(Some(parts))
+}
+
+/// The source bytes of each of the `len` chars of the string value lexed at
+/// `span`. The lexer produced `value` from that same text, so the two agree
+/// by construction. Should a caller ever hand in a value and span that do not
+/// belong together, every char is placed just inside the opening quote
+/// rather than indexing past the end.
+fn template_char_spans(source: &str, value: &str, span: Span, len: usize) -> Vec<(u32, u32)> {
+    match glyph_lexer::string_char_spans(source, span.start as usize) {
+        Some(spans) if spans.len() == len => spans,
+        _ => {
+            debug_assert!(false, "the string at {span:?} does not lex to {value:?}");
+            vec![(span.start + 1, span.start + 1); len]
+        }
+    }
 }
 
 /// Only `Ident`, `Member`, and `Call` expressions can be the receiver of a

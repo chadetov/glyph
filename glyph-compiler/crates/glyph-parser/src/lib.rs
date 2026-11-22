@@ -1578,6 +1578,65 @@ component Greet() -> Component { return <p>hi</p> }
         }
     }
 
+    /// Collect `(span, text)` for every part of every template in `e`, and for
+    /// every expression node inside each `${}`, by walking the `Debug` form:
+    /// the spans are all the test needs.
+    fn template_spans(src: &str) -> Vec<String> {
+        let m = parse_or_panic(src);
+        let mut out = Vec::new();
+        let debug = format!("{m:#?}");
+        // Every `Ident { name: "x", span: Span { start, end } }` inside the
+        // module: the idents in this test's sources all sit inside a `${}`.
+        let mut rest = debug.as_str();
+        while let Some(i) = rest.find("Ident {\n") {
+            rest = &rest[i + 7..];
+            let name_at = rest.find("name: \"").unwrap() + 7;
+            let name = &rest[name_at..name_at + rest[name_at..].find('"').unwrap()];
+            let num = |key: &str, r: &str| -> usize {
+                let k = r.find(key).unwrap() + key.len();
+                r[k..k + r[k..].find(',').unwrap()].trim().parse().unwrap()
+            };
+            let (s, e) = (num("start:", rest), num("end:", rest));
+            out.push(format!("{name}={}", &src[s..e]));
+        }
+        out
+    }
+
+    /// G435: every node inside a `${}` spans the bytes it was written at,
+    /// whatever comes before it in the string: another interpolation, an
+    /// escape, `\${`, non-ASCII text or a line break.
+    #[test]
+    fn nodes_inside_an_interpolation_span_their_own_text() {
+        let src = "module x\nfn main() {\n  let _a = \"n=${bb.nik} w=${cc} \\\" \\n \\${dd} \u{e9}\u{1F600} ${ee + ff}\"\n  let _b = \"\u{e9} line\none ${gg} \\${hh} ${ { k: ii, }.k }\"\n}\n";
+        let found = template_spans(src);
+        assert_eq!(
+            found,
+            vec!["bb=bb", "cc=cc", "ee=ee", "ff=ff", "gg=gg", "ii=ii"],
+            "{src}"
+        );
+    }
+
+    /// G435: a template's parts span their own text: a `Text` part its run
+    /// and an `Expr` part `${` through `}`.
+    #[test]
+    fn template_parts_span_their_own_text() {
+        let src = "module x\nfn main() { let _x = \"\u{e9} \\${a} ${b.c}!\" }\n";
+        let m = parse_or_panic(src);
+        let f = match &m.items[0] { glyph_ast::Decl::Fn(f) => f, _ => panic!() };
+        let l = match &f.body.stmts[0] { glyph_ast::Stmt::Let(l) => l, _ => panic!() };
+        let glyph_ast::Expr::TemplateString { parts, .. } = &l.value else { panic!("{l:?}") };
+        let texts: Vec<&str> = parts
+            .iter()
+            .map(|p| {
+                let span = match p {
+                    glyph_ast::TemplatePart::Text { span, .. } | glyph_ast::TemplatePart::Expr { span, .. } => *span,
+                };
+                &src[span.start as usize..span.end as usize]
+            })
+            .collect();
+        assert_eq!(texts, vec!["\u{e9} \\${a} ", "${b.c}", "!"]);
+    }
+
     #[test]
     fn template_literal_no_interpolation_stays_string() {
         let m = parse_or_panic(r#"module x

@@ -15777,6 +15777,59 @@ fn an_imported_const_carries_its_annotation_under_both_import_spellings() {
     }
 }
 
+/// Full `check` on one file: exit code and everything it printed.
+fn full_check_of(tag: &str, text: &str) -> (i32, String) {
+    let root = unique_tmp(tag);
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("check"), std::ffi::OsStr::new("--no-test"), main.as_os_str()]);
+    (code, format!("{stdout}\n{stderr}"))
+}
+
+#[test]
+fn a_comparison_with_an_unannotated_const_keeps_the_structural_helper() {
+    // G433, record 163 (probes k03 and k04). The checker types `const MODE =
+    // "read"` and `const N = 5`, and `tsc` gives their emitted `const`s the
+    // literal types `"read"` and `5`, which Glyph's checker does not hold
+    // for a number. Emitting `N === 6` made full `check` refuse with TS2367 a
+    // program Glyph accepts. An operand naming an unannotated const keeps
+    // `__glyph_eq`, the emit 0.1.161 gave it, so full `check` agrees with the
+    // agent gate. Requires tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping the record 163 tsc check: tsc not available");
+        return;
+    }
+    let k03 = "module main\n\nimport std/io\n\nconst MODE = \"read\"\nconst N = 5\n\n\
+               fn main(argv: Array<string>) -> number {\n  let s = MODE == \"write\"\n  let t = N == 6\n  \
+               let h = match MODE {\n    \"read\" => 1,\n  }\n  io.println(\"${s} ${t} ${h}\")\n  return 0\n}\n";
+    let (code, all) = full_check_of("g433-k03", k03);
+    assert_eq!(code, 0, "{all}");
+    assert!(all.contains("tsc --strict passed."), "{all}");
+
+    // k04 adds `m == "zzz"` on a `Mode`, which `tsc` refuses on every release
+    // and Glyph does not refuse yet (G438). That TS2367 is the only one; the
+    // two comparisons with the constants add none.
+    let k04 = "module main\n\nimport std/io\n\ntype Mode = \"read\" | \"write\"\nconst MODE = \"read\"\nconst N = 5\n\n\
+               fn f(m: Mode) -> bool {\n  return m == \"zzz\"\n}\n\n\
+               fn main(argv: Array<string>) -> number {\n  let s = MODE == \"write\"\n  let t = N == 6\n  \
+               io.println(\"${s} ${t}\")\n  return 0\n}\n";
+    let (code, all) = full_check_of("g433-k04", k04);
+    assert_eq!(code, 1, "{all}");
+    assert_eq!(all.matches("[TS2367]").count(), 1, "{all}");
+    assert!(all.contains("'Mode' and '\"zzz\"'"), "{all}");
+
+    let root = unique_tmp("g433-emit");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", k03);
+    build_project_inner(&src, &out, false).expect("build");
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts");
+    assert!(ts.contains("__glyph_eq(MODE, \"write\")"), "{ts}");
+    assert!(ts.contains("__glyph_eq(N, 6)"), "{ts}");
+}
+
 #[test]
 fn two_siblings_whose_unannotated_consts_read_each_other_build_without_a_panic() {
     // G433. `pub const X = b.Y` beside `pub const Y = a.X` is a query cycle

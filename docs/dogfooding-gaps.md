@@ -12300,7 +12300,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.170 (record 89; renumbered by record 157): `unknown` is
+  Planned for 0.1.171 (record 89; renumbered by records 157 and 158): `unknown` is
   assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`

@@ -260,6 +260,10 @@ Module {
                                         fields: [
                                             KeyValue {
                                                 key: "name",
+                                                key_span: Span {
+                                                    start: 1119,
+                                                    end: 1123,
+                                                },
                                                 value: String {
                                                     value: "string",
                                                     span: Span {
@@ -274,6 +278,10 @@ Module {
                                             },
                                             KeyValue {
                                                 key: "parse",
+                                                key_span: Span {
+                                                    start: 1139,
+                                                    end: 1144,
+                                                },
                                                 value: Lambda {
                                                     params: [
                                                         LambdaParam {
@@ -369,6 +377,10 @@ Module {
                                                                                                         fields: [
                                                                                                             KeyValue {
                                                                                                                 key: "path",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 1233,
+                                                                                                                    end: 1237,
+                                                                                                                },
                                                                                                                 value: Array {
                                                                                                                     elements: [],
                                                                                                                     span: Span {
@@ -383,6 +395,10 @@ Module {
                                                                                                             },
                                                                                                             KeyValue {
                                                                                                                 key: "message",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 1243,
+                                                                                                                    end: 1250,
+                                                                                                                },
                                                                                                                 value: String {
                                                                                                                     value: "expected string",
                                                                                                                     span: Span {
@@ -514,6 +530,10 @@ Module {
                                         fields: [
                                             KeyValue {
                                                 key: "name",
+                                                key_span: Span {
+                                                    start: 1351,
+                                                    end: 1355,
+                                                },
                                                 value: String {
                                                     value: "number",
                                                     span: Span {
@@ -528,6 +548,10 @@ Module {
                                             },
                                             KeyValue {
                                                 key: "parse",
+                                                key_span: Span {
+                                                    start: 1371,
+                                                    end: 1376,
+                                                },
                                                 value: Lambda {
                                                     params: [
                                                         LambdaParam {
@@ -623,6 +647,10 @@ Module {
                                                                                                         fields: [
                                                                                                             KeyValue {
                                                                                                                 key: "path",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 1465,
+                                                                                                                    end: 1469,
+                                                                                                                },
                                                                                                                 value: Array {
                                                                                                                     elements: [],
                                                                                                                     span: Span {
@@ -637,6 +665,10 @@ Module {
                                                                                                             },
                                                                                                             KeyValue {
                                                                                                                 key: "message",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 1475,
+                                                                                                                    end: 1482,
+                                                                                                                },
                                                                                                                 value: String {
                                                                                                                     value: "expected number",
                                                                                                                     span: Span {
@@ -865,6 +897,10 @@ Module {
                                         fields: [
                                             KeyValue {
                                                 key: "name",
+                                                key_span: Span {
+                                                    start: 2530,
+                                                    end: 2534,
+                                                },
                                                 value: String {
                                                     value: "object",
                                                     span: Span {
@@ -879,6 +915,10 @@ Module {
                                             },
                                             KeyValue {
                                                 key: "parse",
+                                                key_span: Span {
+                                                    start: 2550,
+                                                    end: 2555,
+                                                },
                                                 value: Lambda {
                                                     params: [
                                                         LambdaParam {
@@ -1283,6 +1323,10 @@ Module {
                                                                                                                                                                             fields: [
                                                                                                                                                                                 KeyValue {
                                                                                                                                                                                     key: "path",
+                                                                                                                                                                                    key_span: Span {
+                                                                                                                                                                                        start: 3009,
+                                                                                                                                                                                        end: 3013,
+                                                                                                                                                                                    },
                                                                                                                                                                                     value: Array {
                                                                                                                                                                                         elements: [
                                                                                                                                                                                             Expr(
@@ -1324,6 +1368,10 @@ Module {
                                                                                                                                                                                 },
                                                                                                                                                                                 KeyValue {
                                                                                                                                                                                     key: "message",
+                                                                                                                                                                                    key_span: Span {
+                                                                                                                                                                                        start: 3037,
+                                                                                                                                                                                        end: 3044,
+                                                                                                                                                                                    },
                                                                                                                                                                                     value: Member {
                                                                                                                                                                                         object: Ident {
                                                                                                                                                                                             name: "issue",
@@ -1545,6 +1593,10 @@ Module {
                                                                                                         fields: [
                                                                                                             KeyValue {
                                                                                                                 key: "path",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 3264,
+                                                                                                                    end: 3268,
+                                                                                                                },
                                                                                                                 value: Array {
                                                                                                                     elements: [],
                                                                                                                     span: Span {
@@ -1559,6 +1611,10 @@ Module {
                                                                                                             },
                                                                                                             KeyValue {
                                                                                                                 key: "message",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 3274,
+                                                                                                                    end: 3281,
+                                                                                                                },
                                                                                                                 value: String {
                                                                                                                     value: "expected object",
                                                                                                                     span: Span {
@@ -1751,6 +1807,10 @@ Module {
                                         fields: [
                                             KeyValue {
                                                 key: "name",
+                                                key_span: Span {
+                                                    start: 3404,
+                                                    end: 3408,
+                                                },
                                                 value: String {
                                                     value: "array",
                                                     span: Span {
@@ -1765,6 +1825,10 @@ Module {
                                             },
                                             KeyValue {
                                                 key: "parse",
+                                                key_span: Span {
+                                                    start: 3423,
+                                                    end: 3428,
+                                                },
                                                 value: Lambda {
                                                     params: [
                                                         LambdaParam {
@@ -2122,6 +2186,10 @@ Module {
                                                                                                                                                                             fields: [
                                                                                                                                                                                 KeyValue {
                                                                                                                                                                                     key: "path",
+                                                                                                                                                                                    key_span: Span {
+                                                                                                                                                                                        start: 3835,
+                                                                                                                                                                                        end: 3839,
+                                                                                                                                                                                    },
                                                                                                                                                                                     value: Array {
                                                                                                                                                                                         elements: [
                                                                                                                                                                                             Expr(
@@ -2187,6 +2255,10 @@ Module {
                                                                                                                                                                                 },
                                                                                                                                                                                 KeyValue {
                                                                                                                                                                                     key: "message",
+                                                                                                                                                                                    key_span: Span {
+                                                                                                                                                                                        start: 3878,
+                                                                                                                                                                                        end: 3885,
+                                                                                                                                                                                    },
                                                                                                                                                                                     value: Member {
                                                                                                                                                                                         object: Ident {
                                                                                                                                                                                             name: "issue",
@@ -2408,6 +2480,10 @@ Module {
                                                                                                         fields: [
                                                                                                             KeyValue {
                                                                                                                 key: "path",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 4125,
+                                                                                                                    end: 4129,
+                                                                                                                },
                                                                                                                 value: Array {
                                                                                                                     elements: [],
                                                                                                                     span: Span {
@@ -2422,6 +2498,10 @@ Module {
                                                                                                             },
                                                                                                             KeyValue {
                                                                                                                 key: "message",
+                                                                                                                key_span: Span {
+                                                                                                                    start: 4135,
+                                                                                                                    end: 4142,
+                                                                                                                },
                                                                                                                 value: String {
                                                                                                                     value: "expected array",
                                                                                                                     span: Span {
@@ -2611,6 +2691,10 @@ Module {
                             fields: [
                                 KeyValue {
                                     key: "name",
+                                    key_span: Span {
+                                        start: 4981,
+                                        end: 4985,
+                                    },
                                     value: Call {
                                         callee: Ident {
                                             name: "string_schema",
@@ -2633,6 +2717,10 @@ Module {
                                 },
                                 KeyValue {
                                     key: "age",
+                                    key_span: Span {
+                                        start: 5004,
+                                        end: 5007,
+                                    },
                                     value: Call {
                                         callee: Ident {
                                             name: "number_schema",
@@ -2703,6 +2791,10 @@ Module {
                                     fields: [
                                         KeyValue {
                                             key: "name",
+                                            key_span: Span {
+                                                start: 5066,
+                                                end: 5070,
+                                            },
                                             value: String {
                                                 value: "Ada",
                                                 span: Span {
@@ -2717,6 +2809,10 @@ Module {
                                         },
                                         KeyValue {
                                             key: "age",
+                                            key_span: Span {
+                                                start: 5079,
+                                                end: 5082,
+                                            },
                                             value: Number {
                                                 raw: "36",
                                                 span: Span {

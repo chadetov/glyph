@@ -2653,6 +2653,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "users",
+                                                                        key_span: Span {
+                                                                            start: 3443,
+                                                                            end: 3448,
+                                                                        },
                                                                         value: Ident {
                                                                             name: "users",
                                                                             span: Span {
@@ -2717,6 +2721,10 @@ Module {
                                                                 fields: [
                                                                     KeyValue {
                                                                         key: "message",
+                                                                        key_span: Span {
+                                                                            start: 3489,
+                                                                            end: 3496,
+                                                                        },
                                                                         value: Ident {
                                                                             name: "message",
                                                                             span: Span {

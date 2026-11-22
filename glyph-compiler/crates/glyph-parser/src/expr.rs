@@ -712,6 +712,7 @@ fn parse_object_field(p: &mut Cursor) -> Result<ObjectField, ParseError> {
     let end = value.span().end;
     Ok(ObjectField::KeyValue {
         key,
+        key_span,
         value,
         span: Span::new(key_span.start, end),
     })

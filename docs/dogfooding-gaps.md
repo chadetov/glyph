@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-431 entries, 317 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+432 entries, 318 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 94 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12300,8 +12300,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.166 (record 89): `unknown` is assignable only to `unknown`,
-  after G315 and G314 step 2.
+  Planned for 0.1.170 (record 89; renumbered by record 157): `unknown` is
+  assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
   with `u: unknown` is `glyph check: 1 module(s) checked, no
@@ -14639,7 +14639,7 @@ and is the owner's to confirm.
   binding `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` passes full `check`
   and prints `1 1 1 true true`: three one-unit strings, all the same half.*
 
-- **G429. `??` on an `Option` or a `Result` hands back the object.** An
+- **G429. [FIXED] `??` on an `Option` or a `Result` hands back the object.** An
   `Option` and a `Result` are tagged objects at run time and never nullish,
   so `let u = array.find(xs, f)` then `let v = u ?? 0` gives `v` the `Option`
   itself, and `${v}` prints `[object Object]`. Glyph's checker and `tsc`
@@ -14652,6 +14652,20 @@ and is the owner's to confirm.
   *Reproduced against 0.1.160 (the release build): record 155's probe k01
   passes full `check` (`tsc --strict passed.`) and `run` prints
   `[object Object] false`.*
+
+  Fixed in 0.1.162 (decision record 157, D18). The gap was wider than a name
+  holding an `Option`: a left side that can itself be missing and holds an
+  `Option` when present, such as `b.inner?.opt ?? 0`, hands it back too, and
+  the `b.o ?? None` a help would write was typed `Unknown`, so a `match` over
+  it went unchecked. E0236 now covers `??`. A left side that cannot be absent
+  is refused whatever the default is; one that can (a `?.` chain, a field
+  declared `f?:`, an index read) is refused unless the default is the
+  container, which is then the expression's type. The help writes the
+  `match`, and `glyph fix` writes it for an `Option` with a payload-typed
+  default, re-checks the file and reverts on a new error. A `Result` is never
+  rewritten. Record 157's probe a01 goes from exit 0 to exit 1 under
+  `--no-tsc` and full `check`. The neighbouring defect, a default that
+  disagrees with a `Nullable` or optional left side, is G432.
 
 - **G430. A `glyph fix` decline names an unannotated lambda's return as
   `?`.** When the E0242 rewrite declines inside a lambda with no declared
@@ -14674,3 +14688,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.161 (the dev build): `--no-tsc` reports no
   diagnostics; full `check` reports TS2339 on `to_string`.*
+
+- **G432. A `??` default that disagrees with a `Nullable` or optional left
+  side is left unchecked.** On `n: Nullable<number>`, `let z: string = n ??
+  "x"` passes `check --no-tsc`: the result is typed `Unknown`, because the
+  union TypeScript gives it has no Glyph spelling. The same holds for `b.n ??
+  None` on a field declared `n?: number`, and `n ?? Some(1)`. Separately, a
+  `??` on a value that can never be absent (`k ?? 0` on a `number`) is dead
+  and draws nothing. G429 settled `??` on an `Option` or a `Result`; these two
+  carry a different risk (operands that disagree, and false refusals around
+  index reads, which Glyph types as their element), so record 157 kept them
+  out of that release. Found by record 157.
+
+  *Reproduced against 0.1.161 (the release build) by record 157's probe a02:
+  of seven `??` bound to a `let ...: string`, only `n ?? 0` draws E0204;
+  `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` are silent.*

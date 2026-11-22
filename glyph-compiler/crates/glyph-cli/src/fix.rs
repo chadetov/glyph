@@ -826,7 +826,9 @@ const NODE_DRIFT: &str = "the diagnostic's range does not hold the expression th
 /// does not parse as an expression (a pattern, a JSX attribute) is accepted
 /// outside a template string and declined inside one: an escape written
 /// inside a `${}` (`${f(\"x\")}`) still moves the nodes after it, since the
-/// expression is parsed from the string's value.
+/// expression is parsed from the string's value. An object literal key
+/// (D57) is checked by its text instead: the range must hold exactly the
+/// key the node names, which an offset range cannot.
 struct SpanIndex {
     /// (start, end, variant name, shape) per node.
     nodes: Vec<(u32, u32, String, String)>,
@@ -842,6 +844,7 @@ impl SpanIndex {
         let mut in_str = false;
         let mut i = 0;
         const KEY: &str = "span: Span { start: ";
+        const KEY_SPAN: &str = "key_span: Span { start: ";
         while i < bytes.len() {
             let c = bytes[i];
             if in_str {
@@ -861,8 +864,16 @@ impl SpanIndex {
                         close_of.insert(open, i);
                     }
                 }
-                b's' if debug[i..].starts_with(KEY) && i >= 2 && (bytes[i - 1] == b' ') && matches!(bytes[i - 2], b',' | b'{') => {
-                    let rest = &debug[i + KEY.len()..];
+                // A literal key's own span (D57) is a range a rule edits too:
+                // E0210 on an undeclared key is reported there.
+                b's' | b'k'
+                    if (debug[i..].starts_with(KEY) || debug[i..].starts_with(KEY_SPAN))
+                        && i >= 2
+                        && (bytes[i - 1] == b' ')
+                        && matches!(bytes[i - 2], b',' | b'{') =>
+                {
+                    let len = if c == b'k' { KEY_SPAN.len() } else { KEY.len() };
+                    let rest = &debug[i + len..];
                     let start: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
                     let after = &rest[start.len()..];
                     if let Some(end_text) = after.strip_prefix(", end: ") {
@@ -901,6 +912,21 @@ impl SpanIndex {
         let at: Vec<&(u32, u32, String, String)> = self.nodes.iter().filter(|n| n.0 == s && n.1 == e).collect();
         if at.is_empty() {
             return Err(NODE_DRIFT.to_string());
+        }
+        // An object literal key (D57) holds exactly the key it names, quotes
+        // and all, so its text is the check: a drifted range would hold
+        // other text.
+        if let Some(slice) = source.get(s as usize..e as usize) {
+            let bare = format!("KeyValue {{ key: {slice:?},");
+            let quoted = slice
+                .strip_prefix('"')
+                .and_then(|x| x.strip_suffix('"'))
+                .map(|x| format!("KeyValue {{ key: {x:?},"));
+            if at.iter().any(|n| {
+                n.2 == "KeyValue" && (n.3.starts_with(&bare) || quoted.as_ref().is_some_and(|q| n.3.starts_with(q)))
+            }) {
+                return Ok(());
+            }
         }
         let parsed = source
             .get(s as usize..e as usize)

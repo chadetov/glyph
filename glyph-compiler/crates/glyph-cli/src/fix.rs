@@ -827,8 +827,9 @@ const NODE_DRIFT: &str = "the diagnostic's range does not hold the expression th
 /// outside a template string and declined inside one: an escape written
 /// inside a `${}` (`${f(\"x\")}`) still moves the nodes after it, since the
 /// expression is parsed from the string's value. An object literal key
-/// (D57) is checked by its text instead: the range must hold exactly the
-/// key the node names, which an offset range cannot.
+/// (D57) is anchored to the object literal holding it instead: that
+/// object's span must re-parse to it, and the range must be the key's
+/// position inside it (record 167).
 struct SpanIndex {
     /// (start, end, variant name, shape) per node.
     nodes: Vec<(u32, u32, String, String)>,
@@ -913,20 +914,15 @@ impl SpanIndex {
         if at.is_empty() {
             return Err(NODE_DRIFT.to_string());
         }
-        // An object literal key (D57) holds exactly the key it names, quotes
-        // and all, so its text is the check: a drifted range would hold
-        // other text.
-        if let Some(slice) = source.get(s as usize..e as usize) {
-            let bare = format!("KeyValue {{ key: {slice:?},");
-            let quoted = slice
-                .strip_prefix('"')
-                .and_then(|x| x.strip_suffix('"'))
-                .map(|x| format!("KeyValue {{ key: {x:?},"));
-            if at.iter().any(|n| {
-                n.2 == "KeyValue" && (n.3.starts_with(&bare) || quoted.as_ref().is_some_and(|q| n.3.starts_with(q)))
-            }) {
-                return Ok(());
-            }
+        // An object literal key (D57) is not an expression, so it is anchored
+        // to the object literal that holds it (record 167): the slice at the
+        // object's span must re-parse to an object of the same shape, and
+        // the range must be this key's position inside that object. Text
+        // alone is not enough: inside a `${}` an escape still moves a range
+        // (G441), and the same name a few bytes earlier would pass a text
+        // check on the wrong bytes.
+        if at.iter().any(|n| n.2 == "KeyValue") {
+            return self.key_anchored(source, s, e);
         }
         let parsed = source
             .get(s as usize..e as usize)
@@ -952,6 +948,40 @@ impl SpanIndex {
             return Err(NODE_DRIFT.to_string());
         }
         Ok(())
+    }
+}
+
+impl SpanIndex {
+    /// `Ok` when the key range `s..e` is a key of the innermost object
+    /// literal containing it, and that object's own span re-parses to it.
+    fn key_anchored(&self, source: &str, s: u32, e: u32) -> Result<(), String> {
+        let object = self
+            .nodes
+            .iter()
+            .filter(|n| n.2 == "Object" && n.0 <= s && e <= n.1)
+            .min_by_key(|n| n.1 - n.0)
+            .ok_or_else(|| NODE_DRIFT.to_string())?;
+        let slice = source
+            .get(object.0 as usize..object.1 as usize)
+            .ok_or_else(|| NODE_DRIFT.to_string())?;
+        let parsed = glyph_parser::parse_expression(slice).map_err(|_| NODE_DRIFT.to_string())?;
+        if glyph_typechecker::absent::expr_shape(&parsed) != object.3 {
+            return Err(NODE_DRIFT.to_string());
+        }
+        let glyph_ast::Expr::Object { fields, .. } = &parsed else {
+            return Err(NODE_DRIFT.to_string());
+        };
+        let here = fields.iter().any(|f| match f {
+            glyph_ast::ObjectField::KeyValue { key_span, .. } => {
+                key_span.start + object.0 == s && key_span.end + object.0 == e
+            }
+            glyph_ast::ObjectField::Spread { .. } => false,
+        });
+        if here {
+            Ok(())
+        } else {
+            Err(NODE_DRIFT.to_string())
+        }
     }
 }
 

@@ -580,3 +580,43 @@ pub fn main(argv: Array<string>) -> number {{\n\
     assert_eq!(code, 0, "{out}");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Record 167. Inside the `${}` of a `"..."` string each escape still moves
+/// a range one byte early (G441). In this program five escapes come before
+/// the key `nik`, and a variable `nik` sits five bytes before it, so the
+/// drifted range holds the key's text over the variable. The guard anchors a
+/// key to the object literal holding it, whose own span does not re-parse to
+/// that object here, so the rename declines and the file is byte-identical.
+/// x02's renames (no escape before them) and a key outside any template
+/// still apply; `renames_inside_an_interpolation_apply_at_the_right_bytes`
+/// and `a_misspelled_optional_field_is_renamed_by_fix` hold that.
+#[test]
+fn a_key_range_moved_by_escapes_declines() {
+    let source = "module main\n\
+\n\
+import std/io\n\
+\n\
+type Opt = { name: string, nick?: string }\n\
+\n\
+fn f(s: string) -> string {\n\
+\x20 return s\n\
+}\n\
+fn pick(a: string, b: string, o: Opt) -> string {\n\
+\x20 return o.name\n\
+}\n\
+\n\
+pub fn main(argv: Array<string>) -> number {\n\
+\x20 let nik = \"v\"\n\
+\x20 let k = \"w\"\n\
+\x20 io.println(\"r=${pick(f(\\\"\\t\\\"), f(\\\"\\\"), { name: nik, nik: k })}\")\n\
+\x20 return 0\n\
+}\n";
+    let dir = project("d01", &[("main.glyph", source)]);
+    let (code, out) = check(&dir);
+    assert_eq!(code, 1, "the key is refused: {out}");
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert!(!out.contains("applied E0210"), "{out}");
+    assert!(out.contains("declined E0210"), "{out}");
+    assert_eq!(source_of(&dir), source, "the file is untouched");
+    let _ = std::fs::remove_dir_all(&dir);
+}

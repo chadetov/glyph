@@ -14586,10 +14586,10 @@ and is the owner's to confirm.
   checker types `set.Set<T>`, `store.Store<T>` and `collections.Deque<T>`,
   their four constructors and their member tables, so both `let` annotations
   above are E0204, `seen.add(5)` is E0211 and `seen.nope()` is E0210. The
-  claim this entry makes still holds in full until step 2 (0.1.166) marks the
+  claim this entry makes still holds in full until step 2 marks the
   writing members: no member is classified as changing its receiver yet, and
-  the pin above still passes. An unannotated `const` is `Unknown` until G433
-  (0.1.165), so `const HITS = store.create(0)` reads nothing off `HITS`; most
+  the pin above still passes. An unannotated `const` is `Unknown` until G433,
+  so `const HITS = store.create(0)` reads nothing off `HITS`; most
   of the ~50 corpus sites (auth_api's `repo.glyph` and `clock.glyph`, csvql's
   `cursor` and `tokens`, resilient's three counters) are declared that way,
   which is why record 158 puts G433 before step 2. The local and parameter
@@ -14815,3 +14815,18 @@ and is the owner's to confirm.
   build: `n.update(fn(v: string) -> string { return v })` on a
   `store.Store<number>` and `apply(fn(v: string) -> string { return v })`
   both print ``expected `function`, found `function` ``.*
+
+- **G436. `Some(x)` where an `Option<T>` is declared does not compare a
+  non-literal `x` with `T`.** `let o1: Option<number> = Some(d)` with `d` a
+  `decimal.Decimal`, and `let o2: Option<number> = Some(u)` with `u` a record
+  the program declares, both pass `check --no-tsc`, and `tsc` refuses both
+  (TS2322). `let a1: Array<number> = ds` with `ds: Array<decimal.Decimal>` and
+  `[d]` under `Array<number>` are E0204, so the payload of `Some` is the one
+  position of the three that compares nothing. This is the non-literal half
+  of what G273 does for written literals at `Some`, `Ok` and `Err`; it reuses
+  G273's position machinery, so it comes after it. Found by decision record
+  161 (probe s02).
+
+  *Reproduced against 0.1.161 (the published release) and the 0.1.163 branch
+  build with record 161's probe s02: `o1` and `o2` draw nothing under
+  `check --no-tsc`; `a1` and `a2` are E0204 on the branch.*

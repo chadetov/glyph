@@ -8,6 +8,13 @@
   <updated>2026-11-22T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.163 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.163" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.163</id>
+    <updated>2026-11-22T00:00:00Z</updated>
+    <summary>The stdlib Set, Store and Deque are typed, and an empty deque can't hand back undefined</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.162 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.162" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.162</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.134</id>
     <updated>2026-11-11T00:00:00Z</updated>
     <summary>This release changes how the parser reads a file and nothing about what a program means.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.133 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.133" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.133</id>
-    <updated>2026-11-11T00:00:00Z</updated>
-    <summary>This release finishes what 0.1.132 started on json.parse: it never casts now, however it is spelled or reached.</summary>
   </entry>
 </feed>

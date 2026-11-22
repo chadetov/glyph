@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "tr",
-  "source_hash": "bc168f89faa5ea6e",
+  "source_hash": "e2d355cb18462c09",
   "segments": [
     {
       "id": "title",
@@ -123,6 +123,30 @@
       "kind": "html",
       "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
       "tr": "Yeniden atama açıktır ve grep'lenebilir. Düz bir <code>let</code> bağlaması siz fark etmeden asla değişmez; birini değiştirmek için <code>mut</code> yazarsınız."
+    },
+    {
+      "id": "h-0b7ebd02",
+      "kind": "html",
+      "en": "A React component in both",
+      "tr": "İkisinde de bir React bileşeni"
+    },
+    {
+      "id": "h-d04c5e5a",
+      "kind": "html",
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph <code>&lt;match&gt;</code> kullanır; bir değer alır ve her desen için bir <code>&lt;case&gt;</code> içerir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir."
+    },
+    {
+      "id": "h-9e878e46",
+      "kind": "html",
+      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph yarısı daha uzun. <code>&amp;&amp;</code>, boş bir <code>false</code> durumu olan bir <code>&lt;match&gt;</code> olur ve o durumu atlamak <code>E0209</code> hatasıdır, çünkü bir <code>bool</code> üzerindeki <code>match</code> iki değeri de kapsamak zorundadır. Bir union üzerinde aynı öğe her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href=\"/answers/react/\">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor."
+    },
+    {
+      "id": "h-708040f1",
+      "kind": "html",
+      "en": "Editor support and debugging have their own answers: <a href=\"/answers/tooling/\">the tooling answer</a> covers the language server and the VS Code extension, and <a href=\"/answers/debugging/\">the debugging answer</a> covers source maps back to the <code>.glyph</code> file. For the dev loop, <code>glyph build --watch</code> rebuilds the TypeScript each time you save a <code>.glyph</code> file. A Vite dev server that imports that output reloads the whole page after each rebuild instead of hot-swapping the component, so component state resets, while your own <code>.tsx</code> files keep Vite's hot reload. Write the output outside Vite's build directory (<code>dist/</code> by default), because its dev server does not watch that directory.",
+      "tr": "Editör desteği ve hata ayıklamanın kendi cevapları var: <a href=\"/answers/tooling/\">araçlar cevabı</a> dil sunucusunu ve VS Code eklentisini, <a href=\"/answers/debugging/\">hata ayıklama cevabı</a> ise <code>.glyph</code> dosyasına geri dönen source map'leri anlatıyor. Geliştirme döngüsünde <code>glyph build --watch</code>, bir <code>.glyph</code> dosyasını her kaydettiğinizde TypeScript'i yeniden derler. Bu çıktıyı import eden bir Vite dev sunucusu her yeniden derlemeden sonra bileşeni sıcak değiştirmek yerine sayfanın tamamını yeniden yükler, bu yüzden bileşenin state'i sıfırlanır; kendi <code>.tsx</code> dosyalarınız Vite'ın hot reload'unu korur. Çıktıyı Vite'ın build dizininin (varsayılan olarak <code>dist/</code>) dışına yazın, çünkü dev sunucusu o dizini izlemez."
     },
     {
       "id": "h-40accee4",

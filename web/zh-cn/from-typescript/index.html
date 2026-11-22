@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"从 TypeScript 迁移过来","item":"https://glyphlang.io/zh-cn/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/from-typescript/#article","headline":"从 TypeScript 迁移过来 · Glyph 里有哪些变化","description":"Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。","url":"https://glyphlang.io/zh-cn/from-typescript/","inLanguage":"zh-Hans","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/from-typescript/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"从 TypeScript 迁移过来","item":"https://glyphlang.io/zh-cn/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/from-typescript/#article","headline":"从 TypeScript 迁移过来 · Glyph 里有哪些变化","description":"Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。","url":"https://glyphlang.io/zh-cn/from-typescript/","inLanguage":"zh-Hans","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/from-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/from-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/from-typescript/" />
@@ -452,6 +452,96 @@
           <dd>重新赋值是显式的，可以 grep 到。普通的 <code>let</code> 绑定不会在你背后改变；要修改它就写 <code>mut</code>。</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-react-component-in-both">同一个 React 组件，两种写法<a class="h-anchor" href="#a-react-component-in-both" aria-label="链接到本节">#</a></h2>
+        <p>
+          同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 <code>&lt;match&gt;</code>：它接收一个值，每个模式写一个 <code>&lt;case&gt;</code>。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>; accepted: <span class="t">boolean</span> };
+
+<span class="k">export</span> <span class="k">function</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Invite</span>[] }) {
+  <span class="k">const</span> waiting = props.invites.filter((i) <span class="op">=&gt;</span> !i.accepted).length;
+  <span class="k">return</span> (
+    &lt;<span class="t">section</span>&gt;
+      <span class="ip">{</span>waiting &gt; <span class="n">0</span> &amp;&amp; &lt;<span class="t">p</span> className=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;<span class="ip">}</span>
+      <span class="ip">{</span>props.invites.length === <span class="n">0</span> <span class="op">?</span> (
+        &lt;<span class="t">p</span> className=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      ) : (
+        &lt;<span class="t">ul</span>&gt;
+          <span class="ip">{</span>props.invites.map((invite) <span class="op">=&gt;</span> (
+            &lt;<span class="t">li</span> key={invite.email}&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              <span class="ip">{</span>invite.accepted <span class="op">?</span> (
+                &lt;<span class="t">span</span> className=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              ) : (
+                &lt;<span class="t">span</span> className=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              )<span class="ip">}</span>
+            &lt;/<span class="t">li</span>&gt;
+          ))<span class="ip">}</span>
+        &lt;/<span class="t">ul</span>&gt;
+      )<span class="ip">}</span>
+    &lt;/<span class="t">section</span>&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> invites
+
+<span class="k">import</span> std/array
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>, accepted: <span class="t">bool</span> }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
+  <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
+  <span class="k">return</span> &lt;<span class="t">section</span>&gt;
+    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">case</span> true&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">match</span> value={props.invites.length}&gt;
+      &lt;<span class="t">case</span> 0&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> else&gt;
+        &lt;<span class="t">ul</span>&gt;
+          &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
+            &lt;<span class="t">li</span>&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              &lt;<span class="t">match</span> value={invite.accepted}&gt;
+                &lt;<span class="t">case</span> true&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+                &lt;<span class="t">case</span> false&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+              &lt;/<span class="t">match</span>&gt;
+            &lt;/<span class="t">li</span>&gt;
+          &lt;/<span class="t">for</span>&gt;
+        &lt;/<span class="t">ul</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+  &lt;/<span class="t">section</span>&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph 这一半更长。<code>&amp;&amp;</code> 变成一个带空 <code>false</code> 分支的 <code>&lt;match&gt;</code>，省略这个分支就是 <code>E0209</code>，因为对 <code>bool</code> 的 <code>match</code> 必须覆盖两个值。对 union 来说，同一个元素必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href="/zh-cn/answers/react/">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。
+        </p>
+        <p>
+          编辑器支持和调试各有专门的回答：<a href="/zh-cn/answers/tooling/">工具的回答</a> 介绍语言服务器和 VS Code 扩展，<a href="/zh-cn/answers/debugging/">调试的回答</a> 介绍映射回 <code>.glyph</code> 文件的 source map。开发时，<code>glyph build --watch</code> 会在你每次保存 <code>.glyph</code> 文件时重新构建 TypeScript。导入这份输出的 Vite 开发服务器在每次重新构建后会整页刷新，而不是热替换组件，所以组件状态会重置；你自己的 <code>.tsx</code> 文件仍然有 Vite 的热重载。请把输出写到 Vite 的构建目录（默认是 <code>dist/</code>）之外，因为它的开发服务器不监视那个目录。
+        </p>
+      </div>
 
       <div class="detail">
         <p>

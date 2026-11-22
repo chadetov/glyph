@@ -46,6 +46,113 @@ next_steps: |
       </dl>
 
       <div class="detail">
+        <h2 class="block-label">A React component in both</h2>
+        <p>
+          The same component twice: a list of invites with an empty state, a line counting the
+          ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code>
+          and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and
+          one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the
+          attribute is <code>class</code>, which compiles to <code>className</code>.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre>export type Invite = { email: string; accepted: boolean };
+
+export function InviteList(props: { invites: Invite[] }) {
+  const waiting = props.invites.filter((i) =&gt; !i.accepted).length;
+  return (
+    &lt;section&gt;
+      {waiting &gt; 0 &amp;&amp; &lt;p className="note"&gt;{waiting} waiting for a reply&lt;/p&gt;}
+      {props.invites.length === 0 ? (
+        &lt;p className="empty"&gt;No invites sent yet.&lt;/p&gt;
+      ) : (
+        &lt;ul&gt;
+          {props.invites.map((invite) =&gt; (
+            &lt;li key={invite.email}&gt;
+              {invite.email}
+              {invite.accepted ? (
+                &lt;span className="ok"&gt;joined&lt;/span&gt;
+              ) : (
+                &lt;span className="wait"&gt;pending&lt;/span&gt;
+              )}
+            &lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/section&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react">module invites
+
+import std/array
+
+pub type Invite = { email: string, accepted: bool }
+
+pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
+  let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
+  return &lt;section&gt;
+    &lt;match value={waiting &gt; 0}&gt;
+      &lt;case true&gt;
+        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case false&gt;&lt;/case&gt;
+    &lt;/match&gt;
+    &lt;match value={props.invites.length}&gt;
+      &lt;case 0&gt;
+        &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case else&gt;
+        &lt;ul&gt;
+          &lt;for invite in={props.invites} key={invite.email}&gt;
+            &lt;li&gt;
+              {invite.email}
+              &lt;match value={invite.accepted}&gt;
+                &lt;case true&gt;
+                  &lt;span class="ok"&gt;joined&lt;/span&gt;
+                &lt;/case&gt;
+                &lt;case false&gt;
+                  &lt;span class="wait"&gt;pending&lt;/span&gt;
+                &lt;/case&gt;
+              &lt;/match&gt;
+            &lt;/li&gt;
+          &lt;/for&gt;
+        &lt;/ul&gt;
+      &lt;/case&gt;
+    &lt;/match&gt;
+  &lt;/section&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code>
+          with an empty <code>false</code> case, and leaving that case out is
+          <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover
+          both values. Over a union, the same element has to cover every variant
+          (<code>E0200</code>), which is where it pays for the extra lines:
+          <a href="/answers/react/">Does it work with React?</a> shows one, with hooks and Context.
+        </p>
+        <p>
+          Editor support and debugging have their own answers: <a href="/answers/tooling/">the
+          tooling answer</a> covers the language server and the VS Code extension, and
+          <a href="/answers/debugging/">the debugging answer</a> covers source maps back to the
+          <code>.glyph</code> file. For the dev loop, <code>glyph build --watch</code> rebuilds the
+          TypeScript each time you save a <code>.glyph</code> file. A Vite dev server that imports
+          that output reloads the whole page after each rebuild instead of hot-swapping the
+          component, so component state resets, while your own <code>.tsx</code> files keep
+          Vite's hot reload. Write the output outside Vite's build directory (<code>dist/</code>
+          by default), because its dev server does not watch that directory.
+        </p>
+      </div>
+
+      <div class="detail">
         <p>
           "Agents" on this site means AI coding assistants such as Claude, Copilot and Cursor.
           Glyph helps them most, but the checks are the same whether a person or a model wrote the

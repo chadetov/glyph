@@ -1,7 +1,7 @@
 ---
 title: Si vienes de TypeScript · qué cambia en Glyph · Glyph
 description: Glyph se lee casi como TypeScript y compila a TypeScript. Lo que cambia: unas pocas diferencias de sintaxis, sin any, as ni !, una única vía de escape que se puede buscar con grep, y cómo funciona npm.
-source_hash: bc168f89faa5ea6e
+source_hash: e2d355cb18462c09
 next_steps: |
   Adónde ir ahora
   Recomendado | /catches/ | catches | Mira lo que TypeScript deja pasar | Cada caso ejecutado con <code>tsc --strict</code> y con Glyph, con el error. | Ver los casos
@@ -40,6 +40,96 @@ next_steps: |
           <dd>La reasignación es explícita y se puede buscar con grep. Un binding <code>let</code> normal nunca cambia a tus espaldas; escribes <code>mut</code> para cambiar uno.</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label">Un componente de React en los dos</h2>
+        <p>
+          El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre>export type Invite = { email: string; accepted: boolean };
+
+export function InviteList(props: { invites: Invite[] }) {
+  const waiting = props.invites.filter((i) =&gt; !i.accepted).length;
+  return (
+    &lt;section&gt;
+      {waiting &gt; 0 &amp;&amp; &lt;p className="note"&gt;{waiting} waiting for a reply&lt;/p&gt;}
+      {props.invites.length === 0 ? (
+        &lt;p className="empty"&gt;No invites sent yet.&lt;/p&gt;
+      ) : (
+        &lt;ul&gt;
+          {props.invites.map((invite) =&gt; (
+            &lt;li key={invite.email}&gt;
+              {invite.email}
+              {invite.accepted ? (
+                &lt;span className="ok"&gt;joined&lt;/span&gt;
+              ) : (
+                &lt;span className="wait"&gt;pending&lt;/span&gt;
+              )}
+            &lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/section&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react">module invites
+
+import std/array
+
+pub type Invite = { email: string, accepted: bool }
+
+pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
+  let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
+  return &lt;section&gt;
+    &lt;match value={waiting &gt; 0}&gt;
+      &lt;case true&gt;
+        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case false&gt;&lt;/case&gt;
+    &lt;/match&gt;
+    &lt;match value={props.invites.length}&gt;
+      &lt;case 0&gt;
+        &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case else&gt;
+        &lt;ul&gt;
+          &lt;for invite in={props.invites} key={invite.email}&gt;
+            &lt;li&gt;
+              {invite.email}
+              &lt;match value={invite.accepted}&gt;
+                &lt;case true&gt;
+                  &lt;span class="ok"&gt;joined&lt;/span&gt;
+                &lt;/case&gt;
+                &lt;case false&gt;
+                  &lt;span class="wait"&gt;pending&lt;/span&gt;
+                &lt;/case&gt;
+              &lt;/match&gt;
+            &lt;/li&gt;
+          &lt;/for&gt;
+        &lt;/ul&gt;
+      &lt;/case&gt;
+    &lt;/match&gt;
+  &lt;/section&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          La mitad en Glyph es más larga. El <code>&amp;&amp;</code> se convierte en un <code>&lt;match&gt;</code> con un caso <code>false</code> vacío, y omitir ese caso es <code>E0209</code>, porque un <code>match</code> sobre un <code>bool</code> tiene que cubrir los dos valores. Sobre una unión, el mismo elemento tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href="/answers/react/">¿Funciona con React?</a> muestra uno, con hooks y Context.
+        </p>
+        <p>
+          El soporte de editor y la depuración tienen sus propias respuestas: <a href="/answers/tooling/">la respuesta sobre herramientas</a> cubre el language server y la extensión de VS Code, y <a href="/answers/debugging/">la respuesta sobre depuración</a> cubre los source maps que vuelven al archivo <code>.glyph</code>. Para el ciclo de desarrollo, <code>glyph build --watch</code> recompila el TypeScript cada vez que guardas un archivo <code>.glyph</code>. Un servidor de desarrollo de Vite que importa esa salida recarga la página entera después de cada recompilación en lugar de reemplazar el componente en caliente, así que el estado del componente se pierde; tus propios archivos <code>.tsx</code> conservan el hot reload de Vite. Escribe la salida fuera del directorio de build de Vite (<code>dist/</code> por defecto), porque su servidor de desarrollo no vigila ese directorio.
+        </p>
+      </div>
 
       <div class="detail">
         <p>

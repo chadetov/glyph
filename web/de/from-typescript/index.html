@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Umstieg von TypeScript","item":"https://glyphlang.io/de/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/from-typescript/#article","headline":"Umstieg von TypeScript · was sich in Glyph ändert","description":"Glyph liest sich fast wie TypeScript und kompiliert dazu. Was sich ändert: ein paar Syntaxunterschiede, kein any, as oder !, eine einzige durchsuchbare Hintertür und wie npm funktioniert.","url":"https://glyphlang.io/de/from-typescript/","inLanguage":"de","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/from-typescript/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/de/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/de/"},{"@type":"ListItem","position":2,"name":"Umstieg von TypeScript","item":"https://glyphlang.io/de/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/de/from-typescript/#article","headline":"Umstieg von TypeScript · was sich in Glyph ändert","description":"Glyph liest sich fast wie TypeScript und kompiliert dazu. Was sich ändert: ein paar Syntaxunterschiede, kein any, as oder !, eine einzige durchsuchbare Hintertür und wie npm funktioniert.","url":"https://glyphlang.io/de/from-typescript/","inLanguage":"de","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/de/from-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/from-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/from-typescript/" />
@@ -450,6 +450,96 @@
           <dd>Neuzuweisung ist explizit und durchsuchbar. Ein einfaches <code>let</code>-Binding ändert sich nie unter dir; um eines zu ändern, schreibst du <code>mut</code>.</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-react-component-in-both">Eine React-Komponente in beiden<a class="h-anchor" href="#a-react-component-in-both" aria-label="Link zu diesem Abschnitt">#</a></h2>
+        <p>
+          Dieselbe Komponente zweimal: eine Liste von Einladungen mit leerem Zustand, eine Zeile, die die noch offenen zählt, und ein Label in jeder Zeile. Wo das TSX <code>&amp;&amp;</code> und <code>? :</code> verwendet, verwendet Glyph <code>&lt;match&gt;</code>: Es nimmt einen Wert und ein <code>&lt;case&gt;</code> pro Muster. Listen schreibst du mit <code>&lt;for&gt;</code>, und das Attribut heißt <code>class</code>, das zu <code>className</code> kompiliert.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>; accepted: <span class="t">boolean</span> };
+
+<span class="k">export</span> <span class="k">function</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Invite</span>[] }) {
+  <span class="k">const</span> waiting = props.invites.filter((i) <span class="op">=&gt;</span> !i.accepted).length;
+  <span class="k">return</span> (
+    &lt;<span class="t">section</span>&gt;
+      <span class="ip">{</span>waiting &gt; <span class="n">0</span> &amp;&amp; &lt;<span class="t">p</span> className=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;<span class="ip">}</span>
+      <span class="ip">{</span>props.invites.length === <span class="n">0</span> <span class="op">?</span> (
+        &lt;<span class="t">p</span> className=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      ) : (
+        &lt;<span class="t">ul</span>&gt;
+          <span class="ip">{</span>props.invites.map((invite) <span class="op">=&gt;</span> (
+            &lt;<span class="t">li</span> key={invite.email}&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              <span class="ip">{</span>invite.accepted <span class="op">?</span> (
+                &lt;<span class="t">span</span> className=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              ) : (
+                &lt;<span class="t">span</span> className=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              )<span class="ip">}</span>
+            &lt;/<span class="t">li</span>&gt;
+          ))<span class="ip">}</span>
+        &lt;/<span class="t">ul</span>&gt;
+      )<span class="ip">}</span>
+    &lt;/<span class="t">section</span>&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> invites
+
+<span class="k">import</span> std/array
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>, accepted: <span class="t">bool</span> }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
+  <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
+  <span class="k">return</span> &lt;<span class="t">section</span>&gt;
+    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">case</span> true&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">match</span> value={props.invites.length}&gt;
+      &lt;<span class="t">case</span> 0&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> else&gt;
+        &lt;<span class="t">ul</span>&gt;
+          &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
+            &lt;<span class="t">li</span>&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              &lt;<span class="t">match</span> value={invite.accepted}&gt;
+                &lt;<span class="t">case</span> true&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+                &lt;<span class="t">case</span> false&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+              &lt;/<span class="t">match</span>&gt;
+            &lt;/<span class="t">li</span>&gt;
+          &lt;/<span class="t">for</span>&gt;
+        &lt;/<span class="t">ul</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+  &lt;/<span class="t">section</span>&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Die Glyph-Hälfte ist länger. Aus <code>&amp;&amp;</code> wird ein <code>&lt;match&gt;</code> mit einem leeren <code>false</code>-Fall, und diesen Fall wegzulassen ist <code>E0209</code>, weil ein <code>match</code> über einen <code>bool</code> beide Werte abdecken muss. Über einer Union muss dasselbe Element jede Variante abdecken (<code>E0200</code>), und dort zahlen sich die zusätzlichen Zeilen aus: <a href="/de/answers/react/">Funktioniert es mit React?</a> zeigt ein Beispiel mit Hooks und Context.
+        </p>
+        <p>
+          Editor-Unterstützung und Debugging haben eigene Antworten: <a href="/de/answers/tooling/">die Antwort zu den Werkzeugen</a> behandelt den Language Server und die VS-Code-Erweiterung, <a href="/de/answers/debugging/">die Antwort zum Debugging</a> die Source Maps zurück zur <code>.glyph</code>-Datei. In der Entwicklung baut <code>glyph build --watch</code> das TypeScript bei jedem Speichern einer <code>.glyph</code>-Datei neu. Ein Vite-Dev-Server, der diese Ausgabe importiert, lädt nach jedem Neubau die ganze Seite neu, statt die Komponente im laufenden Betrieb auszutauschen, also geht der State der Komponente verloren; deine eigenen <code>.tsx</code>-Dateien behalten Vites Hot Reload. Schreib die Ausgabe außerhalb von Vites Build-Verzeichnis (<code>dist/</code> standardmäßig), weil der Dev-Server dieses Verzeichnis nicht beobachtet.
+        </p>
+      </div>
 
       <div class="detail">
         <p>

@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript 사용자라면","item":"https://glyphlang.io/ko/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/from-typescript/#article","headline":"TypeScript 사용자라면 · Glyph에서 바뀌는 것","description":"Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다.","url":"https://glyphlang.io/ko/from-typescript/","inLanguage":"ko","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ko/"},{"@type":"ListItem","position":2,"name":"TypeScript 사용자라면","item":"https://glyphlang.io/ko/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ko/from-typescript/#article","headline":"TypeScript 사용자라면 · Glyph에서 바뀌는 것","description":"Glyph는 TypeScript와 거의 똑같이 읽히고 TypeScript로 컴파일됩니다. 바뀌는 것은 몇 가지 문법 차이, any와 as와 !가 없다는 점, grep으로 찾을 수 있는 탈출구 하나, 그리고 npm을 쓰는 방식입니다.","url":"https://glyphlang.io/ko/from-typescript/","inLanguage":"ko","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ko/from-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/from-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/from-typescript/" />
@@ -452,6 +452,96 @@
           <dd>재할당은 명시적이고 grep으로 찾을 수 있습니다. 평범한 <code>let</code> 바인딩은 모르는 사이에 바뀌지 않으며, 바꾸려면 <code>mut</code>를 씁니다.</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-react-component-in-both">같은 React 컴포넌트를 양쪽으로<a class="h-anchor" href="#a-react-component-in-both" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          같은 컴포넌트를 두 번 썼습니다. 빈 상태가 있는 초대 목록, 아직 답을 기다리는 수를 세는 줄, 행마다 붙는 라벨입니다. TSX가 <code>&amp;&amp;</code>와 <code>? :</code>을 쓰는 자리에 Glyph는 <code>&lt;match&gt;</code>을 씁니다. 값을 하나 받고, 패턴마다 <code>&lt;case&gt;</code>를 하나 둡니다. 목록은 <code>&lt;for&gt;</code>로 쓰고, 속성은 <code>class</code>이며 <code>className</code>으로 컴파일됩니다.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>; accepted: <span class="t">boolean</span> };
+
+<span class="k">export</span> <span class="k">function</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Invite</span>[] }) {
+  <span class="k">const</span> waiting = props.invites.filter((i) <span class="op">=&gt;</span> !i.accepted).length;
+  <span class="k">return</span> (
+    &lt;<span class="t">section</span>&gt;
+      <span class="ip">{</span>waiting &gt; <span class="n">0</span> &amp;&amp; &lt;<span class="t">p</span> className=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;<span class="ip">}</span>
+      <span class="ip">{</span>props.invites.length === <span class="n">0</span> <span class="op">?</span> (
+        &lt;<span class="t">p</span> className=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      ) : (
+        &lt;<span class="t">ul</span>&gt;
+          <span class="ip">{</span>props.invites.map((invite) <span class="op">=&gt;</span> (
+            &lt;<span class="t">li</span> key={invite.email}&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              <span class="ip">{</span>invite.accepted <span class="op">?</span> (
+                &lt;<span class="t">span</span> className=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              ) : (
+                &lt;<span class="t">span</span> className=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              )<span class="ip">}</span>
+            &lt;/<span class="t">li</span>&gt;
+          ))<span class="ip">}</span>
+        &lt;/<span class="t">ul</span>&gt;
+      )<span class="ip">}</span>
+    &lt;/<span class="t">section</span>&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> invites
+
+<span class="k">import</span> std/array
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>, accepted: <span class="t">bool</span> }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
+  <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
+  <span class="k">return</span> &lt;<span class="t">section</span>&gt;
+    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">case</span> true&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">match</span> value={props.invites.length}&gt;
+      &lt;<span class="t">case</span> 0&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> else&gt;
+        &lt;<span class="t">ul</span>&gt;
+          &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
+            &lt;<span class="t">li</span>&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              &lt;<span class="t">match</span> value={invite.accepted}&gt;
+                &lt;<span class="t">case</span> true&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+                &lt;<span class="t">case</span> false&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+              &lt;/<span class="t">match</span>&gt;
+            &lt;/<span class="t">li</span>&gt;
+          &lt;/<span class="t">for</span>&gt;
+        &lt;/<span class="t">ul</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+  &lt;/<span class="t">section</span>&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph 쪽이 더 깁니다. <code>&amp;&amp;</code>는 빈 <code>false</code> 케이스가 있는 <code>&lt;match&gt;</code>이 되고, 그 케이스를 빼면 <code>E0209</code>입니다. <code>bool</code>에 대한 <code>match</code>는 두 값을 모두 다뤄야 하기 때문입니다. union에서는 같은 요소가 모든 variant를 다뤄야 하고(<code>E0200</code>), 늘어난 줄이 값을 하는 곳이 바로 거기입니다. <a href="/ko/answers/react/">React와 함께 쓸 수 있나요?</a>에 hooks와 Context를 쓴 예가 있습니다.
+        </p>
+        <p>
+          에디터 지원과 디버깅은 따로 답이 있습니다. <a href="/ko/answers/tooling/">도구에 관한 답</a>은 언어 서버와 VS Code 확장을, <a href="/ko/answers/debugging/">디버깅에 관한 답</a>은 <code>.glyph</code> 파일로 돌아가는 소스 맵을 다룹니다. 개발 중에는 <code>glyph build --watch</code>가 <code>.glyph</code> 파일을 저장할 때마다 TypeScript를 다시 빌드합니다. 그 출력을 import하는 Vite 개발 서버는 다시 빌드할 때마다 컴포넌트를 핫 스왑하지 않고 페이지 전체를 새로 고치므로 컴포넌트 state가 초기화됩니다. 직접 작성한 <code>.tsx</code> 파일에는 Vite의 핫 리로드가 그대로 적용됩니다. 출력은 Vite의 빌드 디렉터리(기본값 <code>dist/</code>) 밖에 두세요. 개발 서버가 그 디렉터리를 감시하지 않습니다.
+        </p>
+      </div>
 
       <div class="detail">
         <p>

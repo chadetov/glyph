@@ -8617,6 +8617,17 @@ impl Assigner<'_> {
                 }
             }
         }
+        // The other direction (record 161): a modeled stdlib value where a
+        // record or union this program declares is expected is another
+        // declaration there too, so `let f: Fake = st` with `st` a
+        // `store.Store<number>` is refused as `let f: FakeUrl = u` with `u`
+        // a `url.Url` already was. `tsc` accepts both by shape.
+        if modeled_stdlib_path(&found).is_some()
+            && modeled_stdlib_path(&expected).is_none()
+            && self.is_declared_type_with_identity(&expected)
+        {
+            return true;
+        }
         // G215, G226. An imported declaration is decided like a local one.
         // Read after canonicalization, because a local second name for an
         // import is the `Ty::Imported` it names by now, and that is the form

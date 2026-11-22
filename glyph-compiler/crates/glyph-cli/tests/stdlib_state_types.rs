@@ -11,7 +11,7 @@
 //! `decimal.Decimal` and `url.Url` are never a scalar either, and a record the
 //! program declares is refused where any of them is declared.
 //!
-//! What these types change about mutation is G423b's (0.1.166): a call that
+//! What these types change about mutation is G423 step 2's: a call that
 //! changes a `Set` is not judged by E0240 or E0241 yet, and
 //! `mutation_needs_mut.rs` pins that edge.
 
@@ -264,7 +264,7 @@ fn interpolating_a_set_is_refused() {
     assert!(found[0].1.contains("`set.Set<string>`"), "{found:?}");
 }
 
-/// An unannotated `const` is `Unknown` until G433 (0.1.165, record 158 F-A)
+/// An unannotated `const` is `Unknown` until G433 (record 158 F-A)
 /// gives it its initializer's type, so b01's `const HITS = store.create(0)`
 /// spelling still reads nothing off `HITS`. Pinned so G433 has to flip it.
 #[test]
@@ -425,5 +425,37 @@ fn a_match_on_pop_front_without_none_is_refused() {
     assert_eq!(
         found,
         vec![pair("E0200", "non-exhaustive match on `Option`: missing variants `None`")]
+    );
+}
+
+/// Record 161. The other direction: a modeled stdlib value where a record the
+/// program declares is expected is another declaration there too, generic
+/// (`store.Store<number>`) or not (`decimal.Decimal`), even when the record
+/// carries the same members. `tsc` accepts both by shape.
+#[test]
+fn a_stdlib_value_is_refused_where_a_lookalike_record_is_declared() {
+    let src = "module main\n\
+               \n\
+               import std/store\n\
+               import std/decimal\n\
+               \n\
+               type Fake = { get: fn() -> number, set: fn(number) -> void, update: fn(fn(number) -> number) -> void, }\n\
+               type Money = { to_string: fn() -> string, to_number: fn() -> number, }\n\
+               \n\
+               fn price(m: Money) -> number { return m.to_number() }\n\
+               \n\
+               fn main(argv: Array<string>) -> number {\n\
+               \x20 let st = store.create(1)\n\
+               \x20 let f: Fake = st\n\
+               \x20 let d = decimal.from_int(1, 2)\n\
+               \x20 return f.get() + price(d)\n\
+               }\n";
+    assert_eq!(
+        refusals(src),
+        vec![
+            pair("E0204", "type mismatch: expected `Fake`, found `store.Store<number>`"),
+            pair("E0211", "argument type mismatch: expected `Money`, found `decimal.Decimal`"),
+        ],
+        "{src}"
     );
 }

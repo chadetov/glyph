@@ -1,0 +1,17 @@
+---
+version: 0.1.166
+month: 2026-11
+date: 2026-11-22
+tags: breaking
+headline: An unannotated const has the type of its value
+---
+            <p>Glyph's own checker gave a module <code>const</code> with no annotation no type at all. So <code>const ITEMS = [1, 2]</code> followed by <code>ITEMS.push(3)</code> slipped past the <code>mut</code> rule, <code>let x: string = CFG.n</code> on <code>const CFG = { n: 1, }</code> passed, and a <code>store.create(0)</code> held in a <code>const</code> was invisible to the checks 0.1.163 added. Only <code>tsc</code> caught any of it, so the editor, the MCP tools and the <code>applyEdit</code> gate let it through.</p>
+
+            <p>Now an unannotated <code>const</code> has the type <code>tsc</code> gives it. A string literal that is the whole value keeps its literal type, so <code>const MODE = "read"</code> still passes where a <code>"read" | "write"</code> is declared. Literals inside an object or array widen, so <code>CFG</code> is <code>{ n: number }</code> and <code>ITEMS</code> is <code>Array&lt;number&gt;</code>. A value the checker cannot type stays untyped. An imported <code>pub const</code> gets the same type whether it is imported by name or through a namespace, and hover and the MCP tools report it.</p>
+
+            <p>That makes <code>ITEMS.push(3)</code> E0240, the field reads above E0204, and a <code>Set</code>, <code>Store</code> or <code>Deque</code> held in a <code>const</code> is judged the way it is in a <code>let</code>. A <code>const</code> holding a wider record is still accepted where a narrower one is declared, as with any value read by name; only a fresh literal gets 0.1.165's extra-field error.</p>
+
+            <p>Comparisons with <code>==</code> against such a <code>const</code> keep the same emitted code as before. Emitting <code>===</code> there would have exposed TypeScript's literal types and made <code>tsc</code> refuse comparisons Glyph accepts.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>. <code>ITEMS.push(3)</code> on an unannotated <code>const</code> exits 0 under 0.1.165 and 1 under 0.1.166, and so does <code>FOUND ?? 0</code> with <code>const FOUND = array.find(...)</code>, which 0.1.162's rule now reaches. The other new refusals are ones <code>tsc</code> already made. Across 285 tracked programs, no diagnostic changed; one comparison in an example app now emits <code>===</code> on a value typed <code>number</code>.</p>

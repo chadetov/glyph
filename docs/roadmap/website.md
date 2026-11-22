@@ -115,3 +115,14 @@ new structure, including the answers that were behind their English
 4. **Launch.** Show HN, then r/typescript and the other channels in the launch
    plan, posted by the author. Target: the week of 8 December 2026, or mid
    January.
+5. **A React component on `/from-typescript/`.** One component written in
+   Glyph beside the same component in TSX, conditional rendering included, so
+   a React developer sees what `match` in JSX costs before reading further.
+   With it, one line on editor support, debugging and hot reload that links
+   `/answers/tooling/` and `/answers/debugging/`; check whether the Glyph half
+   has a watch mode (G123) before the page claims hot reload for it. From two
+   outside reviews read on 2026-11-22, both of which missed the tooling pages.
+6. **A stability note on `/teams/`.** What a breaking release usually
+   means here (the compiler starts refusing a program that was already wrong),
+   how to pin an exact version, and that the emitted TypeScript stays as the
+   fallback. The same reviews read the count of breaking releases as churn.

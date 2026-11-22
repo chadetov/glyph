@@ -118,4 +118,4 @@ Hand a sink the tainted value directly and Glyph's checker refuses it (E0211) be
 
   Taint is discipline you opt into by typing a sink `Trusted`, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.
 
-Code examples on this page are checked against Glyph 0.1.165 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.166 on every build. Last changed 21 Nov 2026.

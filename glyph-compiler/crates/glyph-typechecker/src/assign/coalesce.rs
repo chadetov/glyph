@@ -46,9 +46,12 @@ enum Fit {
     /// It decidably is not one, and is not some other `Option` or
     /// `Result` either: `0`, `"x"`, a record.
     Other,
-    /// Not decided here: a default the checker does not type, or an
-    /// `Option` or `Result` of another payload (G432's question).
+    /// An `Option` or `Result` of another payload, or a constructor whose
+    /// argument the container does not take (G432's question).
     Undecided,
+    /// A default the checker does not type: whether it is the container
+    /// is not known.
+    Untyped,
 }
 
 /// The left operand of a judged `??`, as the message, help and fix need it.
@@ -77,7 +80,7 @@ impl Assigner<'_> {
     /// `coalesce_on_tagged` first: refused, or typed as the container.
     /// Anything else stays `Unknown` and `tsc` decides, because the union
     /// TypeScript would give it has no Glyph spelling.
-    pub(super) fn coalesce_ty(&mut self, left: &Expr, right: &Expr, whole: Span) -> Ty {
+    pub(super) fn coalesce_ty(&mut self, node: &Expr, left: &Expr, right: &Expr, whole: Span) -> Ty {
         let handled = self.null_chains.handle(left.span());
         let mut left_ty = self.tm.get(left.span()).clone();
         if handled {
@@ -94,7 +97,7 @@ impl Assigner<'_> {
             }
         }
         if let Some(tagged) = self.tagged_left(&left_ty) {
-            return self.coalesce_on_tagged(left, right, whole, tagged);
+            return self.coalesce_on_tagged(node, left, right, whole, tagged);
         }
         let target = if handled {
             left_ty
@@ -132,7 +135,9 @@ impl Assigner<'_> {
             TaggedContainer::Option => "Option",
             TaggedContainer::Result => "Result",
         };
-        let shown_args: Vec<String> = args.iter().map(ty_display).collect();
+        // A type parameter of the body is shown by the name the program
+        // gave it (`Option<T>`), never as the shared display's `?`.
+        let shown_args: Vec<String> = args.iter().map(|a| ty_display(&self.named_params(a))).collect();
         let payload_shown = shown_args.first().cloned().unwrap_or_default();
         let binding = payload_shown
             .chars()
@@ -150,11 +155,15 @@ impl Assigner<'_> {
     }
 
     /// Whether `e` can be absent at run time although its type is not a
-    /// `Nullable`: a `?.` chain, a read whose last link is a field declared
-    /// `f?:`, or an index read, which is `undefined` out of range.
+    /// `Nullable`: a `?.` chain, or a read whose last link is a field
+    /// declared `f?:`. An index read is not: Glyph's emitted index throws a
+    /// `RangeError` out of range and never gives `undefined` (record 159),
+    /// so `xs[i] ?? None` is refused like a name, unless a `?.` link in its
+    /// chain can make it `undefined`.
     fn may_be_absent(&self, e: &Expr) -> bool {
         match e {
-            Expr::Member { optional: true, .. } | Expr::Index { .. } => true,
+            Expr::Member { optional: true, .. } => true,
+            Expr::Index { object, .. } => has_optional_link(object),
             Expr::Member { object, field, .. } => {
                 has_optional_link(object)
                     || self
@@ -172,7 +181,7 @@ impl Assigner<'_> {
     /// E0236 on a `??` whose left operand is an `Option` or a `Result`, or
     /// the container's type when the left can be absent and the default is
     /// accepted where the container is declared.
-    fn coalesce_on_tagged(&mut self, left: &Expr, right: &Expr, whole: Span, mut t: Left) -> Ty {
+    fn coalesce_on_tagged(&mut self, node: &Expr, left: &Expr, right: &Expr, whole: Span, mut t: Left) -> Ty {
         let absent = self.may_be_absent(left);
         let default = self.tm.get(right.span()).clone();
         let fit = self.default_fit(right, &default, &t);
@@ -180,23 +189,23 @@ impl Assigner<'_> {
             match fit {
                 Fit::Container => return t.resolved,
                 // Whether the default is the container is not known here.
-                Fit::Undecided => return Ty::Unknown,
+                Fit::Undecided | Fit::Untyped => return Ty::Unknown,
                 Fit::Other => {}
             }
         }
         let d = Default {
             whole,
             value: right.span(),
-            text: expr_source(right),
+            text: spell(right),
         };
-        let l = expr_source(left);
+        let l = spell(left);
         // The payload's name must not shadow one the `match` reads.
         let words = |text: &str, w: &str| text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_')).any(|x| x == w);
         if words(&l, &t.binding) || words(&d.text, &t.binding) {
             t.binding = "v".to_string();
         }
         let (message, help) = self.coalesce_text(&t, absent, fit, left, right, &l, &d.text);
-        let repair = self.coalesce_repair(&t, absent, fit, left, &default, &d, &l);
+        let repair = self.coalesce_repair(&t, absent, fit, node, left, &default, &d, &l);
         self.errors.push(TypeError::CoalesceOnTagged { message, help, repair, span: whole });
         Ty::Unknown
     }
@@ -227,8 +236,11 @@ impl Assigner<'_> {
             (_, Some(_)) => return Fit::Undecided,
             (_, None) => {}
         }
-        if !ty_is_decidable(ty) || self.tagged_left(ty).is_some() {
+        if self.tagged_left(ty).is_some() {
             return Fit::Undecided;
+        }
+        if !ty_is_decidable(ty) {
+            return Fit::Untyped;
         }
         Fit::Other
     }
@@ -309,11 +321,11 @@ impl Assigner<'_> {
                 TaggedContainer::Result => format!("{l} ?? Err(<error>)"),
             },
         };
-        let payload = ty_display(&t.payload);
+        let payload = ty_display(&self.named_params(&t.payload));
         // A default that is itself the container (`u ?? Some(4)`) never
         // applies either, and it cannot be the `None` arm's value beside
         // the payload: the help keeps it an `Option` in both arms.
-        if !absent && fit != Fit::Other {
+        if !absent && matches!(fit, Fit::Container | Fit::Undecided) {
             let help = match (t.container, code(l), self.prelude_ctor(right)) {
                 (TaggedContainer::Option, Some(l), Some(("None", None))) => {
                     format!("Write `{l}` alone; it is already the `Option`, and `?? None` never applies.")
@@ -329,21 +341,29 @@ impl Assigner<'_> {
             };
             return (message, help);
         }
+        let snippet = match t.container {
+            TaggedContainer::Option => format!("match {subject} {{ Some({b}) => {b}, None => {d_arm} }}"),
+            TaggedContainer::Result => format!("match {subject} {{ Ok({b}) => {b}, Err(_) => {d_arm} }}"),
+        };
+        // A `match` is not written inside a `${}`: the help hoists it.
+        let open = if self.template_depth > 0 {
+            format!("Bind it before the string, `let t = {snippet}`, then interpolate `${{t}}`")
+        } else {
+            format!("Open it with `{snippet}`")
+        };
         let help = match t.container {
             // A payload that is itself an `Option` or a `Result` has no
             // `Nullable` spelling worth pointing at.
-            TaggedContainer::Option if self.tagged_left(&t.payload).is_some() => {
-                format!("Open it with `match {subject} {{ Some({b}) => {b}, None => {d_arm} }}`.")
-            }
+            TaggedContainer::Option if self.tagged_left(&t.payload).is_some() => format!("{open}."),
             TaggedContainer::Option => format!(
-                "Open it with `match {subject} {{ Some({b}) => {b}, None => {d_arm} }}`. If the absence is a JSON `null` from the wire, declare the type `Nullable<{payload}>` (D45)."
+                "{open}. If the absence is a JSON `null` from the wire, declare the type `Nullable<{payload}>` (D45)."
             ),
             TaggedContainer::Result => {
                 let propagate = match (absent, code(l), self.return_stack.last().map(|r| &r.class)) {
                     (false, Some(l), Some(super::ReturnClass::Result)) => format!(", or propagate it with `{l}?`"),
                     _ => String::new(),
                 };
-                format!("Open it with `match {subject} {{ Ok({b}) => {b}, Err(_) => {d_arm} }}`{propagate}.")
+                format!("{open}{propagate}.")
             }
         };
         (message, help)
@@ -357,6 +377,7 @@ impl Assigner<'_> {
         t: &Left,
         absent: bool,
         fit: Fit,
+        node: &Expr,
         left: &Expr,
         default: &Ty,
         d: &Default,
@@ -375,6 +396,19 @@ impl Assigner<'_> {
                 "the `Option`'s payload type is not decided, so whether {dq} stands for its value is not determined"
             ));
         }
+        if self.template_depth > 0 {
+            return AbsentRepair::Decline(
+                "the `??` is inside a `${}`, where a `match` is not laid out; bind it with `let` before the string, \
+                 as the help writes, then interpolate the name"
+                    .to_string(),
+            );
+        }
+        if fit == Fit::Untyped {
+            return AbsentRepair::Decline(format!(
+                "the checker does not know the type of {dq}, so whether it is the value or a whole `Option` is not \
+                 determined"
+            ));
+        }
         if fit != Fit::Other {
             return AbsentRepair::Decline(format!(
                 "{dq} is an `Option` itself, or may be one, so whether it was meant as the value or as the whole \
@@ -385,7 +419,7 @@ impl Assigner<'_> {
             return AbsentRepair::Decline(format!(
                 "{dq} is not of the `Option`'s payload type, `{}`, so the `match` that gives the value or the \
                  default would not check",
-                ty_display(&t.payload)
+                ty_display(&self.named_params(&t.payload))
             ));
         }
         if !matches!(left, Expr::Ident { .. } | Expr::Member { .. } | Expr::Call { .. } | Expr::Index { .. }) {
@@ -407,7 +441,7 @@ impl Assigner<'_> {
         } else {
             format!("{whole} handed back the `Option`; it now gives its value or {dq}")
         };
-        AbsentRepair::Checked { edits, what }
+        AbsentRepair::Checked { edits, what, node: crate::absent::NodeShape::of(node) }
     }
 }
 
@@ -420,6 +454,43 @@ fn has_optional_link(e: &Expr) -> bool {
         Expr::Call { callee, .. } => has_optional_link(callee),
         _ => false,
     }
+}
+
+/// `e` as source, for the message and the help: `expr_source`, plus a
+/// binary operator (`w ?? 0`), with a nested operation in parentheses so
+/// the text keeps the tree's grouping.
+fn spell(e: &Expr) -> String {
+    use glyph_ast::BinOp as B;
+    let Expr::Binary { left, op, right, .. } = e else {
+        return expr_source(e);
+    };
+    let sym = match op {
+        B::NullishCoalesce => "??",
+        B::LogicalOr => "||",
+        B::LogicalAnd => "&&",
+        B::BitOr => "|",
+        B::BitXor => "^",
+        B::BitAnd => "&",
+        B::Eq => "==",
+        B::NotEq => "!=",
+        B::Lt => "<",
+        B::Gt => ">",
+        B::LtEq => "<=",
+        B::GtEq => ">=",
+        B::Shl => "<<",
+        B::Shr => ">>",
+        B::UShr => ">>>",
+        B::Add => "+",
+        B::Sub => "-",
+        B::Mul => "*",
+        B::Div => "/",
+        B::Rem => "%",
+    };
+    let side = |x: &Expr| match x {
+        Expr::Binary { .. } => format!("({})", spell(x)),
+        _ => spell(x),
+    };
+    format!("{} {sym} {}", side(left), side(right))
 }
 
 /// `text`, when it has a spelling a code span can hold: `expr_source` writes

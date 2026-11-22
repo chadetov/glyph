@@ -271,25 +271,162 @@ fn an_option_from_a_call_or_a_match_is_refused() {
     assert!(m.starts_with("`??` on an `Option<number>`"), "{m}");
 }
 
-/// An index read is `(b)`: `?? None` is accepted and typed as the
-/// container, `?? 0` is refused.
+/// An `Array` index read is `(a)` (record 159): Glyph's emitted index
+/// throws a `RangeError` out of range and never gives `undefined`, so
+/// neither `?? None` nor `?? 0` ever applies.
 #[test]
-fn an_index_read_takes_the_container_and_refuses_the_payload() {
-    none("  let i = opts[0] ?? None\n  let j = match i { Some(n) => n, None => 0 }\n  print(\"${j}\")");
-    let src = program("  let s: string = opts[0] ?? None\n  print(s)");
-    let found = refusals(&src);
-    assert_eq!(found.len(), 1, "{found:#?}");
-    assert_eq!(found[0].code, "E0204");
-    assert!(found[0].message.contains("found `Option<number>`"), "{found:#?}");
+fn an_index_read_cannot_be_absent() {
+    let (m, h) = one("  let i = opts[0] ?? None\n  let j = match i { Some(n) => n, None => 0 }\n  print(\"${j}\")");
+    assert!(m.starts_with("`??` on an `Option<number>`"), "{m}");
+    assert_eq!(h, "Write `opts[0]` alone; it is already the `Option`, and `?? None` never applies.");
     let (m, h) = one("  let i = opts[0] ?? 0\n  print(\"${i}\")");
-    assert!(m.starts_with("`opts[0]` is an `Option<number>` when present"), "{m}");
-    assert!(h.contains("`match opts[0] ?? None { Some(n) => n, None => 0 }`"), "{h}");
+    assert!(m.starts_with("`??` on an `Option<number>`"), "{m}");
+    assert!(h.contains("`match opts[0] { Some(n) => n, None => 0 }`"), "{h}");
+}
+
+/// A type parameter is named as the program wrote it, never `?` (F1).
+#[test]
+fn a_type_parameter_is_shown_by_its_name() {
+    let src = "module main\n\
+        \n\
+        fn gen<T>(o: Option<T>, d: T) -> T {\n\
+        \x20 return o ?? d\n\
+        }\n";
+    let found = refusals(src);
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert!(found[0].message.starts_with("`??` on an `Option<T>`"), "{found:#?}");
+    assert!(found[0].help.contains("`Nullable<T>`"), "{found:#?}");
+}
+
+/// A default whose type the checker does not know gets the value form,
+/// with the default written in the `None` arm, never the container form
+/// (F2). `u ?? w ?? 0` is `u ?? (w ?? 0)`, and the inner `??` is refused,
+/// so the outer default is untyped.
+#[test]
+fn an_untyped_default_gets_the_value_form() {
+    let src = program("  let w = first(xs)\n  let n = u ?? w ?? 0\n  print(\"${n}\")");
+    let found = refusals(&src);
+    assert_eq!(found.len(), 2, "{src}\n{found:#?}");
+    let outer = found.iter().find(|r| r.message.contains("`?? w ?? 0`")).expect("the outer `??`");
+    assert!(outer.help.starts_with("Open it with `match u { Some(n) => n, None => w ?? 0 }`"), "{outer:#?}");
+}
+
+/// Record 159, B1: inside a `${}` the rewrite would write a `match` into
+/// the string's text. Both rules decline there and the help hoists the
+/// `match` into a `let`; the file is unchanged, and the `??` outside the
+/// string beside them is still rewritten.
+#[test]
+fn fix_declines_inside_an_interpolation_for_both_rules() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        import std/array\n\
+        \n\
+        fn id(n: number) -> number {\n\
+        \x20 return n\n\
+        }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let xs = [3, 1, 2]\n\
+        \x20 let u = array.find(xs, fn(x: number) -> bool { return x > 9 })\n\
+        \x20 io.println(\"t=${u ?? 0}\")\n\
+        \x20 let s = \"${u ?? 4} and\"\n\
+        \x20 io.println(\"t=${xs.find(fn(x: number) -> bool { return x > 9 }) ?? 0}\")\n\
+        \x20 let a = id(u ?? 1)\n\
+        \x20 io.println(\"${a} ${s}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let found = refusals(src);
+    let inside: Vec<&Refusal> = found.iter().filter(|r| r.line == 13 || r.line == 14).collect();
+    assert_eq!(inside.len(), 2, "{found:#?}");
+    for r in inside {
+        assert!(r.help.starts_with("Bind it before the string, `let t = match u { Some(n) => n, None => "), "{r:#?}");
+        assert!(r.help.contains("`, then interpolate `${t}`"), "{r:#?}");
+    }
+    let call = found.iter().find(|r| r.code == "E0242").expect("the E0242");
+    assert!(call.help.contains("inside a `${}`, bind the `match` before the string with `let t =`, then interpolate `${t}`"), "{call:#?}");
+    let (dir, fixed, out) = fix(src);
+    assert_eq!(out.matches("declined E0236").count(), 2, "{out}");
+    assert!(out.contains("declined E0242") && out.contains("the call is inside a `${}`"), "{out}");
+    assert!(out.contains("applied E0236") && out.matches("applied").count() == 1, "{out}");
+    assert!(fixed.contains("  io.println(\"t=${u ?? 0}\")\n  let s = \"${u ?? 4} and\"\n"), "{fixed}");
+    assert!(fixed.contains("xs.find(fn(x: number) -> bool { return x > 9 }) ?? 0}"), "{fixed}");
+    assert!(fixed.contains("  let a = id(match u {\n    Some(n) => n,\n    None => 1,\n  })\n"), "{fixed}");
+    // What is left is the refusals inside the strings, and nothing new.
+    let left = refusals_in(&dir);
+    assert_eq!(left.len(), 3, "{left:#?}");
+}
+
+/// Record 159, f07: a field typo inside a `${}` keeps declining, and the
+/// file is left as it was.
+#[test]
+fn a_field_typo_inside_an_interpolation_is_not_rewritten_wrong() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        \n\
+        type B = { nick: string, }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let b: B = { nick: \"a\", }\n\
+        \x20 io.println(\"n=${b.nik} end\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (_, fixed, out) = fix(src);
+    assert!(fixed.contains("io.println(\"n=${b.nik} end\")"), "{fixed}");
+    assert!(!out.contains("applied"), "{out}");
+}
+
+/// Record 160, x03: the E0210 read rename in a second interpolation wrote
+/// `b.nickc` on 0.1.161, because the range inside a `${}` is one column
+/// early. The range guard every fix rule passes declines it instead.
+#[test]
+fn a_field_read_rename_in_a_second_interpolation_declines() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        \n\
+        type B = { nick: string, name: string, }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let b: B = { nick: \"a\", name: \"c\", }\n\
+        \x20 io.println(\"v=${b.name} w=${b.nikc}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (_, fixed, out) = fix(src);
+    assert!(fixed.contains("io.println(\"v=${b.name} w=${b.nikc}\")"), "{fixed}");
+    assert!(out.contains("declined E0210") && !out.contains("applied"), "{out}");
+    assert!(out.contains("does not hold the expression the rewrite was planned against"), "{out}");
+}
+
+/// F3: a revert names the line in the file as `glyph fix` leaves it, after
+/// the rewrites it kept above the error.
+#[test]
+fn a_revert_names_the_line_in_the_file_as_written() {
+    let src = "module main\n\
+        \n\
+        import std/array\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let xs = [3, 1, 2]\n\
+        \x20 let u = array.find(xs, fn(x: number) -> bool { return x > 9 })\n\
+        \x20 let v = u ?? 0\n\
+        \x20 let bad = u ?? 1\n\
+        \x20 let s: string = bad\n\
+        \x20 print(\"${v} ${s}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (_, fixed, out) = fix(src);
+    let line = fixed.lines().position(|l| l == "  let s: string = bad").expect("the line") + 1;
+    assert_eq!(line, 13, "{fixed}");
+    assert!(out.contains("expected `string`, found `number` (main.glyph:13), so it was reverted"), "{out}");
 }
 
 /// `b.o ?? None` is typed `Option<number>`, so the `match` the help writes
 /// is held to its arms: a missing `None` arm is E0200 (probe a04).
 #[test]
 fn the_accepted_form_is_checked_for_exhaustiveness() {
+    none("  let a = b.o ?? None\n  let j = match a { Some(n) => n, None => 0 }\n  print(\"${j}\")");
     let src = program("  let a = match b.o ?? None {\n    Some(v) => v,\n  }\n  print(\"${a}\")");
     let found = refusals(&src);
     assert_eq!(found.iter().map(|f| f.code.as_str()).collect::<Vec<_>>(), vec!["E0200"], "{found:#?}");
@@ -444,7 +581,7 @@ fn every_help_applied_compiles_and_runs() {
         \x20 let oo: Option<Option<number>> = Some(None)\n\
         \x20 let v10 = match oo { Some(o) => o, None => 0 }\n\
         \x20 let opts: Array<Option<number>> = [Some(1)]\n\
-        \x20 let v11 = match opts[0] ?? None { Some(n) => n, None => 0 }\n\
+        \x20 let v11 = match opts[0] { Some(n) => n, None => 0 }\n\
         \x20 let w = match v3 { Some(n) => n, None => 0 }\n\
         \x20 let w2 = match v5b { Ok(n) => n, Err(_) => 0 }\n\
         \x20 let w3 = match v2 { Some(n) => n, None => 0 }\n\

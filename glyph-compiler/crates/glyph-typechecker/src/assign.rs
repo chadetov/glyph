@@ -359,6 +359,7 @@ pub fn assign_types_with_relations(
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
@@ -476,6 +477,7 @@ pub fn assignability(
         call_callee: None,
         mut_call: None,
         coalesce_defaults: HashMap::new(),
+        template_depth: 0,
         absent_consumers: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
@@ -539,6 +541,7 @@ pub fn declared_record_fields(
         call_callee: None,
         mut_call: None,
         coalesce_defaults: HashMap::new(),
+        template_depth: 0,
         absent_consumers: HashMap::new(),
         member_object: None,
         relating: RefCell::new(Vec::new()),
@@ -1279,6 +1282,10 @@ struct Assigner<'a> {
     /// E0242 (G392, D56): a refused call with a default gets the `match` that
     /// handles the absence where the `??` did.
     coalesce_defaults: HashMap<Span, crate::absent::Default>,
+    /// How many `${}` interpolations the walk is inside. A `glyph fix`
+    /// rewrite that writes a multi-line `match` declines there, and the
+    /// help hoists the `match` into a `let` (record 159, B1).
+    template_depth: u32,
     /// What each expression's position does with its value, for E0242's
     /// fix (decision record 155, F1): `Ok` where the value is used up (a
     /// statement, a `match` scrutinee, a slot declared `Option`), `Err` with
@@ -2599,7 +2606,9 @@ impl Assigner<'_> {
                     if let TemplatePart::Expr { value, .. } = p {
                         self.absent_consumers
                             .insert(value.span(), Err("it is turned into text in a `${}`".to_string()));
+                        self.template_depth += 1;
                         self.walk_expr(value);
+                        self.template_depth -= 1;
                     }
                 }
                 self.tm.insert(*span, Ty::Prim(Primitive::String));
@@ -2915,7 +2924,7 @@ impl Assigner<'_> {
                 self.walk_expr(left);
                 self.walk_expr(right);
                 let ty = match op {
-                    glyph_ast::BinOp::NullishCoalesce => self.coalesce_ty(left, right, *span),
+                    glyph_ast::BinOp::NullishCoalesce => self.coalesce_ty(e, left, right, *span),
                     // A comparison reads the chain's value without holding
                     // it, so `n?.f == "x"` handles the `undefined` (D45).
                     glyph_ast::BinOp::Eq | glyph_ast::BinOp::NotEq => {
@@ -7007,6 +7016,8 @@ impl Assigner<'_> {
             return;
         }
         let c = crate::absent::AbsentCall {
+            node: call,
+            in_template: self.template_depth > 0,
             receiver,
             method: m.name,
             recv: object,
@@ -17950,6 +17961,7 @@ component View(props: { s: Status }) -> Component {
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),

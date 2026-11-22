@@ -37,6 +37,7 @@ fn the_modeled_stdlib_signatures_accept_the_calls_they_describe() {
     let source = r#"module ok
 
 import std/array
+import std/collections
 import std/console
 import std/dom
 import std/fs
@@ -47,7 +48,9 @@ import std/path
 import std/process
 import std/record
 import std/regex
+import std/set
 import std/storage
+import std/store
 import std/string
 import std/time
 import std/timers
@@ -123,6 +126,41 @@ fn arrays() -> number {
   let has = array.contains(names, "be")
   return array.len(kept) + array.len(loud) + array.len(more) + array.len(one)
     + array.len(widths) + found + array.sum(array.range(3))
+}
+
+fn holders() -> number {
+  let seen = set.create(["a"])
+  let empty = set.create<number>()
+  seen.add("b")
+  let _had = seen.has("a")
+  let _gone = seen.remove("a")
+  let few = set.unique([1, 1, 2])
+  let count = store.create(0)
+  count.set(2)
+  count.update(fn(n) { return n + 1 })
+  let q = collections.deque([1, 2])
+  let none = collections.deque<string>()
+  q.push_back(3)
+  q.push_front(0)
+  let front = match q.pop_front() {
+    Some(v) => v,
+    None => 0,
+  }
+  let back = match q.pop_back() {
+    Some(v) => v,
+    None => 0,
+  }
+  let peeked = match q.peek_front() {
+    Some(v) => v,
+    None => 0,
+  }
+  let tail = match q.peek_back() {
+    Some(v) => v,
+    None => 0,
+  }
+  return seen.size() + array.len(seen.values()) + empty.size() + array.len(few)
+    + count.get() + q.len() + array.len(q.values()) + none.len()
+    + front + back + peeked + tail
 }
 
 fn records() -> number {
@@ -231,7 +269,7 @@ fn environment() -> string {
 }
 
 pub fn main() -> void {
-  io.println(string.from(arrays() + records() + numbers() + patterns() + clocks()))
+  io.println(string.from(arrays() + records() + numbers() + patterns() + clocks() + holders()))
   io.eprintln(strings() + paths() + environment() + page())
   io.print("")
   io.eprint("")
@@ -271,7 +309,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (145, 51, 151),
+        (149, 51, 147),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );
@@ -291,7 +329,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
 /// one grows, a signature was loosened and this is where it shows.
 #[test]
 fn the_modeled_modules_have_exactly_the_holes_they_document() {
-    let expected: [(&str, &[&str], &[&str]); 14] = [
+    let expected: [(&str, &[&str], &[&str]); 17] = [
         // The unifier takes the first candidate it binds for a type parameter
         // and never widens it, so a second `T` slot would reject a call `tsc`
         // accepts. These three take a `T` on the release that joins candidates.
@@ -323,6 +361,11 @@ fn the_modeled_modules_have_exactly_the_holes_they_document() {
         ("std/console", &[], &[]),
         ("std/dom", &[], &["Element"]),
         ("std/storage", &[], &["StorageError"]),
+        // The three state holders (G423). What is left in each is its type,
+        // whose member table is published under `members` instead.
+        ("std/collections", &[], &["Deque"]),
+        ("std/set", &[], &["Set"]),
+        ("std/store", &[], &["Store"]),
     ];
     let (partial, absent) = glyph_cli::llms::stdlib_signature_holes();
     for (module, want_partial, want_absent) in expected {

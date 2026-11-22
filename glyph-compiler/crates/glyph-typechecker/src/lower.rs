@@ -372,9 +372,23 @@ impl<'a> Lowerer<'a> {
             // narrower than "everything downstream", and a comment that claimed
             // more than was measured would be the wrong kind of confidence.
             //
-            // An unannotated `const` stays `Unknown` on purpose. Inferring one
-            // from the initializer is a different question with a different
-            // risk, and a guess here would report against a type nobody wrote.
+            // An unannotated `const` has its initializer's type (G433, decision
+            // record 158), under the widening `tsc` applies to the `const` the
+            // emitter writes: a string literal standing as the whole value
+            // keeps its literal type, and a literal inside an object or an
+            // array widens. The same principle as above decides it. Leaving it
+            // `Unknown` made every check that reads a receiver's type go
+            // silent at a `const` the author did not annotate, so `ITEMS.push(3)`
+            // drew no E0240 where the same array in an annotated `let` did.
+            // Reading the type `tsc` infers is not a guess: an unannotated
+            // `let` has been checked against its initializer's type all along,
+            // and `tsc` reports against that same type.
+            //
+            // The lowerer has no expression walk, so the type is not produced
+            // here: `assign::decl_signature_ty` answers an unannotated `const`
+            // through `assign::unannotated_const_ty`, and this arm only ever
+            // sees the annotation. An initializer the walk cannot decide stays
+            // `Unknown`.
             Decl::Const(c) => c
                 .ty
                 .as_ref()
@@ -630,13 +644,113 @@ impl ExportLowerer<'_> {
     /// the value counterpart of `lower_exported_fn_signature`. `pub const
     /// ORIGIN: Sheet = ...` reaches a consumer as `Ty::Imported` for `Sheet`,
     /// so a field read on the imported const is checked against the record it
-    /// names. An unannotated const is `Ty::Unknown`, as it is in its own
-    /// module: inferring it from the initializer is a different question.
+    /// names. An unannotated const is `Ty::Unknown` here; its type is the one
+    /// its initializer has in its own module (G433), which the caller reads
+    /// through `assign::decl_signature_ty` and renders with
+    /// [`ExportLowerer::export_inferred`].
     pub fn lower_exported_const(&self, c: &glyph_ast::ConstDecl) -> Ty {
         c.ty
             .as_ref()
             .map(|t| self.0.lower(t))
             .unwrap_or(Ty::Unknown)
+    }
+
+    /// A type this module's checker *inferred* (an unannotated `const`'s,
+    /// G433), rendered as another module sees it.
+    ///
+    /// The type was built against this module's symbol table, so it can hold
+    /// a `Ty::Named` carrying one of this module's `SymbolId`s, which would
+    /// index an unrelated symbol in a consumer's table. Each such name is
+    /// rewritten the way `lower` renders it on the export view: a module-local
+    /// `type` becomes `Ty::Imported { module, name }`, and anything else that
+    /// cannot cross (a variant used as a type, an id this table does not hold)
+    /// becomes `Ty::Unknown`, which no check reads. A prelude container and a
+    /// modeled stdlib type are the same everywhere and pass unchanged, as
+    /// does a `Ty::Imported`, which is already keyed by module. A generic
+    /// parameter loses its owner, which is a symbol of this module, and keeps
+    /// its name, as a lowered signature carries it.
+    ///
+    /// The result is the type a consumer reads under either import spelling,
+    /// so `import lib { MODE }` and `lib.MODE` are judged against one answer.
+    pub fn export_inferred(&self, ty: &Ty) -> Ty {
+        let lowerer = &self.0;
+        let module = lowerer.export_module.expect("export view");
+        match ty {
+            Ty::Named { symbol, path } => {
+                let id = glyph_resolver::SymbolId(symbol.0);
+                let name = path.last();
+                if symbol.0 == u32::MAX
+                    || name.is_some_and(|n| lowerer.prelude.lookup(n.as_ref()) == Some(id))
+                {
+                    return ty.clone();
+                }
+                match lowerer.resolved.symbols.table.get(id) {
+                    Some(sym)
+                        if matches!(sym.kind, SymbolKind::Type { .. })
+                            && name == Some(&sym.name) =>
+                    {
+                        Ty::Imported {
+                            module: module.into(),
+                            name: sym.name.clone(),
+                        }
+                    }
+                    _ => Ty::Unknown,
+                }
+            }
+            Ty::Param { name, .. } => Ty::Param {
+                name: name.clone(),
+                owner: ParamOwner::Unresolved,
+            },
+            Ty::App { base, args } => Ty::App {
+                base: Arc::new(self.export_inferred(base)),
+                args: args.iter().map(|a| self.export_inferred(a)).collect(),
+            },
+            Ty::Record { fields } => Ty::Record {
+                fields: fields
+                    .iter()
+                    .map(|f| RecordField {
+                        name: f.name.clone(),
+                        ty: self.export_inferred(&f.ty),
+                        optional: f.optional,
+                    })
+                    .collect(),
+            },
+            Ty::Fn {
+                params,
+                return_ty,
+                is_async,
+                type_params,
+            } => Ty::Fn {
+                params: params
+                    .iter()
+                    .map(|p| FnParam {
+                        name: p.name.clone(),
+                        owned: p.owned,
+                        ty: self.export_inferred(&p.ty),
+                        optional: p.optional,
+                    })
+                    .collect(),
+                return_ty: Arc::new(self.export_inferred(return_ty)),
+                is_async: *is_async,
+                type_params: type_params.clone(),
+            },
+            Ty::Union { variants } => Ty::Union {
+                variants: variants
+                    .iter()
+                    .map(|v| UnionVariant {
+                        name: v.name.clone(),
+                        payload: v.payload.as_ref().map(|p| self.export_inferred(p)),
+                    })
+                    .collect(),
+            },
+            Ty::Pending(inner) => Ty::Pending(Arc::new(self.export_inferred(inner))),
+            Ty::Unknown
+            | Ty::Prim(_)
+            | Ty::UnknownTop
+            | Ty::Never
+            | Ty::StringLiteralUnion(_)
+            | Ty::Imported { .. } => ty.clone(),
+        }
     }
 }
 

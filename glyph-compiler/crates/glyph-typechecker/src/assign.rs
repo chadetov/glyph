@@ -98,16 +98,17 @@ struct EnclosingReturn {
 /// these through the memoized `decl_ty(db, file, idx)` query, while the
 /// db-less callers in this crate use the local `LocalDeclTy` default.
 ///
-/// **Contract**: an impl MUST return the result of lowering the signature
-/// of `module.items[decl_idx]` via `Lowerer::lower_decl_signature` against
-/// the same `(resolved, prelude)` that was passed to
-/// `assign_types_with_resolver`. Returning anything else produces an
-/// internally-inconsistent `TypeMap` with no compile-time error — type
-/// inference downstream silently sees `Ty::Unknown` where it should see a
-/// concrete `Ty::Fn`. The two shipped impls (`LocalDeclTy` here and
-/// `SalsaDeclTy` in `glyph-db`) both delegate to
-/// `Lowerer::lower_decl_signature`; new impls should do the same or wrap
-/// one of them.
+/// **Contract**: an impl MUST return [`decl_signature_ty`] for
+/// `module.items[decl_idx]`, against the same `(resolved, prelude)` that was
+/// passed to `assign_types_with_resolver`: the lowered signature
+/// (`Lowerer::lower_decl_signature`) for a `fn`, a `component` and an
+/// annotated `const`, and the initializer's type for an unannotated `const`
+/// (G433). Returning anything else produces an internally-inconsistent
+/// `TypeMap` with no compile-time error — type inference downstream silently
+/// sees `Ty::Unknown` where it should see a concrete `Ty::Fn`. The two shipped
+/// impls (`LocalDeclTy` here and `SalsaDeclTy` in `glyph-db`) both answer
+/// through `decl_signature_ty`; new impls should do the same or wrap one of
+/// them.
 pub trait DeclTyResolver {
     fn decl_ty(&self, decl_idx: u32) -> Ty;
 
@@ -178,12 +179,14 @@ pub trait DeclTyResolver {
     }
 
     /// Cross-module const resolution: for the project module at `module_path`,
-    /// return the lowered annotation of the `pub const` named `const_name`, on
-    /// the export view (so an annotation naming a sibling `type` comes back
-    /// as `Ty::Imported`). `None` with no cross-module context, for a module
-    /// that is not a project sibling, for a name the module does not declare
-    /// as a `const`, and for a const with no annotation, which stays `Unknown`
-    /// exactly as it does in its own module.
+    /// return the type of the `pub const` named `const_name`, on the export
+    /// view (so an annotation naming a sibling `type` comes back as
+    /// `Ty::Imported`). That is its lowered annotation, or for a const with
+    /// none the type its initializer has in its own module (G433), so the
+    /// consumer reads the type the declaring module reads. `None` with no
+    /// cross-module context, for a module that is not a project sibling, for
+    /// a name the module does not declare as a `const`, and for an
+    /// unannotated const whose initializer is undecidable.
     ///
     /// Without this an imported const had no type at all (G205): `ORIGIN.rowz`
     /// was silent through `import lib { ORIGIN }` and through `lib.ORIGIN`
@@ -260,12 +263,17 @@ impl DeclTyResolver for LocalDeclTy<'_> {
         if let Some(ty) = cached {
             return ty;
         }
-        let ty = self
-            .module
-            .items
-            .get(decl_idx as usize)
-            .map(|d| self.lowerer.lower_decl_signature(d))
-            .unwrap_or(Ty::Unknown);
+        // `Unknown` stands in while the answer is computed, so a `const`
+        // whose initializer reaches itself (`const A = B`, `const B = A`)
+        // reads `Unknown` for the name in the loop rather than recursing.
+        self.cache.borrow_mut().insert(decl_idx, Ty::Unknown);
+        let ty = decl_signature_ty(
+            self.module,
+            self.lowerer.resolved,
+            self.lowerer.prelude,
+            self,
+            decl_idx,
+        );
         self.cache.borrow_mut().insert(decl_idx, ty.clone());
         ty
     }
@@ -347,42 +355,19 @@ pub fn assign_types_with_relations(
     let mut coverage = FileMatchCoverage::default();
     let mut field_uses = FileFieldUses::default();
     {
-        let mut assigner = Assigner {
+        let mut assigner = Assigner::new(
             module,
-            lowerer: Lowerer::new(resolved, prelude),
             resolved,
-            tm: &mut tm,
-            errors: &mut errors,
-            coverage: &mut coverage,
-            field_uses: &mut field_uses,
-            assign_target: None,
-            call_callee: None,
-            mut_call: None,
-            coalesce_defaults: HashMap::new(),
-            template_depth: 0,
-            absent_consumers: HashMap::new(),
-            member_object: None,
-            relating: RefCell::new(Vec::new()),
+            prelude,
             decl_ty_resolver,
-            return_stack: Vec::new(),
-            local_tys: HashMap::new(),
-            stdlib_values: HashMap::new(),
-            local_stdlib_values: HashMap::new(),
-            null_chains: NullChains::default(),
-            key_generics: Vec::new(),
-            local_type_exprs: HashMap::new(),
-            awaited_calls: HashSet::new(),
-            refused_lambdas: HashSet::new(),
-            sql_facts: sql_query::SqlFacts::collect(module, resolved),
-            sql_sink: RefCell::new(None),
-            sql_call: RefCell::new(None),
-            sql_refusals: RefCell::new(Vec::new()),
-            reassigned: OnceCell::new(),
-            narrowed_consts: HashMap::new(),
-            lambda_contexts: HashMap::new(),
-            judged_literal_keys: HashSet::new(),
-            judged_literal_values: HashSet::new(),
-        };
+            Sinks {
+                tm: &mut tm,
+                errors: &mut errors,
+                coverage: &mut coverage,
+                field_uses: &mut field_uses,
+            },
+            sql_query::SqlFacts::collect(module, resolved),
+        );
         for decl in &module.items {
             assigner.check_annotations(decl);
             assigner.declare_record_fields(decl);
@@ -467,42 +452,19 @@ pub fn assignability(
     let mut errors: Vec<TypeError> = Vec::new();
     let mut coverage = FileMatchCoverage::default();
     let mut field_uses = FileFieldUses::default();
-    let assigner = Assigner {
+    let assigner = Assigner::new(
         module,
-        lowerer: Lowerer::new(resolved, prelude),
         resolved,
-        tm: &mut tm,
-        errors: &mut errors,
-        coverage: &mut coverage,
-        field_uses: &mut field_uses,
-        assign_target: None,
-        call_callee: None,
-        mut_call: None,
-        coalesce_defaults: HashMap::new(),
-        template_depth: 0,
-        absent_consumers: HashMap::new(),
-        member_object: None,
-        relating: RefCell::new(Vec::new()),
+        prelude,
         decl_ty_resolver,
-        return_stack: Vec::new(),
-        local_tys: HashMap::new(),
-        stdlib_values: HashMap::new(),
-        local_stdlib_values: HashMap::new(),
-        null_chains: NullChains::default(),
-        key_generics: Vec::new(),
-        local_type_exprs: HashMap::new(),
-        awaited_calls: HashSet::new(),
-        refused_lambdas: HashSet::new(),
-        sql_facts: sql_query::SqlFacts::default(),
-        sql_sink: RefCell::new(None),
-        sql_call: RefCell::new(None),
-        sql_refusals: RefCell::new(Vec::new()),
-        reassigned: OnceCell::new(),
-        narrowed_consts: HashMap::new(),
-        lambda_contexts: HashMap::new(),
-        judged_literal_keys: HashSet::new(),
-        judged_literal_values: HashSet::new(),
-    };
+        Sinks {
+            tm: &mut tm,
+            errors: &mut errors,
+            coverage: &mut coverage,
+            field_uses: &mut field_uses,
+        },
+        sql_query::SqlFacts::default(),
+    );
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
     }
@@ -533,42 +495,19 @@ pub fn declared_record_fields(
     let mut errors: Vec<TypeError> = Vec::new();
     let mut coverage = FileMatchCoverage::default();
     let mut field_uses = FileFieldUses::default();
-    let assigner = Assigner {
+    let assigner = Assigner::new(
         module,
-        lowerer: Lowerer::new(resolved, prelude),
         resolved,
-        tm: &mut tm,
-        errors: &mut errors,
-        coverage: &mut coverage,
-        field_uses: &mut field_uses,
-        assign_target: None,
-        call_callee: None,
-        mut_call: None,
-        coalesce_defaults: HashMap::new(),
-        template_depth: 0,
-        absent_consumers: HashMap::new(),
-        member_object: None,
-        relating: RefCell::new(Vec::new()),
+        prelude,
         decl_ty_resolver,
-        return_stack: Vec::new(),
-        local_tys: HashMap::new(),
-        stdlib_values: HashMap::new(),
-        local_stdlib_values: HashMap::new(),
-        null_chains: NullChains::default(),
-        key_generics: Vec::new(),
-        local_type_exprs: HashMap::new(),
-        awaited_calls: HashSet::new(),
-        refused_lambdas: HashSet::new(),
-        sql_facts: sql_query::SqlFacts::default(),
-        sql_sink: RefCell::new(None),
-        sql_call: RefCell::new(None),
-        sql_refusals: RefCell::new(Vec::new()),
-        reassigned: OnceCell::new(),
-        narrowed_consts: HashMap::new(),
-        lambda_contexts: HashMap::new(),
-        judged_literal_keys: HashSet::new(),
-        judged_literal_values: HashSet::new(),
-    };
+        Sinks {
+            tm: &mut tm,
+            errors: &mut errors,
+            coverage: &mut coverage,
+            field_uses: &mut field_uses,
+        },
+        sql_query::SqlFacts::default(),
+    );
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
 
@@ -1455,6 +1394,169 @@ const RECOGNIZED_ANNOTATIONS: &[&str] = &["example", "doc", "redact", "open", "p
 enum Narrowed {
     Local(u32, Option<Ty>),
     Const(SymbolId, Option<Ty>),
+}
+
+/// The four places a walk writes what it found. Grouped so that building an
+/// [`Assigner`] names them once, by role, rather than as four loose arguments.
+struct Sinks<'a> {
+    tm: &'a mut TypeMap,
+    errors: &'a mut Vec<TypeError>,
+    coverage: &'a mut FileMatchCoverage,
+    field_uses: &'a mut FileFieldUses,
+}
+
+impl<'a> Assigner<'a> {
+    /// An assigner over `module` with every piece of walk state empty. Every
+    /// non-test site builds one this way, so a field added to the walk state
+    /// is initialized in one place.
+    fn new(
+        module: &'a Module,
+        resolved: &'a ResolvedModule,
+        prelude: &'a Prelude,
+        decl_ty_resolver: &'a dyn DeclTyResolver,
+        sinks: Sinks<'a>,
+        sql_facts: sql_query::SqlFacts<'a>,
+    ) -> Self {
+        Assigner {
+            module,
+            lowerer: Lowerer::new(resolved, prelude),
+            resolved,
+            tm: sinks.tm,
+            errors: sinks.errors,
+            coverage: sinks.coverage,
+            field_uses: sinks.field_uses,
+            assign_target: None,
+            call_callee: None,
+            mut_call: None,
+            coalesce_defaults: HashMap::new(),
+            template_depth: 0,
+            absent_consumers: HashMap::new(),
+            member_object: None,
+            relating: RefCell::new(Vec::new()),
+            decl_ty_resolver,
+            return_stack: Vec::new(),
+            local_tys: HashMap::new(),
+            stdlib_values: HashMap::new(),
+            local_stdlib_values: HashMap::new(),
+            null_chains: NullChains::default(),
+            key_generics: Vec::new(),
+            local_type_exprs: HashMap::new(),
+            awaited_calls: HashSet::new(),
+            refused_lambdas: HashSet::new(),
+            sql_facts,
+            sql_sink: RefCell::new(None),
+            sql_call: RefCell::new(None),
+            sql_refusals: RefCell::new(Vec::new()),
+            reassigned: OnceCell::new(),
+            narrowed_consts: HashMap::new(),
+            lambda_contexts: HashMap::new(),
+            judged_literal_keys: HashSet::new(),
+            judged_literal_values: HashSet::new(),
+        }
+    }
+}
+
+/// The type of the declaration at `decl_idx` in `module`, as every reader of
+/// it sees it: the `Ty` behind [`DeclTyResolver::decl_ty`].
+///
+/// A `fn`, a `component` and an annotated `const` are their lowered
+/// signature (`Lowerer::lower_decl_signature`). An unannotated `const` is the
+/// type its initializer has, [`unannotated_const_ty`] (G433), which needs the
+/// expression walk the lowerer does not have. `resolver` answers the names
+/// the initializer reads, so a `const` built from another `const` is typed
+/// through the same resolver this answer is served by.
+pub fn decl_signature_ty(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    resolver: &dyn DeclTyResolver,
+    decl_idx: u32,
+) -> Ty {
+    match module.items.get(decl_idx as usize) {
+        Some(Decl::Const(c)) if c.ty.is_none() => {
+            unannotated_const_ty(module, resolved, prelude, resolver, decl_idx)
+        }
+        Some(decl) => Lowerer::new(resolved, prelude).lower_decl_signature(decl),
+        None => Ty::Unknown,
+    }
+}
+
+/// G433. The type an unannotated module `const` has: its initializer's type,
+/// under the widening TypeScript applies to the `const` the emitter writes for
+/// it ([`const_binding_ty`]).
+///
+/// The initializer is walked on its own, by a fresh assigner whose findings
+/// are thrown away: the module's own walk reports them, once, where it reaches
+/// the declaration. A module-level initializer reads no local state, so the
+/// two walks type it the same way. `Ty::Unknown` where the walk cannot decide
+/// the initializer (an npm value, an `extern_ts` result, a name the resolver
+/// has no answer for), and for any declaration that is not an unannotated
+/// `const`.
+pub fn unannotated_const_ty(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    resolver: &dyn DeclTyResolver,
+    decl_idx: u32,
+) -> Ty {
+    let Some(decl @ Decl::Const(c)) = module.items.get(decl_idx as usize) else {
+        return Ty::Unknown;
+    };
+    if c.ty.is_some() {
+        return Ty::Unknown;
+    }
+    let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
+    {
+        let mut assigner = Assigner::new(
+            module,
+            resolved,
+            prelude,
+            resolver,
+            Sinks {
+                tm: &mut tm,
+                errors: &mut errors,
+                coverage: &mut coverage,
+                field_uses: &mut field_uses,
+            },
+            sql_query::SqlFacts::default(),
+        );
+        assigner.walk_decl(decl);
+    }
+    const_binding_ty(&c.value, tm.get(c.value.span()).clone(), &tm)
+}
+
+/// The type a `const` with no annotation binds from `initializer`, the type
+/// its value `value` was given (G433). `tm` holds the types of the parts of
+/// `value`, which the widening of an array literal reads element by element.
+///
+/// The rule is TypeScript's for the `const` the emitter writes. A string
+/// literal standing as the whole value keeps its one-literal type, so `const
+/// MODE = "read"` is a `"read"` and stands where a `"read" | "write"` is
+/// declared, exactly as it does under `tsc`. So does a value-position `match`
+/// whose every arm is a written string, which emits as a function whose
+/// inferred return `tsc` keeps as the union of the arms. A literal written
+/// inside an object or an array widens, since TypeScript widens a fresh
+/// literal in a property or an element even under `const`: `const CFG = { n:
+/// 1, mode: "read" }` is a `{ n: number, mode: string }`, and `const ITEMS =
+/// ["a"]` is an `Array<string>` whose `push("b")` `tsc` accepts. A literal
+/// type that reached the value through a name is not fresh and is kept, which
+/// is TypeScript's rule too.
+pub fn const_binding_ty(value: &Expr, initializer: Ty, tm: &TypeMap) -> Ty {
+    let keeps_literal = match value {
+        Expr::String { .. } => true,
+        Expr::Match { arms, .. } => arms
+            .iter()
+            .all(|a| matches!(&a.body, MatchArmBody::Expr(Expr::String { .. }))),
+        _ => false,
+    };
+    if keeps_literal {
+        initializer
+    } else {
+        widen_fresh(value, initializer, tm)
+    }
 }
 
 impl Assigner<'_> {
@@ -4206,11 +4308,10 @@ impl Assigner<'_> {
     /// at the call site: the spread's fields are not enumerable here, so a
     /// record built without them would be missing fields the value carries.
     ///
-    /// Nothing about a `const` changes. An unannotated `const` lowers its
-    /// declaration to `Ty::Unknown` on purpose (G39) and reads its type from
-    /// the annotation or from nowhere; this types the *expression*, which is
-    /// what the four value sites compare, and leaves what a binding infers to
-    /// the rules that already decide it.
+    /// This types the *expression*, which is what the four value sites
+    /// compare. What a binding infers from it is decided elsewhere: an
+    /// unannotated `let` by `widen_fresh_literals`, an unannotated `const` by
+    /// `const_binding_ty` (G433).
     fn object_literal_ty(&self, fields: &[ObjectField]) -> Ty {
         let mut out: Vec<RecordField> = Vec::with_capacity(fields.len());
         for f in fields {
@@ -4242,11 +4343,11 @@ impl Assigner<'_> {
                 }
                 let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                 match &sym.kind {
-                    // G39. A `const` joins the two callable kinds here: its
-                    // declaration lowers to its annotation, or to `Unknown`
-                    // when it carries none, so reading it through the same
-                    // resolver states exactly what the author wrote and
-                    // nothing more.
+                    // G39 and G433. A `const` joins the two callable kinds
+                    // here: the resolver answers its annotation, or for one
+                    // with none the type its initializer has under `tsc`'s
+                    // `const` widening, so a read of it is checked against the
+                    // type `tsc` checks it against.
                     SymbolKind::Function { decl_idx }
                     | SymbolKind::Component { decl_idx }
                     | SymbolKind::Const { decl_idx } => {
@@ -8534,10 +8635,11 @@ impl Assigner<'_> {
     ///
     /// Three positions take a type from a value this way: a `let` with no
     /// annotation, and the element binding of a `for` loop over a written
-    /// array. A `const` with no annotation lowers to `Unknown` and reaches
-    /// nothing here, which is the right answer for it: a `const` emits a
-    /// TypeScript `const`, which keeps the literal, so widening it would
-    /// refuse `takes_mode(CM)` where `tsc` accepts it.
+    /// array. A `const` with no annotation is read by `const_binding_ty`
+    /// (G433), which keeps a string literal standing as the whole value: a
+    /// `const` emits a TypeScript `const`, which keeps it, so widening it
+    /// would refuse `takes_mode(CM)` where `tsc` accepts it. Literals inside
+    /// the value widen there as they do here.
     /// An object literal is read field by field, because TypeScript widens a
     /// property whose value is a fresh literal and leaves one that arrived
     /// through a name alone: `let c = { mode: "read", from: m }` is
@@ -8546,31 +8648,7 @@ impl Assigner<'_> {
     /// and the synthesized record line up, which for a spread-free literal
     /// they always do (G232).
     fn widen_fresh_literals(&self, value: &Expr, ty: Ty) -> Ty {
-        if let (Expr::Object { fields, .. }, Ty::Record { fields: recorded }) = (value, &ty) {
-            if fields.len() == recorded.len() {
-                return Ty::Record {
-                    fields: fields
-                        .iter()
-                        .zip(recorded.iter())
-                        .map(|(written, field)| {
-                            let ObjectField::KeyValue { value, .. } = written else {
-                                return field.clone();
-                            };
-                            RecordField {
-                                name: field.name.clone(),
-                                ty: self.widen_fresh_literals(value, field.ty.clone()),
-                                optional: field.optional,
-                            }
-                        })
-                        .collect(),
-                };
-            }
-        }
-        if produces_fresh_literal(value) {
-            widen_literals(&ty)
-        } else {
-            ty
-        }
+        widen_fresh(value, ty, self.tm)
     }
 
     /// Whether the relation will reach a string-literal union on its way into
@@ -10774,6 +10852,63 @@ pub fn imported_decl_chain_end(
     }
 }
 
+/// The body of `Assigner::widen_fresh_literals`, free of the walk so a reader
+/// holding only a finished `TypeMap` (hover, the `const` rule of G433) applies
+/// the same widening. `tm` holds the type of every part of `value`.
+///
+/// An array literal is read element by element when each element is written
+/// out: every element is widened on its own, and when they all come to one
+/// type the array is an array of it. That is how TypeScript reads `[{ mode:
+/// "read", from: m }]`, as an array of `{ mode: string, from: Mode }`, where
+/// widening the whole element type would also widen the `from` a name gave it,
+/// and widening nothing would refuse a `push` of a record with another `mode`.
+fn widen_fresh(value: &Expr, ty: Ty, tm: &TypeMap) -> Ty {
+    if let (Expr::Object { fields, .. }, Ty::Record { fields: recorded }) = (value, &ty) {
+        if fields.len() == recorded.len() {
+            return Ty::Record {
+                fields: fields
+                    .iter()
+                    .zip(recorded.iter())
+                    .map(|(written, field)| {
+                        let ObjectField::KeyValue { value, .. } = written else {
+                            return field.clone();
+                        };
+                        RecordField {
+                            name: field.name.clone(),
+                            ty: widen_fresh(value, field.ty.clone(), tm),
+                            optional: field.optional,
+                        }
+                    })
+                    .collect(),
+            };
+        }
+    }
+    if let (Expr::Array { elements, .. }, Ty::App { base, args }) = (value, &ty) {
+        if args.len() == 1 && !elements.is_empty() && !produces_fresh_literal(value) {
+            let widened: Option<Vec<Ty>> = elements
+                .iter()
+                .map(|el| match el {
+                    ArrayElem::Expr(e) => Some(widen_fresh(e, tm.get(e.span()).clone(), tm)),
+                    ArrayElem::Spread(_) => None,
+                })
+                .collect();
+            if let Some(widened) = widened {
+                if widened.windows(2).all(|w| w[0] == w[1]) && !widened[0].is_unknown() {
+                    return Ty::App {
+                        base: base.clone(),
+                        args: vec![widened[0].clone()],
+                    };
+                }
+            }
+        }
+    }
+    if produces_fresh_literal(value) {
+        widen_literals(&ty)
+    } else {
+        ty
+    }
+}
+
 /// Whether a written expression produces a *fresh* literal type: one this
 /// program's text created here, rather than one that arrived through a name.
 ///
@@ -12031,24 +12166,127 @@ mod tests {
         );
     }
 
-    /// A `const` with no annotation stays `Ty::Unknown`. Inferring its type
-    /// from the initializer is a separate question, and guessing one here
-    /// would start reporting against a type the author never wrote.
+    /// G433 (record 158). A `const` with no annotation has its initializer's
+    /// type, so the checks that read a receiver's type reach it. The three
+    /// lines are record 158's probe r04 without the stdlib `Store`: a
+    /// mutating call outside `mut` is E0240, a field read where a `string` is
+    /// declared is E0204, and a field typo is E0210. All three were silent
+    /// while the same values in an annotated `let` drew all three.
     #[test]
-    fn an_unannotated_module_const_stays_unchecked() {
+    fn an_unannotated_module_const_has_its_initializers_type() {
         let errs = errors_of(
             "module x\n\
-             const ORIGIN = { rows: 0, cols: 0 }\n\
+             const ITEMS = [1, 2]\n\
+             const CFG = { n: 1, }\n\
              fn f() -> number {\n\
-             \x20 return ORIGIN.rowz\n\
+             \x20 ITEMS.push(3)\n\
+             \x20 let x: string = CFG.n\n\
+             \x20 return CFG.m\n\
              }\n",
         );
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert!(codes.contains(&"E0240"), "ITEMS.push(3) outside `mut`: {errs:?}");
+        assert_eq!(mismatch_found(&errs), vec!["number"], "{errs:?}");
         assert!(
-            !errs
-                .iter()
-                .any(|e| matches!(e, TypeError::UnknownField { .. })),
-            "no annotation, no claim: {errs:?}"
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, .. } if field == "m"
+            )),
+            "a field typo on an unannotated const is E0210: {errs:?}"
         );
+    }
+
+    /// A string literal standing as a `const`'s whole value keeps its literal
+    /// type, because the TypeScript `const` the emitter writes keeps it. So
+    /// `const MODE = "read"` stands where a `Mode` is declared, and it is still
+    /// a `string` everywhere one is read: passed to a `string` parameter and
+    /// to a stdlib string function, compared with another literal,
+    /// interpolated, and asked for a `string` member. A value-position
+    /// `match` of written strings keeps the union of its arms the same way.
+    /// None of these is refused, and `tsc` refuses none of them.
+    #[test]
+    fn an_unannotated_const_string_literal_keeps_its_literal_type_without_false_refusals() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             import std/string\n\
+             const MODE_NOW = \"read\"\n\
+             const PICKED = match 1 {{\n  1 => \"read\",\n  else => \"write\",\n}}\n\
+             fn takes(m: Mode) -> number {{\n  return 0\n}}\n\
+             fn wants(s: string) -> number {{\n  return string.len(s)\n}}\n\
+             fn f() -> string {{\n\
+             \x20 let a = takes(MODE_NOW) + takes(PICKED) + wants(MODE_NOW) + wants(PICKED)\n\
+             \x20 let b = string.len(MODE_NOW) + MODE_NOW.length\n\
+             \x20 let same = MODE_NOW == \"write\"\n\
+             \x20 let up = string.upper(MODE_NOW)\n\
+             \x20 let s: string = MODE_NOW\n\
+             \x20 return \"${{MODE_NOW}}${{a}}${{b}}${{same}}${{up}}${{s}}\"\n\
+             }}\n"
+        ));
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// A literal inside an object or an array widens under a TypeScript
+    /// `const`, so it widens here. `NAMES` is an `Array<string>`, and `mut
+    /// NAMES.push("c")` is accepted where an `Array<"a" | "b">` would refuse
+    /// it; `CFG.mode` is a `string`, so passing it where a `Mode` is declared
+    /// is refused, as `tsc` refuses it. A field a name gave a record keeps
+    /// its type, so `ROWS[0].from` still stands where a `Mode` is declared.
+    #[test]
+    fn literals_inside_an_unannotated_const_widen() {
+        let errs = errors_of(&format!(
+            "{MODE}\
+             const NAMES = [\"a\", \"b\"]\n\
+             const CFG = {{ mode: \"read\", }}\n\
+             const M: Mode = \"read\"\n\
+             const ROWS = [{{ mode: \"read\", from: M, }}]\n\
+             fn takes(m: Mode) -> number {{\n  return 0\n}}\n\
+             fn f() -> number {{\n\
+             \x20 mut NAMES.push(\"c\")\n\
+             \x20 mut ROWS.push({{ mode: \"write\", from: M, }})\n\
+             \x20 let ok = takes(ROWS[0].from)\n\
+             \x20 return takes(CFG.mode) + ok\n\
+             }}\n"
+        ));
+        assert_eq!(mismatch_found(&errs), vec!["string"], "{errs:?}");
+    }
+
+    /// A generic call is inferred as it is for a `let`: `array.map` over
+    /// numbers is an `Array<number>`, accepted where one is declared and
+    /// refused where an `Array<string>` is. An empty array literal stays open,
+    /// so a later `push` of anything is accepted, as `tsc`'s evolving array
+    /// accepts it.
+    #[test]
+    fn an_unannotated_const_reads_a_generic_call_and_an_empty_array() {
+        let errs = errors_of(
+            "module x\n\
+             import std/array\n\
+             const DOUBLED = array.map([1, 2], fn(x: number) -> number { x * 2 })\n\
+             const EMPTY = []\n\
+             fn f() -> number {\n\
+             \x20 mut EMPTY.push(1)\n\
+             \x20 let d: Array<number> = DOUBLED\n\
+             \x20 let s: Array<string> = DOUBLED\n\
+             \x20 return d.length + s.length\n\
+             }\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["Array<number>"], "{errs:?}");
+    }
+
+    /// An initializer the checker cannot type leaves the `const` untyped, and
+    /// a `const` whose initializer reads itself back is one: the loop answers
+    /// `Unknown` rather than recursing, and nothing is refused.
+    #[test]
+    fn a_const_whose_initializer_reads_itself_back_stays_untyped() {
+        let errs = errors_of(
+            "module x\n\
+             const A = B\n\
+             const B = A\n\
+             fn f() -> string {\n\
+             \x20 let n: string = A\n\
+             \x20 return n\n\
+             }\n",
+        );
+        assert!(mismatch_found(&errs).is_empty(), "{errs:?}");
     }
 
     /// An annotated module `const` gets the check an annotated `let` gets: the

@@ -14893,7 +14893,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.162 (the dev build): `--no-tsc` reports no
   diagnostics; `array.len([1])` without its import is E0103.*
 
-- **G433. An unannotated module `const` is typed `Unknown`, so nothing read
+- **G433. [FIXED] An unannotated module `const` is typed `Unknown`, so nothing read
   off it is checked.** `const ITEMS = [1, 2]` then a bare `ITEMS.push(3)`
   draws no E0240, `const CFG = { n: 1, }` then `let x: string = CFG.n` draws
   no E0204, and `const S = store.create(0)` then `let y: string = S.get()`
@@ -14912,6 +14912,19 @@ and is the owner's to confirm.
   build with record 158's probe r04: the three unannotated lines draw nothing
   under `check --no-tsc`, and `let z: string = S2.get()` on the annotated
   `const S2: store.Store<number>` is E0204.*
+
+  Fixed in 0.1.166 (decision record 158, F-A; D20 amended). An unannotated
+  `const` has its initializer's type under the widening `tsc` applies to the
+  `const` the emitter writes: a string literal standing as the whole value
+  keeps its literal type (`const MODE = "read"` still stands where a `"read" |
+  "write"` is declared), as does a `match` whose every arm is a written
+  string, and a literal inside an object or an array widens. An initializer
+  the checker cannot type stays `Unknown`. The type is answered by the same
+  query as a `fn`'s signature, `decl_ty`, so hover, `glyph_symbol` and the
+  checker read one answer, and an imported `pub const` reaches the consumer
+  through `exported_const` on the export view, the same type under `import m
+  { NAME }` and `m.NAME`. Probe r04 now reports E0240 on `ITEMS.push(3)` and
+  E0204 on `CFG.n`; its `store.create` line needs G423's typed `Store` first.
 
 - **G434. E0211 between two function types names neither of them.** Passing
   `fn(v: string) -> string { return v }` where a `fn(number) -> number` is

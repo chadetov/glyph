@@ -79,7 +79,7 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_relations, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
+    assign_types_with_relations, unannotated_const_ty, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
     FieldSite, FileFieldUses,
     FileMatchCoverage, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
@@ -1978,9 +1978,10 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         // The const counterpart of `imported_fn_decl` (G205): the same project
         // sibling lookup, answered by the tracked `exported_const(db, file,
         // name)` query. `Ty::Unknown` is that query's sentinel for a name the
-        // module does not declare, one that is not a `const`, and a `const`
-        // with no annotation; every one of those is a miss for the caller's
-        // `.or_else` chain, not a type.
+        // module does not declare, one that is not a `const`, and an
+        // unannotated `const` whose initializer is undecidable (G433); every
+        // one of those is a miss for the caller's `.or_else` chain, not a
+        // type.
         let project = self.db.project_files_input();
         let file = project
             .entries(self.db)
@@ -2088,18 +2089,68 @@ pub fn resolved_decl(db: &dyn Db, file: SourceFile, name: Ident) -> ResolvedDecl
 /// module and is stable across both.
 ///
 /// An unknown name or a non-callable decl returns `DeclTy::new(Ty::Unknown)`.
-#[salsa::tracked(returns(clone))]
+///
+/// **An unannotated `const` (G433)** is the type its initializer has, which
+/// takes an expression walk over the initializer rather than a lowering, so
+/// that one case reads the whole file's parse and resolution
+/// (`glyph_typechecker::unannotated_const_ty`), with this resolver answering
+/// the names the initializer reads. A `const` whose initializer reaches back
+/// to itself, in this file or through a sibling, is a query cycle; it answers
+/// `Unknown` ([`decl_ty_cycle`]) rather than panicking.
+#[salsa::tracked(returns(clone), cycle_result = decl_ty_cycle)]
 pub fn decl_ty(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
     let ast = decl_ast(db, file, Ident::clone(&name));
     let Some(decl) = ast.decl() else {
         return DeclTy::new(Ty::Unknown);
     };
+    if let Decl::Const(c) = decl {
+        if c.ty.is_none() {
+            return DeclTy::new(unannotated_const_in(db, file, &name));
+        }
+    }
     let rd = resolved_decl(db, file, name);
     let Some(resolved_module) = rd.resolved() else {
         return DeclTy::new(Ty::Unknown);
     };
     let lowerer = Lowerer::new(resolved_module, db.prelude());
     DeclTy::new(lowerer.lower_decl_signature(decl))
+}
+
+/// The answer `decl_ty` gives inside a query cycle: `Unknown`, which no check
+/// reads. Only an unannotated `const` can reach one, through an initializer
+/// that reads itself back.
+fn decl_ty_cycle(_db: &dyn Db, _id: salsa::Id, _file: SourceFile, _name: Ident) -> DeclTy {
+    DeclTy::new(Ty::Unknown)
+}
+
+/// The answer `exported_const` gives inside a query cycle: `Unknown`, as
+/// `decl_ty_cycle` answers for the same loop entered on the other side.
+fn exported_const_cycle(_db: &dyn Db, _id: salsa::Id, _file: SourceFile, _name: Ident) -> DeclTy {
+    DeclTy::new(Ty::Unknown)
+}
+
+/// The type of the unannotated `const` `file` declares under `name`, in that
+/// file's own symbol table (G433). `Unknown` when the file does not parse or
+/// resolve, or the initializer is undecidable.
+fn unannotated_const_in(db: &dyn Db, file: SourceFile, name: &Ident) -> Ty {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return Ty::Unknown;
+    };
+    let Some(idx) = decl_index_by_name(module, name) else {
+        return Ty::Unknown;
+    };
+    let resolved = resolve(db, file);
+    let Some(resolved_module) = resolved.resolved() else {
+        return Ty::Unknown;
+    };
+    unannotated_const_ty(
+        module,
+        resolved_module,
+        db.prelude(),
+        &SalsaDeclTy { db, file },
+        idx as u32,
+    )
 }
 
 /// Lower the declaration `file` declares under `name` as **another module sees
@@ -2206,12 +2257,22 @@ pub fn exported_fn(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
 /// annotation across the boundary, so `ORIGIN.rowz` was silent under both
 /// import spellings while the same read in the declaring module was E0210.
 ///
+/// A `const` with no annotation reaches the consumer with the type its
+/// initializer has in its own module (G433), the answer `decl_ty` gives
+/// there, rendered on the export view by `ExportLowerer::export_inferred`. One
+/// answer per source declaration, so the named and the namespace spelling of
+/// the import read the same type.
+///
 /// `Ty::Unknown` is the sentinel for every miss: no such name, a name that is
-/// not a `const`, and a `const` with no annotation, which is `Unknown` in its
-/// own module too.
+/// not a `const`, and an unannotated `const` whose initializer is undecidable.
+///
+/// Two siblings whose unannotated consts read each other (`pub const X =
+/// b.Y` beside `pub const Y = a.X`) are a query cycle through this query and
+/// `decl_ty`, which can be entered at either; both answer `Unknown` there
+/// ([`exported_const_cycle`], [`decl_ty_cycle`]) rather than panicking.
 ///
 /// This query answers `DeclTyResolver::imported_const_decl`.
-#[salsa::tracked(returns(clone))]
+#[salsa::tracked(returns(clone), cycle_result = exported_const_cycle)]
 pub fn exported_const(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -2234,6 +2295,10 @@ pub fn exported_const(db: &dyn Db, file: SourceFile, name: Ident) -> DeclTy {
         return DeclTy::new(Ty::Unknown);
     };
     let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &module_path);
+    if c.ty.is_none() {
+        let local = decl_ty(db, file, name).ty().clone();
+        return DeclTy::new(lowerer.export_inferred(&local));
+    }
     DeclTy::new(lowerer.lower_exported_const(c))
 }
 
@@ -2742,12 +2807,20 @@ fn ident(x: string) -> string { return x }
         }
     }
 
+    /// G433: an unannotated `const` is its initializer's type, and one whose
+    /// initializer reads itself back is a query cycle that answers `Unknown`
+    /// instead of panicking.
     #[test]
-    fn decl_ty_unknown_for_const_decl() {
+    fn decl_ty_of_an_unannotated_const_is_its_initializers_type() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "ok.glyph", "module x\npub const PI = 3.14\n");
+        let file = new_file(
+            &db,
+            "ok.glyph",
+            "module x\npub const PI = 3.14\nconst A = B\nconst B = A\n",
+        );
         let d = decl_ty(&db, file, name("PI"));
-        assert!(matches!(d.ty(), Ty::Unknown));
+        assert_eq!(d.ty(), &Ty::Prim(glyph_typechecker::Primitive::Number));
+        assert_eq!(decl_ty(&db, file, name("A")).ty(), &Ty::Unknown);
     }
 
     #[test]
@@ -3992,10 +4065,12 @@ pub fn run(c: Command) -> number {
 
     /// G205. `exported_const` reads a `pub const`'s annotation on the export
     /// view, so a consumer sees `Sheet` as `Ty::Imported` keyed on the
-    /// declaring module. The three misses share the `Ty::Unknown` sentinel:
-    /// a const with no annotation (which is `Unknown` in its own module too),
-    /// a name declared as something other than a const, and a name the module
-    /// does not declare.
+    /// declaring module. A const with no annotation has its initializer's
+    /// type (G433), on the same view: `COPY = ORIGIN` reaches the consumer as
+    /// the imported `Sheet`, never as a `Ty::Named` carrying this module's
+    /// symbol id. The misses share the `Ty::Unknown` sentinel: a name declared
+    /// as something other than a const, and a name the module does not
+    /// declare.
     #[test]
     fn exported_const_reads_an_annotation_across_the_module_boundary() {
         let mut db = CompilerDb::with_default_stdlib();
@@ -4006,6 +4081,7 @@ pub fn run(c: Command) -> number {
              pub type Sheet = { rows: number, cols: number, }\n\
              pub const ORIGIN: Sheet = { rows: 0, cols: 0, }\n\
              pub const LOOSE = { rows: 0, cols: 0, }\n\
+             pub const COPY = ORIGIN\n\
              pub fn make() -> Sheet {\n  return ORIGIN\n}\n",
         );
         db.project_files = Some(ProjectFiles::new(&db, vec![("lib".to_string(), lib)]));
@@ -4021,8 +4097,22 @@ pub fn run(c: Command) -> number {
         );
         assert_eq!(
             exported_const(&db, lib, name("LOOSE")).ty().clone(),
-            Ty::Unknown,
-            "an unannotated const is not inferred"
+            Ty::Record {
+                fields: ["rows", "cols"]
+                    .into_iter()
+                    .map(|n| glyph_typechecker::RecordField {
+                        name: Ident::from(n),
+                        ty: Ty::Prim(glyph_typechecker::Primitive::Number),
+                        optional: false,
+                    })
+                    .collect(),
+            },
+            "an unannotated const has its initializer's type"
+        );
+        assert_eq!(
+            exported_const(&db, lib, name("COPY")).ty().clone(),
+            origin,
+            "a type this module names crosses as the imported declaration"
         );
         assert_eq!(
             exported_const(&db, lib, name("make")).ty().clone(),

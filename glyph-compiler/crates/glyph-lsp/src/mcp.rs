@@ -484,7 +484,7 @@ fn initialize_result() -> Value {
 
 const DIAGNOSTICS_MANUAL: &str = "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the three checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk; `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`; and `E0400`, a failing `@example` or `@doc @run`, which is decided by emitting the project and running the example rather than by reading it. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.";
 
-const HOVER_MANUAL: &str = "The type at a position in a Glyph file, read inside the file's project. It answers an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it) and a local binding at its definition site. A name declared in another module answers too, from that module's own lowered declaration rather than from the import binding: the binding inside `import m { N }`, an imported function where it is called (named or through a namespace), an imported variant used as a value, an imported annotated `const`, and a field read off an imported record. `null` where the compiler holds no type for the position: a keyword, a literal, whitespace, an unannotated `const` (the checker lowers its declaration to `Unknown` on purpose, so printing the initializer's type would report a type nothing checks its uses against), and a namespace import binding, which names a module rather than a declaration.";
+const HOVER_MANUAL: &str = "The type at a position in a Glyph file, read inside the file's project. It answers an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it) and a local binding at its definition site. A name declared in another module answers too, from that module's own lowered declaration rather than from the import binding: the binding inside `import m { N }`, an imported function where it is called (named or through a namespace), an imported variant used as a value, an imported annotated `const`, and a field read off an imported record. `null` where the compiler holds no type for the position: a keyword, a literal, whitespace, an unannotated `const` whose initializer the checker cannot type (an npm value, an `extern_ts` result), and a namespace import binding, which names a module rather than a declaration.";
 
 const DEFINITION_MANUAL: &str = "Where the name at a position is defined (a file path and range), following imports across modules, with the `module::name` `entity` it names so the answer chains into the other tools. One declaration has one answer whichever way it is imported: `Button` under `import ui { Button }`, the member half of `ui.Button` under `import ui` or `import ui as u` (in value position, in type position as `ui.Props`, and in both tags of a `<ui.Button>` element) all answer the declaration in `ui`. The namespace itself (`ui` in `ui.Button`) answers the `import` that binds it, with `entity` null and `entity_absent` saying why. A stdlib name keeps its `entity` and answers `path` and `range` null, with `path_absent` and `range_absent` saying the stdlib has no `.glyph` source. A name an npm package or a Node builtin declares is refused, since its declaration is TypeScript. `null` where the position is on no name, and on a name no module declares (an unbound name, or `ui.Nope`).";
 
@@ -502,7 +502,7 @@ const ASSIGNABLE_MANUAL: &str = "Can a value of one type go where another is dec
 
 const DEPENDENCIES_MANUAL: &str = "What one declaration depends on: every declaration its own source names, split by relation. The mirror of `glyph_references`, which asks the same tables from the other end, so the two agree edge for edge over one declaration's extent. Address the declaration by its `module::name` identity. `CALLS` is every name it applies to an argument list; `REFERENCES` is every name it reads without applying (an annotation naming a type, a value read, a variant in a pattern, a name passed as an argument, an import binding used); `FIELD_ACCESS` is every member access the checker joined to the record that declares the field, whose `to` is `module::Record.field`. The two name relations are read out of the resolver's own table and never out of a scan of the text, so an import edge is here because the resolver bound the name; the field relation is read out of the checker's field-use table, so a site is there because a field set resolved. A name the resolver bound to a local binding or to a prelude built-in is not an edge, because neither has a `module::name` to put at the far end. `MATCH_SITES` is refused with the surface that answers it, `glyph_variants`. The answer is `{ entity, entity_kind, origin, depth_requested, depth_answered, relations }`, and each relation carries its own `edges`, its own `guarantee`, and the files it could not read under `unindexed`; `FIELD_ACCESS` carries `unkeyed` besides, for a member access the checker reached and could not join to any record. Every edge names both ends (`from`, `to`), the relation it stands in, its `provenance` (whether the compiler proved the far end or a TypeScript declaration asserted it), the far end's `origin`, and where in the declaration it sits. Exact at hop 1: every edge is inside the declaration's own extent. `depth` of 2 or more is answered rather than refused, with `next_query` naming the one-call-per-root question that would be exact, because composing hops here would merge several declarations' edges into one list where nothing says whose edge is whose.";
 
-const EXPORTS_MANUAL: &str = "What one module makes visible to an importer. The set of names is the compiler's own export query, the one the import verifier reads, so a name is here exactly when another module may `import` it: a `pub` declaration, or a variant a `pub` tagged union hoists. An `import` is not re-exported (D15), so a name this module imports is not in the list. Each entry is the `glyph_symbols` entry shape: `name`, the `module::name` identity every other tool is keyed by, `module`, `kind` in `glyph_symbol`'s vocabulary, `pub`, `location`, and a one-line `signature` (null with `signature_absent` where the compiler lowered no type, which an unannotated `const` is). `glyph_symbol` on the identity is the rest of the description. A module this project does not hold is refused rather than answered with an empty list, since an empty list says the module exports nothing. A module the compiler could not parse or resolve answers `exports` null with `exports_absent` saying which, and names the file under `unindexed`.";
+const EXPORTS_MANUAL: &str = "What one module makes visible to an importer. The set of names is the compiler's own export query, the one the import verifier reads, so a name is here exactly when another module may `import` it: a `pub` declaration, or a variant a `pub` tagged union hoists. An `import` is not re-exported (D15), so a name this module imports is not in the list. Each entry is the `glyph_symbols` entry shape: `name`, the `module::name` identity every other tool is keyed by, `module`, `kind` in `glyph_symbol`'s vocabulary, `pub`, `location`, and a one-line `signature` (null with `signature_absent` where the compiler lowered no type, which an unannotated `const` whose initializer the checker cannot type is). `glyph_symbol` on the identity is the rest of the description. A module this project does not hold is refused rather than answered with an empty list, since an empty list says the module exports nothing. A module the compiler could not parse or resolve answers `exports` null with `exports_absent` saying which, and names the file under `unindexed`.";
 
 /// The closed relation vocabulary, in the long form the schemas used to carry
 /// in four copies.
@@ -597,7 +597,7 @@ pub fn tool_specs() -> Value {
         },
         {
             "name": "glyph_hover",
-            "description": "The type at a position in a Glyph file, read inside the file's project: an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it), a local binding, and a name declared in another module, answered from that module's own declaration rather than from the import binding. `null` where the compiler holds no type for the position, which a keyword, a literal, an unannotated `const` and a namespace import binding all are. The full field-by-field text is the `tools` section of `glyph llms --json`.",
+            "description": "The type at a position in a Glyph file, read inside the file's project: an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it), a local binding, and a name declared in another module, answered from that module's own declaration rather than from the import binding. `null` where the compiler holds no type for the position, which a keyword, a literal, an unannotated `const` whose initializer the checker cannot type and a namespace import binding all are. The full field-by-field text is the `tools` section of `glyph llms --json`.",
             "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character }, "required": ["path", "line", "character"] }
         },
         {
@@ -9515,8 +9515,8 @@ fn exhaustive_match_pair(what: &DeclaredAs<'_>, ty: Option<&Ty>) -> (Value, Valu
 /// answers `Unknown` for a `type` and an `interface` by design (their bodies
 /// are not signatures), so those are lowered here by the same `Lowerer` that
 /// query is built on, applied to the body instead of to the signature. An
-/// unannotated `const` has no written type at all and falls back to the
-/// checker's type for its initializer.
+/// unannotated `const` has no written type, and `decl_ty` answers the type its
+/// initializer has (G433), the type every use of it is checked against.
 fn declared_ty(project: &Project, file: SourceFile, what: &DeclaredAs<'_>, name: &str) -> Option<Ty> {
     let db = &project.db;
     let ident: glyph_ast::Ident = Arc::from(name);
@@ -9527,9 +9527,9 @@ fn declared_ty(project: &Project, file: SourceFile, what: &DeclaredAs<'_>, name:
                 ty => Some(ty.clone()),
             }
         }
-        // An unannotated `const` lowers to `Ty::Unknown` on purpose (G39), and
-        // that is the answer: `None` here becomes a stated absence rather than
-        // the initializer's type dressed as a declared one.
+        // An unannotated `const` is its initializer's type (G433), which
+        // `decl_ty` answers. `Unknown` there is an undecidable initializer, and
+        // `None` here states that absence.
         DeclaredAs::Decl(glyph_ast::Decl::Const(_)) => {
             match glyph_db::decl_ty(db, file, ident).ty() {
                 Ty::Unknown => None,
@@ -9913,10 +9913,9 @@ fn describe_symbol(
         format!(
             "the compiler lowered no type for `{module}::{name}`. A declaration whose body \
              is an `extern_ts` escape or a `typeof` has none in Glyph's own type system: what \
-             is inside is checked by `tsc`. An unannotated `const` has none either, and that \
-             is a decision rather than a gap: the checker declines to infer one from the \
-             initializer, so no check reads a declared type for it. Write the annotation to \
-             get one."
+             is inside is checked by `tsc`. An unannotated `const` whose initializer the \
+             checker cannot type (an npm value, an `extern_ts` result) has none either, so no \
+             check reads a type for it. Write the annotation to get one."
         ),
     );
     fact(
@@ -16573,12 +16572,13 @@ pub fn f() -> number {
         assert!(because.contains("alias"), "the body kind is unnamed: {entry}");
     }
 
-    /// Cell (unknown argument, any parameter): a `const` with no annotation is
-    /// `Ty::Unknown`, and the checker compares an unknown against nothing.
+    /// Cell (unknown argument, any parameter): a `const` whose initializer
+    /// reads itself back has no type (G433 leaves an undecidable initializer
+    /// `Ty::Unknown`), and the checker compares an unknown against nothing.
     #[test]
     fn signature_type_unknown_argument_is_undetermined() {
         let entry = signature_call_entry(
-            "module api\nconst X = { a: 1 }\n\
+            "module api\nconst X = Y\nconst Y = X\n\
              pub fn f(s: string) -> string {\n  return s\n}\n\
              pub fn g() -> string {\n  return f(X)\n}\n",
             "api::f",
@@ -18284,17 +18284,17 @@ pub fn f() -> number {
         assert!(text.contains("not both"), "{text}");
     }
 
-    /// An unannotated `const` lowers to `Ty::Unknown` on purpose: the checker
-    /// declines to infer one from the initializer, so nothing reads a declared
-    /// type for it. Reporting the initializer's type would say the uses are
-    /// checked against a `string`, and they are not.
+    /// An unannotated `const` has its initializer's type (G433), the type its
+    /// uses are checked against, so `glyph_symbol` reports it. One whose
+    /// initializer the checker cannot type reports none, with the reason.
     #[test]
-    fn symbol_declines_an_unannotated_consts_type() {
+    fn symbol_reports_an_unannotated_consts_type() {
         let root = tmp_root();
         write(
             &root,
             "k.glyph",
-            "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\n",
+            "module k\npub const LIMIT: int = 10\npub const NAMED = \"x\"\n\
+             pub const LOOP_A = LOOP_B\npub const LOOP_B = LOOP_A\n",
         );
         let annotated = symbol(&root, "k::LIMIT");
         assert_paired(&annotated);
@@ -18303,13 +18303,17 @@ pub fn f() -> number {
 
         let inferred = symbol(&root, "k::NAMED");
         assert_paired(&inferred);
-        assert!(inferred["type"].is_null(), "{inferred}");
+        assert_eq!(inferred["type"], "\"x\"", "{inferred}");
+
+        let undecided = symbol(&root, "k::LOOP_A");
+        assert_paired(&undecided);
+        assert!(undecided["type"].is_null(), "{undecided}");
         assert!(
-            inferred["type_absent"]
+            undecided["type_absent"]
                 .as_str()
                 .unwrap()
-                .contains("declines to infer"),
-            "{inferred}"
+                .contains("cannot type"),
+            "{undecided}"
         );
     }
 

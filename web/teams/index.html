@@ -515,6 +515,25 @@
           Details in <a href="/answers/upgrades/">Will a new Glyph release break my build?</a>
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">What a Breaking release usually means<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="Link to this section">#</a></h2>
+        <p>
+          Usually that the compiler starts refusing a program that was already wrong. 0.1.159
+          refused <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code>
+          does not wait for its callback, so each save ran on its own and a failure in one was
+          lost. 0.1.162 refused <code>array.find(xs, f) ?? 0</code>: an <code>Option</code> is
+          never null, so the default never applied and the value was the <code>Option</code>
+          itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in
+          place, such as <code>xs.push(4)</code>, has to be written as a <code>mut</code>
+          statement, so code that worked had to change its spelling (<code>glyph fix</code>
+          inserts the <code>mut</code>).
+        </p>
+        <p>
+          A release reaches your project only when you move the pin. If an upgrade refuses code
+          you can't fix yet, stay on the version you had, since published versions are never
+          yanked. The TypeScript your last build emitted compiles with <code>tsc</code> alone, so
+          it stays usable whatever happens to the compiler.
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release cadence and the Breaking marker<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link to this section">#</a></h2>
         <p>
           The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0

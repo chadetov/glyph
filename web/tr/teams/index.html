@@ -485,6 +485,14 @@
           Ayrıntılar: <a href="/tr/answers/upgrades/">Yeni bir Glyph sürümü build'imi bozar mı?</a>
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">Breaking bir sürüm genellikle ne demek<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Genellikle derleyicinin zaten yanlış olan bir programı reddetmeye başlaması. 0.1.159, <code>ids.forEach(async fn(id) { await save(id) })</code> kodunu reddetti: <code>forEach</code> callback'ini beklemez, bu yüzden her save kendi başına çalışıyor ve birindeki hata kayboluyordu. 0.1.162, <code>array.find(xs, f) ?? 0</code> kodunu reddetti: bir <code>Option</code> asla null değildir, bu yüzden varsayılan değer hiç uygulanmıyor ve sonuç <code>Option</code>'un kendisi oluyordu. Bazıları ise bir kuralı sıkılaştırır. 0.1.160'tan beri bir diziyi yerinde değiştiren bir çağrı, örneğin <code>xs.push(4)</code>, bir <code>mut</code> ifadesi olarak yazılmak zorunda; yani çalışan kodun yazımı değişmek zorunda kaldı (<code>glyph fix</code> <code>mut</code> kelimesini ekler).
+        </p>
+        <p>
+          Bir sürüm projenize yalnızca sabitlenen sürümü siz değiştirdiğinizde ulaşır. Bir yükseltme henüz düzeltemeyeceğiniz kodu reddederse elinizdeki sürümde kalın; yayımlanmış sürümler asla geri çekilmez. Son build'inizin ürettiği TypeScript yalnızca <code>tsc</code> ile derlenir, bu yüzden derleyiciye ne olursa olsun kullanılabilir kalır.
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Sürüm temposu ve Breaking işareti<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
           <a href="/versions/">Sürümler sayfasında</a> 0.1.0'dan 0.1.166'e kadar her sürüm için bir girdi var, toplam 165 tane; bunların 39 tanesi 1 Kas 2026 ile 22 Kas 2026 arasında çıktı. Bir sürüm, önceki sürümün kabul ettiği bir programı reddediyorsa Breaking olarak işaretlenir; doğruluk düzeltmelerinin çoğu bu şekilde gelir. 48 girdi bu işareti taşıyor. İşaret, diff okunarak değil, etkilenen en küçük program iki sürümde de çalıştırılarak konur; 0.1.99'dan önceki sürümler bu şekilde test edilmedi, yani işaretsiz eski bir sürüm güvenli değil, test edilmemiş demektir.

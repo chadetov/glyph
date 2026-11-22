@@ -1,7 +1,7 @@
 ---
 title: Para times · o que o Glyph garante e quanto custa · Glyph
 description: Para quem lidera um time e está avaliando o Glyph: o que o compilador garante e onde para, como adotá-lo num app TypeScript, como sair, versão fixada e status pré-1.0.
-source_hash: f88e17b45c203ca8
+source_hash: e671c7332b99f6a8
 next_steps: |
   Por onde seguir
   Recomendado | /catches/ | catches | Veja o que o TypeScript deixa passar | Os casos que um projeto TypeScript strict aceita, classificados, cada um rodado com <code>tsc --strict</code> e com Glyph. | Ver o que ele detecta
@@ -73,6 +73,14 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       <div class="detail">
         <p>
           Detalhes em <a href="/answers/upgrades/">Uma release nova do Glyph vai quebrar meu build?</a>
+        </p>
+
+        <h2 class="block-label">O que uma release Breaking costuma significar</h2>
+        <p>
+          Em geral, que o compilador passa a recusar um programa que já estava errado. A 0.1.159 recusou <code>ids.forEach(async fn(id) { await save(id) })</code>: <code>forEach</code> não espera o callback, então cada save rodava por conta própria e uma falha em um deles se perdia. A 0.1.162 recusou <code>array.find(xs, f) ?? 0</code>: um <code>Option</code> nunca é null, então o valor padrão nunca se aplicava e o resultado era o próprio <code>Option</code>. Algumas apertam uma regra. Desde a 0.1.160, uma chamada que altera um array no lugar, como <code>xs.push(4)</code>, precisa ser escrita como uma instrução <code>mut</code>, então código que funcionava teve de mudar de grafia (<code>glyph fix</code> insere o <code>mut</code>).
+        </p>
+        <p>
+          Uma release só chega ao seu projeto quando você move a versão fixada. Se um upgrade recusar código que você ainda não pode corrigir, fique na versão que tinha, já que versões publicadas nunca são retiradas. O TypeScript que o seu último build emitiu compila só com <code>tsc</code>, então continua utilizável aconteça o que acontecer com o compilador.
         </p>
 
         <h2 class="block-label">Frequência de releases e a marca Breaking</h2>

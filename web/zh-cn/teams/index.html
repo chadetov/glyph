@@ -487,6 +487,14 @@
           详见<a href="/zh-cn/answers/upgrades/">新的 Glyph 版本会破坏我的构建吗？</a>
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">Breaking 版本通常意味着什么<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="链接到本节">#</a></h2>
+        <p>
+          通常是编译器开始拒绝一个本来就有错的程序。0.1.159 拒绝了 <code>ids.forEach(async fn(id) { await save(id) })</code>：<code>forEach</code> 不会等待回调，所以每次 save 各自运行，其中一次失败就丢了。0.1.162 拒绝了 <code>array.find(xs, f) ?? 0</code>：<code>Option</code> 永远不是 null，所以默认值从未生效，得到的值就是那个 <code>Option</code> 本身。也有一些是收紧规则。从 0.1.160 起，原地修改数组的调用（比如 <code>xs.push(4)</code>）必须写成 <code>mut</code> 语句，所以本来能运行的代码也得换个写法（<code>glyph fix</code> 会插入 <code>mut</code>）。
+        </p>
+        <p>
+          只有你移动固定的版本，新版本才会进入你的项目。如果升级后拒绝了你暂时修不了的代码，就留在原来的版本上，已发布的版本永远不会被撤下。你上一次构建输出的 TypeScript 只用 <code>tsc</code> 就能编译，所以无论编译器将来怎样，它都还能用。
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">发布节奏和 Breaking 标记<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="链接到本节">#</a></h2>
         <p>
           <a href="/versions/">版本页面</a>为从 0.1.0 到 0.1.166 的每个版本都写了条目，共 165 个，其中 39 个发布于 2026年11月1日 至 2026年11月22日 之间。如果一个版本拒绝了上一版本接受的程序，它就会被标记为 Breaking，大多数正确性修复都是这样落地的。共有 48 个条目带有这个标记。标记的依据是在两个版本下分别运行受影响的最小程序，而不是阅读 diff；0.1.99 之前的版本没有这样测试过，所以没有标记的旧版本只是未经测试，并不代表安全。

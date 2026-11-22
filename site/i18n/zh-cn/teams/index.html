@@ -1,7 +1,7 @@
 ---
 title: 面向团队 · Glyph 保证什么、成本是什么 · Glyph
 description: 写给正在评估 Glyph 的负责人：编译器保证什么、在哪里止步，如何在 TypeScript 应用中引入它，如何退出，版本固定，以及 1.0 之前的状态。
-source_hash: f88e17b45c203ca8
+source_hash: e671c7332b99f6a8
 next_steps: |
   接下来去哪里
   推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 严格模式的 TypeScript 项目会接受的案例，按排名列出，每个都分别在 <code>tsc --strict</code> 和 Glyph 下运行。 | 查看案例
@@ -73,6 +73,14 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       <div class="detail">
         <p>
           详见<a href="/answers/upgrades/">新的 Glyph 版本会破坏我的构建吗？</a>
+        </p>
+
+        <h2 class="block-label">Breaking 版本通常意味着什么</h2>
+        <p>
+          通常是编译器开始拒绝一个本来就有错的程序。0.1.159 拒绝了 <code>ids.forEach(async fn(id) { await save(id) })</code>：<code>forEach</code> 不会等待回调，所以每次 save 各自运行，其中一次失败就丢了。0.1.162 拒绝了 <code>array.find(xs, f) ?? 0</code>：<code>Option</code> 永远不是 null，所以默认值从未生效，得到的值就是那个 <code>Option</code> 本身。也有一些是收紧规则。从 0.1.160 起，原地修改数组的调用（比如 <code>xs.push(4)</code>）必须写成 <code>mut</code> 语句，所以本来能运行的代码也得换个写法（<code>glyph fix</code> 会插入 <code>mut</code>）。
+        </p>
+        <p>
+          只有你移动固定的版本，新版本才会进入你的项目。如果升级后拒绝了你暂时修不了的代码，就留在原来的版本上，已发布的版本永远不会被撤下。你上一次构建输出的 TypeScript 只用 <code>tsc</code> 就能编译，所以无论编译器将来怎样，它都还能用。
         </p>
 
         <h2 class="block-label">发布节奏和 Breaking 标记</h2>

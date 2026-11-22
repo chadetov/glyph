@@ -487,6 +487,14 @@
           자세한 내용은 <a href="/ko/answers/upgrades/">새 Glyph 릴리스가 내 빌드를 깨뜨리나요?</a>에 있습니다.
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">Breaking 릴리스가 보통 뜻하는 것<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
+        <p>
+          보통은 원래 잘못된 프로그램을 컴파일러가 거부하기 시작했다는 뜻입니다. 0.1.159는 <code>ids.forEach(async fn(id) { await save(id) })</code>를 거부했습니다. <code>forEach</code>는 콜백을 기다리지 않아서 save가 각자 따로 실행됐고, 그중 하나가 실패해도 그 실패는 사라졌습니다. 0.1.162는 <code>array.find(xs, f) ?? 0</code>를 거부했습니다. <code>Option</code>은 절대 null이 아니므로 기본값은 한 번도 쓰이지 않았고, 값은 <code>Option</code> 자체였습니다. 규칙을 조이는 릴리스도 있습니다. 0.1.160부터는 <code>xs.push(4)</code>처럼 배열을 그 자리에서 바꾸는 호출을 <code>mut</code> 문으로 써야 해서, 잘 돌던 코드도 표기를 바꿔야 했습니다(<code>glyph fix</code>가 <code>mut</code>을 넣어 줍니다).
+        </p>
+        <p>
+          릴리스는 고정한 버전을 직접 옮길 때만 프로젝트에 들어옵니다. 업그레이드가 아직 고칠 수 없는 코드를 거부하면 쓰던 버전에 머무르면 됩니다. 게시된 버전은 내려가지 않습니다. 마지막 빌드가 출력한 TypeScript는 <code>tsc</code>만으로 컴파일되므로, 컴파일러가 어떻게 되든 계속 쓸 수 있습니다.
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">릴리스 주기와 Breaking 표시<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="이 섹션으로 연결되는 링크">#</a></h2>
         <p>
           <a href="/versions/">버전 페이지</a>에는 0.1.0부터 0.1.166까지 모든 릴리스, 총 165개의 항목이 있고, 그중 39개는 2026년 11월 1일부터 2026년 11월 22일까지 나왔습니다. 이전 버전이 받아들이던 프로그램을 거부하는 릴리스에는 Breaking 표시를 붙이며, 대부분의 정확성 수정이 이렇게 들어옵니다. 이 표시가 붙은 항목은 48개입니다. 표시는 diff를 읽어서가 아니라 영향받는 가장 작은 프로그램을 두 버전에서 실행해 보고 붙입니다. 0.1.99 이전 릴리스는 이렇게 검사하지 않았으므로, 표시가 없는 오래된 릴리스는 안전하다는 뜻이 아니라 검사하지 않았다는 뜻입니다.

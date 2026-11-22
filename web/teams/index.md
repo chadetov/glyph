@@ -48,6 +48,12 @@ glyph --update   # moves the installed compiler itself
 
 Details in [Will a new Glyph release break my build?](https://glyphlang.io/answers/upgrades/)
 
+## What a Breaking release usually means
+
+Usually that the compiler starts refusing a program that was already wrong. 0.1.159 refused `ids.forEach(async fn(id) { await save(id) })`: `forEach` does not wait for its callback, so each save ran on its own and a failure in one was lost. 0.1.162 refused `array.find(xs, f) ?? 0`: an `Option` is never null, so the default never applied and the value was the `Option` itself. Some tighten a rule instead. Since 0.1.160, a call that changes an array in place, such as `xs.push(4)`, has to be written as a `mut` statement, so code that worked had to change its spelling (`glyph fix` inserts the `mut`).
+
+A release reaches your project only when you move the pin. If an upgrade refuses code you can't fix yet, stay on the version you had, since published versions are never yanked. The TypeScript your last build emitted compiles with `tsc` alone, so it stays usable whatever happens to the compiler.
+
 ## Release cadence and the Breaking marker
 
 The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.166, 165 in all, and 39 of them shipped between 1 Nov 2026 and 22 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 48 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.

@@ -1,7 +1,7 @@
 ---
 title: 팀을 위한 안내 · Glyph가 보장하는 것과 비용 · Glyph
 description: Glyph 도입을 검토하는 리드를 위한 안내: 컴파일러가 보장하는 것과 그 한계, TypeScript 앱 안에서의 도입, 빠져나가는 방법, 버전 고정, 1.0 이전 상태.
-source_hash: f88e17b45c203ca8
+source_hash: e671c7332b99f6a8
 next_steps: |
   다음으로 볼 곳
   추천 | /catches/ | catches | TypeScript가 통과시키는 것 보기 | strict TypeScript 프로젝트가 받아들이는 사례를 순위별로, 각각 <code>tsc --strict</code>와 Glyph에서 실행한 결과. | 사례 보기
@@ -73,6 +73,14 @@ glyph --update   <span class="cm"># moves the installed compiler itself</span></
       <div class="detail">
         <p>
           자세한 내용은 <a href="/answers/upgrades/">새 Glyph 릴리스가 내 빌드를 깨뜨리나요?</a>에 있습니다.
+        </p>
+
+        <h2 class="block-label">Breaking 릴리스가 보통 뜻하는 것</h2>
+        <p>
+          보통은 원래 잘못된 프로그램을 컴파일러가 거부하기 시작했다는 뜻입니다. 0.1.159는 <code>ids.forEach(async fn(id) { await save(id) })</code>를 거부했습니다. <code>forEach</code>는 콜백을 기다리지 않아서 save가 각자 따로 실행됐고, 그중 하나가 실패해도 그 실패는 사라졌습니다. 0.1.162는 <code>array.find(xs, f) ?? 0</code>를 거부했습니다. <code>Option</code>은 절대 null이 아니므로 기본값은 한 번도 쓰이지 않았고, 값은 <code>Option</code> 자체였습니다. 규칙을 조이는 릴리스도 있습니다. 0.1.160부터는 <code>xs.push(4)</code>처럼 배열을 그 자리에서 바꾸는 호출을 <code>mut</code> 문으로 써야 해서, 잘 돌던 코드도 표기를 바꿔야 했습니다(<code>glyph fix</code>가 <code>mut</code>을 넣어 줍니다).
+        </p>
+        <p>
+          릴리스는 고정한 버전을 직접 옮길 때만 프로젝트에 들어옵니다. 업그레이드가 아직 고칠 수 없는 코드를 거부하면 쓰던 버전에 머무르면 됩니다. 게시된 버전은 내려가지 않습니다. 마지막 빌드가 출력한 TypeScript는 <code>tsc</code>만으로 컴파일되므로, 컴파일러가 어떻게 되든 계속 쓸 수 있습니다.
         </p>
 
         <h2 class="block-label">릴리스 주기와 Breaking 표시</h2>

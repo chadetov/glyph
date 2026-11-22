@@ -487,6 +487,14 @@
           詳しくは <a href="/ja/answers/upgrades/">Glyph の新しいリリースでビルドが壊れることはあるか</a> にあります。
         </p>
 
+        <h2 class="block-label" id="what-a-breaking-release-usually-means">Breaking のリリースがたいてい意味すること<a class="h-anchor" href="#what-a-breaking-release-usually-means" aria-label="このセクションへのリンク">#</a></h2>
+        <p>
+          たいていは、もともと間違っていたプログラムをコンパイラが拒否するようになったということです。0.1.159 は <code>ids.forEach(async fn(id) { await save(id) })</code> を拒否しました。<code>forEach</code> はコールバックを待たないので、各 save はばらばらに走り、どれかの失敗は失われていました。0.1.162 は <code>array.find(xs, f) ?? 0</code> を拒否しました。<code>Option</code> は null にならないので、デフォルト値は一度も使われず、値は <code>Option</code> そのものでした。ルールを厳しくするものもあります。0.1.160 からは、<code>xs.push(4)</code> のように配列をその場で変更する呼び出しは <code>mut</code> 文として書く必要があり、動いていたコードも書き方を変えることになりました (<code>glyph fix</code> が <code>mut</code> を挿入します)。
+        </p>
+        <p>
+          リリースがプロジェクトに入るのは、固定したバージョンを自分で動かしたときだけです。アップグレードでまだ直せないコードが拒否されたら、元のバージョンのままでいられます。公開済みのバージョンが取り下げられることはありません。最後のビルドが出力した TypeScript は <code>tsc</code> だけでコンパイルできるので、コンパイラがどうなっても使い続けられます。
+        </p>
+
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">リリースの頻度と Breaking の印<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="このセクションへのリンク">#</a></h2>
         <p>
           <a href="/versions/">バージョンのページ</a>には、0.1.0 から 0.1.166 までのすべてのリリース、計 165 件の項目があり、そのうち 39 件は 2026年11月1日 から 2026年11月22日 までに出たものです。前のバージョンが受け入れていたプログラムを拒否するリリースには Breaking の印が付きます。正しさに関する修正の多くはこの形で入ります。印が付いている項目は 48 件です。印は差分を読んで付けるのではなく、影響を受ける最小のプログラムを両方のバージョンで実行して付けています。0.1.99 より前のリリースはこの方法で確認していないので、印のない古いリリースは安全なのではなく、未確認ということです。

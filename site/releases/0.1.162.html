@@ -1,0 +1,23 @@
+---
+version: 0.1.162
+month: 2026-11
+date: 2026-11-22
+tags: breaking
+headline: A ?? on an Option is refused, and glyph fix stops writing inside ${}
+---
+            <p>An <code>Option</code> and a <code>Result</code> are tagged objects at run time, never <code>null</code> or <code>undefined</code>. So <code>let v = array.find(xs, f) ?? 0</code> never used its default: <code>v</code> was the <code>Option</code> itself, and <code>${v}</code> printed <code>[object Object]</code>. Both Glyph's checker and <code>tsc</code> passed it. 0.1.161 steered every lookup onto <code>Option</code>, which made this spelling more likely, so it is refused now, with the same code as <code>?.</code> on these types:</p>
+
+<pre><code>[E0236] `??` on an `Option&lt;number&gt;`: an `Option` is never null or undefined, so `?? 0` never applies and the value is the `Option` itself
+Help: Open it with `match u { Some(n) =&gt; n, None =&gt; 0 }`</code></pre>
+
+            <p>A left side that can itself be missing, a <code>?.</code> chain or an optional field, may still take a container default such as <code>b.o ?? None</code>. That <code>??</code> is now typed as the <code>Option</code>, so a <code>match</code> over it with no <code>None</code> arm is caught. An array index read is not one of these: Glyph's index throws when it is out of range, so <code>xs[5] ?? None</code> is refused instead of looking handled.</p>
+
+            <p><code>glyph fix</code> rewrites the <code>Option</code> case into the <code>match</code> and says what changes (<code>`u ?? 0` handed back the `Option`; it now gives its value or `0`</code>). The type of the expression changes too, so the fix checks the file again after each rewrite and puts it back if a new error appears. It does not rewrite a <code>Result</code>, because whether to drop an error is a decision.</p>
+
+            <h3>A fix that could corrupt a template string</h3>
+            <p>Positions inside a <code>${}</code> are reported one column early. In 0.1.161 two fixes wrote at those positions, and every check passed afterwards. The E0242 rewrite turned <code>"t=${xs.find(f) ?? 0}"</code> into <code>t=$match array.find({x, ...</code> inside the string, and the field-rename fix turned <code>"v=${b.name} w=${b.nikc}"</code> into <code>b.nickc</code>. If you ran <code>glyph fix</code> on 0.1.161 over a file with interpolations, check those lines.</p>
+
+            <p>Now the rewrites decline inside a <code>${}</code> and the help says to bind the value with <code>let</code> first. Every fix rule also re-reads the text it is about to replace and declines if it does not parse to the expression the fix was planned against. The position bug itself is G435, scheduled for 0.1.164.</p>
+
+            <h3>Breaking</h3>
+            <p>A <code>??</code> on an <code>Option</code> or <code>Result</code> that cannot be absent now fails to compile, under full <code>check</code> as well as <code>--no-tsc</code>. The probe with <code>array.find(...) ?? 0</code> and its neighbours exits 0 under 0.1.161 and 1 under 0.1.162. Across the 285 example apps, standalone files, catch cases and test programs, the only new diagnostic is on the catch case for this mistake.</p>

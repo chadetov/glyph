@@ -8,6 +8,13 @@
   <updated>2026-11-22T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.162 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.162" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.162</id>
+    <updated>2026-11-22T00:00:00Z</updated>
+    <summary>A ?? on an Option is refused, and glyph fix stops writing inside ${}</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.161 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.161" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.161</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.133</id>
     <updated>2026-11-11T00:00:00Z</updated>
     <summary>This release finishes what 0.1.132 started on json.parse: it never casts now, however it is spelled or reached.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.132 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.132" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.132</id>
-    <updated>2026-11-10T00:00:00Z</updated>
-    <summary>This release removes places where a guarantee depended on how something was spelled, and closes more of the programs only tsc used to refuse.</summary>
   </entry>
 </feed>

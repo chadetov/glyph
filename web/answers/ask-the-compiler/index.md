@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/ask-the-compiler/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/ask-the-compiler/, generated from the same source as the page. Last changed 2026-11-22. -->
 
 22 · Ask the compiler
 
@@ -56,7 +56,7 @@ A key is null only alongside a `<key>_absent` sentence saying why, so an agent n
 
 **Details an unannotated const **
 
-An unannotated `const` reports no type on that rule: the checker deliberately doesn't infer a declaration's type from its initializer, so printing the initializer's type would tell a caller that uses of the name are checked against something that checks nothing.
+An unannotated `const` reports the type its initializer has, which is the type every use of the name is checked against. When the checker cannot type the initializer (an npm value, an `extern_ts` result), the key is null and the reason says so.
 
 ## The second question an agent asks
 
@@ -183,4 +183,4 @@ All of that is asked before an edit. After one, the compiler answers in the othe
 
   `glyph_diagnostics` skips three checks `glyph check` makes: `tsc`, the `E0104` check for an import naming no module, which needs the build's view of `node_modules`, and `E0400` for a failing `@example`, which needs the emitted project run. It names all three in `not_run` instead of answering as though it had.
 
-Code examples on this page are checked against Glyph 0.1.165 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.165 on every build. Last changed 22 Nov 2026.

@@ -96,10 +96,10 @@ head: |
         has to guess whether a missing answer means the symbol has none or the tool didn't look.</p></div>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">an unannotated const</span></summary><div class="body">
         <p>
-          An unannotated <code>const</code> reports no type on that rule: the checker deliberately
-          doesn't infer a declaration's type from its initializer, so printing the initializer's
-          type would tell a caller that uses of the name are checked against something that checks
-          nothing.
+          An unannotated <code>const</code> reports the type its initializer has, which is the type
+          every use of the name is checked against. When the checker cannot type the initializer
+          (an npm value, an <code>extern_ts</code> result), the key is null and the reason says
+          so.
         </p>
       </div></details>
 

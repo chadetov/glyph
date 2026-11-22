@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-437 entries, 318 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+438 entries, 319 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 99 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12313,7 +12313,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.172 (record 89; renumbered by records 157 to 159): `unknown` is
+  Planned for 0.1.173 (record 89; renumbered by records 157 to 159 and 166): `unknown` is
   assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -14769,7 +14769,7 @@ and is the owner's to confirm.
   of seven `??` bound to a `let ...: string`, only `n ?? 0` draws E0204;
   `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` are silent.*
 
-- **G435. Spans inside a `${}` start one column early.** In `"n=${b.nik}
+- **G435. [FIXED] Spans inside a `${}` start one column early.** In `"n=${b.nik}
   end"`, E0210 underlines `{b.ni`, and its fix reads the field name as `ni`
   and declines. In a second interpolation the drift reaches a byte that
   still looks like a name: on 0.1.161, `"v=${b.name} w=${b.nikc}"` is
@@ -14787,6 +14787,22 @@ and is the owner's to confirm.
   f04, f06 and f07 and record 160's x03: E0210 underlines `{b.ni`, and
   `glyph fix` on f06 prints `applied E0242` and then `tsc --strict passed.`
   over a corrupted string.*
+
+  Fixed in 0.1.164 (decision records 159 and 160). An interpolation was
+  parsed behind as many spaces as the opening quote's offset plus the
+  character index inside the string's value, which left out the quote and
+  counted an escape, `\${` or a multi-byte character earlier in the string
+  as one byte. The lexer now reports the source bytes behind each character
+  of a string's value from the same scan that builds the token, and the
+  parser places each interpolation at the byte its first character was
+  written at; a template's parts span their own text too. E0210 in f07
+  underlines `b.nik`, as it does outside a string, and the read fix renames
+  it. x03 declines for its real reason (`nikc` is not one character away
+  from `nick`). The E0236 and E0242 rewrites still decline inside a `${}`,
+  for layout. Across 283 units under 0.1.162 and this build, codes and
+  messages are identical, four positions moved, all inside a `${}`, and the
+  emitted `.ts` is byte-identical. An escape written inside the
+  interpolation itself still moves the nodes after it; that is G441.
 
 
 - **G440. `string.from(x)` without `import std/string` passes Glyph's
@@ -14850,3 +14866,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the published release) and the 0.1.163 branch
   build with record 161's probe s02: `o1` and `o2` draw nothing under
   `check --no-tsc`; `a1` and `a2` are E0204 on the branch.*
+
+- **G441. An escape inside the `${}` of a `"..."` string moves the nodes
+  after it.** In `"a${f(\"x\") + zz}"` the E0103 on `zz` underlines two bytes
+  early: the expression is parsed from the string's value, where each `\"` is
+  one byte, and nothing maps a position in the value back to the source.
+  Text before the `${` no longer matters since G435, and a `"""..."""`
+  string is exact, since it has no escapes of its own. The range guard
+  declines any fix at such a range, so nothing is written into the wrong
+  text; hover and the editor's ranges are off. Inside the `${}` of a
+  `"..."` string an escape has one use, `\"x\"`, which lets in the nested
+  string literal the E0002 message already says to hoist into a `let`.
+  Ruling (decision record 166): a backslash inside the `${}` of a `"..."`
+  string is a parse error, with the hoist help (bind it with `let`, or
+  write the string as `"""..."""`); triple-quoted strings are unchanged.
+  Remapping spans after the parse and mapping token spans in the sub-parse
+  were rejected, since both keep a spelling the language disowns. Breaking,
+  so its own release, 0.1.168. The tracked corpus has no such site. Found
+  while fixing G435.
+
+  *Reproduced against 0.1.164 (the dev build): `zz` underlined at column 27
+  where it starts at column 29.*

@@ -12272,6 +12272,32 @@ mod tests {
         assert_eq!(mismatch_found(&errs), vec!["Array<number>"], "{errs:?}");
     }
 
+    /// G273 refuses an undeclared key written in a fresh literal (D57); an
+    /// unannotated `const` is not fresh where it is read, so a `const` with
+    /// more fields than a declaration stands where that declaration is
+    /// expected (width subtyping), as `tsc` accepts it, at the top and one
+    /// level down. A `const` missing a field the declaration requires is
+    /// still refused, as `tsc` refuses it.
+    #[test]
+    fn an_unannotated_const_with_extra_fields_stands_where_a_narrower_record_is_declared() {
+        let errs = errors_of(
+            "module x\n\
+             type Cfg = { n: number, }\n\
+             const CFG = { n: 1, }\n\
+             const BIG = { n: 1, label: \"x\", extra: true, }\n\
+             const NESTED = { cfg: { n: 2, extra: 3, }, }\n\
+             fn takes(c: Cfg) -> number {\n  return c.n\n}\n\
+             fn f() -> number {\n\
+             \x20 let c: Cfg = BIG\n\
+             \x20 let d: { cfg: Cfg, } = NESTED\n\
+             \x20 let w: { n: number, label: string, } = CFG\n\
+             \x20 return takes(BIG) + takes(CFG) + c.n + d.cfg.n + w.n\n\
+             }\n",
+        );
+        let codes: Vec<&str> = errs.iter().map(|e| e.code()).collect();
+        assert_eq!(codes, vec!["E0204"], "only the const missing `label`: {errs:?}");
+    }
+
     /// An initializer the checker cannot type leaves the `const` untyped, and
     /// a `const` whose initializer reads itself back is one: the loop answers
     /// `Unknown` rather than recursing, and nothing is refused.

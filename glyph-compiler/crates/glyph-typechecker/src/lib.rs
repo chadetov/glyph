@@ -594,6 +594,13 @@ pub enum TypeError {
     /// `Option` has none, and `tag` and `value` are the runtime encoding
     /// (D49), not members. `tagged` is set, the message names the
     /// member set, and `fields` holds it.
+    ///
+    /// A field *written* in an object literal is the same fact (D57, G273):
+    /// `let b: Opt = { name: "b", extra: 1 }` is this error at the key
+    /// `extra`, wherever the checker relates a written literal to a declared
+    /// record. `literal` is set then, holding every key the literal writes
+    /// itself, so the help and `glyph fix` can tell a rename that would write
+    /// a field twice from one that would not.
     #[error("type `{type_name}`{} has no field `{field}`{}{}", .second_name_for.as_deref().map(|t| format!(" (a second name for `{t}`)")).unwrap_or_default(), .tagged.as_ref().map(|t| tagged_member_set_tail(t.container)).unwrap_or_default(), .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
     UnknownField {
         field: String,
@@ -628,6 +635,12 @@ pub enum TypeError {
         /// enough to be a plausible typo: a record's field or a built-in
         /// receiver's member, by the same threshold either way.
         suggestion: Option<String>,
+        /// Set when the field is a key written in an object literal rather
+        /// than a read (D57): the keys that literal writes explicitly, in the
+        /// order written. Fields that arrive through a spread are not in it.
+        /// `None` for a member read, a destructuring pattern and a JSX
+        /// attribute.
+        literal: Option<Vec<String>>,
         span: Span,
     },
 
@@ -1388,6 +1401,29 @@ fn tagged_member_set_tail(container: TaggedContainer) -> &'static str {
     }
 }
 
+/// The help for a key an object literal writes that its declared record does
+/// not declare (D57). Three repairs, in the order a reader weighs them: the
+/// declared field it was meant to be, deleting it, or declaring it. The
+/// declaration is named only when there is one to edit; an inline record type
+/// or a stdlib record has none. `suggestion` is never a field the literal
+/// already writes (the checker leaves it out then), so the rename it names
+/// never writes a field twice.
+fn literal_field_help(field: &str, type_name: &str, declared: bool, suggestion: Option<&str>) -> String {
+    let declare = if declared {
+        format!("declare `{field}` in `{type_name}`")
+    } else {
+        format!("add `{field}` to the type")
+    };
+    match suggestion {
+        Some(s) => format!(
+            "Rename it to `{s}`, delete it, or {declare}. A field the type does not declare is never read through it."
+        ),
+        None => format!(
+            "Delete it, rename it to a field `{type_name}` declares that the literal does not already write, or {declare}. A field the type does not declare is never read through it."
+        ),
+    }
+}
+
 fn tagged_member_help(field: &str, t: &TaggedMember) -> String {
     let TaggedMember { container, receiver, binding, payload, method } = t;
     let open = match container {
@@ -1739,6 +1775,22 @@ impl TypeError {
         }
         if let TypeError::UnknownField { tagged: Some(t), field, .. } = self {
             return Some(Cow::Owned(tagged_member_help(field, t)));
+        }
+        if let TypeError::UnknownField {
+            literal: Some(_),
+            field,
+            type_name,
+            record,
+            suggestion,
+            ..
+        } = self
+        {
+            return Some(Cow::Owned(literal_field_help(
+                field,
+                type_name,
+                record.is_some(),
+                suggestion.as_deref(),
+            )));
         }
         if let TypeError::UnknownField {
             builtin: Some(receiver),

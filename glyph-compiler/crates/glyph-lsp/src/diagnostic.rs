@@ -197,6 +197,13 @@ pub struct Diagnostic {
     /// Never serialized: it is read in-process by the fix.
     #[serde(skip)]
     pub repair: Option<glyph_typechecker::AbsentRepair>,
+    /// The keys an object literal writes, on an E0210 about one of them
+    /// (D57). `glyph fix` reads it so a rename to a field the literal already
+    /// writes is declined rather than writing that field twice.
+    ///
+    /// Never serialized: it is read in-process by the fix.
+    #[serde(skip)]
+    pub literal_keys: Option<Vec<String>>,
 }
 
 /// Where to read a diagnostic code's explanation.
@@ -330,6 +337,7 @@ impl Diagnostic {
             subject: None,
             insert_before: None,
             repair: None,
+            literal_keys: None,
         }
     }
 
@@ -357,6 +365,12 @@ impl Diagnostic {
     /// Attach the rewrite the checker decided repairs this diagnostic.
     fn with_repair(mut self, repair: Option<glyph_typechecker::AbsentRepair>) -> Self {
         self.repair = repair;
+        self
+    }
+
+    /// Attach the keys of the object literal an E0210 is about.
+    fn with_literal_keys(mut self, keys: Option<Vec<String>>) -> Self {
+        self.literal_keys = keys;
         self
     }
 
@@ -572,6 +586,10 @@ pub fn from_type_error(
         TypeError::AbsentBuiltinResult { repair, .. } | TypeError::CoalesceOnTagged { repair, .. } => {
             Some(repair.clone())
         }
+        _ => None,
+    })
+    .with_literal_keys(match err {
+        TypeError::UnknownField { literal, .. } => literal.clone(),
         _ => None,
     })
 }
@@ -1702,6 +1720,7 @@ mod tests {
                     builtin: None,
                     tagged: None,
                     suggestion: suggestion.map(str::to_string),
+                    literal: None,
                     span,
                 },
                 TypeError::UnknownVariantPattern {

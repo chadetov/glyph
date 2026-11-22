@@ -9176,12 +9176,12 @@ fn tool_assignable(args: &Value, server: &mut Server) -> Result<String, String> 
     Ok(to_json(&Value::Object(out)))
 }
 
-/// The one place an accepted record pairing and `tsc` part ways, named when
-/// the pairing in hand is that place: a value carrying fields the declared
-/// record does not have. The relation compares records with width subtyping,
-/// so it accepts the extra fields, and `tsc` accepts them too on every value
-/// except a fresh object literal, where it reports an excess property
-/// (TS2353). Empty for every other pairing.
+/// What an accepted record pairing means for a literal, named when the pairing
+/// in hand carries fields the declared record does not have. The relation
+/// compares two record types with width subtyping, so a value of the wider
+/// type is accepted, as `tsc` accepts it. A key written in an object literal
+/// where the record is declared is a different question, answered at the key:
+/// E0210 (D57), which is TS2353 under `tsc`. Empty for every other pairing.
 fn width_divergence(found: &Ty, declared: Option<&[RecordField]>) -> String {
     let (Ty::Record { fields }, Some(declared)) = (found, declared) else {
         return String::new();
@@ -9195,9 +9195,10 @@ fn width_divergence(found: &Ty, declared: Option<&[RecordField]>) -> String {
         return String::new();
     }
     format!(
-        ". The value carries {} the declared record does not have, and the checker \
-         accepts extra fields (width subtyping) where `tsc` refuses them on a fresh object \
-         literal (TS2353, excess property) and accepts them on any other value",
+        ". The value carries {} the declared record does not have. A value of that type \
+         is accepted with them (width subtyping, as in `tsc`), but an object literal that \
+         writes them where the record is declared is refused at each such key: E0210 \
+         (D57), TS2353 under `tsc`",
         extra.join(", ")
     )
 }
@@ -17051,7 +17052,10 @@ pub fn f() -> number {
             }
         }
         let extra = &answers.last().unwrap().2;
-        assert!(extra.contains("`extra`") && extra.contains("TS2353"), "{extra}");
+        assert!(
+            extra.contains("`extra`") && extra.contains("E0210") && extra.contains("TS2353"),
+            "{extra}"
+        );
         assert!(!answers[0].2.contains("TS2353"), "{}", answers[0].2);
     }
 

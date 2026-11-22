@@ -1426,6 +1426,11 @@ fn head_ident_span(source: &str, d: &Diagnostic) -> Option<(u32, u32)> {
 /// `alternatives` carries the record's own field list. Zero candidates within
 /// distance one is a name that was not a typo; several is a choice the compiler
 /// does not make. Both decline.
+///
+/// A key written in an object literal (D57) is the third shape. Its range is
+/// the key alone, and the diagnostic carries the keys that literal writes.
+/// When the one candidate is among them the rename would write that field
+/// twice and lose one value, so the rule declines and says so.
 fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'static str), String> {
     let fields = d
         .alternatives
@@ -1434,14 +1439,16 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'stati
     let (s, e) = range_bytes(source, d)
         .ok_or("the diagnostic's range is not a byte range of this file")?;
     let text = &source[s..e];
-    // Two shapes carry an E0210. A field read (`sheet.rowz`) names the field
-    // after the last dot. A JSX attribute (`<Button varient="x" />`, G240)
-    // names it before the `=`, and its own value may hold dots of its own
-    // (`varient={cfg.mode}`), so the attribute form is recognized first and
-    // the dot rule never sees it.
-    let (name_at, raw, site) = match jsx_attr_name(text) {
-        Some(name) => (0, name, "attribute"),
-        None => {
+    // Three shapes carry an E0210. A key in an object literal (D57) is
+    // marked by the keys the diagnostic carries, and its range is the key.
+    // A field read (`sheet.rowz`) names the field after the last dot. A JSX
+    // attribute (`<Button varient="x" />`, G240) names it before the `=`,
+    // and its own value may hold dots of its own (`varient={cfg.mode}`), so
+    // the attribute form is recognized before the dot rule.
+    let (name_at, raw, site) = match (&d.literal_keys, jsx_attr_name(text)) {
+        (Some(_), _) => (0, text, "literal field"),
+        (None, Some(name)) => (0, name, "attribute"),
+        (None, None) => {
             let after_dot = text
                 .rfind('.')
                 .map(|i| i + 1)
@@ -1458,6 +1465,15 @@ fn plan_e0210(source: &str, d: &Diagnostic) -> Result<(u32, u32, String, &'stati
         .iter()
         .filter(|f| distance_is_one(f, wrong))
         .collect();
+    if let (1, Some(written)) = (near.len(), &d.literal_keys) {
+        if written.iter().any(|w| w == near[0]) {
+            return Err(format!(
+                "the literal already writes `{}`, so renaming `{wrong}` to it would write that \
+                 field twice",
+                near[0]
+            ));
+        }
+    }
     match near.len() {
         1 => {
             let start = s + name_at + lead;

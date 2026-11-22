@@ -971,7 +971,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
       <p class="ak-lede">宣言されたレコードにないキーは、以前は Glyph のチェッカーを通っていました。そのため省略可能なフィールドのタイプミスはその値を捨ててしまい、気づくのは <code>tsc</code> だけでした。今はエディタ、エージェントのツール、<code>glyph check --no-tsc</code> がこれを拒否し、同じフィールドを読んだときと同じエラーを出します。<code>glyph fix</code> は <code>nik</code> を <code>nick</code> に書き換えます。</p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">どこで判定され、何が対象外か</span></summary><div class="body">
         <p>
-          書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。
+          書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、<code>match</code> のアーム、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。
         </p>
       </div></details>
 

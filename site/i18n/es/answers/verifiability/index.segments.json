@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "es",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "Detalles <span class=\"hint\">dónde se comprueba y qué queda fuera</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "Se comprueba dondequiera que un literal escrito se encuentra con un tipo declarado: un <code>let</code>, un <code>return</code>, un argumento de llamada, la carga de una variante, una asignación <code>mut</code>, un campo anidado, un elemento de array y el argumento de <code>Some</code>, <code>Ok</code> o <code>Err</code>, que <code>tsc</code> deja pasar. Un binding que guarda un record más amplio se sigue aceptando, como lo acepta <code>tsc</code>, y también los campos que vienen de un spread y las claves escritas para un <code>Record&lt;K, V&gt;</code>."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Se comprueba dondequiera que un literal escrito se encuentra con un tipo declarado: un <code>let</code>, un <code>return</code>, un argumento de llamada, la carga de una variante, una asignación <code>mut</code>, un campo anidado, un elemento de array, un brazo de <code>match</code> y el argumento de <code>Some</code>, <code>Ok</code> o <code>Err</code>, que <code>tsc</code> deja pasar. Un binding que guarda un record más amplio se sigue aceptando, como lo acepta <code>tsc</code>, y también los campos que vienen de un spread y las claves escritas para un <code>Record&lt;K, V&gt;</code>."
     },
     {
       "id": "h-b55f380c",

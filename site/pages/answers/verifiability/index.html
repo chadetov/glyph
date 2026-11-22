@@ -726,7 +726,7 @@ pub fn guest() -&gt; Profile {
         <p>
           It is judged wherever a written literal meets a declared type: a
           <code>let</code>, a <code>return</code>, a call argument, a variant payload,
-          a <code>mut</code> assignment, a nested field, an array element, and the
+          a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the
           argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which
           <code>tsc</code> lets through. A binding that holds a wider record is still
           accepted, as <code>tsc</code> accepts it, and so are fields that come from

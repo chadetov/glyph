@@ -492,7 +492,7 @@ A key the declared record does not have used to pass Glyph's checker, so a typo 
 
 **Details where it is judged, and what is left alone **
 
-It is judged wherever a written literal meets a declared type: a `let`, a `return`, a call argument, a variant payload, a `mut` assignment, a nested field, an array element, and the argument of `Some`, `Ok` or `Err`, which `tsc` lets through. A binding that holds a wider record is still accepted, as `tsc` accepts it, and so are fields that come from a spread and keys written for a `Record<K, V>`.
+It is judged wherever a written literal meets a declared type: a `let`, a `return`, a call argument, a variant payload, a `mut` assignment, a nested field, an array element, a `match` arm, and the argument of `Some`, `Ok` or `Err`, which `tsc` lets through. A binding that holds a wider record is still accepted, as `tsc` accepts it, and so are fields that come from a spread and keys written for a `Record<K, V>`.
 
 ## Where it stands
 

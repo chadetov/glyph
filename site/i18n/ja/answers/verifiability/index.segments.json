@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "詳細 <span class=\"hint\">どこで判定され、何が対象外か</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。"
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、<code>match</code> のアーム、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。"
     },
     {
       "id": "h-b55f380c",

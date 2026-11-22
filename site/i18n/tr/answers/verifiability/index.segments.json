@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "tr",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "Ayrıntılar <span class=\"hint\">nerede denetlendiği ve neyin dışarıda kaldığı</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi, bir <code>match</code> kolu ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle."
     },
     {
       "id": "h-b55f380c",

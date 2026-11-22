@@ -1,7 +1,7 @@
 ---
 title: Bir ajanın kodumu sessizce bozmasını ne engelliyor? · Glyph
 description: TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.
-source_hash: ff8d8a90eb6884ce
+source_hash: b4c6f18de84ea473
 next: /answers/diff-stability/ | Sonraki &rarr; | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 ---
       <p class="q-eyebrow">01 &middot; Temel vaat</p>
@@ -502,7 +502,7 @@ pub fn guest() -&gt; Profile {
       <p class="ak-lede">Bildirilen record'da olmayan bir anahtar eskiden Glyph'in denetleyicisinden geçiyordu; bu yüzden isteğe bağlı bir alandaki yazım hatası değerini atıyor ve bunu yalnızca <code>tsc</code> fark ediyordu. Artık editör, ajan araçları ve <code>glyph check --no-tsc</code> onu, aynı alanı okumanın verdiği hatayla reddediyor; <code>glyph fix</code> de <code>nik</code> adını <code>nick</code> olarak değiştiriyor.</p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">nerede denetlendiği ve neyin dışarıda kaldığı</span></summary><div class="body">
         <p>
-          Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle.
+          Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi, bir <code>match</code> kolu ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle.
         </p>
       </div></details>
 

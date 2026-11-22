@@ -63,7 +63,7 @@
       <nav class="site-nav" aria-label="Principal">
         <div class="nav-brand">
           <a href="/pt-br/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.162</a>
+          <a href="/versions/" class="nav-version" title="Notas de versão">v0.1.163</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -487,18 +487,18 @@
 
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Frequência de releases e a marca Breaking<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link para esta seção">#</a></h2>
         <p>
-          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à 0.1.162, 161 no total, e 35 delas saíram entre 1 nov 2026 e 22 nov 2026. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. 45 entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
+          A <a href="/versions/">página de versões</a> tem uma entrada para cada release da 0.1.0 à 0.1.163, 162 no total, e 36 delas saíram entre 1 nov 2026 e 22 nov 2026. Uma release é marcada como Breaking quando recusa um programa que a versão anterior aceitava, que é como a maioria das correções de corretude chega. 46 entradas têm a marca. Ela é aplicada rodando o menor programa afetado nas duas versões, não lendo o diff, e as releases anteriores à 0.1.99 não foram testadas assim, então uma release antiga sem marca não foi testada, o que não quer dizer que seja segura.
         </p>
         <p>
           O que uma release Breaking custou na prática: cada nota recente diz o que aconteceu quando a versão antiga e a nova foram rodadas sobre os apps de exemplo do repositório. Estas são as releases Breaking mais recentes, citadas das próprias notas:
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.163">0.1.163</a>: <span lang="en">&ldquo;Across 285 example apps, files, catch cases and test programs, nothing else changed.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.162">0.1.162</a>: <span lang="en">&ldquo;Across the 285 example apps, standalone files, catch cases and test programs, the only new diagnostic is on the catch case for this mistake.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.161">0.1.161</a>: <span lang="en">&ldquo;Across the 97 example apps and standalone files, nothing changes except the catch case for this mistake.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.160">0.1.160</a>: <span lang="en">&ldquo;Across the 394 example apps and standalone files, the only new diagnostic is on the catch case for this mistake.&rdquo;</span></li>
           <li><a href="/versions/2026-11/#0.1.159">0.1.159</a>: A nota não diz.</li>
           <li><a href="/versions/2026-11/#0.1.158">0.1.158</a>: A nota não diz.</li>
-          <li><a href="/versions/2026-11/#0.1.157">0.1.157</a>: <span lang="en">&ldquo;Writing this rule turned up a real bug in one of the example apps.&rdquo;</span></li>
         </ul>
 
         <p>

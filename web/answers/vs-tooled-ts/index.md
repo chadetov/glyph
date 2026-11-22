@@ -125,4 +125,4 @@ If you are open to leaving TypeScript for an older typed language that compiles 
 
 - The claim that agents produce fewer escaped defects in Glyph than in *well-configured* strict TS is the benchmark we're building, against tooled TS, not naive TS. See the [benchmarks](https://glyphlang.io/benchmarks/).
 
-Code examples on this page are checked against Glyph 0.1.162 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.163 on every build. Last changed 21 Nov 2026.

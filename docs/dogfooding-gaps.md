@@ -12328,6 +12328,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): unchanged, `--no-tsc` exits 0 and full `check` is TS2322.*
 
+  *Reproduced against 0.1.163 (the release build): `let s: string = u` with `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 `Type 'unknown' is not assignable to type 'string'.` with `tsc`.*
+
 - **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
   with E0304 by `json.parse<Rows>` in a module importing `Rows`, as is a body
@@ -12405,6 +12407,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.151 (the release build): `const s = "a"` in a function body is ``[E0008] Error: parse: assignment requires `mut` ``.*
 
   *Reproduced against 0.1.157 (the release build): unchanged, E0008 with the same help.*
+
+  *Reproduced against 0.1.163 (the release build): `const s = "a"` in a function body is `[E0008] Error: parse: assignment requires `mut`` with the same help.*
 
 - **G329. A lex error inside a generic-call lookahead is replaced by an E0003
   on valid code.** `let x = f<a, "\q">(x)` reports ``unexpected token: Comma``
@@ -12741,6 +12745,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): unchanged; `r.value` after `let r = Ok(x)`, `Ok(x).value` and `Some(x).tag` all pass `--no-tsc`, and the inline forms pass full `check` too.*
 
+  *Reproduced against 0.1.163 (the release build): `r.value` after `let r = Ok(x)`, `Ok(x).value` and `Some(x).tag` all pass `--no-tsc` with no diagnostics, and all three now pass full `check` with `tsc --strict passed.`, the `let r = Ok(x)` form included.*
+
 - **G345. [HALF FIXED] An `Option` or a `Result` read through an index, a spread, an array
   element or an untyped lambda parameter is not checked.** `r["value"]`,
   `o["tag"]` and `{ ...r }` pass with `tsc` as well; `rs[0].value` on an
@@ -12783,6 +12789,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.151 (the release build): the `o.map(keep)` help still reads ``Open it with `match o { Some(n) => n.map(...), None => <default> }` `` and mentions `Nullable<Note>`. Following it is ``E0210 type `Note` has no field `map` ``.*
 
   *Reproduced against 0.1.157 (the release build): following the `match` help is still E0210 on `Note`. On a call receiver the help is now a `match parse(...) { ... }` rather than `let n = parse(...)?`, and still cannot be pasted back; a type parameter still prints `Option<?>` and `Nullable<?>`.*
+
+  *Reproduced against 0.1.163 (the release build): the `o.map(keep)` help still reads `Open it with `match o { Some(n) => n.map(...), None => <default> }`` and mentions `Nullable<Note>`, and following it is `E0210 type `Note` has no field `map``. The call-receiver help is still `match parse(...) { ... }`, a type parameter still prints `Option<?>` and `Nullable<?>`, and the catalogue fix still reads "Fix the field name / add it to the type".*
 
 - **G347. [FIXED] A generic record's own fields get no runtime check.** With `type
   Page<T> = { items: Array<T>, h: H }` and `H = extern_ts(...)`,
@@ -13375,6 +13383,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.151 (the release build) by record 112's probes `q/a_nextline_let` and `q/a_bare`: each is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`.*
 
   *Reproduced against 0.1.157 (the release build): both probes still check clean under `--no-tsc`.*
+
+  *Reproduced against 0.1.163 (the release build) by record 112's probes `q/a_nextline_let` and `q/a_bare`: each is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`.*
 
 - **G376. [FIXED] A lambda parameter annotated `unknown` is emitted without its
   type.** `let f = fn(w: unknown) -> string { return "x" }` emits `let f =
@@ -14111,6 +14121,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): `glyph run` still prints the `field `t` is null` message for both cases.*
 
+  *Reproduced against 0.1.163 (the release build): with `t?: SMaybeRec` imported by name and `t?: s.SMaybeRec` through a namespace, `glyph run` prints `field `t` is null, and its type does not accept null` for both, while `t?: Nullable<s.SRec>` in the same module parses `Ok`.*
+
 - **G401. `record.keys`'s published signature says `Array<K>` for every key.**
   Since 0.1.153 the checker types `record.keys(r)` as `Array<K>` for a
   string-like key and `Array<string>` for an `int` or `number` key, and the
@@ -14129,6 +14141,8 @@ and is the owner's to confirm.
   to type 'K extends string ? K : string'`.*
 
   *Reproduced against 0.1.157 (the release build): `glyph llms --json` still declares `fn(Record<K, V>) -> Array<K>`, and `check_stdlib_signatures.py` still records both directions of `std/record::keys` as known mismatches.*
+
+  *Reproduced against 0.1.163 (the release build): `glyph llms --json` still declares `fn(Record<K, V>) -> Array<K>`, and `check_stdlib_signatures.py` still records both directions of `std/record::keys` as known mismatches (G401).*
 
 - **G402. `record.set`'s value is not checked without `tsc`.** The checker
   types `record.set`'s third argument as `unknown`, so
@@ -14486,6 +14500,8 @@ and is the owner's to confirm.
   --line 3` gives `"number"` at character 13 (the `{`) and `"string"` at
   character 14 (the `i`).*
 
+  *Reproduced against 0.1.163 (the release build): with `return "a ${i}"` on the fourth line, indented two spaces, `glyph query hover --line 3` gives `"number"` at character 13 (the `{`) and `"string"` at character 14 (the `i`).*
+
 - **G418. A scrutinee whose type is not known hovers as an arm's narrowed
   type.** In `let g = fn(q) -> string { return match q { is string => q,
   else => "?", } }`, hover on the scrutinee `q` answers `string`, the type
@@ -14496,6 +14512,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.157 (the release build): `glyph query hover` on
   the scrutinee answers `"string"`.*
+
+  *Reproduced against 0.1.163 (the release build): `glyph query hover` on the scrutinee `q` of `fn(q) -> string { return match q { is string => q, else => "?", } }` answers `"string"`; with `q: unknown` declared it answers `"unknown"`.*
 
 - **G419. `__glyph_pairs` hands `tsc` `any` bindings for an untyped iterand.**
   A two-binding `for` over a value Glyph's checker does not type (an
@@ -14511,6 +14529,8 @@ and is the owner's to confirm.
   extern_ts("[10, 20] as number[]")` then `for i, x in v { let s: string = i
   io.println(s.toUpperCase()) }` passes `check` with `tsc --strict passed`,
   and `glyph run` throws `TypeError: s.toUpperCase is not a function`.*
+
+  *Reproduced against 0.1.163 (the release build): `let v = extern_ts("[10, 20] as number[]")` then `for i, x in v { let s: string = i io.println(s.toUpperCase()) }` passes `check` with `tsc --strict passed.`, and `glyph run` throws `TypeError: s.toUpperCase is not a function`.*
 
 - **G420. Hover on a `for` binding inside a `match` arm answers the arm's
   type.** In `match v { is Array<unknown> => { for i, x in v { .. } } }`,

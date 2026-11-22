@@ -1,0 +1,22 @@
+---
+version: 0.1.163
+month: 2026-11
+date: 2026-11-22
+tags: breaking
+headline: The stdlib Set, Store and Deque are typed, and an empty deque can't hand back undefined
+---
+            <p>Glyph's own checker could not see the types of <code>set.create</code>, <code>store.create</code> or <code>collections.deque</code>. <code>let n: number = set.create&lt;string&gt;()</code>, <code>seen.add(5)</code> on a <code>Set&lt;string&gt;</code> and <code>seen.nope()</code> all passed <code>check --no-tsc</code>, so the editor, the MCP tools and the <code>applyEdit</code> gate let them through and only <code>tsc</code> caught them. Now <code>set.Set&lt;T&gt;</code>, <code>store.Store&lt;T&gt;</code> and <code>collections.Deque&lt;T&gt;</code> are real types with their members modeled, and those mistakes are E0204, E0211 and E0210.</p>
+
+            <p>Three refusals go beyond what <code>tsc</code> does:</p>
+            <ul>
+              <li>A <code>match</code> over <code>q.pop_front()</code>, <code>pop_back</code>, <code>peek_front</code> or <code>peek_back</code> with no <code>None</code> arm is E0200. Before, the receiver had no type, both checkers passed it, and an empty deque bound <code>undefined</code>.</li>
+              <li><code>"${seen}"</code> on one of these types is E0237. It printed <code>[object Object]</code>.</li>
+              <li>A record that merely has the same fields is not accepted where a <code>store.Store</code> is declared, and a <code>Store</code> is not accepted where such a record is declared. The same holds for every stdlib type the checker models, <code>decimal.Decimal</code> and <code>url.Url</code> included, and none of them is ever a <code>string</code>, <code>number</code> or <code>bool</code>.</li>
+            </ul>
+
+            <p>The member tables are checked against the runtime TypeScript in both directions, so adding a method to <code>set.ts</code> without modeling it fails CI.</p>
+
+            <p>Two things wait. Writes such as <code>seen.add(x)</code> are typed but not yet held to the <code>mut</code> rule; that is G423 step 2. And a value held by an unannotated module <code>const</code>, such as <code>const HITS = store.create(0)</code>, still has no type to the checker until G433.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>. The <code>pop_front</code> match without <code>None</code>, the <code>${seen}</code> interpolation, and the lookalike record in either direction all exit 0 under 0.1.162 and 1 under 0.1.163. The scalar mismatches were already refused by <code>tsc</code>, so they break only under <code>--no-tsc</code>. Across 285 example apps, files, catch cases and test programs, nothing else changed.</p>

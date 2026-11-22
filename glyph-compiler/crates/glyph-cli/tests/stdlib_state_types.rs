@@ -264,11 +264,12 @@ fn interpolating_a_set_is_refused() {
     assert!(found[0].1.contains("`set.Set<string>`"), "{found:?}");
 }
 
-/// An unannotated `const` is `Unknown` until G433 (record 158 F-A)
-/// gives it its initializer's type, so b01's `const HITS = store.create(0)`
-/// spelling still reads nothing off `HITS`. Pinned so G433 has to flip it.
+/// An unannotated `const` has its initializer's type (G433, record 158 F-A),
+/// so b01's `const HITS = store.create(0)` spelling is a `store.Store<number>`
+/// and `HITS.get()` where a `string` is declared is E0204, as it is for the
+/// annotated spelling. The flip of the pin this release left for G433.
 #[test]
-fn an_unannotated_const_store_is_not_typed() {
+fn an_unannotated_const_store_is_typed() {
     let src = "module main\n\
                \n\
                import std/store\n\
@@ -280,7 +281,32 @@ fn an_unannotated_const_store_is_not_typed() {
                \x20 print(wrong)\n\
                \x20 return 0\n\
                }\n";
-    assert_eq!(refusals(src), Vec::<(String, String)>::new());
+    let found = refusals(src);
+    assert_eq!(found.iter().map(|f| f.0.as_str()).collect::<Vec<_>>(), ["E0204"], "{found:?}");
+}
+
+/// The three modeled types held by unannotated consts are read as they are in
+/// a `let`: a wrong argument is E0211, a wrong read E0204, a `match` over a
+/// `pop_front` without `None` E0200, and `${SEEN}` E0237. Ordinary use of
+/// the same constants is refused nothing.
+#[test]
+fn unannotated_const_set_store_and_deque_are_judged_like_lets() {
+    let head = "module main\n\nimport std/io\nimport std/set\nimport std/store\nimport std/collections\n\n\
+                const SEEN = set.create<string>()\nconst HITS = store.create(0)\nconst Q = collections.deque<number>()\n\n\
+                fn main(argv: Array<string>) -> number {\n";
+    let ok = format!(
+        "{head}  SEEN.add(\"a\")\n  HITS.set(HITS.get() + 1)\n  Q.push_back(1)\n  let n: number = HITS.get()\n  \
+         let has = SEEN.has(\"a\")\n  let first = match Q.pop_front() {{\n    Some(v) => v,\n    None => 0,\n  }}\n  \
+         HITS.update(fn(v) {{ v + 1 }})\n  io.println(\"${{n}} ${{has}} ${{first}}\")\n  return 0\n}}\n"
+    );
+    assert_eq!(refusals(&ok), Vec::<(String, String)>::new());
+    let bad = format!(
+        "{head}  SEEN.add(5)\n  let w: string = HITS.get()\n  let first = match Q.pop_front() {{\n    Some(v) => v,\n  }}\n  \
+         io.println(\"${{SEEN}} ${{w}} ${{first}}\")\n  return 0\n}}\n"
+    );
+    let mut codes: Vec<String> = refusals(&bad).into_iter().map(|f| f.0).collect();
+    codes.sort();
+    assert_eq!(codes, ["E0200", "E0204", "E0211", "E0237"]);
 }
 
 /// A project of several modules, as `(file name, source)`.

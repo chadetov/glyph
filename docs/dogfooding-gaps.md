@@ -14679,8 +14679,8 @@ and is the owner's to confirm.
   above are E0204, `seen.add(5)` is E0211 and `seen.nope()` is E0210. The
   claim this entry makes still holds in full until step 2 marks the
   writing members: no member is classified as changing its receiver yet, and
-  the pin above still passes. An unannotated `const` is `Unknown` until G433,
-  so `const HITS = store.create(0)` reads nothing off `HITS`; most
+  the pin above still passes. An unannotated `const` was `Unknown` until G433
+  (0.1.166), so `const HITS = store.create(0)` read nothing off `HITS`; most
   of the ~50 corpus sites (auth_api's `repo.glyph` and `clock.glyph`, csvql's
   `cursor` and `tokens`, resilient's three counters) are declared that way,
   which is why record 158 puts G433 before step 2. The local and parameter
@@ -14924,7 +14924,8 @@ and is the owner's to confirm.
   checker read one answer, and an imported `pub const` reaches the consumer
   through `exported_const` on the export view, the same type under `import m
   { NAME }` and `m.NAME`. Probe r04 now reports E0240 on `ITEMS.push(3)` and
-  E0204 on `CFG.n`; its `store.create` line needs G423's typed `Store` first.
+  E0204 on `CFG.n`, and on top of 0.1.163's typed `Store`, E0204 on
+  `let y: string = S.get()` with `const S = store.create(0)`.
 
 - **G434. E0211 between two function types names neither of them.** Passing
   `fn(v: string) -> string { return v }` where a `fn(number) -> number` is

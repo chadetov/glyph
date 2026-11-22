@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/site.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'ten geliyorsanız","item":"https://glyphlang.io/tr/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/from-typescript/#article","headline":"TypeScript'ten geliyorsanız · Glyph'te neler değişiyor","description":"Glyph neredeyse TypeScript gibi okunur ve ona derlenir. Değişenler: birkaç sözdizimi farkı, any, as ya da ! yok, grep'lenebilen tek bir kaçış yolu ve npm'in nasıl çalıştığı.","url":"https://glyphlang.io/tr/from-typescript/","inLanguage":"tr","dateModified":"2026-11-20","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/from-typescript/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/from-typescript/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"TypeScript'ten geliyorsanız","item":"https://glyphlang.io/tr/from-typescript/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/from-typescript/#article","headline":"TypeScript'ten geliyorsanız · Glyph'te neler değişiyor","description":"Glyph neredeyse TypeScript gibi okunur ve ona derlenir. Değişenler: birkaç sözdizimi farkı, any, as ya da ! yok, grep'lenebilen tek bir kaçış yolu ve npm'in nasıl çalıştığı.","url":"https://glyphlang.io/tr/from-typescript/","inLanguage":"tr","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/from-typescript/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/from-typescript/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/from-typescript/" />
@@ -450,6 +450,96 @@
           <dd>Yeniden atama açıktır ve grep'lenebilir. Düz bir <code>let</code> bağlaması siz fark etmeden asla değişmez; birini değiştirmek için <code>mut</code> yazarsınız.</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label" id="a-react-component-in-both">İkisinde de bir React bileşeni<a class="h-anchor" href="#a-react-component-in-both" aria-label="Bu bölümün bağlantısı">#</a></h2>
+        <p>
+          Aynı bileşen iki kez: boş durumu olan bir davet listesi, hâlâ yanıt bekleyenleri sayan bir satır ve her satırda bir etiket. TSX'in <code>&amp;&amp;</code> ve <code>? :</code> kullandığı yerde Glyph <code>&lt;match&gt;</code> kullanır; bir değer alır ve her desen için bir <code>&lt;case&gt;</code> içerir. Listeler <code>&lt;for&gt;</code> ile yazılır, öznitelik de <code>class</code> olur ve <code>className</code> olarak derlenir.
+        </p>
+      </div>
+
+      <div class="two-up stack">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre><span class="k">export</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>; accepted: <span class="t">boolean</span> };
+
+<span class="k">export</span> <span class="k">function</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Invite</span>[] }) {
+  <span class="k">const</span> waiting = props.invites.filter((i) <span class="op">=&gt;</span> !i.accepted).length;
+  <span class="k">return</span> (
+    &lt;<span class="t">section</span>&gt;
+      <span class="ip">{</span>waiting &gt; <span class="n">0</span> &amp;&amp; &lt;<span class="t">p</span> className=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;<span class="ip">}</span>
+      <span class="ip">{</span>props.invites.length === <span class="n">0</span> <span class="op">?</span> (
+        &lt;<span class="t">p</span> className=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      ) : (
+        &lt;<span class="t">ul</span>&gt;
+          <span class="ip">{</span>props.invites.map((invite) <span class="op">=&gt;</span> (
+            &lt;<span class="t">li</span> key={invite.email}&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              <span class="ip">{</span>invite.accepted <span class="op">?</span> (
+                &lt;<span class="t">span</span> className=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+              ) : (
+                &lt;<span class="t">span</span> className=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+              )<span class="ip">}</span>
+            &lt;/<span class="t">li</span>&gt;
+          ))<span class="ip">}</span>
+        &lt;/<span class="t">ul</span>&gt;
+      )<span class="ip">}</span>
+    &lt;/<span class="t">section</span>&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react"><span class="k">module</span> invites
+
+<span class="k">import</span> std/array
+
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Invite</span> = { email: <span class="t">string</span>, accepted: <span class="t">bool</span> }
+
+<span class="k">pub</span> <span class="k">component</span> <span class="t">InviteList</span>(props: { invites: <span class="t">Array</span>&lt;<span class="t">Invite</span>&gt; }) {
+  <span class="k">let</span> waiting = array.filter(props.invites, <span class="k">fn</span>(i: <span class="t">Invite</span>) { <span class="k">return</span> !i.accepted }).length
+  <span class="k">return</span> &lt;<span class="t">section</span>&gt;
+    &lt;<span class="t">match</span> value={waiting &gt; <span class="n">0</span>}&gt;
+      &lt;<span class="t">case</span> true&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"note"</span>&gt;<span class="ip">{</span>waiting<span class="ip">}</span> waiting for a reply&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> false&gt;&lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+    &lt;<span class="t">match</span> value={props.invites.length}&gt;
+      &lt;<span class="t">case</span> 0&gt;
+        &lt;<span class="t">p</span> class=<span class="s">"empty"</span>&gt;No invites sent yet.&lt;/<span class="t">p</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+      &lt;<span class="t">case</span> else&gt;
+        &lt;<span class="t">ul</span>&gt;
+          &lt;<span class="t">for</span> invite in={props.invites} key={invite.email}&gt;
+            &lt;<span class="t">li</span>&gt;
+              <span class="ip">{</span>invite.email<span class="ip">}</span>
+              &lt;<span class="t">match</span> value={invite.accepted}&gt;
+                &lt;<span class="t">case</span> true&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"ok"</span>&gt;joined&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+                &lt;<span class="t">case</span> false&gt;
+                  &lt;<span class="t">span</span> class=<span class="s">"wait"</span>&gt;pending&lt;/<span class="t">span</span>&gt;
+                &lt;/<span class="t">case</span>&gt;
+              &lt;/<span class="t">match</span>&gt;
+            &lt;/<span class="t">li</span>&gt;
+          &lt;/<span class="t">for</span>&gt;
+        &lt;/<span class="t">ul</span>&gt;
+      &lt;/<span class="t">case</span>&gt;
+    &lt;/<span class="t">match</span>&gt;
+  &lt;/<span class="t">section</span>&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph yarısı daha uzun. <code>&amp;&amp;</code>, boş bir <code>false</code> durumu olan bir <code>&lt;match&gt;</code> olur ve o durumu atlamak <code>E0209</code> hatasıdır, çünkü bir <code>bool</code> üzerindeki <code>match</code> iki değeri de kapsamak zorundadır. Bir union üzerinde aynı öğe her varyantı kapsamak zorundadır (<code>E0200</code>); fazladan satırlar asıl orada işe yarar: <a href="/tr/answers/react/">React ile çalışıyor mu?</a> hook'lar ve Context ile bir örnek gösteriyor.
+        </p>
+        <p>
+          Editör desteği ve hata ayıklamanın kendi cevapları var: <a href="/tr/answers/tooling/">araçlar cevabı</a> dil sunucusunu ve VS Code eklentisini, <a href="/tr/answers/debugging/">hata ayıklama cevabı</a> ise <code>.glyph</code> dosyasına geri dönen source map'leri anlatıyor. Geliştirme döngüsünde <code>glyph build --watch</code>, bir <code>.glyph</code> dosyasını her kaydettiğinizde TypeScript'i yeniden derler. Bu çıktıyı import eden bir Vite dev sunucusu her yeniden derlemeden sonra bileşeni sıcak değiştirmek yerine sayfanın tamamını yeniden yükler, bu yüzden bileşenin state'i sıfırlanır; kendi <code>.tsx</code> dosyalarınız Vite'ın hot reload'unu korur. Çıktıyı Vite'ın build dizininin (varsayılan olarak <code>dist/</code>) dışına yazın, çünkü dev sunucusu o dizini izlemez.
+        </p>
+      </div>
 
       <div class="detail">
         <p>

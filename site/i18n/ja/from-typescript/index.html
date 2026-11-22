@@ -1,7 +1,7 @@
 ---
 title: TypeScript から来た人へ · Glyph で何が変わるか · Glyph
 description: Glyph はほぼ TypeScript のように読めて、TypeScript にコンパイルされます。変わるのは、いくつかの構文の違い、any・as・! がないこと、grep できる唯一の抜け道、そして npm の扱い方です。
-source_hash: bc168f89faa5ea6e
+source_hash: e2d355cb18462c09
 next_steps: |
   次に読むもの
   おすすめ | /catches/ | catches | TypeScript が通してしまうものを見る | 各ケースを <code>tsc --strict</code> と Glyph の両方で実行し、エラーとともに示します。 | 検出できるものを見る
@@ -40,6 +40,96 @@ next_steps: |
           <dd>再代入は明示的で、grep できます。普通の <code>let</code> 束縛が知らないうちに変わることはありません。変えるときは <code>mut</code> と書きます。</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label">同じ React コンポーネントを両方で</h2>
+        <p>
+          同じコンポーネントを 2 回書いています。招待のリストで、空のときの表示、返事待ちの数を数える行、各行のラベルがあります。TSX が <code>&amp;&amp;</code> と <code>? :</code> を使うところで、Glyph は <code>&lt;match&gt;</code> を使います。値を 1 つ受け取り、パターンごとに <code>&lt;case&gt;</code> を 1 つ書きます。リストは <code>&lt;for&gt;</code> で書き、属性は <code>class</code> で、<code>className</code> にコンパイルされます。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre>export type Invite = { email: string; accepted: boolean };
+
+export function InviteList(props: { invites: Invite[] }) {
+  const waiting = props.invites.filter((i) =&gt; !i.accepted).length;
+  return (
+    &lt;section&gt;
+      {waiting &gt; 0 &amp;&amp; &lt;p className="note"&gt;{waiting} waiting for a reply&lt;/p&gt;}
+      {props.invites.length === 0 ? (
+        &lt;p className="empty"&gt;No invites sent yet.&lt;/p&gt;
+      ) : (
+        &lt;ul&gt;
+          {props.invites.map((invite) =&gt; (
+            &lt;li key={invite.email}&gt;
+              {invite.email}
+              {invite.accepted ? (
+                &lt;span className="ok"&gt;joined&lt;/span&gt;
+              ) : (
+                &lt;span className="wait"&gt;pending&lt;/span&gt;
+              )}
+            &lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/section&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react">module invites
+
+import std/array
+
+pub type Invite = { email: string, accepted: bool }
+
+pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
+  let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
+  return &lt;section&gt;
+    &lt;match value={waiting &gt; 0}&gt;
+      &lt;case true&gt;
+        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case false&gt;&lt;/case&gt;
+    &lt;/match&gt;
+    &lt;match value={props.invites.length}&gt;
+      &lt;case 0&gt;
+        &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case else&gt;
+        &lt;ul&gt;
+          &lt;for invite in={props.invites} key={invite.email}&gt;
+            &lt;li&gt;
+              {invite.email}
+              &lt;match value={invite.accepted}&gt;
+                &lt;case true&gt;
+                  &lt;span class="ok"&gt;joined&lt;/span&gt;
+                &lt;/case&gt;
+                &lt;case false&gt;
+                  &lt;span class="wait"&gt;pending&lt;/span&gt;
+                &lt;/case&gt;
+              &lt;/match&gt;
+            &lt;/li&gt;
+          &lt;/for&gt;
+        &lt;/ul&gt;
+      &lt;/case&gt;
+    &lt;/match&gt;
+  &lt;/section&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph 側のほうが長くなります。<code>&amp;&amp;</code> は空の <code>false</code> ケースを持つ <code>&lt;match&gt;</code> になり、そのケースを省くと <code>E0209</code> です。<code>bool</code> に対する <code>match</code> は両方の値を扱う必要があるからです。union に対しては、同じ要素がすべてのバリアントを扱う必要があり (<code>E0200</code>)、増えた行数が役に立つのはそこです。<a href="/answers/react/">React で使えますか?</a> に、フックと Context を使った例があります。
+        </p>
+        <p>
+          エディタ対応とデバッグにはそれぞれ回答があります。<a href="/answers/tooling/">ツールの回答</a> は言語サーバーと VS Code 拡張を、<a href="/answers/debugging/">デバッグの回答</a> は <code>.glyph</code> ファイルに戻るソースマップを扱っています。開発中は、<code>glyph build --watch</code> が <code>.glyph</code> ファイルを保存するたびに TypeScript を再ビルドします。その出力を import する Vite の開発サーバーは、再ビルドのたびにコンポーネントを差し替えるのではなくページ全体を再読み込みするので、コンポーネントの state はリセットされます。自分で書いた <code>.tsx</code> ファイルには Vite のホットリロードがそのまま効きます。出力先は Vite のビルドディレクトリ (デフォルトは <code>dist/</code>) の外にしてください。開発サーバーはそのディレクトリを監視しません。
+        </p>
+      </div>
 
       <div class="detail">
         <p>

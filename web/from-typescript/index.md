@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/from-typescript/, generated from the same source as the page. Last changed 2026-11-19. -->
+<!-- Markdown copy of https://glyphlang.io/from-typescript/, generated from the same source as the page. Last changed 2026-11-22. -->
 
 Coming from TypeScript
 
@@ -25,6 +25,89 @@ A function; the `->` is its return type. A `type X = {...}` is a record, and a `
 `mut x = e`
 
 Reassignment is explicit and greppable. A plain `let` binding never changes under you; you write `mut` to change one.
+
+## A React component in both
+
+The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses `&&` and `? :`, the Glyph uses `<match>`, which takes a value and one `<case>` per pattern. Lists use `<for>`, and the attribute is `class`, which compiles to `className`.
+
+InviteList.tsx
+
+```
+export type Invite = { email: string; accepted: boolean };
+
+export function InviteList(props: { invites: Invite[] }) {
+  const waiting = props.invites.filter((i) => !i.accepted).length;
+  return (
+    <section>
+      {waiting > 0 && <p className="note">{waiting} waiting for a reply</p>}
+      {props.invites.length === 0 ? (
+        <p className="empty">No invites sent yet.</p>
+      ) : (
+        <ul>
+          {props.invites.map((invite) => (
+            <li key={invite.email}>
+              {invite.email}
+              {invite.accepted ? (
+                <span className="ok">joined</span>
+              ) : (
+                <span className="wait">pending</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+```
+
+invites.glyph
+
+```
+module invites
+
+import std/array
+
+pub type Invite = { email: string, accepted: bool }
+
+pub component InviteList(props: { invites: Array<Invite> }) {
+  let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
+  return <section>
+    <match value={waiting > 0}>
+      <case true>
+        <p class="note">{waiting} waiting for a reply</p>
+      </case>
+      <case false></case>
+    </match>
+    <match value={props.invites.length}>
+      <case 0>
+        <p class="empty">No invites sent yet.</p>
+      </case>
+      <case else>
+        <ul>
+          <for invite in={props.invites} key={invite.email}>
+            <li>
+              {invite.email}
+              <match value={invite.accepted}>
+                <case true>
+                  <span class="ok">joined</span>
+                </case>
+                <case false>
+                  <span class="wait">pending</span>
+                </case>
+              </match>
+            </li>
+          </for>
+        </ul>
+      </case>
+    </match>
+  </section>
+}
+```
+
+The Glyph half is longer. The `&&` becomes a `<match>` with an empty `false` case, and leaving that case out is `E0209`, because a `match` on a `bool` has to cover both values. Over a union, the same element has to cover every variant (`E0200`), which is where it pays for the extra lines: [Does it work with React?](https://glyphlang.io/answers/react/) shows one, with hooks and Context.
+
+Editor support and debugging have their own answers: [the tooling answer](https://glyphlang.io/answers/tooling/) covers the language server and the VS Code extension, and [the debugging answer](https://glyphlang.io/answers/debugging/) covers source maps back to the `.glyph` file. For the dev loop, `glyph build --watch` rebuilds the TypeScript each time you save a `.glyph` file. A Vite dev server that imports that output reloads the whole page after each rebuild instead of hot-swapping the component, so component state resets, while your own `.tsx` files keep Vite's hot reload. Write the output outside Vite's build directory (`dist/` by default), because its dev server does not watch that directory.
 
 "Agents" on this site means AI coding assistants such as Claude, Copilot and Cursor. Glyph helps them most, but the checks are the same whether a person or a model wrote the code. If you already run strict TypeScript with zod and eslint, [here is what a language adds over that](https://glyphlang.io/answers/vs-tooled-ts/).
 

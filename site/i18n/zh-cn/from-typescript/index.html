@@ -1,7 +1,7 @@
 ---
 title: 从 TypeScript 迁移过来 · Glyph 里有哪些变化 · Glyph
 description: Glyph 读起来几乎和 TypeScript 一样，并编译成 TypeScript。变化在于：少量语法差异，没有 any、as 和 !，只有一个可以 grep 到的逃生口，以及 npm 的用法。
-source_hash: bc168f89faa5ea6e
+source_hash: e2d355cb18462c09
 next_steps: |
   接下来去哪里
   推荐 | /catches/ | catches | 看看 TypeScript 放过了什么 | 每个案例都分别在 <code>tsc --strict</code> 和 Glyph 下运行，附报错。 | 查看案例
@@ -40,6 +40,96 @@ next_steps: |
           <dd>重新赋值是显式的，可以 grep 到。普通的 <code>let</code> 绑定不会在你背后改变；要修改它就写 <code>mut</code>。</dd>
         </div>
       </dl>
+
+      <div class="detail">
+        <h2 class="block-label">同一个 React 组件，两种写法</h2>
+        <p>
+          同一个组件写两遍：一个邀请列表，带空状态、一行统计仍在等待回复的数量，以及每一行的标签。TSX 用 <code>&amp;&amp;</code> 和 <code>? :</code> 的地方，Glyph 用 <code>&lt;match&gt;</code>：它接收一个值，每个模式写一个 <code>&lt;case&gt;</code>。列表用 <code>&lt;for&gt;</code>，属性写作 <code>class</code>，编译为 <code>className</code>。
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">InviteList.tsx</span>
+<pre>export type Invite = { email: string; accepted: boolean };
+
+export function InviteList(props: { invites: Invite[] }) {
+  const waiting = props.invites.filter((i) =&gt; !i.accepted).length;
+  return (
+    &lt;section&gt;
+      {waiting &gt; 0 &amp;&amp; &lt;p className="note"&gt;{waiting} waiting for a reply&lt;/p&gt;}
+      {props.invites.length === 0 ? (
+        &lt;p className="empty"&gt;No invites sent yet.&lt;/p&gt;
+      ) : (
+        &lt;ul&gt;
+          {props.invites.map((invite) =&gt; (
+            &lt;li key={invite.email}&gt;
+              {invite.email}
+              {invite.accepted ? (
+                &lt;span className="ok"&gt;joined&lt;/span&gt;
+              ) : (
+                &lt;span className="wait"&gt;pending&lt;/span&gt;
+              )}
+            &lt;/li&gt;
+          ))}
+        &lt;/ul&gt;
+      )}
+    &lt;/section&gt;
+  );
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">invites.glyph</span>
+<pre data-check="needs-react">module invites
+
+import std/array
+
+pub type Invite = { email: string, accepted: bool }
+
+pub component InviteList(props: { invites: Array&lt;Invite&gt; }) {
+  let waiting = array.filter(props.invites, fn(i: Invite) { return !i.accepted }).length
+  return &lt;section&gt;
+    &lt;match value={waiting &gt; 0}&gt;
+      &lt;case true&gt;
+        &lt;p class="note"&gt;{waiting} waiting for a reply&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case false&gt;&lt;/case&gt;
+    &lt;/match&gt;
+    &lt;match value={props.invites.length}&gt;
+      &lt;case 0&gt;
+        &lt;p class="empty"&gt;No invites sent yet.&lt;/p&gt;
+      &lt;/case&gt;
+      &lt;case else&gt;
+        &lt;ul&gt;
+          &lt;for invite in={props.invites} key={invite.email}&gt;
+            &lt;li&gt;
+              {invite.email}
+              &lt;match value={invite.accepted}&gt;
+                &lt;case true&gt;
+                  &lt;span class="ok"&gt;joined&lt;/span&gt;
+                &lt;/case&gt;
+                &lt;case false&gt;
+                  &lt;span class="wait"&gt;pending&lt;/span&gt;
+                &lt;/case&gt;
+              &lt;/match&gt;
+            &lt;/li&gt;
+          &lt;/for&gt;
+        &lt;/ul&gt;
+      &lt;/case&gt;
+    &lt;/match&gt;
+  &lt;/section&gt;
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Glyph 这一半更长。<code>&amp;&amp;</code> 变成一个带空 <code>false</code> 分支的 <code>&lt;match&gt;</code>，省略这个分支就是 <code>E0209</code>，因为对 <code>bool</code> 的 <code>match</code> 必须覆盖两个值。对 union 来说，同一个元素必须覆盖每个变体（<code>E0200</code>），多出来的行数正是在这里值回成本：<a href="/answers/react/">能和 React 一起用吗？</a> 里有一个例子，包括 hooks 和 Context。
+        </p>
+        <p>
+          编辑器支持和调试各有专门的回答：<a href="/answers/tooling/">工具的回答</a> 介绍语言服务器和 VS Code 扩展，<a href="/answers/debugging/">调试的回答</a> 介绍映射回 <code>.glyph</code> 文件的 source map。开发时，<code>glyph build --watch</code> 会在你每次保存 <code>.glyph</code> 文件时重新构建 TypeScript。导入这份输出的 Vite 开发服务器在每次重新构建后会整页刷新，而不是热替换组件，所以组件状态会重置；你自己的 <code>.tsx</code> 文件仍然有 Vite 的热重载。请把输出写到 Vite 的构建目录（默认是 <code>dist/</code>）之外，因为它的开发服务器不监视那个目录。
+        </p>
+      </div>
 
       <div class="detail">
         <p>

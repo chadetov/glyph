@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "es",
-  "source_hash": "bc168f89faa5ea6e",
+  "source_hash": "e2d355cb18462c09",
   "segments": [
     {
       "id": "title",
@@ -123,6 +123,30 @@
       "kind": "html",
       "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
       "tr": "La reasignación es explícita y se puede buscar con grep. Un binding <code>let</code> normal nunca cambia a tus espaldas; escribes <code>mut</code> para cambiar uno."
+    },
+    {
+      "id": "h-0b7ebd02",
+      "kind": "html",
+      "en": "A React component in both",
+      "tr": "Un componente de React en los dos"
+    },
+    {
+      "id": "h-d04c5e5a",
+      "kind": "html",
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "El mismo componente dos veces: una lista de invitaciones con estado vacío, una línea que cuenta las que siguen esperando respuesta y una etiqueta en cada fila. Donde el TSX usa <code>&amp;&amp;</code> y <code>? :</code>, el Glyph usa <code>&lt;match&gt;</code>, que recibe un valor y un <code>&lt;case&gt;</code> por patrón. Las listas usan <code>&lt;for&gt;</code>, y el atributo es <code>class</code>, que compila a <code>className</code>."
+    },
+    {
+      "id": "h-9e878e46",
+      "kind": "html",
+      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "La mitad en Glyph es más larga. El <code>&amp;&amp;</code> se convierte en un <code>&lt;match&gt;</code> con un caso <code>false</code> vacío, y omitir ese caso es <code>E0209</code>, porque un <code>match</code> sobre un <code>bool</code> tiene que cubrir los dos valores. Sobre una unión, el mismo elemento tiene que cubrir todas las variantes (<code>E0200</code>), y ahí es donde las líneas de más se pagan: <a href=\"/answers/react/\">¿Funciona con React?</a> muestra uno, con hooks y Context."
+    },
+    {
+      "id": "h-708040f1",
+      "kind": "html",
+      "en": "Editor support and debugging have their own answers: <a href=\"/answers/tooling/\">the tooling answer</a> covers the language server and the VS Code extension, and <a href=\"/answers/debugging/\">the debugging answer</a> covers source maps back to the <code>.glyph</code> file. For the dev loop, <code>glyph build --watch</code> rebuilds the TypeScript each time you save a <code>.glyph</code> file. A Vite dev server that imports that output reloads the whole page after each rebuild instead of hot-swapping the component, so component state resets, while your own <code>.tsx</code> files keep Vite's hot reload. Write the output outside Vite's build directory (<code>dist/</code> by default), because its dev server does not watch that directory.",
+      "tr": "El soporte de editor y la depuración tienen sus propias respuestas: <a href=\"/answers/tooling/\">la respuesta sobre herramientas</a> cubre el language server y la extensión de VS Code, y <a href=\"/answers/debugging/\">la respuesta sobre depuración</a> cubre los source maps que vuelven al archivo <code>.glyph</code>. Para el ciclo de desarrollo, <code>glyph build --watch</code> recompila el TypeScript cada vez que guardas un archivo <code>.glyph</code>. Un servidor de desarrollo de Vite que importa esa salida recarga la página entera después de cada recompilación en lugar de reemplazar el componente en caliente, así que el estado del componente se pierde; tus propios archivos <code>.tsx</code> conservan el hot reload de Vite. Escribe la salida fuera del directorio de build de Vite (<code>dist/</code> por defecto), porque su servidor de desarrollo no vigila ese directorio."
     },
     {
       "id": "h-40accee4",

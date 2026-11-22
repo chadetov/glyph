@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "from-typescript/index.html",
   "locale": "ja",
-  "source_hash": "bc168f89faa5ea6e",
+  "source_hash": "e2d355cb18462c09",
   "segments": [
     {
       "id": "title",
@@ -123,6 +123,30 @@
       "kind": "html",
       "en": "Reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.",
       "tr": "再代入は明示的で、grep できます。普通の <code>let</code> 束縛が知らないうちに変わることはありません。変えるときは <code>mut</code> と書きます。"
+    },
+    {
+      "id": "h-0b7ebd02",
+      "kind": "html",
+      "en": "A React component in both",
+      "tr": "同じ React コンポーネントを両方で"
+    },
+    {
+      "id": "h-d04c5e5a",
+      "kind": "html",
+      "en": "The same component twice: a list of invites with an empty state, a line counting the ones still waiting, and a label on each row. Where the TSX uses <code>&amp;&amp;</code> and <code>? :</code>, the Glyph uses <code>&lt;match&gt;</code>, which takes a value and one <code>&lt;case&gt;</code> per pattern. Lists use <code>&lt;for&gt;</code>, and the attribute is <code>class</code>, which compiles to <code>className</code>.",
+      "tr": "同じコンポーネントを 2 回書いています。招待のリストで、空のときの表示、返事待ちの数を数える行、各行のラベルがあります。TSX が <code>&amp;&amp;</code> と <code>? :</code> を使うところで、Glyph は <code>&lt;match&gt;</code> を使います。値を 1 つ受け取り、パターンごとに <code>&lt;case&gt;</code> を 1 つ書きます。リストは <code>&lt;for&gt;</code> で書き、属性は <code>class</code> で、<code>className</code> にコンパイルされます。"
+    },
+    {
+      "id": "h-9e878e46",
+      "kind": "html",
+      "en": "The Glyph half is longer. The <code>&amp;&amp;</code> becomes a <code>&lt;match&gt;</code> with an empty <code>false</code> case, and leaving that case out is <code>E0209</code>, because a <code>match</code> on a <code>bool</code> has to cover both values. Over a union, the same element has to cover every variant (<code>E0200</code>), which is where it pays for the extra lines: <a href=\"/answers/react/\">Does it work with React?</a> shows one, with hooks and Context.",
+      "tr": "Glyph 側のほうが長くなります。<code>&amp;&amp;</code> は空の <code>false</code> ケースを持つ <code>&lt;match&gt;</code> になり、そのケースを省くと <code>E0209</code> です。<code>bool</code> に対する <code>match</code> は両方の値を扱う必要があるからです。union に対しては、同じ要素がすべてのバリアントを扱う必要があり (<code>E0200</code>)、増えた行数が役に立つのはそこです。<a href=\"/answers/react/\">React で使えますか?</a> に、フックと Context を使った例があります。"
+    },
+    {
+      "id": "h-708040f1",
+      "kind": "html",
+      "en": "Editor support and debugging have their own answers: <a href=\"/answers/tooling/\">the tooling answer</a> covers the language server and the VS Code extension, and <a href=\"/answers/debugging/\">the debugging answer</a> covers source maps back to the <code>.glyph</code> file. For the dev loop, <code>glyph build --watch</code> rebuilds the TypeScript each time you save a <code>.glyph</code> file. A Vite dev server that imports that output reloads the whole page after each rebuild instead of hot-swapping the component, so component state resets, while your own <code>.tsx</code> files keep Vite's hot reload. Write the output outside Vite's build directory (<code>dist/</code> by default), because its dev server does not watch that directory.",
+      "tr": "エディタ対応とデバッグにはそれぞれ回答があります。<a href=\"/answers/tooling/\">ツールの回答</a> は言語サーバーと VS Code 拡張を、<a href=\"/answers/debugging/\">デバッグの回答</a> は <code>.glyph</code> ファイルに戻るソースマップを扱っています。開発中は、<code>glyph build --watch</code> が <code>.glyph</code> ファイルを保存するたびに TypeScript を再ビルドします。その出力を import する Vite の開発サーバーは、再ビルドのたびにコンポーネントを差し替えるのではなくページ全体を再読み込みするので、コンポーネントの state はリセットされます。自分で書いた <code>.tsx</code> ファイルには Vite のホットリロードがそのまま効きます。出力先は Vite のビルドディレクトリ (デフォルトは <code>dist/</code>) の外にしてください。開発サーバーはそのディレクトリを監視しません。"
     },
     {
       "id": "h-40accee4",

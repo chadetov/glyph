@@ -5619,6 +5619,14 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Rolling lane · G440, `string.from` without its import is E0103** (found re-reproducing G416): the name `string` resolves to the primitive type in value position, so `string.from(5)` with no `import std/string` passes `--no-tsc` and `tsc` refuses it (TS2693). Refuse it as `array.len` without its import is refused, with help naming the import.
 
+**Rolling lane · G442, `{cond && <el/>}` with a number condition** (found writing the `/from-typescript/` React component): `{props.n && <p>x</p>}` with `n: number` passes `--no-tsc` and `tsc` and renders `0`, while `AGENTS.md` says JSX does not take `{cond && ...}`. One of the two is wrong; deciding which, and whether `<if cond>` must take a `bool`, comes first.
+
+**Rolling lane · G443, a ternary inside JSX is E0013** (same source): `{c ? <a/> : <b/>}` is E0003 "unexpected token: Slash" at the closing tag. Report E0013, with help naming `<if>`/`<else>` or `<match>`.
+
+**Rolling lane · G444, watch mode beside a Vite dev server** (found verifying the `/from-typescript/` hot-reload line): every rebuild rewrites the output's `tsconfig.json` and runtime files, so Vite reloads the page instead of hot-swapping, and the documented `--out dist/gen` sits in Vite's default build directory, which its dev server does not watch. Write only changed files, and move or annotate the documented layout.
+
+**Rolling lane · G445, `glyph fmt` joins `{match ...}` JSX children onto one line** (same source): layout only; `<match>` elements format one child per line.
+
 **Planned, its own release · G427, the built-in method table follows the library the emitted tsconfig declares** (record 153, finding 4). `builtin_methods.rs` is generated from `esnext` and `glyph build` writes `"lib": ["es2022", "dom"]`, so Glyph's checker types `toSorted`, `toReversed`, `toSpliced`, `with`, `findLast` and `findLastIndex` and `tsc` refuses them (TS2550). Decide whether the table follows the tsconfig or the tsconfig moves to `es2023`; record 150 kept the newer methods out of every help, so nothing shipped depends on them.
 
 **Planned, its own release · G428, string indexing, `charAt` and a one-unit `slice` hand back half a surrogate pair** (record 154). `s[2]`, `s.charAt(2)` and `string.slice(s, 2, 3)` on `"a😀"` all give the lone second half. 0.1.161's `string.char_at` answers `None` there; whether to refuse or redirect the three older spellings is open, and touches every string index in the corpus, so it is not folded into G392.

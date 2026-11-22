@@ -1,7 +1,7 @@
 ---
 title: ¿Qué impide que un agente rompa mi código sin que nadie lo note? · Glyph
 description: Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.
-source_hash: ff8d8a90eb6884ce
+source_hash: b4c6f18de84ea473
 next: /answers/diff-stability/ | Siguiente &rarr; | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
 ---
       <p class="q-eyebrow">01 &middot; La promesa central</p>
@@ -502,7 +502,7 @@ pub fn guest() -&gt; Profile {
       <p class="ak-lede">Una clave que el record declarado no tiene pasaba antes el checker de Glyph, así que una errata en un campo opcional tiraba su valor y solo <code>tsc</code> lo notaba. El editor, las herramientas para agentes y <code>glyph check --no-tsc</code> la rechazan ahora, con el mismo error que da leer ese campo, y <code>glyph fix</code> renombra <code>nik</code> a <code>nick</code>.</p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles <span class="hint">dónde se comprueba y qué queda fuera</span></summary><div class="body">
         <p>
-          Se comprueba dondequiera que un literal escrito se encuentra con un tipo declarado: un <code>let</code>, un <code>return</code>, un argumento de llamada, la carga de una variante, una asignación <code>mut</code>, un campo anidado, un elemento de array y el argumento de <code>Some</code>, <code>Ok</code> o <code>Err</code>, que <code>tsc</code> deja pasar. Un binding que guarda un record más amplio se sigue aceptando, como lo acepta <code>tsc</code>, y también los campos que vienen de un spread y las claves escritas para un <code>Record&lt;K, V&gt;</code>.
+          Se comprueba dondequiera que un literal escrito se encuentra con un tipo declarado: un <code>let</code>, un <code>return</code>, un argumento de llamada, la carga de una variante, una asignación <code>mut</code>, un campo anidado, un elemento de array, un brazo de <code>match</code> y el argumento de <code>Some</code>, <code>Ok</code> o <code>Err</code>, que <code>tsc</code> deja pasar. Un binding que guarda un record más amplio se sigue aceptando, como lo acepta <code>tsc</code>, y también los campos que vienen de un spread y las claves escritas para un <code>Record&lt;K, V&gt;</code>.
         </p>
       </div></details>
 

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "de",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "Details <span class=\"hint\">wo es geprüft wird und was unberührt bleibt</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "Geprüft wird überall, wo ein geschriebenes Literal auf einen deklarierten Typ trifft: ein <code>let</code>, ein <code>return</code>, ein Aufrufargument, eine Varianten-Payload, eine <code>mut</code>-Zuweisung, ein verschachteltes Feld, ein Array-Element und das Argument von <code>Some</code>, <code>Ok</code> oder <code>Err</code>, das <code>tsc</code> durchlässt. Eine Bindung, die einen breiteren Record hält, wird weiterhin akzeptiert, wie <code>tsc</code> sie akzeptiert, ebenso Felder aus einem Spread und Schlüssel, die für einen <code>Record&lt;K, V&gt;</code> geschrieben sind."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Geprüft wird überall, wo ein geschriebenes Literal auf einen deklarierten Typ trifft: ein <code>let</code>, ein <code>return</code>, ein Aufrufargument, eine Varianten-Payload, eine <code>mut</code>-Zuweisung, ein verschachteltes Feld, ein Array-Element, ein <code>match</code>-Zweig und das Argument von <code>Some</code>, <code>Ok</code> oder <code>Err</code>, das <code>tsc</code> durchlässt. Eine Bindung, die einen breiteren Record hält, wird weiterhin akzeptiert, wie <code>tsc</code> sie akzeptiert, ebenso Felder aus einem Spread und Schlüssel, die für einen <code>Record&lt;K, V&gt;</code> geschrieben sind."
     },
     {
       "id": "h-b55f380c",

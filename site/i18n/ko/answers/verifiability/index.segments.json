@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "자세히 <span class=\"hint\">어디서 판정하고 무엇을 그대로 두는지</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "작성한 리터럴이 선언된 타입과 만나는 곳이면 어디서든 판정합니다. <code>let</code>, <code>return</code>, 호출 인자, 변형의 페이로드, <code>mut</code> 대입, 중첩된 필드, 배열 요소, 그리고 <code>tsc</code>가 통과시키는 <code>Some</code>, <code>Ok</code>, <code>Err</code>의 인자입니다. 더 넓은 레코드를 담은 바인딩은 <code>tsc</code>처럼 계속 허용되며, spread에서 온 필드와 <code>Record&lt;K, V&gt;</code>를 위해 쓴 키도 마찬가지입니다."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "작성한 리터럴이 선언된 타입과 만나는 곳이면 어디서든 판정합니다. <code>let</code>, <code>return</code>, 호출 인자, 변형의 페이로드, <code>mut</code> 대입, 중첩된 필드, 배열 요소, <code>match</code> 갈래, 그리고 <code>tsc</code>가 통과시키는 <code>Some</code>, <code>Ok</code>, <code>Err</code>의 인자입니다. 더 넓은 레코드를 담은 바인딩은 <code>tsc</code>처럼 계속 허용되며, spread에서 온 필드와 <code>Record&lt;K, V&gt;</code>를 위해 쓴 키도 마찬가지입니다."
     },
     {
       "id": "h-b55f380c",

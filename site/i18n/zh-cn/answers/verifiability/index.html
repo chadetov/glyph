@@ -1,7 +1,7 @@
 ---
 title: 什么能防止智能体悄悄改坏我的代码？ · Glyph
 description: 在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。
-source_hash: ff8d8a90eb6884ce
+source_hash: b4c6f18de84ea473
 next: /answers/diff-stability/ | 下一篇 &rarr; | 智能体的编辑会保持干净，还是会把整个文件重新格式化？
 ---
       <p class="q-eyebrow">01 &middot; 核心承诺</p>
@@ -502,7 +502,7 @@ pub fn guest() -&gt; Profile {
       <p class="ak-lede">声明的记录中没有的键，过去能通过 Glyph 的检查器，所以可选字段里的拼写错误会丢掉它的值，只有 <code>tsc</code> 会发现。现在编辑器、智能体工具和 <code>glyph check --no-tsc</code> 都会拒绝它，报出与读取同一字段相同的错误，<code>glyph fix</code> 会把 <code>nik</code> 改名为 <code>nick</code>。</p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">在哪里判定，哪些不判定</span></summary><div class="body">
         <p>
-          凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。
+          凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素、<code>match</code> 分支，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。
         </p>
       </div></details>
 

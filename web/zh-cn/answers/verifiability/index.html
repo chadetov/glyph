@@ -971,7 +971,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
       <p class="ak-lede">声明的记录中没有的键，过去能通过 Glyph 的检查器，所以可选字段里的拼写错误会丢掉它的值，只有 <code>tsc</code> 会发现。现在编辑器、智能体工具和 <code>glyph check --no-tsc</code> 都会拒绝它，报出与读取同一字段相同的错误，<code>glyph fix</code> 会把 <code>nik</code> 改名为 <code>nick</code>。</p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情 <span class="hint">在哪里判定，哪些不判定</span></summary><div class="body">
         <p>
-          凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。
+          凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素、<code>match</code> 分支，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。
         </p>
       </div></details>
 

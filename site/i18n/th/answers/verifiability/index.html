@@ -1,7 +1,7 @@
 ---
 title: อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ? · Glyph
 description: การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้
-source_hash: ff8d8a90eb6884ce
+source_hash: b4c6f18de84ea473
 next: /answers/diff-stability/ | ถัดไป &rarr; | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 ---
       <p class="q-eyebrow">01 &middot; คำสัญญาหลัก</p>
@@ -502,7 +502,7 @@ pub fn guest() -&gt; Profile {
       <p class="ak-lede">key ที่ record ที่ประกาศไว้ไม่มี เคยผ่าน checker ของ Glyph ไปได้ ดังนั้นการพิมพ์ผิดใน field ที่ไม่บังคับจึงทิ้งค่าของมันไป และมีแค่ <code>tsc</code> ที่สังเกตเห็น ตอนนี้ editor, เครื่องมือสำหรับ agent และ <code>glyph check --no-tsc</code> ปฏิเสธมัน ด้วย error เดียวกับการอ่าน field นั้น และ <code>glyph fix</code> จะเปลี่ยนชื่อ <code>nik</code> เป็น <code>nick</code></p>
       <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ตรวจที่ไหน และอะไรที่ไม่ถูกตรวจ</span></summary><div class="body">
         <p>
-          ตรวจในทุกที่ที่ literal ที่เขียนไว้พบกับ type ที่ประกาศไว้: <code>let</code>, <code>return</code>, argument ของการเรียก, payload ของ variant, การกำหนดค่าด้วย <code>mut</code>, field ที่ซ้อนกัน, element ของ array และ argument ของ <code>Some</code>, <code>Ok</code> หรือ <code>Err</code> ซึ่ง <code>tsc</code> ปล่อยผ่าน binding ที่เก็บ record ที่กว้างกว่ายังถูกยอมรับเหมือนที่ <code>tsc</code> ยอมรับ และ field ที่มาจาก spread กับ key ที่เขียนให้ <code>Record&lt;K, V&gt;</code> ก็เช่นกัน
+          ตรวจในทุกที่ที่ literal ที่เขียนไว้พบกับ type ที่ประกาศไว้: <code>let</code>, <code>return</code>, argument ของการเรียก, payload ของ variant, การกำหนดค่าด้วย <code>mut</code>, field ที่ซ้อนกัน, element ของ array, arm ของ <code>match</code> และ argument ของ <code>Some</code>, <code>Ok</code> หรือ <code>Err</code> ซึ่ง <code>tsc</code> ปล่อยผ่าน binding ที่เก็บ record ที่กว้างกว่ายังถูกยอมรับเหมือนที่ <code>tsc</code> ยอมรับ และ field ที่มาจาก spread กับ key ที่เขียนให้ <code>Record&lt;K, V&gt;</code> ก็เช่นกัน
         </p>
       </div></details>
 

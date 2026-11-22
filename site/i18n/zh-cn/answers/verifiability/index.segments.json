@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "ff8d8a90eb6884ce",
+  "source_hash": "b4c6f18de84ea473",
   "segments": [
     {
       "id": "title",
@@ -881,10 +881,10 @@
       "tr": "详情 <span class=\"hint\">在哪里判定，哪些不判定</span>"
     },
     {
-      "id": "h-9b028b85",
+      "id": "h-1dd97dca",
       "kind": "html",
-      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
-      "tr": "凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。"
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, a <code>match</code> arm, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "凡是写出的字面量遇到声明类型的地方都会判定：<code>let</code>、<code>return</code>、调用参数、变体的载荷、<code>mut</code> 赋值、嵌套字段、数组元素、<code>match</code> 分支，以及 <code>tsc</code> 放过的 <code>Some</code>、<code>Ok</code> 或 <code>Err</code> 的参数。持有更宽记录的绑定仍被接受，与 <code>tsc</code> 一致；来自展开的字段和为 <code>Record&lt;K, V&gt;</code> 写的键也一样。"
     },
     {
       "id": "h-b55f380c",

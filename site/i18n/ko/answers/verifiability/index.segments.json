@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "타입 표기가 없는 <code>const</code>는 아무것도 주장하지 않으며, 의도적으로 <code>Unknown</code>으로 남습니다. 초기값에서 타입을 추론하는 것은 오탐의 범위가 다른 별개의 문제입니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 breaking입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code>를 통해 실패했습니다."
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "추가 필드는 여전히 <code>tsc</code>가 잡습니다"
+      "en": "A field the record does not declare",
+      "tr": "레코드가 선언하지 않은 필드"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "레코드 리터럴 검사 하나는 여전히 Glyph가 아니라 <code>tsc</code>의 몫입니다. <code>glyph build</code>는 여기서 멈추지만, <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드는 아무 말도 하지 않습니다(G273)."
+      "en": "a misspelled optional field: now E0210",
+      "tr": "철자가 틀린 선택적 필드: 이제 E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph: tsc에 맡겨진 추가 필드"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "선언된 레코드에 없는 키는 예전에는 Glyph의 체커를 통과했습니다. 그래서 선택적 필드의 오타는 그 값을 버렸고, 알아챈 것은 <code>tsc</code>뿐이었습니다. 이제 편집기, 에이전트 도구, <code>glyph check --no-tsc</code>가 이를 거부하며, 같은 필드를 읽을 때와 같은 오류를 냅니다. <code>glyph fix</code>는 <code>nik</code>을 <code>nick</code>으로 바꿉니다."
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "tsc의 TS2353"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "자세히 <span class=\"hint\">어디서 판정하고 무엇을 그대로 두는지</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "자세히 <span class=\"hint\">tsc가 보고하는 방식</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "선언된 레코드에 없는 필드를 가진 리터럴은 Glyph 검사기를 통과하고, <code>tsc</code>가 생성된 TypeScript에서 <code>TS2353</code>으로 거부하며, 이는 리터럴 위치로 다시 매핑됩니다."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "작성한 리터럴이 선언된 타입과 만나는 곳이면 어디서든 판정합니다. <code>let</code>, <code>return</code>, 호출 인자, 변형의 페이로드, <code>mut</code> 대입, 중첩된 필드, 배열 요소, 그리고 <code>tsc</code>가 통과시키는 <code>Some</code>, <code>Ok</code>, <code>Err</code>의 인자입니다. 더 넓은 레코드를 담은 바인딩은 <code>tsc</code>처럼 계속 허용되며, spread에서 온 필드와 <code>Record&lt;K, V&gt;</code>를 위해 쓴 키도 마찬가지입니다."
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "현재 상태"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "지금 제공되는 것 <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "타입 표기가 있는 모듈 수준 <code>const</code>의 필드 오타"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "선언된 레코드에 없는 객체 리터럴의 키"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "오타 검사(<code>E0220</code>)는 이제 모듈에 선언된 유니언과 네임스페이스 import로 닿는 유니언(<code>model.Nooo(_)</code>)을 생성자 모양이든 단독이든 똑같이 다룹니다. 0.1.115까지는 import한 유니언에 대한 철자가 틀린 단독 머리(<code>Loadign</code>, 인자 없음)가 variant를 다룬 것으로 인정되어 아무 말도 하지 않았는데, 로컬 유니언에서의 같은 오타는 이미 <code>E0220</code>을 보고했습니다. 이제 두 표기 모두 보고합니다. 철자가 틀린 단독 arm은 한 단계 앞에서 <code>E0103</code>에도 걸리므로, 같은 이름에 대해 두 줄을 받게 됩니다."
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다"
+      "en": "A literal holding a spread has no type",
+      "tr": "spread를 담은 리터럴은 타입이 없습니다"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다. <code>tsc</code>는 새로 만든 리터럴의 추가 필드를 TS2353으로 거부합니다(G273)."
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "spread를 담은 리터럴은 타입이 없으므로, 빠진 필드나 타입이 틀린 필드는 <code>tsc</code>에 맡겨집니다. spread 옆에 쓴 키는 여전히 선언된 레코드에 비추어 검사합니다."
     },
     {
       "id": "h-cf31f508",

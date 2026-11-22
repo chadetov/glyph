@@ -703,39 +703,41 @@ fn f() -&gt; number {
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">An extra field is still <code>tsc</code>'s to catch<a class="ak-anchor" href="#extra-field" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code>
-        stops on it; <code>glyph check --no-tsc</code>, the language server and the playground
-        say nothing (G273).
-      </p>
+      <h3 class="ak-h3" id="extra-field">A field the record does not declare<a class="ak-anchor" href="#extra-field" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: an extra field, left to tsc</span>
-<pre data-check="expect-error TS2353">module point
+        <span class="cap">a misspelled optional field: now E0210</span>
+<pre data-check="expect-error E0210">module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+pub fn guest() -&gt; Profile {
+  return { name: "guest", nik: "g" }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">TS2353 from tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">how tsc reports it</span></summary><div class="body">
+      <p class="ak-lede">A key the declared record does not have used to pass Glyph's checker,
+          so a typo in an optional field threw its value away and only <code>tsc</code>
+          noticed. The editor, the agent tools and <code>glyph check --no-tsc</code>
+          refuse it now, with the error a read of the same field gives, and
+          <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details <span class="hint">where it is judged, and what is left alone</span></summary><div class="body">
         <p>
-          A literal with a
-          field the declared record does not have passes Glyph's checker, and <code>tsc</code>
-          refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the
-          literal.
+          It is judged wherever a written literal meets a declared type: a
+          <code>let</code>, a <code>return</code>, a call argument, a variant payload,
+          a <code>mut</code> assignment, a nested field, an array element, and the
+          argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which
+          <code>tsc</code> lets through. A binding that holds a wider record is still
+          accepted, as <code>tsc</code> accepts it, and so are fields that come from
+          a spread and keys written for a <code>Record&lt;K, V&gt;</code>.
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">20</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -758,6 +760,7 @@ pub fn origin() -&gt; Point {
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A declared union or record passed where a <code>string</code>/<code>number</code>/<code>bool</code> is expected</span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A field typo on an annotated module-level <code>const</code></span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">An object literal key its declared record does not have</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> as value equality on every type</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Reading a key out of a map rejected</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A built-in method that answers <code>undefined</code>, such as <code>find</code> or <code>at</code>, refused with its <code>Option</code> form named</span><span class="chip code">E0242</span><span class="chip since">since 0.1.161</span></span></li>
@@ -814,9 +817,9 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Types, records and literals</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A literal holding a spread has no type, and an extra field is still accepted</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A literal holding a spread has no type</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p>A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).</p>
+                <p>A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">An imported <code>interface</code>'s members and an imported <code>const</code>'s type don't cross yet</span></span>

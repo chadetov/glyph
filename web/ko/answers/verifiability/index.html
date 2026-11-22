@@ -954,34 +954,31 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">추가 필드는 여전히 <code>tsc</code>가 잡습니다<a class="ak-anchor" href="#extra-field" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        레코드 리터럴 검사 하나는 여전히 Glyph가 아니라 <code>tsc</code>의 몫입니다. <code>glyph build</code>는 여기서 멈추지만, <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드는 아무 말도 하지 않습니다(G273).
-      </p>
+      <h3 class="ak-h3" id="extra-field">레코드가 선언하지 않은 필드<a class="ak-anchor" href="#extra-field" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: tsc에 맡겨진 추가 필드</span>
-<pre data-check="expect-error TS2353"><span class="k">module</span> point
+        <span class="cap">철자가 틀린 선택적 필드: 이제 E0210</span>
+<pre data-check="expect-error E0210"><span class="k">module</span> profile
 
-<span class="k">pub</span> <span class="k">type</span> <span class="t">Point</span> = {
-  x: <span class="t">number</span>,
-  y: <span class="t">number</span>,
+<span class="k">pub</span> <span class="k">type</span> <span class="t">Profile</span> = {
+  name: <span class="t">string</span>,
+  nick<span class="op">?</span>: <span class="t">string</span>,
 }
 
-<span class="k">pub</span> <span class="k">fn</span> origin() <span class="op">-&gt;</span> <span class="t">Point</span> {
-  <span class="k">return</span> { x: <span class="n">0</span>, y: <span class="n">0</span>, z: <span class="n">0</span> }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+<span class="k">pub</span> <span class="k">fn</span> guest() <span class="op">-&gt;</span> <span class="t">Profile</span> {
+  <span class="k">return</span> { name: <span class="s">"guest"</span>, nik: <span class="s">"g"</span> }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">tsc의 TS2353</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">tsc가 보고하는 방식</span></summary><div class="body">
+      <p class="ak-lede">선언된 레코드에 없는 키는 예전에는 Glyph의 체커를 통과했습니다. 그래서 선택적 필드의 오타는 그 값을 버렸고, 알아챈 것은 <code>tsc</code>뿐이었습니다. 이제 편집기, 에이전트 도구, <code>glyph check --no-tsc</code>가 이를 거부하며, 같은 필드를 읽을 때와 같은 오류를 냅니다. <code>glyph fix</code>는 <code>nik</code>을 <code>nick</code>으로 바꿉니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히 <span class="hint">어디서 판정하고 무엇을 그대로 두는지</span></summary><div class="body">
         <p>
-          선언된 레코드에 없는 필드를 가진 리터럴은 Glyph 검사기를 통과하고, <code>tsc</code>가 생성된 TypeScript에서 <code>TS2353</code>으로 거부하며, 이는 리터럴 위치로 다시 매핑됩니다.
+          작성한 리터럴이 선언된 타입과 만나는 곳이면 어디서든 판정합니다. <code>let</code>, <code>return</code>, 호출 인자, 변형의 페이로드, <code>mut</code> 대입, 중첩된 필드, 배열 요소, 그리고 <code>tsc</code>가 통과시키는 <code>Some</code>, <code>Ok</code>, <code>Err</code>의 인자입니다. 더 넓은 레코드를 담은 바인딩은 <code>tsc</code>처럼 계속 허용되며, spread에서 온 필드와 <code>Record&lt;K, V&gt;</code>를 위해 쓴 키도 마찬가지입니다.
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">20</span></h3>
 
           <p class="ak-st-group">매칭</p>
           <ul class="ak-list">
@@ -1004,6 +1001,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string</code>/<code>number</code>/<code>bool</code>이 필요한 곳에 넘긴 선언된 유니언이나 레코드</span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">타입 표기가 있는 모듈 수준 <code>const</code>의 필드 오타</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">선언된 레코드에 없는 객체 리터럴의 키</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">모든 타입에서 값 비교인 <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">맵에서 키를 읽는 것을 거부</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code>나 <code>at</code>처럼 <code>undefined</code>를 돌려주는 내장 메서드를 거부하고 <code>Option</code> 형태를 알려 줌</span><span class="chip code">E0242</span><span class="chip since">0.1.161부터</span></span></li>
@@ -1060,9 +1058,9 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">타입, 레코드, 리터럴</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">spread를 담은 리터럴은 타입이 없습니다</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>자세히</summary><div class="body">
-                <p>spread를 담은 리터럴은 타입이 없고, 추가 필드가 여전히 허용됩니다. <code>tsc</code>는 새로 만든 리터럴의 추가 필드를 TS2353으로 거부합니다(G273).</p>
+                <p>spread를 담은 리터럴은 타입이 없으므로, 빠진 필드나 타입이 틀린 필드는 <code>tsc</code>에 맡겨집니다. spread 옆에 쓴 키는 여전히 선언된 레코드에 비추어 검사합니다.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">import한 <code>interface</code>의 멤버와 import한 <code>const</code>의 타입은 아직 경계를 넘지 않습니다</span></span>

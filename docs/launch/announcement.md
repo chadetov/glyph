@@ -308,8 +308,6 @@ is G257 in the gap ledger.
 
 Some other edges that are open today:
 
-- An object literal with a field its declared type does not name is accepted
-  (`tsc` refuses it as TS2353). This is G273.
 - When two unnamed records do not match, the error says
   ``expected `record`, found `record` `` and does not name the field that
   differs.

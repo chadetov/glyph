@@ -1,7 +1,7 @@
 ---
 title: エージェントがコードを気づかれずに壊すのを、何が防ぐのか · Glyph
 description: TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。
-source_hash: c7a4b93d61ceb50d
+source_hash: ff8d8a90eb6884ce
 next: /answers/diff-stability/ | 次へ &rarr; | エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？
 ---
       <p class="q-eyebrow">01 &middot; 中心となる約束</p>
@@ -485,34 +485,31 @@ fn f() -&gt; number {
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">余分なフィールドは、今も <code>tsc</code> が捕まえる<a class="ak-anchor" href="#extra-field" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        レコードリテラルの検査のうち 1 つは、今も Glyph ではなく <code>tsc</code> の担当です。<code>glyph build</code> はそこで止まりますが、<code>glyph check --no-tsc</code>、言語サーバー、Playground は何も言いません（G273）。
-      </p>
+      <h3 class="ak-h3" id="extra-field">レコードが宣言していないフィールド<a class="ak-anchor" href="#extra-field" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph：余分なフィールド、tsc に任せている</span>
-<pre data-check="expect-error TS2353">module point
+        <span class="cap">綴りを間違えた省略可能フィールド: 現在は E0210</span>
+<pre data-check="expect-error E0210">module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+pub fn guest() -&gt; Profile {
+  return { name: "guest", nik: "g" }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">tsc の TS2353</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">tsc がどう報告するか</span></summary><div class="body">
+      <p class="ak-lede">宣言されたレコードにないキーは、以前は Glyph のチェッカーを通っていました。そのため省略可能なフィールドのタイプミスはその値を捨ててしまい、気づくのは <code>tsc</code> だけでした。今はエディタ、エージェントのツール、<code>glyph check --no-tsc</code> がこれを拒否し、同じフィールドを読んだときと同じエラーを出します。<code>glyph fix</code> は <code>nik</code> を <code>nick</code> に書き換えます。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細 <span class="hint">どこで判定され、何が対象外か</span></summary><div class="body">
         <p>
-          宣言されたレコードにないフィールドを持つリテラルは Glyph のチェッカーを通過し、<code>tsc</code> が出力された TypeScript に対して <code>TS2353</code> として拒否します。エラーはリテラルの位置に対応付けられます。
+          書かれたリテラルが宣言された型と出会う場所ではどこでも判定します。<code>let</code>、<code>return</code>、呼び出しの引数、バリアントのペイロード、<code>mut</code> による代入、入れ子のフィールド、配列の要素、そして <code>tsc</code> が見逃す <code>Some</code>、<code>Ok</code>、<code>Err</code> の引数です。より広いレコードを保持する束縛は、<code>tsc</code> と同じく引き続き受け入れられます。スプレッドから来るフィールドと、<code>Record&lt;K, V&gt;</code> に向けて書かれたキーも同様です。
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">20</span></h3>
 
           <p class="ak-st-group">マッチ</p>
           <ul class="ak-list">
@@ -535,6 +532,7 @@ pub fn origin() -&gt; Point {
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string</code>/<code>number</code>/<code>bool</code> が期待される場所に渡された、宣言済みのユニオンやレコード</span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">型注釈付きのモジュールレベルの <code>const</code> でのフィールドのタイプミス</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">宣言されたレコードにないオブジェクトリテラルのキー</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">すべての型で値の等価性になる <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">map からのキーの読み取りを拒否</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code> や <code>at</code> のように <code>undefined</code> を返す組み込みメソッドを、<code>Option</code> 版を示して拒否</span><span class="chip code">E0242</span><span class="chip since">0.1.161 から</span></span></li>
@@ -591,9 +589,9 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">型、レコード、リテラル</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられる</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">スプレッドを含むリテラルは型を持たない</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p>スプレッドを含むリテラルは型を持たず、余分なフィールドが今も受け入れられます。<code>tsc</code> は新しいリテラルでは TS2353 として拒否します（G273）。</p>
+                <p>スプレッドを含むリテラルは型を持たないため、欠けているフィールドや型の違うフィールドは <code>tsc</code> に任されます。スプレッドの横に書かれたキーは、引き続き宣言されたレコードに照らして検査されます。</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">インポートした <code>interface</code> のメンバーと、インポートした <code>const</code> の型は、まだ境界を越えない</span></span>

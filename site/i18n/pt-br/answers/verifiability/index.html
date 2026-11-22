@@ -1,7 +1,7 @@
 ---
 title: O que impede um agente de quebrar meu código em silêncio? · Glyph
 description: Mudanças que compilam e depois quebram em TypeScript, como um caso esquecido, um erro não tratado ou um campo renomeado, são erros de compilação em Glyph que o agente precisa corrigir.
-source_hash: c7a4b93d61ceb50d
+source_hash: ff8d8a90eb6884ce
 next: /answers/diff-stability/ | Próxima &rarr; | As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?
 ---
       <p class="q-eyebrow">01 &middot; A promessa central</p>
@@ -485,34 +485,31 @@ fn f() -&gt; number {
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">Um campo a mais ainda fica por conta do <code>tsc</code><a class="ak-anchor" href="#extra-field" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        Uma verificação de literal de record ainda é do <code>tsc</code>, e não do Glyph. O <code>glyph build</code> para nela; <code>glyph check --no-tsc</code>, o language server e o playground não dizem nada (G273).
-      </p>
+      <h3 class="ak-h3" id="extra-field">Um campo que o record não declara<a class="ak-anchor" href="#extra-field" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: um campo a mais, deixado para o tsc</span>
-<pre data-check="expect-error TS2353">module point
+        <span class="cap">um campo opcional com erro de digitação: agora E0210</span>
+<pre data-check="expect-error E0210">module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+pub fn guest() -&gt; Profile {
+  return { name: "guest", nik: "g" }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">TS2353 do tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">como o tsc reporta</span></summary><div class="body">
+      <p class="ak-lede">Uma chave que o record declarado não tem passava antes pelo checker do Glyph, então um erro de digitação em um campo opcional jogava fora o valor e só o <code>tsc</code> percebia. O editor, as ferramentas para agentes e o <code>glyph check --no-tsc</code> a recusam agora, com o mesmo erro que a leitura desse campo dá, e o <code>glyph fix</code> renomeia <code>nik</code> para <code>nick</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes <span class="hint">onde é verificado e o que fica de fora</span></summary><div class="body">
         <p>
-          Um literal com um campo que o record declarado não tem passa no verificador do Glyph, e o <code>tsc</code> o recusa no TypeScript emitido como <code>TS2353</code>, mapeado de volta para o literal.
+          É verificado onde quer que um literal escrito encontre um tipo declarado: um <code>let</code>, um <code>return</code>, um argumento de chamada, o payload de uma variante, uma atribuição com <code>mut</code>, um campo aninhado, um elemento de array e o argumento de <code>Some</code>, <code>Ok</code> ou <code>Err</code>, que o <code>tsc</code> deixa passar. Um binding que guarda um record mais amplo continua aceito, como o <code>tsc</code> aceita, assim como campos que vêm de um spread e chaves escritas para um <code>Record&lt;K, V&gt;</code>.
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">Situação atual<a class="ak-anchor" href="#where-it-stands" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje <span class="count">20</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -535,6 +532,7 @@ pub fn origin() -&gt; Point {
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma union ou record declarado passado onde se espera <code>string</code>/<code>number</code>/<code>bool</code></span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um erro de digitação num campo de um <code>const</code> anotado no nível do módulo</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma chave de literal de objeto que o record declarado não tem</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> como igualdade de valor em todos os tipos</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ler uma chave de um mapa é rejeitado</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Um método nativo que responde <code>undefined</code>, como <code>find</code> ou <code>at</code>, recusado com a forma <code>Option</code> indicada</span><span class="chip code">E0242</span><span class="chip since">desde a 0.1.161</span></span></li>
@@ -591,9 +589,9 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Tipos, records e literais</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um literal com spread não tem tipo, e um campo a mais ainda é aceito</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Um literal com spread não tem tipo</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
-                <p>Um literal com spread não tem tipo, e um campo a mais ainda é aceito, enquanto o <code>tsc</code> recusa um campo a mais num literal novo como TS2353 (G273).</p>
+                <p>Um literal com spread não tem tipo, então um campo que falta ou que tem o tipo errado fica a cargo do <code>tsc</code>. Uma chave escrita ao lado do spread continua sendo verificada contra o record declarado.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Os membros de uma <code>interface</code> importada e o tipo de um <code>const</code> importado ainda não cruzam</span></span>

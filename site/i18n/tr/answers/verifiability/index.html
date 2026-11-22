@@ -1,7 +1,7 @@
 ---
 title: Bir ajanın kodumu sessizce bozmasını ne engelliyor? · Glyph
 description: TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.
-source_hash: c7a4b93d61ceb50d
+source_hash: ff8d8a90eb6884ce
 next: /answers/diff-stability/ | Sonraki &rarr; | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 ---
       <p class="q-eyebrow">01 &middot; Temel vaat</p>
@@ -485,34 +485,31 @@ fn f() -&gt; number {
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">Fazladan bir alanı yakalamak hâlâ <code>tsc</code>'nin işi<a class="ak-anchor" href="#extra-field" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        Bir record-literal kontrolü hâlâ Glyph'in değil <code>tsc</code>'nin. <code>glyph build</code> bunda durur; <code>glyph check --no-tsc</code>, dil sunucusu ve playground hiçbir şey söylemez (G273).
-      </p>
+      <h3 class="ak-h3" id="extra-field">Record'un bildirmediği bir alan<a class="ak-anchor" href="#extra-field" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: fazladan bir alan, tsc'ye bırakılmış</span>
-<pre data-check="expect-error TS2353">module point
+        <span class="cap">yanlış yazılmış isteğe bağlı bir alan: artık E0210</span>
+<pre data-check="expect-error E0210">module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+pub fn guest() -&gt; Profile {
+  return { name: "guest", nik: "g" }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">tsc'den TS2353</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">tsc'nin bunu nasıl bildirdiği</span></summary><div class="body">
+      <p class="ak-lede">Bildirilen record'da olmayan bir anahtar eskiden Glyph'in denetleyicisinden geçiyordu; bu yüzden isteğe bağlı bir alandaki yazım hatası değerini atıyor ve bunu yalnızca <code>tsc</code> fark ediyordu. Artık editör, ajan araçları ve <code>glyph check --no-tsc</code> onu, aynı alanı okumanın verdiği hatayla reddediyor; <code>glyph fix</code> de <code>nik</code> adını <code>nick</code> olarak değiştiriyor.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar <span class="hint">nerede denetlendiği ve neyin dışarıda kaldığı</span></summary><div class="body">
         <p>
-          Bildirilen record'da olmayan bir alana sahip bir literal, Glyph'in checker'ından geçer; <code>tsc</code> ise onu üretilen TypeScript üzerinde <code>TS2353</code> olarak reddeder ve hata literal'in üzerine geri eşlenir.
+          Yazılmış bir literal'in bildirilmiş bir tiple karşılaştığı her yerde denetlenir: bir <code>let</code>, bir <code>return</code>, bir çağrı argümanı, bir variant payload'u, bir <code>mut</code> ataması, iç içe bir alan, bir dizi öğesi ve <code>tsc</code>'nin geçirdiği <code>Some</code>, <code>Ok</code> ya da <code>Err</code> argümanı. Daha geniş bir record tutan bir bağlama, <code>tsc</code>'nin kabul ettiği gibi hâlâ kabul edilir; spread'den gelen alanlar ve bir <code>Record&lt;K, V&gt;</code> için yazılmış anahtarlar da öyle.
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">20</span></h3>
 
           <p class="ak-st-group">Eşleştirme</p>
           <ul class="ak-list">
@@ -535,6 +532,7 @@ pub fn origin() -&gt; Point {
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>string</code>/<code>number</code>/<code>bool</code> beklenen yere geçirilen bildirilmiş bir union ya da record</span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Annotation'lı modül düzeyindeki bir <code>const</code> üzerinde alan yazım hatası</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bildirilen record'unda olmayan bir nesne literal'i anahtarı</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Her tipte değer eşitliği olarak <code>==</code></span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Bir map'ten key okumak reddedilir</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>find</code> ya da <code>at</code> gibi <code>undefined</code> döndüren yerleşik bir metot, <code>Option</code> karşılığı söylenerek reddedilir</span><span class="chip code">E0242</span><span class="chip since">0.1.161'den beri</span></span></li>
@@ -591,9 +589,9 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">Tipler, record'lar ve literal'ler</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Spread içeren bir literal'in tipi yok</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
-                <p>Spread içeren bir literal'in tipi yok ve fazladan bir alan hâlâ kabul ediliyor; oysa <code>tsc</code> taze bir literal üzerinde bunu TS2353 olarak reddediyor (G273).</p>
+                <p>Spread içeren bir literal'in tipi yoktur, bu yüzden eksik bir alan ya da yanlış tipte bir alan <code>tsc</code>'ye kalır. Spread'in yanına yazılmış bir anahtar yine de bildirilen record'a göre denetlenir.</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Import edilen bir <code>interface</code>'in üyeleri ve import edilen bir <code>const</code>'un tipi henüz sınırı geçmiyor</span></span>

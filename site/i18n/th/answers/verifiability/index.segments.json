@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "th",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "<code>const</code> ที่ไม่มี annotation ไม่ได้อ้างอะไรและตั้งใจให้เป็น <code>Unknown</code>: การอนุมานจาก initializer เป็นคำถามอีกข้อที่มีพื้นที่ของการเตือนผิดต่างออกไป การแก้ทั้งสองเป็น Breaking ภายใต้ <code>glyph check --no-tsc</code>, language server และ playground เพราะแต่ละอย่างเริ่มจับโปรแกรมที่รุ่นก่อนยอมรับ ส่วน <code>glyph build</code> เต็มแดงผ่าน <code>tsc</code> อยู่แล้วทั้งสองกรณี"
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "field ที่เกินมายังเป็นหน้าที่ของ <code>tsc</code>"
+      "en": "A field the record does not declare",
+      "tr": "field ที่ record ไม่ได้ประกาศไว้"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "การตรวจ record literal อย่างหนึ่งยังเป็นของ <code>tsc</code> ไม่ใช่ของ Glyph <code>glyph build</code> หยุดที่มัน ส่วน <code>glyph check --no-tsc</code>, language server และ playground ไม่บอกอะไร (G273)"
+      "en": "a misspelled optional field: now E0210",
+      "tr": "field ที่ไม่บังคับซึ่งสะกดผิด: ตอนนี้เป็น E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph: field ที่เกินมา ปล่อยให้ tsc"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "key ที่ record ที่ประกาศไว้ไม่มี เคยผ่าน checker ของ Glyph ไปได้ ดังนั้นการพิมพ์ผิดใน field ที่ไม่บังคับจึงทิ้งค่าของมันไป และมีแค่ <code>tsc</code> ที่สังเกตเห็น ตอนนี้ editor, เครื่องมือสำหรับ agent และ <code>glyph check --no-tsc</code> ปฏิเสธมัน ด้วย error เดียวกับการอ่าน field นั้น และ <code>glyph fix</code> จะเปลี่ยนชื่อ <code>nik</code> เป็น <code>nick</code>"
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "TS2353 จาก tsc"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "รายละเอียด <span class=\"hint\">ตรวจที่ไหน และอะไรที่ไม่ถูกตรวจ</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "รายละเอียด <span class=\"hint\">tsc รายงานอย่างไร</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "literal ที่มี field ที่ record ที่ประกาศไม่มี ผ่านตัวตรวจของ Glyph และ <code>tsc</code> ปฏิเสธมันบน TypeScript ที่ emit เป็น <code>TS2353</code> ซึ่ง map กลับมาที่ literal"
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "ตรวจในทุกที่ที่ literal ที่เขียนไว้พบกับ type ที่ประกาศไว้: <code>let</code>, <code>return</code>, argument ของการเรียก, payload ของ variant, การกำหนดค่าด้วย <code>mut</code>, field ที่ซ้อนกัน, element ของ array และ argument ของ <code>Some</code>, <code>Ok</code> หรือ <code>Err</code> ซึ่ง <code>tsc</code> ปล่อยผ่าน binding ที่เก็บ record ที่กว้างกว่ายังถูกยอมรับเหมือนที่ <code>tsc</code> ยอมรับ และ field ที่มาจาก spread กับ key ที่เขียนให้ <code>Record&lt;K, V&gt;</code> ก็เช่นกัน"
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "สถานะตอนนี้"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "ใช้ได้วันนี้ <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "ใช้ได้วันนี้ <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "field ที่พิมพ์ผิดบน <code>const</code> ระดับ module ที่มี annotation"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "key ของ object literal ที่ record ที่ประกาศไว้ไม่มี"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "ตอนนี้การตรวจคำผิด (<code>E0220</code>) ครอบคลุมทั้ง union ที่ประกาศใน module และตัวที่เข้าถึงผ่าน namespace import (<code>model.Nooo(_)</code>) ไม่ว่าจะเป็นรูป constructor หรือเปล่าๆ: จนถึง 0.1.115 หัวเปล่าที่สะกดผิดบน union ที่ import มา (<code>Loadign</code> ไม่มี argument) ถูกนับว่าครอบคลุม variant หนึ่งและไม่บอกอะไร ขณะที่คำผิดเดียวกันบน union ในเครื่องรายงาน <code>E0220</code> อยู่แล้ว ตอนนี้ทั้งสองแบบรายงาน arm เปล่าที่สะกดผิดยังไปโดน <code>E0103</code> ซึ่งอยู่ก่อนหนึ่งขั้นด้วย คุณจึงได้สองบรรทัดสำหรับชื่อเดียวกัน"
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "literal ที่มี spread ไม่มี type และ field ที่เกินมายังถูกยอมรับ"
+      "en": "A literal holding a spread has no type",
+      "tr": "literal ที่มี spread ไม่มี type"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "literal ที่มี spread ไม่มี type และ field ที่เกินมายังถูกยอมรับ ในขณะที่ <code>tsc</code> ปฏิเสธมันบน literal ที่สร้างใหม่เป็น TS2353 (G273)"
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "literal ที่มี spread ไม่มี type ดังนั้น field ที่ขาดไปหรือมี type ผิดจึงเป็นหน้าที่ของ <code>tsc</code> ส่วน key ที่เขียนไว้ข้าง spread ยังถูกตรวจเทียบกับ record ที่ประกาศไว้"
     },
     {
       "id": "h-cf31f508",

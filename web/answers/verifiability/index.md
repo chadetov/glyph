@@ -471,36 +471,32 @@ A module-level `const` carrying a type annotation lowered to `Ty::Unknown` no ma
 
 An unannotated `const` claims nothing and stays `Unknown` on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under `glyph check --no-tsc`, the language server and the playground, since each starts catching a program the previous release accepted; a full `glyph build` was already red through `tsc` in both cases.
 
-### An extra field is still `tsc`'s to catch
+### A field the record does not declare
 
-One record-literal check is still `tsc`'s and not Glyph's. `glyph build` stops on it; `glyph check --no-tsc`, the language server and the playground say nothing (G273).
-
-point.glyph: an extra field, left to tsc
+a misspelled optional field: now E0210
 
 ```
-module point
+module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -> Point {
-  return { x: 0, y: 0, z: 0 }   // [TS2353] 'z' does not exist in type 'Point'
+pub fn guest() -> Profile {
+  return { name: "guest", nik: "g" }   // [E0210] type `Profile` has no field `nik`; did you mean `nick`?
 }
 ```
 
-TS2353 from tsc
+A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only `tsc` noticed. The editor, the agent tools and `glyph check --no-tsc` refuse it now, with the error a read of the same field gives, and `glyph fix` renames `nik` to `nick`.
 
-- [G273](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md)
+**Details where it is judged, and what is left alone **
 
-**Details how tsc reports it **
-
-A literal with a field the declared record does not have passes Glyph's checker, and `tsc` refuses it on the emitted TypeScript as `TS2353`, mapped back onto the literal.
+It is judged wherever a written literal meets a declared type: a `let`, a `return`, a call argument, a variant payload, a `mut` assignment, a nested field, an array element, and the argument of `Some`, `Ok` or `Err`, which `tsc` lets through. A binding that holds a wider record is still accepted, as `tsc` accepts it, and so are fields that come from a spread and keys written for a `Record<K, V>`.
 
 ## Where it stands
 
-### Shipping today 19
+### Shipping today 20
 
 Matching
 
@@ -521,6 +517,7 @@ Types, records and literals
 
 - A declared union or record passed where a `string`/`number`/`bool` is expected E0211
 - A field typo on an annotated module-level `const` E0210
+- An object literal key its declared record does not have E0210
 - `==` as value equality on every type
 - Reading a key out of a map rejected E0224
 - A built-in method that answers `undefined`, such as `find` or `at`, refused with its `Option` form named E0242 since 0.1.161
@@ -577,12 +574,11 @@ Matching
 
 Types, records and literals
 
-- A literal holding a spread has no type, and an extra field is still accepted
-- [G273](https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md)
+- A literal holding a spread has no type
 
   **Details**
 
-  A literal holding a spread has no type, and an extra field is still accepted, where `tsc` refuses one on a fresh literal as TS2353 (G273).
+  A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to `tsc`. A key written beside the spread is still checked against the declared record.
 
 - An imported `interface`'s members and an imported `const`'s type don't cross yet
 

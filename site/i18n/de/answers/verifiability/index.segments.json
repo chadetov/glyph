@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "de",
-  "source_hash": "c7a4b93d61ceb50d",
+  "source_hash": "ff8d8a90eb6884ce",
   "segments": [
     {
       "id": "title",
@@ -857,40 +857,34 @@
       "tr": "Eine nicht annotierte <code>const</code> behauptet nichts und bleibt absichtlich <code>Unknown</code>: Den Typ aus dem Initialisierer abzuleiten ist eine andere Frage mit einer anderen Angriffsfläche für Fehlalarme. Beide Fixes sind Breaking unter <code>glyph check --no-tsc</code>, dem Language Server und dem Playground, da jeder anfängt, ein Programm zu finden, das das vorherige Release akzeptiert hat; ein vollständiger <code>glyph build</code> war in beiden Fällen über <code>tsc</code> schon rot."
     },
     {
-      "id": "h-cbab1648",
+      "id": "h-ec63b0ad",
       "kind": "html",
-      "en": "An extra field is still <code>tsc</code>'s to catch",
-      "tr": "Ein zusätzliches Feld zu finden bleibt Sache von <code>tsc</code>"
+      "en": "A field the record does not declare",
+      "tr": "Ein Feld, das der Record nicht deklariert"
     },
     {
-      "id": "h-ac6a4587",
+      "id": "h-abfc61bf",
       "kind": "html",
-      "en": "One record-literal check is still <code>tsc</code>'s and not Glyph's. <code>glyph build</code> stops on it; <code>glyph check --no-tsc</code>, the language server and the playground say nothing (G273).",
-      "tr": "Eine Prüfung von Record-Literalen gehört weiterhin <code>tsc</code> und nicht Glyph. <code>glyph build</code> bricht daran ab; <code>glyph check --no-tsc</code>, der Language Server und der Playground sagen nichts (G273)."
+      "en": "a misspelled optional field: now E0210",
+      "tr": "ein falsch geschriebenes optionales Feld: jetzt E0210"
     },
     {
-      "id": "h-b4f5f44a",
+      "id": "h-eafd5987",
       "kind": "html",
-      "en": "point.glyph: an extra field, left to tsc",
-      "tr": "point.glyph: ein zusätzliches Feld, tsc überlassen"
+      "en": "A key the declared record does not have used to pass Glyph's checker, so a typo in an optional field threw its value away and only <code>tsc</code> noticed. The editor, the agent tools and <code>glyph check --no-tsc</code> refuse it now, with the error a read of the same field gives, and <code>glyph fix</code> renames <code>nik</code> to <code>nick</code>.",
+      "tr": "Ein Schlüssel, den der deklarierte Record nicht hat, kam früher durch Glyphs Checker, sodass ein Tippfehler in einem optionalen Feld seinen Wert verwarf und nur <code>tsc</code> es bemerkte. Der Editor, die Agent-Werkzeuge und <code>glyph check --no-tsc</code> lehnen ihn jetzt ab, mit demselben Fehler wie beim Lesen dieses Felds, und <code>glyph fix</code> benennt <code>nik</code> in <code>nick</code> um."
     },
     {
-      "id": "h-500a7735",
+      "id": "h-72020bcc",
       "kind": "html",
-      "en": "TS2353 from tsc",
-      "tr": "TS2353 von tsc"
+      "en": "Details <span class=\"hint\">where it is judged, and what is left alone</span>",
+      "tr": "Details <span class=\"hint\">wo es geprüft wird und was unberührt bleibt</span>"
     },
     {
-      "id": "h-420c0512",
+      "id": "h-9b028b85",
       "kind": "html",
-      "en": "Details <span class=\"hint\">how tsc reports it</span>",
-      "tr": "Details <span class=\"hint\">wie tsc es meldet</span>"
-    },
-    {
-      "id": "h-ef7526a6",
-      "kind": "html",
-      "en": "A literal with a field the declared record does not have passes Glyph's checker, and <code>tsc</code> refuses it on the emitted TypeScript as <code>TS2353</code>, mapped back onto the literal.",
-      "tr": "Ein Literal mit einem Feld, das der deklarierte Record nicht hat, besteht Glyphs Checker, und <code>tsc</code> lehnt es am erzeugten TypeScript als <code>TS2353</code> ab, zurückgebildet auf das Literal."
+      "en": "It is judged wherever a written literal meets a declared type: a <code>let</code>, a <code>return</code>, a call argument, a variant payload, a <code>mut</code> assignment, a nested field, an array element, and the argument of <code>Some</code>, <code>Ok</code> or <code>Err</code>, which <code>tsc</code> lets through. A binding that holds a wider record is still accepted, as <code>tsc</code> accepts it, and so are fields that come from a spread and keys written for a <code>Record&lt;K, V&gt;</code>.",
+      "tr": "Geprüft wird überall, wo ein geschriebenes Literal auf einen deklarierten Typ trifft: ein <code>let</code>, ein <code>return</code>, ein Aufrufargument, eine Varianten-Payload, eine <code>mut</code>-Zuweisung, ein verschachteltes Feld, ein Array-Element und das Argument von <code>Some</code>, <code>Ok</code> oder <code>Err</code>, das <code>tsc</code> durchlässt. Eine Bindung, die einen breiteren Record hält, wird weiterhin akzeptiert, wie <code>tsc</code> sie akzeptiert, ebenso Felder aus einem Spread und Schlüssel, die für einen <code>Record&lt;K, V&gt;</code> geschrieben sind."
     },
     {
       "id": "h-b55f380c",
@@ -899,10 +893,10 @@
       "tr": "Wo es steht"
     },
     {
-      "id": "h-6ce312f0",
+      "id": "h-2bf5bdf7",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">19</span>",
-      "tr": "Heute verfügbar <span class=\"count\">19</span>"
+      "en": "Shipping today <span class=\"count\">20</span>",
+      "tr": "Heute verfügbar <span class=\"count\">20</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -987,6 +981,12 @@
       "kind": "html",
       "en": "A field typo on an annotated module-level <code>const</code>",
       "tr": "Ein Tippfehler in einem Feld einer annotierten <code>const</code> auf Modulebene"
+    },
+    {
+      "id": "h-9027fc8f",
+      "kind": "html",
+      "en": "An object literal key its declared record does not have",
+      "tr": "Ein Schlüssel in einem Objektliteral, den sein deklarierter Record nicht hat"
     },
     {
       "id": "h-10b714c5",
@@ -1151,16 +1151,16 @@
       "tr": "Die Tippfehlerprüfung (<code>E0220</code>) deckt jetzt eine im Modul deklarierte Union und eine über einen Namespace-Import erreichte (<code>model.Nooo(_)</code>) gleichermaßen ab, in Konstruktorform oder bloß: Bis 0.1.115 wurde ein bloßer falsch geschriebener Kopf über einer importierten Union (<code>Loadign</code>, ohne Argumente) als Abdeckung einer Variante gewertet und sagte nichts, wo derselbe Tippfehler bei einer lokalen Union schon <code>E0220</code> meldete; beide Schreibweisen melden es jetzt. Ein falsch geschriebener bloßer Arm löst außerdem <code>E0103</code> aus, eine Stufe früher, also bekommst du beide Zeilen für denselben Namen."
     },
     {
-      "id": "h-5ab756fd",
+      "id": "h-9e7c0768",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted",
-      "tr": "Ein Literal mit einem Spread hat keinen Typ, und ein zusätzliches Feld wird weiterhin akzeptiert"
+      "en": "A literal holding a spread has no type",
+      "tr": "Ein Literal mit einem Spread hat keinen Typ"
     },
     {
-      "id": "h-3a8ce517",
+      "id": "h-04b40f49",
       "kind": "html",
-      "en": "A literal holding a spread has no type, and an extra field is still accepted, where <code>tsc</code> refuses one on a fresh literal as TS2353 (G273).",
-      "tr": "Ein Literal mit einem Spread hat keinen Typ, und ein zusätzliches Feld wird weiterhin akzeptiert, wo <code>tsc</code> eins bei einem frischen Literal als TS2353 ablehnt (G273)."
+      "en": "A literal holding a spread has no type, so a field missing from it or holding the wrong type is left to <code>tsc</code>. A key written beside the spread is still checked against the declared record.",
+      "tr": "Ein Literal mit einem Spread hat keinen Typ, daher bleibt ein fehlendes Feld oder eines mit falschem Typ <code>tsc</code> überlassen. Ein neben dem Spread geschriebener Schlüssel wird trotzdem gegen den deklarierten Record geprüft."
     },
     {
       "id": "h-cf31f508",

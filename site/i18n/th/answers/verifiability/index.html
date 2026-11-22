@@ -1,7 +1,7 @@
 ---
 title: อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ? · Glyph
 description: การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้
-source_hash: c7a4b93d61ceb50d
+source_hash: ff8d8a90eb6884ce
 next: /answers/diff-stability/ | ถัดไป &rarr; | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 ---
       <p class="q-eyebrow">01 &middot; คำสัญญาหลัก</p>
@@ -485,34 +485,31 @@ fn f() -&gt; number {
         </p>
       </div></details>
 
-      <h3 class="ak-h3" id="extra-field">field ที่เกินมายังเป็นหน้าที่ของ <code>tsc</code><a class="ak-anchor" href="#extra-field" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
-      <p class="ak-lede">
-        การตรวจ record literal อย่างหนึ่งยังเป็นของ <code>tsc</code> ไม่ใช่ของ Glyph <code>glyph build</code> หยุดที่มัน ส่วน <code>glyph check --no-tsc</code>, language server และ playground ไม่บอกอะไร (G273)
-      </p>
+      <h3 class="ak-h3" id="extra-field">field ที่ record ไม่ได้ประกาศไว้<a class="ak-anchor" href="#extra-field" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
-        <span class="cap">point.glyph: field ที่เกินมา ปล่อยให้ tsc</span>
-<pre data-check="expect-error TS2353">module point
+        <span class="cap">field ที่ไม่บังคับซึ่งสะกดผิด: ตอนนี้เป็น E0210</span>
+<pre data-check="expect-error E0210">module profile
 
-pub type Point = {
-  x: number,
-  y: number,
+pub type Profile = {
+  name: string,
+  nick?: string,
 }
 
-pub fn origin() -&gt; Point {
-  return { x: 0, y: 0, z: 0 }   <span class="cm">// [TS2353] 'z' does not exist in type 'Point'</span>
+pub fn guest() -&gt; Profile {
+  return { name: "guest", nik: "g" }   <span class="cm">// [E0210] type `Profile` has no field `nik`; did you mean `nick`?</span>
 }</pre>
       </div>
-      <div class="ak-chips"><span class="chip ts">TS2353 จาก tsc</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></div>
-      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">tsc รายงานอย่างไร</span></summary><div class="body">
+      <p class="ak-lede">key ที่ record ที่ประกาศไว้ไม่มี เคยผ่าน checker ของ Glyph ไปได้ ดังนั้นการพิมพ์ผิดใน field ที่ไม่บังคับจึงทิ้งค่าของมันไป และมีแค่ <code>tsc</code> ที่สังเกตเห็น ตอนนี้ editor, เครื่องมือสำหรับ agent และ <code>glyph check --no-tsc</code> ปฏิเสธมัน ด้วย error เดียวกับการอ่าน field นั้น และ <code>glyph fix</code> จะเปลี่ยนชื่อ <code>nik</code> เป็น <code>nick</code></p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด <span class="hint">ตรวจที่ไหน และอะไรที่ไม่ถูกตรวจ</span></summary><div class="body">
         <p>
-          literal ที่มี field ที่ record ที่ประกาศไม่มี ผ่านตัวตรวจของ Glyph และ <code>tsc</code> ปฏิเสธมันบน TypeScript ที่ emit เป็น <code>TS2353</code> ซึ่ง map กลับมาที่ literal
+          ตรวจในทุกที่ที่ literal ที่เขียนไว้พบกับ type ที่ประกาศไว้: <code>let</code>, <code>return</code>, argument ของการเรียก, payload ของ variant, การกำหนดค่าด้วย <code>mut</code>, field ที่ซ้อนกัน, element ของ array และ argument ของ <code>Some</code>, <code>Ok</code> หรือ <code>Err</code> ซึ่ง <code>tsc</code> ปล่อยผ่าน binding ที่เก็บ record ที่กว้างกว่ายังถูกยอมรับเหมือนที่ <code>tsc</code> ยอมรับ และ field ที่มาจาก spread กับ key ที่เขียนให้ <code>Record&lt;K, V&gt;</code> ก็เช่นกัน
         </p>
       </div></details>
 
       <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">19</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">20</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -535,6 +532,7 @@ pub fn origin() -&gt; Point {
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">union หรือ record ที่ประกาศไว้ถูกส่งในที่ที่ต้องการ <code>string</code>/<code>number</code>/<code>bool</code></span><span class="chip code">E0211</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">field ที่พิมพ์ผิดบน <code>const</code> ระดับ module ที่มี annotation</span><span class="chip code">E0210</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">key ของ object literal ที่ record ที่ประกาศไว้ไม่มี</span><span class="chip code">E0210</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>==</code> เป็นความเท่ากันของค่าบนทุก type</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การอ่าน key จาก map ถูกปฏิเสธ</span><span class="chip code">E0224</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">เมธอดในตัวที่ตอบ <code>undefined</code> เช่น <code>find</code> หรือ <code>at</code> ถูกปฏิเสธ พร้อมบอกรูปแบบที่ใช้ <code>Option</code></span><span class="chip code">E0242</span><span class="chip since">ตั้งแต่ 0.1.161</span></span></li>
@@ -591,9 +589,9 @@ pub fn origin() -&gt; Point {
 
           <p class="ak-st-group">type, record และ literal</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">literal ที่มี spread ไม่มี type และ field ที่เกินมายังถูกยอมรับ</span><a class="chip gap" href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">G273</a></span>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">literal ที่มี spread ไม่มี type</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p>literal ที่มี spread ไม่มี type และ field ที่เกินมายังถูกยอมรับ ในขณะที่ <code>tsc</code> ปฏิเสธมันบน literal ที่สร้างใหม่เป็น TS2353 (G273)</p>
+                <p>literal ที่มี spread ไม่มี type ดังนั้น field ที่ขาดไปหรือมี type ผิดจึงเป็นหน้าที่ของ <code>tsc</code> ส่วน key ที่เขียนไว้ข้าง spread ยังถูกตรวจเทียบกับ record ที่ประกาศไว้</p>
               </div></details>
             </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">member ของ <code>interface</code> ที่ import มาและ type ของ <code>const</code> ที่ import มายังไม่ข้ามมา</span></span>

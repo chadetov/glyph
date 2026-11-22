@@ -2717,6 +2717,40 @@ mod tests {
         assert_eq!(idx.position(text, 7), (2, 0)); // "f"
     }
 
+    /// G435: hover, definition and diagnostics inside a `${}` land on the
+    /// text they name, after an earlier interpolation, an escape, `\${`,
+    /// non-ASCII text and a line break, and their UTF-16 positions agree.
+    #[test]
+    fn positions_inside_an_interpolation_land_on_their_text() {
+        let text = "module x\n\
+            type B = { nick: string, }\n\
+            fn f(b: B, count: number) -> string {\n  \
+            return \"\u{e9}\u{1F600} \\\" \\${x} ${b.nick}\nnext ${count} ${b.nik}\"\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let count = text.rfind("count}").unwrap();
+        assert_eq!(a.hover(text, count), Some("number".to_string()));
+        // One byte earlier is the `{`, which belongs to the string.
+        assert_eq!(a.hover(text, count - 1), Some("string".to_string()));
+        assert_eq!(a.hover(text, count + 4), Some("number".to_string()));
+        assert_eq!(a.hover(text, count + 5), Some("string".to_string()));
+        let decl = text.find("count:").unwrap() as u32;
+        match a.definition(count, text) {
+            Some(Definition::Here(s, _)) => assert_eq!(s, decl),
+            _ => panic!("no definition in this file for `count`"),
+        }
+        let diags = analyze(text);
+        let typo = diags.iter().find(|d| d.code == "E0210").expect("the E0210");
+        assert_eq!(&text[typo.start as usize..typo.end as usize], "b.nik");
+        let idx = LineIndex::new(text);
+        let (line, character) = idx.position(text, typo.start as usize);
+        assert_eq!((line, character), (4, 16));
+        assert_eq!(idx.offset(text, line, character), typo.start as usize);
+        let nick = text.find("b.nick}").unwrap();
+        let (line, character) = idx.position(text, nick);
+        assert_eq!((line, character), (3, 25), "the emoji counts two UTF-16 units");
+        assert_eq!(idx.offset(text, line, character), nick);
+    }
+
     #[test]
     fn hover_shows_expression_type() {
         let text = "module x\nfn f() -> number {\n  let n = 41\n  return n\n}\n";

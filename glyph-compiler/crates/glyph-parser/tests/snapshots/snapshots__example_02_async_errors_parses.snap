@@ -1218,21 +1218,21 @@ Module {
                                                         Text {
                                                             content: "/api/users/",
                                                             span: Span {
-                                                                start: 1627,
-                                                                end: 1645,
+                                                                start: 1628,
+                                                                end: 1639,
                                                             },
                                                         },
                                                         Expr {
                                                             value: Ident {
                                                                 name: "id",
                                                                 span: Span {
-                                                                    start: 1640,
-                                                                    end: 1642,
+                                                                    start: 1641,
+                                                                    end: 1643,
                                                                 },
                                                             },
                                                             span: Span {
-                                                                start: 1627,
-                                                                end: 1645,
+                                                                start: 1639,
+                                                                end: 1644,
                                                             },
                                                         },
                                                     ],
@@ -1387,28 +1387,28 @@ Module {
                                                         Text {
                                                             content: "/api/users/",
                                                             span: Span {
-                                                                start: 1763,
-                                                                end: 1792,
+                                                                start: 1764,
+                                                                end: 1775,
                                                             },
                                                         },
                                                         Expr {
                                                             value: Ident {
                                                                 name: "user_id",
                                                                 span: Span {
-                                                                    start: 1776,
-                                                                    end: 1783,
+                                                                    start: 1777,
+                                                                    end: 1784,
                                                                 },
                                                             },
                                                             span: Span {
-                                                                start: 1763,
-                                                                end: 1792,
+                                                                start: 1775,
+                                                                end: 1785,
                                                             },
                                                         },
                                                         Text {
                                                             content: "/posts",
                                                             span: Span {
-                                                                start: 1763,
-                                                                end: 1792,
+                                                                start: 1785,
+                                                                end: 1791,
                                                             },
                                                         },
                                                     ],
@@ -1579,28 +1579,28 @@ Module {
                                                         Text {
                                                             content: "/api/posts/",
                                                             span: Span {
-                                                                start: 1924,
-                                                                end: 1956,
+                                                                start: 1925,
+                                                                end: 1936,
                                                             },
                                                         },
                                                         Expr {
                                                             value: Ident {
                                                                 name: "post_id",
                                                                 span: Span {
-                                                                    start: 1937,
-                                                                    end: 1944,
+                                                                    start: 1938,
+                                                                    end: 1945,
                                                                 },
                                                             },
                                                             span: Span {
-                                                                start: 1924,
-                                                                end: 1956,
+                                                                start: 1936,
+                                                                end: 1946,
                                                             },
                                                         },
                                                         Text {
                                                             content: "/comments",
                                                             span: Span {
-                                                                start: 1924,
-                                                                end: 1956,
+                                                                start: 1946,
+                                                                end: 1955,
                                                             },
                                                         },
                                                     ],

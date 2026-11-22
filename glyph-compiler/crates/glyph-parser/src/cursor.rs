@@ -168,6 +168,11 @@ impl<'a> Cursor<'a> {
         self.buf[pos].lex_error.take()
     }
 
+    /// The whole source the cursor parses.
+    pub fn source(&self) -> &'a str {
+        self.source
+    }
+
     /// Slice the source between two byte offsets.
     pub fn slice(&self, start: u32, end: u32) -> &str {
         &self.source[start as usize..end as usize]

@@ -62,8 +62,9 @@ pub enum AbsentRepair {
 /// The expression a rewrite was planned against: its byte range and its
 /// shape. Before `glyph fix` writes, it re-parses the source at that range
 /// and declines unless the result has the same shape, so a range that has
-/// drifted from its node (record 159, B1: spans inside a `${}` start one
-/// column early) declines instead of splicing into the wrong text.
+/// drifted from its node (record 159, B1: until G435, spans inside a `${}`
+/// started one column early) declines instead of splicing into the wrong
+/// text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeShape {
     pub start: u32,

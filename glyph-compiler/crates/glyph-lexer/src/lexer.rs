@@ -32,6 +32,29 @@ pub struct Lexer<'a> {
     pos: usize,
     bracket_depth: u32,
     comments: Vec<Comment>,
+    /// When set, every character a string literal's value gains is noted
+    /// here with the source bytes it came from (see [`string_char_spans`]).
+    char_spans: Option<Vec<(u32, u32)>>,
+}
+
+/// The source bytes behind each character of the value of the string literal
+/// that starts at byte `start` of `source`, in order: `(start, end)` per
+/// character, absolute in `source`. An escape's character spans the whole
+/// escape (`\n` is two bytes), and the two characters of an
+/// [`ESCAPED_DOLLAR`](crate::ESCAPED_DOLLAR) pair share the bytes of the one
+/// character they stand for. `None` when no string literal lexes there.
+///
+/// It runs the lexer's own string scan, so it cannot disagree with the value
+/// the token carries. The parser uses it to place the expressions inside a
+/// `${...}` at the bytes they were written at (G435).
+pub fn string_char_spans(source: &str, start: usize) -> Option<Vec<(u32, u32)>> {
+    if source.as_bytes().get(start) != Some(&b'"') {
+        return None;
+    }
+    let mut lexer = Lexer::at(source, start, LexState::default());
+    lexer.char_spans = Some(Vec::new());
+    lexer.lex_string(start).ok()?;
+    lexer.char_spans
 }
 
 impl<'a> Lexer<'a> {
@@ -49,6 +72,7 @@ impl<'a> Lexer<'a> {
             pos: offset.min(source.len()),
             bracket_depth: state.bracket_depth,
             comments: Vec::new(),
+            char_spans: None,
         }
     }
 
@@ -229,6 +253,7 @@ impl<'a> Lexer<'a> {
                         return Err(LexError::UnterminatedString { offset: start as u32 });
                     };
                     self.advance();
+                    let before = content.len();
                     match esc {
                         b'n' => content.push('\n'),
                         b't' => content.push('\t'),
@@ -291,6 +316,8 @@ impl<'a> Lexer<'a> {
                             });
                         }
                     }
+                    let added = content[before..].chars().count();
+                    self.note_chars(added, escape_offset as usize, self.pos);
                 }
                 _ => {
                     // D12: embedded raw newlines preserved verbatim.
@@ -301,8 +328,11 @@ impl<'a> Lexer<'a> {
                         }
                         self.advance();
                     }
-                    for c in self.source[bytes_start..self.pos].chars() {
+                    for (at, c) in self.source[bytes_start..self.pos].char_indices() {
                         crate::push_literal(&mut content, c);
+                        let from = bytes_start + at;
+                        let n = if c == crate::ESCAPED_DOLLAR { 2 } else { 1 };
+                        self.note_chars(n, from, from + c.len_utf8());
                     }
                 }
             }
@@ -558,8 +588,11 @@ impl<'a> Lexer<'a> {
             };
             if ch == b'"' && self.peek_at(1) == Some(b'"') && self.peek_at(2) == Some(b'"') {
                 let mut content = String::new();
-                for c in self.source[content_start..self.pos].chars() {
+                for (at, c) in self.source[content_start..self.pos].char_indices() {
                     crate::push_literal(&mut content, c);
+                    let from = content_start + at;
+                    let n = if c == crate::ESCAPED_DOLLAR { 2 } else { 1 };
+                    self.note_chars(n, from, from + c.len_utf8());
                 }
                 self.advance();
                 self.advance();
@@ -568,6 +601,14 @@ impl<'a> Lexer<'a> {
                 return Ok(self.spanned(Token::String(content), start, end));
             }
             self.advance();
+        }
+    }
+
+    /// Note `n` characters of a string's value as coming from source bytes
+    /// `start..end`, when [`string_char_spans`] is collecting them.
+    fn note_chars(&mut self, n: usize, start: usize, end: usize) {
+        if let Some(spans) = &mut self.char_spans {
+            spans.extend(std::iter::repeat_n((start as u32, end as u32), n));
         }
     }
 

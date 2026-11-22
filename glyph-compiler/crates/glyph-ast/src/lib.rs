@@ -478,11 +478,9 @@ pub enum Expr {
         span: Span,
     },
     /// D22 template literal: `"hello ${name}, count is ${n + 1}"` parses to
-    /// a `TemplateString` with alternating `Text` and `Expr` parts.
-    ///
-    /// **V1 limitation**: literal `${` requires concatenation workaround
-    /// because `\${` and `${` lex to the same content. Will be fixed when the
-    /// lexer gains a proper template-literal mode (v1.1).
+    /// a `TemplateString` with alternating `Text` and `Expr` parts. A `\${`
+    /// is literal text. Each part's span, and every span inside an `Expr`
+    /// part, is the source text it was written as (G435).
     TemplateString {
         parts: Vec<TemplatePart>,
         span: Span,

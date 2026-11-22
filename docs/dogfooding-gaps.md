@@ -14586,15 +14586,14 @@ and is the owner's to confirm.
   checker types `set.Set<T>`, `store.Store<T>` and `collections.Deque<T>`,
   their four constructors and their member tables, so both `let` annotations
   above are E0204, `seen.add(5)` is E0211 and `seen.nope()` is E0210. The
-  claim this entry makes still holds in full until step 2 (0.1.164) marks the
+  claim this entry makes still holds in full until step 2 (0.1.166) marks the
   writing members: no member is classified as changing its receiver yet, and
-  the pin above still passes. Two things step 2 has to know. An unannotated
-  `const` is `Unknown` by a standing lowering rule, so `const HITS =
-  store.create(0)` reads nothing off `HITS`; most of the ~50 corpus sites
-  (auth_api's `repo.glyph` and `clock.glyph`, csvql's `cursor` and `tokens`,
-  resilient's three counters) are declared that way, and marking the members
-  will not reach them while the rule stands. The local and parameter sites
-  (workflow, linkcheck, depsolve, resilient's client) are typed now.
+  the pin above still passes. An unannotated `const` is `Unknown` until G433
+  (0.1.165), so `const HITS = store.create(0)` reads nothing off `HITS`; most
+  of the ~50 corpus sites (auth_api's `repo.glyph` and `clock.glyph`, csvql's
+  `cursor` and `tokens`, resilient's three counters) are declared that way,
+  which is why record 158 puts G433 before step 2. The local and parameter
+  sites (workflow, linkcheck, depsolve, resilient's client) are typed now.
 
   *Reproduced against 0.1.161 (the published release) with record 157's probe
   b01: `check --no-tsc` exits 0 with only an E0107 warning; the 0.1.163 branch
@@ -14782,3 +14781,37 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the dev build): `--no-tsc` reports no
   diagnostics; `array.len([1])` without its import is E0103.*
+
+- **G433. An unannotated module `const` is typed `Unknown`, so nothing read
+  off it is checked.** `const ITEMS = [1, 2]` then a bare `ITEMS.push(3)`
+  draws no E0240, `const CFG = { n: 1, }` then `let x: string = CFG.n` draws
+  no E0204, and `const S = store.create(0)` then `let y: string = S.get()`
+  draws nothing, while the same program with an annotated `const` or a `let`
+  reports each. `lower.rs` keeps an unannotated `const` `Unknown` on purpose,
+  so D5's audit and every other check is silent for the most common way a
+  module holds shared state, and the guarantee depends on which binding form
+  the author used. The rule (decision record 158, F-A): an unannotated
+  `const` has its initializer's type under `tsc`'s `const` widening, a
+  top-level fresh string literal keeping its literal type and literals
+  inside an object or array widening; an undecidable initializer stays
+  `Unknown`; an imported `pub const` gets the same type under both import
+  spellings. Breaking. Found by record 158 (probe r04).
+
+  *Reproduced against 0.1.161 (the published release) and the 0.1.163 branch
+  build with record 158's probe r04: the three unannotated lines draw nothing
+  under `check --no-tsc`, and `let z: string = S2.get()` on the annotated
+  `const S2: store.Store<number>` is E0204.*
+
+- **G434. E0211 between two function types names neither of them.** Passing
+  `fn(v: string) -> string { return v }` where a `fn(number) -> number` is
+  declared reports ``argument type mismatch: expected `function`, found
+  `function` ``, because `ty_display` renders every `Ty::Fn` as `function`.
+  The message names no type, which is what the G75 rule exists to prevent,
+  and an agent cannot tell from it which side is wrong. Render a function
+  type as its signature (`fn(string) -> string`). Found by record 158 (probes
+  r02 and r03).
+
+  *Reproduced against 0.1.161 (the published release) and the 0.1.163 branch
+  build: `n.update(fn(v: string) -> string { return v })` on a
+  `store.Store<number>` and `apply(fn(v: string) -> string { return v })`
+  both print ``expected `function`, found `function` ``.*

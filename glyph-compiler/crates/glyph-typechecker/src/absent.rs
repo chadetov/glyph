@@ -43,6 +43,7 @@ pub enum AbsentRepair {
         edits: Vec<(u32, u32, String)>,
         binding: String,
         import: Option<&'static str>,
+        node: NodeShape,
     },
     /// Byte-range edits applied together, like `Rewrite`, that change what
     /// the expression's type is (an E0236 `??` becomes a `match`, G429), so
@@ -52,9 +53,49 @@ pub enum AbsentRepair {
     Checked {
         edits: Vec<(u32, u32, String)>,
         what: String,
+        node: NodeShape,
     },
     /// The repair is not determined, and why.
     Decline(String),
+}
+
+/// The expression a rewrite was planned against: its byte range and its
+/// shape. Before `glyph fix` writes, it re-parses the source at that range
+/// and declines unless the result has the same shape, so a range that has
+/// drifted from its node (record 159, B1: spans inside a `${}` start one
+/// column early) declines instead of splicing into the wrong text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeShape {
+    pub start: u32,
+    pub end: u32,
+    pub shape: String,
+}
+
+impl NodeShape {
+    pub fn of(e: &Expr) -> NodeShape {
+        let span = e.span();
+        NodeShape { start: span.start, end: span.end, shape: expr_shape(e) }
+    }
+}
+
+/// An expression's structure with every position left out: its `Debug`
+/// form with each `Span { .. }` removed, so the same text parsed at another
+/// offset has the same shape.
+pub fn expr_shape(e: &Expr) -> String {
+    let debug = format!("{e:?}");
+    let mut out = String::with_capacity(debug.len());
+    let mut rest = debug.as_str();
+    while let Some(i) = rest.find("Span { start: ") {
+        out.push_str(&rest[..i]);
+        match rest[i..].find('}') {
+            Some(j) => rest = &rest[i + j + 1..],
+            None => {
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The `??` a refused call is the left operand of, for the `match` the help
@@ -69,6 +110,11 @@ pub(crate) struct Default {
 
 /// The call E0242 refuses, as written.
 pub(crate) struct AbsentCall<'a> {
+    /// The call expression itself.
+    pub node: &'a Expr,
+    /// Whether the call is inside a `${}`, where the rewrite's multi-line
+    /// `match` is not laid out (record 159, B1).
+    pub in_template: bool,
     pub receiver: BuiltinReceiver,
     pub method: &'a str,
     pub recv: &'a Expr,
@@ -215,6 +261,12 @@ pub(crate) fn absent_call(c: &AbsentCall, module: &Module) -> (String, String, A
             AbsentRepair::Decline("no `Option` spelling is known for this method".to_string()),
         ),
     };
+    // A `match` is not written inside a `${}`: the help hoists it.
+    let help = if c.in_template && c.default.is_some() {
+        format!("{help}; inside a `${{}}`, bind the `match` before the string with `let t =`, then interpolate `${{t}}`")
+    } else {
+        help
+    };
     (message, help, repair)
 }
 
@@ -264,6 +316,13 @@ fn rewrite(
              the program prints with every check passing, so the help names the call"
         ));
     }
+    if c.in_template {
+        return AbsentRepair::Decline(
+            "the call is inside a `${}`, where the rewrite's `match` is not laid out; bind it with `let` before the \
+             string, as the help writes, then interpolate the name"
+                .to_string(),
+        );
+    }
     if c.optional {
         return AbsentRepair::Decline(format!(
             "the call is written `?.`, so the receiver may be missing, and `{}.{f}` needs it present; \
@@ -298,6 +357,7 @@ fn rewrite(
         edits,
         binding: ns.name.clone(),
         import: (!ns.imported).then_some(ns.path),
+        node: NodeShape::of(c.node),
     }
 }
 

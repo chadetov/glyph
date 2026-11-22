@@ -142,6 +142,11 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
             if dead_count == 0 {
                 continue;
             }
+            // The import's own span, read off this parse, must still be an
+            // `import` in the text: the same guard the diagnostic rules get.
+            if !source.get(imp.span.start as usize..).is_some_and(|t| t.starts_with("import")) {
+                continue;
+            }
             if dead_count == names.len() {
                 let (start, end) = full_line_span(&source, imp.span.start, imp.span.end);
                 edits.push((start, end, String::new()));
@@ -367,7 +372,7 @@ fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport)
         }
     }
     // Per file, each rewrite's edits and the line that says what it changes.
-    type Rewrites = Vec<(Vec<Edit>, String)>;
+    type Rewrites = Vec<(Vec<Edit>, String, glyph_typechecker::absent::NodeShape)>;
     let targets: Vec<(PathBuf, Rewrites)> = before
         .iter()
         .map(|(path, diags)| {
@@ -375,8 +380,8 @@ fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport)
                 .iter()
                 .filter(|d| d.code == "E0236")
                 .filter_map(|d| match &d.repair {
-                    Some(glyph_typechecker::AbsentRepair::Checked { edits, what }) => {
-                        Some((edits.clone(), what.clone()))
+                    Some(glyph_typechecker::AbsentRepair::Checked { edits, what, node }) => {
+                        Some((edits.clone(), what.clone(), node.clone()))
                     }
                     _ => None,
                 })
@@ -390,7 +395,15 @@ fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport)
         let source = std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         let file_before = before.get(&path).cloned().unwrap_or_default();
         let mut kept: Vec<Edit> = Vec::new();
-        for (edits, what) in rewrites {
+        // Reverted rewrites, with the new error's offset in `source` (or
+        // its position elsewhere, already final), reported once the file
+        // as written is known.
+        let mut reverted: Vec<(String, Option<u32>, String)> = Vec::new();
+        for (edits, what, node) in rewrites {
+            if !node_holds(&source, &node) {
+                report.declined.push(Declined { code: "E0236".to_string(), file: path.clone(), why: NODE_DRIFT.to_string() });
+                continue;
+            }
             let overlaps = edits
                 .iter()
                 .any(|(s, e, _)| kept.iter().any(|(ks, ke, _)| s < ke && ks < e && !(s == e && ks == ke)));
@@ -415,27 +428,42 @@ fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport)
             }
             std::fs::write(&path, &candidate).map_err(|e| format!("{}: {e}", path.display()))?;
             let new_error = match crate::check::check_path(src, false, false) {
-                Ok(after) => {
-                    first_new_error(&source, &file_before, &elsewhere_before, &candidate_edits, &path, files, &after)
-                }
-                Err(e) => Some(format!("the tree no longer checks ({e})")),
+                Ok(after) => first_new_error(&source, &file_before, &elsewhere_before, &candidate_edits, &path, files, &after),
+                Err(e) => Some(NewError { what: format!("the tree no longer checks ({e})"), offset: None, place: String::new() }),
             };
             match new_error {
                 None => {
                     kept = candidate_edits;
                     report.applied.push(Applied { code: "E0236".to_string(), file: path.clone(), what });
                 }
-                Some(error) => report.declined.push(Declined {
-                    code: "E0236".to_string(),
-                    file: path.clone(),
-                    why: format!(
-                        "the rewrite gives the expression its payload's type, and the check then reports {error}, \
-                         so it was reverted; the help names the `match` to write"
-                    ),
-                }),
+                Some(e) => {
+                    // An offset in the candidate text is carried back into
+                    // `source`, so the line reported is one the file has.
+                    let offset = e.offset.map(|o| unmap_offset(&candidate_edits, o));
+                    reverted.push((e.what, offset, e.place));
+                }
             }
         }
         let settled = apply_edits(&source, kept.clone());
+        let file_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        for (what, offset, place) in reverted {
+            let place = match offset {
+                Some(o) => {
+                    let at = map_offset(&kept, o) as usize;
+                    let line = settled[..at.min(settled.len())].matches('\n').count() + 1;
+                    format!(" ({file_name}:{line})")
+                }
+                None => place,
+            };
+            report.declined.push(Declined {
+                code: "E0236".to_string(),
+                file: path.clone(),
+                why: format!(
+                    "the rewrite gives the expression its payload's type, and the check then reports {what}{place}, \
+                     so it was reverted; the help names the `match` to write"
+                ),
+            });
+        }
         std::fs::write(&path, &settled).map_err(|e| format!("{}: {e}", path.display()))?;
         if !kept.is_empty() && !report.changed.iter().any(|c| same_file(c, &path)) {
             report.changed.push(path.clone());
@@ -444,8 +472,52 @@ fn apply_checked_rewrites(src: &Path, files: &[PathBuf], report: &mut FixReport)
     Ok(())
 }
 
+/// An error a rewrite introduced: `[code] message`, and where it is.
+struct NewError {
+    what: String,
+    /// Its byte offset in the rewritten file, when it is in that file.
+    offset: Option<u32>,
+    /// ` (file:line)` for an error in another file, which no edit moved.
+    place: String,
+}
+
+/// `offset` in the text `edits` (sorted, applied to `source`) produce,
+/// carried back into `source`: an offset inside an edit's new text is the
+/// edit's start.
+fn unmap_offset(edits: &[Edit], offset: u32) -> u32 {
+    let mut shift: i64 = 0;
+    for (s, e, text) in edits {
+        let new_start = *s as i64 + shift;
+        let new_end = new_start + text.len() as i64;
+        if (offset as i64) < new_start {
+            break;
+        }
+        if (offset as i64) < new_end {
+            return *s;
+        }
+        shift += text.len() as i64 - (*e as i64 - *s as i64);
+    }
+    (offset as i64 - shift).max(0) as u32
+}
+
+/// `offset` in `source`, carried forward through `edits` (sorted): an
+/// offset inside a replaced range lands at the start of its new text.
+fn map_offset(edits: &[Edit], offset: u32) -> u32 {
+    let mut shift: i64 = 0;
+    for (s, e, text) in edits {
+        if offset < *s {
+            break;
+        }
+        if offset < *e {
+            return (*s as i64 + shift) as u32;
+        }
+        shift += text.len() as i64 - (*e as i64 - *s as i64);
+    }
+    (offset as i64 + shift).max(0) as u32
+}
+
 /// The first error the check `after` reports that the tree did not have
-/// before the edits, as `[code] message (file:line)`, or `None`.
+/// before the edits, or `None`.
 fn first_new_error(
     source: &str,
     file_before: &[Diagnostic],
@@ -454,7 +526,7 @@ fn first_new_error(
     path: &Path,
     files: &[PathBuf],
     after: &crate::check::CheckReport,
-) -> Option<String> {
+) -> Option<NewError> {
     let mut here = Vec::new();
     let mut elsewhere = Vec::new();
     for d in &after.structured {
@@ -479,11 +551,14 @@ fn first_new_error(
             None => new_elsewhere.push(d),
         }
     }
-    introduced
-        .into_iter()
-        .chain(new_elsewhere)
-        .find(|d| d.severity == "error")
-        .map(|d| format!("[{}] {} ({}:{})", d.code, d.message, d.file, d.range.start.line))
+    if let Some(d) = introduced.into_iter().find(|d| d.severity == "error") {
+        return Some(NewError { what: format!("[{}] {}", d.code, d.message), offset: Some(d.range.start.offset), place: String::new() });
+    }
+    new_elsewhere.into_iter().find(|d| d.severity == "error").map(|d| NewError {
+        what: format!("[{}] {}", d.code, d.message),
+        offset: None,
+        place: format!(" ({}:{})", d.file, d.range.start.line),
+    })
 }
 
 /// Each edit's newlines continued at the indentation of the line the edit
@@ -556,9 +631,14 @@ fn fix_one_file(
     // Imports a rule added, one per module path however many rewrites need it.
     let mut imports: Vec<(u32, u32, String)> = Vec::new();
 
+    // Every rule below edits at the range its diagnostic carries, so a
+    // repair a rule did plan is held to the node that range names before it
+    // is written; a rule's own reason to decline comes first.
+    let index = SpanIndex::new(&module);
     for d in diags {
+        let guard = index.holds(&source, d);
         match d.code.as_str() {
-            "E0220" => match plan_e0220(&source, &module, d, diags, coverage) {
+            "E0220" => match plan_e0220(&source, &module, d, diags, coverage).and_then(|v| guard.clone().map(|()| v)) {
                 Ok(edit) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -573,7 +653,7 @@ fn fix_one_file(
                     why,
                 }),
             },
-            "E0210" => match plan_e0210(&source, d) {
+            "E0210" => match plan_e0210(&source, d).and_then(|v| guard.clone().map(|()| v)) {
                 Ok((start, end, name, site)) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -588,7 +668,7 @@ fn fix_one_file(
                     why,
                 }),
             },
-            "E0240" => match plan_e0240(&source, d) {
+            "E0240" => match plan_e0240(&source, d).and_then(|v| guard.clone().map(|()| v)) {
                 Ok(edit) => {
                     applied.push(Applied {
                         code: d.code.clone(),
@@ -603,7 +683,7 @@ fn fix_one_file(
                     why,
                 }),
             },
-            "E0242" => match plan_e0242(&source, d, &edits, &imports) {
+            "E0242" => match plan_e0242(&source, d, &edits, &imports).and_then(|v| guard.clone().map(|()| v)) {
                 Ok((rewrite, import)) => {
                     let what = match &import {
                         Some(i) => format!("wrote the `Option` form of the call, and `{}`", i.2.trim()),
@@ -723,6 +803,156 @@ fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
 /// A byte-range replacement in a file: `(start, end, text)`.
 type Edit = (u32, u32, String);
 
+/// Why a rewrite declines when the source at its node's range no longer
+/// parses to that node (record 159, B1).
+const NODE_DRIFT: &str = "the diagnostic's range does not hold the expression the rewrite was planned \
+     against, so writing it would splice into the wrong text; the help names the change";
+
+// ---------------------------------------------------------------------------
+// The range guard
+// ---------------------------------------------------------------------------
+
+/// Every node of a parsed module that carries a span, read off the module's
+/// `Debug` form: each node's span and its shape (its `Debug` text with the
+/// spans removed), for the guard every diagnostic-driven rule passes before
+/// it edits (record 159, B1; record 160).
+///
+/// A rule edits at the byte range its diagnostic carries. If that range
+/// has drifted from the node it names (spans inside a `${}` start one column
+/// early, G435), the rule writes into the wrong text and the result can
+/// pass every check. So before a rule reads a range, the range must be the
+/// span of a node in this parse; when the text there parses as an
+/// expression, it must parse to that node's shape. A node whose text does
+/// not parse as an expression (a pattern, a JSX attribute) is accepted
+/// outside a template string and declined inside one, since that is where
+/// spans are known to drift.
+struct SpanIndex {
+    /// (start, end, variant name, shape) per node.
+    nodes: Vec<(u32, u32, String, String)>,
+}
+
+impl SpanIndex {
+    fn new(module: &glyph_ast::Module) -> SpanIndex {
+        let debug = format!("{module:?}");
+        let bytes = debug.as_bytes();
+        let mut close_of: std::collections::HashMap<usize, usize> = std::collections::HashMap::new();
+        let mut stack: Vec<usize> = Vec::new();
+        let mut hits: Vec<(u32, u32, usize)> = Vec::new();
+        let mut in_str = false;
+        let mut i = 0;
+        const KEY: &str = "span: Span { start: ";
+        while i < bytes.len() {
+            let c = bytes[i];
+            if in_str {
+                match c {
+                    b'\\' => i += 1,
+                    b'"' => in_str = false,
+                    _ => {}
+                }
+                i += 1;
+                continue;
+            }
+            match c {
+                b'"' => in_str = true,
+                b'{' | b'(' | b'[' => stack.push(i),
+                b'}' | b')' | b']' => {
+                    if let Some(open) = stack.pop() {
+                        close_of.insert(open, i);
+                    }
+                }
+                b's' if debug[i..].starts_with(KEY) && i >= 2 && (bytes[i - 1] == b' ') && matches!(bytes[i - 2], b',' | b'{') => {
+                    let rest = &debug[i + KEY.len()..];
+                    let start: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+                    let after = &rest[start.len()..];
+                    if let Some(end_text) = after.strip_prefix(", end: ") {
+                        let end: String = end_text.chars().take_while(|c| c.is_ascii_digit()).collect();
+                        if let (Ok(s), Ok(e), Some(&open)) = (start.parse(), end.parse(), stack.last()) {
+                            if bytes[open] == b'{' {
+                                hits.push((s, e, open));
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        let nodes = hits
+            .into_iter()
+            .filter_map(|(s, e, open)| {
+                let close = *close_of.get(&open)?;
+                let head = debug[..open].trim_end();
+                let name_start = head
+                    .rfind(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+                    .map(|j| j + 1)
+                    .unwrap_or(0);
+                let name = head[name_start..].to_string();
+                Some((s, e, name, strip_spans(&debug[name_start..=close])))
+            })
+            .collect();
+        SpanIndex { nodes }
+    }
+
+    /// `Ok` when the diagnostic's range is a node's span and the text there
+    /// is that node; otherwise why the rule declines.
+    fn holds(&self, source: &str, d: &Diagnostic) -> Result<(), String> {
+        let (s, e) = (d.range.start.offset, d.range.end.offset);
+        let at: Vec<&(u32, u32, String, String)> = self.nodes.iter().filter(|n| n.0 == s && n.1 == e).collect();
+        if at.is_empty() {
+            return Err(NODE_DRIFT.to_string());
+        }
+        let parsed = source
+            .get(s as usize..e as usize)
+            .and_then(|slice| glyph_parser::parse_expression(slice).ok())
+            .map(|x| glyph_typechecker::absent::expr_shape(&x));
+        if let Some(shape) = &parsed {
+            if at.iter().any(|n| &n.3 == shape) {
+                return Ok(());
+            }
+        }
+        let in_template = self.nodes.iter().any(|n| n.2 == "TemplateString" && n.0 <= s && e <= n.1);
+        // A name an expression shares with a pattern (`Ident`, `Object`,
+        // `Array`) or a JSX attribute (`String`) does not say which the node
+        // is.
+        let surely_expr = at.iter().any(|n| {
+            matches!(
+                n.2.as_str(),
+                "Number" | "TemplateString" | "Bool" | "Void" | "Binary" | "Unary" | "Postfix" | "Call"
+                    | "Member" | "Index" | "Await" | "New" | "Match" | "Lambda" | "Extern"
+            )
+        });
+        if in_template || surely_expr {
+            return Err(NODE_DRIFT.to_string());
+        }
+        Ok(())
+    }
+}
+
+/// `Debug` text with every `Span { .. }` removed.
+fn strip_spans(debug: &str) -> String {
+    let mut out = String::with_capacity(debug.len());
+    let mut rest = debug;
+    while let Some(i) = rest.find("Span { start: ") {
+        out.push_str(&rest[..i]);
+        match rest[i..].find('}') {
+            Some(j) => rest = &rest[i + j + 1..],
+            None => rest = "",
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Whether `source` at the node's range parses to an expression of the
+/// node's shape, the guard every planned rewrite passes before it is
+/// written.
+fn node_holds(source: &str, node: &glyph_typechecker::absent::NodeShape) -> bool {
+    let Some(slice) = source.get(node.start as usize..node.end as usize) else {
+        return false;
+    };
+    glyph_parser::parse_expression(slice).is_ok_and(|e| glyph_typechecker::absent::expr_shape(&e) == node.shape)
+}
+
 /// The rewrite the checker attached to an E0242, plus the import it needs
 /// (G392, D56).
 ///
@@ -740,7 +970,12 @@ fn plan_e0242(
     imports: &[(u32, u32, String)],
 ) -> Result<(Vec<Edit>, Option<Edit>), String> {
     let (edits, binding, import) = match &d.repair {
-        Some(glyph_typechecker::AbsentRepair::Rewrite { edits, binding, import }) => (edits, binding, *import),
+        Some(glyph_typechecker::AbsentRepair::Rewrite { edits, binding, import, node }) => {
+            if !node_holds(source, node) {
+                return Err(NODE_DRIFT.to_string());
+            }
+            (edits, binding, *import)
+        }
         Some(glyph_typechecker::AbsentRepair::Decline(why)) => return Err(why.clone()),
         Some(glyph_typechecker::AbsentRepair::Checked { .. }) | None => return Err("the checker attached no rewrite to this diagnostic".to_string()),
     };

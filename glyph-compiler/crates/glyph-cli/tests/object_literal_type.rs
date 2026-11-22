@@ -458,16 +458,13 @@ const ACCEPTED: &[Program] = &[
     },
 ];
 
-/// The excess-property policy, which this change does not touch and must not.
-///
-/// TypeScript refuses an undeclared key on a fresh object literal (TS2353) and
-/// Glyph accepts it: width subtyping is the rule the record comparison
-/// applies, so an extra field on the value's side is fine. That divergence
-/// predates G232 and widening the rule to cover it is a separate decision
-/// about a shape with no missing field in it. Pinned here so the policy cannot
-/// change without this test saying so.
-const EXTRA_FIELDS_ACCEPTED: &[Program] = &[Program {
-    name: "extra_fields",
+/// The width-subtyping half of the record rule, which D57 (G273) left in
+/// place: a value of a wider record type, whether a binding or a spread, is
+/// accepted where the narrower record is declared, as `tsc` accepts it. Only
+/// a key written in the literal itself is held to the declared fields, and
+/// that refusal is pinned in `literal_fields.rs`.
+const WIDER_VALUES_ACCEPTED: &[Program] = &[Program {
+    name: "wider_values",
     modules: &[(
         "main.glyph",
         "module main\n\
@@ -476,9 +473,11 @@ const EXTRA_FIELDS_ACCEPTED: &[Program] = &[Program {
          interface Named { name: string }\n\
          fn takes(n: Named) -> string { return n.name }\n\
          fn main() -> void {\n\
-         \x20 let u: User = { name: \"a\", age: 1, extra: true }\n\
-         \x20 io.println(takes({ name: \"b\", age: 2 }))\n\
-         \x20 io.println(u.name)\n\
+         \x20 let wide = { name: \"a\", age: 1, extra: true }\n\
+         \x20 let u: User = wide\n\
+         \x20 let s: User = { ...wide }\n\
+         \x20 io.println(takes(u))\n\
+         \x20 io.println(s.name)\n\
          }\n",
     )],
 }];
@@ -576,7 +575,7 @@ fn the_refusal_names_the_declared_type_in_json() {
 /// cannot do: a rule that starts refusing correct programs shows up only here.
 #[test]
 fn the_accepted_corpus_draws_no_glyph_diagnostic() {
-    for program in ACCEPTED.iter().chain(EXTRA_FIELDS_ACCEPTED) {
+    for program in ACCEPTED.iter().chain(WIDER_VALUES_ACCEPTED) {
         let root = stage(program);
         let (ok, text) = run_check(&root, &["--no-tsc", "--no-test"]);
         let diags: Vec<&str> = text.lines().filter(|l| l.starts_with('[')).collect();
@@ -591,17 +590,13 @@ fn the_accepted_corpus_draws_no_glyph_diagnostic() {
 
 /// And the emitted TypeScript compiles, which is what makes the silence above
 /// agreement with `tsc` rather than a second blind spot.
-///
-/// `EXTRA_FIELDS_ACCEPTED` is deliberately not here: `tsc` refuses an excess
-/// property on a fresh object literal and Glyph accepts it, so that program is
-/// pinned as accepted by Glyph and nothing is claimed about the back end.
 #[test]
 fn the_accepted_corpus_passes_tsc_strict() {
     if !tsc_available() {
         eprintln!("skipping: tsc is not on the PATH");
         return;
     }
-    for program in ACCEPTED {
+    for program in ACCEPTED.iter().chain(WIDER_VALUES_ACCEPTED) {
         let root = stage(program);
         let (ok, text) = run_check(&root, &["--no-test"]);
         assert!(

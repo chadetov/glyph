@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-438 entries, 319 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-99 are open. G144, the D28 boundary cast that never reached the returns a
+438 entries, 320 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+98 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10864,7 +10864,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.161 (the release build): the bootstrap's `__glyph_eq` from a fresh `glyph build`, run through tsx on node 26 on two distinct self-referencing objects, throws `RangeError: Maximum call stack size exceeded`; `a == b` on two `timers.after(...)` handles is `no diagnostics` under `--no-tsc` (that program itself runs and prints `false`).*
 
-- **G273. A fresh object literal with a field the declaration does not name is
+- **G273. [FIXED] A fresh object literal with a field the declaration does not name is
   accepted.** `let u: User = { name: "a", extra: 1 }` passes Glyph and is TS2353
   under `tsc`, because the relation is width subtyping and a type cannot say
   whether it came from a literal written at that site or from a binding holding
@@ -10893,6 +10893,29 @@ and is the owner's to confirm.
   *Reproduced against 0.1.156 (the release build): unchanged, `--no-tsc` exits 0 with no diagnostics and full `check` exits 1 on TS2353.*
 
   *Reproduced against 0.1.162 (the release build): `let b: Opt = { name: "b", extra: 1, }` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc` (exit 0), and ``[TS2353] Error: tsc: Object literal may only specify known properties, and 'extra' does not exist in type 'Opt'.`` under full `check` (exit 1).*
+
+  Fixed in 0.1.165 (decision record 157, section 3; D57). A key an object
+  literal writes must be a field of the record type it is written as; one it
+  does not declare is E0210 at the key, the code a read of the field draws,
+  with the same "did you mean". It is judged at a `let` or `const`
+  annotation, a `return`, a call argument (a variant payload in every import
+  spelling, and a call through a member function), `mut x = ..` and `mut x.f
+  = ..`, a field of such a literal, an element under a declared `Array`, the
+  argument of `Some`, `Ok` or `Err` under a declared `Option` or `Result`
+  (which `tsc` lets through by inferring `T`), an arm of a `match` in one
+  of these positions, and what a lambda with no written return type returns
+  where its position declares one. At the `Some`, `Ok` and `Err` arguments,
+  a variant payload, a `match` arm and a literal written to a `mut` target
+  the values are compared too, which they were not before (record 160).
+  Not judged:
+  fields from a spread, a binding holding a wider record, and a declared
+  `Record<K, V>`, `unknown`, type parameter or unknown type. `glyph fix`
+  renames the key when exactly one declared field is one character away and
+  the literal does not already write it, and declines otherwise.
+  `glyph_assignable`'s reason for an accepted record pairing with extra fields
+  names E0210 now. Breaking: record 157's probe c01 exits 0 under 0.1.161's
+  `check --no-tsc` and 1 under 0.1.165, and its `Some` line alone exits 0
+  under 0.1.161's full `check` and 1 under 0.1.165.
 
 - **G274. [FIXED] Four more positions compared loosely: an optional field, a
   declared record against a structural one, a function's return, and an

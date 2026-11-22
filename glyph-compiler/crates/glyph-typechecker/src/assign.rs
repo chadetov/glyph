@@ -380,6 +380,7 @@ pub fn assign_types_with_relations(
             reassigned: OnceCell::new(),
             narrowed_consts: HashMap::new(),
             lambda_contexts: HashMap::new(),
+            judged_literal_keys: HashSet::new(),
         };
         for decl in &module.items {
             assigner.check_annotations(decl);
@@ -498,6 +499,7 @@ pub fn assignability(
         reassigned: OnceCell::new(),
         narrowed_consts: HashMap::new(),
         lambda_contexts: HashMap::new(),
+        judged_literal_keys: HashSet::new(),
     };
     if assigner.assign_incompatible(found, expected) {
         return Assignability::Incompatible;
@@ -562,6 +564,7 @@ pub fn declared_record_fields(
         reassigned: OnceCell::new(),
         narrowed_consts: HashMap::new(),
         lambda_contexts: HashMap::new(),
+        judged_literal_keys: HashSet::new(),
     };
     assigner.props_record_of(declared).map(|shape| shape.fields)
 }
@@ -1381,6 +1384,11 @@ struct Assigner<'a> {
     /// ignores its entry; a missing entry or an `Unknown` one leaves an
     /// omitted parameter not typed here.
     lambda_contexts: HashMap<u32, Vec<Ty>>,
+    /// The keys already reported by the written-literal field rule (D57),
+    /// by span. A literal can be reached from two positions at once (a
+    /// variant payload is judged at its constructor and again under a
+    /// declared union), and one key draws one E0210.
+    judged_literal_keys: HashSet<Span>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1777,6 +1785,7 @@ impl Assigner<'_> {
                             span: r.span,
                         });
                     }
+                    self.judge_literal_fields(&c.value, &expected);
                 }
             }
         }
@@ -2304,6 +2313,7 @@ impl Assigner<'_> {
                             span: r.span,
                         });
                     }
+                    self.judge_literal_fields(&l.value, &ty);
                 }
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
@@ -2362,6 +2372,12 @@ impl Assigner<'_> {
                     if let Expr::Match { arms, .. } = value {
                         self.check_arms_produce_values(arms);
                     }
+                    // `mut x = { .. }` and `mut x.f = { .. }` write a literal
+                    // where the target's type is declared, and its keys are
+                    // held to it (D57). An index target is typed `Unknown`
+                    // and judges nothing.
+                    let target_ty = self.tm.get(target.span()).clone();
+                    self.judge_literal_fields(value, &target_ty);
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
                     let outer = self.mut_call.replace(call.span());
@@ -2738,6 +2754,7 @@ impl Assigner<'_> {
                                     field.as_ref(),
                                     shape.fields.iter().map(|f| f.name.as_ref()),
                                 ),
+                                literal: None,
                                 span: *span,
                             });
                             Ty::Unknown
@@ -2814,6 +2831,7 @@ impl Assigner<'_> {
                                     builtin: Some(receiver),
                                     tagged: None,
                                     suggestion: nearest_name(field.as_ref(), members),
+                                    literal: None,
                                     span: *span,
                                 });
                                 Ty::Unknown
@@ -3026,6 +3044,9 @@ impl Assigner<'_> {
                         }
                     }
                 }
+                // A variant constructor's payload, judged where it is written
+                // (D57).
+                self.judge_constructor_payload(callee, args);
                 // Synthesize the call's type from the callee's signature.
                 // When the callee resolves to a `Ty::Fn` (a module-level
                 // fn/component reference or a typed lambda binding), the
@@ -3249,6 +3270,12 @@ impl Assigner<'_> {
                                 span: r.span,
                             });
                         }
+                        // Against the parameter as declared, before the
+                        // call's type arguments are put in: a field typed by
+                        // the callee's own type parameter is exempt (D57),
+                        // whatever the call binds it to.
+                        let declared = p.ty.clone();
+                        self.judge_literal_fields(a, &declared);
                     }
                     let returned = match mentions_any_param(return_ty, &refused_params) {
                         true => Ty::Unknown,
@@ -3590,6 +3617,7 @@ impl Assigner<'_> {
                 method,
             }),
             suggestion,
+            literal: None,
             span,
         });
         true
@@ -3833,6 +3861,7 @@ impl Assigner<'_> {
                     builtin: None,
                     tagged: None,
                     suggestion: nearest_name(name.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
+                    literal: None,
                     span: attr_span,
                 });
                 continue;
@@ -3864,6 +3893,10 @@ impl Assigner<'_> {
                     kind_help: None,
                     span: r.span,
                 });
+            }
+            if let Some(value) = written {
+                let declared = field.ty.clone();
+                self.judge_literal_fields(value, &declared);
             }
         }
         self.check_jsx_required_props(j, &props_ty, &shape);
@@ -5127,6 +5160,7 @@ impl Assigner<'_> {
                 span: r.span,
             });
         }
+        self.judge_literal_fields(value, &expected);
     }
 
     // ----- match coverage: the writes the dispatch makes as it goes -----
@@ -8097,10 +8131,9 @@ impl Assigner<'_> {
     /// diagnostic underlines the literal the reader has to change.
     ///
     /// Only where the declared type says what the element or field should be.
-    /// An object literal field the declared record does not declare is left
-    /// alone: TypeScript refuses an excess property on a fresh object literal
-    /// and Glyph does not, and widening this rule to cover that would be a
-    /// separate decision about a shape with no string-literal union in it.
+    /// An object literal field the declared record does not declare is not a
+    /// mismatch of its value: it is E0210 at the key, which
+    /// `judge_literal_fields` reports (D57).
     fn written_literal_refusal(&self, value: &Expr, expected: &Ty) -> Option<Refusal> {
         let canonical = self.canonicalize_aliases(expected);
         match value {
@@ -8124,6 +8157,253 @@ impl Assigner<'_> {
             }
             _ => None,
         }
+    }
+
+    /// D57 (G273): every key a written object literal names must be a field
+    /// of the record it is written as. `expected` is the type the position
+    /// declares for `value`; each key the declared record does not have is
+    /// E0210 at the key, the same fact a read of it is.
+    ///
+    /// The walk descends exactly where the literal keeps the declared type
+    /// one level in: a field of an object literal to that field's declared
+    /// type, an element of an array literal under a declared `Array`, the
+    /// argument of `Some`, `Ok` or `Err` under a declared prelude `Option` or
+    /// `Result`, and the payload of a variant constructor under the union it
+    /// belongs to. A variant constructor is also judged where it is written,
+    /// whatever position it stands in (`judge_constructor_payload`).
+    ///
+    /// Exempt, by construction rather than by a list: a type with no field
+    /// set (`Record<K, V>`, `unknown`, a type parameter, `Unknown`), because
+    /// `record_shape_of` answers nothing for one; a field that arrives
+    /// through a spread, because only `KeyValue` keys are read; and a value
+    /// that is not a literal (a binding holding a wider record is width
+    /// subtyping, as in `tsc`). `Some({ .. })` under `Option<Opt>` is judged
+    /// although `tsc` lets it through by inferring `T` from the literal: the
+    /// field is just as dead.
+    fn judge_literal_fields(&mut self, value: &Expr, expected: &Ty) {
+        let canonical = self.canonicalize_aliases(expected);
+        match value {
+            Expr::Object { fields, .. } => {
+                let shape = self
+                    .record_shape_of(expected)
+                    .or_else(|| self.record_shape_of(&canonical));
+                let Some(shape) = shape else { return };
+                let written: Vec<String> = fields
+                    .iter()
+                    .filter_map(|f| match f {
+                        ObjectField::KeyValue { key, .. } => Some(key.to_string()),
+                        ObjectField::Spread { .. } => None,
+                    })
+                    .collect();
+                for f in fields {
+                    let ObjectField::KeyValue { key, key_span, value, .. } = f else {
+                        continue;
+                    };
+                    match shape.fields.iter().find(|d| d.name == *key) {
+                        Some(declared) => {
+                            let ty = declared.ty.clone();
+                            self.judge_literal_fields(value, &ty);
+                        }
+                        None => {
+                            if !self.judged_literal_keys.insert(*key_span) {
+                                continue;
+                            }
+                            self.errors.push(TypeError::UnknownField {
+                                field: key.to_string(),
+                                // A generic declared type shows its own
+                                // parameter names (`Box<T>`), not `?`.
+                                type_name: field_owner_display(&params_by_name(expected)),
+                                second_name_for: self.second_name_target(expected, &shape.owner),
+                                fields: shape.fields.iter().map(|f| f.name.to_string()).collect(),
+                                record: self.field_owner_decl(&shape.owner),
+                                builtin: None,
+                                tagged: None,
+                                // A field the literal already writes is not
+                                // what this key was meant to be: renaming to
+                                // it would write that field twice.
+                                suggestion: nearest_name(
+                                    key.as_ref(),
+                                    shape.fields.iter().map(|f| f.name.as_ref()),
+                                )
+                                .filter(|s| !written.iter().any(|w| w == s)),
+                                literal: Some(written.clone()),
+                                span: *key_span,
+                            });
+                        }
+                    }
+                }
+            }
+            Expr::Array { elements, .. } => {
+                let Some(elem) = self.prelude_app(&canonical, "Array").and_then(|a| a.first().cloned())
+                else {
+                    return;
+                };
+                for el in elements {
+                    if let ArrayElem::Expr(e) = el {
+                        self.judge_literal_fields(e, &elem);
+                    }
+                }
+            }
+            Expr::Call { callee, args, .. } => {
+                let [arg] = args.as_slice() else { return };
+                let payload = match self.prelude_constructor(callee) {
+                    Some(kind) => {
+                        let (container, args) = match self.prelude_container(&canonical) {
+                            Some(found) => found,
+                            None => return,
+                        };
+                        match (kind, container) {
+                            (PreludeKind::Some, "Option") | (PreludeKind::Ok, "Result") => {
+                                args.first().cloned()
+                            }
+                            (PreludeKind::Err, "Result") => args.get(1).cloned(),
+                            _ => None,
+                        }
+                    }
+                    None if self.names_a_variant(callee) => constructor_name(callee)
+                        .and_then(|name| self.variant_payload(&canonical, &name)),
+                    None => None,
+                };
+                if let Some(payload) = payload {
+                    self.judge_literal_fields(arg, &payload);
+                }
+            }
+            // A lambda that writes no return type returns what the position's
+            // function type declares (D55), so what it returns is held to
+            // that: each `return` value and the tail it returns. A written
+            // return type is the lambda's own and its `return`s are judged
+            // against it like any callable's.
+            Expr::Lambda { return_ty: None, is_async: false, body, .. } => {
+                let Some(ret) = self.fn_return_of(expected) else { return };
+                for v in lambda_returned_values(body) {
+                    self.judge_literal_fields(v, &ret);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The return type of the sync function type `ty` is, read through
+    /// second names and `type` aliases the way `fn_params_of` reads its
+    /// parameters. `None` for an async function type and for anything else.
+    fn fn_return_of(&self, ty: &Ty) -> Option<Ty> {
+        let mut current = ty.clone();
+        for _ in 0..16 {
+            current = match &current {
+                Ty::Fn { return_ty, is_async: false, .. } => return Some(return_ty.as_ref().clone()),
+                Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
+                Ty::App { base, args } => self.alias_body(base, args)?,
+                _ => return None,
+            };
+        }
+        None
+    }
+
+    /// The prelude constructor `callee` names, when it is `Some`, `Ok` or
+    /// `Err` from the prelude rather than a program's own variant of that
+    /// name.
+    fn prelude_constructor(&self, callee: &Expr) -> Option<PreludeKind> {
+        let Expr::Ident { span, .. } = callee else { return None };
+        let Some(ResolvedRef::Prelude(id)) = self.resolved.resolutions.get(*span) else {
+            return None;
+        };
+        let sym = self.lowerer.prelude.table.get(id)?;
+        match sym.kind {
+            SymbolKind::Prelude {
+                kind: kind @ (PreludeKind::Some | PreludeKind::Ok | PreludeKind::Err),
+            } => Some(kind),
+            _ => None,
+        }
+    }
+
+    /// Whether `callee` can name a variant constructor: a variant declared in
+    /// this module, a name imported from another module, or a member read
+    /// through a namespace import. A local function or a binding cannot, so a
+    /// call to one is never read as a constructor because its name happens to
+    /// match a variant of the declared union.
+    fn names_a_variant(&self, callee: &Expr) -> bool {
+        let span = match callee {
+            Expr::Ident { span, .. } => *span,
+            Expr::Member { object, .. } => match object.as_ref() {
+                Expr::Ident { span, .. } => *span,
+                _ => return false,
+            },
+            _ => return false,
+        };
+        let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(span) else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(id) else { return false };
+        matches!(
+            (&sym.kind, callee),
+            (SymbolKind::Variant { .. } | SymbolKind::ImportNamed { .. }, Expr::Ident { .. })
+                | (
+                    SymbolKind::ImportNamespace { .. } | SymbolKind::ImportAlias { .. },
+                    Expr::Member { .. }
+                )
+        )
+    }
+
+    /// A variant constructor's payload judged where it is written (D57): the
+    /// one argument of `Loaded({ .. })` against the payload type `Loaded`
+    /// declares, whatever position the call stands in. The union is found
+    /// from the callee itself, in each spelling a variant can be reached by:
+    /// declared in this module, imported by name, or read through a
+    /// namespace. A generic union's payload keeps its type parameters here,
+    /// so a field typed by one is not judged; under a declared application
+    /// the declared-position walk reads the substituted payload instead.
+    fn judge_constructor_payload(&mut self, callee: &Expr, args: &[Expr]) {
+        let [arg] = args else { return };
+        if !matches!(arg, Expr::Object { .. } | Expr::Array { .. } | Expr::Call { .. }) {
+            return;
+        }
+        if let Some(payload) = self.constructor_payload(callee) {
+            self.judge_literal_fields(arg, &payload);
+        }
+    }
+
+    /// The payload type of the variant `callee` names, when it names one.
+    fn constructor_payload(&self, callee: &Expr) -> Option<Ty> {
+        let (module_path, variant) = match callee {
+            Expr::Ident { name, span } => {
+                let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+                    return None;
+                };
+                let sym = self.resolved.symbols.table.get(id)?;
+                match &sym.kind {
+                    SymbolKind::Variant { .. } => {
+                        let union = self.union_ty_of_variant(name)?;
+                        return self.union_variant_payload(&union, name);
+                    }
+                    SymbolKind::ImportNamed { path, original } => {
+                        (crate::lower::module_key(path), original.clone())
+                    }
+                    _ => return None,
+                }
+            }
+            Expr::Member { object, field, .. } => {
+                let Expr::Ident { span, .. } = object.as_ref() else { return None };
+                let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+                    return None;
+                };
+                let sym = self.resolved.symbols.table.get(id)?;
+                match &sym.kind {
+                    SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => {
+                        (crate::lower::module_key(path), field.clone())
+                    }
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+        let (type_name, _) = self
+            .decl_ty_resolver
+            .imported_union_of_variant(module_path.as_str(), variant.as_ref())?;
+        let union = Ty::Imported {
+            module: module_path,
+            name: Ident::from(type_name.as_str()),
+        };
+        self.union_variant_payload(&union, &variant)
     }
 
     /// The type a binding takes from a value written for it, with a *fresh*
@@ -9492,6 +9772,7 @@ impl Assigner<'_> {
                     builtin: None,
                     tagged: None,
                     suggestion: nearest_name(pf.key.as_ref(), shape.fields.iter().map(|f| f.name.as_ref())),
+                    literal: None,
                     span: key_span,
                 });
                 continue;
@@ -11217,6 +11498,69 @@ fn nearest_name<'c>(name: &str, candidates: impl Iterator<Item = &'c str>) -> Op
         .filter(|(d, _)| *d <= threshold)
         .min_by_key(|(d, _)| *d)
         .map(|(_, v)| v.to_string())
+}
+
+/// The values a lambda body hands back: every `return` value in it, at any
+/// depth except inside a nested lambda (whose `return`s are its own), and the
+/// last statement when it is an expression, which a lambda with no written
+/// return type returns (the emitter's rule).
+fn lambda_returned_values(body: &Block) -> Vec<&Expr> {
+    fn block<'a>(b: &'a Block, out: &mut Vec<&'a Expr>) {
+        for s in &b.stmts {
+            if let Stmt::Return(r) = s {
+                if let Some(v) = &r.value {
+                    out.push(v);
+                }
+            }
+            glyph_ast::visit::stmt_blocks(s, &mut |b| block(b, out));
+            glyph_ast::visit::stmt_exprs(s, &mut |e| expr(e, out));
+        }
+    }
+    fn expr<'a>(e: &'a Expr, out: &mut Vec<&'a Expr>) {
+        if matches!(e, Expr::Lambda { .. }) {
+            return;
+        }
+        glyph_ast::visit::child_blocks(e, &mut |b| block(b, out));
+        glyph_ast::visit::child_exprs(e, &mut |x| expr(x, out));
+    }
+    let mut out = Vec::new();
+    block(body, &mut out);
+    if let Some(Stmt::Expr(tail)) = body.stmts.last() {
+        out.push(tail);
+    }
+    out
+}
+
+/// `ty` with every type parameter it names shown by that name, so a diagnostic
+/// about a field of `Box<T>` says `Box<T>` rather than the `?` an undecided
+/// parameter displays as. For display only.
+fn params_by_name(ty: &Ty) -> Ty {
+    let mut names = Vec::new();
+    collect_param_names(ty, &mut names);
+    if names.is_empty() {
+        return ty.clone();
+    }
+    let subst: HashMap<Ident, Ty> = names
+        .into_iter()
+        .map(|g| {
+            let shown = Ty::Named {
+                symbol: SymbolRef(u32::MAX),
+                path: vec![g.clone()],
+            };
+            (g, shown)
+        })
+        .collect();
+    substitute_type_params(ty, &subst)
+}
+
+/// The variant name a constructor call's callee spells: `Loaded` in
+/// `Loaded(..)` and in `shapes.Loaded(..)`.
+fn constructor_name(callee: &Expr) -> Option<Ident> {
+    match callee {
+        Expr::Ident { name, .. } => Some(name.clone()),
+        Expr::Member { field, .. } => Some(field.clone()),
+        _ => None,
+    }
 }
 
 /// A member's receiver resolved to the prelude `Option` or `Result`, with
@@ -17883,6 +18227,7 @@ component View(props: { s: Status }) -> Component {
             reassigned: OnceCell::new(),
             narrowed_consts: HashMap::new(),
             lambda_contexts: HashMap::new(),
+            judged_literal_keys: HashSet::new(),
         };
         f(&assigner)
     }
@@ -20583,20 +20928,32 @@ fn f(a: Answer) -> number {
     }
 
     /// An optional field on the declared side may be absent, and an extra
-    /// field on the value's side is fine: width subtyping is the rule, and
-    /// this change does not touch it. TypeScript refuses the excess property
-    /// on a fresh literal (TS2353) and Glyph does not, which predates G232.
+    /// field on a value of a wider record type is fine: width subtyping is the
+    /// rule. A key written in the literal itself that the record does not
+    /// declare is E0210 at the key (D57, G273), as TypeScript refuses the
+    /// excess property on a fresh literal (TS2353), and never a mismatch of
+    /// the whole value.
     #[test]
-    fn an_optional_field_may_be_absent_and_an_extra_field_is_accepted() {
+    fn an_optional_field_may_be_absent_and_an_extra_key_is_e0210_not_a_mismatch() {
         let errs = errors_of(
             "module m\n\
              type Opt = { name: string, nick?: string }\n\
              fn f() -> void {\n\
              \x20 let a: Opt = { name: \"a\" }\n\
+             \x20 let wide = { name: \"w\", extra: 2 }\n\
+             \x20 let c: Opt = wide\n\
              \x20 let b: Opt = { name: \"b\", nick: \"bb\", extra: 1 }\n\
              }\n",
         );
         assert!(mismatch_found(&errs).is_empty(), "errs: {errs:?}");
+        match &errs[..] {
+            [TypeError::UnknownField { field, type_name, literal: Some(written), .. }] => {
+                assert_eq!(field, "extra");
+                assert_eq!(type_name, "Opt");
+                assert_eq!(written, &vec!["name".to_string(), "nick".to_string(), "extra".to_string()]);
+            }
+            other => panic!("expected one E0210 at `extra`, got {other:?}"),
+        }
     }
 
     /// A field whose value the checker cannot type keeps `Unknown` and sinks

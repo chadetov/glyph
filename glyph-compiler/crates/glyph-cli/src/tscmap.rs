@@ -244,6 +244,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                     subject: None,
                     insert_before: None,
                     repair: None,
+                    literal_keys: None,
                 });
             }
         }

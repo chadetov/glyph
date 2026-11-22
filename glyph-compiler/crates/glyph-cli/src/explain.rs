@@ -517,6 +517,24 @@ pub fn explain(code: &str) -> Option<&'static str> {
             pattern: `Loaded({ totl })` over `Loaded({ users: Array<string>, total: \
             number })` names a field the payload does not have, in a `match` arm \
             or a JSX `<case>` alike.\n\n\
+            A key written in an object literal draws it as well (D57): `let b: \
+            Opt = { name: \"b\", extra: 1 }` with `type Opt = { name: string, \
+            nick?: string }` is this error at `extra`, because nothing typed `Opt` \
+            can ever read it, and a misspelled optional field (`nik` for `nick`) \
+            drops its value without a trace. It is judged wherever a written \
+            literal meets a declared type: a `let` or `const` annotation, a \
+            `return`, a call argument (a variant payload such as `Loaded({ .. })` \
+            included), `mut x = ..` and `mut x.f = ..`, a field of such a \
+            literal, an element under a declared `Array`, the argument of `Some`, \
+            `Ok` or `Err` under a declared `Option` or `Result`, and what a \
+            lambda with no written return type returns where its position \
+            declares one. Fields that arrive through a `...spread` are not \
+            judged, nor is a binding that holds a wider record (`let l: Opt = \
+            wide`), nor a declared `Record<K, V>`, `unknown` or type parameter. \
+            Rename the key to the declared field, delete it, or declare it in \
+            the type; `glyph fix` renames it when exactly one declared field is \
+            one character away and the literal does not already write that \
+            field.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
             type resolves to a concrete record, an array, a string or a number is checked; \
             access on an unknown-typed value, a generic parameter or an interop \
@@ -2302,7 +2320,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0210",
         phase: "typechecker",
-        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, or a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set",
+        meaning: "A field a record type does not declare: a field access (`x.rowz`), a JSX attribute naming a field of a component's props record, a record pattern naming one (`Loaded({ totl })`) in a `match` arm or a JSX `<case>`, or a key an object literal writes where a record type is declared (`let b: Opt = { name: \"b\", extra: 1 }`, D57), at a `let`, `const`, `return`, argument, variant payload, `mut`, nested field, array element, `Some`/`Ok`/`Err` argument or lambda return; fields from a spread and a declared `Record<K, V>`, `unknown` or type parameter are not judged. Includes a record declared in a sibling module under any import spelling, where the message names that record's own type. The message also names the nearest declared field when one is close enough to be a typo (`did you mean`). Also a member an `Array<T>`, a `string` or a `number` does not have (`xs.lenght`, `n.toFixd`), checked against the members TypeScript's library gives a JavaScript array, string or number; the message names the type and the nearest real member. Also a plain-dot member on the prelude `Option` or `Result`, through any alias: a `Result`'s only members are `map` and `map_err` and an `Option` has none, so `o.name`, `o.tag` and `r.value` are refused (`tag` and `value` are the runtime encoding, D49, not members); the message names the member set",
         fix: "Fix the field name / add it to the type",
     },
     CodeEntry {

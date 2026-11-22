@@ -43,6 +43,17 @@ A mismatch the ledger already records is listed in KNOWN with its gap number,
 per row and direction. The check fails on a mismatch not in KNOWN, and on a
 KNOWN entry that now passes, so a fix has to take its entry out with it.
 
+A stdlib type whose members the checker models (`set.Set<T>`, `sqlite.Db`,
+`fs.FsError`) is held to its runtime type the same way. `glyph llms --json`
+publishes each such type's member table; this writes the table as a Glyph
+record alias, quantifies it over the type's own parameters inside a generic
+function, and assigns it to the runtime's `export type` and back. Assignment
+between two object types fails on a member either side lacks, so a member added
+to the runtime `Set` and not to the table fails here, and so does one the table
+claims the runtime does not have. A table that leaves a position `?` cannot be
+compared member by member; for it the two member-name sets are compared
+instead, so the names are held to the runtime even where the types are not.
+
 `--llms-json FILE` reads the signatures from a saved `glyph llms --json`
 instead of asking the binary. It exists to break the gate on purpose: edit one
 signature in a copy and the check has to fail.
@@ -85,6 +96,8 @@ KNOWN: dict[tuple[str, str, str], str] = {
     ("std/string", "pad_start", DECLARED_TO_RUNTIME): "G308",
     ("std/string", "slice", DECLARED_TO_RUNTIME): "G308",
     ("std/array", "slice", DECLARED_TO_RUNTIME): "G308",
+    ("std/set", "create", DECLARED_TO_RUNTIME): "G308",
+    ("std/collections", "deque", DECLARED_TO_RUNTIME): "G308",
     # The row says `Array<K>`; the checker answers `Array<string>` for a
     # numeric key at the call site, and the runtime spells that case as
     # `Array<K extends string ? K : string>`, which the row cannot.
@@ -143,6 +156,38 @@ def complete_rows(doc: dict) -> list[tuple[str, str, str]]:
                 raise SystemExit(f"{module['path']}::{e['name']}: `?` in a row llms calls complete: {sig}")
             rows.append((module["path"], e["name"], sig))
     return rows
+
+
+def member_tables(doc: dict) -> list[tuple[str, str, list[str], list[tuple[str, str]]]]:
+    """(module, type, type parameters, [(member, signature)]) for every modeled type."""
+    tables = []
+    for module in doc["stdlib"]["modules"]:
+        for e in module["exports"]:
+            m = e.get("members")
+            # An empty table is an opaque host handle (`dom.Element`, G254):
+            # the checker models no member on purpose, so every member read is
+            # E0210, and there is no table to hold against the host's type.
+            if e["kind"] != "type" or m is None or not m["members"]:
+                continue
+            # A member typed by another type of the same module renders bare
+            # (`kind: HttpErrorKind`); qualify it the way a program would.
+            own = {x["name"] for x in module["exports"] if x["kind"] == "type"}
+            short = module["path"].removeprefix("std/")
+
+            def qualify(sig: str) -> str:
+                return re.sub(
+                    r"(?<![.\w])([A-Z][A-Za-z0-9_]+)\b",
+                    lambda mm: f"{short}.{mm.group(1)}" if mm.group(1) in own else mm.group(1),
+                    sig,
+                )
+
+            members = [(x["name"], qualify(x["signature"])) for x in m["members"]]
+            tables.append((module["path"], e["name"], m["type_params"], members))
+    return tables
+
+
+def table_complete(members: list[tuple[str, str]]) -> bool:
+    return all("?" not in STRING_LIT.sub("", sig) for _, sig in members)
 
 
 def names_in(sig: str) -> tuple[list[str], set[str]]:
@@ -295,6 +340,10 @@ def main() -> int:
     if not rows:
         print("no complete stdlib rows found; the llms document changed shape.")
         return 1
+    tables = member_tables(doc)
+    if not tables:
+        print("no stdlib member tables found; the llms document changed shape.")
+        return 1
 
     sig_lines = ["module sigs", ""]
     imports: set[str] = set()
@@ -307,6 +356,21 @@ def main() -> int:
             generics[alias] = params
         head = f"pub type {alias}<{', '.join(params)}>" if params else f"pub type {alias}"
         sig_lines.append(f"{head} = {sig}")
+    # A complete member table is a record alias over the type's own
+    # parameters: `pub type M0<T> = { add: fn(T) -> void, ... }`.
+    for i, (module, _, params, members) in enumerate(tables):
+        imports.add(module.removeprefix("std/"))
+        if not table_complete(members):
+            continue
+        for _, sig in members:
+            used, mods = names_in(sig)
+            imports |= mods
+            stray = [u for u in used if u not in params]
+            if stray:
+                raise SystemExit(f"{module}::{tables[i][1]}: member uses {stray}, not a parameter of the type")
+        head = f"pub type M{i}<{', '.join(params)}>" if params else f"pub type M{i}"
+        fields = " ".join(f"{name}: {sig}," for name, sig in members)
+        sig_lines.append(f"{head} = {{ {fields} }}")
     # The build copies only the runtime modules a program imports, so every
     # module under test is imported, not just the ones a signature names.
     imports |= {p.removeprefix("std/") for p, _, _ in rows}
@@ -366,7 +430,7 @@ def main() -> int:
         (dist / "sigs.ts").write_text(emitted)
 
         check = ['import type * as S from "./sigs";']
-        for m in sorted({p for p, _, _ in rows}):
+        for m in sorted({p for p, _, _ in rows} | {p for p, _, _, _ in tables}):
             check.append(f'import * as {ns(m)} from "./.glyph-runtime/{m}";')
         check.append("")
         line_of: dict[int, tuple[int, str]] = {}
@@ -378,6 +442,34 @@ def main() -> int:
             line_of[len(check)] = (i, RUNTIME_TO_DECLARED)
             check.append(f"export const r{i}: typeof {value} = d{i};")
             line_of[len(check)] = (i, DECLARED_TO_RUNTIME)
+        # A member table against the runtime type, both ways, inside a
+        # function generic over the type's parameters so the check holds for
+        # every `T` rather than one. A table with a `?` compares names only.
+        member_line_of: dict[int, tuple[int, str]] = {}
+        for i, (module, name, params, members) in enumerate(tables):
+            runtime = f"{ns(module)}.{name}"
+            gen = f"<{', '.join(params)}>" if params else ""
+            args = gen[1:-1] if params else ""
+            applied = f"<{args}>" if params else ""
+            check.append(f"// {module}::{name} (members)")
+            if table_complete(members):
+                check.append(f"export function m{i}{gen}(d: S.M{i}{applied}, r: {runtime}{applied}): void {{")
+                check.append(f"  const a: {runtime}{applied} = d;")
+                member_line_of[len(check)] = (i, DECLARED_TO_RUNTIME)
+                check.append(f"  const b: S.M{i}{applied} = r;")
+                member_line_of[len(check)] = (i, RUNTIME_TO_DECLARED)
+                check.append("  void a; void b;")
+                check.append("}")
+            else:
+                names = " | ".join(json.dumps(n) for n, _ in members) or "never"
+                any_args = f"<{', '.join('unknown' for _ in params)}>" if params else ""
+                check.append(f"type K{i} = {names};")
+                check.append(f"declare const kr{i}: keyof {runtime}{any_args};")
+                check.append(f"declare const kd{i}: K{i};")
+                check.append(f"export const ka{i}: keyof {runtime}{any_args} = kd{i};")
+                member_line_of[len(check)] = (i, DECLARED_TO_RUNTIME)
+                check.append(f"export const kb{i}: K{i} = kr{i};")
+                member_line_of[len(check)] = (i, RUNTIME_TO_DECLARED)
         (dist / "stdlib_check.ts").write_text("\n".join(check) + "\n")
 
         tsc = subprocess.run(
@@ -389,13 +481,20 @@ def main() -> int:
     # Group tsc's output into diagnostics: a located first line plus its
     # indented elaboration.
     failed: dict[tuple[int, str], list[str]] = {}
+    member_failed: dict[tuple[int, str], list[str]] = {}
     stray: list[str] = []
     current: list[str] | None = None
     for line in out.splitlines():
         m = re.match(r"^(.*?)\((\d+),(\d+)\): error (TS\d+): (.*)$", line)
         if m:
-            where = line_of.get(int(m.group(2))) if m.group(1).endswith("stdlib_check.ts") else None
-            if where is None:
+            at = int(m.group(2))
+            in_check = m.group(1).endswith("stdlib_check.ts")
+            where = line_of.get(at) if in_check else None
+            member_where = member_line_of.get(at) if in_check else None
+            if member_where is not None:
+                current = member_failed.setdefault(member_where, [])
+                current.append(f"{m.group(4)}: {m.group(5)}")
+            elif where is None:
                 current = stray
                 stray.append(line)
             else:
@@ -409,7 +508,7 @@ def main() -> int:
         print("tsc reported errors outside the signature bindings, so the check proves nothing:\n")
         print("\n".join(stray))
         return 1
-    if tsc.returncode != 0 and not failed:
+    if tsc.returncode != 0 and not failed and not member_failed:
         print("tsc failed without a located error:\n" + out)
         return 1
 
@@ -433,7 +532,22 @@ def main() -> int:
     for key in vanished:
         print(f"\nNO COMPLETE ROW {key[0]}::{key[1]}: its KNOWN entry ({KNOWN[key]}) checks nothing now.")
 
+    # A member table has no ledger of known mismatches: every one of them
+    # was written against the runtime, so any disagreement is new.
+    for (i, direction), msg in sorted(member_failed.items()):
+        module, name, params, members = tables[i]
+        print(f"\nMEMBER MISMATCH {module}::{name} ({direction})")
+        for member, sig in members:
+            print(f"  declared: {member}: {sig}")
+        for line in msg:
+            print(f"  {line}")
+
     checked = len(rows) * 2
+    complete_tables = sum(1 for t in tables if table_complete(t[3]))
+    if member_failed:
+        print(f"\n{len(tables)} member tables ({complete_tables} compared member by member, "
+              f"the rest by name): {len(member_failed)} mismatch(es).")
+        return 1
     if unexpected or fixed or vanished:
         print(f"\n{len(rows)} complete rows, {checked} directions: "
               f"{len(unexpected)} unexpected mismatch(es), {len(fixed)} known entry(ies) now passing, "
@@ -441,6 +555,8 @@ def main() -> int:
         return 1
     print(f"{len(rows)} complete stdlib rows agree with the runtime in both directions under "
           f"TypeScript {ts_version}, apart from {len(mismatches)} known mismatch(es).")
+    print(f"{len(tables)} stdlib member tables agree with their runtime types in both directions "
+          f"({complete_tables} member by member, {len(tables) - complete_tables} by member name).")
     return 0
 
 

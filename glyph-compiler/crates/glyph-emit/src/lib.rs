@@ -1335,6 +1335,11 @@ pub enum SiblingName {
     GenericUnion,
     /// An interface, exported or not.
     Interface,
+    /// A `const` declared with no annotation. Its emitted TypeScript `const`
+    /// has `tsc`'s literal type for a scalar initializer, which Glyph's
+    /// checker does not hold, so an `==` with it as an operand keeps the
+    /// structural helper (G433, record 163).
+    UnannotatedConst,
 }
 
 /// Where an import binding of a project module leads: the module path it
@@ -1695,6 +1700,12 @@ impl ProjectTables {
                     self.sibling_names.insert(
                         (module_path.to_string(), i.name.to_string()),
                         SiblingName::Interface,
+                    );
+                }
+                Decl::Const(c) if c.ty.is_none() => {
+                    self.sibling_names.insert(
+                        (module_path.to_string(), c.name.to_string()),
+                        SiblingName::UnannotatedConst,
                     );
                 }
                 Decl::Type(td) if !td.is_public => {
@@ -4760,6 +4771,53 @@ impl<'a> Emitter<'a> {
         })
     }
 
+    /// Whether `e` reads an unannotated `const` by name: a module `const` of
+    /// this module, a named import of one from a sibling, or `ns.NAME`
+    /// through a namespace or aliased import. See the `==` emit for why.
+    fn names_unannotated_const(&self, e: &Expr) -> bool {
+        match e {
+            Expr::Ident { span, .. } => {
+                let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) else {
+                    return false;
+                };
+                let Some(sym) = self.resolved.symbols.table.get(id) else {
+                    return false;
+                };
+                match &sym.kind {
+                    SymbolKind::Const { decl_idx } => matches!(
+                        self.module.items.get(*decl_idx as usize),
+                        Some(Decl::Const(c)) if c.ty.is_none()
+                    ),
+                    SymbolKind::ImportNamed { path, original } => {
+                        self.ctx.sibling_names.get(&(
+                            glyph_resolver::path_key(path),
+                            original.to_string(),
+                        )) == Some(&SiblingName::UnannotatedConst)
+                    }
+                    _ => false,
+                }
+            }
+            Expr::Member {
+                object,
+                field,
+                optional: false,
+                ..
+            } => {
+                let Expr::Ident { name, .. } = object.as_ref() else {
+                    return false;
+                };
+                match self.namespace_module_path(name.as_ref()) {
+                    Some(module) => {
+                        self.ctx.sibling_names.get(&(module, field.to_string()))
+                            == Some(&SiblingName::UnannotatedConst)
+                    }
+                    None => false,
+                }
+            }
+            _ => false,
+        }
+    }
+
     /// Whether an operand's type is a primitive, so `===` already means value
     /// equality for it.
     ///
@@ -6862,7 +6920,9 @@ impl<'a> Emitter<'a> {
             Some(SiblingName::GenericUnion) => return NoCheckCause::GenericUnion,
             // A generic record named bare, with no arguments, is a type
             // error the checker reports first.
-            Some(SiblingName::GenericRecord) | None => return NoCheckCause::Opaque,
+            Some(SiblingName::GenericRecord | SiblingName::UnannotatedConst) | None => {
+                return NoCheckCause::Opaque
+            }
         };
         // A generic's fields are read in its own module (G350), so a sibling
         // name is met only in the body of an alias being expanded.
@@ -9760,8 +9820,20 @@ impl<'a> Emitter<'a> {
                 // `===` is still emitted whenever both sides are known
                 // primitives, which is most comparisons, so the common case is
                 // byte-identical to what it always was.
+                //
+                // An operand that names an unannotated `const` keeps the
+                // helper even when the checker has typed it (G433, record
+                // 163). `tsc` gives that `const` a literal type (`5`, `"read"`)
+                // Glyph's checker does not have, so `N === 6` would be TS2367
+                // on a comparison Glyph accepts, and full `check` would refuse
+                // a program the agent gate passes. G438 decides disjoint
+                // string-literal operands in the checker; until then the
+                // emit for these operands is what it was before they were
+                // typed.
                 if matches!(op, BinOp::Eq | BinOp::NotEq)
-                    && !(self.is_primitive_operand(left) && self.is_primitive_operand(right))
+                    && (!(self.is_primitive_operand(left) && self.is_primitive_operand(right))
+                        || self.names_unannotated_const(left)
+                        || self.names_unannotated_const(right))
                 {
                     let l = self.expr(left)?;
                     let r = self.expr(right)?;

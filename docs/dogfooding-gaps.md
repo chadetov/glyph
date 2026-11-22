@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-441 entries, 321 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-100 are open. G144, the D28 boundary cast that never reached the returns a
+445 entries, 321 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+104 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15050,3 +15050,72 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.161 (the published build) and the dev-g433 build:
   `--no-tsc` reports no diagnostics; full `check` reports the TS2322.*
+
+- **G442. `{cond && <el/>}` with a number `cond` passes both checkers and
+  renders `0`.** `component A(props: { n: number }) { return
+  <div>{props.n && <p>x</p>}</div> }` is `no diagnostics` under `check
+  --no-tsc` and under full `check`, and the emitted `&&` renders `0` when
+  `n` is zero, which is React's falsy-number bug. `AGENTS.md` (the JSX
+  section) says JSX control flow uses the `<if>`, `<else>`, `<for>`,
+  `<match>` and `<case>` directives, "not arbitrary `{cond && ...}`
+  expressions". The compiler accepts them, so either the compiler or that
+  sentence is wrong; which one is a decision this entry does not make. A
+  related observation: `<if cond={props.n}>` with the same `number` is also
+  accepted, though it emits a ternary, so it renders nothing for `0`. Found
+  writing the React component for `/from-typescript/`.
+
+  *Reproduced against 0.1.166 (the release build): the component above is
+  `no diagnostics` under `check --no-tsc` and passes `tsc --strict` under
+  full `check`.*
+
+- **G443. A ternary inside JSX is a parse error at the wrong token.**
+  `<div>{props.n > 0 ? <p>x</p> : <p>y</p>}</div>` stops with ``[E0003]
+  parse: unexpected token: Slash`` at the `/` of `</p>`, with the help
+  "Remove or correct this token". The site (`/from-typescript/`) and E0013's
+  own help say a ternary is E0013, with help showing the `match` form, and
+  outside JSX it is. Inside a JSX expression container the `?` is read some
+  other way, so the reader gets neither the code nor the fix. It should be
+  E0013 with the JSX spelling in the help (`<if>`/`<else>` or `<match>`).
+  Found writing the React component for `/from-typescript/`.
+
+  *Reproduced against 0.1.166 (the release build): the element above is
+  E0003 "unexpected token: Slash" at the closing tag under `check`.*
+
+- **G444. `glyph build --watch` beside a Vite dev server reloads the page,
+  and the documented layout never reloads.** With a Vite 5.4.11 dev server
+  and `@vitejs/plugin-react` importing the output of `glyph build src --out
+  gen --watch`, saving a `.glyph` file rebuilds, and Vite logs ``changed
+  tsconfig file detected: .../gen/tsconfig.json - Clearing cache and forcing
+  full-reload`` followed by page reloads for each `.glyph-runtime` file: each
+  rebuild rewrites the output directory's `tsconfig.json` and runtime files,
+  changed or not. Component state is lost; a `.tsx` edit in the same page
+  hot-swaps and keeps it. Separately, the layout `/answers/react/`, the todo
+  app and `AGENTS.md` use, `--out dist/gen`, sits inside `dist/`, Vite's
+  default build directory, which Vite's watcher ignores
+  (`resolveChokidarOptions` adds the out dir when `emptyOutDir` holds), so a
+  dev server with no `build.outDir` in its config never sees a rebuild. The
+  todo app passes `--outDir dist/web` to `vite build` on the command line,
+  which a dev server does not read. That layout is used for `vite build` today, so nothing ships
+  broken, but a reader who adds `vite` dev to it gets a page that never
+  updates. Writing only the files whose content changed would leave Vite
+  nothing to reload but the changed modules. Found verifying the hot-reload
+  line for `/from-typescript/`.
+
+  *Reproduced against 0.1.166 (the release build): driven in Playwright,
+  a counter at 2 survived a `.tsx` edit and was 0 after a `.glyph` edit
+  (two page loads); with `--out dist` the page did not change after the
+  rebuild.*
+
+- **G445. `glyph fmt` puts a JSX element's `{match ...}` children on one
+  line.** A `<section>` whose children are two `{match ...}` expressions,
+  each written on its own lines, formats to
+  `<section>{match waiting > 0 {` ... `}}{match props.invites.length {` ...
+  `}}</section>`, the closing `}}` of one glued to the next `{match`. The
+  same component with `<match>`/`<case>` elements keeps one child per line.
+  The output compiles and renders the same, so this is layout only, but it
+  is the layout `fmt` imposes and the one an agent copies. Found writing the
+  React component for `/from-typescript/`.
+
+  *Reproduced against 0.1.166 (the release build): `glyph fmt` on the
+  two-`{match}` section produces the one-line join above; the
+  `<match>`-element version is already formatted.*

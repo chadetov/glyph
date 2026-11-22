@@ -469,7 +469,7 @@ glyph build, now
 
 A module-level `const` carrying a type annotation lowered to `Ty::Unknown` no matter what the annotation said, so a field typo on it was invisible exactly where the identical annotated `let` inside a function already reported it.
 
-An unannotated `const` claims nothing and stays `Unknown` on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under `glyph check --no-tsc`, the language server and the playground, since each starts catching a program the previous release accepted; a full `glyph build` was already red through `tsc` in both cases.
+Since 0.1.166 an unannotated `const` has its initializer's type, read the way `tsc` reads the TypeScript `const` the emitter writes: `const MODE = "read"` keeps its literal type, and a literal inside an object or an array widens, so `const ITEMS = [1, 2]` is an `Array<number>` and `ITEMS.push(3)` outside `mut` is E0240. An initializer the checker cannot type leaves the `const` untyped. Both fixes are breaking under `glyph check --no-tsc`, the language server and the playground, since each starts catching a program the previous release accepted; a full `glyph build` was already red through `tsc` in both cases.
 
 ### A field the record does not declare
 

@@ -1163,9 +1163,13 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           identical annotated <code>let</code> inside a function already reported it.
         </p>
         <p>
-          An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on
-          purpose: inferring one from the initializer is a different question with a different
-          false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>,
+          Since 0.1.166 an unannotated <code>const</code> has its initializer's type, read the way
+          <code>tsc</code> reads the TypeScript <code>const</code> the emitter writes:
+          <code>const MODE = "read"</code> keeps its literal type, and a literal inside an object
+          or an array widens, so <code>const ITEMS = [1, 2]</code> is an
+          <code>Array&lt;number&gt;</code> and <code>ITEMS.push(3)</code> outside <code>mut</code>
+          is E0240. An initializer the checker cannot type leaves the <code>const</code> untyped.
+          Both fixes are breaking under <code>glyph check --no-tsc</code>,
           the language server and the playground, since each starts catching a program the
           previous release accepted; a full <code>glyph build</code> was already red through
           <code>tsc</code> in both cases.

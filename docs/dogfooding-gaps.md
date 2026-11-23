@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-460 entries, 331 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-109 are open. G144, the D28 boundary cast that never reached the returns a
+461 entries, 331 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+110 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15819,3 +15819,18 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (the published release) and the 0.1.173
   branch build with record 184's probe b3: `check --no-tsc` reports
   nothing for `c0`, `c1` and `c2`.*
+
+- **G480. `process.exit` is typed as no type at all, not as `never`.** The
+  `std/process` row in `stdlib.rs` gives `exit` the return `Ty::Unknown`,
+  and its comment says Glyph has no way to write `never`, which stopped
+  being true when `-> never` landed (D47). So `let n: number =
+  process.exit(1)` passes `check --no-tsc` as an untyped value rather than
+  as the bottom type, and nothing downstream can tell that the call does
+  not return. Typing it `never` changes how a `match` whose arm exits joins
+  with its other arms, and so what a let-bound or returned `match` is typed
+  as, so it needs its own corpus measurement. Found by record 189, whose F1
+  (an untyped value refused where `never` is declared) closed in 0.1.174.
+
+  *Reproduced against 0.1.171: `let n: string = process.exit(1)` passes
+  `check --no-tsc` with only an unused-variable warning, because the call
+  has no type to compare.*

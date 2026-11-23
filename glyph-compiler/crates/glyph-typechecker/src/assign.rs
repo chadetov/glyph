@@ -2975,12 +2975,17 @@ impl Assigner<'_> {
                         // spelling is the one being asked about, and a caller
                         // has to see that this site was reached and not keyed.
                         self.unresolved_field_use(&obj_ty, field, *span, access);
-                        self.errors.push(TypeError::MapFieldAccess {
-                            field: field.to_string(),
-                            type_name: ty_display(&obj_ty),
-                            span: *span,
-                        });
-                        Ty::Unknown
+                        match self.map_read(&obj_ty) {
+                            Some(Ok(read)) => read,
+                            _ => {
+                                self.errors.push(TypeError::MapFieldAccess {
+                                    field: field.to_string(),
+                                    type_name: ty_display(&obj_ty),
+                                    span: *span,
+                                });
+                                Ty::Unknown
+                            }
+                        }
                     }
                     // A built-in receiver (G288). An `Array<T>`, a `string` or a
                     // `number` is a JavaScript value whose member set the TypeScript library
@@ -3168,14 +3173,19 @@ impl Assigner<'_> {
                 }
                 self.walk_expr(index);
                 let obj_ty = self.read_through_bound(self.tm.get(object.span()));
-                if self.resolves_to_map(&obj_ty) {
-                    self.errors.push(TypeError::MapFieldAccess {
-                        field: index_key_display(index),
-                        type_name: ty_display(&obj_ty),
-                        span: *span,
-                    });
-                }
-                self.tm.insert(*span, Ty::Unknown);
+                let ty = match self.map_read(&obj_ty) {
+                    Some(Ok(read)) => read,
+                    Some(Err(())) => {
+                        self.errors.push(TypeError::MapFieldAccess {
+                            field: index_key_display(index),
+                            type_name: ty_display(&obj_ty),
+                            span: *span,
+                        });
+                        Ty::Unknown
+                    }
+                    None => Ty::Unknown,
+                };
+                self.tm.insert(*span, ty);
             }
             // A `new` interop constructor. Glyph has no class definitions, so
             // the callee is always an imported/external value the checker sees
@@ -7337,25 +7347,43 @@ impl Assigner<'_> {
     /// One level, deliberately: a chain is rare and stopping here needs no cycle
     /// guard, which is the same reasoning `named_record_fields` uses.
     fn resolves_to_map(&self, ty: &Ty) -> bool {
-        if is_map_ty(ty) {
-            return true;
+        self.map_value_ty(ty).is_some()
+    }
+
+    /// The value type `V` of `ty` when it is a `Record<K, V>` map, through
+    /// the same one level of local alias `resolves_to_map` sees.
+    fn map_value_ty(&self, ty: &Ty) -> Option<Ty> {
+        if let Some(v) = map_value(ty) {
+            return Some(v.clone());
         }
         let Ty::Named { symbol, path } = ty else {
-            return false;
+            return None;
         };
-        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
-            return false;
-        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
         if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return false;
+            return None;
         }
         let SymbolKind::Type { decl_idx } = sym.kind else {
-            return false;
+            return None;
         };
         let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
-            return false;
+            return None;
         };
-        is_map_ty(&self.lowerer.lower(&td.body))
+        map_value(&self.lowerer.lower(&td.body)).cloned()
+    }
+
+    /// What reading a key out of `ty` gives, when `ty` is a map (G415,
+    /// record 134): `Err(())` when the read is a guess, which is E0224, and
+    /// `Ok(unknown)` when `V` is `unknown`, declared or reached through an
+    /// alias. That read is sound: an absent key yields `undefined`, which
+    /// `unknown` already admits, and any use of the value has to narrow it
+    /// first. `None` when `ty` is not a map.
+    fn map_read(&self, ty: &Ty) -> Option<Result<Ty, ()>> {
+        let v = self.map_value_ty(ty)?;
+        Some(match self.canonicalize_aliases(&v) {
+            Ty::UnknownTop => Ok(Ty::UnknownTop),
+            _ => Err(()),
+        })
     }
 
     /// E0240 (G380, D5): a call to a method that changes its receiver, on a
@@ -11245,11 +11273,18 @@ fn array_elem_ty(ty: &Ty) -> Option<Ty> {
 /// Only the map form counts. A record type (`{ id: int }`) has known fields and
 /// is checked by `record_fields_of`, and anything undecidable stays permissive,
 /// so this never turns an unknown receiver into an error.
-fn is_map_ty(ty: &Ty) -> bool {
-    matches!(ty, Ty::App { base, args }
-        if args.len() == 2
-            && matches!(base.as_ref(), Ty::Named { path, .. }
-                if path.last().map(|s| s.as_ref()) == Some("Record")))
+/// `V` of a `Record<K, V>` written directly, with no alias to see through.
+fn map_value(ty: &Ty) -> Option<&Ty> {
+    match ty {
+        Ty::App { base, args }
+            if args.len() == 2
+                && matches!(base.as_ref(), Ty::Named { path, .. }
+                    if path.last().map(|s| s.as_ref()) == Some("Record")) =>
+        {
+            args.get(1)
+        }
+        _ => None,
+    }
 }
 
 /// checked by this table growing an entry it has no fields for.
@@ -16584,6 +16619,34 @@ fn outer() -> string {
                 "expected E0224 for:\n{src}\ngot {errs:?}"
             );
         }
+    }
+
+    /// G415 (record 134): a read out of a map whose `V` is `unknown` is not
+    /// E0224, declared, through an alias of the map or of `unknown`, by key
+    /// or by name. An absent key yields `undefined`, which `unknown` admits,
+    /// and the read is typed `unknown`, so any use has to narrow it first.
+    #[test]
+    fn reading_a_key_from_a_map_of_unknown_is_not_flagged() {
+        for src in [
+            "module x\npub fn f(m: Record<string, unknown>, k: string) -> unknown {\n  return m[k]\n}\n",
+            "module x\npub fn f(m: Record<string, unknown>) -> unknown {\n  return m.naem\n}\n",
+            "module x\ntype Bag = Record<string, unknown>\npub fn f(m: Bag, k: string) -> unknown {\n  return m[k]\n}\n",
+            "module x\ntype Raw = unknown\npub fn f(m: Record<string, Raw>, k: string) -> unknown {\n  return m[k]\n}\n",
+        ] {
+            let errs = errors_of(src);
+            assert!(errs.is_empty(), "expected nothing for:\n{src}\ngot {errs:?}");
+        }
+        // Every other `V` keeps E0224.
+        let errs = errors_of(
+            "module x\npub fn f(m: Record<string, string>, k: string) -> unknown {\n  return m[k]\n}\n",
+        );
+        assert_eq!(errs.iter().map(|e| e.code()).collect::<Vec<_>>(), ["E0224"], "{errs:?}");
+        // The read is `unknown`, not "not typed here": interpolating it is
+        // E0237, as interpolating any other `unknown` is.
+        let errs = errors_of(
+            "module x\npub fn f(m: Record<string, unknown>, k: string) -> string {\n  return \"${m[k]}\"\n}\n",
+        );
+        assert_eq!(errs.iter().map(|e| e.code()).collect::<Vec<_>>(), ["E0237"], "{errs:?}");
     }
 
     /// Writing a key is how a map is built, and is always safe.

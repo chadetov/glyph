@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-464 entries, 333 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+465 entries, 334 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 111 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12472,7 +12472,7 @@ and is the owner's to confirm.
   negative case is refused, and no other file or any of the 32 apps formats
   differently.
 
-- **G325. An `unknown` value passes where another type is declared.** `let s:
+- **G325. [FIXED] An `unknown` value passes where another type is declared.** `let s:
   string = u` with `u: unknown` passes `glyph check --no-tsc` and the agent
   gate; `tsc` refuses it (TS2322). Glyph's relation never refuses `unknown` on
   the found side, so the same holds at an argument, a return and a field. It
@@ -12503,6 +12503,22 @@ and is the owner's to confirm.
   *Reproduced against 0.1.169 (the release build): `let s: string = u` with `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 `Type 'unknown' is not assignable to type 'string'.` with `tsc`.*
 
   *Reproduced against 0.1.175 (the release build): `let s: string = u` with `u: unknown` is `glyph check: 1 module(s) checked, no diagnostics.` under `--no-tsc`, and TS2322 `Type 'unknown' is not assignable to type 'string'.` with `tsc`.*
+
+  Fixed in 0.1.176 by D65 (records 89 and 182). A found `unknown`, the
+  written word, a name for it, or `json.parse`'s unchecked read, is refused
+  where any type the checker decides is declared, at every depth the
+  relation reads: ``[E0204] type mismatch: expected `string`, found
+  `unknown` `` at a `let`, `return` and record field, E0211 at an argument,
+  and the same for `Array<unknown>` against `Array<string>`, `Result<unknown,
+  Array<Issue>>` against `Result<T, Array<Issue>>`, an enclosing `T`,
+  `Nullable<string>`, `void`, `never` and a function type. The help names
+  `json.parse<T>`, `T.parse` and an `is` pattern. `Nullable<unknown>`, a value
+  the checker has no type for, and a declared type it does not read
+  (`extern_ts`, `typeof`, `Schema<T>`, `Component<P>`, `infer_output<S>`, a
+  package type) are left alone. `let s: string = u` exits 0 under the
+  published 0.1.171 and 1 under the 0.1.176 build. `Some(u)` where
+  `Option<string>` is declared still passes, because the payload of `Some`
+  is compared only when it is written out (G436).
 
 - **G326. [FIXED] `json.parse` does not follow a sibling's alias into a third module.**
   `type Rows = Array<User>` in `rows`, where `rows` imports `User`, is refused
@@ -15947,3 +15963,18 @@ and is the owner's to confirm.
   *Reproduced against 0.1.175 (the dev-0.1.175 build) with record 183's
   `a4` and `a5`: `check --no-tsc` and full `check` exit 0 on both, and
   `glyph run` throws the two `TypeError`s above.*
+
+- **G490. A value of an `extern_ts` type is refused where a string-literal
+  union is declared.** With `type Mode = "read" | "write"` and `type Raw =
+  extern_ts("\"read\"")`, `fn f(r: Raw) -> Mode { return r }` is
+  ``[E0204] type mismatch: expected `Mode`, found `Raw` `` under `--no-tsc`
+  and under `build`, though the emitted TypeScript is `"read"` returned as
+  `"read" | "write"`, which `tsc` accepts. The same holds for
+  `extern_ts("any")`. D29 makes an `extern_ts` body opaque to the checker,
+  and the string-literal-union rule refuses every type it can read there,
+  which counts a name it reads no body for. Found building 0.1.176, when
+  `assignability_answers_the_string_literal_union_pairings` needed an
+  undecidable value other than `unknown`.
+
+  *Reproduced against 0.1.171 (the published release): E0204 under `check
+  --no-tsc` and under `build`.*

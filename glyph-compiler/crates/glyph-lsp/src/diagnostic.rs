@@ -651,7 +651,8 @@ fn resolve_subject(err: &ResolveError) -> Option<String> {
         | R::ReservedWordName { .. }
         | R::ShadowedGlobalName { .. }
         | R::PrimitiveUnionType { .. }
-        | R::NoExportSurface { .. } => None,
+        | R::NoExportSurface { .. }
+        | R::CircularBound { .. } => None,
     }
 }
 
@@ -789,6 +790,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::ShadowedGlobalName { .. } => "collect",
         ResolveError::PrimitiveUnionType { .. } => "collect",
         ResolveError::NoExportSurface { .. } => "lint",
+        ResolveError::CircularBound { .. } => "resolve",
     }
 }
 

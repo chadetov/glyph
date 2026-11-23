@@ -1334,8 +1334,8 @@ struct Assigner<'a> {
     /// on (`<T: Named>`), read off the declaration that owns them (record
     /// 175), each with its bound lowered (G263). `None` is a bound the
     /// checker does not read: an `extern_ts` or `typeof` type, or one in a
-    /// cycle of parameters bounding each other (`<T: U, U: T>`, which `tsc`
-    /// refuses as TS2313).
+    /// cycle of parameters bounding each other (`<T: U, U: T>`, which the
+    /// resolver refuses as E0114; kept here so the walk still terminates).
     enclosing_bounded: HashMap<Ident, Option<Ty>>,
     /// The written annotation of each parameter and annotated `let`, keyed
     /// the way `local_tys` is. A diagnostic that suggests code reads the
@@ -24227,10 +24227,11 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// G263. A bound the checker does not read (a cycle of parameters
-    /// bounding each other, which `tsc` refuses on its own as TS2313, or an
-    /// `extern_ts` type) leaves the parameter decided only against another
-    /// of the body's parameters, and a field of it keeps the map rule.
+    /// G263. A bound the checker does not read (an `extern_ts` type, or a
+    /// cycle of parameters bounding each other, which the resolver refuses
+    /// as E0114 and this checker still reads defensively) leaves the
+    /// parameter decided only against another of the body's parameters,
+    /// and a field of it keeps the map rule.
     #[test]
     fn an_unread_bound_leaves_the_parameter_undecided() {
         let src = "module m\n\

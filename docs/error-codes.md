@@ -65,6 +65,7 @@ below.
 | `E0111` | `type Key = string \| number`: bare primitive names on the right of `\|` declare tagged-union variants, not a union of those types |
 | `E0112` | A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning) |
 | `E0113` | A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file |
+| `E0114` | A circular bound: type parameters bounding each other back to the start (`<T: U, U: T>`, `<T: T>`) |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
 build output but never fail the build or block emission. They run when parse,

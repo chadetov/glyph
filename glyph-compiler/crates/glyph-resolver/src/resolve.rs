@@ -321,6 +321,57 @@ impl Resolver<'_> {
                 self.walk_type_expr(b);
             }
         }
+        self.refuse_circular_bounds(generics);
+    }
+
+    /// E0114 (record 184): a chain of bounds that are each a bare sibling
+    /// parameter and comes back to where it started (`<T: U, U: T>`,
+    /// `<T: T>`). It resolves, but to nothing, and `tsc` refuses it (TS2313).
+    /// Each cycle is reported once, at the parameter of it written first.
+    /// Only bare parameters chain: `<T: Cmp<T>>` is an F-bound, legal here
+    /// as in TypeScript.
+    fn refuse_circular_bounds(&mut self, generics: &[GenericParam]) {
+        let bare_sibling = |g: &GenericParam| -> Option<usize> {
+            let [TypeExpr::Path { segments, .. }] = g.bounds.as_slice() else {
+                return None;
+            };
+            let [name] = segments.as_slice() else {
+                return None;
+            };
+            generics.iter().position(|o| o.name == *name)
+        };
+        let mut reported: Vec<usize> = Vec::new();
+        for start in 0..generics.len() {
+            if reported.contains(&start) {
+                continue;
+            }
+            let mut chain = vec![start];
+            let mut cur = start;
+            while let Some(next) = bare_sibling(&generics[cur]) {
+                if next == start {
+                    reported.extend(chain.iter().copied());
+                    let cycle = chain
+                        .iter()
+                        .map(|&i| {
+                            let g = &generics[i];
+                            let to = bare_sibling(g).map_or("", |n| generics[n].name.as_ref());
+                            format!("{}: {to}", g.name)
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    self.errors.push(ResolveError::CircularBound {
+                        cycle,
+                        span: generics[start].span,
+                    });
+                    break;
+                }
+                if chain.contains(&next) {
+                    break;
+                }
+                chain.push(next);
+                cur = next;
+            }
+        }
     }
 
     /// Shared body for `fn` and `component` declarations (D4 + D19): push a
@@ -1295,6 +1346,32 @@ type Bundle = { finding: Finding }
              interface I<T: Gone> { get: fn() -> T }\n",
         );
         assert_eq!(unresolved_names(&errs), ["Nope", "AlsoNope", "Missing", "Gone"]);
+    }
+
+    /// Record 184, F1. A chain of bounds that are bare sibling parameters
+    /// and loops back is E0114, once per cycle and named as written; an
+    /// F-bound and a chain that ends in a type are not cycles.
+    #[test]
+    fn a_circular_bound_is_refused() {
+        let (_, errs) = resolve(
+            "module x\n\
+             interface Cmp<X> { v: X }\n\
+             fn x1<T: U, U: T>(x: T) -> T { return x }\n\
+             fn x4<T: T>(x: T) -> T { return x }\n\
+             fn x3<A: B, B: C, C: A>(x: A) -> A { return x }\n\
+             fn x5<A: B, B: B>(x: A) -> A { return x }\n\
+             fn ok1<T: Cmp<T>>(x: T) -> T { return x }\n\
+             fn ok2<T: U, U: string>(x: T) -> T { return x }\n",
+        );
+        let cycles: Vec<&str> = errs
+            .iter()
+            .filter_map(|e| match e {
+                ResolveError::CircularBound { cycle, .. } => Some(cycle.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(cycles, ["T: U, U: T", "T: T", "A: B, B: C, C: A", "B: B"], "errs: {errs:?}");
+        assert!(errs.iter().all(|e| e.code() == "E0114"), "errs: {errs:?}");
     }
 
     /// G263. A declared bound resolves, a prelude one too, and a bound may

@@ -56,7 +56,7 @@ named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
 454 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-107 are open. G144, the D28 boundary cast that never reached the returns a
+108 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15428,7 +15428,7 @@ and is the owner's to confirm.
   `"""x${f("a\tb")} \${y} ${x}"""` is E0103, ``unresolved name `y` `` at
   9:29.*
 
-- **G455. Two recursive types of one shape are compared by name.** `type F =
+- **G455. A recursive type is compared by name, against its own shape and every other.** `type F =
   Array<F>` against `type G = Array<G>`, `type F = Option<F>` against `type
   G = Option<G>`, and `type F = Array<F>` against `type H =
   Array<Array<H>>` are E0204 under `--no-tsc`, and `tsc --strict` accepts
@@ -15438,6 +15438,19 @@ and is the owner's to confirm.
   compared holds. That is a new rule for the whole relation, with
   consequences for E0204's messages and for `glyph_impact`, so it needs its
   own decision. Found by the 0.1.170 review (record 176, probes c3, c5, b7).
+
+  The same relation is silent in the other direction (record 178, probe r):
+  with `type G = Array<G>`, a `G` returned where a `number` is declared and
+  an `Array<G>` returned where an `Array<number>` is declared pass `--no-tsc`,
+  and `tsc` refuses both (TS2322). A recursive declaration is not decided
+  against a type of another shape, so the false refusal and the silence come
+  from one rule, and one coinductive decision answers both. Since 0.1.170 a
+  `W<G>` under `type W<X> = Array<X>` is read as that `Array<G>` and is
+  silent too; 0.1.167 refused it only by `W`'s name.
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.170 branch
+  build with record 178's probe r: `a(x: G) -> number` and `c(x: Array<G>)
+  -> Array<number>` report nothing under both.*
 
   *Reproduced against 0.1.167 (the published release) and the 0.1.170 branch
   build: ``[E0204] Error: typecheck: type mismatch: expected `G`, found

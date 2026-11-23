@@ -33,6 +33,7 @@ pub mod async_slot;
 pub mod builtin_members;
 mod builtin_methods;
 pub mod concurrency;
+pub mod deprecated;
 pub mod lower;
 pub mod mutation;
 pub mod owned;
@@ -960,6 +961,18 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// G389: a read or call of a member of an `Array<T>`, a `string` or a
+    /// `number` that TypeScript's library marks `@deprecated` (`s.substr`,
+    /// `s.trimLeft`, `s.bold`). A **warning**: each one still runs in every
+    /// engine and `tsc --strict` accepts it. The message quotes the tag; the
+    /// help names what to write instead, computed from the call.
+    #[error("{message}")]
+    DeprecatedBuiltinMember {
+        message: String,
+        help: String,
+        span: Span,
+    },
+
     /// G311, record 87 (D18): `?.` on a receiver that resolves to the
     /// prelude `Option<T>` or `Result<T, E>`, through any alias. Neither is
     /// ever null at run time, so the chain never short-circuits: it reads
@@ -1631,7 +1644,7 @@ impl TypeError {
     /// (`Warning`). Everything is an `Error` except the few advisory lints.
     pub fn severity(&self) -> Severity {
         match self {
-            TypeError::UnusedResult { .. } => Severity::Warning,
+            TypeError::UnusedResult { .. } | TypeError::DeprecatedBuiltinMember { .. } => Severity::Warning,
             _ => Severity::Error,
         }
     }
@@ -1664,6 +1677,7 @@ impl TypeError {
             TypeError::MutOnNonMutatingCall { span, .. } => *span,
             TypeError::TextOrderSort { span, .. } => *span,
             TypeError::AbsentBuiltinResult { span, .. } => *span,
+            TypeError::DeprecatedBuiltinMember { span, .. } => *span,
             TypeError::NoTextForm { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
@@ -1720,6 +1734,7 @@ impl TypeError {
             TypeError::MutOnNonMutatingCall { .. } => "E0241",
             TypeError::AbsentBuiltinResult { .. } => "E0242",
             TypeError::TextOrderSort { .. } => "E0243",
+            TypeError::DeprecatedBuiltinMember { .. } => "E0244",
             TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
@@ -1769,7 +1784,8 @@ impl TypeError {
         | TypeError::MutationOutsideMut { help, .. }
         | TypeError::MutOnNonMutatingCall { help, .. }
         | TypeError::AbsentBuiltinResult { help, .. }
-        | TypeError::TextOrderSort { help, .. } = self
+        | TypeError::TextOrderSort { help, .. }
+        | TypeError::DeprecatedBuiltinMember { help, .. } = self
         {
             return Some(Cow::Owned(help.clone()));
         }
@@ -2100,6 +2116,7 @@ impl TypeError {
             TypeError::MutOnNonMutatingCall { .. } => unreachable!("answered above with its computed help"),
             TypeError::AbsentBuiltinResult { .. } => unreachable!("answered above with its computed help"),
             TypeError::TextOrderSort { .. } => unreachable!("answered above with its computed help"),
+            TypeError::DeprecatedBuiltinMember { .. } => unreachable!("answered above with its computed help"),
         }))
     }
 
@@ -2161,6 +2178,9 @@ impl TypeError {
             ),
             TypeError::TextOrderSort { .. } => Some(
                 "With no comparator, JavaScript's `sort` and `toSorted` convert each element to a string and compare the strings, so numbers come out in the order of their digits and a record sorts as `[object Object]`. That order is right for text alone. `tsc` accepts the call on any array, and `array.sort` always takes a comparator.",
+            ),
+            TypeError::DeprecatedBuiltinMember { .. } => Some(
+                "TypeScript's library marks this member `@deprecated`. It still runs in every engine, since Annex B of the language keeps it, and `tsc --strict` accepts it, so this is a warning and the build goes on. An editor on TypeScript's language service strikes the member through, and `tsc` on the command line says nothing.",
             ),
             TypeError::SqlFromRuntimeValue { .. } => Some(
                 "A query's text is fixed when the program is written (D52). Values go in the parameter array, where SQLite binds them as data and never reads them as SQL; `sqlite.from_trusted` is the one way to run text built at run time, and it takes a `taint.Trusted<string>`.",

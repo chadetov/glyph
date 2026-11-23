@@ -310,10 +310,10 @@ pub struct BuiltinVariant {
 
 /// An open generic parameter of a builtin declaration, for the payload of a
 /// variant that carries one.
-fn builtin_param(name: &'static str) -> Ty {
+fn builtin_param(module: &'static str, union: &'static str, name: &'static str) -> Ty {
     Ty::Param {
         name: Ident::from(name),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_type(module, union),
     }
 }
 
@@ -333,11 +333,11 @@ pub fn builtin_unions() -> Vec<BuiltinUnion> {
             variants: vec![
                 BuiltinVariant {
                     name: "Ok",
-                    payload: Some(builtin_param("T")),
+                    payload: Some(builtin_param("std/result", "Result", "T")),
                 },
                 BuiltinVariant {
                     name: "Err",
-                    payload: Some(builtin_param("E")),
+                    payload: Some(builtin_param("std/result", "Result", "E")),
                 },
             ],
         },
@@ -349,7 +349,7 @@ pub fn builtin_unions() -> Vec<BuiltinUnion> {
             variants: vec![
                 BuiltinVariant {
                     name: "Some",
-                    payload: Some(builtin_param("T")),
+                    payload: Some(builtin_param("std/option", "Option", "T")),
                 },
                 BuiltinVariant {
                     name: "None",
@@ -516,18 +516,64 @@ pub struct UnionVariant {
     pub payload: Option<Ty>,
 }
 
-/// Which generic-parameter scope a `Ty::Param` belongs to. The same parameter
-/// name can appear in multiple declarations; `ParamOwner` distinguishes them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Which declaration introduced a `Ty::Param`. The same parameter name can
+/// appear in many declarations (`fn wrap<T>` and `fn f<T>` each have a `T`),
+/// and two parameters are the same parameter only when both the owner and the
+/// name agree.
+///
+/// The owner is filled when a signature or annotation is lowered (G314, step
+/// 1), from the resolver's binding of the name: the `fn`, `component`, `type`
+/// or `interface` whose `<...>` list declares it. A declaration of this
+/// module is named by its `SymbolRef`. A declaration another module or the
+/// stdlib owns is named by `(module, name)`, as `Ty::Imported` names a type,
+/// because a `SymbolRef` indexes one module's table and would name an
+/// unrelated declaration in a consumer's.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ParamOwner {
-    /// Generic parameter on a `fn` or `component` declaration.
+    /// Generic parameter on a `fn` or `component` declaration of this module.
     Callable(SymbolRef),
-    /// Generic parameter on a `type` declaration.
+    /// Generic parameter on a `type` or `interface` declaration of this
+    /// module.
     TypeDecl(SymbolRef),
-    /// Owner not yet resolved. The day-2 lowering doesn't track which
-    /// declaration introduced a `Ty::Param` — week 3's bidirectional checker
-    /// fills the real owner on first lookup.
+    /// Generic parameter on a function of another module: a project sibling
+    /// (`"lib"`, `"wrap"`) or a stdlib row (`"std/set"`, `"create"`).
+    ImportedCallable { module: ModuleKey, name: Ident },
+    /// Generic parameter on a type of another module, a stdlib type's member
+    /// table (`"std/set"`, `"Set"`) and the builtin unions included.
+    ImportedTypeDecl { module: ModuleKey, name: Ident },
+    /// No owner is known. Only a type built by hand in a test, or a parameter
+    /// whose binding the resolver did not attribute to a declaration, carries
+    /// it; such a parameter keeps the treatment every parameter had before
+    /// owners were filled.
     Unresolved,
+}
+
+impl ParamOwner {
+    /// The owner of a type parameter of the stdlib function `module.name`.
+    pub fn std_callable(module: &str, name: &str) -> Self {
+        ParamOwner::ImportedCallable {
+            module: ModuleKey::from(module),
+            name: Ident::from(name),
+        }
+    }
+
+    /// The owner of a type parameter of the stdlib type `module.name`.
+    pub fn std_type(module: &str, name: &str) -> Self {
+        ParamOwner::ImportedTypeDecl {
+            module: ModuleKey::from(module),
+            name: Ident::from(name),
+        }
+    }
+
+    /// Whether this owner is a function of any module, so a parameter it owns
+    /// is bound by a call and, left unbound there, is undecided at the call
+    /// site.
+    pub fn is_callable(&self) -> bool {
+        matches!(
+            self,
+            ParamOwner::Callable(_) | ParamOwner::ImportedCallable { .. }
+        )
+    }
 }
 
 impl Ty {

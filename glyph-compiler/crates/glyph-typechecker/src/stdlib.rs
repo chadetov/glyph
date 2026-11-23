@@ -43,7 +43,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if module_key == "std/nullable" {
         let t = || Ty::Param {
             name: Ident::from("T"),
-            owner: ParamOwner::Unresolved,
+            owner: ParamOwner::std_callable(module_key, field),
         };
         let (param, ret) = match field {
             "to_option" => (nullable_ty(prelude, t())?, option_ty(prelude, t())?),
@@ -145,7 +145,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if (module_key, field) == ("std/json", "parse") {
         let t = Ty::Param {
             name: Ident::from("T"),
-            owner: ParamOwner::Unresolved,
+            owner: ParamOwner::std_callable(module_key, field),
         };
         return Some(Ty::Fn {
             params: vec![required(Ty::Prim(Primitive::String))],
@@ -168,7 +168,7 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if (module_key, field) == ("std/json", "parse_with") {
         let t = || Ty::Param {
             name: Ident::from("T"),
-            owner: ParamOwner::Unresolved,
+            owner: ParamOwner::std_callable(module_key, field),
         };
         return Some(Ty::Fn {
             params: vec![
@@ -998,7 +998,7 @@ pub(crate) fn sqlite_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
 pub(crate) fn state_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
     let t = || Ty::Param {
         name: Ident::from("T"),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_callable(module_key, field),
     };
     let of = |module: &str, name: &str| Ty::App {
         base: Arc::new(stdlib_named(module, name)),
@@ -1166,7 +1166,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
     }
     let elem = || Ty::Param {
         name: Ident::from("T"),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_callable(module_key, field),
     };
     let xs = array_ty(prelude, elem())?;
     let unknown = || FnParam {
@@ -1206,7 +1206,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
     // result element differs from their input's.
     let out = || Ty::Param {
         name: Ident::from("U"),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_callable(module_key, field),
     };
     // `fn(T) -> U`. Synchronous on purpose: see the note above about what an
     // `async fn` passed here used to do.
@@ -1256,7 +1256,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         "concat" => {
             let other = || Ty::Param {
                 name: Ident::from("U"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             (
                 vec![of(xs.clone()), of(array_ty(prelude, other())?)],
@@ -1304,7 +1304,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         "fold" => {
             let acc = Ty::Param {
                 name: Ident::from("A"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             (
                 vec![
@@ -1333,7 +1333,7 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         "fold_while" => {
             let acc = Ty::Param {
                 name: Ident::from("A"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             (
                 vec![
@@ -1353,11 +1353,11 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         "try_fold" => {
             let acc = Ty::Param {
                 name: Ident::from("A"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             let err = Ty::Param {
                 name: Ident::from("E"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             let step = result_ty(prelude, acc.clone(), err.clone())?;
             (
@@ -1407,11 +1407,11 @@ pub(crate) fn array_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> O
         "zip" => {
             let second = || Ty::Param {
                 name: Ident::from("U"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             let combined = || Ty::Param {
                 name: Ident::from("R"),
-                owner: ParamOwner::Unresolved,
+                owner: ParamOwner::std_callable(module_key, field),
             };
             (
                 vec![
@@ -1549,11 +1549,11 @@ pub(crate) fn record_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> 
     }
     let value = || Ty::Param {
         name: Ident::from("V"),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_callable(module_key, field),
     };
     let key_ty = || Ty::Param {
         name: Ident::from("K"),
-        owner: ParamOwner::Unresolved,
+        owner: ParamOwner::std_callable(module_key, field),
     };
     let rec = record_ty(prelude, key_ty(), value())?;
     let unknown = || FnParam {
@@ -2081,7 +2081,7 @@ pub fn stdlib_type_member_table(
                 .iter()
                 .map(|p| Ty::Param {
                     name: Ident::from(*p),
-                    owner: ParamOwner::Unresolved,
+                    owner: ParamOwner::std_type(module_key, name),
                 })
                 .collect(),
         },

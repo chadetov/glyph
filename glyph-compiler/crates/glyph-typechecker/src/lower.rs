@@ -67,6 +67,76 @@ impl<'a> Lowerer<'a> {
         })
     }
 
+    /// The declaration that owns the type parameter bound at `start`, the
+    /// definition-site offset a `ResolvedRef::Local` carries: the `fn`,
+    /// `component`, `type` or `interface` whose span holds it. A type name
+    /// that resolves to a local is always one of those `<...>` bindings, since
+    /// a value binding is never in scope in type position.
+    ///
+    /// Under the export view the owner is named by `(module, name)`, as every
+    /// other declaration of this module is, so a consumer never holds this
+    /// module's `SymbolRef`.
+    pub fn param_owner(&self, start: u32) -> ParamOwner {
+        let table = &self.resolved.symbols.table;
+        for i in 0..table.len() {
+            let id = glyph_resolver::SymbolId(i as u32);
+            let Some(sym) = table.get(id) else {
+                continue;
+            };
+            if !(sym.span.start <= start && start < sym.span.end) {
+                continue;
+            }
+            let callable = match sym.kind {
+                SymbolKind::Function { .. } | SymbolKind::Component { .. } => true,
+                SymbolKind::Type { .. } => false,
+                _ => continue,
+            };
+            return match (self.export_module, callable) {
+                (Some(module), true) => ParamOwner::ImportedCallable {
+                    module: module.into(),
+                    name: sym.name.clone(),
+                },
+                (Some(module), false) => ParamOwner::ImportedTypeDecl {
+                    module: module.into(),
+                    name: sym.name.clone(),
+                },
+                (None, true) => ParamOwner::Callable(id.into()),
+                (None, false) => ParamOwner::TypeDecl(id.into()),
+            };
+        }
+        ParamOwner::Unresolved
+    }
+
+    /// `owner` as another module sees it: a declaration of this module is
+    /// named by `(module, name)` instead of by its `SymbolRef`.
+    fn export_owner(&self, owner: &ParamOwner) -> ParamOwner {
+        let module = self.export_module.expect("export view");
+        let name_of = |symbol: &crate::ty::SymbolRef| {
+            self.resolved
+                .symbols
+                .table
+                .get(glyph_resolver::SymbolId(symbol.0))
+                .map(|sym| sym.name.clone())
+        };
+        match owner {
+            ParamOwner::Callable(symbol) => match name_of(symbol) {
+                Some(name) => ParamOwner::ImportedCallable {
+                    module: module.into(),
+                    name,
+                },
+                None => ParamOwner::Unresolved,
+            },
+            ParamOwner::TypeDecl(symbol) => match name_of(symbol) {
+                Some(name) => ParamOwner::ImportedTypeDecl {
+                    module: module.into(),
+                    name,
+                },
+                None => ParamOwner::Unresolved,
+            },
+            other => other.clone(),
+        }
+    }
+
     pub fn lower(&self, te: &TypeExpr) -> Ty {
         match te {
             TypeExpr::Path { segments, span } => {
@@ -176,9 +246,9 @@ impl<'a> Lowerer<'a> {
                             _ => Ty::Unknown,
                         }
                     }
-                    Some(ResolvedRef::Local(_)) => Ty::Param {
+                    Some(ResolvedRef::Local(start)) => Ty::Param {
                         name: head.clone(),
-                        owner: ParamOwner::Unresolved,
+                        owner: self.param_owner(start),
                     },
                     None => Ty::Unknown,
                 }
@@ -667,8 +737,8 @@ impl ExportLowerer<'_> {
     /// becomes `Ty::Unknown`, which no check reads. A prelude container and a
     /// modeled stdlib type are the same everywhere and pass unchanged, as
     /// does a `Ty::Imported`, which is already keyed by module. A generic
-    /// parameter loses its owner, which is a symbol of this module, and keeps
-    /// its name, as a lowered signature carries it.
+    /// parameter keeps its name, and an owner of this module is named by
+    /// `(module, name)`, as a lowered signature on the export view names it.
     ///
     /// The result is the type a consumer reads under either import spelling,
     /// so `import lib { MODE }` and `lib.MODE` are judged against one answer.
@@ -697,9 +767,9 @@ impl ExportLowerer<'_> {
                     _ => Ty::Unknown,
                 }
             }
-            Ty::Param { name, .. } => Ty::Param {
+            Ty::Param { name, owner } => Ty::Param {
                 name: name.clone(),
-                owner: ParamOwner::Unresolved,
+                owner: lowerer.export_owner(owner),
             },
             Ty::App { base, args } => Ty::App {
                 base: Arc::new(self.export_inferred(base)),
@@ -916,7 +986,10 @@ type T = { f: Result<User, FeedError> }
         match ty {
             Ty::Param { name, owner } => {
                 assert_eq!(name.as_ref(), "T");
-                assert!(matches!(owner, ParamOwner::Unresolved));
+                // The owner is `id`, the declaration whose `<T>` binds it
+                // (G314, step 1).
+                let id = resolved.symbols.lookup("id").expect("fn id");
+                assert_eq!(owner, ParamOwner::Callable(id.into()));
             }
             other => panic!("expected Param, got {other:?}"),
         }

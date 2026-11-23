@@ -922,9 +922,9 @@ pub enum TypeError {
     /// comparator on an `Array<E>` whose elements are not text. JavaScript's
     /// default order compares the text of each element, so `[100, 9, 25]`
     /// sorts as `100, 25, 9`. Text is a `string`, a string-literal union, a
-    /// refined `string` and a second name for one of those. A receiver the
-    /// checker cannot type, and an element type it cannot decide (a type
-    /// parameter with a bound, until bounds are read), are not judged. The
+    /// refined `string`, a second name for one of those, and a type parameter
+    /// bounded by one. A receiver the checker cannot type, and an element
+    /// type it cannot decide, are not judged. The
     /// help writes the comparator in the form the call was written in.
     #[error("{message}")]
     TextOrderSort {

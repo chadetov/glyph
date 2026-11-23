@@ -117,7 +117,7 @@ fn program(generics: &str, elem: &str, cmp_ty: Option<&str>, stmt: &str) -> Stri
 }
 
 /// Every element type the rule refuses, with the generics `work` declares.
-const REFUSED: [(&str, &str); 13] = [
+const REFUSED: [(&str, &str); 14] = [
     ("", "number"),
     ("", "int"),
     ("", "bigint"),
@@ -131,10 +131,12 @@ const REFUSED: [(&str, &str); 13] = [
     ("", "Array<string>"),
     ("", "unknown"),
     ("<T>", "T"),
+    // A bounded parameter is read as its bound (G263).
+    ("<T: Named>", "T"),
 ];
 
 /// Every element type the rule accepts, or does not judge.
-const ACCEPTED: [(&str, &str); 8] = [
+const ACCEPTED: [(&str, &str); 10] = [
     ("", "string"),
     ("", "Tier"),
     ("", "\"a\" | \"b\""),
@@ -142,8 +144,10 @@ const ACCEPTED: [(&str, &str); 8] = [
     ("", "Plan"),
     ("", "Slug"),
     ("", "Label"),
-    // A bound is not read yet (G263), so a bounded parameter is undecided.
-    ("<T: Named>", "T"),
+    // A parameter bounded by text is text, through a chain of bounds too.
+    ("<T: string>", "T"),
+    ("<T: Tier>", "T"),
+    ("<U: string, T: U>", "T"),
 ];
 
 #[test]

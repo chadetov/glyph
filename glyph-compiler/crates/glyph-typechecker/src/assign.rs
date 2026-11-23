@@ -7699,9 +7699,9 @@ impl Assigner<'_> {
     /// reads as `number`), `bool`, `unknown`, records, interfaces, tagged
     /// unions, `Option`, `Nullable`, arrays, functions, the stdlib's own
     /// types, and a type parameter of the enclosing declaration with no
-    /// bound. Undecided: a type the checker could not type, a name with no
-    /// declaration it can read, and a type parameter with a bound, whose
-    /// bound the resolver does not resolve yet (G263).
+    /// bound. A bounded one is read as its bound. Undecided: a type the
+    /// checker could not type, a name with no declaration it can read, and a
+    /// bound the checker cannot read.
     fn sorts_as_text(&self, elem: &Ty) -> Option<bool> {
         let mut current = elem.clone();
         for _ in 0..16 {
@@ -7712,13 +7712,19 @@ impl Assigner<'_> {
                 }
                 Ty::Pending(_) => return Some(false),
                 Ty::Unknown | Ty::Never => return None,
-                Ty::Param { name, owner } => {
-                    return match self.is_own_param(name, owner) {
-                        true if self.enclosing_bounded.contains(name) => None,
-                        true => Some(false),
-                        false => None,
-                    }
-                }
+                // One of the enclosing body's own parameters is its bound
+                // when it writes one the checker reads (G263): `T: string`
+                // sorts as text and `T: Named` does not. With no bound the
+                // caller chooses `T`, so it is not text; a bound the checker
+                // cannot read, and anyone else's parameter, are undecided.
+                Ty::Param { name, owner } => match self.is_own_param(name, owner) {
+                    true => match self.enclosing_bounded.get(name) {
+                        Some(Some(bound)) => bound.clone(),
+                        Some(None) => return None,
+                        None => return Some(false),
+                    },
+                    false => return None,
+                },
                 Ty::Named { .. } | Ty::Imported { .. } => {
                     if stdlib_type_path(&current).is_some() || self.is_prelude_name(&current) {
                         return Some(false);

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-450 entries, 323 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-107 are open. G144, the D28 boundary cast that never reached the returns a
+451 entries, 323 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+108 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15299,6 +15299,11 @@ and is the owner's to confirm.
   branch build with record 171's probe a07: both report only the E0204 on
   `let u: string = v`, none on `let z: string = o`.*
 
+  Record 173 found more of this family in array literals: a literal of
+  tagged-union constructors (`[Circle(1), Square(2)]`), of `Some` and `None`
+  (`[Some(1), None]`) and one with a spread (`[...[seen], seen]`) give their
+  elements no type either, the same in 0.1.167 and 0.1.168.
+
 - **G450. An array of written string-literal arrays with different words has
   no element type.** `let xs = [["read"], ["write"]]` is typed
   `Array<Array<?>>`: the two inner literals are `Array<"read">` and
@@ -15314,3 +15319,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.167 (the published release) and the 0.1.168
   branch build: `let a: Array<Array<number>> = xs` draws nothing on both,
   and the same line over `[["read"], ["read"]]` is E0204 on both.*
+
+
+- **G451. The index binding of `for i, x in [...]` has no type.** With
+  `for i, x in [seen]`, `let c: string = i` passes `check --no-tsc` on both
+  0.1.167 and 0.1.168, while the emitted TypeScript gives `i` the type
+  `number` and `tsc` refuses the line. Glyph's checker should type the index
+  binding as `number` whatever the iterand is. Found by record 173 reviewing
+  G447.
+
+  *Reproduced against 0.1.168 (the dev build) by record 173's probe l03:
+  `let c: string = i` is accepted under `--no-tsc`.*

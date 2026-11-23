@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-449 entries, 322 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+450 entries, 323 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 107 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -15243,7 +15243,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.166 (the published release) and the 0.1.167
   branch build: `let n = make().pop()` draws the help above on both.*
 
-- **G447. A `for` loop over an array literal of applied types gives the loop
+- **G447. [FIXED] A `for` loop over an array literal of applied types gives the loop
   variable the wrong type.** `for s in [seen] { let c = s.has(1) }` with
   `seen: set.Set<number>` is E0211, ``argument type mismatch: expected
   `set.Set<number>`, found `number` ``, and `for w in [[1]] { let k: string =
@@ -15254,6 +15254,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.166 (the published release) and the 0.1.167
   branch build by record 171's probe a08: both report the E0211 and the
   `Array<Array<number>>` above.*
+
+  Fixed in 0.1.168. The loop widened fresh literals (G237) by pairing the
+  element type with the iterand expression. For a written array that paired
+  an array literal with a type that was not its type, and the widening
+  rebuilt any one-argument applied element around the literal's own
+  elements: `set.Set<number>` came back as `set.Set<set.Set<number>>` and
+  `Array<number>` as `Array<Array<number>>`. The loop now widens the
+  iterand's own type and reads the element off it, which is what `let xs =
+  [..]` followed by `for x in xs` gives. `crates/glyph-cli/tests/
+  for_over_array_literal.rs` states each case in both spellings: probe a08,
+  nested arrays, stores, `Option`s, records, string literals, a mixed
+  literal, the index form, and a wrong argument inside the loop, which is
+  still refused. Probe a08's E0211 is gone and its `let k: string = w` now
+  names `Array<number>`. The two-binary run against 0.1.167 changed no
+  diagnostic over 285 units. The wrong type also let wrong code through
+  under `--no-tsc` (`s.has(seen)` in the same loop), which `tsc` refused;
+  that is refused by Glyph's checker now. G450, the `let` of
+  `[["read"], ["write"]]`, was found on the way.
 
 - **G448. A write through a structural interface evades D5.**
   `interface Adder { add: fn(number) -> void, }`, `fn via(a: Adder) {
@@ -15280,3 +15298,19 @@ and is the owner's to confirm.
   *Reproduced against 0.1.166 (the published release) and the 0.1.167
   branch build with record 171's probe a07: both report only the E0204 on
   `let u: string = v`, none on `let z: string = o`.*
+
+- **G450. An array of written string-literal arrays with different words has
+  no element type.** `let xs = [["read"], ["write"]]` is typed
+  `Array<Array<?>>`: the two inner literals are `Array<"read">` and
+  `Array<"write">`, they do not join, and the widening that runs after the
+  join has nothing left to widen. So `let a: Array<Array<number>> = xs` is
+  not refused, where `[["read"], ["read"]]` is typed `Array<Array<string>>`
+  and refused. `tsc` refuses both (TS2322). Widening each element before
+  the join would type it; that refuses programs the checker accepts today,
+  so it goes in its own release with a two-binary run. A `for` over the
+  same literal reads the type the `let` gives since 0.1.168 (G447). Found
+  building G447.
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.168
+  branch build: `let a: Array<Array<number>> = xs` draws nothing on both,
+  and the same line over `[["read"], ["read"]]` is E0204 on both.*

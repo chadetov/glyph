@@ -326,7 +326,9 @@ fn apply_diagnostic_rules(
     // one of the collected files is left alone rather than written to a guess.
     let mut by_file: BTreeMap<PathBuf, Vec<Diagnostic>> = BTreeMap::new();
     for d in &check.structured {
-        if !RULE_CODES.contains(&d.code.as_str()) {
+        // E0243 is repaired by no rule, but it travels with the file so an
+        // E0240 on the same sort can say that is why it declines (G388).
+        if !RULE_CODES.contains(&d.code.as_str()) && d.code != "E0243" {
             continue;
         }
         let Some(path) = place_diagnostic(&check.project_srcs, files, d) else {
@@ -668,7 +670,7 @@ fn fix_one_file(
                     why,
                 }),
             },
-            "E0240" => match plan_e0240(&source, d).and_then(|v| guard.clone().map(|()| v)) {
+            "E0240" => match plan_e0240(&source, d, diags).and_then(|v| guard.clone().map(|()| v)) {
                 Ok(edit) => {
                     let what = match edit.0 == edit.1 {
                         true => "wrote `mut` before a call that changes its receiver",
@@ -791,7 +793,7 @@ fn e0200_decline(d: &Diagnostic) -> String {
 /// `Diagnostic::insert_replaces_from` to the call). The text replaced must
 /// read as that `let`, or the rule declines, the way the range guard
 /// declines a range that has drifted from its node.
-fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String> {
+fn plan_e0240(source: &str, d: &Diagnostic, diags: &[Diagnostic]) -> Result<(u32, u32, String), String> {
     let (s, _) = range_bytes(source, d).ok_or("the diagnostic's range is not a byte range of this file")?;
     match (&d.insert_before, d.insert_replaces_from) {
         (Some(text), Some(from)) => {
@@ -806,13 +808,39 @@ fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
             }
         }
         (Some(text), None) => Ok((s as u32, s as u32, text.clone())),
-        (None, _) => Err(
-            "the call's value is used, or it is an arm of a `match`, a deferred call, a call on a value no name \
-             holds or a sort that needs a comparator (E0243), so the repair depends on what it was for; the help \
-             names one"
-                .to_string(),
-        ),
+        (None, _) => Err(e0240_declined(d, diags)),
     }
+}
+
+/// Why an E0240 takes no `mut `, the one reason that applies. A sort the
+/// same call draws E0243 for needs a comparator first (G388), which only
+/// the help writes. Every other reason is the position the checker placed
+/// the call in, which its message names.
+fn e0240_declined(d: &Diagnostic, diags: &[Diagnostic]) -> String {
+    let same_call = |o: &&Diagnostic| {
+        o.code == "E0243" && o.range.start.offset == d.range.start.offset && o.range.end.offset == d.range.end.offset
+    };
+    if diags.iter().any(|o| same_call(&o)) {
+        return "the sort compares values that are not text and needs a comparator (E0243), which the help writes"
+            .to_string();
+    }
+    let m = d.message.as_str();
+    let why = if m.ends_with("its value is used here") {
+        "the call's value is used"
+    } else if m.contains("as the last expression of the body") {
+        "the call is the body's last expression, so its value is returned"
+    } else if m.contains("as the last expression of the arm") {
+        "the call is the last expression of an arm whose value is used"
+    } else if m.contains("is a deferred call") {
+        "the call is deferred, and `defer` takes no `mut`"
+    } else if m.contains("nothing keeps") || m.contains("no `mut` line names") {
+        "the call changes a value no name holds"
+    } else if m.ends_with("is written as a `mut` statement") {
+        "the call is an arm of a `match`, which needs a block to hold a statement"
+    } else {
+        "the call stands where `mut ` alone does not repair it"
+    };
+    format!("{why}, so the repair depends on what it was for; the help names one")
 }
 
 // ---------------------------------------------------------------------------

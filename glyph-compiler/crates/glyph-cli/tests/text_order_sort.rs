@@ -190,7 +190,12 @@ fn the_message_names_the_type_and_the_order_it_gives() {
         m,
         "`xs.toSorted()` with no comparator compares `int` values as text, so `[100, 9, 25]` sorts as `100, 25, 9`"
     );
-    assert_eq!(h, "pass a comparator: `xs.toSorted(fn(a: int, b: int) -> number { return a - b })`");
+    // `toSorted` is newer than the `es2022` library Glyph's tsconfig asks
+    // for, so the help writes the copy `array.sort` returns (record 187).
+    assert_eq!(
+        h,
+        "write `array.sort(xs, fn(a: int, b: int) -> number { return a - b })`, which returns a sorted copy"
+    );
     let (_, m, h) = refusals(&program("", "User", None, "  mut xs.sort()")).remove(0);
     assert_eq!(m, "`xs.sort()` with no comparator compares `User` values as text");
     assert_eq!(
@@ -227,28 +232,11 @@ fn cmp_type(help: &str) -> Option<&str> {
     rest.split('`').next()
 }
 
-/// `src`, which calls `toSorted`, passes Glyph's checker, and the full
-/// check refuses nothing but the method itself: the tsconfig Glyph emits
-/// asks for the `es2022` library, which has no `toSorted` (TS2550). A
-/// project that builds against a newer library has it, and that is a
-/// question about the library, not about the comparator.
-fn assert_accepted_but_for_the_library(label: &str, src: &str) {
-    let dir = project(label, src);
-    let v = check(&dir, true);
-    assert!(v["ok"] == true && errors(&v).is_empty(), "{label}: expected no errors:\n{src}\n{v:#}");
-    let full = check(&dir, false);
-    let errs = errors(&full);
-    assert!(
-        !errs.is_empty() && errs.iter().all(|d| d["code"] == "TS2550"),
-        "{label}: expected TS2550 alone:\n{src}\n{full:#}"
-    );
-}
-
 /// The line a help's code replaces the refused line with.
 type Apply = fn(&str) -> String;
 
 /// Each help, applied the way an agent would apply it, passes the full
-/// check, `tsc` included: the refused line replaced by the help's code, and
+/// check, `tsc` included, with no `toSorted` left in it: the refused line replaced by the help's code, and
 /// `cmp` given the type the help names, when it names one.
 #[test]
 fn every_help_applied_compiles() {
@@ -264,10 +252,8 @@ fn every_help_applied_compiles() {
         for (stmt, applied) in &forms {
             for (code, _, help) in refusals(&program(g, elem, None, stmt)) {
                 let fixed = program(g, elem, cmp_type(&help), &applied(first_code(&help)));
-                match fixed.contains("toSorted") {
-                    true => assert_accepted_but_for_the_library(&format!("{code}-{elem}"), &fixed),
-                    false => assert_accepted(&format!("{code}-{elem}"), &fixed),
-                }
+                assert!(!fixed.contains("toSorted"), "{help}");
+                assert_accepted(&format!("{code}-{elem}"), &fixed);
             }
         }
     }
@@ -325,6 +311,25 @@ fn glyph_fix_leaves_a_bare_sort_that_needs_a_comparator() {
         .expect("run glyph fix");
     let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
     assert!(text.contains("declined E0240") && !text.contains("applied E0240"), "{text}");
+    // The one reason that applied, not a list of every possible one.
+    assert!(text.contains("needs a comparator (E0243)") && !text.contains("deferred"), "{text}");
     let after = std::fs::read_to_string(dir.join("src/main.glyph")).unwrap();
     assert!(after.contains("\n  xs.sort()\n"), "{after}");
+}
+
+/// `array.sort` copies already, so a help over `xs.slice().sort()` sorts
+/// `xs` and writes no second copy.
+#[test]
+fn a_copying_help_drops_a_slice_before_the_sort() {
+    for stmt in [
+        "  let ys = xs.slice().sort()\n  print(\"${ys.length}\")",
+        "  let ys = xs.slice().toSorted()\n  print(\"${ys.length}\")",
+    ] {
+        let found = refusals(&program("", "number", None, stmt));
+        assert!(!found.is_empty(), "{stmt}");
+        for (code, _, help) in &found {
+            assert!(help.contains("`array.sort(xs, fn(a: number, b: number) -> number { return a - b })`"), "{code}: {help}");
+            assert!(!help.contains("slice"), "{code}: {help}");
+        }
+    }
 }

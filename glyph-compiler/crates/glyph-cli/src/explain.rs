@@ -1434,11 +1434,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Before:  mut scores.sort()\n\
             After:   mut scores.sort(fn(a: number, b: number) -> number { return a - b })\n\n\
             Before:  let ranked = scores.toSorted()\n\
-            After:   let ranked = scores.toSorted(fn(a: number, b: number) -> number { return a - b })\n\n\
+            After:   let ranked = array.sort(scores, fn(a: number, b: number) -> number { return a - b })\n\n\
             The help writes the comparator for a `number` or an `int`, and \
-            names its type for anything else. Where the sort's value is read, \
-            which is E0240 too, it writes `array.sort(xs, cmp)`, which \
-            returns a sorted copy and leaves `xs` alone. `array.sort` always \
+            names its type for anything else. For `toSorted`, and where a \
+            `sort`'s value is read (E0240 too), it writes `array.sort(xs, \
+            cmp)`, which returns a sorted copy and leaves `xs` alone: \
+            `toSorted` is newer than the `es2022` library the emitted \
+            tsconfig asks for, so `tsc` refuses it with or without a \
+            comparator. `array.sort` always \
             takes a comparator, so it never needs this check.\n\n\
             Not judged: a receiver the checker cannot type (an npm value), \
             and a type parameter with a bound.",
@@ -2640,7 +2643,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0243",
         phase: "typechecker",
         meaning: "`sort()` or `toSorted()` with no comparator on an `Array<E>` whose elements are not text (G388): `number`, `int`, `bigint`, `bool`, a record, an interface, a tagged union, `Option`, `Nullable`, an array, `unknown`, or a type parameter with no bound. JavaScript's default order compares each element's text, so `[100, 9, 25]` sorts as `100, 25, 9`; `tsc` accepts it. Text (`string`, a string-literal union, a refined `string`, a second name for one) is accepted; a receiver the checker cannot type and a bounded type parameter are not judged",
-        fix: "Pass a comparator that is negative when `a` comes first: `mut xs.sort(fn(a: number, b: number) -> number { return a - b })`, or `xs.toSorted(...)` with the same; where the value is read, `array.sort(xs, cmp)` returns a sorted copy. The help writes it in the form the call used",
+        fix: "Pass a comparator that is negative when `a` comes first: `mut xs.sort(fn(a: number, b: number) -> number { return a - b })`; for `toSorted`, or where a sort's value is read, `array.sort(xs, cmp)` returns a sorted copy (`toSorted` is newer than the `es2022` library the emitted tsconfig asks for). The help writes the comparator in",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

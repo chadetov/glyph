@@ -237,6 +237,33 @@ mod tests {
         );
     }
 
+    /// Record 189: a value the checker has no type for is not refused where
+    /// `never` is declared, at a `return`, a tail or an unannotated lambda
+    /// parameter, since `tsc` accepts `process.exit(1)` there. A decided
+    /// `number` is still not `never`.
+    #[test]
+    fn an_untyped_value_is_not_refused_where_never_is_declared() {
+        let src = "module x\nimport std/process\n\
+                   pub fn a() -> never {\n  return process.exit(1)\n}\n\
+                   pub fn b() -> never {\n  process.exit(1)\n}\n\
+                   pub fn c() -> number {\n  let h = fn(x) -> never { return x }\n  let k = fn(x) -> never { x }\n  return 1\n}\n";
+        assert!(mismatches(src).is_empty(), "{:?}", errors_of(src));
+
+        let decided = "module x\npub fn r() -> never {\n  return 5\n}\npub fn t() -> never {\n  5\n}\n";
+        assert_eq!(
+            mismatches(decided),
+            vec!["type mismatch: expected `never`, found `number`".to_string(); 2]
+        );
+    }
+
+    /// An unresolved name under `-> never` is the resolver's E0103 alone, not
+    /// also a mismatch against a type it never had.
+    #[test]
+    fn an_unresolved_name_under_never_is_not_also_a_mismatch() {
+        let src = "module x\npub fn a() -> never {\n  return nowhere.exit(1)\n}\npub fn b() -> never {\n  nowhere.exit(1)\n}\n";
+        assert!(mismatches(src).is_empty(), "{:?}", errors_of(src));
+    }
+
     /// Arms that all diverge or agree are unchanged: a diverging arm adds
     /// nothing, and arms of the declared type pass.
     #[test]

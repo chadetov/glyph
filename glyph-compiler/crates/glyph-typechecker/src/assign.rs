@@ -10984,8 +10984,12 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(found, Ty::Never) {
         return false;
     }
+    // Nothing but `never` fits into it, but a value the checker has no type
+    // for is not refused here any more than anywhere else: `process.exit(1)`
+    // as the tail of a `-> never` helper is the program `tsc` accepts
+    // (record 189).
     if matches!(expected, Ty::Never) {
-        return true;
+        return !is_untyped(found);
     }
     if !ty_is_decidable(found) || !ty_is_decidable(expected) {
         return false;
@@ -11809,6 +11813,16 @@ fn ty_has_param(ty: &Ty) -> bool {
     }
 }
 
+/// A value the checker has no type for: `Unknown`, or an application over
+/// a base it could not resolve.
+fn is_untyped(ty: &Ty) -> bool {
+    match ty {
+        Ty::Unknown => true,
+        Ty::App { base, .. } => is_untyped(base),
+        _ => false,
+    }
+}
+
 fn ty_is_decidable(ty: &Ty) -> bool {
     match ty {
         Ty::Unknown => false,
@@ -11827,10 +11841,6 @@ fn ty_is_decidable(ty: &Ty) -> bool {
     }
 }
 
-/// Whether a declared return type decidably requires the body to produce a
-/// value (E0223). `Unknown` (no annotation, or one that could not be resolved)
-/// and `void` both mean "no value is owed", so a body whose tail `match` has a
-/// valueless arm is left alone.
 /// The values `value` hands to a declared position (see
 /// `declared_value_refusals`): `value` itself, or each value a `match`
 /// produces.
@@ -11851,6 +11861,10 @@ fn declared_position_values<'e>(value: &'e Expr, out: &mut Vec<&'e Expr>) {
     }
 }
 
+/// Whether a declared return type decidably requires the body to produce a
+/// value (E0223). `Unknown` (no annotation, or one that could not be resolved)
+/// and `void` both mean "no value is owed", so a body whose tail `match` has a
+/// valueless arm is left alone.
 fn ty_requires_value(ty: &Ty) -> bool {
     // `never` owes no value for the opposite reason `void` does not: not that
     // the caller wants nothing back, but that the body never gets to the point

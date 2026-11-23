@@ -5633,6 +5633,10 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Rolling lane · G449, `Some(x)` infers no type** (record 171, probes a04 and a07): `let o = Some(seen)` is untyped, so a wrong annotation and a write inside `match o` go unjudged. Give the `Option` its payload type.
 
+**Rolling lane · G450, an array of array literals joins its inner element types** (found building 0.1.168): `[["read"], ["write"]]` is `Array<Array<?>>` today, so a declared `Array<Array<number>>` is not compared. Refusing what it lets through is breaking, so it gets a corpus run of its own.
+
+**Rolling lane · G451, the index binding of `for i, x` is a `number`** (record 173): `let c: string = i` passes `--no-tsc` and `tsc` refuses it.
+
 **Rolling lane · R1 (record 171), `glyph fix` on `let _ = (q.pop_back())`:** the rule declines with the node-drift reason; accept a parenthesized call, or give the true reason.
 
 **Rolling lane · R2 (record 171), the value help at module scope:** `const N = ITEMS.pop()` and `const N = Q.pop_back()` are told to write a `mut` statement, which module scope cannot hold.

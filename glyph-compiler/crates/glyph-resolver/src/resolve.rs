@@ -306,6 +306,23 @@ impl Resolver<'_> {
         });
     }
 
+    /// Bind a declaration's type parameters in the current scope, then resolve
+    /// each one's bound (G263). A bound is a type annotation like any other:
+    /// `<T: Nope>` with `Nope` declared nowhere is E0103, as `tsc` reports
+    /// TS2304 for the `extends Nope` it emits. Every parameter is bound before
+    /// any bound is walked, so `<T, U: Array<T>>` and `<U: Array<T>, T>` both
+    /// see `T`, as they do in TypeScript.
+    fn bind_generics(&mut self, generics: &[GenericParam]) {
+        for g in generics {
+            self.bind_local(g.name.clone(), g.span);
+        }
+        for g in generics {
+            for b in &g.bounds {
+                self.walk_type_expr(b);
+            }
+        }
+    }
+
     /// Shared body for `fn` and `component` declarations (D4 + D19): push a
     /// scope, bind generics + params, walk the signature types and the body.
     fn walk_callable(
@@ -317,9 +334,7 @@ impl Resolver<'_> {
     ) {
         self.push_scope();
         // D7 generics are in scope for the whole signature and body.
-        for g in generics {
-            self.bind_local(g.name.clone(), g.span);
-        }
+        self.bind_generics(generics);
         for p in params {
             self.bind_local(p.name.clone(), p.span);
             self.walk_type_expr(&p.ty);
@@ -345,9 +360,7 @@ impl Resolver<'_> {
                 // type declaration only. `type Schema<T> = { parse: fn(...) -> Result<T, ...> }`
                 // needs `T` visible inside the body.
                 self.push_scope();
-                for g in &t.generics {
-                    self.bind_local(g.name.clone(), g.span);
-                }
+                self.bind_generics(&t.generics);
                 self.walk_type_expr(&t.body);
                 // D39: a `where` refinement predicate is resolved with `value`
                 // bound (the subject being validated); other names in it resolve
@@ -374,9 +387,7 @@ impl Resolver<'_> {
             Decl::Interface(i) => {
                 // Generic params are in scope for the member signatures only.
                 self.push_scope();
-                for g in &i.generics {
-                    self.bind_local(g.name.clone(), g.span);
-                }
+                self.bind_generics(&i.generics);
                 for m in &i.members {
                     match m {
                         glyph_ast::InterfaceMember::Method {
@@ -1260,5 +1271,44 @@ type Bundle = { finding: Finding }
             errs.iter().any(|e| matches!(e, ResolveError::ReservedWordName { .. })),
             "errs: {errs:?}"
         );
+    }
+
+    fn unresolved_names(errs: &[ResolveError]) -> Vec<String> {
+        errs.iter()
+            .filter_map(|e| match e {
+                ResolveError::UnresolvedName { name, .. } => Some(name.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// G263. A bound is resolved like any other type annotation, on every
+    /// declaration that takes type parameters: an undeclared one is E0103,
+    /// as `tsc` reports TS2304 for the `extends` it is emitted as.
+    #[test]
+    fn an_undeclared_bound_is_an_unresolved_name() {
+        let (_, errs) = resolve(
+            "module x\n\
+             fn f<T: Nope>(x: T) -> T { return x }\n\
+             component Show<T: AlsoNope>(p: T) { return <p>hi</p> }\n\
+             type Box<T: Missing> = { v: T, }\n\
+             interface I<T: Gone> { get: fn() -> T }\n",
+        );
+        assert_eq!(unresolved_names(&errs), ["Nope", "AlsoNope", "Missing", "Gone"]);
+    }
+
+    /// G263. A declared bound resolves, a prelude one too, and a bound may
+    /// name a sibling type parameter written before it or after it.
+    #[test]
+    fn a_declared_bound_resolves() {
+        let (_, errs) = resolve(
+            "module x\n\
+             type Named = { name: string, }\n\
+             fn f<T: Named>(x: T) -> T { return x }\n\
+             fn g<T: string>(x: T) -> T { return x }\n\
+             fn h<T, U: Array<T>>(x: U) -> U { return x }\n\
+             fn k<U: Array<T>, T>(x: U) -> U { return x }\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
     }
 }

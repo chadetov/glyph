@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-459 entries, 330 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-109 are open. G144, the D28 boundary cast that never reached the returns a
+460 entries, 330 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+110 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -10693,8 +10693,9 @@ and is the owner's to confirm.
   then resolves each bound, on a `fn`, a `component`, a `type` and an
   `interface`, so `fn c<T: Nope>(x: T) -> T` is E0103 (``unresolved name
   `Nope` ``) where the published 0.1.170 exits 0 under `--no-tsc`; `T:
-  l.Nope` is E0105, and an import used only in a bound no longer draws a
-  false E0106. With the
+  l.Nope` is E0105, an import used only in a bound no longer draws a
+  false E0106, and a circular bound (`<T: U, U: T>`, `<T: T>`) is E0114,
+  as `tsc` refuses it (TS2313). With the
   bound read, a bounded parameter is decided as a value through it (D58,
   record 179): `T: Named` returned where `Named` is declared passes, and
   where `Other` is declared it is E0204, as `tsc` refuses it (TS2322). `fn g<T: string>(x: T) -> T` is valid TypeScript and passes on
@@ -15700,3 +15701,18 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.170 (the published release) and the 0.1.173
   branch build: `check --no-tsc` exits 0 on both programs.*
+
+- **G461. A generic interface's members are never checked on any value.**
+  With `interface Cmp<X> { fn cmp(o: X) -> number  v: X }` and `c:
+  Cmp<string>`, `return c.cmp("a")` where `string` is declared, `return
+  c.v` where `number` is declared, `c.nope` and `c.cmp(5)` all pass
+  `check --no-tsc`; `tsc` refuses the first three (TS2322, TS2322,
+  TS2339). A non-generic interface is checked (`b.put(5)` is E0211), so the
+  hole is the application: the member set is not read through `Cmp<X>`
+  with its argument. Since 0.1.173 a bounded parameter reads its members
+  off its bound, which makes an F-bound such as `T: Cmp<T>` guarantee
+  nothing about `x.cmp(y)`. Found by record 184 (N1, probe b3).
+
+  *Reproduced against 0.1.170 (the published release) and the 0.1.173
+  branch build with record 184's probe b3: `check --no-tsc` reports
+  nothing for `c0`, `c1` and `c2`.*

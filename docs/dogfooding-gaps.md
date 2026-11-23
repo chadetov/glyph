@@ -12138,6 +12138,24 @@ and is the owner's to confirm.
   `collections.Deque<T>` in `stdlib.rs`, whose `T` is the type's own
   parameter (decision record 157, section 4).
 
+  Step 1 landed on the 0.1.171 branch (record 88, record 157 section 4). A
+  `Ty::Param` now carries the declaration that owns it: `Callable` or
+  `TypeDecl` with a `SymbolRef` for this module's `fn`, `component`, `type`
+  and `interface`, and `ImportedCallable` or `ImportedTypeDecl` keyed by
+  `(module, name)` for a sibling's declaration and for every stdlib row (the
+  callee, or the type for a member table and the builtin `Result` and
+  `Option`). `map_field_incompatible`, the key domain of a parameter-keyed
+  `Record` and the display of the body's own parameters compare by owner and
+  name. The one change in behaviour is record 157's e02: `return wrap([])`
+  where `Record<string, string>` is declared goes from E0204 to accepted,
+  as `tsc` accepts it, whether `wrap` is local, imported by name or reached
+  through a namespace, and inside a `fn f4<T>` whose own parameter is also
+  `T`. The two-binary run over 285 corpus units (0.1.167 against the branch,
+  `build --no-tsc --no-test` and `check --no-tsc --json`) differs nowhere.
+  Nothing above is refused yet: `fn g<T>(x: Array<T>) -> Array<string>`
+  still passes `--no-tsc`, which is step 2's (0.1.172), so the entry stays
+  open.
+
 - **G315. [FIXED] A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same

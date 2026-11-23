@@ -1,0 +1,20 @@
+---
+version: 0.1.167
+month: 2026-11
+date: 2026-11-23
+tags: breaking
+headline: Writes to a Set, Store or Deque are mut statements, like array writes
+---
+            <p>Since 0.1.160, <code>xs.push(4)</code> has to be written <code>mut xs.push(4)</code>, so <code>grep -n "^\s*mut "</code> finds every change to an array. The stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> were the exception: <code>seen.add(x)</code> and <code>hits.set(n)</code> changed state with no <code>mut</code> line. 0.1.163 gave the checker their types, and 0.1.166 typed values held in an unannotated <code>const</code>. Now their writing members follow the same rule:</p>
+
+<pre><code>[E0240] `seen.add("a")` changes `seen` in place, and a call that changes a value is written as a `mut` statement
+Help: write `mut seen.add("a")`, so `grep "^\s*mut "` finds every change to `seen`</code></pre>
+
+            <p>The writing members are <code>Set.add</code> and <code>remove</code>, <code>Store.set</code> and <code>update</code>, and the four <code>push_</code> and <code>pop_</code> members of <code>Deque</code>. Readers such as <code>has</code>, <code>get</code>, <code>peek_front</code> and <code>len</code> are not, and putting <code>mut</code> in front of one is E0241. Every <code>decimal.Decimal</code> method returns a new value, so <code>mut d.add(e)</code> is E0241 too, with help to write <code>mut d = d.add(e)</code>, or to bind a new name when <code>d</code> is a <code>const</code>. <code>sqlite.Db</code> calls change state outside the program and are judged in neither direction.</p>
+
+            <p>The help depends on what the value is used for. <code>let had = seen.remove(1)</code> is told to read <code>seen.has(1)</code> first, and a <code>pop_front</code> used as a value is told to read <code>peek_front</code> first. A write to the set or array a <code>Store</code> holds goes through <code>mut st.update(...)</code>. <code>glyph fix</code> inserts the <code>mut</code> where the value has nowhere to go, and now also turns <code>let _ = q.pop_front()</code> into <code>mut q.pop_front()</code>, for arrays as well.</p>
+
+            <p>Which members write is checked twice. Every method of each type has to be classified, and node calls each one on a fresh instance to confirm the split. A write through an interface that names the method (<code>interface Adder { add: fn(number) -&gt; void, }</code>) is not covered yet; that is G448, and D5 lists it.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>: a bare <code>seen.add("a")</code> and a <code>mut d.add(d)</code> on a <code>Decimal</code> exit 0 under 0.1.166 and 1 under 0.1.167. Seven example apps had 43 such writes, migrated in the same change; across 285 tracked programs nothing else differs.</p>

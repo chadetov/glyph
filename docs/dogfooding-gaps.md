@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-467 entries, 334 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-113 are open. G144, the D28 boundary cast that never reached the returns a
+467 entries, 335 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+112 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14210,7 +14210,7 @@ and is the owner's to confirm.
   129's `p387/a.glyph` exits 0 and then 1 with five E0239, and on
   `catches/sql-by-interpolation` exits 0 and then 1.*
 
-- **G388. `.sort()` on numbers sorts them as text.** `mut scores.sort()` on `[100, 9, 25]` gives `100,25,9`. Require a comparator
+- **G388. [FIXED] `.sort()` on numbers sorts them as text.** `mut scores.sort()` on `[100, 9, 25]` gives `100,25,9`. Require a comparator
   when the element type is not `string`, or route `.sort` to a numeric default.
 
   *Reproduced against 0.1.149 (the release build): no diagnostics; `glyph run` prints `100,25,9`.*
@@ -14222,6 +14222,19 @@ and is the owner's to confirm.
   *Reproduced against 0.1.167 (the release build): `mut scores.sort()` is no diagnostics, passes `tsc --strict` and prints `100,25,9`; a bare `scores.sort()` is E0240, whose help writes `mut scores.sort()`, the same text-order sort, while `array.sort(scores)` with no comparator is E0213.*
 
   *Reproduced against 0.1.173 (the release build): `mut scores.sort()` is no diagnostics, passes `tsc --strict` and prints `100,25,9`; a bare `scores.sort()` is E0240, whose help writes `mut scores.sort()`, the same text-order sort, while `array.sort(scores)` with no comparator is E0213.*
+
+  Fixed in 0.1.177 by E0243 (decision record 182, section 5a). `sort()` and
+  `toSorted()` with no comparator are refused unless the elements are text: a
+  `string`, a string-literal union, a refined `string`, or a second name for
+  one. `mut scores.sort()` on an `Array<number>` exits 1 where the published
+  0.1.170 exits 0, and the help writes `mut scores.sort(fn(a: number, b:
+  number) -> number { return a - b })`. For an
+  element type `a - b` does not order, the help names the comparator's type,
+  `fn(a: User, b: User) -> number`. A bare `scores.sort()` is E0240 and E0243
+  together, and E0240's help writes the same comparator. A type parameter with
+  a bound is not judged until bounds are read (0.1.173). No numeric default was
+  added to the emitted `sort`: that would give a TypeScript method a meaning
+  TypeScript does not give it.
 
 - **G389. A member TypeScript marks `@deprecated` is accepted silently.** `s.substr(1, 2)` checks clean. Agents emit deprecated APIs often (every model
   in one ICSE 2025 study did). The built-in member table comes from the

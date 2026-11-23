@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","item":"https://glyphlang.io/th/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/impact/#article","headline":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","description":"glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์","url":"https://glyphlang.io/th/answers/impact/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","item":"https://glyphlang.io/th/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/impact/#article","headline":"คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง?","description":"glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์","url":"https://glyphlang.io/th/answers/impact/","inLanguage":"th","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -519,8 +519,10 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"argument 1 (`c`, `Cell`) against parameter
         `s: string`: `Cell` is declared in another module as
-        an alias for a primitive, and the checker compares an
-        imported declaration only when the declaration at the
+        an `extern_ts` or `typeof` body, which its module's
+        export view lowers to `Unknown`, and the checker
+        compares an imported declaration only when the
+        declaration at the
         end of its chain of names is a tagged union or a
         record (G215, G226), so a replacement is compared
         against nothing here and only `tsc` on a full `glyph
@@ -637,7 +639,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.169 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.169 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-23">23 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/binary/">
           <span class="dir">&larr; ก่อนหน้า</span>

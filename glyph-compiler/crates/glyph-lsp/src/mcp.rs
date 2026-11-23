@@ -6524,6 +6524,10 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
         prelude,
     } = scope;
     let decls: &dyn DeclTyResolver = *decls;
+    // G315: the checker reads a transparent declaration as its body before
+    // any rule reads a name, so the table classifies the body too.
+    let expanded = glyph_typechecker::expand_transparent(module, resolved, prelude, decls, ty);
+    let ty = &expanded;
     // Read before the `Ty::App` arm below: a prelude container's base is a
     // `Ty::Named` carrying a prelude symbol, so the arm that classifies an
     // application by its base would send it to `Other` and lose the one rule
@@ -6578,6 +6582,9 @@ fn classify_parameter(ty: &Ty, scope: &CellScope<'_>) -> ParamKind {
         prelude,
     } = scope;
     let decls: &dyn DeclTyResolver = *decls;
+    // G315, as in `classify_argument`.
+    let expanded = glyph_typechecker::expand_transparent(module, resolved, prelude, decls, ty);
+    let ty = &expanded;
     // Before the `Ty::App` arm, for the reason `classify_argument` reads it
     // first.
     if let Some((name, args)) = prelude_container(prelude, ty) {
@@ -16164,12 +16171,13 @@ pub fn f() -> number {
         assert!(because.contains("by name"), "the rule is unnamed: {entry}");
     }
 
-    /// Cell (local alias argument, primitive parameter): the G201 rule reads
-    /// the body, and a body that is a path is not a union or a record, so the
-    /// checker is silent. Run against the checker: `f(c)` with `c: Id`,
-    /// `type Id = string` and `f(n: number)` reports nothing.
+    /// Cell (local alias argument, primitive parameter): `type Id = string`
+    /// is read as the `string` it names (G315), so the pairing is a primitive
+    /// against a primitive and the checker compares it. Run against the
+    /// checker: `f(c)` with `c: Id`, `type Id = string` and `f(n: number)` is
+    /// E0211 under `check --no-tsc`.
     #[test]
-    fn signature_type_local_alias_against_primitive_is_undetermined() {
+    fn signature_type_local_alias_against_primitive_is_will_fail() {
         let entry = signature_call_entry(
             "module api\npub type Id = string\n\
              pub fn f(n: number) -> number {\n  return n\n}\n\
@@ -16177,14 +16185,11 @@ pub fn f() -> number {
             "api::f",
             "api::g",
         );
-        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
-        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
         let because = entry["because"].as_str().unwrap_or_default();
         assert!(because.contains("`Id`"), "{entry}");
-        assert!(
-            because.contains("union") && because.contains("record"),
-            "the missing shape is unnamed: {entry}"
-        );
+        assert!(because.contains("primitive argument"), "the rule is unnamed: {entry}");
     }
 
     /// The sibling every imported-cell test imports from.
@@ -16245,12 +16250,12 @@ pub fn f() -> number {
     }
 
     /// Cell (imported alias of a primitive, primitive parameter): the chain
-    /// ends at a `string`, not a union or a record, so the checker compares
-    /// it by nothing. Run against the checker: `f(c)` with `c: Id`,
-    /// `pub type Id = string` in the sibling, and `f(n: number)` is silent
-    /// under `check --no-tsc`.
+    /// ends at a `string`, which is read as the `string` (G315), so the
+    /// checker compares a primitive against a primitive. Run against the
+    /// checker: `f(c)` with `c: Id`, `pub type Id = string` in the sibling,
+    /// and `f(n: number)` is E0211 under `check --no-tsc`.
     #[test]
-    fn signature_type_imported_primitive_alias_against_primitive_is_undetermined() {
+    fn signature_type_imported_primitive_alias_against_primitive_is_will_fail() {
         let entry = signature_call_entry_in(
             &[
                 CELLS,
@@ -16264,14 +16269,11 @@ pub fn f() -> number {
             "api::f",
             "api::g",
         );
-        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
-        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
         let because = entry["because"].as_str().unwrap_or_default();
         assert!(because.contains("`Id`"), "{entry}");
-        assert!(
-            because.contains("alias for a primitive"),
-            "the shape the chain ends at is unnamed: {entry}"
-        );
+        assert!(because.contains("primitive argument"), "the rule is unnamed: {entry}");
     }
 
     /// Cell (imported `extern_ts` alias, primitive parameter): the export
@@ -16552,12 +16554,14 @@ pub fn f() -> number {
         );
     }
 
-    /// Cell (primitive argument, local alias parameter): the body is a path,
-    /// not a union or a record, so the rule reads nothing it decides on. Run
-    /// against the checker: `f("x")` with `f(i: Id)` and `type Id = string`
-    /// reports nothing.
+    /// Cell (primitive argument, local alias parameter): `type Id = string`
+    /// is read as the `string` it names (G315), so the pairing is a primitive
+    /// against a primitive and a replacement the argument does not satisfy is
+    /// E0211. Run against the checker: `f(s)` with `s: string`, `f(i: Id)`
+    /// and `type Id = string` is accepted, and with `type Id = number` it is
+    /// E0211.
     #[test]
-    fn signature_type_primitive_against_primitive_alias_is_undetermined() {
+    fn signature_type_primitive_against_primitive_alias_is_will_fail() {
         let entry = signature_call_entry(
             "module api\npub type Id = string\n\
              pub fn f(i: Id) -> number {\n  return 1\n}\n\
@@ -16565,11 +16569,11 @@ pub fn f() -> number {
             "api::f",
             "api::g",
         );
-        assert_eq!(entry["verdict"], "UNDETERMINED", "{entry}");
-        assert!(entry["diagnostic"].is_null(), "{entry}");
+        assert_eq!(entry["verdict"], "WILL_FAIL", "{entry}");
+        assert_eq!(entry["diagnostic"], "E0211", "{entry}");
         let because = entry["because"].as_str().unwrap_or_default();
         assert!(because.contains("`string`") && because.contains("`i: Id`"), "{entry}");
-        assert!(because.contains("alias"), "the body kind is unnamed: {entry}");
+        assert!(because.contains("primitive parameter"), "the rule is unnamed: {entry}");
     }
 
     /// Cell (unknown argument, any parameter): a `const` whose initializer
@@ -19112,10 +19116,12 @@ pub fn f() -> number {
         // One declaration under one address is the same type.
         let same = assignable(&root, "lib::Shape", "lib::Shape");
         assert_eq!(same["verdict"], "COMPATIBLE", "{same}");
-        // An imported alias for a primitive is a shape the relation declines,
-        // and it says so rather than guessing from the name.
+        // An imported alias for a primitive is the primitive (G315), so a
+        // `number` where `pub type Id = string` is declared is refused.
         let alias = assignable(&root, "number", "lib::Id");
-        assert_eq!(alias["verdict"], "UNDETERMINED", "{alias}");
+        assert_eq!(alias["verdict"], "WILL_FAIL", "{alias}");
+        let same = assignable(&root, "string", "lib::Id");
+        assert_eq!(same["verdict"], "COMPATIBLE", "{same}");
     }
 
     /// Every spelling this cannot read is refused with the reason, because an

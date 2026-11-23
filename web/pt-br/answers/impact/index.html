@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"O compilador consegue dizer o que uma mudança vai quebrar?","item":"https://glyphlang.io/pt-br/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/impact/#article","headline":"O compilador consegue dizer o que uma mudança vai quebrar?","description":"glyph_impact recebe a declaração que você está prestes a mudar e a edição, e responde com um veredito e um motivo para cada ponto de uso, antes de você mexer no arquivo.","url":"https://glyphlang.io/pt-br/answers/impact/","inLanguage":"pt-BR","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/pt-br/"},{"@type":"ListItem","position":2,"name":"Respostas","item":"https://glyphlang.io/pt-br/answers/"},{"@type":"ListItem","position":3,"name":"O compilador consegue dizer o que uma mudança vai quebrar?","item":"https://glyphlang.io/pt-br/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/pt-br/answers/impact/#article","headline":"O compilador consegue dizer o que uma mudança vai quebrar?","description":"glyph_impact recebe a declaração que você está prestes a mudar e a edição, e responde com um veredito e um motivo para cada ponto de uso, antes de você mexer no arquivo.","url":"https://glyphlang.io/pt-br/answers/impact/","inLanguage":"pt-BR","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/pt-br/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -517,8 +517,10 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"argument 1 (`c`, `Cell`) against parameter
         `s: string`: `Cell` is declared in another module as
-        an alias for a primitive, and the checker compares an
-        imported declaration only when the declaration at the
+        an `extern_ts` or `typeof` body, which its module's
+        export view lowers to `Unknown`, and the checker
+        compares an imported declaration only when the
+        declaration at the
         end of its chain of names is a tagged union or a
         record (G215, G226), so a replacement is compared
         against nothing here and only `tsc` on a full `glyph
@@ -635,7 +637,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.169 a cada build. Última alteração: <time datetime="2026-11-21">21 nov 2026</time>.</p>
+      <p class="page-stamp">Os exemplos de código desta página são verificados com o Glyph 0.1.169 a cada build. Última alteração: <time datetime="2026-11-23">23 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior e próxima">
         <a href="/pt-br/answers/binary/">
           <span class="dir">&larr; Anterior</span>

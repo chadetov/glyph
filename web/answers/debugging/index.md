@@ -91,4 +91,4 @@ Making it exit non-zero would fail trees that run fine today, so it's an open de
 - A decision on whether a sibling module's error should make `glyph run` exit non-zero.
 - Richer editor debugging via the LSP.
 
-Code examples on this page are checked against Glyph 0.1.173 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.174 on every build. Last changed 21 Nov 2026.

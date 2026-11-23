@@ -50,4 +50,4 @@ This isn't a hypothetical: an outside engineer [built a React Kanban board this 
 - `glyph build --watch` rebuilds on every save of a `.glyph` file, but beside a Vite dev server a Glyph change reloads the whole page rather than hot-swapping the component. Keep the output outside Vite's build directory (`dist/` by default), which its dev server does not watch.
 - Modules using `std/fs` or `std/net` need `@types/node` in the host, like any Node-touching TypeScript.
 
-Code examples on this page are checked against Glyph 0.1.166 on every build. Last changed 22 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.167 on every build. Last changed 22 Nov 2026.

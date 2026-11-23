@@ -5,8 +5,15 @@
   <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/" />
   <link rel="self" type="application/atom+xml" href="https://glyphlang.io/versions/feed.xml" />
   <id>https://glyphlang.io/versions/</id>
-  <updated>2026-11-22T00:00:00Z</updated>
+  <updated>2026-11-23T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
+  <entry>
+    <title>Glyph 0.1.167 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.167" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.167</id>
+    <updated>2026-11-23T00:00:00Z</updated>
+    <summary>Writes to a Set, Store or Deque are mut statements, like array writes</summary>
+  </entry>
   <entry>
     <title>Glyph 0.1.166 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.166" />
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.138</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>Two ways for glyph fmt to change what a program means are fixed, and the fuzzer now checks for that directly.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.137 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.137" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.137</id>
-    <updated>2026-11-17T00:00:00Z</updated>
-    <summary>glyph fmt no longer moves a comment.</summary>
   </entry>
 </feed>

@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>November 2026 releases · Glyph</title>
-    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.166, 39 releases, 34 breaking. Each one with its ship date and its notes." />
+    <meta name="description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.167, 40 releases, 35 breaking. Each one with its ship date and its notes." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/versions/" />
     <meta property="og:title" content="November 2026 releases" />
-    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.166, 39 releases, 34 breaking. Each one with its ship date and its notes." />
+    <meta property="og:description" content="What changed in each Glyph release of November 2026: 0.1.128 to 0.1.167, 40 releases, 35 breaking. Each one with its ship date and its notes." />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://glyphlang.io/og.png" />
     <meta property="og:image:type" content="image/png" />
@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.166</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.167</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 39 releases · 34 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="page"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 40 releases · 35 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,41 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">39 releases, 34 breaking, 0.1.128 to 0.1.166</p>
+        <p class="month-sum">40 releases, 35 breaking, 0.1.128 to 0.1.167</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.167" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.167</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-23">23 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.167" data-url="https://glyphlang.io/versions/2026-11/#0.1.167" aria-label="Link to 0.1.167">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">Writes to a Set, Store or Deque are mut statements, like array writes</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>Since 0.1.160, <code>xs.push(4)</code> has to be written <code>mut xs.push(4)</code>, so <code>grep -n "^\s*mut "</code> finds every change to an array. The stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> were the exception: <code>seen.add(x)</code> and <code>hits.set(n)</code> changed state with no <code>mut</code> line. 0.1.163 gave the checker their types, and 0.1.166 typed values held in an unannotated <code>const</code>. Now their writing members follow the same rule:</p>
+
+<pre class="wraps"><code><span class="e">[E0240]</span> <span class="q">`seen.add("a")`</span> changes <span class="q">`seen`</span> in place, and a call that changes a value is written as a <span class="q">`mut`</span> statement
+<span class="f">Help:</span> write <span class="q">`mut seen.add("a")`</span>, so <span class="q">`grep "^\s*mut "`</span> finds every change to <span class="q">`seen`</span></code></pre>
+
+            <p>The writing members are <code>Set.add</code> and <code>remove</code>, <code>Store.set</code> and <code>update</code>, and the four <code>push_</code> and <code>pop_</code> members of <code>Deque</code>. Readers such as <code>has</code>, <code>get</code>, <code>peek_front</code> and <code>len</code> are not, and putting <code>mut</code> in front of one is E0241. Every <code>decimal.Decimal</code> method returns a new value, so <code>mut d.add(e)</code> is E0241 too, with help to write <code>mut d = d.add(e)</code>, or to bind a new name when <code>d</code> is a <code>const</code>. <code>sqlite.Db</code> calls change state outside the program and are judged in neither direction.</p>
+
+            <p>The help depends on what the value is used for. <code>let had = seen.remove(1)</code> is told to read <code>seen.has(1)</code> first, and a <code>pop_front</code> used as a value is told to read <code>peek_front</code> first. A write to the set or array a <code>Store</code> holds goes through <code>mut st.update(...)</code>. <code>glyph fix</code> inserts the <code>mut</code> where the value has nowhere to go, and now also turns <code>let _ = q.pop_front()</code> into <code>mut q.pop_front()</code>, for arrays as well.</p>
+
+            <p>Which members write is checked twice. Every method of each type has to be classified, and node calls each one on a fresh instance to confirm the split. A write through an interface that names the method (<code>interface Adder { add: fn(number) -&gt; void, }</code>) is not covered yet; that is G448, and D5 lists it.</p>
+
+            <h4>Breaking</h4>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>: a bare <code>seen.add("a")</code> and a <code>mut d.add(d)</code> on a <code>Decimal</code> exit 0 under 0.1.166 and 1 under 0.1.167. Seven example apps had 43 such writes, migrated in the same change; across 285 tracked programs nothing else differs.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.166" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.166</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-22">22 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.166" data-url="https://glyphlang.io/versions/2026-11/#0.1.166" aria-label="Link to 0.1.166">Link</a>
@@ -476,7 +502,7 @@
             <time class="rel-date" datetime="2026-11-22">22 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.164" data-url="https://glyphlang.io/versions/2026-11/#0.1.164" aria-label="Link to 0.1.164">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">Positions inside ${} point at the text they name</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>Every position inside a <code>${}</code> was off. In <code>"n=${b.nik} end"</code>, E0210 underlined <code>{b.ni</code> instead of <code>b.nik</code>, because each interpolation was placed from the opening quote plus its index in the decoded string, which skipped the quote. An escape, a <code>\${</code> or a non-ASCII character earlier in the string pushed it further. The editor's ranges, hover and go-to-definition inside a template were off by the same amount, and so were the ranges agents edit against.</p>
@@ -1589,7 +1615,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

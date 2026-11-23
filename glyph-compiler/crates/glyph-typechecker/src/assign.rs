@@ -30,6 +30,7 @@ mod sql_query;
 mod text;
 
 use crate::lower::Lowerer;
+use crate::tail::{returns_tail, Callable};
 use crate::ty::{
     builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
     RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
@@ -1857,19 +1858,12 @@ impl Assigner<'_> {
             Decl::Type(t) => self.check_redact_annotation(t),
             Decl::Fn(f) => {
                 let er = self.enclosing_return(f.return_ty.as_ref(), f.is_async);
-                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.key_generics = f.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(f.span.start));
                 self.enclosing_bounded = self.bounded_generics(&f.generics);
                 self.bind_param_tys(&f.params);
-                self.walk_block(&f.body);
-                // Inside the callable's own return context: the check reads
-                // nothing from the stack today, but it is about this callable,
-                // so it runs before the frame is popped.
-                if wants_value {
-                    self.check_value_match_tail(&f.body);
-                }
+                self.walk_body(&f.body, returns_tail(Callable::Fn, f.return_ty.as_ref()));
                 self.key_generics.clear();
                 self.enclosing_owner = None;
                 self.enclosing_bounded.clear();
@@ -1909,16 +1903,12 @@ impl Assigner<'_> {
                     Some(te) => self.enclosing_return(Some(te), false),
                     None => self.enclosing_return_ty(self.lowerer.prelude_component(), false),
                 };
-                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.key_generics = c.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(c.span.start));
                 self.enclosing_bounded = self.bounded_generics(&c.generics);
                 self.bind_param_tys(&c.params);
-                self.walk_block(&c.body);
-                if wants_value {
-                    self.check_value_match_tail(&c.body);
-                }
+                self.walk_body(&c.body, returns_tail(Callable::Component, c.return_ty.as_ref()));
                 self.key_generics.clear();
                 self.enclosing_owner = None;
                 self.enclosing_bounded.clear();
@@ -1940,12 +1930,11 @@ impl Assigner<'_> {
                 // initializer's span so the diagnostic underlines the value.
                 if let Some(te) = &c.ty {
                     let expected = self.lowerer.lower(te);
-                    let found = self.tm.get(c.value.span()).clone();
                     self.note_sql_slot(
                         &c.value,
                         sql_query::SqlSink::Binding { name: c.name.to_string() },
                     );
-                    if let Some(mut r) = self.value_refusal(&c.value, &found, &expected) {
+                    for mut r in self.declared_value_refusals(&c.value, &expected, false) {
                         self.spell_declared(&mut r, Some(te));
                         let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
@@ -2388,9 +2377,21 @@ impl Assigner<'_> {
     }
 
     fn walk_block(&mut self, b: &Block) {
+        self.walk_body(b, false);
+    }
+
+    /// Walk a block, and when `returns_tail` is set, walk its last
+    /// expression as the value the callable returns. `returns_tail` is
+    /// `tail::returns_tail` for a callable's own body, the emitter's rule for
+    /// when that expression is written as a TypeScript `return`, so the tail
+    /// is checked exactly as `return` is (G457).
+    fn walk_body(&mut self, b: &Block, returns_tail: bool) {
         let n = b.stmts.len();
         for (i, s) in b.stmts.iter().enumerate() {
-            self.walk_stmt(s);
+            match s {
+                Stmt::Expr(e) if returns_tail && i + 1 == n => self.walk_returned_value(e),
+                _ => self.walk_stmt(s),
+            }
             // Result-must-use (E0217, a warning): a `Result`-typed expression
             // used as a *non-final* statement discards its value, and with it a
             // possible `Err`. The final statement is skipped deliberately — it
@@ -2404,6 +2405,35 @@ impl Assigner<'_> {
                         self.errors.push(TypeError::UnusedResult { span: e.span() });
                     }
                 }
+            }
+        }
+    }
+
+    /// A value the innermost callable returns: a `return`'s value, or the
+    /// tail of a body that returns it (`walk_body`). One path for both, so
+    /// what holds at `return` holds at a tail: the lambda context a declared
+    /// return gives (D55), the option-slot consumer (E0235), the comparison
+    /// with the declared return (`check_return_type`, which carries D57, D58,
+    /// the async unwrap and E0238's "not compared"), and E0223 for a `match`
+    /// whose arm produces nothing.
+    fn walk_returned_value(&mut self, v: &Expr) {
+        if let Some(slot) = self.return_stack.last().map(|er| er.ty.clone()) {
+            self.register_lambda_context(v, &slot);
+            let consumer = self.option_slot(&slot, "it is returned where the declared return is");
+            self.absent_consumers.insert(v.span(), consumer);
+        }
+        self.walk_expr(v);
+        self.check_return_type(v);
+        // `return match ...` in a `void` callable returns nothing of
+        // consequence, so only a callable that decidably needs a value has
+        // arms that must produce one.
+        let wants_value = self
+            .return_stack
+            .last()
+            .is_some_and(|er| ty_requires_value(&er.ty));
+        if wants_value {
+            if let Expr::Match { arms, .. } = v {
+                self.check_arms_produce_values(arms);
             }
         }
     }
@@ -2461,14 +2491,13 @@ impl Assigner<'_> {
                 // initializer's own span so the diagnostic underlines the
                 // value, not the annotation.
                 if l.ty.is_some() {
-                    let found = self.tm.get(l.value.span()).clone();
                     if let Some(name) = l.binding.as_name() {
                         self.note_sql_slot(
                             &l.value,
                             sql_query::SqlSink::Binding { name: name.to_string() },
                         );
                     }
-                    if let Some(mut r) = self.value_refusal(&l.value, &found, &ty) {
+                    for mut r in self.declared_value_refusals(&l.value, &ty, false) {
                         self.spell_declared(&mut r, l.ty.as_ref());
                         let accepted = self.accepted_values(&r.expected);
                         self.errors.push(TypeError::TypeMismatch {
@@ -2562,25 +2591,7 @@ impl Assigner<'_> {
             },
             Stmt::Return(r) => {
                 if let Some(v) = &r.value {
-                    if let Some(slot) = self.return_stack.last().map(|er| er.ty.clone()) {
-                        self.register_lambda_context(v, &slot);
-                        let consumer = self.option_slot(&slot, "it is returned where the declared return is");
-                        self.absent_consumers.insert(v.span(), consumer);
-                    }
-                    self.walk_expr(v);
-                    self.check_return_type(v);
-                    // `return match ...` in a `void` callable returns nothing
-                    // of consequence, so only a callable that decidably needs a
-                    // value has arms that must produce one.
-                    let wants_value = self
-                        .return_stack
-                        .last()
-                        .is_some_and(|er| ty_requires_value(&er.ty));
-                    if wants_value {
-                        if let Expr::Match { arms, .. } = v {
-                            self.check_arms_produce_values(arms);
-                        }
-                    }
+                    self.walk_returned_value(v);
                 }
             }
             Stmt::For(f) => {
@@ -3445,7 +3456,7 @@ impl Assigner<'_> {
                             continue;
                         }
                         let kind_help = self.fn_kind_help(callee, args, a, &found, &expected);
-                        if let Some(mut r) = self.value_refusal(a, &found, &expected) {
+                        for mut r in self.declared_value_refusals(a, &expected, false) {
                             if kind_help.is_some() {
                                 param_names_into(&p.ty, &mut refused_params);
                             }
@@ -3464,7 +3475,7 @@ impl Assigner<'_> {
                                 children_between_tags: false,
                                 sql_escape,
                                 record_key: r.record_key,
-                                kind_help,
+                                kind_help: kind_help.clone(),
                                 span: r.span,
                             });
                         }
@@ -3627,14 +3638,10 @@ impl Assigner<'_> {
                     self.check_nullable_args(rt);
                 }
                 let er = self.enclosing_return(return_ty.as_ref(), *is_async);
-                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 let context = self.lambda_contexts.remove(&span.start);
                 self.bind_lambda_param_tys(params, context.as_deref());
-                self.walk_block(body);
-                if wants_value {
-                    self.check_value_match_tail(body);
-                }
+                self.walk_body(body, returns_tail(Callable::Lambda, return_ty.as_ref()));
                 self.return_stack.pop();
                 let mut ty = self.lowerer.lower_lambda_signature(params, return_ty.as_ref(), *is_async);
                 // A sync lambda with no written return type returns its tail
@@ -5341,19 +5348,13 @@ impl Assigner<'_> {
         else {
             return;
         };
-        let found = self.tm.get(value.span()).clone();
         // `return save(1)` in an async callable is how it hands its own
         // result on (D51): the value it settles with is the pending call's,
         // so that is what the declared type is compared against. In a sync
         // callable a returned pending value is E0238 and is not compared.
-        let found = match found {
-            Ty::Pending(inner) if self.return_stack.last().is_some_and(|er| er.is_async) => {
-                inner.as_ref().clone()
-            }
-            other => other,
-        };
+        let is_async = self.return_stack.last().is_some_and(|er| er.is_async);
         self.note_sql_slot(value, sql_query::SqlSink::Return);
-        if let Some(mut r) = self.value_refusal(value, &found, &expected) {
+        for mut r in self.declared_value_refusals(value, &expected, is_async) {
             self.spell_declared(&mut r, written.as_ref());
             let accepted = self.accepted_values(&r.expected);
             self.errors.push(TypeError::TypeMismatch {
@@ -6837,16 +6838,6 @@ impl Assigner<'_> {
         }
     }
 
-    /// Run `check_arms_produce_values` over a callable body whose tail is a
-    /// bare `match`. Called only when the callable declares a return type that
-    /// decidably needs a value, so an unannotated callable (D4 makes the
-    /// annotation optional) stays permissive.
-    fn check_value_match_tail(&mut self, body: &Block) {
-        if let Some(Stmt::Expr(Expr::Match { arms, .. })) = body.stmts.last() {
-            self.check_arms_produce_values(arms);
-        }
-    }
-
     /// Recover a module-local tagged union from a `match`'s arm patterns, used
     /// only when the scrutinee's static type is undecidable (see the call site
     /// in the `Expr::Match` handler). An arm whose head names an in-scope union
@@ -8107,6 +8098,37 @@ impl Assigner<'_> {
     /// recursion through records, applications and containers asks, and what
     /// [`assignability`] answers for a surface holding two `Ty` values and no
     /// program text.
+    /// Compare a value standing where a type is declared (a `return`, a
+    /// returned tail, an annotated `let` or `const`, an argument) with that
+    /// type. A `match` there is compared arm by arm, never by the join of its
+    /// arms: the emitter writes one `return` or one assignment per arm, so
+    /// each arm is what meets the declared type, and arms that disagree with
+    /// each other join to nothing the relation could refuse. An arm's value is
+    /// its expression or the tail of its block, a nested `match` read the same
+    /// way; an arm that diverges, or produces nothing (E0223), adds nothing.
+    ///
+    /// `unwrap_pending` is a `return` in an async callable, which settles
+    /// with the pending value's result (D51), so that is what is compared.
+    /// Each arm compared here is marked judged, so the D57 walk does not
+    /// compare it a second time.
+    fn declared_value_refusals(&mut self, value: &Expr, expected: &Ty, unwrap_pending: bool) -> Vec<Refusal> {
+        let is_match = matches!(value, Expr::Match { .. });
+        let mut produced = Vec::new();
+        declared_position_values(value, &mut produced);
+        let mut refusals = Vec::new();
+        for v in produced {
+            let found = match self.tm.get(v.span()).clone() {
+                Ty::Pending(inner) if unwrap_pending => inner.as_ref().clone(),
+                other => other,
+            };
+            if is_match {
+                self.judged_literal_values.insert(v.span());
+            }
+            refusals.extend(self.value_refusal(v, &found, expected));
+        }
+        refusals
+    }
+
     fn value_refusal(&self, value: &Expr, found: &Ty, expected: &Ty) -> Option<Refusal> {
         // A pending value (D51) in a value position is E0238 wherever it
         // stands (`pending::check_pending`). A second refusal here would name
@@ -11809,6 +11831,26 @@ fn ty_is_decidable(ty: &Ty) -> bool {
 /// value (E0223). `Unknown` (no annotation, or one that could not be resolved)
 /// and `void` both mean "no value is owed", so a body whose tail `match` has a
 /// valueless arm is left alone.
+/// The values `value` hands to a declared position (see
+/// `declared_value_refusals`): `value` itself, or each value a `match`
+/// produces.
+fn declared_position_values<'e>(value: &'e Expr, out: &mut Vec<&'e Expr>) {
+    let Expr::Match { arms, .. } = value else {
+        out.push(value);
+        return;
+    };
+    for arm in arms {
+        match &arm.body {
+            MatchArmBody::Expr(e) => declared_position_values(e, out),
+            MatchArmBody::Block(b) => {
+                if let Some(Stmt::Expr(e)) = b.stmts.last() {
+                    declared_position_values(e, out);
+                }
+            }
+        }
+    }
+}
+
 fn ty_requires_value(ty: &Ty) -> bool {
     // `never` owes no value for the opposite reason `void` does not: not that
     // the caller wants nothing back, but that the body never gets to the point
@@ -15238,7 +15280,9 @@ const VALUE = FALLIBLE?
     fn question_checked_against_innermost_lambda() {
         // The `?` sits inside a lambda that returns `number`, NOT the
         // outer Result-returning fn. The innermost frame governs, so it is
-        // flagged even though an enclosing fn returns Result.
+        // flagged even though an enclosing fn returns Result. The tail it
+        // stands in is the lambda's returned value, the unwrapped `string`,
+        // which is also not the declared `number` (G457; `tsc` says TS2322).
         let src = r#"module x
 fn outer(r: Result<string, string>) -> Result<number, string> {
   let f = fn() -> number { r? }
@@ -15246,8 +15290,9 @@ fn outer(r: Result<string, string>) -> Result<number, string> {
 }
 "#;
         let errs = ty_errors_of(src);
-        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert_eq!(errs.len(), 2, "errs: {errs:?}");
         assert!(matches!(errs[0], TypeError::QuestionOutsideResultFn { .. }));
+        assert!(matches!(&errs[1], TypeError::TypeMismatch { expected, found, .. } if expected == "number" && found == "string"));
     }
 
     #[test]
@@ -15276,9 +15321,11 @@ async fn fetch(r: Result<string, string>) -> Result<string, string> {
     fn question_in_result_returning_lambda_passes() {
         // Inverse of the previous test: a Result-returning lambda nested in
         // a non-Result fn. The innermost frame (the lambda) permits `?`.
+        // The tail wraps the unwrapped value back up: a bare `r?` there
+        // returns a `string` where a `Result` is declared (G457).
         let src = r#"module x
 fn outer(r: Result<string, string>) -> number {
-  let f = fn() -> Result<string, string> { r? }
+  let f = fn() -> Result<string, string> { Ok(r?) }
   return 1
 }
 "#;
@@ -21211,7 +21258,9 @@ fn f(a: Answer) -> number {
              \x20 }}\n\
              }}\n"
         ));
-        assert_eq!(mismatch_found(&bad), vec!["\"read\" | \"exec\""], "errs: {bad:?}");
+        // Each arm is compared on its own (G457), so the refusal names and
+        // underlines the arm that is not a `Mode`, not the join of both.
+        assert_eq!(mismatch_found(&bad), vec!["\"exec\""], "errs: {bad:?}");
     }
 
     /// An arm whose value went through a binding is a `string`, and the join

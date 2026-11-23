@@ -38,7 +38,7 @@ mod stmt;
 mod types;
 
 pub use cursor::MAX_NESTING_DEPTH;
-pub use error::{LetPatternRefusal, NameRole, ParseError, SameLineStart, RELATIVE_IMPORT_HELP};
+pub use error::{Hoist, LetPatternRefusal, NameRole, ParseError, SameLineStart, RELATIVE_IMPORT_HELP};
 pub use stmt::TS_STATEMENT_WORDS;
 
 use glyph_ast::Module;
@@ -1406,6 +1406,38 @@ fn main() {
             assert_eq!(err.code(), "E0002", "{src}: {err:?}");
             assert!(matches!(err, ParseError::EscapeInInterpolation { .. }), "{src}: {err:?}");
         }
+    }
+
+    /// G441, record 174: the help is computed from the code as written. The
+    /// `let` form binds the decoded expression and keeps the text around the
+    /// `${}`; the `"""` form is spelled out when that text has no escape, and
+    /// a multi-line expression gets the help in words.
+    #[test]
+    fn the_escape_help_is_computed_from_the_code_g441() {
+        let help = |body: &str| -> String {
+            let src = format!("module x\nfn h(x: string) -> string {{\n  return {body}\n}}\n");
+            let err = crate::parse(&src).expect_err(&src);
+            assert!(matches!(err, ParseError::EscapeInInterpolation { .. }), "{src}: {err:?}");
+            err.help().unwrap().into_owned()
+        };
+        // Record 174's s03.
+        let h = help("\"a${x + \\\"\\\\u{e9}\\\"}\"");
+        assert!(h.contains("`let label = x + \"\\u{e9}\"`, then `\"a${label}\"`"), "{h}");
+        assert!(h.contains("`\"\"\"a${x + \"\\u{e9}\"}\"\"\"`"), "{h}");
+        // Text on both sides, kept as written; another interpolation too.
+        let h = help("\"<${x}> ${ x + \\\"!\\\" } end\"");
+        assert!(h.contains("`let label = x + \"!\"`, then `\"<${x}> ${label} end\"`"), "{h}");
+        assert!(h.contains("`\"\"\"<${x}> ${x + \"!\"} end\"\"\"`"), "{h}");
+        // An escape in the text around it: a `"""` string would not decode
+        // it, so that form is named without code.
+        let h = help("\"a\\t${x + \\\"!\\\"}\"");
+        assert!(h.contains("`let label = x + \"!\"`, then `\"a\\t${label}\"`"), "{h}");
+        assert!(!h.contains("\"\"\"a"), "{h}");
+        assert!(h.contains("decodes no escapes"), "{h}");
+        // An expression over two lines cannot be shown as one line of code.
+        let h = help("\"a${x +\n \\\"!\\\"}\"");
+        assert!(!h.contains("let label ="), "{h}");
+        assert!(h.contains("Bind the expression inside the `${}` with `let`"), "{h}");
     }
 
     /// G441: an escape outside the `${}` stays legal, and so does `\${`.

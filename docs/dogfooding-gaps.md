@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-453 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+454 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 107 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12184,7 +12184,9 @@ and is the owner's to confirm.
   import, give the local answers; before this the sibling's spelling refused
   nothing at all. `type Any = unknown` already checked clean, and a `Raw =
   unknown` value found where a `string` is declared is still accepted, which
-  is G325's to refuse.
+  is G325's to refuse. A transparent declaration that refers to itself
+  (`type F = Array<F>`) keeps its name, as in 0.1.167 (record 176); comparing
+  two of those by shape is G455.
 
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its
@@ -15425,3 +15427,19 @@ and is the owner's to confirm.
   build with record 174's probe s02:
   `"""x${f("a\tb")} \${y} ${x}"""` is E0103, ``unresolved name `y` `` at
   9:29.*
+
+- **G455. Two recursive types of one shape are compared by name.** `type F =
+  Array<F>` against `type G = Array<G>`, `type F = Option<F>` against `type
+  G = Option<G>`, and `type F = Array<F>` against `type H =
+  Array<Array<H>>` are E0204 under `--no-tsc`, and `tsc --strict` accepts
+  all three. A recursive transparent declaration keeps its name (D46, record
+  176), because expanding it never ends; comparing two of them structurally
+  needs a coinductive relation, which assumes a pairing already being
+  compared holds. That is a new rule for the whole relation, with
+  consequences for E0204's messages and for `glyph_impact`, so it needs its
+  own decision. Found by the 0.1.170 review (record 176, probes c3, c5, b7).
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.170 branch
+  build: ``[E0204] Error: typecheck: type mismatch: expected `G`, found
+  `F` `` for probe b7 under both, and the same for c3 and c5 (``expected
+  `H`, found `F` ``).*

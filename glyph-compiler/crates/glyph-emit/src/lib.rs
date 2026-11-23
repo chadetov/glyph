@@ -12963,14 +12963,30 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
     }
 
     /// A declared `unknown` iterand has no settled shape any more than an
-    /// untyped one: inside an `is Array<unknown>` arm (which does not narrow
-    /// yet, G415) the value is an array, and the record form bound a string
-    /// index, so `i + 1` gave `"01"`. It defers to the run time. Contextual
-    /// typing (D55) made this reachable from an omitted lambda annotation:
-    /// `01_validator`'s `parse: fn(input) { .. }` now types `input` as the
-    /// slot's declared `unknown`.
+    /// untyped one: the value may be an array, and the record form bound a
+    /// string index, so `i + 1` gave `"01"`. It defers to the run time.
+    /// Contextual typing (D55) made this reachable from an omitted lambda
+    /// annotation: `01_validator`'s `parse: fn(input) { .. }` types `input`
+    /// as the slot's declared `unknown`.
     #[test]
     fn a_declared_unknown_iterand_decides_its_pairs_at_run_time() {
+        let ts = emit(
+            "module m\n\
+             fn last(input: unknown) -> number {\n\
+             \x20 let seen: Array<number> = []\n\
+             \x20 for i, item in input { mut seen.push(i) }\n\
+             \x20 return seen.length\n\
+             }\n",
+        );
+        assert!(ts.contains("__glyph_pairs(input)"), "got:\n{ts}");
+        assert!(!ts.contains("Object.entries(input)"), "got:\n{ts}");
+    }
+
+    /// Inside an `is Array<unknown>` arm the name is narrowed (G415), so the
+    /// loop takes the array form: `Array.isArray` has settled the shape, and
+    /// the index is a `number` for `tsc` and at run time.
+    #[test]
+    fn an_is_array_arm_iterand_takes_the_array_form() {
         let ts = emit(
             "module m\n\
              fn last(input: unknown) -> number {\n\
@@ -12984,7 +13000,8 @@ pub type Box<T> = { v: T, kids: Array<Box<T>> }
              \x20 }\n\
              }\n",
         );
-        assert!(ts.contains("__glyph_pairs(input)"), "got:\n{ts}");
+        assert!(ts.contains("of input.entries()"), "got:\n{ts}");
+        assert!(!ts.contains("__glyph_pairs(input)"), "got:\n{ts}");
         assert!(!ts.contains("Object.entries(input)"), "got:\n{ts}");
     }
 

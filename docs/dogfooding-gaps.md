@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-461 entries, 331 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-110 are open. G144, the D28 boundary cast that never reached the returns a
+462 entries, 333 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14844,7 +14844,7 @@ and is the owner's to confirm.
   (the emitted pair is typed `[unknown, unknown]`, record 146), so a use must
   narrow first.
 
-- **G415. `is Record<K, V>` and `is Array<X>` arms do not narrow; E0224
+- **G415. [FIXED] `is Record<K, V>` and `is Array<X>` arms do not narrow; E0224
   should not fire when `V` is `unknown`, and then containers narrow.** Since
   0.1.156 an `is T` arm narrows its scrutinee for a primitive or a declared
   `T`, but not for a prelude container. Narrowing one exposes E0224 on an
@@ -14872,6 +14872,29 @@ and is the owner's to confirm.
   *Reproduced against 0.1.165 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210 and a declared `m: Record<string, unknown>` read `m[k]` is E0224.*
 
   *Reproduced against 0.1.171 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210 and a declared `m: Record<string, unknown>` read `m[k]` is E0224.*
+
+  Fixed in 0.1.175 (record 134, fork 1, confirmed by record 182; D53
+  amended). A key read on a map,
+  `m[k]` or `m.name`, is not E0224 when the map's `V` is `unknown`, written
+  or through an alias of the map or of `unknown`; the read is typed
+  `unknown`, so interpolating it is E0237 and any other use has to narrow
+  it. Then an `is Record<K, V>` or `is Array<X>` arm narrows its scrutinee
+  under the same rules as any other `is` target: `is Array<string> =>
+  v.lenght` is E0210, `return v` inside it under `-> number` is E0204, and
+  `is Record<string, number> => v[k]` is E0224 as the same read on a
+  declared map is. The arm-value form, `is Array<string> => v` as the value
+  of a returned `match`, still passes: no `match` arm's value is compared
+  with its declared position (G470). `Option`, `Result` and `Nullable`
+  have no `is` check (E0300), so an arm naming one still does not narrow.
+  Breaking under `check --no-tsc`: those two arms went from exit 0 to 1 on
+  the published 0.1.170, and a declared `Record<string, unknown>` read from
+  1 to 0. The corpus (285 units: every app, every standalone file, catches,
+  the exact-or-absent sources and the negative tests) reports the same
+  diagnostics under 0.1.170 and the new build; its four container arms
+  (`examples/01_validator.glyph` twice, `examples/corpus/infer_output.glyph`,
+  `benchmarks/glyph/parse_user.glyph`) narrow and draw nothing new. The one
+  emitted change is `01_validator`'s loop inside `is Array<unknown>`, which
+  takes the array form (`input.entries()`) now that the arm narrows.
 
 - **G416. How an `unknown` renders as text.** `string.from(v)` is `String(v)`,
   so an `unknown` holding a record prints `[object Object]` and one holding an
@@ -15844,3 +15867,25 @@ and is the owner's to confirm.
   *Reproduced against 0.1.171: `let n: string = process.exit(1)` passes
   `check --no-tsc` with only an unused-variable warning, because the call
   has no type to compare.*
+
+- **G470. [FIXED] A `match` used as a value is not compared arm by arm with the
+  type declared where it stands.** `return match f { true => s, false => 0, }`
+  with `s: string` under `-> number`, and `let r: number = match v { is
+  string => v, else => 0, }`, pass `check --no-tsc`; full `check` reports
+  `TS2322 Type 'string' is not assignable to type 'number'` for each. The
+  relation sees the `match` as one value whose type it does not join, so no
+  arm's value reaches it. Since G415 the same holds for a narrowed
+  container: `is Array<string> => v` returned where `number` is declared
+  passes, while `return v` inside that arm is E0204. Record 182's G415
+  checklist expected the arm form to be E0204; record 183 ruled it the
+  per-arm half of G457's rule and moved it to 0.1.174. Found while building
+  0.1.175.
+
+  *Reproduced against 0.1.170 (the published package) and the 0.1.175
+  branch build: `check --no-tsc` exits 0 on both programs; full `check`
+  under the branch build reports TS2322 for each.*
+
+  Fixed in 0.1.174 with G457 (records 182 and 183): a `match` in a declared
+  position compares each arm's value with the declared type, so both
+  reproductions are E0204, and so is `is Array<string> => v` returned
+  where `number` is declared.

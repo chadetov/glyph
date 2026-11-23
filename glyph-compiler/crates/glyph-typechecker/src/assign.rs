@@ -1330,6 +1330,11 @@ struct Assigner<'a> {
     /// body's own only when its owner is this one (G314, step 1), so a
     /// callee's `T` left unbound at a call inside `fn f<T>` is not `f`'s `T`.
     enclosing_owner: Option<ParamOwner>,
+    /// The type parameters the enclosing `fn` or `component` writes a bound
+    /// on (`<T: Named>`), read off the declaration that owns them (record
+    /// 175). The resolver does not resolve a bound yet (G263), so what one
+    /// says is not known here, only that it is there.
+    enclosing_bounded: HashSet<Ident>,
     /// The written annotation of each parameter and annotated `let`, keyed
     /// the way `local_tys` is. A diagnostic that suggests code reads the
     /// type the program spelled from here: the checker's `Ty` has erased
@@ -1488,6 +1493,7 @@ impl<'a> Assigner<'a> {
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             enclosing_owner: None,
+            enclosing_bounded: HashSet::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -1853,6 +1859,7 @@ impl Assigner<'_> {
                 self.return_stack.push(er);
                 self.key_generics = f.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(f.span.start));
+                self.enclosing_bounded = bounded_generics(&f.generics);
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
                 // Inside the callable's own return context: the check reads
@@ -1863,6 +1870,7 @@ impl Assigner<'_> {
                 }
                 self.key_generics.clear();
                 self.enclosing_owner = None;
+                self.enclosing_bounded.clear();
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
@@ -1903,6 +1911,7 @@ impl Assigner<'_> {
                 self.return_stack.push(er);
                 self.key_generics = c.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(c.span.start));
+                self.enclosing_bounded = bounded_generics(&c.generics);
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
                 if wants_value {
@@ -1910,6 +1919,7 @@ impl Assigner<'_> {
                 }
                 self.key_generics.clear();
                 self.enclosing_owner = None;
+                self.enclosing_bounded.clear();
                 self.return_stack.pop();
             }
             Decl::Const(c) => {
@@ -8507,6 +8517,107 @@ impl Assigner<'_> {
         })
     }
 
+    /// Whether `ty` is one of the enclosing body's own type parameters, and
+    /// if so whether it is bounded. `None` for any other type: a parameter
+    /// some callee declares, one a `type` declares, and one with no owner are
+    /// not decided (G314, record 88).
+    fn rigid_param(&self, ty: &Ty) -> Option<RigidParam> {
+        let Ty::Param { name, owner } = ty else {
+            return None;
+        };
+        if !self.is_own_param(name, owner) {
+            return None;
+        }
+        Some(match self.enclosing_bounded.contains(name) {
+            true => RigidParam::Bounded,
+            false => RigidParam::Unbounded,
+        })
+    }
+
+    /// G314, step 2 (record 88). The verdict on a pairing in which one of
+    /// the enclosing body's own type parameters stands on either side, and
+    /// `None` when neither side is one.
+    ///
+    /// Inside `fn f<T>`, `T` is whatever a caller chooses, so the body may
+    /// assume nothing about it:
+    ///
+    /// - it equals only itself (the same owner and name);
+    /// - it passes where `unknown` is declared, and `never` passes where it
+    ///   is declared (D47);
+    /// - where a `Nullable<X>` is declared it is compared against `X` (D45),
+    ///   so a `T` passes where `Nullable<T>` is declared;
+    /// - anything else the relation can tell apart from it is refused, in
+    ///   both directions (`distinct_from_rigid_param`). `tsc` refuses the
+    ///   same pairings (TS2322, TS2345).
+    ///
+    /// A bounded `T: Named` is the same where it is declared, since a caller
+    /// may choose any `T` the bound admits. As a value it passes wherever
+    /// its bound does, and the bound is not read yet (G263), so a bounded
+    /// parameter where anything but itself or another of the body's
+    /// parameters is declared stays undecided here, as it was before.
+    ///
+    /// What stays undecided: a value of `unknown` where `T` is declared (that
+    /// is G325's), a `void`, and anything the relation cannot read as a
+    /// declaration.
+    fn rigid_param_verdict(&self, found: &Ty, expected: &Ty, position: Position) -> Option<bool> {
+        let found_rigid = self.rigid_param(found);
+        let expected_rigid = self.rigid_param(expected).is_some();
+        if found_rigid.is_none() && !expected_rigid {
+            return None;
+        }
+        if found == expected || matches!(found, Ty::Never) || matches!(expected, Ty::UnknownTop) {
+            return Some(false);
+        }
+        match found_rigid {
+            None => Some(self.distinct_from_rigid_param(found, 0)),
+            // Another of the body's parameters is not assignable from a
+            // bounded one, whatever the bound says.
+            Some(RigidParam::Bounded) => Some(expected_rigid),
+            Some(RigidParam::Unbounded) => {
+                if let Some(("Nullable", args)) = self.container_through_aliases(expected, 0) {
+                    return Some(args.first().is_some_and(|inner| self.assign_incompatible_at(found, inner, position)));
+                }
+                Some(self.distinct_from_rigid_param(expected, 0))
+            }
+        }
+    }
+
+    /// Whether `ty` is a type the relation can read as something other than
+    /// an enclosing type parameter: a `string`, `number` or `bool`, a
+    /// string-literal union, a record, a function, a tagged union, a prelude
+    /// container, a modeled stdlib type, an interface, another of the body's
+    /// parameters, or a declaration whose body is one of those. A second
+    /// name is followed with its arguments substituted, so `type Same<X> =
+    /// X` applied to `T` is `T` and is not distinct from it.
+    ///
+    /// `void`, `unknown`, an unread type, a parameter this site does not
+    /// decide, and an `extern_ts` or `typeof` type answer `false`, which
+    /// leaves the pairing undecided.
+    fn distinct_from_rigid_param(&self, ty: &Ty, depth: usize) -> bool {
+        match ty {
+            Ty::Prim(Primitive::Void) => false,
+            Ty::Prim(_) | Ty::StringLiteralUnion(_) | Ty::Record { .. } | Ty::Fn { .. } | Ty::Union { .. } => true,
+            Ty::Param { .. } => self.rigid_param(ty).is_some(),
+            Ty::Named { .. } | Ty::Imported { .. } | Ty::App { .. } => {
+                if self.prelude_container(ty).is_some()
+                    || modeled_stdlib_path(ty).is_some()
+                    || self.interface_member_fields(ty).is_some()
+                {
+                    return true;
+                }
+                if depth >= 8 {
+                    return false;
+                }
+                let (base, args) = split_type_app(ty);
+                match self.alias_body(base, args) {
+                    Some(body) if body != *ty => self.distinct_from_rigid_param(&body, depth + 1),
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
+    }
+
     /// The type parameters a call to a callee of type `callee_ty`
     /// instantiates, by owner and name (G314, record 175). With a declared
     /// list (`declared`, a `fn` or `component`, or a function value that
@@ -9319,6 +9430,15 @@ impl Assigner<'_> {
         {
             return true;
         }
+        // G314, step 2 (record 88). One of the enclosing body's own type
+        // parameters is decided: it is itself, its bound, or nothing a caller
+        // could not choose differently. Read before anything else reads
+        // either side, at every depth the relation recurses into, so
+        // `Array<T>` where `Array<string>` is declared is refused through
+        // the argument walk below.
+        if let Some(verdict) = self.rigid_param_verdict(found, expected, position) {
+            return verdict;
+        }
         // G373. Two `Record` maps compare their keys invariantly, however
         // either map is spelled: written out, or through a `type` whose body
         // is one (`type Scores = Record<Tier, int>`), local or a sibling's.
@@ -9681,14 +9801,19 @@ impl Assigner<'_> {
     /// there it refuses, a bare `string` included, so a silence there is a
     /// type it could not read at all rather than one it accepted.
     ///
+    /// One more from G314: a type parameter of the function being checked
+    /// where that same parameter is declared. Any other pairing with one on
+    /// either side is left to the refusing relation (`rigid_param_verdict`),
+    /// which refuses what it can read and leaves the rest undecided.
+    ///
     /// What is deliberately not here. Two function types: the relation
     /// compares the returns and the `async` flag and says nothing at all about
     /// the parameters, so a silent pass proves nothing about a parameter
     /// mismatch. An interface as the declared type: the member-shape branch
     /// returns "not refused" for a value whose field set it could not read at
     /// all, which is the exact shape of a rule that did not look. A pairing
-    /// with `Ty::Unknown` or an open `Ty::Param` on either side, which
-    /// `ty_is_decidable` declines. And a container against a name, or an
+    /// with `Ty::Unknown` or a `Ty::Param` this site does not decide on
+    /// either side, which `ty_is_decidable` declines. And a container against a name, or an
     /// application against a bare name, which no arm reads in either
     /// direction.
     fn accepting_rule(&self, found: &Ty, expected: &Ty) -> Option<&'static str> {
@@ -9708,6 +9833,16 @@ impl Assigner<'_> {
         }
         if matches!(expected, Ty::Never) {
             return None;
+        }
+        // G314. An enclosing type parameter is accepted as itself. Against
+        // anything else the refusing relation decides it or leaves it open,
+        // so silence there is no rule.
+        if self.rigid_param(found).is_some() || self.rigid_param(expected).is_some() {
+            return (found == expected).then_some(
+                "a type parameter of the function being checked is compared by the \
+                 declaration that owns it and its name (G314), and both sides are that same \
+                 parameter",
+            );
         }
         // An interface is matched by member shape, and that branch answers
         // "not refused" for a value it could not read a field set from, so no
@@ -9983,9 +10118,9 @@ impl Assigner<'_> {
     ///   union has no fields in Glyph, and its runtime shape is the emitter's
     ///   encoding rather than a contract, so comparing it to `V` would let a
     ///   change to the encoding change type checking.
-    /// - A required field whose substituted type is still a type parameter
-    ///   is refused unless `V` is `unknown` or that parameter
-    ///   (`map_field_incompatible`).
+    /// - A required field whose substituted type is the enclosing body's
+    ///   own type parameter is refused unless `V` is `unknown` or that
+    ///   parameter (`map_field_incompatible`, G314).
     /// - An optional field, and a `K` other than `string`, are not decided:
     ///   the map's validator and `tsc` disagree about them (the validator
     ///   accepts an absent key and ignores the keys `K` names; `tsc` reads the
@@ -10045,29 +10180,34 @@ impl Assigner<'_> {
         refused
     }
 
-    /// One required field of a closed record against the map's `V`. A field
-    /// whose substituted type is still a type parameter (`value: T` in a
-    /// `Box<T>` read inside `fn g<T>`) is not a `V`: `T` may be anything, so
-    /// it is refused unless `V` is `unknown` or that same parameter. The
-    /// relation itself reads an open parameter as undecidable and stays
-    /// silent, which would leave the pairing to `tsc` (TS2322) and let it
-    /// pass `--no-tsc`, the editor and the playground.
+    /// One required field of a closed record against the map's `V`, through
+    /// the whole relation. A field whose substituted type is the enclosing
+    /// body's own type parameter (`value: T` in a `Box<T>` read inside `fn
+    /// g<T>`) is decided there like any other position (G314): refused
+    /// unless `V` is `unknown` or that same parameter.
     ///
-    /// A parameter is compared by owner and name (G314, step 1). One a callee
-    /// declares and the call left unbound (`wrap([])` returning a `One<T>`)
-    /// is not a parameter of the body being walked, so nothing about it is
-    /// known here and the pairing is not decided, as `tsc` infers `never`
-    /// for it and accepts.
+    /// A bounded one keeps the rule it had before the relation decided
+    /// parameters: refused unless `V` is `unknown` or that parameter. It is
+    /// stricter than `tsc` where `V` is the bound itself, and it is what
+    /// holds until the bound is read (G263); dropping it would let a `T:
+    /// Named` field pass where `Record<string, string>` is declared.
+    ///
+    /// A parameter of anything else is not decided. One a callee declares
+    /// and the call left unbound (`wrap([])` returning a `One<T>`) is known
+    /// nothing about at the call site, and `tsc` infers `never` for it and
+    /// accepts. One a `type` declares reaches here only through a generic
+    /// declaration written bare (`let b: Box = ..`), which E0233 already
+    /// refuses; a second refusal would name a pairing the program never
+    /// wrote (record 175, R2).
     ///
     /// `V` is read through its transparent declarations first (D46, G315),
     /// so `Record<string, Same<T>>` with `type Same<T> = T` gives the answer
     /// `Record<string, T>` gives: the expansion substitutes the argument,
     /// which keeps its owner, so the parameter it yields is the body's `T`.
+    /// The relation expands both sides on entry, so only the bounded rule
+    /// below needs to do it itself.
     fn map_field_incompatible(&self, field: &Ty, value: &Ty) -> bool {
-        if let Ty::Param { owner, .. } = field {
-            if owner.is_callable() && self.enclosing_owner.as_ref() != Some(owner) {
-                return false;
-            }
+        if self.rigid_param(field) == Some(RigidParam::Bounded) {
             let value = self.expand_transparent(value);
             return !matches!(value, Ty::UnknownTop) && *field != value;
         }
@@ -11898,6 +12038,24 @@ fn alias_body_applied(body: &Ty, owner: &ParamOwner, generics: &[Ident], args: &
         return None;
     }
     Some(substitute_type_params(body, &decl_subst(owner, generics, args)))
+}
+
+/// One of the enclosing body's own type parameters, as the relation decides
+/// it (G314). A bounded one is decided only where it is declared, since its
+/// bound is not read yet (G263).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RigidParam {
+    Unbounded,
+    Bounded,
+}
+
+/// The names in `generics` that write a bound (`<T: Named>`).
+fn bounded_generics(generics: &[glyph_ast::GenericParam]) -> HashSet<Ident> {
+    generics
+        .iter()
+        .filter(|g| !g.bounds.is_empty())
+        .map(|g| g.name.clone())
+        .collect()
 }
 
 /// A type parameter's identity (G314): the declaration that owns it, and its
@@ -19090,6 +19248,7 @@ component View(props: { s: Status }) -> Component {
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             enclosing_owner: None,
+            enclosing_bounded: HashSet::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -23793,6 +23952,107 @@ fn f(a: Answer) -> number {
                 name: Ident::from("T"),
                 owner: g,
             }
+        );
+    }
+
+    /// The functions of `src` (one per line) that hold a type mismatch, E0204
+    /// or E0211, each once, sorted.
+    fn fns_with_mismatches(src: &str) -> Vec<String> {
+        let errs = errors_of(src);
+        let mut out: Vec<String> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { span, .. } | TypeError::ArgumentTypeMismatch { span, .. } => {
+                    let line_start = src[..span.start as usize].rfind('\n').map_or(0, |n| n + 1);
+                    let line = &src[line_start..];
+                    let name = line.strip_prefix("fn ")?.split(['<', '(']).next()?;
+                    Some(name.to_string())
+                }
+                _ => None,
+            })
+            .collect();
+        out.sort();
+        out.dedup();
+        out
+    }
+
+    /// G314, step 2 (record 88, D58). Inside `fn f<T>`, `T` equals only
+    /// itself: it passes where `T`, `unknown` or `Nullable<T>` is declared,
+    /// and anything the relation can tell apart from it is refused in both
+    /// directions, at every depth. Each refused function is one `tsc`
+    /// refuses (TS2322, TS2345); each accepted one `tsc` accepts.
+    #[test]
+    fn an_enclosing_type_parameter_equals_only_itself() {
+        let src = "module m\n\
+             type Box<T> = { value: Array<T>, }\n\
+             type One<T> = { v: T, }\n\
+             interface Shown { name: string }\n\
+             fn wrap<T>(xs: Array<T>) -> One<T> { return { v: xs[0], } }\n\
+             fn iface_in<T>(s: Shown) -> T { return s }\n\
+             fn iface_out<T>(x: T) -> Shown { return x }\n\
+             fn arr_out<T>(x: Array<T>) -> Array<string> { return x }\n\
+             fn field_out<T>(b: Box<T>) -> Record<string, Array<string>> { return b }\n\
+             fn swap<T, U>(x: T, y: U) -> T { return y }\n\
+             fn lit<T>(x: T) -> T { return 5 }\n\
+             fn arr_lit<T>(x: T) -> Array<T> { let a: Array<T> = [1]\n return a }\n\
+             fn null_out<T>(x: T) -> Nullable<string> { return x }\n\
+             fn call_value<T>(f: fn(T) -> T, x: T) -> T { return f(5) }\n\
+             fn same<T>(x: T) -> T { return x }\n\
+             fn top<T>(x: T) -> unknown { return x }\n\
+             fn nullable<T>(x: T) -> Nullable<T> { return x }\n\
+             fn arr<T>(x: T) -> Array<T> { return [x] }\n\
+             fn opt<T>(x: T) -> Option<T> { return Some(x) }\n\
+             fn rec<T>(x: T) -> T { return rec(x) }\n\
+             fn rec_num<T>(x: T) -> number { return rec_num(5) }\n\
+             fn call_ok<T>(f: fn(T) -> T, x: T) -> T { return f(x) }\n\
+             fn field_top<T>(b: Box<T>) -> Record<string, unknown> { return b }\n\
+             fn field_same<T>(b: Box<T>) -> Record<string, Array<T>> { return b }\n\
+             fn unbound<T>() -> Record<string, string> { return wrap([]) }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            ["arr_lit", "arr_out", "call_value", "field_out", "iface_in", "iface_out", "lit", "null_out", "swap"]
+        );
+    }
+
+    /// G314, step 2. A bounded parameter where it is declared is decided
+    /// like any other: a caller may choose any `T` the bound admits, so a
+    /// `Named` is not a `T: Named`. As a value it would pass wherever its
+    /// bound does (record 88), but the resolver does not resolve a bound yet
+    /// (G263), so it keeps the treatment it had: undecided at a return, and
+    /// a field of it refused where a `Record<string, V>` is declared unless
+    /// `V` is `unknown` or that parameter.
+    #[test]
+    fn a_bounded_type_parameter_keeps_its_treatment_until_the_bound_is_read() {
+        let src = "module m\n\
+             type Box<T> = { v: T, }\n\
+             interface Named { name: string }\n\
+             fn bounded<T: Named>(x: T) -> Named { return x }\n\
+             fn into_bounded<T: Named>(n: Named) -> T { return n }\n\
+             fn field_string<T: Named>(b: Box<T>) -> Record<string, string> { return b }\n\
+             fn field_top<T: Named>(b: Box<T>) -> Record<string, unknown> { return b }\n";
+        assert_eq!(fns_with_mismatches(src), ["field_string", "into_bounded"]);
+    }
+
+    /// Record 175, R2. A `type` declaration's own parameter is never decided
+    /// where a value is checked. It reaches a value only through a generic
+    /// declaration written bare (`let b: Box = ..`), which E0233 refuses, and
+    /// the field it leaves open is not refused a second time against the
+    /// declared `Record<string, string>`.
+    #[test]
+    fn a_type_declarations_parameter_is_not_decided_at_a_value() {
+        let errs = errors_of(
+            "module m\n\
+             type Box<T> = { v: T, }\n\
+             fn mk() -> Box<string> { return { v: \"a\", } }\n\
+             fn f() -> Record<string, string> { let b: Box = mk()\n return b }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeArgumentCountMismatch { .. })),
+            "{errs:?}"
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { .. })),
+            "{errs:?}"
         );
     }
 

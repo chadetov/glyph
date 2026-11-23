@@ -486,6 +486,15 @@ pub fn explain(code: &str) -> Option<&'static str> {
             int>` or `json.parse<Record<Tier, int>>`, and keep a closed key by \
             declaring the position with it or making the function generic over \
             it.\n\n\
+            Inside a generic function its own type parameter is a type of its \
+            own (D58). `T` is whatever the caller chooses, so in `fn g<T>(x: \
+            Array<T>) -> Array<string>`, `return x` is this error, and so is \
+            `return 5` under `-> T`. A `T` stands where `T`, `unknown` or \
+            `Nullable<T>` is declared. Keep the declared type generic (`-> \
+            Array<T>`), or take a function that turns a `T` into what the \
+            position needs and call it. A `T` some callee declares and a call \
+            leaves unbound (`wrap([])`) is not your function's `T`, and nothing \
+            is decided about it.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
             The `owned` modifier is the narrow D25 carve-out for resource handles \
@@ -591,6 +600,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             after the props object rather than inside it, so they never fill a \
             required `children` field: declare it `children?: T`, or write it as the \
             attribute `children={...}`.\n\n\
+            Inside a generic function its own type parameter is a type of its \
+            own here too (D58): with `f: fn(T) -> T` a parameter of `fn g<T>`, \
+            `f(5)` is this error, since the call does not choose `T`.\n\n\
             A `Record` argument is held to the key rule E0204 describes, and a \
             `std/record` call takes a key of the record's own key type: \
             `record.set(r, \"zzz\", 9)` on a `Record<Tier, int>` is refused at \
@@ -2318,7 +2330,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
+        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), a generic function's own type parameter against any other type the checker reads, at any depth (`Array<T>` returned where `Array<string>` is declared, D58), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`",
         fix: "Make the value and the expected type agree; check an open map with `is Record<Tier, V>`; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {

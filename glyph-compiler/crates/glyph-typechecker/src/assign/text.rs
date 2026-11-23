@@ -125,6 +125,13 @@ impl Assigner<'_> {
     }
 
     fn check_text_operand(&mut self, value: &Expr, position: &Position) {
+        // A call that changes its receiver is E0240's wherever its value is
+        // read (`${q.pop_front()}`), and the `match` this help would write
+        // over it is refused by E0240 too: one fault, one code, as E0242
+        // leaves `pop` and `shift` to E0240.
+        if self.tm.mutating_call(value.span()).is_some() {
+            return;
+        }
         let ty = self.tm.get(value.span()).clone();
         let TextForm::None(why) = self.text_form(&ty) else {
             return;

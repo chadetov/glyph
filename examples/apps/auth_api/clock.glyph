@@ -13,15 +13,15 @@ import std/time
 const frozen = store.create<number>(0)
 
 pub fn freeze(at: number) -> void {
-  frozen.set(at)
+  mut frozen.set(at)
 }
 
 pub fn advance(ms: number) -> void {
-  frozen.update(fn(t: number) { t + ms })
+  mut frozen.update(fn(t: number) { t + ms })
 }
 
 pub fn release() -> void {
-  frozen.set(0)
+  mut frozen.set(0)
 }
 
 pub fn now() -> int {

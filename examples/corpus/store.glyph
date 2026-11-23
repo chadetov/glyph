@@ -12,9 +12,9 @@ const tasks: Store<Array<Task>> = create<Array<Task>>([])
 const next_id: Store<number> = create(0)
 
 fn add(title: string) -> Task {
-  next_id.update(fn(n: number) -> number { return n + 1 })
+  mut next_id.update(fn(n: number) -> number { return n + 1 })
   let task = { id: next_id.get(), title: title }
-  tasks.update(fn(cur: Array<Task>) -> Array<Task> { return array.push(cur, task) })
+  mut tasks.update(fn(cur: Array<Task>) -> Array<Task> { return array.push(cur, task) })
   return task
 }
 
@@ -27,6 +27,6 @@ fn count() -> number {
 }
 
 fn reset() -> void {
-  tasks.set([])
-  next_id.set(0)
+  mut tasks.set([])
+  mut next_id.set(0)
 }

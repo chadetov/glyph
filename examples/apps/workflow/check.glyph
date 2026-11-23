@@ -55,7 +55,7 @@ fn first_spec(states: Array<StateSpec>, id: string) -> Option<StateSpec> {
 fn declared(states: Array<StateSpec>) -> set.Set<string> {
   let ids = set.create<string>()
   for s in states {
-    ids.add(s.id)
+    mut ids.add(s.id)
   }
   return ids
 }
@@ -155,7 +155,7 @@ fn reachable(states: Array<StateSpec>, root: string) -> set.Set<string> {
     match seen.has(id) {
       true => {},
       false => {
-        seen.add(id)
+        mut seen.add(id)
         let kids = match first_spec(states, id) {
           Some(s) => children_spec(s),
           None => [],
@@ -221,7 +221,7 @@ fn build(file: MachineFile, terminal: Array<string>) -> Machine {
     match placed.has(s.id) {
       true => {},
       false => {
-        placed.add(s.id)
+        mut placed.add(s.id)
         mut states = array.push(
           states,
           {

@@ -122,7 +122,7 @@ fn every_b01_line_tsc_refuses_is_a_glyph_refusal() {
         // TS2345: Argument of type 'number' is not assignable to parameter of
         // type 'string'.
         (
-            "  seen.add(5)",
+            "  mut seen.add(5)",
             "E0211",
             "argument type mismatch: expected `string`, found `number`",
         ),
@@ -135,7 +135,7 @@ fn every_b01_line_tsc_refuses_is_a_glyph_refusal() {
         // A field declared `store.Store<number>` lowers to it, so a write
         // through the field path is checked too (TS2345 under `tsc`).
         (
-            "  let h: Holder = { s: store.create(1), }\n  h.s.set(\"x\")",
+            "  let h: Holder = { s: store.create(1), }\n  mut h.s.set(\"x\")",
             "E0211",
             "argument type mismatch: expected `number`, found `string`",
         ),
@@ -151,30 +151,34 @@ fn every_b01_line_tsc_refuses_is_a_glyph_refusal() {
     }
 }
 
-/// The lines of b01 `tsc` accepts stay accepted here, under `--no-tsc` and
-/// under the full check: each is a correct use of the member it calls. The
-/// `mut` before `seen.add` and `seen.has` is not judged in this release.
+/// The lines of b01 `tsc` accepts, in the spelling D5 asks for since G423
+/// step 2 (a writing member is a `mut` statement, and the value a `remove` or
+/// a pop returns is read first with `has` or a peek), are accepted under
+/// `--no-tsc` and under the full check: each is a correct use of the member
+/// it calls.
 #[test]
 fn the_correct_uses_of_each_member_are_accepted() {
     let src = program(
-        "  seen.add(\"a\")\n\
+        "  mut seen.add(\"a\")\n\
          \x20 mut seen.add(\"b\")\n\
-         \x20 mut seen.has(\"a\")\n\
-         \x20 let gone: bool = seen.remove(\"a\")\n\
+         \x20 let had = seen.has(\"a\")\n\
+         \x20 let gone: bool = seen.has(\"a\")\n\
+         \x20 mut seen.remove(\"a\")\n\
          \x20 let all: Array<string> = seen.values()\n\
-         \x20 q.push_back(1)\n\
-         \x20 q.push_front(0)\n\
-         \x20 let first: number = match q.pop_front() { Some(v) => v, None => 0, }\n\
+         \x20 mut q.push_back(1)\n\
+         \x20 mut q.push_front(0)\n\
+         \x20 let first: number = match q.peek_front() { Some(v) => v, None => 0, }\n\
+         \x20 mut q.pop_front()\n\
          \x20 let last: number = match q.peek_back() { Some(v) => v, None => 0, }\n\
          \x20 let more: Array<number> = q.values()\n\
-         \x20 HITS.set(3)\n\
+         \x20 mut HITS.set(3)\n\
          \x20 mut HITS.update(fn(n) { return n + 1 })\n\
          \x20 let h: Holder = { s: store.create(1), }\n\
-         \x20 h.s.set(2)\n\
+         \x20 mut h.s.set(2)\n\
          \x20 let label = store.create(\"a\")\n\
-         \x20 label.set(\"b\")\n\
+         \x20 mut label.set(\"b\")\n\
          \x20 let uniq: Array<string> = set.unique([\"a\", \"a\"])\n\
-         \x20 io.println(\"${gone} ${all.length} ${first} ${last} ${more.length} ${label.get()} ${uniq.length}\")",
+         \x20 io.println(\"${had} ${gone} ${all.length} ${first} ${last} ${more.length} ${label.get()} ${uniq.length}\")",
     );
     assert_eq!(refusals(&src), Vec::<(String, String)>::new(), "{src}");
     let full = check(&project(&src), false);
@@ -186,7 +190,7 @@ fn the_correct_uses_of_each_member_are_accepted() {
 #[test]
 fn a_fresh_literal_argument_binds_its_widened_type() {
     let found = refusals(&program(
-        "  let s = store.create(\"a\")\n  s.set(\"b\")\n  let n: number = s.get()\n  io.println(\"${n}\")",
+        "  let s = store.create(\"a\")\n  mut s.set(\"b\")\n  let n: number = s.get()\n  io.println(\"${n}\")",
     ));
     assert_eq!(
         found,
@@ -199,7 +203,7 @@ fn a_fresh_literal_argument_binds_its_widened_type() {
 #[test]
 fn set_create_with_nothing_to_bind_stays_undecided() {
     let found = refusals(&program(
-        "  let u = set.create()\n  u.add(5)\n  u.add(\"x\")\n  let n: number = u\n  io.println(\"${n}\")",
+        "  let u = set.create()\n  mut u.add(5)\n  mut u.add(\"x\")\n  let n: number = u\n  io.println(\"${n}\")",
     ));
     assert_eq!(
         found,
@@ -212,13 +216,13 @@ fn set_create_with_nothing_to_bind_stays_undecided() {
 #[test]
 fn update_types_its_lambda_from_the_position() {
     let found = refusals(&program(
-        "  HITS.update(fn(n) {\n    let s: string = n\n    return n\n  })",
+        "  mut HITS.update(fn(n) {\n    let s: string = n\n    return n\n  })",
     ));
     assert_eq!(
         found,
         vec![("E0204".to_string(), "type mismatch: expected `string`, found `number`".to_string())]
     );
-    let found = refusals(&program("  HITS.update(fn(n) -> string { return \"x\" })"));
+    let found = refusals(&program("  mut HITS.update(fn(n) -> string { return \"x\" })"));
     assert_eq!(found.iter().map(|f| f.0.as_str()).collect::<Vec<_>>(), ["E0211"]);
 }
 
@@ -287,26 +291,26 @@ fn an_unannotated_const_store_is_typed() {
 
 /// The three modeled types held by unannotated consts are read as they are in
 /// a `let`: a wrong argument is E0211, a wrong read E0204, a `match` over a
-/// `pop_front` without `None` E0200, and `${SEEN}` E0237. Ordinary use of
-/// the same constants is refused nothing.
+/// `peek_front` without `None` E0200, `${SEEN}` E0237, and a write with no
+/// `mut` E0240. Ordinary use of the same constants is refused nothing.
 #[test]
 fn unannotated_const_set_store_and_deque_are_judged_like_lets() {
     let head = "module main\n\nimport std/io\nimport std/set\nimport std/store\nimport std/collections\n\n\
                 const SEEN = set.create<string>()\nconst HITS = store.create(0)\nconst Q = collections.deque<number>()\n\n\
                 fn main(argv: Array<string>) -> number {\n";
     let ok = format!(
-        "{head}  SEEN.add(\"a\")\n  HITS.set(HITS.get() + 1)\n  Q.push_back(1)\n  let n: number = HITS.get()\n  \
-         let has = SEEN.has(\"a\")\n  let first = match Q.pop_front() {{\n    Some(v) => v,\n    None => 0,\n  }}\n  \
-         HITS.update(fn(v) {{ v + 1 }})\n  io.println(\"${{n}} ${{has}} ${{first}}\")\n  return 0\n}}\n"
+        "{head}  mut SEEN.add(\"a\")\n  mut HITS.set(HITS.get() + 1)\n  mut Q.push_back(1)\n  let n: number = HITS.get()\n  \
+         let has = SEEN.has(\"a\")\n  let first = match Q.peek_front() {{\n    Some(v) => v,\n    None => 0,\n  }}\n  \
+         mut Q.pop_front()\n  mut HITS.update(fn(v) {{ v + 1 }})\n  io.println(\"${{n}} ${{has}} ${{first}}\")\n  return 0\n}}\n"
     );
     assert_eq!(refusals(&ok), Vec::<(String, String)>::new());
     let bad = format!(
-        "{head}  SEEN.add(5)\n  let w: string = HITS.get()\n  let first = match Q.pop_front() {{\n    Some(v) => v,\n  }}\n  \
-         io.println(\"${{SEEN}} ${{w}} ${{first}}\")\n  return 0\n}}\n"
+        "{head}  mut SEEN.add(5)\n  let w: string = HITS.get()\n  let first = match Q.peek_front() {{\n    Some(v) => v,\n  }}\n  \
+         HITS.set(1)\n  io.println(\"${{SEEN}} ${{w}} ${{first}}\")\n  return 0\n}}\n"
     );
     let mut codes: Vec<String> = refusals(&bad).into_iter().map(|f| f.0).collect();
     codes.sort();
-    assert_eq!(codes, ["E0200", "E0204", "E0211", "E0237"]);
+    assert_eq!(codes, ["E0200", "E0204", "E0211", "E0237", "E0240"]);
 }
 
 /// A project of several modules, as `(file name, source)`.
@@ -423,7 +427,7 @@ fn a_store_from_a_sibling_module_is_typed_under_both_spellings() {
              \n\
              fn main(argv: Array<string>) -> number {{\n\
              \x20 let s = {call}\n\
-             \x20 s.set(\"x\")\n\
+             \x20 mut s.set(\"x\")\n\
              \x20 let w: string = s.get()\n\
              \x20 print(w)\n\
              \x20 return 0\n\
@@ -440,13 +444,15 @@ fn a_store_from_a_sibling_module_is_typed_under_both_spellings() {
     }
 }
 
-/// A catch `tsc` does not make: `pop_front` returns an `Option`, so a `match`
-/// over it with no `None` arm is E0200. Under 0.1.161 the receiver was
-/// `Unknown`, both checkers passed it, and an empty deque bound `undefined`.
+/// A catch `tsc` does not make: `peek_front` returns an `Option`, so a
+/// `match` over it with no `None` arm is E0200. Under 0.1.161 the receiver
+/// was `Unknown`, both checkers passed it, and an empty deque bound
+/// `undefined`. (A `match` over `pop_front` is E0240 since G423 step 2: a
+/// pop changes the deque, so its value is read with `peek_front` first.)
 #[test]
-fn a_match_on_pop_front_without_none_is_refused() {
+fn a_match_on_peek_front_without_none_is_refused() {
     let found = refusals(&program(
-        "  let top = match q.pop_front() {\n    Some(x) => x,\n  }\n  io.println(\"${top}\")",
+        "  let top = match q.peek_front() {\n    Some(x) => x,\n  }\n  io.println(\"${top}\")",
     ));
     assert_eq!(
         found,

@@ -320,7 +320,7 @@ fn peek() -> Tok {
 
 fn bump() -> Tok {
   let t = peek()
-  cursor.set(cursor.get() + 1)
+  mut cursor.set(cursor.get() + 1)
   return t
 }
 
@@ -355,7 +355,7 @@ fn at_punct(p: string) -> bool {
 fn eat_word(kw: string) -> bool {
   return match at_word(kw) {
     true => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       true
     },
     false => false,
@@ -365,7 +365,7 @@ fn eat_word(kw: string) -> bool {
 fn eat_punct(p: string) -> bool {
   return match at_punct(p) {
     true => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       true
     },
     false => false,
@@ -395,7 +395,7 @@ fn expect_name(what: string) -> Result<{ text: string, at: int }, QueryFail> {
   let t = peek()
   return match t {
     TWord({ text, at }) => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       Ok({ text: text, at: at })
     },
     TString({ text, at }) => Err(fail_here(what)),
@@ -436,7 +436,7 @@ fn parse_item() -> Result<Item, QueryFail> {
   let t = peek()
   match at_punct("*") {
     true => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       return Ok(Star({ at: tok_at(t) }))
     },
     false => {},
@@ -482,24 +482,24 @@ fn parse_operand() -> Result<Operand, QueryFail> {
   let t = peek()
   return match t {
     TString({ text, at }) => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       Ok(Const({ v: Text({ text: text }), at: at }))
     },
     TNumber({ n, at }) => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       Ok(Const({ v: Num({ n: n }), at: at }))
     },
     TWord({ text, at }) => match string.lower(text) {
       "true" => {
-        cursor.set(cursor.get() + 1)
+        mut cursor.set(cursor.get() + 1)
         Ok(Const({ v: Bool({ flag: true }), at: at }))
       },
       "false" => {
-        cursor.set(cursor.get() + 1)
+        mut cursor.set(cursor.get() + 1)
         Ok(Const({ v: Bool({ flag: false }), at: at }))
       },
       "null" => {
-        cursor.set(cursor.get() + 1)
+        mut cursor.set(cursor.get() + 1)
         Ok(Const({ v: Null, at: at }))
       },
       else => {
@@ -536,7 +536,7 @@ fn parse_op() -> Result<CompareOp, QueryFail> {
   }
   return match op {
     Some(o) => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       Ok(o)
     },
     None => Err(fail_here("a comparison operator")),
@@ -626,7 +626,7 @@ fn parse_limit() -> Result<{ n: int, at: int }, QueryFail> {
   let t = peek()
   return match t {
     TNumber({ n, at }) => {
-      cursor.set(cursor.get() + 1)
+      mut cursor.set(cursor.get() + 1)
       match n >= 0 && n == math_trunc(n) {
         true => Ok({ n: n, at: at }),
         false => Err(BadLimit({ offset: at, text: number.to_string(n) })),
@@ -645,8 +645,8 @@ fn math_trunc(n: number) -> number {
 
 pub fn parse(text: string) -> Result<Query, QueryFail> {
   let toks = scan(text)?
-  tokens.set(toks)
-  cursor.set(0)
+  mut tokens.set(toks)
+  mut cursor.set(0)
 
   expect_word("select")?
   let items = parse_items()?

@@ -728,7 +728,7 @@ fn unique_external(links: Array<Link>) -> Array<string> {
       Some(url) => match seen.has(url) {
         true => urls,
         false => {
-          seen.add(url)
+          mut seen.add(url)
           array.push(urls, url)
         },
       },
@@ -779,7 +779,7 @@ fn check_links(
       None => false,
       Some(url) => {
         let seen = served.has(url)
-        served.add(url)
+        mut served.add(url)
         seen
       },
     }

@@ -7111,24 +7111,35 @@ impl Assigner<'_> {
         let Expr::Member { object, field, optional, .. } = callee.as_ref() else {
             return;
         };
-        let Some((receiver, elem)) = self.mutation_receiver(object) else {
-            return;
+        use crate::mutation::{ElemKind, MemberClass, MutReceiver};
+        let (method, elem, receiver) = match self.mutation_receiver(object) {
+            Some((builtin, elem)) => {
+                let Some(m) = builtin.method(field.as_ref()) else {
+                    return;
+                };
+                if !m.mutates {
+                    return;
+                }
+                let elem = match elem {
+                    Ty::Prim(Primitive::Number) => ElemKind::Number,
+                    Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => ElemKind::String,
+                    _ => ElemKind::Other,
+                };
+                (m.name, elem, MutReceiver::Array)
+            }
+            // G423 step 2: a writing member of a modeled stdlib type.
+            None => match self.stdlib_member(object, field.as_ref()) {
+                Some(((module, ty, member, MemberClass::Mutating), _)) => {
+                    (member, ElemKind::Other, MutReceiver::Stdlib { module, ty })
+                }
+                _ => return,
+            },
         };
-        let Some(m) = receiver.method(field.as_ref()) else {
-            return;
-        };
-        if !m.mutates {
-            return;
-        }
-        let elem = match elem {
-            Ty::Prim(Primitive::Number) => crate::mutation::ElemKind::Number,
-            Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => crate::mutation::ElemKind::String,
-            _ => crate::mutation::ElemKind::Other,
-        };
+        let held_by_store = receiver == MutReceiver::Array && self.is_store_get(object);
         if Some(*span) != self.mut_call {
             self.tm.record_mutating_call(
                 *span,
-                crate::mutation::MutatingCall { method: m.name, elem, place: object.is_place() },
+                crate::mutation::MutatingCall { method, elem, place: object.is_place(), receiver, held_by_store },
             );
             return;
         }
@@ -7136,7 +7147,15 @@ impl Assigner<'_> {
             return;
         }
         let ns = crate::mutation::ArrayNs::of(self.module);
-        let text = crate::mutation::CallText { recv: object, method: m.name, args, optional: *optional, elem };
+        let text = crate::mutation::CallText {
+            recv: object,
+            method,
+            args,
+            optional: *optional,
+            elem,
+            receiver,
+            held_by_store,
+        };
         let (message, help) = crate::mutation::mutation_outside_mut(MutationSite::NotPlace, &text, &ns);
         self.errors.push(TypeError::MutationOutsideMut {
             kind: MutationSite::NotPlace,
@@ -7199,6 +7218,49 @@ impl Assigner<'_> {
             Some(_) => Ok(()),
             None => Err(format!("{what} `{}`", crate::display_ty(slot))),
         }
+    }
+
+    /// The class of `member` when `object` is a value of a stdlib type whose
+    /// members the checker models and classifies (G423 step 2), reached
+    /// directly or through aliases, with the member's own type. `None` for
+    /// any other receiver, and for a member the table does not classify.
+    #[allow(clippy::type_complexity)]
+    fn stdlib_member(
+        &self,
+        object: &Expr,
+        member: &str,
+    ) -> Option<((&'static str, &'static str, &'static str, crate::mutation::MemberClass), Option<Ty>)> {
+        let mut current = self.receiver_ty(object)?;
+        // Each step goes one alias further; the bound stops a cycle that
+        // crosses modules, as `builtin_receiver_elem`'s does.
+        for _ in 0..16 {
+            if let Some((module, ty)) = stdlib_type_path(split_type_app(&current).0) {
+                let class = crate::mutation::stdlib_member_class(module, ty, member)?;
+                let member_ty = stdlib_type_fields(self, &current)
+                    .and_then(|fs| fs.into_iter().find(|f| f.name.as_ref() == member))
+                    .map(|f| f.ty);
+                return Some((class, member_ty));
+            }
+            current = match &current {
+                Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
+                Ty::App { base, args } => self.alias_body(base, args)?,
+                _ => return None,
+            };
+        }
+        None
+    }
+
+    /// Whether `object` is a call of a `store.Store`'s `get()`, which hands
+    /// back the value the store holds, not a copy of it.
+    fn is_store_get(&self, object: &Expr) -> bool {
+        let Expr::Call { callee, .. } = object else {
+            return false;
+        };
+        let Expr::Member { object: inner, field, .. } = callee.as_ref() else {
+            return false;
+        };
+        field.as_ref() == "get"
+            && matches!(self.stdlib_member(inner, "get"), Some((("store", "Store", _, _), _)))
     }
 
     /// The built-in receiver a call's object is, with the array's element
@@ -7274,6 +7336,23 @@ impl Assigner<'_> {
                 self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
                 return;
             }
+        }
+        // G423 step 2: a member of a modeled stdlib type is judged by its
+        // class. A writing member under `mut` is the statement D5 asks for,
+        // and an `Outside` one (`sqlite.Db`) is never judged.
+        if let Some(((module, ty, member, class), member_ty)) = self.stdlib_member(object, field.as_ref()) {
+            if class == crate::mutation::MemberClass::NonMutating {
+                let returns_own = match &member_ty {
+                    Some(Ty::Fn { return_ty, .. }) => {
+                        stdlib_type_path(split_type_app(return_ty).0) == Some((module, ty))
+                    }
+                    _ => false,
+                };
+                let (message, help) =
+                    crate::mutation::mut_on_stdlib_reader(module, ty, member, returns_own, object, args);
+                self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
+            }
+            return;
         }
         let Some((receiver, _)) = self.builtin_receiver_elem(self.tm.get(object.span())) else {
             return;
@@ -10596,30 +10675,34 @@ fn is_map_ty(ty: &Ty) -> bool {
 
 /// checked by this table growing an entry it has no fields for.
 pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
-    matches!(
-        (module, name),
-        ("fs", "FsError")
-            | ("fs", "FileInfo")
-            | ("fs", "ErrorKind")
-            | ("http", "HttpError")
-            | ("bytes", "BytesError")
-            | ("url", "Url")
-            | ("url", "Param")
-            | ("dns", "MailHost")
-            | ("net", "ServerError")
-            | ("dom", "Element")
-            | ("storage", "StorageError")
-            | ("sqlite", "Db")
-            | ("sqlite", "Sql")
-            | ("taint", "Trusted")
-            | ("taint", "Tainted")
-            | ("decimal", "Decimal")
-            | ("set", "Set")
-            | ("store", "Store")
-            | ("collections", "Deque")
-    )
-    .then(|| stdlib_named(module, name))
+    MODELED_STDLIB_TYPES.contains(&(module, name)).then(|| stdlib_named(module, name))
 }
+
+/// The stdlib types `stdlib_modeled_type` answers for, by module and name.
+/// A list rather than a `match` so a test can walk every one: each member a
+/// modeled type has that is a method must be classified for D5 (G423 step
+/// 2, `stdlib_member_classes.rs`).
+pub(crate) const MODELED_STDLIB_TYPES: &[(&str, &str)] = &[
+    ("fs", "FsError"),
+    ("fs", "FileInfo"),
+    ("fs", "ErrorKind"),
+    ("http", "HttpError"),
+    ("bytes", "BytesError"),
+    ("url", "Url"),
+    ("url", "Param"),
+    ("dns", "MailHost"),
+    ("net", "ServerError"),
+    ("dom", "Element"),
+    ("storage", "StorageError"),
+    ("sqlite", "Db"),
+    ("sqlite", "Sql"),
+    ("taint", "Trusted"),
+    ("taint", "Tainted"),
+    ("decimal", "Decimal"),
+    ("set", "Set"),
+    ("store", "Store"),
+    ("collections", "Deque"),
+];
 
 /// The stdlib path of `ty` when it is a stdlib type whose shape the checker
 /// models, applied or bare (`set.Set<string>` and `set.Set` both answer

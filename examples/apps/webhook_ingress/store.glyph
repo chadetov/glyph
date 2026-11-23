@@ -22,9 +22,9 @@ pub fn make_ring(source: string) -> Ring {
 // Append `event` to `ring`, evicting the oldest entry if this push put it
 // over `CAPACITY`.
 pub fn push(ring: Ring, event: Event) -> void {
-  ring.buffer.push_back(event)
+  mut ring.buffer.push_back(event)
   match ring.buffer.len() > CAPACITY {
-    true => { let _ = ring.buffer.pop_front() },
+    true => { mut ring.buffer.pop_front() },
     false => {},
   }
 }

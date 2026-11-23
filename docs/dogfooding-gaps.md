@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-451 entries, 324 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-107 are open. G144, the D28 boundary cast that never reached the returns a
+453 entries, 324 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15361,3 +15361,27 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.168 (the dev build) by record 173's probe l03:
   `let c: string = i` is accepted under `--no-tsc`.*
+
+- **G452. A nested string inside a `"..."` interpolation inside a `"""`
+  string gets the generic E0002.** `"""${g("q${g("x")}")}"""` is refused
+  with ``expected valid expression inside `${...}` template interpolation,
+  found expected matching `}` ...`` and the help "Add the expected token",
+  where the nested-string refusal should give the same help as G441's: bind
+  the value with `let`, or write the string as `"""..."""`. The inner
+  string's refusal is wrapped in the outer interpolation's. Found by record
+  174 (probe s05).
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.169 branch
+  build with record 174's probe s05:
+  E0002 at 6:9 with that message and help.*
+
+- **G453. A `"""` string cannot hold a literal `${`.** A `"""` string
+  decodes no escapes, so `\${y}` inside one is a backslash followed by the
+  interpolation `${y}`, not a literal `${y}`, and there is no other
+  spelling for it. Whether D22 should give the `"""` form a way to write a
+  literal `${` is an open question. Found by record 174 (probe s02).
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.169 branch
+  build with record 174's probe s02:
+  `"""x${f("a\tb")} \${y} ${x}"""` is E0103, ``unresolved name `y` `` at
+  9:29.*

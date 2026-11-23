@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.174 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.174" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.174</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A block's last expression is checked against the declared return</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.173 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.173" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.173</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.145</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>is Record&lt;K, V&gt; and is Array&lt;X&gt; now check what the container holds.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.144</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.144" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.144</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>A generic record imported from another module is now judged by the module that declares it, the way an imported record already was.</summary>
   </entry>
 </feed>

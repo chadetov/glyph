@@ -1,0 +1,21 @@
+---
+version: 0.1.174
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A block's last expression is checked against the declared return
+---
+            <p>A function's last expression is its return value, but Glyph only compared values written after <code>return</code> with the declared type. <code>fn z() -&gt; string { 5 }</code> passed <code>check --no-tsc</code>, and so did a lambda whose tail disagreed with its declared return. Only <code>tsc</code> caught it.</p>
+
+            <p>A returned tail now goes through the same check as a <code>return</code>: the comparison with the declared type, the context a declared return gives a lambda, and the handling of pending values. Which tails count as returned is one rule shared by the checker and the emitter. A named function's tail is returned when it declares a type other than <code>void</code>, a component's always is, and a lambda's is unless the lambda is written <code>-&gt; void</code>.</p>
+
+            <h3>Match arms are checked one by one</h3>
+            <p>Where a type is declared, a <code>match</code> is now compared arm by arm, including nested matches and the last expression of a block arm. Before, the arms were joined into one type that nothing compared, so <code>return match b { true =&gt; 5, false =&gt; "x" }</code> under <code>-&gt; string</code> passed. The error now points at the arm that is wrong and names that arm's type.</p>
+
+            <h3>A <code>never</code> helper</h3>
+            <p><code>fn fail() -&gt; never { process.exit(1) }</code> used to be refused with <code>expected never, found ?</code> once it was written with <code>return</code>, and comparing tails would have spread that to the usual way of writing it. A value the checker has no type for is no longer refused where <code>never</code> is declared. A <code>5</code> there is still an error. Giving <code>process.exit</code> a real <code>never</code> type is G480.</p>
+
+            <p><code>Some(5)</code> and <code>None</code> returned where <code>T</code> is declared still pass <code>--no-tsc</code>, at a tail and at <code>return</code> alike. A body that ends with no value under a declared return is not checked yet either.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>fn z() -&gt; string { 5 }</code> exits 0 under 0.1.172's <code>check --no-tsc</code> and 1 under 0.1.174. One program goes the other way: <code>pub fn a() -&gt; never { return process.exit(1) }</code> exits 1 under 0.1.172 and 0 now, and <code>tsc</code> accepts it. Across 384 tracked programs the only difference from 0.1.172 is 0.1.173's circular-bound test.</p>

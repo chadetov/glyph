@@ -164,7 +164,7 @@ pub enum Replacement {
     /// same function: `trimLeft` is `trimStart`.
     Rename(&'static str),
     /// `substr(start, length)`, which is `slice(start, start + length)` for
-    /// a start and a length of zero or more.
+    /// a start and a length that are whole numbers of zero or more.
     Slice,
     /// An HTML method: `s.bold()` builds `<b>s</b>`, and `s.link(url)`
     /// builds `<a href="url">s</a>` with each `"` in `url` written `&quot;`.

@@ -309,8 +309,8 @@ def absent_failures(got: dict) -> list[str]:
 # - ("Rename", m): the same call under the name `m`, which the language
 #   defines as the same function (`trimLeft` is `trimStart`).
 # - ("Slice", "slice"): `substr(start, length)` is `slice(start, start +
-#   length)` for a start and a length of zero or more; the help computes the
-#   end.
+#   length)` for a start and a length that are whole numbers of zero or
+#   more; the help computes the end.
 # - ("Markup", tag, attr): the HTML method builds `<tag attr="arg">s</tag>`,
 #   which a template string writes directly.
 DEPRECATED_REPLACEMENT = {
@@ -341,8 +341,11 @@ TAG_USE = re.compile(r"Use `(\w+)`")
 
 # The run-time check on the hand entries: a rename is the same function, a
 # `Markup` method builds exactly the markup the entry names, and `substr` and
-# `slice` read the same characters for every start and length of zero or more
-# (a negative length is `""` from `substr` and counts from the end in `slice`).
+# `slice` read the same characters for every start and length that are whole
+# numbers of zero or more. The condition is pinned from both sides: a pair
+# outside it (a fractional start and length, a negative length) must come out
+# different, so a help that drops "whole" or "zero or more" fails here. With
+# one argument the two agree for every start, a fractional one included.
 DEPRECATED_ORACLE = r"""
 const table = JSON.parse(process.argv[1]);
 const out = [];
@@ -362,7 +365,10 @@ for (const [name, entry] of Object.entries(table.string)) {
     for (let a = 0; a <= 9; a++) for (let n = 0; n <= 9; n++) {
       if (s.substr(a, n) !== s.slice(a, a + n)) out.push(`string: \`substr(${a}, ${n})\` and \`slice(${a}, ${a + n})\` differ in node`);
     }
-    for (let a = -9; a <= 9; a++) if (s.substr(a) !== s.slice(a)) out.push(`string: \`substr(${a})\` and \`slice(${a})\` differ in node`);
+    for (let a = -9.5; a <= 9.5; a += 0.5) if (s.substr(a) !== s.slice(a)) out.push(`string: \`substr(${a})\` and \`slice(${a})\` differ in node`);
+    for (const [a, n] of [[0.5, 0.6], [0, -1]]) {
+      if (s.substr(a, n) === s.slice(a, a + n)) out.push(`string: \`substr(${a}, ${n})\` and \`slice(${a}, ${a + n})\` agree in node, and the help's condition says they need not`);
+    }
   } else {
     out.push(`string: \`${name}\` has an entry of unknown kind ${kind}`);
   }

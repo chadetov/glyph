@@ -88,34 +88,89 @@ fn rename_help(u: &DeprecatedUse, recv: Option<&str>, dot: &str, to: &str) -> St
     }
 }
 
-fn slice_help(u: &DeprecatedUse, recv: Option<&str>, dot: &str) -> String {
-    let general = "write `slice(start, start + length)` in its place, which reads the same characters when the \
-                   start and the length are zero or more";
-    let (Some(r), Some(args)) = (recv, u.args) else {
-        return general.to_string();
-    };
-    match args {
-        // `substr(a)` and `slice(a)` agree for every `a`, a negative one
-        // counting from the end in both.
-        [a] => match plain(a) {
-            Some(a) => format!("write `{r}{dot}slice({a})`, which reads the same characters"),
-            None => general.to_string(),
+/// The general help, which names the condition under which the rewrite
+/// keeps the call's meaning. `substr` truncates its length on its own and
+/// `slice` truncates the end it is given, so `substr(0.5, 0.6)` is `""` and
+/// `slice(0.5, 1.1)` is one character: the two agree only for whole numbers.
+const SLICE_GENERAL: &str = "write `slice(start, start + length)` in its place, which reads the same characters when \
+                             the start and the length are whole numbers of zero or more";
+
+/// What a `substr` argument is, for the help.
+enum Arg {
+    /// A whole-number literal of zero or more.
+    Count(u64),
+    /// Any other number literal (fractional, negative, or spelled with a
+    /// fraction): the help decides the condition for it, and it fails.
+    OtherLiteral,
+    /// A value read without running anything, as the help writes it.
+    Name(String),
+    /// Anything else, which the help does not write twice.
+    Other,
+}
+
+fn arg(e: &Expr) -> Arg {
+    match e {
+        Expr::Number { raw, .. } => match raw.parse::<u64>() {
+            Ok(n) => Arg::Count(n),
+            Err(_) => Arg::OtherLiteral,
         },
-        [a, n] => match (count(a), count(n)) {
-            (Some(start), Some(len)) => match start.checked_add(len) {
-                Some(end) => format!("write `{r}{dot}slice({start}, {end})`, which reads the same characters"),
-                None => general.to_string(),
-            },
-            _ => match (plain(a), plain(n)) {
-                (Some(sa), Some(sn)) if read_only(a) => format!(
-                    "write `{r}{dot}slice({sa}, {sa} + {sn})`, which reads the same characters when `{sa}` and \
-                     `{sn}` are zero or more"
-                ),
-                _ => general.to_string(),
-            },
-        },
-        _ => general.to_string(),
+        Expr::Unary { op: UnaryOp::Neg, operand, .. } if matches!(operand.as_ref(), Expr::Number { .. }) => {
+            Arg::OtherLiteral
+        }
+        e if read_only(e) => plain(e).map_or(Arg::Other, Arg::Name),
+        _ => Arg::Other,
     }
+}
+
+fn slice_help(u: &DeprecatedUse, recv: Option<&str>, dot: &str) -> String {
+    let (Some(r), Some(args)) = (recv, u.args) else {
+        return SLICE_GENERAL.to_string();
+    };
+    let same = "which reads the same characters";
+    match args {
+        // `substr(a)` and `slice(a)` agree for every `a`: both truncate it,
+        // and a negative one counts from the end in both.
+        [a] => match plain(a) {
+            Some(a) => format!("write `{r}{dot}slice({a})`, {same}"),
+            None => SLICE_GENERAL.to_string(),
+        },
+        // A condition is only ever stated about a name: a literal is decided
+        // here, folded when it is a whole number of zero or more and sent to
+        // the general help otherwise.
+        [a, n] => match (arg(a), arg(n)) {
+            (Arg::Count(start), Arg::Count(len)) => match start.checked_add(len) {
+                Some(end) => format!("write `{r}{dot}slice({start}, {end})`, {same}"),
+                None => SLICE_GENERAL.to_string(),
+            },
+            (Arg::Count(start), Arg::Name(len)) => format!(
+                "write `{r}{dot}slice({start}, {start} + {len})`, {same} when `{len}` is a whole number of zero or more"
+            ),
+            (Arg::Name(start), Arg::Count(len)) => format!(
+                "write `{r}{dot}slice({start}, {start} + {len})`, {same} when `{start}` is a whole number of zero or \
+                 more"
+            ),
+            (Arg::Name(start), Arg::Name(len)) => format!(
+                "write `{r}{dot}slice({start}, {start} + {len})`, {same} when `{start}` and `{len}` are whole \
+                 numbers of zero or more"
+            ),
+            _ => SLICE_GENERAL.to_string(),
+        },
+        _ => SLICE_GENERAL.to_string(),
+    }
+}
+
+/// A string literal argument written into the markup as the HTML method
+/// writes it, each `"` as `&quot;` and nothing else escaped; `None` when the
+/// literal holds what a Glyph string would read differently (`\`, `${`, a
+/// line break).
+fn markup_literal(e: &Expr) -> Option<String> {
+    let Expr::String { value, .. } = e else {
+        return None;
+    };
+    if value.contains('\\') || value.contains("${") || value.contains('\n') || value.contains('\r') {
+        return None;
+    }
+    Some(value.replace('"', "&quot;"))
 }
 
 fn markup_help(u: &DeprecatedUse, recv: Option<&str>, tag: &str, attr: Option<&str>) -> String {
@@ -131,11 +186,16 @@ fn markup_help(u: &DeprecatedUse, recv: Option<&str>, tag: &str, attr: Option<&s
                 _ => None,
             }
             .unwrap_or_else(|| attr.to_string());
-            match u.args {
-                // A number is written into the markup as it stands, and
-                // holds no `"` to escape.
-                Some([Expr::Number { raw, .. }]) => format!(
-                    "build the markup as text: `\"<{tag} {attr}=\\\"{raw}\\\">${{{text}}}</{tag}>\"`"
+            // A whole number is written into the markup as JavaScript
+            // writes it, and a string literal with its `"` already escaped.
+            let literal = match u.args {
+                Some([a @ Expr::Number { raw, .. }]) => count(a).map(|_| raw.clone()),
+                Some([a]) => markup_literal(a),
+                _ => None,
+            };
+            match literal {
+                Some(lit) => format!(
+                    "build the markup as text: `\"<{tag} {attr}=\\\"{lit}\\\">${{{text}}}</{tag}>\"`"
                 ),
                 _ => format!(
                     "build the markup as text: `\"<{tag} {attr}=\\\"${{{value}}}\\\">${{{text}}}</{tag}>\"`; `{}` also \

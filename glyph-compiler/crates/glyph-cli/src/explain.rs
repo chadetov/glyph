@@ -1501,14 +1501,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             this is a warning and the build goes on. The message quotes the \
             tag, and the help names what to write instead:\n\n\
             s.substr(1, 2)   ->  s.slice(1, 3)\n\
-            s.substr(i, n)   ->  s.slice(i, i + n)   // when i and n are zero or more\n\
+            s.substr(i, n)   ->  s.slice(i, i + n)   // when i and n are whole numbers of zero or more\n\
             s.trimLeft()     ->  s.trimStart()\n\
             s.trimRight()    ->  s.trimEnd()\n\
             s.bold()         ->  \"<b>${s}</b>\"\n\
             s.link(url)      ->  \"<a href=\\\"${url}\\\">${s}</a>\"\n\n\
             `substr` counts its second argument as a length and `slice` as an \
-            end, and a negative length is the empty string under `substr` but \
-            counts from the end under `slice`. `link`, `anchor`, `fontcolor` \
+            end, so the two agree only when both are whole numbers of zero or \
+            more: a negative length is the empty string under `substr` but \
+            counts from the end under `slice`, and `substr(0.5, 0.6)` is the \
+            empty string where `slice(0.5, 1.1)` is one character. The help \
+            folds a whole-number literal into the end and leaves a fractional \
+            or negative one to you. `link`, `anchor`, `fontcolor` \
             and `fontsize` also write each `\"` in their argument as `&quot;`.\n\n\
             Which members are deprecated is read from the pinned TypeScript \
             when the member table is generated, and CI fails when it and the \
@@ -2675,7 +2679,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0244",
         phase: "typechecker",
         meaning: "A built-in member TypeScript's library marks `@deprecated` (G389). A warning rather than an error: the member runs in every engine and `tsc --strict` accepts it. The 16 are string members: `substr`, `trimLeft`, `trimRight` and the 13 HTML methods (`anchor`, `big`, `blink`, `bold`, `fixed`, `fontcolor`, `fontsize`, `italics`, `link`, `small`, `strike`, `sub`, `sup`), read or called, through `?.` included. The list is read from the pinned TypeScript when the member table is generated. A member of a value the checker cannot type (an npm package's, a node builtin's) is not judged",
-        fix: "Write the replacement the help names: `s.slice(1, 3)` for `s.substr(1, 2)` (`substr` takes a length, `slice` an end, and they agree when both are zero or more), `s.trimStart()` for `s.trimLeft()`, `s.trimEnd()` for `s.trimRight()`, a template string such as `\"<b>${s}</b>\"` for `s.bold()`. `glyph fix` does not rewrite these",
+        fix: "Write the replacement the help names: `s.slice(1, 3)` for `s.substr(1, 2)` (`substr` takes a length, `slice` an end, and they agree when both are whole numbers of zero or more), `s.trimStart()` for `s.trimLeft()`, `s.trimEnd()` for `s.trimRight()`, a template string such as `\"<b>${s}</b>\"` for `s.bold()`. `glyph fix` does not rewrite these",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

@@ -111,6 +111,8 @@ fn assert_clean(label: &str, stmts: &str) {
 }
 
 const LEGACY: &str = "A legacy feature for browser compatibility";
+const GENERAL: &str = "write `slice(start, start + length)` in its place, which reads the same characters when the \
+     start and the length are whole numbers of zero or more";
 
 /// Record 182's checklist: each warning with its exact text.
 #[test]
@@ -134,14 +136,20 @@ fn each_deprecated_member_is_warned_with_its_text() {
         (
             "  let a = s.substr(i, n)\n  print(a)",
             format!("`s.substr` is deprecated: {LEGACY}"),
-            "write `s.slice(i, i + n)`, which reads the same characters when `i` and `n` are zero or more",
+            "write `s.slice(i, i + n)`, which reads the same characters when `i` and `n` are whole numbers of \
+             zero or more",
         ),
         (
-            "  let a = s.substr(-3, 2)\n  print(a)",
+            "  let a = s.substr(1, n)\n  print(a)",
             format!("`s.substr` is deprecated: {LEGACY}"),
-            "write `slice(start, start + length)` in its place, which reads the same characters when the start \
-             and the length are zero or more",
+            "write `s.slice(1, 1 + n)`, which reads the same characters when `n` is a whole number of zero or more",
         ),
+        // A literal is decided by the help, never named in a condition: a
+        // negative or fractional one gets the general help (record 185, F1).
+        ("  let a = s.substr(-3, 2)\n  print(a)", format!("`s.substr` is deprecated: {LEGACY}"), GENERAL),
+        ("  let a = s.substr(1, -1)\n  print(a)", format!("`s.substr` is deprecated: {LEGACY}"), GENERAL),
+        ("  let a = s.substr(0.5, 0.6)\n  print(a)", format!("`s.substr` is deprecated: {LEGACY}"), GENERAL),
+        ("  let a = s.substr(i, 0.5)\n  print(a)", format!("`s.substr` is deprecated: {LEGACY}"), GENERAL),
         (
             "  let a = s.trimLeft()\n  print(a)",
             format!("`s.trimLeft` is deprecated: {LEGACY}. Use `trimStart` instead"),
@@ -166,8 +174,14 @@ fn each_deprecated_member_is_warned_with_its_text() {
         (
             "  let a = \"x\".fontcolor(\"red\")\n  print(a)",
             format!("`fontcolor` is deprecated: {LEGACY}"),
-            "build the markup as text: `\"<font color=\\\"${color}\\\">${text}</font>\"`; `fontcolor` also writes \
-             each `\"` in `color` as `&quot;`",
+            "build the markup as text: `\"<font color=\\\"red\\\">${text}</font>\"`",
+        ),
+        // A literal argument is written as the method writes it, `"` as
+        // `&quot;`.
+        (
+            "  let a = s.link(\"a\\\"b\")\n  print(a)",
+            format!("`s.link` is deprecated: {LEGACY}"),
+            "build the markup as text: `\"<a href=\\\"a&quot;b\\\">${s}</a>\"`",
         ),
         // An element read by index, typed as E0240 and E0242 type it.
         (
@@ -207,6 +221,8 @@ fn each_help_spelling_builds_and_prints_the_same() {
         ("s.bold()", "\"<b>${s}</b>\""),
         ("s.link(url)", "\"<a href=\\\"${url}\\\">${s}</a>\""),
         ("s.fontsize(3)", "\"<font size=\\\"3\\\">${s}</font>\""),
+        ("s.substr(1, n)", "s.slice(1, 1 + n)"),
+        ("s.link(\"a\\\"b\")", "\"<a href=\\\"a&quot;b\\\">${s}</a>\""),
         ("o.label?.substr(1, 2) ?? \"\"", "o.label?.slice(1, 3) ?? \"\""),
     ];
     for (old, new) in pairs {

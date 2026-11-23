@@ -2,6 +2,9 @@
 // `Record`. A `Deque<T>` is a double-ended queue: push and pop at either end in
 // constant amortized time, useful as a queue (`push_back`/`pop_front`) or a
 // stack (`push_back`/`pop_back`). Ends that may be empty return an `Option<T>`.
+// The four pushes and pops change the deque, so a Glyph program writes each as a
+// `mut` statement (`mut q.push_back(...)`, D5); `peek_front` and `peek_back`
+// read what a pop would return without changing it.
 
 import { None, type Option, Some } from "./option";
 

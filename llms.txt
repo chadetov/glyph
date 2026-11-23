@@ -1194,8 +1194,11 @@ rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 
 A shared-state primitive. A `Store<T>` holds a value; create one at module
 scope (`const s = create(initial)`) so many functions share it without
-threading a `let` through `main`. The binding stays `const`, so every mutation
-is a greppable `s.set(...)`/`s.update(...)`:
+threading a `let` through `main`. The binding stays `const`, and `set` and
+`update` change the store, so each is a `mut` statement (`mut s.set(...)`,
+`mut s.update(...)`, D5; E0240 without it) and `grep "^\s*mut "` finds every
+write. `mut s.get()` is E0241, and `s.get().push(x)` on a store of an array is
+E0240: write it through the store, `mut s.update(fn(current) { array.push(current, x) })`:
 
 ```
 type Store<T>
@@ -1239,8 +1242,9 @@ timer, a socket handler, `forEach`) is E0211, because nothing waits for it.
 ### std/set
 
 A hash set with value semantics for primitives; maps use the built-in
-`Record<K, V>`. Like `std/store`, state lives in a closure and every mutation
-is a greppable method call:
+`Record<K, V>`. Like `std/store`, state lives in a closure; `add` and `remove`
+change the set, so each is a `mut` statement (`mut seen.add(x)`). To keep what
+`remove` returns, read `seen.has(x)` first:
 
 ```
 type Set<T>
@@ -1356,7 +1360,9 @@ log.with_fields(level: Level, message: string, fields: Record<string, unknown>) 
 ### std/collections
 
 Ordered collections beyond `Array`/`Record`. A `Deque<T>` is a double-ended
-queue; ends that may be empty return `Option<T>`:
+queue; ends that may be empty return `Option<T>`. The pushes and pops change it,
+so each is a `mut` statement (`mut q.pop_front()`); read the value a pop
+returns with `q.peek_front()` or `q.peek_back()` first:
 
 ```
 type Deque<T>
@@ -1622,7 +1628,9 @@ d.to_string() -> string    d.to_number() -> number   // to_number is lossy, disp
 
 Use this for money, never `number`: JS `number` is a float (`0.1 + 0.2 != 0.3`)
 and loses precision past 2^53. Glyph has no operator overloading, so operations
-are methods (`price.add(tax)`). Construction validates and returns a `Result`.
+are methods (`price.add(tax)`). A `Decimal` never changes: each method returns a
+new one, so keep it with `mut price = price.add(tax)`; `mut price.add(tax)` is
+E0241. Construction validates and returns a `Result`.
 
 For exact large *whole* numbers (account ids, counters, 64-bit values) use the
 `bigint` prelude type, not `number`: write literals as `123n`, and a record field

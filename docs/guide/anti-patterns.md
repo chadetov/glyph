@@ -63,8 +63,9 @@ variant is a compile error, and reserve `else` for genuinely open domains
 
 If half your functions take and return an accumulator just to share one value,
 you are hand-rolling state. Use `std/store`: a module-level `const s =
-store.create(...)` gives many functions one shared value, mutated through a
-greppable `s.set`/`s.update`, with no `let` snaking through `main`.
+store.create(...)` gives many functions one shared value, changed through
+`mut s.set(...)`/`mut s.update(...)` statements that `grep "^\s*mut "` finds,
+with no `let` snaking through `main`.
 
 ## Reaching for `extern_ts` too early
 

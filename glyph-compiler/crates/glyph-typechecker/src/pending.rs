@@ -167,6 +167,7 @@ pub fn check_pending(module: &Module, resolved: &ResolvedModule, tm: &TypeMap) -
         returned_tails: HashSet::new(),
         arm_tails: HashSet::new(),
         dropped_tails: HashSet::new(),
+        discard_lets: HashMap::new(),
     };
     for item in &module.items {
         match item {
@@ -238,6 +239,10 @@ struct Pass<'a> {
     /// drops it, so for E0240 it is a statement; E0238 keeps judging it as
     /// the lambda's return (record 133).
     dropped_tails: HashSet<(u32, u32)>,
+    /// The value of a `let _ = <call>`, keyed by its span, with the byte the
+    /// `let` starts at: E0240 there is repaired by writing `mut ` in place of
+    /// `let _ = `, since the value was thrown away (record 157, section 2b).
+    discard_lets: HashMap<(u32, u32), u32>,
 }
 
 /// The callable a statement is in: what the help can offer, and where its
@@ -323,7 +328,10 @@ impl Pass<'_> {
             Stmt::Let(l) => {
                 let slot = match (&l.binding, &l.ty) {
                     (LetBinding::Pattern(_), _) => Slot::Discarded,
-                    (LetBinding::Name(n), _) if n.as_ref() == "_" => Slot::Discarded,
+                    (LetBinding::Name(n), _) if n.as_ref() == "_" => {
+                        self.discard_lets.insert((l.value.span().start, l.value.span().end), l.span.start);
+                        Slot::Discarded
+                    }
                     (LetBinding::Name(_), Some(_)) => Slot::Used,
                     (LetBinding::Name(n), None) => {
                         match self.uses.get(&l.span.start).copied().unwrap_or(0) {
@@ -540,9 +548,22 @@ impl Pass<'_> {
         let key = (span.start, span.end);
         let statement = matches!(slot, Slot::Statement) || self.dropped_tails.contains(&key);
         let site = match slot {
+            // A write through the array a `Store` hands back changes the
+            // store, wherever the call stands, and no statement form of it
+            // names the store (record 157, section 2b).
+            _ if call.held_by_store => M::NotPlace,
+            // A stdlib value no name holds (`mk().remove(x)`) gets the
+            // bind-first help in every position: a read-first help would
+            // call `mk()` again and write `mut mk().remove(x)`, which is
+            // refused itself.
+            _ if !call.place && matches!(call.receiver, crate::mutation::MutReceiver::Stdlib { .. }) => M::NotPlace,
             _ if !call.place && (statement || matches!(slot, Slot::StatementArm)) => M::NotPlace,
             _ if !call.place => M::Value,
             _ if statement => M::Statement,
+            Slot::Discarded => match self.discard_lets.get(&key) {
+                Some(&let_start) => M::Discarded { let_start },
+                None => M::Value,
+            },
             Slot::StatementArm => M::ArmValue,
             Slot::Deferred => M::Deferred,
             _ if self.returned_tails.contains(&key) => M::ReturnedTail,
@@ -555,6 +576,8 @@ impl Pass<'_> {
             args,
             optional: *optional,
             elem: call.elem,
+            receiver: call.receiver,
+            held_by_store: call.held_by_store,
         };
         let (message, help) = crate::mutation::mutation_outside_mut(site, &text, &self.array_ns);
         self.errors.push(TypeError::MutationOutsideMut { kind: site, message, help, span: *span });

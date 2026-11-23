@@ -342,6 +342,249 @@ def classification_failures(got: dict) -> list[str]:
     return failures
 
 
+# Which members of a modeled stdlib type change their receiver (G423 step 2,
+# decision record 157, section 2b). The checker models the member tables of a
+# handful of stdlib types (`stdlib.rs`, `stdlib_type_members`), and D5's audit
+# reaches a write to one only if the member is known to make it. The runtime
+# TypeScript carries no marker, so the split is written here by hand, in three
+# classes keyed by (module, type, member):
+#
+# - Mutating: changes the value it is called on. Stands only as the whole call
+#   of a `mut` statement, on a place (E0240), as an array's `push` does.
+# - NonMutating: reads, or returns a new value. `mut` before it is E0241. A
+#   `Decimal` is immutable, so `mut d.add(e)` throws its sum away.
+# - Outside: writes state beyond the program's data (record 150 (e)): a
+#   database. Never E0240 and never E0241; that is the effects questions'.
+#
+# `stdlib_failures` holds the sets to the runtime's declared types, and the
+# oracle below runs each member of a fresh instance in node. The Rust unit test
+# beside the generated table holds it to the checker's own member tables, so a
+# modeled type added there fails CI until it is classified here.
+STDLIB_MUTATING = {
+    ("set", "Set"): {"add", "remove"},
+    ("store", "Store"): {"set", "update"},
+    ("collections", "Deque"): {"pop_back", "pop_front", "push_back", "push_front"},
+    ("decimal", "Decimal"): set(),
+    ("sqlite", "Db"): set(),
+}
+STDLIB_NON_MUTATING = {
+    ("set", "Set"): {"has", "size", "values"},
+    ("store", "Store"): {"get"},
+    ("collections", "Deque"): {"len", "peek_back", "peek_front", "values"},
+    ("decimal", "Decimal"): {
+        "abs", "add", "cmp", "div", "eq", "is_negative", "is_zero", "mul", "neg", "round", "scale", "sub",
+        "to_number", "to_string",
+    },
+    ("sqlite", "Db"): set(),
+}
+STDLIB_OUTSIDE = {
+    ("set", "Set"): set(),
+    ("store", "Store"): set(),
+    ("collections", "Deque"): set(),
+    ("decimal", "Decimal"): set(),
+    ("sqlite", "Db"): {"close", "exec", "last_insert_id", "query", "query_one", "run"},
+}
+STDLIB_CLASSES = (("Mutating", STDLIB_MUTATING), ("NonMutating", STDLIB_NON_MUTATING), ("Outside", STDLIB_OUTSIDE))
+RUNTIME_STD = ROOT / "glyph-compiler/runtime/std"
+STDLIB_CLASS_TABLE = ROOT / "glyph-compiler/crates/glyph-typechecker/src/stdlib_member_classes.rs"
+
+# The member names each classified type declares in the runtime TypeScript,
+# read with the same checker the method rows use.
+STDLIB_MEMBER_PROBE = r"""
+const ts = require(process.argv[1]);
+const dir = process.argv[2];
+const wanted = JSON.parse(process.argv[3]);
+const files = [...new Set(wanted.map(([m]) => `${dir}/${m}.ts`))];
+const program = ts.createProgram(files, { strict: true, noEmit: true, target: ts.ScriptTarget.ESNext });
+const checker = program.getTypeChecker();
+const out = {};
+for (const [m, name] of wanted) {
+  const sf = program.getSourceFile(`${dir}/${m}.ts`);
+  const sym = sf && checker.getSymbolAtLocation(sf);
+  const exp = sym && checker.getExportsOfModule(sym).find((e) => e.name === name);
+  out[`${m}.${name}`] = exp ? checker.getPropertiesOfType(checker.getDeclaredTypeOfSymbol(exp)).map((p) => p.getName()) : null;
+}
+console.log(JSON.stringify(out));
+"""
+
+# The run-time oracle for the stdlib split. The runtime modules are compiled
+# with TypeScript's own transpiler and loaded in memory, so the oracle runs the
+# code a Glyph program runs. Each member is called once, with samples chosen
+# to cause a change if the member can make one (remove a present value, pop a
+# non-empty deque, `update` with `n + 1`), on a fresh instance holding
+# `[1, 2, 3]`, and the instance's state is snapshotted deeply before and after.
+# A member with no sample here fails, so a member added to the runtime cannot
+# slip past unclassified. `values()` must hand back a copy, and no `Decimal`
+# member may change the value it is called on. `Db` is Outside and not run.
+STDLIB_ORACLE = r"""
+const ts = require(process.argv[1]);
+const fs = require("fs");
+const path = require("path");
+const dir = process.argv[2];
+const classes = JSON.parse(process.argv[3]);
+const cache = {};
+function load(name) {
+  if (cache[name]) return cache[name].exports;
+  const src = fs.readFileSync(path.join(dir, name + ".ts"), "utf8");
+  const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  const mod = { exports: {} };
+  cache[name] = mod;
+  new Function("require", "module", "exports", js)((p) => load(p.replace(/^\.\//, "").replace(/\.(js|ts)$/, "")), mod, mod.exports);
+  return mod.exports;
+}
+const set = load("set"), store = load("store"), collections = load("collections"), decimal = load("decimal");
+const dec = (t) => { const r = decimal.decimal(t); if (r.tag !== "Ok") throw new Error("decimal " + t); return r.value; };
+const types = {
+  "set.Set": {
+    make: () => set.create([1, 2, 3]),
+    snap: (s) => JSON.stringify(s.values().slice().sort()),
+    samples: { add: [4], has: [1], remove: [1], size: [], values: [] },
+    copies: ["values"],
+  },
+  "store.Store": {
+    make: () => store.create(1),
+    snap: (s) => JSON.stringify(s.get()),
+    samples: { get: [], set: [4], update: [(n) => n + 1] },
+    copies: [],
+  },
+  "collections.Deque": {
+    make: () => collections.deque([1, 2, 3]),
+    snap: (q) => JSON.stringify(q.values()),
+    samples: {
+      push_back: [4], push_front: [0], pop_back: [], pop_front: [], peek_front: [], peek_back: [], len: [], values: [],
+    },
+    copies: ["values"],
+  },
+  "decimal.Decimal": {
+    make: () => dec("10.50"),
+    snap: (d) => JSON.stringify([d.to_string(), d.scale()]),
+    samples: {
+      add: [dec("1.25")], sub: [dec("1.25")], mul: [dec("2")], div: [dec("3"), 2], round: [1], neg: [], abs: [],
+      cmp: [dec("1")], eq: [dec("1")], is_zero: [], is_negative: [], scale: [], to_string: [], to_number: [],
+    },
+    copies: [],
+  },
+};
+const out = [];
+for (const [key, t] of Object.entries(types)) {
+  const cls = classes[key];
+  if (!cls) { out.push(`${key}: the oracle runs it and the script classifies none of its members`); continue; }
+  // Only the methods: a `Decimal` also carries its digits as data fields
+  // (`_u`, `_s`) that its declared type does not name.
+  const made = t.make();
+  for (const member of Object.keys(made).filter((k) => typeof made[k] === "function")) {
+    if (!(member in t.samples)) { out.push(`${key}: \`${member}\` has no sample arguments in STDLIB_ORACLE; add one`); continue; }
+    const v = t.make();
+    const before = t.snap(v);
+    v[member](...t.samples[member]);
+    const changed = t.snap(v) !== before;
+    const c = cls[member];
+    if (c === undefined) out.push(`${key}: \`${member}\` is a runtime member the script does not classify`);
+    else if (changed && c !== "Mutating") out.push(`${key}: \`${member}\` changed its receiver in node and is ${c}, not Mutating`);
+    else if (!changed && c === "Mutating") out.push(`${key}: \`${member}\` is Mutating and left its receiver unchanged in node`);
+  }
+  for (const member of t.copies) {
+    const v = t.make();
+    const before = t.snap(v);
+    v[member]().push(99);
+    if (t.snap(v) !== before) out.push(`${key}: changing the array \`${member}()\` returned changed the instance; it must return a copy`);
+  }
+}
+for (const key of Object.keys(classes)) {
+  if (!(key in types) && Object.values(classes[key]).some((c) => c !== "Outside")) {
+    out.push(`${key}: a member is classified Mutating or NonMutating and STDLIB_ORACLE has no instance to run it on`);
+  }
+}
+console.log(JSON.stringify(out));
+"""
+
+
+def stdlib_classes() -> dict[tuple[str, str], dict[str, str]]:
+    """(module, type) -> {member: class}; a member in two classes is listed
+    under both joined by `+`, for `stdlib_failures` to name."""
+    out: dict[tuple[str, str], dict[str, str]] = {}
+    for cls, table in STDLIB_CLASSES:
+        for key, members in table.items():
+            row = out.setdefault(key, {})
+            for m in members:
+                row[m] = cls if m not in row else row[m] + "+" + cls
+    return out
+
+
+def stdlib_failures(ts_dir: pathlib.Path) -> list[str]:
+    """Each classified type's members in exactly one class, matching what the
+    runtime TypeScript declares, and the split confirmed by running them."""
+    failures = []
+    keys = sorted(set(STDLIB_MUTATING) | set(STDLIB_NON_MUTATING) | set(STDLIB_OUTSIDE))
+    for _, table in STDLIB_CLASSES:
+        for key in sorted(set(keys) - set(table)):
+            failures.append(f"{key[0]}.{key[1]}: missing from one of the three class tables; give it an empty set")
+    classes = stdlib_classes()
+    for key in keys:
+        for m, c in sorted(classes.get(key, {}).items()):
+            if "+" in c:
+                failures.append(f"{key[0]}.{key[1]}: `{m}` is in more than one class ({c.replace('+', ', ')})")
+    r = subprocess.run(
+        ["node", "-e", STDLIB_MEMBER_PROBE, str(ts_dir), str(RUNTIME_STD), json.dumps(keys)],
+        capture_output=True, text=True, timeout=120,
+    )
+    if r.returncode != 0:
+        return failures + ["the stdlib member probe failed to run:\n" + r.stderr]
+    declared = json.loads(r.stdout)
+    for key in keys:
+        names = declared.get(f"{key[0]}.{key[1]}")
+        if names is None:
+            failures.append(f"{key[0]}.{key[1]}: runtime/std/{key[0]}.ts exports no such type")
+            continue
+        have = set(classes.get(key, {}))
+        for m in sorted(set(names) - have):
+            failures.append(
+                f"{key[0]}.{key[1]}: `{m}` is in none of Mutating, NonMutating and Outside; classify it "
+                "(does calling it change the value it is called on?)"
+            )
+        for m in sorted(have - set(names)):
+            failures.append(f"{key[0]}.{key[1]}: `{m}` is classified and the runtime type declares no such member")
+    if failures:
+        return failures
+    by_key = {f"{k[0]}.{k[1]}": v for k, v in classes.items()}
+    r = subprocess.run(
+        ["node", "-e", STDLIB_ORACLE, str(ts_dir), str(RUNTIME_STD), json.dumps(by_key)],
+        capture_output=True, text=True, timeout=120,
+    )
+    if r.returncode != 0:
+        return ["the stdlib mutation oracle failed to run:\n" + r.stderr]
+    return json.loads(r.stdout)
+
+
+def render_stdlib_classes() -> str:
+    """The whole of `stdlib_member_classes.rs`, from the three hand sets."""
+    rows = sorted(
+        (key[0], key[1], m, cls)
+        for cls, table in STDLIB_CLASSES
+        for key, members in table.items()
+        for m in members
+    )
+    lines = [
+        "// @generated by `python3 scripts/check_builtin_members.py --write`. Do not edit:",
+        "// CI renders this file again and fails when the committed copy differs.",
+        "",
+        "//! Which members of a modeled stdlib type change their receiver (G423 step",
+        "//! 2, D5), keyed by the type's module and name and the member. The split is",
+        "//! the script's `STDLIB_MUTATING`, `STDLIB_NON_MUTATING` and `STDLIB_OUTSIDE`,",
+        "//! held to the runtime TypeScript's declared members and confirmed in node",
+        "//! by running each member on a fresh instance. Sorted: `stdlib_member_class`",
+        "//! binary-searches.",
+        "",
+        "use crate::mutation::MemberClass::{self, Mutating, NonMutating, Outside};",
+        "",
+        "pub(crate) const STDLIB_MEMBER_CLASSES: &[(&str, &str, &str, MemberClass)] = &[",
+    ]
+    for module, ty, m, cls in rows:
+        lines.append(f'    ("{module}", "{ty}", "{m}", {cls}),')
+    lines.append("];")
+    return "\n".join(lines) + "\n"
+
+
 def rust_ty(ty: str) -> str:
     """`ArrayOf(Elem)` as the Rust expression the row holds."""
     if ty.startswith("ArrayOf(") and ty.endswith(")"):
@@ -486,22 +729,28 @@ def main() -> int:
         for f in missing:
             print("  " + f)
         return 1
-    rendered = render_methods(methods)
-    rel = METHODS.relative_to(ROOT)
-    if write:
-        METHODS.write_text(rendered)
-        print(f"wrote {rel}")
-    elif not METHODS.is_file() or METHODS.read_text() != rendered:
-        # A unified diff names the rows that moved, which is what a reviewer
-        # of a TypeScript bump needs to read.
-        committed = METHODS.read_text().splitlines(keepends=True) if METHODS.is_file() else []
-        diff = "".join(
-            difflib.unified_diff(committed, rendered.splitlines(keepends=True), str(rel), "regenerated")
-        )
-        failures.append(
-            f"{rel} is not what TypeScript {got['version']} generates; "
-            "run `python3 scripts/check_builtin_members.py --write` and review the diff:\n" + diff
-        )
+    stdlib = stdlib_failures(ts_dir)
+    if stdlib:
+        print("builtin members: the stdlib member split is incomplete or wrong")
+        for f in stdlib:
+            print("  " + f)
+        return 1
+    for path, rendered in ((METHODS, render_methods(methods)), (STDLIB_CLASS_TABLE, render_stdlib_classes())):
+        rel = path.relative_to(ROOT)
+        if write:
+            path.write_text(rendered)
+            print(f"wrote {rel}")
+        elif not path.is_file() or path.read_text() != rendered:
+            # A unified diff names the rows that moved, which is what a
+            # reviewer of a TypeScript bump needs to read.
+            committed = path.read_text().splitlines(keepends=True) if path.is_file() else []
+            diff = "".join(
+                difflib.unified_diff(committed, rendered.splitlines(keepends=True), str(rel), "regenerated")
+            )
+            failures.append(
+                f"{rel} is not what TypeScript {got['version']} and the hand sets generate; "
+                "run `python3 scripts/check_builtin_members.py --write` and review the diff:\n" + diff
+            )
 
     if failures:
         print("builtin members: the checker's lists disagree with TypeScript")
@@ -513,7 +762,9 @@ def main() -> int:
         f"{len(table['number'])} number members match TypeScript {got['version']} "
         f"(esnext + dom, with Object's), every method is classified mutating or not and node "
         f"agrees on the array split, every absent-returning method has an `Option` spelling, "
-        f"and {rel} is what it generates."
+        f"every member of a classified stdlib type is Mutating, NonMutating or Outside and node "
+        f"agrees by running it, and {METHODS.relative_to(ROOT)} and "
+        f"{STDLIB_CLASS_TABLE.relative_to(ROOT)} are what it generates."
     )
     return 0
 

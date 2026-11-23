@@ -758,7 +758,7 @@ fn tree_lines(
     true => { return ["${indent}${label} (*)"] },
     false => {},
   }
-  seen.add(name)
+  mut seen.add(name)
   let out: Array<string> = []
   mut out = array.push(out, "${indent}${label}")
   for edge in array.sort(deps_of(nodes, name), cmp_text) {

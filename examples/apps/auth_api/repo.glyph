@@ -22,10 +22,10 @@ const sessions = store.create<Record<string, Session>>({})
 const attempts = store.create<Record<string, Attempt>>({})
 
 pub fn reset() -> void {
-  users.set({})
-  emails.set({})
-  sessions.set({})
-  attempts.set({})
+  mut users.set({})
+  mut emails.set({})
+  mut sessions.set({})
+  mut attempts.set({})
 }
 
 // ---------------------------------------------------------------------------
@@ -44,14 +44,14 @@ pub fn find_by_email(email: string) -> Option<User> {
 }
 
 pub fn insert_user(u: User) -> void {
-  users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
-  emails.update(fn(m: Record<string, string>) { record.set(m, u.email, u.id) })
+  mut users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
+  mut emails.update(fn(m: Record<string, string>) { record.set(m, u.email, u.id) })
 }
 
 // An update never touches the email index: an address is the identity here and
 // changing one is a different operation the service does not offer.
 pub fn save_user(u: User) -> void {
-  users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
+  mut users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
 }
 
 pub fn all_users() -> Array<User> {
@@ -85,11 +85,11 @@ pub fn find_session(id: string) -> Option<Session> {
 }
 
 pub fn save_session(s: Session) -> void {
-  sessions.update(fn(m: Record<string, Session>) { record.set(m, s.id, s) })
+  mut sessions.update(fn(m: Record<string, Session>) { record.set(m, s.id, s) })
 }
 
 pub fn revoke_sessions_of(user_id: string) -> void {
-  sessions.update(
+  mut sessions.update(
     fn(m: Record<string, Session>) {
       let next = m
       for id, s in m {
@@ -121,9 +121,9 @@ pub fn find_attempt(email: string) -> Option<Attempt> {
 }
 
 pub fn save_attempt(email: string, a: Attempt) -> void {
-  attempts.update(fn(m: Record<string, Attempt>) { record.set(m, email, a) })
+  mut attempts.update(fn(m: Record<string, Attempt>) { record.set(m, email, a) })
 }
 
 pub fn clear_attempt(email: string) -> void {
-  attempts.update(fn(m: Record<string, Attempt>) { record.remove(m, email) })
+  mut attempts.update(fn(m: Record<string, Attempt>) { record.remove(m, email) })
 }

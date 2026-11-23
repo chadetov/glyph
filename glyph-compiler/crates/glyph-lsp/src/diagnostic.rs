@@ -189,6 +189,14 @@ pub struct Diagnostic {
     /// Never serialized, like `subject`: it is read in-process by the fix.
     #[serde(skip)]
     pub insert_before: Option<String>,
+    /// The byte `insert_before` replaces from, up to the start of the range,
+    /// when the insertion takes the place of text rather than going before
+    /// it: the `let _ = ` of an E0240 call whose value was thrown away
+    /// becomes `mut ` (record 157, section 2b). `None` inserts at the range.
+    ///
+    /// Never serialized, like `insert_before`.
+    #[serde(skip)]
+    pub insert_replaces_from: Option<u32>,
     /// The rewrite the checker decided repairs this diagnostic, or why none
     /// is determined: an E0242 call moved into its `std/*` form, with the
     /// module to import (G392, D56). `glyph fix` applies it as given, like
@@ -336,6 +344,7 @@ impl Diagnostic {
             explain: explain_pointer(code),
             subject: None,
             insert_before: None,
+            insert_replaces_from: None,
             repair: None,
             literal_keys: None,
         }
@@ -356,9 +365,11 @@ impl Diagnostic {
         self.subject.as_deref().unwrap_or(&self.message)
     }
 
-    /// Attach the insertion the checker decided is the whole repair.
-    fn with_insertion(mut self, text: Option<&str>) -> Self {
-        self.insert_before = text.map(str::to_string);
+    /// Attach the insertion the checker decided is the whole repair, and the
+    /// byte it replaces from when it takes the place of text.
+    fn with_insertion(mut self, insertion: Option<(&str, Option<u32>)>) -> Self {
+        self.insert_before = insertion.map(|(text, _)| text.to_string());
+        self.insert_replaces_from = insertion.and_then(|(_, from)| from);
         self
     }
 
@@ -579,7 +590,11 @@ pub fn from_type_error(
     .missing_fields(err.missing_fields().map(<[String]>::to_vec))
     .with_subject(type_subject(err))
     .with_insertion(match err {
-        TypeError::MutationOutsideMut { kind: glyph_typechecker::MutationSite::Statement, .. } => Some("mut "),
+        TypeError::MutationOutsideMut { kind: glyph_typechecker::MutationSite::Statement, .. } => Some(("mut ", None)),
+        TypeError::MutationOutsideMut {
+            kind: glyph_typechecker::MutationSite::Discarded { let_start },
+            ..
+        } => Some(("mut ", Some(*let_start))),
         _ => None,
     })
     .with_repair(match err {

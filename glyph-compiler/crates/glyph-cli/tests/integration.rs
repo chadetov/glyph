@@ -524,7 +524,8 @@ fn build_does_not_flag_a_binding_used_only_in_a_template() {
 fn build_accepts_a_shared_store() {
     // A module-level `const` store (std/store) that several functions read and
     // mutate: it typechecks, emits, and lowers `create`/`get`/`update` to the
-    // runtime store without needing `mut` on the const binding.
+    // runtime store. The binding stays `const`; the `update` is a `mut`
+    // statement (D5, G423 step 2).
     let root = unique_tmp("store");
     let src = root.join("src");
     let out = root.join("dist");
@@ -535,7 +536,7 @@ fn build_accepts_a_shared_store() {
          import std/store { Store, create }\n\
          const total: Store<number> = create(0)\n\
          fn bump() -> void {\n  \
-           total.update(fn(n: number) -> number { return n + 1 })\n\
+           mut total.update(fn(n: number) -> number { return n + 1 })\n\
          }\n\
          fn value() -> number {\n  return total.get()\n}\n",
     );
@@ -547,7 +548,7 @@ fn build_accepts_a_shared_store() {
     assert!(ts.contains("create(0)"), "lowers create: {ts}");
     assert!(ts.contains("total.update("), "lowers update: {ts}");
     assert!(ts.contains("total.get()"), "lowers get: {ts}");
-    // The store binding stays a plain const — no `mut`, no reassignment.
+    // The store binding stays a plain const, never reassigned.
     assert!(ts.contains("const total"), "const binding: {ts}");
 }
 
@@ -13806,7 +13807,7 @@ fn drive() -> void {{
   net.on_error(c, fn(m: string) {{ io.eprintln("client: ${{m}}") }})
   net.on_text(c, fn(text: string) {{
     io.println("client=${{text}}")
-    heard.update(fn(h: string) {{ "${{h}}${{text}}" }})
+    mut heard.update(fn(h: string) {{ "${{h}}${{text}}" }})
     match string.ends_with(heard.get(), "echo:é!") {{
       true => {{
         net.close(c)
@@ -13818,7 +13819,7 @@ fn drive() -> void {{
     // has already read "hi " and is holding the lone 0xC3 when 0xA9 arrives.
     match string.ends_with(heard.get(), "echo:hi ") && !sent_rest.get() {{
       true => {{
-        sent_rest.set(true)
+        mut sent_rest.set(true)
         net.send_bytes(c, octets([169, 33,]))
       }},
       false => {{}},
@@ -14356,7 +14357,7 @@ fn drive(server: Server) -> void {{
     let n = number.to_string(bytes.len(b))
     let head = bytes.to_hex(bytes.slice(b, 0, 4))
     io.println("client_bin=${{n}}:${{head}}")
-    sent.update(fn(k: int) {{ k + 1 }})
+    mut sent.update(fn(k: int) {{ k + 1 }})
     let next = sent.get()
     match next < 3 {{
       true => websocket.send_bytes(c, payload(index_size(next))),

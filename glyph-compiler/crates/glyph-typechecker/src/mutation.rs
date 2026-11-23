@@ -20,19 +20,63 @@
 //!
 //! Which methods change their receiver is the `mutates` column of the
 //! generated rows (`builtin_methods.rs`): nine on an `Array<T>`, none on a
-//! `string` or a `number`. `assign.rs` decides where each call stands, since
-//! it holds the receiver's type; this module holds the position names and
+//! `string` or a `number`. For a stdlib type whose members the checker
+//! models it is the generated `stdlib_member_classes.rs` (G423 step 2): the
+//! writing members of `set.Set`, `store.Store` and `collections.Deque` are
+//! `Mutating`, every member of `decimal.Decimal` and the readers of the three
+//! are `NonMutating`, and every `sqlite.Db` member is `Outside`, judged in
+//! neither direction. `assign.rs` decides where each call stands, since it
+//! holds the receiver's type; this module holds the position names and
 //! writes the message and help for each, from the call as written.
 //!
 //! Not judged, in either direction: a receiver the checker types `Unknown`
 //! (an npm value, an `extern_ts` result), a record field holding a function,
-//! and until the follow-up gap the stdlib `Set`, `Store` and `Deque`, whose
-//! receivers the checker does not type yet.
+//! and an `Outside` member.
 
 use glyph_ast::{Decl, Expr, ImportKind, Module};
 
 use crate::builtin_members::{BuiltinMethod, BuiltinReceiver, MethodSig, MethodTy};
 use crate::pending::expr_source;
+
+/// What a member of a modeled stdlib type does to the value it is called on
+/// (G423 step 2, decision record 157, section 2b). The split is written by
+/// hand in `scripts/check_builtin_members.py`, which generates the table and
+/// confirms it in node; a unit test below holds it to the member tables.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemberClass {
+    /// Changes the value: E0240 outside the whole call of a `mut` statement.
+    Mutating,
+    /// Reads it or returns a new value: E0241 under `mut`.
+    NonMutating,
+    /// Writes state outside the program's data (a database, record 150 (e)):
+    /// never E0240 and never E0241.
+    Outside,
+}
+
+/// The class of `member` on the stdlib type `module.ty` (`"set"`, `"Set"`),
+/// with the three names as the table holds them, or `None` for a member the
+/// table does not classify.
+pub(crate) fn stdlib_member_class(
+    module: &str,
+    ty: &str,
+    member: &str,
+) -> Option<(&'static str, &'static str, &'static str, MemberClass)> {
+    let table = crate::stdlib_member_classes::STDLIB_MEMBER_CLASSES;
+    let i = table
+        .binary_search_by(|(m, t, n, _)| (*m, *t, *n).cmp(&(module, ty, member)))
+        .ok()?;
+    Some(table[i])
+}
+
+/// The receiver a mutating call changes, for the help: an array, whose
+/// value can be copied with `std/array`, or a modeled stdlib type, whose
+/// readers the help points at instead.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutReceiver {
+    Array,
+    /// A stdlib type by its module and name (`("set", "Set")`).
+    Stdlib { module: &'static str, ty: &'static str },
+}
 
 /// Where a call that changes its receiver stands, for E0240's message and
 /// help, and for `glyph fix`, which repairs only a `Statement`.
@@ -59,6 +103,10 @@ pub enum MutationSite {
     /// The expression of a `defer`, which runs at scope exit. `defer` takes
     /// no `mut`, so the change goes in a function the `defer` calls.
     Deferred,
+    /// The value of `let _ = <call>`, which throws the value away. Writing
+    /// `mut ` in place of the `let _ = ` that starts at `let_start` keeps
+    /// what the line does (record 157, section 2b).
+    Discarded { let_start: u32 },
     /// Any other position that reads the call's value: a `let`, a `return`,
     /// an argument, an operand, the receiver of a further member or call.
     Value,
@@ -88,6 +136,10 @@ pub struct MutatingCall {
     /// The receiver is a place, so `mut ` before a statement keeps the
     /// change.
     pub place: bool,
+    pub receiver: MutReceiver,
+    /// The receiver is the array a `store.Store`'s `get()` hands back, which
+    /// the store still holds, so the change lands in the store.
+    pub held_by_store: bool,
 }
 
 /// The name a module imports `std/<name>` under, when it does, so a help can
@@ -183,6 +235,8 @@ pub(crate) struct CallText<'a> {
     /// The method link is `?.`, as in `s.opt?.push(1)` (record 151, F3).
     pub optional: bool,
     pub elem: ElemKind,
+    pub receiver: MutReceiver,
+    pub held_by_store: bool,
 }
 
 /// The help for a mutating call whose value is read: a spelling that keeps
@@ -312,13 +366,32 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
                 None => "write the arm as a block holding the call as a `mut` statement".to_string(),
             },
         ),
+        MutationSite::Discarded { .. } => (
+            format!("{changes}, and `let _ =` throws its value away"),
+            match code(&call) {
+                Some(call) => format!(
+                    "write `mut {call}` in place of the `let _ =`: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change"
+                ),
+                None => "write `mut ` in place of the `let _ =`: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change".to_string(),
+            },
+        ),
         MutationSite::ReturnedTail => (
             format!("{changes}, and as the last expression of the body its value is returned"),
-            value_help(c, &call, ns, Some(("return the value explicitly,", "return "))),
+            match c.receiver {
+                MutReceiver::Array => value_help(c, &call, ns, Some(("return the value explicitly,", "return "))),
+                MutReceiver::Stdlib { ty, .. } => {
+                    stdlib_value_help(c, ty, &call, Some(("return", "return the value the body means explicitly")))
+                }
+            },
         ),
         MutationSite::ArmTail => (
             format!("{changes}, and as the last expression of the arm its value is used"),
-            value_help(c, &call, ns, Some(("end the block with the value,", ""))),
+            match c.receiver {
+                MutReceiver::Array => value_help(c, &call, ns, Some(("end the block with the value,", ""))),
+                MutReceiver::Stdlib { ty, .. } => {
+                    stdlib_value_help(c, ty, &call, Some(("end the block with", "end the block with the arm's value")))
+                }
+            },
         ),
         MutationSite::Deferred => (
             format!("{quoted} is a deferred call that changes {target}, and `defer` takes no `mut`"),
@@ -331,8 +404,43 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
         ),
         MutationSite::Value => (
             format!("{changes}, and its value is used here"),
-            value_help(c, &call, ns, None),
+            match c.receiver {
+                MutReceiver::Array => value_help(c, &call, ns, None),
+                MutReceiver::Stdlib { ty, .. } => stdlib_value_help(c, ty, &call, None),
+            },
         ),
+        MutationSite::NotPlace if c.held_by_store => held_by_store(c, &args_text, ns),
+        MutationSite::NotPlace if matches!(c.receiver, MutReceiver::Stdlib { .. }) => {
+            let MutReceiver::Stdlib { ty, .. } = c.receiver else { unreachable!() };
+            let link = match code(&args_text) {
+                Some(args) => format!("`.{}({args})`", c.method),
+                None => format!("`.{}`", c.method),
+            };
+            let what = match code(&xs) {
+                Some(x) => format!("`{x}`"),
+                None => "a value".to_string(),
+            };
+            let message = match c.recv {
+                Expr::Call { .. } => format!(
+                    "{link} changes the {} {what} returns, and a call result is not a place, so no `mut` line names what changes",
+                    noun(ty)
+                ),
+                _ => format!(
+                    "{link} changes {what}, which is not a name, a field or an index, so no `mut` line names what changes"
+                ),
+            };
+            let help = match (code(&xs), code(&args_text)) {
+                (Some(x), Some(args)) => {
+                    format!("bind it with `let` first, `let s = {x}`, then write `mut s.{}({args})`", c.method)
+                }
+                (Some(x), None) => format!(
+                    "bind it with `let` first, `let s = {x}`, then call `{}` on `s` in a `mut` statement",
+                    c.method
+                ),
+                _ => format!("bind the {} with `let` first, then write the change as its own `mut` statement", noun(ty)),
+            };
+            (message, help)
+        }
         MutationSite::NotPlace => {
             let verb = verb(c.method);
             let link = match code(&args_text) {
@@ -494,4 +602,241 @@ pub(crate) fn mut_on_module_call(ns: &str, f: &str, args: &[Expr], array_copy: b
         "drop the `mut`: a function call is not written `mut`; the change it makes is a `mut` statement inside it (D5)"
             .to_string(),
     )
+}
+
+/// What a help calls a value of the stdlib type `ty`.
+fn noun(ty: &str) -> &'static str {
+    match ty {
+        "Set" => "set",
+        "Store" => "store",
+        "Deque" => "deque",
+        _ => "value",
+    }
+}
+
+/// The help for a mutating stdlib member whose value is read (record 157,
+/// section 2b): read the same answer off the type's reader first, then
+/// write the change as a statement. `remove` answers what `has` answers
+/// before it, `pop_front` and `pop_back` what `peek_front` and `peek_back`
+/// do; every other writing member returns nothing, so its only form is the
+/// statement. `tail` is set for a block's last expression: the keyword that
+/// hands a value on (`return`, or "end the block with"), and the sentence to
+/// use when the member returns nothing.
+fn stdlib_value_help(c: &CallText, ty: &str, call: &str, tail: Option<(&str, &str)>) -> String {
+    let recv = expr_source(c.recv);
+    let stmt = match code(call) {
+        Some(call) => format!("write `mut {call}` as a statement"),
+        None => "write the call as its own `mut` statement".to_string(),
+    };
+    let Some(r) = code(&recv) else {
+        return format!("bind the {} with `let` first, then write the change as its own `mut` statement", noun(ty));
+    };
+    // The reader that gives the same answer before the change, and a name
+    // for what it reads.
+    let read = match c.method {
+        "remove" => c
+            .args
+            .first()
+            .map(expr_source)
+            .and_then(|v| code(&v).map(|v| ("had".to_string(), format!("{r}.has({v})"), "whether it is there"))),
+        "pop_front" => Some(("front".to_string(), format!("{r}.peek_front()"), "the front")),
+        "pop_back" => Some(("back".to_string(), format!("{r}.peek_back()"), "the back")),
+        _ => None,
+    };
+    match (read, tail) {
+        (Some((name, reader, what)), None) => format!(
+            "read {what} first with `let {name} = {reader}`, which is the value `{}` returns, then {stmt}",
+            c.method
+        ),
+        (Some((name, reader, what)), Some((kw, _))) => {
+            format!("read {what} first, `let {name} = {reader}`, then {stmt} and {kw} `{name}`")
+        }
+        (None, None) if matches!(c.method, "remove") => format!(
+            "read whether it is there first with `{r}.has`, which is the value `remove` returns, then {stmt}"
+        ),
+        (None, Some((_, end))) if !matches!(c.method, "remove") => {
+            format!("`{}` returns nothing: {stmt}, then {end}", c.method)
+        }
+        (None, Some((kw, _))) => {
+            format!("read whether it is there first with `{r}.has`, then {stmt} and {kw} what it read")
+        }
+        (None, None) => format!("`{}` returns nothing, so there is no value to use: {stmt}", c.method),
+    }
+}
+
+/// E0240's message and help for an array method called on what a
+/// `store.Store`'s `get()` returns, `HITS.get().push(1)`. The store hands
+/// back the array it holds, so the call changes the store, through a call
+/// rather than a place no `mut` line names (record 157, section 2b). The
+/// help writes the change through the store's own writing member.
+fn held_by_store(c: &CallText, args_text: &str, ns: &ArrayNs) -> (String, String) {
+    let a = &ns.name;
+    let note = ns.import_note();
+    let store = match c.recv {
+        Expr::Call { callee, .. } => match callee.as_ref() {
+            Expr::Member { object, .. } => expr_source(object),
+            _ => expr_source(c.recv),
+        },
+        _ => expr_source(c.recv),
+    };
+    let Some(s) = code(&store) else {
+        return (
+            format!(
+                "`.{}` {} the array a store's `get()` returns, which the store still holds, so it changes the store with no `mut` line naming it",
+                c.method,
+                verb(c.method)
+            ),
+            "write the change through the store's `update`, as a `mut` statement".to_string(),
+        );
+    };
+    let link = match code(args_text) {
+        Some(args) => format!("`.{}({args})`", c.method),
+        None => format!("`.{}`", c.method),
+    };
+    let message = format!(
+        "{link} {} the array `{s}.get()` returns, which `{s}` still holds, so it changes `{s}` with no `mut` line naming it",
+        verb(c.method)
+    );
+    let arg = c.args.first().map(expr_source);
+    let body = match (c.method, arg.as_deref().map(code)) {
+        ("push", Some(Some(v))) => Some(format!("{a}.push(current, {v})")),
+        ("unshift", Some(Some(v))) => Some(format!("{a}.concat([{v}], current)")),
+        ("sort", Some(Some(cmp))) => Some(format!("{a}.sort(current, {cmp})")),
+        ("sort", None) => comparator(c.elem).map(|cmp| format!("{a}.sort(current, {cmp})")),
+        ("reverse", None) => Some(format!("{a}.reverse(current)")),
+        _ => None,
+    };
+    let help = match body {
+        Some(body) => format!("write the change through the store: `mut {s}.update(fn(current) {{ {body} }})`{note}"),
+        None => format!(
+            "write the change through the store: `mut {s}.update(f)`, with an `f` that returns the changed array"
+        ),
+    };
+    (message, help)
+}
+
+/// E0241's message and help for `mut recv.member(args)` where `member`
+/// reads a modeled stdlib value or returns a new one (G423 step 2).
+/// `returns_own` is set when the member returns a value of the receiver's
+/// own type (`Decimal.add`), so the change the author meant is a
+/// reassignment, `mut d = d.add(e)`.
+pub(crate) fn mut_on_stdlib_reader(
+    module: &str,
+    ty: &str,
+    member: &str,
+    returns_own: bool,
+    recv: &Expr,
+    args: &[Expr],
+) -> (String, String) {
+    let xs = expr_source(recv);
+    let rendered: Vec<String> = args.iter().map(expr_source).collect();
+    let call = format!("{xs}.{member}({})", rendered.join(", "));
+    if returns_own {
+        let message = format!(
+            "`{member}` returns a new `{module}.{ty}` and leaves `{xs}` unchanged; this `mut` marks no change and the result is discarded"
+        );
+        let help = match (recv.is_place(), code(&call), code(&xs)) {
+            (true, Some(call), _) => format!("to keep it, write `mut {xs} = {call}`"),
+            (true, None, Some(xs)) => format!("to keep it, write `mut {xs} = ` before the call"),
+            (_, Some(call), _) => format!("to keep it, bind it: `let result = {call}`"),
+            _ => "to keep it, bind it with `let result = ` before the call".to_string(),
+        };
+        return (message, help);
+    }
+    let reads = match member {
+        "values" => format!("`values` returns a copy of what `{xs}` holds and leaves `{xs}` unchanged"),
+        _ => format!("`{member}` reads `{xs}` and leaves it unchanged"),
+    };
+    (
+        format!("{reads}; this `mut` marks no change and the result is discarded"),
+        match code(&call) {
+            Some(call) => format!("drop the `mut`; to keep the result, bind it: `let result = {call}`"),
+            None => "drop the `mut`; to keep the result, bind it with `let result = ` before the call".to_string(),
+        },
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assign::{stdlib_named, MODELED_STDLIB_TYPES};
+    use crate::stdlib::stdlib_type_members;
+    use crate::stdlib_member_classes::STDLIB_MEMBER_CLASSES;
+    use crate::ty::Ty;
+    use std::collections::BTreeSet;
+
+    /// Every member of a modeled stdlib type that is a method has exactly
+    /// one class, a data field has none, and every class row names a method
+    /// the checker models (decision record 157, section 2b). A modeled type
+    /// with methods added to `stdlib.rs` fails here until
+    /// `scripts/check_builtin_members.py` classifies them, which also holds
+    /// the classes to the runtime and runs them in node.
+    #[test]
+    fn every_modeled_stdlib_method_has_exactly_one_class() {
+        let prelude = glyph_resolver::build_prelude();
+        let mut methods: BTreeSet<(String, String, String)> = BTreeSet::new();
+        for (module, name) in MODELED_STDLIB_TYPES {
+            let Some(members) = stdlib_type_members(&prelude, &stdlib_named(module, name)) else {
+                continue;
+            };
+            for m in members {
+                let key = (module.to_string(), name.to_string(), m.name.to_string());
+                let rows = STDLIB_MEMBER_CLASSES
+                    .iter()
+                    .filter(|(a, b, c, _)| (*a, *b, *c) == (key.0.as_str(), key.1.as_str(), key.2.as_str()))
+                    .count();
+                match m.ty {
+                    Ty::Fn { .. } => {
+                        assert_eq!(rows, 1, "{module}.{name}.{} is a method with {rows} class rows; classify it once in check_builtin_members.py", m.name);
+                        methods.insert(key);
+                    }
+                    _ => assert_eq!(rows, 0, "{module}.{name}.{} is a data field and has a class row", m.name),
+                }
+            }
+        }
+        for (module, name, member, _) in STDLIB_MEMBER_CLASSES {
+            let key = (module.to_string(), name.to_string(), member.to_string());
+            assert!(methods.contains(&key), "{module}.{name}.{member} is classified and the checker models no such method");
+        }
+        // The set the decision names, so a row moved by hand fails here too.
+        let mutating: Vec<String> = STDLIB_MEMBER_CLASSES
+            .iter()
+            .filter(|r| r.3 == MemberClass::Mutating)
+            .map(|(m, t, n, _)| format!("{m}.{t}.{n}"))
+            .collect();
+        assert_eq!(
+            mutating,
+            [
+                "collections.Deque.pop_back",
+                "collections.Deque.pop_front",
+                "collections.Deque.push_back",
+                "collections.Deque.push_front",
+                "set.Set.add",
+                "set.Set.remove",
+                "store.Store.set",
+                "store.Store.update",
+            ]
+        );
+        assert!(STDLIB_MEMBER_CLASSES
+            .iter()
+            .filter(|r| (r.0, r.1) == ("sqlite", "Db"))
+            .all(|r| r.3 == MemberClass::Outside));
+        assert!(STDLIB_MEMBER_CLASSES
+            .iter()
+            .filter(|r| (r.0, r.1) == ("decimal", "Decimal"))
+            .all(|r| r.3 == MemberClass::NonMutating));
+    }
+
+    /// `stdlib_member_class` binary-searches the generated table.
+    #[test]
+    fn the_class_table_is_sorted_and_found() {
+        let keys: Vec<_> = STDLIB_MEMBER_CLASSES.iter().map(|(m, t, n, _)| (*m, *t, *n)).collect();
+        let mut sorted = keys.clone();
+        sorted.sort();
+        assert_eq!(keys, sorted);
+        for (m, t, n, c) in STDLIB_MEMBER_CLASSES {
+            assert_eq!(stdlib_member_class(m, t, n).map(|r| r.3), Some(*c));
+        }
+        assert_eq!(stdlib_member_class("set", "Set", "clear"), None);
+    }
 }

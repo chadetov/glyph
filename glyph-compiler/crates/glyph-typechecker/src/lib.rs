@@ -39,6 +39,7 @@ pub mod owned;
 pub mod pending;
 pub mod reassign;
 pub mod stdlib;
+mod stdlib_member_classes;
 pub mod ty;
 pub mod type_map;
 

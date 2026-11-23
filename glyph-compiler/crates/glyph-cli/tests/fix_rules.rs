@@ -77,6 +77,16 @@ fn check(dir: &Path) -> (i32, String) {
     )
 }
 
+/// Run `glyph run src/main.glyph` in `dir` and return its stdout.
+fn run_output(dir: &Path) -> String {
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(dir)
+        .args(["run", "src/main.glyph"])
+        .output()
+        .expect("run glyph run");
+    String::from_utf8_lossy(&out.stdout).to_string()
+}
+
 fn source_of(dir: &Path) -> String {
     std::fs::read_to_string(dir.join("src/main.glyph")).expect("read fixture")
 }
@@ -818,6 +828,92 @@ fn e0240_and_an_import_removal_count_one_file() {
     assert!(out.contains("applied E0240"), "{out}");
     assert!(out.contains("across 1 file(s)"), "{out}");
     assert_eq!(out.matches("fixed ").count(), 1, "{out}");
+}
+
+/// The writing members of the stdlib `Set`, `Store` and `Deque` take the
+/// same `mut ` (G423 step 2): on a local, a field path and a module `const`.
+/// `let _ = <call>` threw the value away, so `mut ` takes the place of the
+/// `let _ = `, for a deque and for an array (record 157, section 2b). The
+/// result re-checks clean, prints what each write meant, is a `fmt` fixed
+/// point, and a second fix changes nothing.
+#[test]
+fn e0240_marks_stdlib_writes_and_rewrites_a_discarded_let() {
+    let src = "module main\n\n\
+               import std/set\n\
+               import std/store\n\
+               import std/collections\n\n\
+               const HITS = store.create(0)\n\n\
+               type Box = { state: store.Store<number> }\n\n\
+               fn main(argv: Array<string>) -> number {\n  \
+               let seen = set.create<string>()\n  \
+               seen.add(\"a\")\n  \
+               let q = collections.deque<number>([1, 2])\n  \
+               q.push_back(3)\n  \
+               let _ = q.pop_front()\n  \
+               let xs = [1, 2]\n  \
+               let _ = xs.pop()\n  \
+               HITS.set(3)\n  \
+               HITS.update(fn(n) { n + 1 })\n  \
+               let c: Box = { state: store.create(1) }\n  \
+               c.state.set(2)\n  \
+               print(\"${seen.size()} ${q.len()} ${xs.length} ${HITS.get()} ${c.state.get()}\")\n  \
+               return 0\n}\n";
+    let dir = project("e0240-stdlib", src);
+    let out = fix(&dir);
+    assert_eq!(out.matches("applied E0240").count(), 7, "{out}");
+    assert_eq!(out.matches("in place of `let _ =`").count(), 2, "{out}");
+    let fixed = source_of(&dir);
+    for line in [
+        "  mut seen.add(\"a\")\n",
+        "  mut q.push_back(3)\n",
+        "  mut q.pop_front()\n",
+        "  mut xs.pop()\n",
+        "  mut HITS.set(3)\n",
+        "  mut HITS.update(fn(n) { n + 1 })\n",
+        "  mut c.state.set(2)\n",
+    ] {
+        assert!(fixed.contains(line), "{line}\n{fixed}");
+    }
+    assert!(!fixed.contains("let _"), "{fixed}");
+    let (code, report) = check(&dir);
+    assert_eq!(code, 0, "{report}");
+    // The program `run` refused before the fix, with the writes it meant:
+    // one member, a deque of two after a pop, one element, 3 + 1, and 2.
+    assert_eq!(run_output(&dir), "1 2 1 4 2\n", "the fix keeps what each line did");
+    let fmt = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["fmt", "--check", "src"])
+        .output()
+        .expect("run glyph fmt");
+    assert!(fmt.status.success(), "{}", String::from_utf8_lossy(&fmt.stdout));
+    fix(&dir);
+    assert_eq!(source_of(&dir), fixed, "a second fix changes nothing");
+}
+
+/// A writing member whose value is used, a write through a store's array
+/// and an E0241 on a `Decimal` are declined or untouched: the repair
+/// depends on what the call was for.
+#[test]
+fn e0240_declines_a_stdlib_value_and_a_store_array_write() {
+    let src = "module main\n\
+               import std/set\n\
+               import std/store\n\
+               import std/decimal\n\
+               const ROWS = store.create([1])\n\
+               fn f(d: decimal.Decimal) -> number {\n  \
+               mut d.add(d)\n  \
+               return 0\n}\n\
+               fn main(argv: Array<string>) -> number {\n  \
+               let seen = set.create<number>([1])\n  \
+               let gone = seen.remove(1)\n  \
+               ROWS.get().push(2)\n  \
+               print(\"${gone}\")\n  \
+               return 0\n}\n";
+    let dir = project("e0240-stdlib-decline", src);
+    let out = fix(&dir);
+    assert_eq!(out.matches("declined E0240").count(), 2, "{out}");
+    assert!(!out.contains("applied E0240"), "{out}");
+    assert_eq!(source_of(&dir), src, "nothing is rewritten");
 }
 
 /// A returned tail is not a statement: `glyph fix` declines it, and the

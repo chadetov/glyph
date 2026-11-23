@@ -4,7 +4,10 @@
 //! E0240 refuses one of the nine mutating `Array<T>` methods anywhere but as
 //! the whole call of a `mut` statement, and under `mut` on a receiver that is
 //! not a place. E0241 refuses `mut` before a call Glyph knows changes
-//! nothing. Each test checks a real project through the binary, the way an
+//! nothing. Since 0.1.167 (G423 step 2, decision record 157) the writing
+//! members of the stdlib `Set`, `Store` and `Deque` follow the same rule,
+//! every `Decimal` member and their readers take E0241, and a `sqlite.Db`
+//! member is judged in neither direction. Each test checks a real project through the binary, the way an
 //! agent sees it, and the help tests apply the help and build the result.
 
 use serde_json::Value;
@@ -326,24 +329,471 @@ fn the_writes_that_stay_accepted() {
     );
 }
 
-/// The stdlib `Set` is typed by Glyph's checker since 0.1.163 (G423, step 1),
-/// but which of its members change it is not classified until step 2, so a
-/// write to one is judged in neither direction until then.
+/// The stdlib `Set` was typed in 0.1.163 (G423, step 1) and its writes are
+/// judged since 0.1.167 (step 2, decision record 157, section 2b): a bare
+/// `seen.add("b")` is E0240, and `mut seen.add("a")` is the statement D5
+/// asks for.
 #[test]
-fn a_stdlib_set_receiver_is_not_judged_until_g423() {
-    for line in ["  mut seen.add(\"a\")", "  seen.add(\"b\")"] {
-        let src = format!(
+fn a_stdlib_set_write_is_judged() {
+    let src = |line: &str| {
+        format!(
             "module main\n\
              import std/set\n\
              fn main(argv: Array<string>) -> number {{\n\
              \x20 let seen = set.create<string>()\n\
              {line}\n\
+             \x20 print(\"${{seen.size()}}\")\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    let (msg, help) = one(&src("  seen.add(\"b\")"), "E0240");
+    assert_eq!(
+        msg,
+        "`seen.add(\"b\")` changes `seen` in place, and a call that changes a value is written as a `mut` statement"
+    );
+    assert_eq!(help, "write `mut seen.add(\"b\")`, so `grep \"^\\s*mut \"` finds every change to `seen`");
+    assert_accepted("set-mut", &src("  mut seen.add(\"a\")"));
+}
+
+/// A `main` with one of each stdlib state holder, a record holding a store,
+/// a module `const` store and a helper that takes an `Option`, then `stmts`.
+fn stdlib_program(stmts: &str) -> String {
+    format!(
+        "module main\n\
+         \n\
+         import std/set\n\
+         import std/store\n\
+         import std/collections\n\
+         \n\
+         const HITS = store.create(0)\n\
+         \n\
+         type Box = {{ state: store.Store<number>, }}\n\
+         \n\
+         fn take_bool(b: bool) -> number {{ return 0 }}\n\
+         \n\
+         fn take_opt(o: Option<number>) -> number {{ return 0 }}\n\
+         \n\
+         fn main(argv: Array<string>) -> number {{\n\
+         \x20 let seen = set.create<number>([1, 2])\n\
+         \x20 let st = store.create(1)\n\
+         \x20 let q = collections.deque<number>([1, 2, 3])\n\
+         \x20 let c: Box = {{ state: store.create(5), }}\n\
+         {stmts}\n\
+         \x20 print(\"${{seen.size()}} ${{st.get()}} ${{q.len()}} ${{c.state.get()}} ${{HITS.get()}}\")\n\
+         \x20 return 0\n\
+         }}\n"
+    )
+}
+
+/// The eight writing members of the stdlib `Set`, `Store` and `Deque`, each
+/// on a receiver that holds the right element type, with arguments it
+/// accepts.
+const WRITERS: [(&str, &str); 8] = [
+    ("seen", "add(3)"),
+    ("seen", "remove(1)"),
+    ("st", "set(2)"),
+    ("st", "update(fn(n) { n + 1 })"),
+    ("q", "push_back(4)"),
+    ("q", "push_front(0)"),
+    ("q", "pop_back()"),
+    ("q", "pop_front()"),
+];
+
+/// Each writing member is E0240 as a bare statement, through a field path
+/// and on a module `const`, and the `mut` statement is accepted by Glyph
+/// and by `tsc` (G423 step 2).
+#[test]
+fn each_stdlib_writing_member_as_a_bare_statement_is_e0240_and_mut_is_accepted() {
+    for (recv, call) in WRITERS {
+        let found = refusals(&stdlib_program(&format!("  {recv}.{call}")));
+        assert_eq!(found.iter().map(|f| f.0.as_str()).collect::<Vec<_>>(), ["E0240"], "{recv}.{call}: {found:#?}");
+        let want = format!("changes `{recv}` in place, and a call that changes a value is written as a `mut` statement");
+        assert!(found[0].1.contains(&want), "{recv}.{call}: {found:#?}");
+        assert_accepted(recv, &stdlib_program(&format!("  mut {recv}.{call}")));
+    }
+    for line in ["  c.state.set(2)", "  HITS.set(2)", "  HITS.update(fn(n) { n + 1 })"] {
+        let (msg, _) = one(&stdlib_program(line), "E0240");
+        assert!(msg.contains("a call that changes a value is written as a `mut` statement"), "{line}: {msg}");
+        assert_accepted("place", &stdlib_program(&format!("  mut {}", line.trim())));
+    }
+}
+
+/// A writing member whose value is read is E0240 in every value position:
+/// a `let`, an argument, a `match` scrutinee and an interpolation.
+#[test]
+fn each_stdlib_writing_member_used_as_a_value_is_e0240() {
+    for (recv, call) in WRITERS {
+        let found = refusals(&stdlib_program(&format!("  let _v = {recv}.{call}")));
+        assert!(
+            found.iter().any(|f| f.0 == "E0240" && f.1.contains("and its value is used here")),
+            "{recv}.{call}: {found:#?}"
+        );
+    }
+    let positions = [
+        "  let n = take_bool(seen.remove(1))",
+        "  let n = take_opt(q.pop_front())",
+        "  let n = match q.pop_back() { Some(v) => v, None => 0, }\n  print(\"${n}\")",
+        "  let n = match seen.remove(2) { true => 1, false => 0, }\n  print(\"${n}\")",
+    ];
+    for line in positions {
+        let found = refusals(&stdlib_program(line));
+        assert!(
+            found.iter().any(|f| f.0 == "E0240" && f.1.contains("and its value is used here")),
+            "{line}: {found:#?}"
+        );
+    }
+}
+
+/// A pop interpolated into a string is one fault, E0240's: the `match` an
+/// E0237 help would write over `q.pop_front()` is refused by E0240 too.
+#[test]
+fn an_interpolated_pop_is_e0240_only() {
+    let (msg, _) = one(&stdlib_program("  print(\"${q.pop_front()}\")"), "E0240");
+    assert!(msg.ends_with("and its value is used here"), "{msg}");
+}
+
+/// A receiver reached through an alias, and a store `const` imported from
+/// a sibling under either import spelling, are judged the same way.
+#[test]
+fn a_stdlib_receiver_through_an_alias_or_an_import_is_judged() {
+    let src = "module main\n\
+        import std/set\n\
+        type Seen = set.Set<string>\n\
+        fn note(s: Seen) -> void {\n\
+        \x20 s.add(\"x\")\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 note(set.create<string>())\n\
+        \x20 return 0\n\
+        }\n";
+    one(src, "E0240");
+    let lib = "module lib\nimport std/store\npub const HITS = store.create(0)\n";
+    for (import, call) in [("import lib { HITS }", "HITS.set(1)"), ("import lib", "lib.HITS.set(1)")] {
+        let main = format!(
+            "module main\n{import}\nfn main(argv: Array<string>) -> number {{\n\x20 {call}\n\x20 return 0\n}}\n"
+        );
+        let dir = project_modules("import", &[("lib.glyph", lib), ("main.glyph", &main)]);
+        let found: Vec<String> =
+            errors(&check(&dir, true)).iter().map(|d| d["code"].as_str().unwrap_or("").to_string()).collect();
+        assert_eq!(found, ["E0240"], "{import}");
+    }
+}
+
+/// `mut` before a member that changes nothing is E0241: the readers of the
+/// three state holders and every member of a `decimal.Decimal`, which is
+/// immutable, so `mut d.add(e)` throws the sum away.
+#[test]
+fn mut_on_a_stdlib_reader_or_any_decimal_member_is_e0241() {
+    for (recv, call) in [
+        ("seen", "has(1)"),
+        ("seen", "size()"),
+        ("seen", "values()"),
+        ("st", "get()"),
+        ("q", "peek_front()"),
+        ("q", "peek_back()"),
+        ("q", "len()"),
+        ("q", "values()"),
+    ] {
+        let (msg, help) = one(&stdlib_program(&format!("  mut {recv}.{call}")), "E0241");
+        assert!(msg.ends_with("this `mut` marks no change and the result is discarded"), "{recv}.{call}: {msg}");
+        assert_eq!(help, format!("drop the `mut`; to keep the result, bind it: `let result = {recv}.{call}`"));
+    }
+    let decimal = |line: &str| {
+        format!(
+            "module main\n\
+             import std/decimal\n\
+             fn f(d: decimal.Decimal, e: decimal.Decimal) -> number {{\n\
+             {line}\n\
+             \x20 return 0\n\
+             }}\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    for (call, own) in [
+        ("add(e)", true),
+        ("sub(e)", true),
+        ("mul(e)", true),
+        ("div(e, 2)", true),
+        ("round(1)", true),
+        ("neg()", true),
+        ("abs()", true),
+        ("cmp(e)", false),
+        ("eq(e)", false),
+        ("is_zero()", false),
+        ("is_negative()", false),
+        ("scale()", false),
+        ("to_string()", false),
+        ("to_number()", false),
+    ] {
+        let (msg, help) = one(&decimal(&format!("  mut d.{call}")), "E0241");
+        let name = call.split('(').next().unwrap();
+        match own {
+            true => {
+                assert_eq!(
+                    msg,
+                    format!("`{name}` returns a new `decimal.Decimal` and leaves `d` unchanged; this `mut` marks no change and the result is discarded")
+                );
+                assert_eq!(help, format!("to keep it, write `mut d = d.{call}`"));
+            }
+            false => {
+                assert_eq!(
+                    msg,
+                    format!("`{name}` reads `d` and leaves it unchanged; this `mut` marks no change and the result is discarded")
+                );
+            }
+        }
+    }
+    let applied = "module main\n\
+        import std/decimal\n\
+        fn f(d: decimal.Decimal, e: decimal.Decimal) -> string {\n\
+        \x20 mut d = d.add(e)\n\
+        \x20 return d.to_string()\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 return 0\n\
+        }\n";
+    assert_accepted("decimal-help", applied);
+}
+
+/// Every `sqlite.Db` member is Outside: its writes land in a database, not
+/// in the program's data, so it is judged in neither direction.
+#[test]
+fn a_database_member_is_judged_in_neither_direction() {
+    for line in [
+        "  mut db.exec(\"select 1\")",
+        "  db.exec(\"select 1\")",
+        "  mut db.run(\"delete from t\", [])",
+        "  db.run(\"delete from t\", [])",
+        "  mut db.close()",
+        "  db.close()",
+        "  mut db.last_insert_id()",
+    ] {
+        let src = format!(
+            "module main\n\
+             import std/sqlite\n\
+             fn f(db: sqlite.Db) -> number {{\n\
+             {line}\n\
+             \x20 return 0\n\
+             }}\n\
+             fn main(argv: Array<string>) -> number {{\n\
              \x20 return 0\n\
              }}\n"
         );
         let found = refusals(&src);
-        assert!(found.iter().all(|f| f.0 != "E0240" && f.0 != "E0241"), "G423 edge moved:\n{src}\n{found:#?}");
+        assert!(found.is_empty(), "{line}: {found:#?}");
     }
+}
+
+/// The help for a writing member whose value is read names the reader that
+/// gives the same answer before the change; a member that returns nothing
+/// has only the statement form (record 157, section 2b).
+#[test]
+fn stdlib_value_helps_read_first_or_say_there_is_no_value() {
+    let cases = [
+        (
+            "  let gone = seen.remove(1)\n  print(\"${gone}\")",
+            "read whether it is there first with `let had = seen.has(1)`, which is the value `remove` returns, then write `mut seen.remove(1)` as a statement",
+        ),
+        (
+            "  let first = q.pop_front()\n  print(\"${q.len()}\")",
+            "read the front first with `let front = q.peek_front()`, which is the value `pop_front` returns, then write `mut q.pop_front()` as a statement",
+        ),
+        (
+            "  let last = q.pop_back()\n  print(\"${q.len()}\")",
+            "read the back first with `let back = q.peek_back()`, which is the value `pop_back` returns, then write `mut q.pop_back()` as a statement",
+        ),
+        (
+            "  let r = st.set(3)",
+            "`set` returns nothing, so there is no value to use: write `mut st.set(3)` as a statement",
+        ),
+        (
+            "  let r = seen.add(3)",
+            "`add` returns nothing, so there is no value to use: write `mut seen.add(3)` as a statement",
+        ),
+    ];
+    for (line, want) in cases {
+        let found = refusals(&stdlib_program(line));
+        let e = found.iter().find(|f| f.0 == "E0240").unwrap_or_else(|| panic!("{line}: {found:#?}"));
+        assert_eq!(e.2, want, "{line}");
+    }
+    let tails = "module main\n\
+        import std/set\n\
+        import std/collections\n\
+        fn tail_pop(q: collections.Deque<number>) -> Option<number> {\n\
+        \x20 q.pop_front()\n\
+        }\n\
+        fn tail_rm(s: set.Set<string>) -> bool {\n\
+        \x20 s.remove(\"a\")\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 return 0\n\
+        }\n";
+    let helps: Vec<String> = refusals(tails).into_iter().filter(|f| f.0 == "E0240").map(|f| f.2).collect();
+    assert_eq!(
+        helps,
+        [
+            "read the front first, `let front = q.peek_front()`, then write `mut q.pop_front()` as a statement and return `front`",
+            "read whether it is there first, `let had = s.has(\"a\")`, then write `mut s.remove(\"a\")` as a statement and return `had`",
+        ]
+    );
+}
+
+/// `HITS.get().push(1)` changes the store through the array `get()` hands
+/// back. It stays E0240 under `mut` (the receiver is not a place), and the
+/// message says the store holds the array rather than that nothing keeps
+/// it; the help writes the change through the store's `update`.
+#[test]
+fn a_write_through_a_stores_array_says_the_store_holds_it() {
+    let src = |line: &str| {
+        format!(
+            "module main\n\
+             import std/store\n\
+             const HITS = store.create([3, 1])\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             {line}\n\
+             \x20 print(\"${{HITS.get().length}}\")\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    for line in ["  mut HITS.get().push(1)", "  HITS.get().push(1)"] {
+        let (msg, help) = one(&src(line), "E0240");
+        assert_eq!(
+            msg,
+            "`.push(1)` adds to the array `HITS.get()` returns, which `HITS` still holds, so it changes `HITS` with no `mut` line naming it"
+        );
+        assert!(!msg.contains("nothing keeps"), "{msg}");
+        assert_eq!(
+            help,
+            "write the change through the store: `mut HITS.update(fn(current) { array.push(current, 1) })` (with `import std/array`)"
+        );
+    }
+    let (_, help) = one(&src("  mut HITS.get().sort()"), "E0240");
+    assert_eq!(
+        help,
+        "write the change through the store: `mut HITS.update(fn(current) { array.sort(current, fn(a: number, b: number) -> number { return a - b }) })` (with `import std/array`)"
+    );
+    // A set no name holds gets the bind-first help whether or not its value
+    // is read: a read-first help would call `mk()` a second time.
+    let fresh = "module main\n\
+        import std/set\n\
+        fn mk() -> set.Set<number> {\n\
+        \x20 return set.create<number>([1])\n\
+        }\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let gone = mk().remove(1)\n\
+        \x20 print(\"${gone}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, help) = one(fresh, "E0240");
+    assert_eq!(
+        msg,
+        "`.remove(1)` changes the set `mk()` returns, and a call result is not a place, so no `mut` line names what changes"
+    );
+    assert_eq!(help, "bind it with `let` first, `let s = mk()`, then write `mut s.remove(1)`");
+    // A set's `values()` is a copy, so a change to it is lost, as the
+    // message for a fresh array says.
+    let copy = "module main\n\
+        import std/set\n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let s = set.create<number>([1])\n\
+        \x20 mut s.values().push(2)\n\
+        \x20 return 0\n\
+        }\n";
+    let (msg, _) = one(copy, "E0240");
+    assert!(msg.contains("nothing keeps it"), "{msg}");
+}
+
+/// `let _ = <mutating call>` throws the value away, so its help writes only
+/// the statement form, for an array as for a deque; the read-first help
+/// would be advice for a value nobody keeps.
+#[test]
+fn a_discarded_let_gets_the_statement_help() {
+    let (msg, help) = one(&program("  let _ = xs.pop()"), "E0240");
+    assert_eq!(msg, "`xs.pop()` changes `xs` in place, and `let _ =` throws its value away");
+    assert_eq!(
+        help,
+        "write `mut xs.pop()` in place of the `let _ =`: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change"
+    );
+    let found = refusals(&stdlib_program("  let _ = q.pop_front()"));
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert!(found[0].2.starts_with("write `mut q.pop_front()` in place of the `let _ =`"), "{found:#?}");
+}
+
+/// Each stdlib help spelling, written out, passes the full check and runs.
+#[test]
+fn every_stdlib_help_spelling_compiles_and_runs() {
+    let src = "module main\n\
+        \n\
+        import std/io\n\
+        import std/array\n\
+        import std/set\n\
+        import std/store\n\
+        import std/collections\n\
+        import std/decimal\n\
+        \n\
+        const HITS = store.create([3, 1])\n\
+        \n\
+        fn mk() -> set.Set<string> {\n\
+        \x20 return set.create<string>()\n\
+        }\n\
+        \n\
+        fn tail_pop(q: collections.Deque<number>) -> Option<number> {\n\
+        \x20 let front = q.peek_front()\n\
+        \x20 mut q.pop_front()\n\
+        \x20 return front\n\
+        }\n\
+        \n\
+        fn tail_rm(s: set.Set<string>) -> bool {\n\
+        \x20 let had = s.has(\"a\")\n\
+        \x20 mut s.remove(\"a\")\n\
+        \x20 return had\n\
+        }\n\
+        \n\
+        fn bump(d: decimal.Decimal) -> string {\n\
+        \x20 mut d = d.add(d)\n\
+        \x20 return d.to_string()\n\
+        }\n\
+        \n\
+        fn main(argv: Array<string>) -> number {\n\
+        \x20 let seen = set.create<string>([\"a\"])\n\
+        \x20 let had = seen.has(\"a\")\n\
+        \x20 mut seen.remove(\"a\")\n\
+        \x20 let q = collections.deque<number>([1, 2, 3])\n\
+        \x20 let front = q.peek_front()\n\
+        \x20 mut q.pop_front()\n\
+        \x20 let back = q.peek_back()\n\
+        \x20 mut q.pop_back()\n\
+        \x20 mut HITS.update(fn(current) { array.push(current, 1) })\n\
+        \x20 mut HITS.update(fn(current) { array.sort(current, fn(a: number, b: number) -> number { return a - b }) })\n\
+        \x20 mut HITS.update(fn(current) { array.reverse(current) })\n\
+        \x20 mut HITS.update(fn(current) { array.concat([0], current) })\n\
+        \x20 let s = mk()\n\
+        \x20 mut s.add(\"y\")\n\
+        \x20 let one = match decimal.decimal(\"1.5\") { Ok(d) => bump(d), Err(_) => \"\", }\n\
+        \x20 let f = match front { Some(v) => v, None => 0, }\n\
+        \x20 let b = match back { Some(v) => v, None => 0, }\n\
+        \x20 let t = match tail_pop(q) { Some(v) => v, None => 0, }\n\
+        \x20 io.println(\"${had} ${f} ${b} ${t} ${HITS.get().length} ${HITS.get()[0]} ${s.size()} ${one} ${tail_rm(seen)}\")\n\
+        \x20 return 0\n\
+        }\n";
+    let dir = project("stdlib-help", src);
+    let v = check(&dir, false);
+    assert!(v["ok"] == true && errors(&v).is_empty(), "{v:#}");
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["run", "src/main.glyph"])
+        .output()
+        .expect("run glyph run");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("true 1 3 2 4 0 1 3.0 false"),
+        "unexpected output:\n{stdout}\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 /// A receiver the checker cannot type (an `extern_ts` value, standing in for

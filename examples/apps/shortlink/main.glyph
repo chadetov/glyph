@@ -407,13 +407,13 @@ fn create_link(url_input: string, alias_input: string) -> Result<Link, string> {
   }
   let code = chosen?
   let link: Link = { code: code, target: target, created_at: time.now(), clicks: 0 }
-  links.set(array.push(current, link))
+  mut links.set(array.push(current, link))
   save_links(DB_PATH, links.get())?
   return Ok(link)
 }
 
 fn count_click(code: string) -> void {
-  links.update(
+  mut links.update(
     fn(current: Array<Link>) -> Array<Link> {
       return array.map(
         current,
@@ -506,7 +506,7 @@ fn route(req: Request) -> Result<Response, string> {
 // ---------------------------------------------------------------------------
 
 async fn main(argv: Array<string>) -> number {
-  links.set(load_links(DB_PATH))
+  mut links.set(load_links(DB_PATH))
   println("  ${number.to_string(array.len(links.get()))} link(s) loaded from ${DB_PATH}")
   // `listen` resolves once the port is bound, and the process stays alive on
   // its own while a listener is pending, so nothing has to await the server's

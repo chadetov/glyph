@@ -670,11 +670,11 @@ fn fix_one_file(
             },
             "E0240" => match plan_e0240(&source, d).and_then(|v| guard.clone().map(|()| v)) {
                 Ok(edit) => {
-                    applied.push(Applied {
-                        code: d.code.clone(),
-                        file: path.to_path_buf(),
-                        what: "wrote `mut` before a call that changes its receiver".to_string(),
-                    });
+                    let what = match edit.0 == edit.1 {
+                        true => "wrote `mut` before a call that changes its receiver",
+                        false => "wrote `mut` in place of `let _ =` before a call that changes its receiver",
+                    };
+                    applied.push(Applied { code: d.code.clone(), file: path.to_path_buf(), what: what.to_string() });
                     edits.push(edit);
                 }
                 Err(why) => report.declined.push(Declined {
@@ -784,11 +784,29 @@ fn e0200_decline(d: &Diagnostic) -> String {
 /// earlier version wrote `mut` before a block's returned tail and turned a
 /// working function into one `tsc` refuses (record 151, F1). Every other
 /// E0240 is declined with the reason.
+///
+/// `let _ = xs.pop()` is the other shape the checker marks (record 157,
+/// section 2b): the value is thrown away, so `mut xs.pop()` does the same,
+/// and the `mut ` takes the place of the `let _ = ` (from
+/// `Diagnostic::insert_replaces_from` to the call). The text replaced must
+/// read as that `let`, or the rule declines, the way the range guard
+/// declines a range that has drifted from its node.
 fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String> {
     let (s, _) = range_bytes(source, d).ok_or("the diagnostic's range is not a byte range of this file")?;
-    match &d.insert_before {
-        Some(text) => Ok((s as u32, s as u32, text.clone())),
-        None => Err(
+    match (&d.insert_before, d.insert_replaces_from) {
+        (Some(text), Some(from)) => {
+            let replaced = source.get(from as usize..s).unwrap_or("");
+            let reads_as_discard = replaced.strip_prefix("let").is_some_and(|rest| {
+                let rest = rest.trim_start();
+                rest.starts_with('_') && rest.trim_end().ends_with('=')
+            });
+            match reads_as_discard {
+                true => Ok((from, s as u32, text.clone())),
+                false => Err(NODE_DRIFT.to_string()),
+            }
+        }
+        (Some(text), None) => Ok((s as u32, s as u32, text.clone())),
+        (None, _) => Err(
             "the call's value is used, or it is an arm of a `match`, a deferred call or a call on a value no name \
              holds, so the repair depends on what it was for; the help names one"
                 .to_string(),

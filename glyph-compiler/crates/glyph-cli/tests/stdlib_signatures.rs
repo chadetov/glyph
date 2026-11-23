@@ -131,25 +131,29 @@ fn arrays() -> number {
 fn holders() -> number {
   let seen = set.create(["a"])
   let empty = set.create<number>()
-  seen.add("b")
+  mut seen.add("b")
   let _had = seen.has("a")
-  let _gone = seen.remove("a")
+  mut seen.remove("a")
   let few = set.unique([1, 1, 2])
   let count = store.create(0)
-  count.set(2)
-  count.update(fn(n) { return n + 1 })
+  mut count.set(2)
+  mut count.update(fn(n) { return n + 1 })
   let q = collections.deque([1, 2])
   let none = collections.deque<string>()
-  q.push_back(3)
-  q.push_front(0)
-  let front = match q.pop_front() {
+  mut q.push_back(3)
+  mut q.push_front(0)
+  // A pop changes the deque, so it is a `mut` statement and its value is
+  // read with the matching peek first (D5, G423 step 2).
+  let front = match q.peek_front() {
     Some(v) => v,
     None => 0,
   }
-  let back = match q.pop_back() {
+  mut q.pop_front()
+  let back = match q.peek_back() {
     Some(v) => v,
     None => 0,
   }
+  mut q.pop_back()
   let peeked = match q.peek_front() {
     Some(v) => v,
     None => 0,

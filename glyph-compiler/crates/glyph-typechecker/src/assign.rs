@@ -7340,40 +7340,48 @@ impl Assigner<'_> {
     /// arguments are substituted into the field types). Returns `None` for any
     /// non-record or undecidable type, so callers (member-access checking) never
     /// flag a field on a type they cannot resolve.
-    /// Whether `ty` is a `Record<K, V>` map, seeing through one level of local
-    /// alias.
-    ///
-    /// The alias is the case that matters. Nobody annotates a parameter
-    /// `Record<string, unknown>` twice; they name it (`type Headers =
-    /// Record<string, string>`) and pass the name around, so a check that only
-    /// recognised the literal spelling would miss every real program.
-    ///
-    /// One level, deliberately: a chain is rare and stopping here needs no cycle
-    /// guard, which is the same reasoning `named_record_fields` uses.
+    /// Whether `ty` is a `Record<K, V>` map, read through every second name
+    /// and transparent declaration (D46, G315), so the answer is the same for
+    /// `Record<string, V>` written out, a local alias, a chain of aliases, a
+    /// named import and a namespace import of a sibling's alias. Nobody
+    /// annotates `Record<string, unknown>` twice; they name it and pass the
+    /// name around, and a guarantee that held only for one spelling would be
+    /// no guarantee (record 183, F1).
     fn resolves_to_map(&self, ty: &Ty) -> bool {
         self.map_value_ty(ty).is_some()
     }
 
-    /// The value type `V` of `ty` when it is a `Record<K, V>` map, through
-    /// the same one level of local alias `resolves_to_map` sees.
+    /// The value type `V` of `ty` when it is a `Record<K, V>` map, read
+    /// through the same expansion as `resolves_to_map`.
     fn map_value_ty(&self, ty: &Ty) -> Option<Ty> {
-        if let Some(v) = map_value(ty) {
-            return Some(v.clone());
+        map_value(&self.expand_transparent(ty)).cloned()
+    }
+
+    /// Whether `ty`, as written or behind one level of local alias, is a
+    /// `Record<K, V>` application. Only for the relation's argument-by-
+    /// argument comparison of two applications, which reads the arguments
+    /// of `ty` itself: a generic alias (`type M<V> = Record<string, V>`)
+    /// would put `V` where the key is expected if it were expanded here.
+    fn is_written_map(&self, ty: &Ty) -> bool {
+        if map_value(ty).is_some() {
+            return true;
         }
         let Ty::Named { symbol, path } = ty else {
-            return None;
+            return false;
         };
-        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
         if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
-            return None;
+            return false;
         }
         let SymbolKind::Type { decl_idx } = sym.kind else {
-            return None;
+            return false;
         };
         let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
-            return None;
+            return false;
         };
-        map_value(&self.lowerer.lower(&td.body)).cloned()
+        map_value(&self.lowerer.lower(&td.body)).is_some()
     }
 
     /// What reading a key out of `ty` gives, when `ty` is a map (G415,
@@ -9642,7 +9650,7 @@ impl Assigner<'_> {
             // key of a `Record` on both sides, which is compared by key
             // domain and invariantly (G373). The value stays covariant, the
             // way an `Array`'s element is.
-            let both_records = self.resolves_to_map(found) && self.resolves_to_map(expected);
+            let both_records = self.is_written_map(found) && self.is_written_map(expected);
             return fa.len() != ea.len()
                 || self.assign_incompatible_at(fb, eb, Position::Ordinary)
                 || fa.iter().zip(ea.iter()).enumerate().any(|(i, (f, e))| {

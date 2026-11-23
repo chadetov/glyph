@@ -13025,6 +13025,71 @@ fn a_second_name_for_an_imported_record_parses_through_tsc() {
     }
 }
 
+/// The sibling the G315 tests read: transparent declarations of each kind
+/// G315 expands, and a record for `Maybe` to wrap.
+const G315_A: &str = "module a\n\npub type Note = {\n  t: string,\n}\n\n\
+     pub type Maybe<T> = Nullable<T>\n\npub type Id = string\n\npub type Name = string\n\n\
+     pub type Same<T> = T\n\npub type Strs = Array<string>\n\npub type L<T> = Array<T>\n";
+
+/// Each G315 pair as `(parameter, return, refused)`, with `q` the qualifier
+/// the importing module writes for `a`'s names. The refused ones are the
+/// three `tsc` refusals of record 157's d03; the rest are its false refusals,
+/// in both directions.
+fn g315_pairs(q: &str) -> Vec<(String, String, bool)> {
+    let pairs = [
+        ("{q}Maybe<{q}Note>", "Nullable<{q}Note>", false),
+        ("Nullable<{q}Note>", "{q}Maybe<{q}Note>", false),
+        ("{q}Id", "{q}Name", false),
+        ("{q}L<string>", "Array<string>", false),
+        ("Array<string>", "{q}L<string>", false),
+        ("number", "{q}Same<string>", true),
+        ("Array<number>", "{q}Strs", true),
+        ("Record<string, {q}Same<number>>", "Record<string, string>", true),
+    ];
+    pairs
+        .iter()
+        .map(|(p, r, refused)| (p.replace("{q}", q), r.replace("{q}", q), *refused))
+        .collect()
+}
+
+#[test]
+fn a_second_name_declared_in_a_sibling_gives_the_local_answer_by_every_spelling() {
+    // G315 and D46. A transparent declaration in a sibling module is read as
+    // its body whichever way the importer spells it, so the named import and
+    // the namespace import give the answers a local declaration gives: the
+    // false refusals stay gone, and the three `tsc` refusals are made.
+    let mut answers: Vec<Vec<bool>> = Vec::new();
+    for (import, q) in [
+        ("import a { Note, Maybe, Id, Name, Same, Strs, L }", ""),
+        ("import a", "a."),
+    ] {
+        let pairs = g315_pairs(q);
+        let mut b = format!("module b\n\n{import}\n\n");
+        for (i, (param, ret, _)) in pairs.iter().enumerate() {
+            b.push_str(&format!("pub fn f{i}(p: {param}) -> {ret} {{\n  return p\n}}\n\n"));
+        }
+        let root = unique_tmp("g315");
+        let src = root.join("src");
+        write_file(&src, "a.glyph", G315_A);
+        write_file(&src, "b.glyph", &b);
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let mismatches: Vec<&String> = report.diagnostics.iter().filter(|d| d.contains("[E0204]")).collect();
+        let refused: Vec<bool> = pairs
+            .iter()
+            .map(|(_, ret, _)| {
+                mismatches
+                    .iter()
+                    .any(|d| d.contains(&format!("expected `{}`", ret.replace("a.", ""))))
+            })
+            .collect();
+        let want: Vec<bool> = pairs.iter().map(|(_, _, r)| *r).collect();
+        assert_eq!(refused, want, "`{import}`: {:?}", report.diagnostics);
+        assert_eq!(mismatches.len(), 3, "`{import}`: {:?}", report.diagnostics);
+        answers.push(refused);
+    }
+    assert_eq!(answers[0], answers[1], "the import spelling decides nothing");
+}
+
 /// The sibling the G302 tests alias: a record and a union.
 const G302_A: &str = "module a\n\npub type Doc = {\n  title: string,\n}\n\n\
      pub type Shape =\n  | Circle(number)\n  | Square(number)\n  | Point\n";

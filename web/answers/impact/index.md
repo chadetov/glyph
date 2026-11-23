@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/impact/, generated from the same source as the page. Last changed 2026-11-23. -->
 
 21 · Before you edit
 
@@ -45,8 +45,10 @@ result, trimmed to the three sites
       "diagnostic": null,
       "because": "argument 1 (`c`, `Cell`) against parameter
         `s: string`: `Cell` is declared in another module as
-        an alias for a primitive, and the checker compares an
-        imported declaration only when the declaration at the
+        an `extern_ts` or `typeof` body, which its module's
+        export view lowers to `Unknown`, and the checker
+        compares an imported declaration only when the
+        declaration at the
         end of its chain of names is a tagged union or a
         record (G215, G226), so a replacement is compared
         against nothing here and only `tsc` on a full `glyph
@@ -143,4 +145,4 @@ The change is required, because a verdict is a fact about an edit; with no edit 
 
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.169 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.169 on every build. Last changed 23 Nov 2026.

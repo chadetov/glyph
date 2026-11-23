@@ -1,7 +1,7 @@
 ---
 title: คอมไพเลอร์บอกได้ไหมว่าการเปลี่ยนแปลงจะทำอะไรพัง? · Glyph
 description: glyph_impact รับ declaration ที่คุณกำลังจะเปลี่ยนและการแก้ แล้วตอบด้วยคำตัดสินพร้อมเหตุผลสำหรับทุกจุด ก่อนที่คุณจะแตะไฟล์
-source_hash: 430fde319321c2e5
+source_hash: ca78870bae5132f9
 prev: /answers/binary/ | &larr; ก่อนหน้า | จัดการข้อมูลไบนารีได้ไหม หรือทุกอย่างเป็น string?
 next: /answers/ask-the-compiler/ | ถัดไป &rarr; | เอเจนต์ของฉันถามคอมไพเลอร์ได้ไหมว่าสัญลักษณ์คืออะไร ก่อนเขียนโค้ด?
 ---
@@ -51,8 +51,10 @@ next: /answers/ask-the-compiler/ | ถัดไป &rarr; | เอเจนต�
       "diagnostic": null,
       "because": "argument 1 (`c`, `Cell`) against parameter
         `s: string`: `Cell` is declared in another module as
-        an alias for a primitive, and the checker compares an
-        imported declaration only when the declaration at the
+        an `extern_ts` or `typeof` body, which its module's
+        export view lowers to `Unknown`, and the checker
+        compares an imported declaration only when the
+        declaration at the
         end of its chain of names is a tagged union or a
         record (G215, G226), so a replacement is compared
         against nothing here and only `tsc` on a full `glyph

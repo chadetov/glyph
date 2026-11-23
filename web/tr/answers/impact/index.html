@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -517,8 +517,10 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"argument 1 (`c`, `Cell`) against parameter
         `s: string`: `Cell` is declared in another module as
-        an alias for a primitive, and the checker compares an
-        imported declaration only when the declaration at the
+        an `extern_ts` or `typeof` body, which its module's
+        export view lowers to `Unknown`, and the checker
+        compares an imported declaration only when the
+        declaration at the
         end of its chain of names is a tagged union or a
         record (G215, G226), so a replacement is compared
         against nothing here and only `tsc` on a full `glyph
@@ -635,7 +637,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.169 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-21">21 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.169 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-23">23 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/binary/">
           <span class="dir">&larr; Önceki</span>

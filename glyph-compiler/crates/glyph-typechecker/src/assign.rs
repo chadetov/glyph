@@ -474,6 +474,42 @@ pub fn assignability(
     }
 }
 
+/// `ty` with its top read through second names and transparent declarations
+/// (G315): a `type` whose body is a primitive, `unknown`, a type parameter or
+/// a generic application is replaced by that body with the application's
+/// arguments substituted, until the top is a declaration with an identity, a
+/// prelude or stdlib type, or a structural type. The checker's relation reads
+/// this before it reads a name, so a surface that models the relation (the
+/// `change_signature_type` table of `glyph_impact`) reads it too, or it would
+/// classify `Id` as a name where the checker compares a `string`. A type with
+/// nothing to expand comes back exactly as written.
+pub fn expand_transparent(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+    ty: &Ty,
+) -> Ty {
+    let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
+    let mut field_uses = FileFieldUses::default();
+    let assigner = Assigner::new(
+        module,
+        resolved,
+        prelude,
+        decl_ty_resolver,
+        Sinks {
+            tm: &mut tm,
+            errors: &mut errors,
+            coverage: &mut coverage,
+            field_uses: &mut field_uses,
+        },
+        sql_query::SqlFacts::default(),
+    );
+    assigner.expand_transparent(ty)
+}
+
 /// The fields the checker compares a structural record against where
 /// `declared` is the declared type, or `None` when it reads no field set
 /// there. Two readers rest on it being the checker's own read, through one
@@ -1125,10 +1161,12 @@ pub fn direct_type_decl<'m>(
 /// than another's: a record, a union, a string-literal union, an
 /// `extern_ts` or `typeof` body, a function type, a generic application
 /// (`Record<string, T>`, `Wrapper<T>`), a refinement, and a bare name that
-/// lowers to a primitive (`type Id = string`). No incompatibility is decided
-/// from a body not being followed; the corpus holds six `Record<string, T>`
-/// and `Array<..>` aliases, and reading those as nominal would reject
-/// programs `tsc` accepts.
+/// lowers to a primitive (`type Id = string`). Those are not second names for
+/// a declaration, but the primitive, `unknown`, type-parameter and
+/// generic-application ones are no declaration of their own either: the
+/// relation reads them as their bodies (`Assigner::transparent_body`, G315),
+/// so `Id` is a `string` and `Maybe<Note>` a `Nullable<Note>` wherever two
+/// types are compared.
 pub fn alias_target(lowerer: &Lowerer<'_>, td: &glyph_ast::TypeDecl) -> Option<Ty> {
     if !td.generics.is_empty() || td.refinement.is_some() {
         return None;
@@ -4208,6 +4246,11 @@ impl Assigner<'_> {
             Ty::Named { .. } | Ty::App { .. } | Ty::Imported { .. } => {}
         }
         let canonical = self.canonicalize_aliases(ty);
+        // A transparent declaration (G315) canonicalizes to its body, which
+        // is answered as that body is: `type Name = string` is a `string`.
+        if !matches!(canonical, Ty::Named { .. } | Ty::App { .. } | Ty::Imported { .. }) {
+            return self.props_param(&canonical, depth + 1);
+        }
         // A named record, local or imported, an interface (whose members the
         // checker reads as a record, and which the element's attributes are
         // already checked against), and a stdlib record such as `fs.FileInfo`.
@@ -6910,12 +6953,117 @@ impl Assigner<'_> {
     /// equal wherever they are compared: at the top, inside a generic
     /// application's arguments, in a record's fields, in a function's
     /// parameters and return, in a union's payloads.
+    ///
+    /// A name whose declaration is transparent (`transparent_body`) is
+    /// replaced by its body with the arguments substituted, at every depth,
+    /// so `Record<string, Same<number>>` reads as `Record<string, number>`
+    /// and `L<string>` as `Array<string>` (G315).
     fn canonicalize_aliases(&self, ty: &Ty) -> Ty {
+        self.canonicalize_aliases_at(ty, 0)
+    }
+
+    fn canonicalize_aliases_at(&self, ty: &Ty, depth: usize) -> Ty {
+        let structural = self.canonicalize_structure(ty, depth);
+        if depth < TRANSPARENT_DEPTH {
+            if let Some(body) = self.transparent_body(&structural) {
+                return self.canonicalize_aliases_at(&body, depth + 1);
+            }
+        }
+        structural
+    }
+
+    /// The body a transparent declaration stands for at this application of
+    /// it (D46, as amended by G315), or `None` when `ty`'s declaration has an
+    /// identity or a body this checker does not read.
+    ///
+    /// A `type` whose body is a primitive, `unknown`, a type parameter or a
+    /// generic application declares no type of its own: `tsc` reads
+    /// `type Id = string` as `string` and `type Maybe<T> = Nullable<T>` as
+    /// `T | null`, and nothing at run time tells the two names apart. So
+    /// before the relation reads such a declaration it reads the body, with
+    /// the application's arguments substituted for the parameters. A record,
+    /// a union of either kind, an `extern_ts` or `typeof` body, a function
+    /// type and any body under a `where` keep their declaration: records and
+    /// unions are nominal (D49), a refinement is its own type (D39), and the
+    /// other three are opaque or decide nothing. A generic declaration
+    /// written bare, or with the wrong number of arguments (E0233), says
+    /// nothing about its parameters and is left as written.
+    ///
+    /// `ty`'s base must already be at the end of its chain of second names,
+    /// which `canonicalize_structure` and `expand_transparent` both ensure.
+    /// The declaration is found the same way for every spelling: a local
+    /// name, a named import and a namespace import of a sibling's all reach
+    /// it, so the expansion cannot depend on how a site wrote the type.
+    fn transparent_body(&self, ty: &Ty) -> Option<Ty> {
+        let (base, args) = split_type_app(ty);
+        match base {
+            Ty::Imported { module, name } => {
+                let (_, _, decl) =
+                    imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+                if decl.refined || !is_transparent_body(&decl.body) {
+                    return None;
+                }
+                alias_body_applied(&decl.body, &decl.generics, args)
+            }
+            Ty::Named { .. } => {
+                let td = self.direct_type_decl(base)?;
+                if td.refinement.is_some()
+                    || !matches!(&td.body, TypeExpr::Path { .. } | TypeExpr::Generic { .. })
+                {
+                    return None;
+                }
+                let body = self.lowerer.lower(&td.body);
+                if !is_transparent_body(&body) {
+                    return None;
+                }
+                let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
+                alias_body_applied(&body, &generics, args)
+            }
+            _ => None,
+        }
+    }
+
+    /// `ty` with its top expanded through second names and transparent
+    /// declarations (`transparent_body`) until it names a declaration with
+    /// an identity, a prelude or stdlib type, or a structural type. Only the
+    /// top: the relation recurses into arguments, fields and payloads itself
+    /// and expands each one there. A type with nothing to expand comes back
+    /// exactly as written, so every rule that reads a name keeps reading it.
+    fn expand_transparent(&self, ty: &Ty) -> Ty {
+        let mut current = ty.clone();
+        let mut expanded = false;
+        for _ in 0..TRANSPARENT_DEPTH {
+            let (base, args) = split_type_app(&current);
+            let end = self.resolve_alias_chain(base);
+            let at_end = match args.is_empty() {
+                true => end,
+                false => Ty::App {
+                    base: Arc::new(end),
+                    args: args.to_vec(),
+                },
+            };
+            match self.transparent_body(&at_end) {
+                Some(body) => {
+                    current = body;
+                    expanded = true;
+                }
+                None => break,
+            }
+        }
+        match expanded {
+            true => current,
+            false => ty.clone(),
+        }
+    }
+
+    /// One level of `canonicalize_aliases`: every name inside `ty` followed
+    /// to the end of its chain, with the parts canonicalized in full.
+    fn canonicalize_structure(&self, ty: &Ty, depth: usize) -> Ty {
         match ty {
             Ty::Named { .. } => self.resolve_alias_chain(ty),
             Ty::App { base, args } => Ty::App {
-                base: Arc::new(self.canonicalize_aliases(base)),
-                args: args.iter().map(|a| self.canonicalize_aliases(a)).collect(),
+                base: Arc::new(self.canonicalize_aliases_at(base, depth)),
+                args: args.iter().map(|a| self.canonicalize_aliases_at(a, depth)).collect(),
             },
             Ty::Fn {
                 params,
@@ -6928,11 +7076,11 @@ impl Assigner<'_> {
                     .map(|p| FnParam {
                         name: p.name.clone(),
                         owned: p.owned,
-                        ty: self.canonicalize_aliases(&p.ty),
+                        ty: self.canonicalize_aliases_at(&p.ty, depth),
                         optional: p.optional,
                     })
                     .collect(),
-                return_ty: Arc::new(self.canonicalize_aliases(return_ty)),
+                return_ty: Arc::new(self.canonicalize_aliases_at(return_ty, depth)),
                 is_async: *is_async,
                 type_params: type_params.clone(),
             },
@@ -6941,7 +7089,7 @@ impl Assigner<'_> {
                     .iter()
                     .map(|f| RecordField {
                         name: f.name.clone(),
-                        ty: self.canonicalize_aliases(&f.ty),
+                        ty: self.canonicalize_aliases_at(&f.ty, depth),
                         optional: f.optional,
                     })
                     .collect(),
@@ -6951,7 +7099,7 @@ impl Assigner<'_> {
                     .iter()
                     .map(|v| UnionVariant {
                         name: v.name.clone(),
-                        payload: v.payload.as_ref().map(|p| self.canonicalize_aliases(p)),
+                        payload: v.payload.as_ref().map(|p| self.canonicalize_aliases_at(p, depth)),
                     })
                     .collect(),
             },
@@ -9024,6 +9172,13 @@ impl Assigner<'_> {
     /// declared set are refused inside `Array<Mode>` exactly as they are
     /// against `Mode`.
     fn assign_incompatible_at(&self, found: &Ty, expected: &Ty, position: Position) -> bool {
+        // G315. A declaration whose body is a primitive, `unknown`, a type
+        // parameter or a generic application is read as that body before any
+        // rule below reads a name, so `Maybe<Note>` is the `Nullable<Note>`
+        // it stands for and `Id` the `string`, in both directions and at
+        // every depth the relation recurses into.
+        let found = &self.expand_transparent(found);
+        let expected = &self.expand_transparent(expected);
         if position == Position::RecordKey {
             return self.record_keys_differ(found, expected);
         }
@@ -9422,6 +9577,8 @@ impl Assigner<'_> {
     /// application against a bare name, which no arm reads in either
     /// direction.
     fn accepting_rule(&self, found: &Ty, expected: &Ty) -> Option<&'static str> {
+        let found = &self.expand_transparent(found);
+        let expected = &self.expand_transparent(expected);
         if matches!(expected, Ty::UnknownTop) {
             return Some(
                 "`unknown` is the top type, and the relation accepts a value of any type \
@@ -11556,6 +11713,19 @@ pub(crate) fn type_expr_source(te: &TypeExpr) -> String {
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
         ),
     }
+}
+
+/// How many transparent declarations (`Assigner::transparent_body`) are
+/// expanded through in one reading. A chain is one or two in practice; the
+/// bound is what stops `type R<T> = Array<R<T>>` from unfolding forever.
+const TRANSPARENT_DEPTH: usize = 8;
+
+/// Whether a lowered `type` body is one G315 expands: a primitive, `unknown`,
+/// a type parameter or a generic application. Everything else, a record, a
+/// union, a string-literal union, a function type and the `Ty::Unknown` an
+/// `extern_ts` or `typeof` body lowers to, keeps its declaration.
+fn is_transparent_body(body: &Ty) -> bool {
+    matches!(body, Ty::Prim(_) | Ty::UnknownTop | Ty::Param { .. } | Ty::App { .. })
 }
 
 /// Replace every `Ty::Param` named in `subst` with its bound type, walking
@@ -16876,10 +17046,10 @@ fn main(e: Empty) -> string {
     }
 
     #[test]
-    fn an_imported_primitive_alias_stays_silent_against_any_primitive() {
-        // `pub type Id = string` is a name for `string`. Locally the alias is
-        // undetermined against `string` and against `number` alike, and the
-        // imported reading keeps both silences.
+    fn an_imported_primitive_alias_is_its_primitive() {
+        // `pub type Id = string` is a name for `string` (G315). It passes
+        // where a `string` is declared and is refused where a `number` is,
+        // as the local alias is and as `tsc` does (TS2345).
         let src = r#"module x
 import lib { Id }
 
@@ -16897,7 +17067,8 @@ fn main(i: Id) -> number {
 }
 "#;
         let errs = lib_errors_of(src);
-        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(has_argument_mismatch(&errs, "number", "Id"), "errs: {errs:?}");
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
     }
 
     #[test]
@@ -19884,12 +20055,12 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// A generic application is not a bare path and is not followed, and the
-    /// ruling decides no new incompatibility from that, so the answer for
-    /// `type Boxed<T> = W<T>` against `W<number>` is what it was before: the
-    /// nominal E0211. Pinned so a widening of the hop is a deliberate change.
+    /// G315. A `type` whose body is a generic application stands for that
+    /// application with its arguments substituted, so `Boxed<number>` under
+    /// `type Boxed<T> = W<T>` is a `W<number>` and passes where one is
+    /// declared, as `tsc` accepts it. Before G315 this was a pinned E0211.
     #[test]
-    fn a_generic_application_alias_is_not_followed() {
+    fn a_generic_application_alias_is_its_body() {
         let errs = errors_of(
             "module x\n\
              type W<T> = { v: T, }\n\
@@ -19897,8 +20068,99 @@ fn f(a: Answer) -> number {
              fn takes_w(w: W<number>) -> number {\n  return 1\n}\n\
              fn go(b: Boxed<number>) -> number {\n  return takes_w(b)\n}\n",
         );
+        assert!(errs.is_empty(), "{errs:?}");
+        // The arguments are substituted, so a different one is still refused.
+        let errs = errors_of(
+            "module x\n\
+             type W<T> = { v: T, }\n\
+             type Boxed<T> = W<T>\n\
+             fn takes_w(w: W<number>) -> number {\n  return 1\n}\n\
+             fn go(b: Boxed<string>) -> number {\n  return takes_w(b)\n}\n",
+        );
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "{errs:?}"
+        );
+    }
+
+    /// The return type each G315 probe declares, paired with the `return`'s
+    /// verdict: `true` where the relation refuses it. Record 157's d01 to d03.
+    const G315_DECLS: &str = "module x\n\
+         type Note = { t: string, }\n\
+         type Other = { o: number, }\n\
+         type Maybe<T> = Nullable<T>\n\
+         type Id = string\n\
+         type Name = string\n\
+         type Num = number\n\
+         type Same<T> = T\n\
+         type Strs = Array<string>\n\
+         type L<T> = Array<T>\n";
+
+    fn g315_mismatches(param: &str, ret: &str) -> Vec<TypeError> {
+        let src = format!("{G315_DECLS}fn f(p: {param}) -> {ret} {{\n  return p\n}}\n");
+        errors_of(&src)
+            .into_iter()
+            .filter(|e| matches!(e, TypeError::TypeMismatch { .. }))
+            .collect()
+    }
+
+    /// G315's false refusals. Each pair is accepted by `tsc --strict`, and a
+    /// second name is the type it stands for, so each is accepted here in
+    /// both directions.
+    #[test]
+    fn a_second_name_for_a_nullable_a_primitive_or_an_array_is_its_body() {
+        for (a, b) in [
+            ("Maybe<Note>", "Nullable<Note>"),
+            ("Id", "Name"),
+            ("Id", "string"),
+            ("L<string>", "Array<string>"),
+            ("Strs", "Array<string>"),
+            ("Strs", "L<string>"),
+            ("Same<string>", "string"),
+            ("Record<string, Same<number>>", "Record<string, number>"),
+        ] {
+            assert!(g315_mismatches(a, b).is_empty(), "{a} as {b}: {:?}", g315_mismatches(a, b));
+            assert!(g315_mismatches(b, a).is_empty(), "{b} as {a}: {:?}", g315_mismatches(b, a));
+        }
+    }
+
+    /// G315's new refusals, every one a `tsc` refusal (TS2322): what a second
+    /// name stands for is compared, so a mismatch inside it is a mismatch.
+    /// The diagnostic still names the type the way the site wrote it.
+    #[test]
+    fn a_second_name_refuses_what_its_body_refuses() {
+        for (param, ret) in [
+            ("number", "Same<string>"),
+            ("Array<number>", "Strs"),
+            ("Record<string, Same<number>>", "Record<string, string>"),
+            ("Array<number>", "L<string>"),
+            ("L<number>", "Array<string>"),
+            ("Id", "Num"),
+            ("Maybe<Note>", "Nullable<Other>"),
+        ] {
+            let errs = g315_mismatches(param, ret);
+            assert!(
+                errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, .. } if expected == ret)),
+                "{param} as {ret}: {errs:?}"
+            );
+        }
+    }
+
+    /// What G315 leaves alone: a record and a union keep their identity
+    /// (D49), and a body under a `where` is its own type (D39), so neither is
+    /// read through.
+    #[test]
+    fn a_record_a_union_and_a_refinement_keep_their_declaration() {
+        let errs = errors_of(
+            "module x\n\
+             type A = { x: number, }\n\
+             type C = { x: number, }\n\
+             type Slug = string where value.length > 0\n\
+             fn f(c: C) -> A {\n  return c\n}\n\
+             fn g(s: string) -> Slug {\n  return s\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, .. } if expected == "A")),
             "{errs:?}"
         );
     }
@@ -20186,25 +20448,34 @@ fn f(a: Answer) -> number {
     }
 
     #[test]
-    fn a_container_against_a_named_type_stays_undetermined() {
-        // A name whose declaration this rule does not read. `type Id = string`
-        // is a primitive alias, which the local G201 reading excludes too.
+    fn a_container_against_a_primitive_alias_is_refused() {
+        // G315. `type Id = string` is read as the `string` it stands for, so
+        // an `Option<int>` returned as one is refused as it is against
+        // `string` (TS2322 under `tsc`). Before G315 the name was not read
+        // and the pairing stayed undetermined.
         let errs = ty_errors_of(
             "module x\ntype Id = string\nfn f(o: Option<int>) -> Id {\n  return o\n}\n",
         );
-        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { expected, .. } if expected == "Id")),
+            "errs: {errs:?}"
+        );
     }
 
     #[test]
-    fn an_alias_of_a_container_stays_undetermined() {
-        // `alias_target` does not follow a body that is a generic application,
-        // so `MaybeInt` never reaches the relation as an `App`. Recorded as a
-        // test because it is the reading the rule declines, not an oversight
-        // waiting to be found again.
+    fn an_alias_of_a_container_is_the_container() {
+        // G315. A body that is a generic application is read before the
+        // relation compares, so `MaybeInt` is the `Option<int>` it stands for
+        // and is refused where a `string` is declared, as `tsc` refuses it.
+        // Before G315 the alias was not read and the pairing stayed
+        // undetermined.
         let errs = ty_errors_of(
             "module x\ntype MaybeInt = Option<int>\nfn f(o: MaybeInt) -> string {\n  return o\n}\n",
         );
-        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::TypeMismatch { found, .. } if found == "MaybeInt")),
+            "errs: {errs:?}"
+        );
     }
 
     // ----- G217: a type name where a value is wanted -----
@@ -21764,6 +22035,8 @@ fn f(a: Answer) -> number {
             ("type Name = string\n", "Name"),
             ("type Name = string\ntype Label = Name\n", "Label"),
             ("type Tree<T> =\n  | Leaf\n  | Node(T)\n", "Tree<string>"),
+            // G315: a declaration whose body is its parameter is its argument.
+            ("type Same<T> = T\n", "Same<string>"),
         ];
         for (decls, ty) in cases {
             let errs = props_param_errors(decls, ty);
@@ -21794,7 +22067,7 @@ fn f(a: Answer) -> number {
             ("interface Named {\n  name: string,\n}\n", "Named"),
             ("interface Empty {\n}\n", "Empty"),
             ("", "Record<string, string>"),
-            ("type Same<T> = T\n", "Same<string>"),
+            ("type Same<T> = T\n", "Same<{ name: string }>"),
             ("type Raw = extern_ts(\"{ name: string }\")\n", "Raw"),
         ];
         for (decls, ty) in cases {

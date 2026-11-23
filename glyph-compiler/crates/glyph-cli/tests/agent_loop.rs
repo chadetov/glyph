@@ -875,7 +875,10 @@ mod signature_fixture {
         );
         put(
             &src.join(format!("{cells}.glyph")),
-            &format!("module {cells}\n\npub type Cell = string\n"),
+            // An `extern_ts` body: the checker has no declaration to compare
+            // it by. A primitive alias would not do since G315, which reads
+            // `pub type Cell = string` as the `string` and compares it.
+            &format!("module {cells}\n\npub type Cell = extern_ts(\"string\")\n"),
         );
         put(
             &src.join(format!("{literal}.glyph")),
@@ -965,7 +968,7 @@ fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
     // The undetermined site says which shape the chain of names ends at,
     // since that is the whole reason the checker compares it by nothing.
     assert!(
-        field(imported, &["because"]).contains("alias for a primitive"),
+        field(imported, &["because"]).contains("`extern_ts`"),
         "the shape the imported chain ends at is unnamed: {imported}"
     );
     // The three are three different claims, and the answer says which is

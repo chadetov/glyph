@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-22. -->
+<!-- Markdown copy of https://glyphlang.io/answers/verifiability/, generated from the same source as the page. Last changed 2026-11-23. -->
 
 01 · The core promise
 
@@ -442,7 +442,7 @@ glyph build, now
 
 A parameter typed `string`, `number` or `bool` used to accept a value of a declared union or record with no complaint at all, even though the identical call with a mismatched `bool` argument was already `E0211`.
 
-The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an `extern_ts` or `typeof` body, and an `interface` all still say nothing, because none of those is provably not a `string` the way a tagged union or record is; `void` is excluded too. It reaches an argument, a `return`, and a `let` annotation alike, since all three share one relation.
+The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as `type Id = string` is read as the `string` it names, so it is decided the same way. A string-literal union (D30), an `extern_ts` or `typeof` body, and an `interface` still say nothing, because none of those is provably not a `string` the way a tagged union or record is; `void` is excluded too. It reaches an argument, a `return`, and a `let` annotation alike, since all three share one relation.
 
 ### An annotated `const` is typed
 
@@ -631,4 +631,4 @@ Tooling and the standard library
 
 Why this is the first of Glyph's four pillars, and where its guarantee stops, is on the [verifiability pillar page](https://glyphlang.io/pillars/verifiability/).
 
-Code examples on this page are checked against Glyph 0.1.169 on every build. Last changed 22 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.169 on every build. Last changed 23 Nov 2026.

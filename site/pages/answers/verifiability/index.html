@@ -660,10 +660,12 @@ fn charge(r: PaymentResult) -&gt; number {
         </p>
         <p>
           The check reads the declaration, so it only fires where the answer is certain. A
-          primitive alias, a string-literal union (D30), an <code>extern_ts</code> or
-          <code>typeof</code> body, and an <code>interface</code> all still say nothing, because
-          none of those is provably not a <code>string</code> the way a tagged union or record is;
-          <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a
+          primitive alias such as <code>type Id = string</code> is read as the
+          <code>string</code> it names, so it is decided the same way. A string-literal union
+          (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an
+          <code>interface</code> still say nothing, because none of those is provably not a
+          <code>string</code> the way a tagged union or record is; <code>void</code> is excluded
+          too. It reaches an argument, a <code>return</code>, and a
           <code>let</code> annotation alike, since all three share one relation.
         </p>
       </div></details>

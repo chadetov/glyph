@@ -1295,6 +1295,8 @@ minimal-image build of a project with examples needs either `tsx` installed or
 - **Escaping `$` in a template literal is a docs gap, not a lexer gap** (docs).
   `"${string.join(p, \".\")}"` works today and is regression-tested; the app
   author invented a `const SPACE = " "` around a limitation that does not exist.
+  Refused since 0.1.169 (G441): write `"""${string.join(p, ".")}"""`, or bind
+  the joined text with `let` first.
 
 ## shortlink dogfood trip — a green build running yesterday's shim
 
@@ -5636,6 +5638,10 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 **Rolling lane · G450, an array of array literals joins its inner element types** (found building 0.1.168): `[["read"], ["write"]]` is `Array<Array<?>>` today, so a declared `Array<Array<number>>` is not compared. Refusing what it lets through is breaking, so it gets a corpus run of its own.
 
 **Rolling lane · G451, the index binding of `for i, x` is a `number`** (record 173): `let c: string = i` passes `--no-tsc` and `tsc` refuses it.
+
+**Rolling lane · G452, a nested string in a `"..."` interpolation inside a `"""` gets the generic E0002** (record 174, R1, probe s05): `"""${g("q${g("x")}")}"""` says "expected valid expression ... found expected matching `}`" with "Add the expected token". Give it the hoist-or-triple help G441's refusal gives.
+
+**Rolling lane · G453, a `"""` string cannot hold a literal `${`** (record 174, R2, probe s02): `\${y}` inside `"""` is a backslash and then an interpolation, so `y` is E0103. A D22 question: whether the raw form gets a spelling for a literal `${`.
 
 **Rolling lane · R1 (record 171), `glyph fix` on `let _ = (q.pop_back())`:** the rule declines with the node-drift reason; accept a parenthesized call, or give the true reason.
 

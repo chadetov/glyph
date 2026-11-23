@@ -420,6 +420,19 @@ pub fn explain(code: &str) -> Option<&'static str> {
             TypeScript importer and a module mid-build-out legitimately passes \
             through this state before its author adds `pub`.",
 
+        "E0114" => "E0114: circular bound\n\n\
+            A type parameter's bound leads back to itself through other \
+            parameters of the same list:\n\n\
+            fn f<T: U, U: T>(x: T) -> T { return x }   // E0114: `T: U, U: T`\n\
+            fn g<T: T>(x: T) -> T { return x }         // E0114: `T: T`\n\n\
+            Each bound says only \"whatever the other one is\", so the chain \
+            promises nothing about any of them, and `tsc` refuses it \
+            (TS2313). Bound one of them by a type that is not another \
+            parameter of the list, or drop the bound:\n\n\
+            fn f<T: U, U: Named>(x: T) -> Named { return x }\n\n\
+            A bound that mentions its own parameter inside a type is not a \
+            cycle. `fn max<T: Cmp<T>>(a: T, b: T) -> T` is legal, as it is in \
+            TypeScript.",
         "E0113" => "E0113: module declared under a reserved prefix\n\n\
             A `module` line may not start with `std` or `extern`. Both name \
             modules the compiler resolves itself (D15): `std/` is the standard \
@@ -2304,6 +2317,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "resolver",
         meaning: "A `module` line starting with `std` or `extern`: both prefixes are the compiler's own (D15), so nothing can import this file",
         fix: "Rename the module so its first segment is neither `std` nor `extern`",
+    },
+    CodeEntry {
+        code: "E0114",
+        phase: "resolver",
+        meaning: "A circular bound: type parameters bounding each other back to the start (`<T: U, U: T>`, `<T: T>`)",
+        fix: "Bound one of them by a type that is not another parameter of the list, or drop the bound",
     },
     // ----- typechecker (E02xx) -----
     CodeEntry {

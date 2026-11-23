@@ -1,0 +1,7 @@
+module circular_bound
+
+// E0114: each bound is the other parameter, so neither promises anything.
+// `tsc` refuses it too (TS2313).
+pub fn pick<T: U, U: T>(x: T) -> T {
+  return x
+}

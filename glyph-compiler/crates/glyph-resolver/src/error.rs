@@ -57,6 +57,14 @@ pub enum ResolveError {
     #[error("a module with only imports and no declarations is not allowed (D15: no barrel files)")]
     BarrelFile { span: Span },
 
+    /// A type parameter whose bound leads back to itself through bare
+    /// sibling parameters (`<T: U, U: T>`, `<T: T>`), G263 and record 184.
+    /// The bound promises nothing, and `tsc` refuses it (TS2313). `cycle` is
+    /// the chain as written (`T: U, U: T`); `span` is the first parameter of
+    /// the cycle. An F-bound such as `<T: Cmp<T>>` is not a cycle.
+    #[error("circular bound: `{cycle}`")]
+    CircularBound { cycle: String, span: Span },
+
     /// A name reference that resolved to nothing. `mut_target` is set when the
     /// name is the whole left-hand side of a `mut x = e` reassignment; because
     /// `mut` reassigns an *existing* binding (D: `mut` is not `let mut`), an
@@ -223,6 +231,7 @@ impl ResolveError {
             ResolveError::ShadowedGlobalName { span, .. } => *span,
             ResolveError::PrimitiveUnionType { span, .. } => *span,
             ResolveError::NoExportSurface { span } => *span,
+            ResolveError::CircularBound { span, .. } => *span,
         }
     }
 
@@ -256,6 +265,7 @@ impl ResolveError {
             ResolveError::PrimitiveUnionType { .. } => "E0111",
             ResolveError::NoExportSurface { .. } => "E0112",
             ResolveError::ReservedModulePrefix { .. } => "E0113",
+            ResolveError::CircularBound { .. } => "E0114",
         }
     }
 
@@ -397,6 +407,9 @@ impl ResolveError {
             }
             ResolveError::NoExportSurface { .. } => {
                 "Mark what this module exports with `pub`, add a `fn main`, or import it from another module in this project. A module nothing reaches never runs."
+            }
+            ResolveError::CircularBound { .. } => {
+                "Bound one of these parameters by a type that is not another parameter of the list, or drop the bound. A chain of parameters bounding each other comes back to where it started, so it promises nothing about any of them, and `tsc` refuses it (TS2313)."
             }
             ResolveError::ReservedModulePrefix { .. } => {
                 "Rename the module to a path of your own (`io`, `app/io`). `std/` names the stdlib modules the compiler carries and `extern/<name>` names a hand-written TypeScript file under `<src>/extern/`, so an import of either path reaches the compiler's module and never this file."

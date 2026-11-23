@@ -559,6 +559,13 @@ impl ParamOwner {
 
     /// The owner of a type parameter of the stdlib type `module.name`.
     pub fn std_type(module: &str, name: &str) -> Self {
+        Self::imported_type(module, name)
+    }
+
+    /// The owner of a type parameter of the type `name` that the module
+    /// `module` declares, as a consumer names it: a sibling's or a stdlib
+    /// type, keyed the way `Ty::Imported` is.
+    pub fn imported_type(module: &str, name: &str) -> Self {
         ParamOwner::ImportedTypeDecl {
             module: ModuleKey::from(module),
             name: Ident::from(name),

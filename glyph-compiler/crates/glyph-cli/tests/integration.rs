@@ -19436,7 +19436,41 @@ fn an_is_pattern_on_a_type_parameter_is_e0304_whatever_shares_its_name() {
         assert_eq!(code, 1, "{dir}: refused:\n{main}\n{stderr}");
         let headline = e0304_headline(&stderr).unwrap_or_else(|| panic!("{dir}: E0304:\n{main}\n{stderr}"));
         assert!(headline.contains(&expected), "{dir}: `{expected}` in:\n{headline}");
+        // The checker reports it (record 194), as the single error: the
+        // arm's name is untyped, so D65 and D58 say nothing about it.
+        assert!(headline.contains("typecheck:"), "{dir}: reported by the checker:\n{headline}");
+        let errors: Vec<&str> = stderr.lines().filter(|l| l.contains("] Error:")).collect();
+        assert_eq!(errors.len(), 1, "{dir}: E0304 alone:\n{stderr}");
+        assert!(
+            stderr.contains("rename the type parameter"),
+            "{dir}: the help names the rename for a shadowed type:\n{stderr}"
+        );
     }
+}
+
+/// Record 194: two `is` patterns on type parameters in one file are both
+/// reported in one run. Through 0.1.175 E0304 came from the emitter, which
+/// runs once the checker is clean, so after D65 refused `h`'s arm value
+/// `k`'s pattern surfaced only once `h` was fixed.
+#[test]
+fn every_is_pattern_on_a_type_parameter_is_reported_in_one_run() {
+    let main = "module main\n\
+                pub fn h<Doc>(v: unknown, d: Doc) -> Doc {\n  return match v {\n    is Doc => v,\n    _ => d,\n  }\n}\n\
+                pub fn k<Doc>(v: unknown) -> number {\n  return match v {\n    is Doc => 1,\n    _ => 0,\n  }\n}\n";
+    let root = unique_tmp("r194-waves");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", main);
+    let (code, stderr) = check_no_tsc(&src);
+    assert_eq!(code, 1, "{stderr}");
+    let errors: Vec<&str> = stderr.lines().filter(|l| l.contains("] Error:")).collect();
+    assert_eq!(
+        errors,
+        vec![
+            "[E0304] Error: typecheck: cannot validate `Doc`: `Doc` is a type parameter of `h`, which has no runtime check",
+            "[E0304] Error: typecheck: cannot validate `Doc`: `Doc` is a type parameter of `k`, which has no runtime check",
+        ],
+        "{stderr}"
+    );
 }
 
 /// G362's controls: the record a type parameter shadows is still the record

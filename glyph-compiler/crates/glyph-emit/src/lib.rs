@@ -393,14 +393,7 @@ fn descriptor_use_message(
 /// The E0304 message for an `is` pattern naming a type parameter, bare or
 /// as a part of the pattern's type (G362).
 fn type_parameter_message(container: Option<&str>, param: &str, owner: &str) -> String {
-    match container {
-        Some(c) => format!(
-            "cannot validate `{c}`: its type argument `{param}` is a type parameter of `{owner}`, which has no runtime check"
-        ),
-        None => format!(
-            "cannot validate `{param}`: `{param}` is a type parameter of `{owner}`, which has no runtime check"
-        ),
-    }
+    glyph_typechecker::type_parameter_pattern_message(container, param, owner)
 }
 
 /// Whether `ty` applies a generic named through a namespace (`w.Box<int>`).
@@ -809,9 +802,7 @@ impl EmitError {
             EmitError::UnverifiablePatternPart { .. } => Some(
                 "Match a container of a type with a runtime check (a record, a primitive, a container of one), or match `is Array<unknown>` or `is Record<string, unknown>` and check each part where you read it.",
             ),
-            EmitError::UnverifiableTypeParameter { .. } => Some(
-                "Check a type that has a runtime check, or take a `Schema<T>` argument and call `schema.parse(v)`, or `json.parse_with(text, schema)` for text. If the code meant a type declared with the same name, rename the type parameter: inside its function the parameter hides that type.",
-            ),
+            EmitError::UnverifiableTypeParameter { .. } => Some(glyph_typechecker::TYPE_PARAMETER_PATTERN_HELP),
             EmitError::DuplicateMatchCase { .. } => Some(
                 "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
             ),
@@ -879,9 +870,7 @@ impl EmitError {
                 NoCheckCause::RecordKey(_) => concat!(is_part_note_lead!(), record_key_note!()),
                 NoCheckCause::KeyParam => concat!(is_part_note_lead!(), key_param_note!()),
             }),
-            EmitError::UnverifiableTypeParameter { .. } => Some(
-                "Nothing can check a type parameter, because a type parameter is erased at run time. That holds for an `is` pattern, `json.parse<T>`, a generic descriptor's type argument (`Box.parse<T>(v)`), and `T.parse`, `T.is` and `T.schema`. The same holds for a part: `is Array<T>`, `json.parse<Array<T>>` and `is Box<T>` check each element or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the type and the value `Doc` name the parameter even when the module declares a `type Doc`.",
-            ),
+            EmitError::UnverifiableTypeParameter { .. } => Some(glyph_typechecker::TYPE_PARAMETER_PATTERN_NOTE),
             EmitError::UnverifiableTypeArgument { cause, .. } => Some(match cause {
                 NoCheckCause::Opaque => "A generic record checks each type argument wherever its parameter appears, so an argument with no runtime check (a type parameter, which is erased at run time, an `extern_ts` or package type) would leave those fields tested for presence only, and `parse` would return `Ok` on a value it did not check.",
                 NoCheckCause::Interface => concat!(descriptor_use_note_lead!(), interface_note!()),

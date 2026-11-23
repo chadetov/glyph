@@ -542,6 +542,22 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// An `is` pattern whose type is, or holds, a type parameter of the
+    /// enclosing `fn` or `component` (G362). A type parameter is erased at
+    /// run time, so there is nothing to check. Reported here rather than
+    /// only by the emitter, which runs once the checker is clean, so every
+    /// such pattern in a file is reported in one run (record 194), and the
+    /// arm's name is left untyped so nothing else is reported about it.
+    /// `container` is the innermost generic application holding the
+    /// parameter, `None` when the pattern is the parameter itself.
+    #[error("{}", type_parameter_pattern_message(container.as_deref(), param, owner))]
+    TypeParameterPattern {
+        container: Option<String>,
+        param: String,
+        owner: String,
+        span: Span,
+    },
+
     /// A `mut` whose read and write straddle an `await`: the value written was
     /// read before a suspension point, so another task may have written in
     /// between and this write silently discards it.
@@ -1566,6 +1582,26 @@ fn missing_fields_suffix(missing: &[String]) -> String {
     }
 }
 
+/// The E0304 message for a check naming a type parameter, bare or as a
+/// part of the checked type (G362). One text for the checker's report on an
+/// `is` pattern and the emitter's on every other spelling.
+pub fn type_parameter_pattern_message(container: Option<&str>, param: &str, owner: &str) -> String {
+    match container {
+        Some(c) => format!(
+            "cannot validate `{c}`: its type argument `{param}` is a type parameter of `{owner}`, which has no runtime check"
+        ),
+        None => format!(
+            "cannot validate `{param}`: `{param}` is a type parameter of `{owner}`, which has no runtime check"
+        ),
+    }
+}
+
+/// The help on E0304 for a type parameter, shared with the emitter.
+pub const TYPE_PARAMETER_PATTERN_HELP: &str = "Check a type that has a runtime check, or take a `Schema<T>` argument and call `schema.parse(v)`, or `json.parse_with(text, schema)` for text. If the code meant a type declared with the same name, rename the type parameter: inside its function the parameter hides that type.";
+
+/// The note on E0304 for a type parameter, shared with the emitter.
+pub const TYPE_PARAMETER_PATTERN_NOTE: &str = "Nothing can check a type parameter, because a type parameter is erased at run time. That holds for an `is` pattern, `json.parse<T>`, a generic descriptor's type argument (`Box.parse<T>(v)`), and `T.parse`, `T.is` and `T.schema`. The same holds for a part: `is Array<T>`, `json.parse<Array<T>>` and `is Box<T>` check each element or field with `T`'s check. A name is read by scope, so inside `fn f<Doc>` the type and the value `Doc` name the parameter even when the module declares a `type Doc`.";
+
 /// The help on a value refused for holding `unknown` where another type is
 /// declared (G325, record 89).
 pub const UNKNOWN_VALUE_HELP: &str = "An `unknown` stands only where `unknown` is declared. Check it first: `json.parse<T>(text)` or `T.parse(value)` gives a `Result<T, Array<Issue>>`, and a `match` arm with an `is` pattern (`is string => …`) narrows it.";
@@ -1590,6 +1626,7 @@ impl TypeError {
             TypeError::QuestionErrorTypeMismatch { span, .. } => *span,
             TypeError::TypeMismatch { span, .. } => *span,
             TypeError::OwnedRequiresResourceType { span, .. } => *span,
+            TypeError::TypeParameterPattern { span, .. } => *span,
             TypeError::MutAcrossAwait { span, .. } => *span,
             TypeError::OwnedNotConsumed { span, .. } => *span,
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
@@ -1645,6 +1682,7 @@ impl TypeError {
             TypeError::QuestionErrorTypeMismatch { .. } => "E0203",
             TypeError::TypeMismatch { .. } => "E0204",
             TypeError::OwnedRequiresResourceType { .. } => "E0205",
+            TypeError::TypeParameterPattern { .. } => "E0304",
             TypeError::MutAcrossAwait { .. } => "E0225",
             TypeError::OwnedNotConsumed { .. } => "E0206",
             TypeError::OwnedUsedAfterMove { .. } => "E0207",
@@ -1921,6 +1959,7 @@ impl TypeError {
             TypeError::TypeNameAsValue { .. } => {
                 "Write the value in its own form and move the type's name to the annotation on the `let`, the parameter, or the return type."
             }
+            TypeError::TypeParameterPattern { .. } => TYPE_PARAMETER_PATTERN_HELP,
             TypeError::OwnedRequiresResourceType { .. } => {
                 "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."
             }
@@ -2055,6 +2094,7 @@ impl TypeError {
 
     fn fixed_note(&self) -> Option<&'static str> {
         match self {
+            TypeError::TypeParameterPattern { .. } => Some(TYPE_PARAMETER_PATTERN_NOTE),
             TypeError::NonExhaustiveMatch { .. } => Some(
                 "Tagged unions are sealed (D9): adding a variant forces every match to be updated. \
                  A `_`/`else` catch-all is allowed but forfeits that guarantee.",
@@ -2239,6 +2279,9 @@ impl TypeError {
             // "a resource type" is a rule, not a type, so there is no
             // `expected` to pair with; the type in hand is still reported.
             TypeError::OwnedRequiresResourceType { ty, .. } => Some(ty),
+            // "a type with a runtime check" is a rule; the parameter is the
+            // type in hand, as the emitter's E0304 reports it.
+            TypeError::TypeParameterPattern { param, .. } => Some(param),
             // "a props record" is a rule, as "a resource type" is above.
             TypeError::ComponentParamNotRecord { ty, .. } => Some(ty),
             // "an array of known length" is a rule too.

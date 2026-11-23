@@ -1389,6 +1389,9 @@ struct Assigner<'a> {
     /// (a `Some`/`Ok`/`Err` argument, a variant payload, a `match` arm, a
     /// `mut` target's literal), by span, so each draws one refusal.
     judged_literal_values: HashSet<Span>,
+    /// The `is` patterns already refused for naming a type parameter
+    /// (E0304), by span, so a `match` walked twice draws one report.
+    judged_type_parameter_patterns: HashSet<Span>,
 }
 
 /// The optional chains over a `Nullable` (G304, D45), tracked by span.
@@ -1509,6 +1512,7 @@ impl<'a> Assigner<'a> {
             lambda_contexts: HashMap::new(),
             judged_literal_keys: HashSet::new(),
             judged_literal_values: HashSet::new(),
+            judged_type_parameter_patterns: HashSet::new(),
         }
     }
 }
@@ -2065,6 +2069,80 @@ impl Assigner<'_> {
         }
     }
 
+    /// E0304 at an `is` pattern whose type is, or holds, a type parameter of
+    /// the enclosing `fn` or `component` (G362, record 194). The emitter
+    /// refuses the same patterns in the same words, but it runs only once the
+    /// checker is clean, so a second such pattern in the file surfaced only
+    /// after the first was fixed. Reported once per pattern.
+    fn judge_type_parameter_pattern(&mut self, pattern: &Pattern) {
+        let Pattern::IsType { ty, span } = pattern else { return };
+        let Some((container, param, owner)) = self.type_parameter_in_pattern(ty, None) else {
+            return;
+        };
+        if !self.judged_type_parameter_patterns.insert(*span) {
+            return;
+        }
+        self.errors.push(TypeError::TypeParameterPattern {
+            container,
+            param,
+            owner,
+            span: *span,
+        });
+    }
+
+    /// The type parameter `ty` is or holds, as the emitter's
+    /// `type_parameter_in` finds it: the innermost generic application
+    /// holding it (`None` for the parameter itself), its name, and the
+    /// callable that declares it. A path is a parameter when the resolver
+    /// binds it to one of a `fn`'s or `component`'s type parameters, so a
+    /// parameter hides a module type of the same name, and a lambda inside
+    /// the callable sees it too. A function type is not walked: no check
+    /// looks inside one.
+    fn type_parameter_in_pattern(
+        &self,
+        ty: &TypeExpr,
+        container: Option<&TypeExpr>,
+    ) -> Option<(Option<String>, String, String)> {
+        match ty {
+            TypeExpr::Path { segments, span } => {
+                let [name] = segments.as_slice() else {
+                    return None;
+                };
+                let owner = self.type_parameter_owner(*span)?;
+                Some((container.map(type_expr_source), name.to_string(), owner))
+            }
+            TypeExpr::Generic { base, args, .. } => self
+                .type_parameter_in_pattern(base, container)
+                .or_else(|| args.iter().find_map(|a| self.type_parameter_in_pattern(a, Some(ty)))),
+            TypeExpr::Record { fields, .. } => fields
+                .iter()
+                .find_map(|f| self.type_parameter_in_pattern(&f.ty, container)),
+            TypeExpr::Union { variants, .. } => variants
+                .iter()
+                .filter_map(|v| v.payload.as_ref())
+                .find_map(|p| self.type_parameter_in_pattern(p, container)),
+            _ => None,
+        }
+    }
+
+    /// The name of the `fn` or `component` whose type parameter the type path
+    /// at `span` resolves to. The resolver binds a type parameter as a local
+    /// at its declaration, so the binding's start is matched against each
+    /// callable's own.
+    fn type_parameter_owner(&self, span: Span) -> Option<String> {
+        let Some(ResolvedRef::Local(start)) = self.resolved.resolutions.get(span) else {
+            return None;
+        };
+        self.module.items.iter().find_map(|d| {
+            let (name, generics) = match d {
+                Decl::Fn(f) => (&f.name, &f.generics),
+                Decl::Component(c) => (&c.name, &c.generics),
+                _ => return None,
+            };
+            generics.iter().any(|g| g.span.start == start).then(|| name.to_string())
+        })
+    }
+
     /// F3: inside an arm whose pattern is `is T`, a scrutinee that is a name
     /// has type `T` in that arm's body, as the emitted `typeof` or descriptor
     /// check establishes it and as `tsc` reads it. Rebinds the name's type and
@@ -2091,6 +2169,24 @@ impl Assigner<'_> {
         let Pattern::IsType { ty, .. } = &arm.pattern else { return None };
         let Expr::Ident { span, .. } = scrutinee else { return None };
         let r = self.resolved.resolutions.get(*span)?;
+        // An `is` pattern naming a type parameter checks nothing (E0304,
+        // `judge_type_parameter_pattern`), so the arm's name has no type at
+        // all there: neither the parameter, which no check backs, nor the
+        // scrutinee's own, which would draw a second report about the same
+        // mistake (D65, D58). Record 194.
+        if self.type_parameter_in_pattern(ty, None).is_some() {
+            return match r {
+                ResolvedRef::Local(def) => {
+                    let before = self.local_tys.insert(def, Ty::Unknown);
+                    Some(Narrowed::Local(def, before))
+                }
+                ResolvedRef::Module(id) => {
+                    let before = self.narrowed_consts.insert(id, Ty::Unknown);
+                    Some(Narrowed::Const(id, before))
+                }
+                ResolvedRef::Prelude(_) => None,
+            };
+        }
         let narrowed = self.lowerer.lower(ty);
         if !matches!(
             narrowed,
@@ -3621,6 +3717,7 @@ impl Assigner<'_> {
                     // variant before walking the body, so refs to it inside
                     // the body resolve to the payload type.
                     self.bind_arm_payloads(&scrutinee_ty, &arm.pattern);
+                    self.judge_type_parameter_pattern(&arm.pattern);
                     let narrowed = self.narrow_is_arm(scrutinee, arm);
                     match &arm.body {
                         MatchArmBody::Expr(e) => self.walk_expr(e),
@@ -13295,6 +13392,49 @@ mod tests {
         assert_eq!(got, want, "{errs:?}");
     }
 
+    /// Record 194. An `is` pattern naming a type parameter is E0304 from the
+    /// checker, once per pattern, and the arm's name is untyped there, so
+    /// neither D65 nor D58 reports a second thing about the same mistake. An
+    /// `is Doc` naming a declared type still narrows: the value stands where
+    /// `Doc` is declared and is refused where `string` is.
+    #[test]
+    fn an_is_pattern_on_a_type_parameter_is_e0304_alone_and_a_declared_type_still_narrows() {
+        let errs = errors_of(
+            "module m\n\
+             type Doc = { n: number, }\n\
+             pub fn h<Doc>(v: unknown, d: Doc) -> Doc {\n  return match v {\n    is Doc => v,\n    _ => d,\n  }\n}\n\
+             pub fn k<T>(v: unknown) -> Array<T> {\n  return match v {\n    is Array<T> => v,\n    _ => [],\n  }\n}\n",
+        );
+        let got: Vec<(&str, String)> = errs.iter().map(|e| (e.code(), e.to_string())).collect();
+        assert_eq!(
+            got,
+            vec![
+                (
+                    "E0304",
+                    "cannot validate `Doc`: `Doc` is a type parameter of `h`, which has no runtime check"
+                        .to_string()
+                ),
+                (
+                    "E0304",
+                    "cannot validate `Array<T>`: its type argument `T` is a type parameter of `k`, which has no runtime check"
+                        .to_string()
+                ),
+            ],
+            "{errs:?}"
+        );
+        let errs = errors_of(
+            "module m\n\
+             type Doc = { n: number, }\n\
+             pub fn a(v: unknown, d: Doc) -> Doc {\n  return match v {\n    is Doc => v,\n    _ => d,\n  }\n}\n\
+             pub fn b(v: unknown) -> string {\n  return match v {\n    is Doc => v,\n    _ => \"\",\n  }\n}\n",
+        );
+        assert_eq!(
+            g325_refusals(&errs),
+            vec![("E0204", "string".to_string(), "Doc".to_string(), false)],
+            "{errs:?}"
+        );
+    }
+
     /// A refusal that is not G325's keeps the ordinary help, though the value
     /// holds an `unknown`: `Array<unknown>` where a `string` is declared is
     /// refused for being an array.
@@ -19844,6 +19984,7 @@ component View(props: { s: Status }) -> Component {
             lambda_contexts: HashMap::new(),
             judged_literal_keys: HashSet::new(),
             judged_literal_values: HashSet::new(),
+            judged_type_parameter_patterns: HashSet::new(),
         };
         f(&assigner)
     }

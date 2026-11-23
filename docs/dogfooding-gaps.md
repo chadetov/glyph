@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-468 entries, 335 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-113 are open. G144, the D28 boundary cast that never reached the returns a
+468 entries, 336 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+112 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14252,7 +14252,7 @@ and is the owner's to confirm.
   added to the emitted `sort`: that would give a TypeScript method a meaning
   TypeScript does not give it.
 
-- **G389. A member TypeScript marks `@deprecated` is accepted silently.** `s.substr(1, 2)` checks clean. Agents emit deprecated APIs often (every model
+- **G389. [FIXED] A member TypeScript marks `@deprecated` is accepted silently.** `s.substr(1, 2)` checks clean. Agents emit deprecated APIs often (every model
   in one ICSE 2025 study did). The built-in member table comes from the
   TypeScript library declarations, which carry the tag, so a warning can name
   the replacement.
@@ -14262,6 +14262,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.155 (the release build): `s.substr(1, 2)` is no diagnostics.*
 
   *Reproduced against 0.1.161 (the release build): `s.substr(1, 2)` is no diagnostics and prints `el`.*
+
+  Fixed in 0.1.178 (decision record 182, section 5b) with warning E0244.
+  The generated member rows carry each method's `@deprecated` tag, read off
+  TypeScript 6.0.3's declarations: 16 string members, `substr`, `trimLeft`,
+  `trimRight` and the 13 HTML methods, and none on an array or a number. Only
+  the `trimLeft` and `trimRight` tags name a replacement, so the replacement
+  is the hand table `DEPRECATED_REPLACEMENT`, and generation fails when it and
+  the tags disagree in either direction or node disagrees with an entry. A
+  read or call of one on a receiver the checker types, through `?.` and an
+  index read included, is the warning; the message quotes the tag and the
+  help is computed from the call (`s.substr(1, 2)` gets `s.slice(1, 3)`,
+  `s.trimLeft()` gets `s.trimStart()`, `s.bold()` gets `"<b>${s}</b>"`).
+  A warning changes no exit code, so not breaking. `glyph fix` writes
+  nothing for it. A deprecated member of an npm package or a node builtin is
+  not reached; that is research item N5 of the same record.
 
   *Reproduced against 0.1.167 (the release build): `s.substr(1, 2)` is no diagnostics, passes `tsc --strict` and prints `el`.*
 

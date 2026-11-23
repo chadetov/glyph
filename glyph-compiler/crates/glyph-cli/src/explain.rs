@@ -275,6 +275,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A name is used but never declared, imported, or in the prelude. Usually \
             a typo or a missing import.\n\n\
             Declare it, add the import, or fix the spelling.\n\n\
+            A generic bound is a name like any other: `fn f<T: Named>` needs \
+            `Named` declared or imported, as `tsc` needs it for the `extends` \
+            clause the bound becomes.\n\n\
             One common case: `mut x = e`. Glyph is not `let mut` — `mut` reassigns \
             an *existing* binding, so the name must already be introduced with `let`. \
             If `x` is unresolved here, add a preceding `let`:\n\n\
@@ -2239,7 +2242,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0103",
         phase: "resolver",
-        meaning: "Unresolved name",
+        meaning: "Unresolved name, a generic bound included",
         fix: "Declare it, import it, or fix the spelling",
     },
     CodeEntry {

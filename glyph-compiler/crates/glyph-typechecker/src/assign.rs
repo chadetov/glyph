@@ -2311,46 +2311,41 @@ impl Assigner<'_> {
             }
             return;
         };
-        // The names the callee binds: its declared list, else (a stdlib
-        // signature, modeled without one) every parameter its type names.
+        // The parameters the callee binds, by owner and name: its declared
+        // list, else (a stdlib signature, modeled without one) every
+        // parameter its type names that the enclosing body does not own.
         let declared = self.callee_generics(callee).or_else(|| type_params.clone());
-        let names: Vec<Ident> = match &declared {
-            Some(list) => list.clone(),
-            None => {
-                let mut found = Vec::new();
-                for p in params {
-                    collect_param_names(&p.ty, &mut found);
-                }
-                found
-            }
-        };
-        let mut subst: HashMap<Ident, Ty> = HashMap::new();
+        let keys = self.call_param_keys(&callee_ty, declared.as_deref());
+        let mut subst: Subst = HashMap::new();
         for ((p, a), d) in params.iter().zip(args).zip(deferred) {
             if !*d {
                 let found = self.widen_fresh_literals(a, self.tm.get(a.span()).clone());
-                collect_type_param_bindings(&p.ty, &found, &mut subst);
+                collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
             }
         }
         if let Some((key, field)) = self.stdlib_callee(callee) {
             let explicit = crate::stdlib::explicit_type_params(&key, &field);
             let written = explicit.len() == type_args.len();
             for (i, (name, unwritten)) in explicit.iter().enumerate() {
+                let k = stdlib_param_key(&keys, &key, &field, name);
                 match type_args.get(i).filter(|_| written) {
                     Some(t) => {
-                        subst.insert(Ident::from(*name), self.lowerer.lower(t));
+                        subst.insert(k, self.lowerer.lower(t));
                     }
                     None => {
-                        subst.entry(Ident::from(*name)).or_insert(unwritten.ty());
+                        subst.entry(k).or_insert(unwritten.ty());
                     }
                 }
             }
             if key == "std/record" {
-                subst.insert(Ident::from("K"), self.record_arg_key(args.first()));
+                subst.insert(stdlib_param_key(&keys, &key, &field, "K"), self.record_arg_key(args.first()));
             }
         }
         if let Some(list) = declared.filter(|l| !type_args.is_empty() && l.len() == type_args.len()) {
             for (name, t) in list.into_iter().zip(type_args) {
-                subst.insert(name, self.lowerer.lower(t));
+                if let Some(k) = param_key_named(&keys, &name) {
+                    subst.insert(k, self.lowerer.lower(t));
+                }
             }
         }
         for (i, (a, d)) in args.iter().zip(deferred).enumerate() {
@@ -2359,8 +2354,8 @@ impl Assigner<'_> {
             }
             if let Some(p) = params.get(i) {
                 let mut at = subst.clone();
-                for n in &names {
-                    at.entry(n.clone()).or_insert(Ty::Unknown);
+                for k in &keys {
+                    at.entry(k.clone()).or_insert(Ty::Unknown);
                 }
                 let mut expected = substitute_type_params(&p.ty, &at);
                 // A built-in method's generated row models its callback as
@@ -2373,7 +2368,7 @@ impl Assigner<'_> {
                 self.register_lambda_context(a, &expected);
                 self.walk_expr(a);
                 let found = self.tm.get(a.span()).clone();
-                collect_type_param_bindings(&p.ty, &found, &mut subst);
+                collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
             } else {
                 self.walk_expr(a);
             }
@@ -3275,7 +3270,9 @@ impl Assigner<'_> {
                             span: *span,
                         });
                     }
-                    let mut subst: HashMap<Ident, Ty> = HashMap::new();
+                    let declared = self.callee_generics(callee).or_else(|| type_params.clone());
+                    let keys = self.call_param_keys(&callee_ty, declared.as_deref());
+                    let mut subst: Subst = HashMap::new();
                     // A row whose `T` sits inside its result (`store.create`
                     // returns a `Store<T>`) binds a fresh literal argument's
                     // widened type, which is TypeScript's inference for the
@@ -3290,7 +3287,7 @@ impl Assigner<'_> {
                             true => self.widen_fresh_literals(a, found),
                             false => found,
                         };
-                        collect_type_param_bindings(&p.ty, &found, &mut subst);
+                        collect_type_param_bindings(&p.ty, &found, &mut subst, &keys);
                     }
                     // A stdlib parameter a type argument can name
                     // (`json.parse`'s `T`, G289; `json.parse_with`'s, G298) is
@@ -3317,12 +3314,13 @@ impl Assigner<'_> {
                             &[]
                         };
                         for (i, (name, unwritten)) in names.iter().enumerate() {
+                            let k = stdlib_param_key(&keys, &key, &field, name);
                             match written.get(i) {
                                 Some(t) => {
-                                    subst.insert(Ident::from(*name), self.lowerer.lower(t));
+                                    subst.insert(k, self.lowerer.lower(t));
                                 }
                                 None => {
-                                    subst.entry(Ident::from(*name)).or_insert(unwritten.ty());
+                                    subst.entry(k).or_insert(unwritten.ty());
                                 }
                             }
                         }
@@ -3344,12 +3342,12 @@ impl Assigner<'_> {
                     // `id<number>(x)` is. A type whose list is not known (a
                     // stdlib signature) stays unchecked, as it always was.
                     if !type_args.is_empty() {
-                        if let Some(names) =
-                            self.callee_generics(callee).or_else(|| type_params.clone())
-                        {
+                        if let Some(names) = declared.clone() {
                             if names.len() == type_args.len() {
                                 for (name, t) in names.into_iter().zip(type_args.iter()) {
-                                    subst.insert(name, self.lowerer.lower(t));
+                                    if let Some(k) = param_key_named(&keys, &name) {
+                                        subst.insert(k, self.lowerer.lower(t));
+                                    }
                                 }
                             } else {
                                 // A value read off `json.parse` says how to
@@ -3387,7 +3385,17 @@ impl Assigner<'_> {
                                     self.errors.push(e);
                                 }
                             }
-                            subst.insert(Ident::from("K"), k);
+                            subst.insert(stdlib_param_key(&keys, &key, &field, "K"), k);
+                        }
+                    }
+                    // A recursive call instantiates the body's own
+                    // parameters afresh. One the call left unbound is not the
+                    // body's rigid parameter, which is decided (G314), so it
+                    // is unknown here, as any parameter nothing bound is
+                    // where an argument is judged.
+                    for k in &keys {
+                        if self.enclosing_owner.as_ref() == Some(&k.0) {
+                            subst.entry(k.clone()).or_insert(Ty::Unknown);
                         }
                     }
                     // Check each argument against its parameter type (with any
@@ -3681,15 +3689,17 @@ impl Assigner<'_> {
         }
         let (base, args) = split_type_app(&canonical);
         if let Ty::Imported { module, name } = base {
-            let (_, _, decl) =
+            let (module, name, decl) =
                 imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
-            let body = alias_body_applied(&decl.body, &decl.generics, args)?;
+            let owner = ParamOwner::imported_type(&module, &name);
+            let body = alias_body_applied(&decl.body, &owner, &decl.generics, args)?;
             return self.container_through_aliases(&body, depth + 1);
         }
         match self.local_type_decl(&canonical) {
             Some(td) if td.refinement.is_none() => {
                 let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
-                let body = alias_body_applied(&self.lowerer.lower(&td.body), &generics, args)?;
+                let owner = self.type_decl_owner(td);
+                let body = alias_body_applied(&self.lowerer.lower(&td.body), &owner, &generics, args)?;
                 self.container_through_aliases(&body, depth + 1)
             }
             _ => None,
@@ -4913,9 +4923,11 @@ impl Assigner<'_> {
         else {
             return ty;
         };
-        let subst: HashMap<Ident, Ty> = params
+        let mut keys = Vec::new();
+        collect_param_keys(&ty, &mut keys);
+        let subst: Subst = params
             .iter()
-            .map(|(name, unwritten)| (Ident::from(*name), unwritten.ty()))
+            .map(|(name, unwritten)| (stdlib_param_key(&keys, &key, &field, name), unwritten.ty()))
             .collect();
         let value = Ty::Fn {
             params: fn_params
@@ -7008,11 +7020,11 @@ impl Assigner<'_> {
     /// it, so the expansion cannot depend on how a site wrote the type.
     fn transparent_body(&self, ty: &Ty) -> Option<Ty> {
         let (base, args) = split_type_app(ty);
-        let (key, body, generics) = self.transparent_decl(base)?;
+        let (key, owner, body, generics) = self.transparent_decl(base)?;
         if self.is_recursive_transparent(&key, &body) {
             return None;
         }
-        alias_body_applied(&body, &generics, args)
+        alias_body_applied(&body, &owner, &generics, args)
     }
 
     /// The declaration `base` names when it is transparent: its identity,
@@ -7020,7 +7032,7 @@ impl Assigner<'_> {
     /// declaration with an identity or a body this checker does not read
     /// through, and for anything that is not a declared name. `base` must be
     /// at the end of its chain of second names.
-    fn transparent_decl(&self, base: &Ty) -> Option<(DeclKey, Ty, Vec<Ident>)> {
+    fn transparent_decl(&self, base: &Ty) -> Option<(DeclKey, ParamOwner, Ty, Vec<Ident>)> {
         match base {
             Ty::Imported { module, name } => {
                 let (module, name, decl) =
@@ -7028,7 +7040,8 @@ impl Assigner<'_> {
                 if decl.refined || !is_transparent_body(&decl.body) {
                     return None;
                 }
-                Some((DeclKey::Imported(module, name), decl.body, decl.generics))
+                let owner = ParamOwner::imported_type(&module, &name);
+                Some((DeclKey::Imported(module, name), owner, decl.body, decl.generics))
             }
             Ty::Named { symbol, .. } => {
                 let td = self.direct_type_decl(base)?;
@@ -7042,7 +7055,7 @@ impl Assigner<'_> {
                     return None;
                 }
                 let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
-                Some((DeclKey::Local(symbol.0), body, generics))
+                Some((DeclKey::Local(symbol.0), self.type_decl_owner(td), body, generics))
             }
             _ => None,
         }
@@ -7077,7 +7090,7 @@ impl Assigner<'_> {
                     Ty::Named { .. } => self.resolve_alias_chain(ty),
                     _ => ty.clone(),
                 };
-                let Some((key, body, _)) = self.transparent_decl(&end) else {
+                let Some((key, _, body, _)) = self.transparent_decl(&end) else {
                     // Not transparent, but it may still be the target reached
                     // through a second name, which never is (a target is
                     // transparent), so nothing further is reachable here.
@@ -7712,25 +7725,26 @@ impl Assigner<'_> {
     /// count does not match the declaration's.
     fn alias_body(&self, base: &Ty, args: &[Ty]) -> Option<Ty> {
         let end = self.resolve_alias_chain(base);
-        let (generics, body): (Vec<Ident>, Ty) = match &end {
+        let (owner, generics, body): (ParamOwner, Vec<Ident>, Ty) = match &end {
             Ty::Named { .. } => {
                 let td = self.direct_type_decl(&end)?;
                 (
+                    self.type_decl_owner(td),
                     td.generics.iter().map(|g| g.name.clone()).collect(),
                     self.lowerer.lower(&td.body),
                 )
             }
             Ty::Imported { module, name } => {
-                let decl = self.imported_type_body(module.as_str(), name)?;
-                (decl.generics, decl.body)
+                let (module, name, decl) =
+                    imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
+                (ParamOwner::imported_type(&module, &name), decl.generics, decl.body)
             }
             _ => return Some(end),
         };
         if generics.len() != args.len() {
             return None;
         }
-        let subst: HashMap<Ident, Ty> = generics.into_iter().zip(args.iter().cloned()).collect();
-        Some(substitute_type_params(&body, &subst))
+        Some(substitute_type_params(&body, &decl_subst(&owner, &generics, args)))
     }
 
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
@@ -7923,17 +7937,14 @@ impl Assigner<'_> {
         name: &str,
         args: &[Ty],
     ) -> Option<Vec<RecordField>> {
-        let decl = self.imported_type_body(module, name)?;
+        let (module, name, decl) = imported_decl_chain_end(self.decl_ty_resolver, module, name)?;
         let Ty::Record { fields } = decl.body else {
             return None;
         };
         if decl.generics.is_empty() || args.is_empty() {
             return Some(fields);
         }
-        let mut subst: HashMap<Ident, Ty> = HashMap::new();
-        for (g, a) in decl.generics.iter().zip(args.iter()) {
-            subst.insert(g.clone(), a.clone());
-        }
+        let subst = decl_subst(&ParamOwner::imported_type(&module, &name), &decl.generics, args);
         Some(
             fields
                 .into_iter()
@@ -7944,12 +7955,6 @@ impl Assigner<'_> {
                 })
                 .collect(),
         )
-    }
-
-    /// The sibling's lowered `type` declaration at the end of the chain
-    /// `(module, name)` starts: `imported_decl_chain_end` without the address.
-    fn imported_type_body(&self, module: &str, name: &str) -> Option<ImportedTypeDecl> {
-        imported_decl_chain_end(self.decl_ty_resolver, module, name).map(|(_, _, decl)| decl)
     }
 
     /// The field set of a `Ty::Named` record declaration, with any generic
@@ -7977,10 +7982,8 @@ impl Assigner<'_> {
         }
         // Substitute the declaration's generic parameters with the application's
         // type arguments (`type Box<T> = { value: T }` applied to `<number>`).
-        let mut subst: HashMap<Ident, Ty> = HashMap::new();
-        for (g, a) in td.generics.iter().zip(args.iter()) {
-            subst.insert(g.name.clone(), a.clone());
-        }
+        let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
+        let subst = decl_subst(&self.type_decl_owner(td), &generics, args);
         Some(
             fields
                 .into_iter()
@@ -8502,6 +8505,29 @@ impl Assigner<'_> {
                 path: vec![name.clone()],
             })
         })
+    }
+
+    /// The type parameters a call to a callee of type `callee_ty`
+    /// instantiates, by owner and name (G314, record 175). With a declared
+    /// list (`declared`, a `fn` or `component`, or a function value that
+    /// carries one), the parameters of that list. Without one (a stdlib
+    /// signature, or a function value such as a parameter `f: fn(T) -> T`),
+    /// every parameter the type names except the enclosing body's own: the
+    /// call does not choose those, they are the body's rigid parameters.
+    fn call_param_keys(&self, callee_ty: &Ty, declared: Option<&[Ident]>) -> Vec<ParamKey> {
+        let mut keys = Vec::new();
+        collect_param_keys(callee_ty, &mut keys);
+        keys.retain(|(owner, name)| match declared {
+            Some(list) => list.contains(name),
+            None => self.enclosing_owner.as_ref() != Some(owner),
+        });
+        keys
+    }
+
+    /// The owner a parameter of the local `type` or `interface` declaration
+    /// `td` carries, as lowering gives it (`Lowerer::param_owner`).
+    fn type_decl_owner(&self, td: &glyph_ast::TypeDecl) -> ParamOwner {
+        self.lowerer.param_owner(td.span.start)
     }
 
     /// Whether the type parameter `name`, owned by `owner`, is one the body
@@ -10530,9 +10556,8 @@ impl Assigner<'_> {
             if decl.generics.is_empty() || args.is_empty() {
                 return Some(payload);
             }
-            let subst: HashMap<Ident, Ty> =
-                decl.generics.iter().cloned().zip(args.iter().cloned()).collect();
-            return Some(substitute_type_params(&payload, &subst));
+            let owner = ParamOwner::imported_type(module.as_str(), name);
+            return Some(substitute_type_params(&payload, &decl_subst(&owner, &decl.generics, args)));
         }
         let (td, args) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
@@ -10542,13 +10567,8 @@ impl Assigner<'_> {
         if td.generics.is_empty() || args.is_empty() {
             return Some(payload);
         }
-        let subst: HashMap<Ident, Ty> = td
-            .generics
-            .iter()
-            .map(|g| g.name.clone())
-            .zip(args.iter().cloned())
-            .collect();
-        Some(substitute_type_params(&payload, &subst))
+        let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
+        Some(substitute_type_params(&payload, &decl_subst(&self.type_decl_owner(td), &generics, args)))
     }
 
     /// The payload type of `variant` in the tagged union `ty`, for both
@@ -11441,40 +11461,6 @@ fn needs_context(e: &Expr) -> bool {
     }
 }
 
-/// Every type parameter `ty` names, in first-seen order, once each.
-fn collect_param_names(ty: &Ty, out: &mut Vec<Ident>) {
-    match ty {
-        Ty::Param { name, .. } if !out.contains(name) => out.push(name.clone()),
-        Ty::App { base, args } => {
-            collect_param_names(base, out);
-            for a in args {
-                collect_param_names(a, out);
-            }
-        }
-        Ty::Record { fields } => {
-            for f in fields {
-                collect_param_names(&f.ty, out);
-            }
-        }
-        Ty::Fn {
-            params, return_ty, ..
-        } => {
-            for p in params {
-                collect_param_names(&p.ty, out);
-            }
-            collect_param_names(return_ty, out);
-        }
-        Ty::Union { variants } => {
-            for v in variants {
-                if let Some(p) = &v.payload {
-                    collect_param_names(p, out);
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
 /// Every type parameter `ty` names, into `out`.
 fn param_names_into(ty: &Ty, out: &mut HashSet<Ident>) {
     match ty {
@@ -11699,14 +11685,24 @@ fn join_ty(a: &Ty, b: &Ty) -> Ty {
 /// takes every candidate, infers `string` from the two. Keeping `""` would
 /// make the callback's `string` return a mismatch against a literal set, on a
 /// program `tsc --strict` accepts.
-fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty>) {
+///
+/// Only a parameter in `keys` is bound, by owner and name (G314): the ones
+/// the call instantiates. A parameter of the enclosing body that the
+/// callee's type names (`f(x)` with `f: fn(T) -> T` a parameter of `fn
+/// g<T>`) is not the call's to choose, so it is never bound, and a binding
+/// for one declaration's `T` never answers for another's.
+fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut Subst, keys: &[ParamKey]) {
     match (param, arg) {
         // A pending argument is E0238 where it is passed (D51), and it binds
         // nothing: `id(save(1))` would otherwise return a pending value and
         // refuse every later use of the result for the same mistake.
         (_, Ty::Pending(_)) => {}
-        (Ty::Param { name, .. }, concrete) if !concrete.is_unknown() => {
-            let bound = out.entry(name.clone()).or_insert_with(|| concrete.clone());
+        (Ty::Param { name, owner }, concrete) if !concrete.is_unknown() => {
+            let key = (owner.clone(), name.clone());
+            if !keys.contains(&key) {
+                return;
+            }
+            let bound = out.entry(key).or_insert_with(|| concrete.clone());
             if matches!(bound, Ty::StringLiteralUnion(_))
                 && matches!(concrete, Ty::Prim(Primitive::String))
             {
@@ -11722,14 +11718,14 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
             Ty::Fn { params: aparams, return_ty: aret, .. },
         ) => {
             for (pp, ap) in pparams.iter().zip(aparams.iter()) {
-                collect_type_param_bindings(&pp.ty, &ap.ty, out);
+                collect_type_param_bindings(&pp.ty, &ap.ty, out, keys);
             }
-            collect_type_param_bindings(pret, aret, out);
+            collect_type_param_bindings(pret, aret, out, keys);
         }
         (Ty::App { base: pbase, args: pargs }, Ty::App { base: abase, args: aargs }) => {
-            collect_type_param_bindings(pbase, abase, out);
+            collect_type_param_bindings(pbase, abase, out, keys);
             for (p, a) in pargs.iter().zip(aargs.iter()) {
-                collect_type_param_bindings(p, a, out);
+                collect_type_param_bindings(p, a, out, keys);
             }
         }
         _ => {}
@@ -11894,22 +11890,68 @@ fn is_transparent_body(body: &Ty) -> bool {
 /// `generics` for a generic one applied with one argument per parameter, and
 /// `None` for a generic one written bare or with the wrong count (E0233
 /// refuses those), whose body says nothing about the parameters.
-fn alias_body_applied(body: &Ty, generics: &[Ident], args: &[Ty]) -> Option<Ty> {
+fn alias_body_applied(body: &Ty, owner: &ParamOwner, generics: &[Ident], args: &[Ty]) -> Option<Ty> {
     if generics.is_empty() {
         return Some(body.clone());
     }
     if generics.len() != args.len() {
         return None;
     }
-    let subst: HashMap<Ident, Ty> = generics.iter().cloned().zip(args.iter().cloned()).collect();
-    Some(substitute_type_params(body, &subst))
+    Some(substitute_type_params(body, &decl_subst(owner, generics, args)))
 }
 
-fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
+/// A type parameter's identity (G314): the declaration that owns it, and its
+/// name. Two `T`s are one parameter only when both agree.
+type ParamKey = (ParamOwner, Ident);
+
+/// A binding of type parameters to types, keyed by identity, so a binding
+/// made for one declaration's `T` never rewrites another's (record 175):
+/// `wrap(xs)` inside `fn f<T>` binds `wrap`'s `T` to `Array<T>` and leaves
+/// `f`'s `T` as it is.
+type Subst = HashMap<ParamKey, Ty>;
+
+/// The binding of the declaration `owner`'s parameters `generics` to an
+/// application's `args`, by position.
+fn decl_subst(owner: &ParamOwner, generics: &[Ident], args: &[Ty]) -> Subst {
+    generics
+        .iter()
+        .zip(args.iter())
+        .map(|(g, a)| ((owner.clone(), g.clone()), a.clone()))
+        .collect()
+}
+
+/// Every type parameter `ty` names, by identity, in first-seen order, once
+/// each.
+fn collect_param_keys(ty: &Ty, out: &mut Vec<ParamKey>) {
+    let seen = RefCell::new(std::mem::take(out));
+    any_param(ty, &|name, owner| {
+        let key = (owner.clone(), name.clone());
+        let mut seen = seen.borrow_mut();
+        if !seen.contains(&key) {
+            seen.push(key);
+        }
+        false
+    });
+    *out = seen.into_inner();
+}
+
+/// The first parameter in `keys` named `name`.
+fn param_key_named(keys: &[ParamKey], name: &str) -> Option<ParamKey> {
+    keys.iter().find(|(_, n)| n.as_ref() == name).cloned()
+}
+
+/// The parameter `name` of the stdlib function `module.field`: the one its
+/// signature names, else the identity a stdlib row gives its own parameters,
+/// which is the one a parameter the signature does not mention would carry.
+fn stdlib_param_key(keys: &[ParamKey], module: &str, field: &str, name: &str) -> ParamKey {
+    param_key_named(keys, name).unwrap_or_else(|| (ParamOwner::std_callable(module, field), Ident::from(name)))
+}
+
+fn substitute_type_params(ty: &Ty, subst: &Subst) -> Ty {
     if subst.is_empty() {
         return ty.clone();
     }
-    map_params(ty, &|name, _| subst.get(name).cloned())
+    map_params(ty, &|name, owner| subst.get(&(owner.clone(), name.clone())).cloned())
 }
 
 /// `ty` with each type parameter `f` answers for replaced by its answer, and
@@ -12242,22 +12284,15 @@ fn lambda_returned_values(body: &Block) -> Vec<&Expr> {
 /// about a field of `Box<T>` says `Box<T>` rather than the `?` an undecided
 /// parameter displays as. For display only.
 fn params_by_name(ty: &Ty) -> Ty {
-    let mut names = Vec::new();
-    collect_param_names(ty, &mut names);
-    if names.is_empty() {
+    if !ty_has_param(ty) {
         return ty.clone();
     }
-    let subst: HashMap<Ident, Ty> = names
-        .into_iter()
-        .map(|g| {
-            let shown = Ty::Named {
-                symbol: SymbolRef(u32::MAX),
-                path: vec![g.clone()],
-            };
-            (g, shown)
+    map_params(ty, &|name, _| {
+        Some(Ty::Named {
+            symbol: SymbolRef(u32::MAX),
+            path: vec![name.clone()],
         })
-        .collect();
-    substitute_type_params(ty, &subst)
+    })
 }
 
 /// The variant name a constructor call's callee spells: `Loaded` in
@@ -15733,7 +15768,7 @@ fn run(r: Result<number, E>) -> number {
 
     #[test]
     fn substitute_is_identity_without_bindings() {
-        let subst = HashMap::new();
+        let subst: Subst = HashMap::new();
         let t = Ty::App {
             base: Arc::new(Ty::Param {
                 name: "T".into(),
@@ -23705,6 +23740,60 @@ fn f(a: Answer) -> number {
             .collect();
         at.sort();
         assert_eq!(at, vec!["fn r1", "fn r3"], "{errs:?}");
+    }
+
+    /// Record 175's t03, kept as a test of substitution by owner and name
+    /// (G314). The names collide and the bindings cross: in `h<T, U>`,
+    /// `pair(y, x)` binds `pair`'s `U` to `h`'s `T`, so the call is a
+    /// `One<T>` holding `h`'s `T`, never `pair`'s; in `f<T>`, `wrap(xs)`
+    /// with `xs: Array<Array<T>>` binds `wrap`'s `T` to `Array<T>` and the
+    /// result holds `f`'s `T` one level down.
+    #[test]
+    fn crossed_bindings_substitute_by_owner_and_name() {
+        let (m, resolved, tm) = type_map_of(
+            "module m\n\
+             type One<T> = { v: T, }\n\
+             fn wrap<T>(xs: Array<T>) -> One<T> { return { v: xs[0], } }\n\
+             fn pair<T, U>(a: T, b: U) -> One<U> { return { v: b, } }\n\
+             fn f<T>(xs: Array<Array<T>>) -> number { let s = wrap(xs)\n return 1 }\n\
+             fn h<T, U>(x: T, y: U) -> number { let s = pair(y, x)\n return 1 }\n",
+        );
+        let owner = |name: &str| ParamOwner::Callable(resolved.symbols.lookup(name).expect(name).into());
+        let param = |name: &str, of: &str| Ty::Param {
+            name: Ident::from(name),
+            owner: owner(of),
+        };
+        let Ty::App { args, .. } = tm.get(nth_decl_first_let_span(&m, 3)) else {
+            panic!("wrap(xs) is not an application");
+        };
+        let Ty::App { args: inner, .. } = &args[0] else {
+            panic!("wrap(xs) holds {:?}, not Array<T>", args[0]);
+        };
+        assert_eq!(inner.as_slice(), [param("T", "f")]);
+        match tm.get(nth_decl_first_let_span(&m, 4)) {
+            Ty::App { args, .. } => assert_eq!(args.as_slice(), [param("T", "h")]),
+            other => panic!("pair(y, x) is {other:?}"),
+        }
+    }
+
+    /// A function value typed with the enclosing body's own parameter (`f:
+    /// fn(T) -> T` inside `fn g<T>`) does not instantiate it: the call does
+    /// not choose `T`, so `f(5)` returns `g`'s `T`, where binding `T` to the
+    /// argument's `number` used to type it `number` (G314, record 175).
+    #[test]
+    fn a_function_value_does_not_bind_the_enclosing_parameter() {
+        let (m, resolved, tm) = type_map_of(
+            "module m\n\
+             fn g<T>(f: fn(T) -> T, x: T) -> number { let y = f(5)\n return 1 }\n",
+        );
+        let g = ParamOwner::Callable(resolved.symbols.lookup("g").expect("g").into());
+        assert_eq!(
+            tm.get(nth_decl_first_let_span(&m, 0)),
+            &Ty::Param {
+                name: Ident::from("T"),
+                owner: g,
+            }
+        );
     }
 
     /// G293. A tagged union has no fields in Glyph, and its runtime encoding

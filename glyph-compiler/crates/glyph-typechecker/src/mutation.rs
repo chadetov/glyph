@@ -178,6 +178,19 @@ pub enum SortForm {
     ToSorted,
 }
 
+/// The array a copying sort, `array.sort(xs, cmp)`, is written over: `recv`,
+/// with any `.slice()` it ends in dropped, since `array.sort` copies already
+/// and `array.sort(xs.slice(), cmp)` would copy twice.
+fn copy_source(recv: &Expr) -> &Expr {
+    match recv {
+        Expr::Call { callee, args, .. } if args.is_empty() => match callee.as_ref() {
+            Expr::Member { object, field, optional: false, .. } if field.as_ref() == "slice" => copy_source(object),
+            _ => recv,
+        },
+        _ => recv,
+    }
+}
+
 /// E0243's message and help for `recv.method()` with no comparator (G388).
 pub(crate) fn text_order_sort(
     recv: &Expr,
@@ -205,7 +218,8 @@ pub(crate) fn text_order_sort(
     let message = format!("{quoted} with no comparator compares {values} as text{example}");
     let (arg, cmp_is) = t.argument();
     let then = cmp_is.map(|s| format!(", where {s}")).unwrap_or_default();
-    let Some(xs) = code(&xs_text) else {
+    let copy_text = expr_source(copy_source(recv));
+    let (Some(xs), Some(copied)) = (code(&xs_text), code(&copy_text)) else {
         let what = match &t.elem {
             Some(e) => format!(", a `fn(a: {e}, b: {e}) -> number` that is negative when `a` comes first"),
             None => " that is negative when `a` comes first".to_string(),
@@ -214,11 +228,18 @@ pub(crate) fn text_order_sort(
     };
     let help = match form {
         SortForm::Statement => format!("pass a comparator: `mut {xs}{dot}sort({arg})`{then}"),
-        SortForm::ToSorted => format!("pass a comparator: `{xs}{dot}toSorted({arg})`{then}"),
+        // `toSorted` is newer than the `es2022` library Glyph's tsconfig
+        // asks for, so its spelling with a comparator does not build; the
+        // copy `array.sort` returns is the same value (record 187).
+        SortForm::ToSorted => format!(
+            "write `{}.sort({copied}, {arg})`, which returns a sorted copy{}{then}",
+            ns.name,
+            ns.import_note()
+        ),
         SortForm::Value => {
             let a = &ns.name;
             format!(
-                "`{a}.sort({xs}, {arg})` returns a sorted copy and leaves `{xs}` alone{}{then}",
+                "`{a}.sort({copied}, {arg})` returns a sorted copy and leaves `{copied}` alone{}{then}",
                 ns.import_note()
             )
         }
@@ -395,7 +416,10 @@ fn value_help(c: &CallText, call: &str, ns: &ArrayNs, then: Option<(&str, &str)>
         Some(call) => format!("write `mut {call}` as a statement{cmp_is}"),
         None => "write the call as its own `mut` statement".to_string(),
     };
+    let copied = expr_source(copy_source(c.recv));
+    let xs_copy = code(&copied).unwrap_or(xs);
     let sort_copy = |what: &str| -> String {
+        let xs = xs_copy;
         match c.args.first().map(expr_source) {
             Some(cmp) => match code(&cmp) {
                 Some(cmp) => format!("`{a}.sort({xs}, {cmp})` returns {what} and leaves `{xs}` alone{note}"),
@@ -607,16 +631,23 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
                 ),
             };
             let help = match (c.method, code(&xs)) {
-                ("sort", Some(x)) => match c.args.first().map(expr_source) {
-                    Some(cmp) => match code(&cmp) {
-                        Some(cmp) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}"),
-                        None => format!("`{a}.sort` with the same comparator returns the sorted array{note}"),
-                    },
-                    None => match copy_comparator(c) {
-                        Some((cmp, cmp_is)) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}{cmp_is}"),
-                        None => format!("`{a}.sort` with a comparator returns the sorted array{note}"),
-                    },
-                },
+                // `array.sort` copies, so a `.slice()` before the sort goes.
+                ("sort", Some(written)) => {
+                    let copied = expr_source(copy_source(c.recv));
+                    let x = code(&copied).unwrap_or(written);
+                    match c.args.first().map(expr_source) {
+                        Some(cmp) => match code(&cmp) {
+                            Some(cmp) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}"),
+                            None => format!("`{a}.sort` with the same comparator returns the sorted array{note}"),
+                        },
+                        None => match copy_comparator(c) {
+                            Some((cmp, cmp_is)) => {
+                                format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}{cmp_is}")
+                            }
+                            None => format!("`{a}.sort` with a comparator returns the sorted array{note}"),
+                        },
+                    }
+                }
                 ("reverse", Some(x)) => format!("`{a}.reverse({x})` returns the reversed array{note}"),
                 (m, Some(x)) => match code(&args_text) {
                     Some(args) => {

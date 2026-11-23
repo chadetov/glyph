@@ -469,6 +469,14 @@ const out = [];
 for (const [key, t] of Object.entries(types)) {
   const cls = classes[key];
   if (!cls) { out.push(`${key}: the oracle runs it and the script classifies none of its members`); continue; }
+  // Outside is for a type whose writes land outside the program's data (a
+  // database). A type the oracle can build and snapshot holds its state in
+  // the program, so none of its members can be Outside: a reader moved
+  // there would pass the run below, which only sees "left it unchanged"
+  // (record 171, F3).
+  for (const [member, c] of Object.entries(cls)) {
+    if (c === "Outside") out.push(`${key}: \`${member}\` is Outside, and the oracle holds this type's state in the program, so each member is Mutating or NonMutating`);
+  }
   // Only the methods: a `Decimal` also carries its digits as data fields
   // (`_u`, `_s`) that its declared type does not name.
   const made = t.make();

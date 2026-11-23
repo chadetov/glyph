@@ -707,6 +707,106 @@ fn a_write_through_a_stores_array_says_the_store_holds_it() {
     assert!(msg.contains("nothing keeps it"), "{msg}");
 }
 
+/// A set or deque a store holds is written through the store too (record
+/// 171, F2): `ST.get().add(2)` says `ST` still holds the set, and the help
+/// writes `mut ST.update(...)` with the change as a `mut` statement inside
+/// the callback, never `let s = ST.get()`, the G394 alias write. The help's
+/// program, on separate lines as Glyph needs, passes the full check and
+/// runs.
+#[test]
+fn a_write_through_a_stores_set_or_deque_says_the_store_holds_it() {
+    let src = |line: &str| {
+        format!(
+            "module main\n\
+             import std/set\n\
+             import std/store\n\
+             import std/collections\n\
+             const ST = store.create(set.create([1]))\n\
+             const SQ = store.create(collections.deque([1]))\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             {line}\n\
+             \x20 print(\"${{ST.get().size()}} ${{SQ.get().len()}}\")\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    for line in ["  ST.get().add(2)", "  mut ST.get().add(2)", "  let had = ST.get().remove(1)"] {
+        let found = refusals(&src(line));
+        let e = found.iter().find(|f| f.0 == "E0240").unwrap_or_else(|| panic!("{line}: {found:#?}"));
+        assert!(e.1.ends_with("which `ST` still holds, so it changes `ST` with no `mut` line naming it"), "{line}: {}", e.1);
+        assert!(e.2.starts_with("write the change through the store"), "{line}: {}", e.2);
+        assert!(!e.2.contains("let s ="), "{line}: {}", e.2);
+    }
+    let (msg, help) = one(&src("  SQ.get().push_back(2)"), "E0240");
+    assert_eq!(
+        msg,
+        "`.push_back(2)` changes the deque `SQ.get()` returns, which `SQ` still holds, so it changes `SQ` with no `mut` line naming it"
+    );
+    assert_eq!(
+        help,
+        "write the change through the store, as a `mut` statement inside the callback that then returns the deque: `mut SQ.update(fn(current) {`, then `mut current.push_back(2)` and `current` on lines of their own, then `})`"
+    );
+    let applied = src(
+        "  mut ST.update(fn(current) {\n    mut current.add(2)\n    current\n  })\n  \
+         mut SQ.update(fn(current) {\n    mut current.push_back(2)\n    current\n  })",
+    );
+    let dir = project("held-stdlib", &applied);
+    let v = check(&dir, false);
+    assert!(v["ok"] == true && errors(&v).is_empty(), "{applied}\n{v:#}");
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["run", "src/main.glyph"])
+        .output()
+        .expect("run glyph run");
+    assert!(String::from_utf8_lossy(&out.stdout).contains("2 2"), "{}", String::from_utf8_lossy(&out.stdout));
+}
+
+/// E0241's help never reassigns a name that cannot be reassigned (record
+/// 171, F1): a module `const` is E0212, and an imported name belongs to
+/// another module, so for a `Decimal` and an array alike the help binds the
+/// result. A local keeps the reassignment. Each help, applied, passes the
+/// full check.
+#[test]
+fn e0241_on_a_const_or_imported_receiver_binds_the_result() {
+    let lib = "module lib\npub const NUMS = [1, 2]\n";
+    let main = |body: &str| {
+        format!(
+            "module main\n\
+             import std/decimal\n\
+             import lib\n\
+             import lib {{ NUMS }}\n\
+             const ONE = decimal.from_int(1, 0)\n\
+             const ITEMS = [1, 2]\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             {body}\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    let cases = [
+        ("  mut ONE.add(ONE)", "to keep it, bind it: `let result = ONE.add(ONE)`"),
+        ("  mut ITEMS.concat(NUMS)", "to keep it, bind it: `let result = ITEMS.concat(NUMS)`"),
+        ("  mut NUMS.concat(ITEMS)", "to keep it, bind it: `let result = NUMS.concat(ITEMS)`"),
+        ("  mut lib.NUMS.concat(ITEMS)", "to keep it, bind it: `let result = lib.NUMS.concat(ITEMS)`"),
+        ("  let local = [1]\n  mut local.concat(ITEMS)", "to keep it, write `mut local = local.concat(ITEMS)`"),
+    ];
+    for (body, want) in cases {
+        let dir = project_modules("const-help", &[("lib.glyph", lib), ("main.glyph", &main(body))]);
+        let found: Vec<(String, String)> = errors(&check(&dir, true))
+            .iter()
+            .map(|d| (d["code"].as_str().unwrap_or("").to_string(), d["help"].as_str().unwrap_or("").to_string()))
+            .collect();
+        assert_eq!(found, [("E0241".to_string(), want.to_string())], "{body}");
+    }
+    let applied = main(
+        "  let result = ONE.add(ONE)\n  let r2 = ITEMS.concat(NUMS)\n  let r3 = lib.NUMS.concat(ITEMS)\n  \
+         print(\"${result.to_string()} ${r2.length} ${r3.length}\")",
+    );
+    let dir = project_modules("const-applied", &[("lib.glyph", lib), ("main.glyph", &applied)]);
+    let v = check(&dir, false);
+    assert!(v["ok"] == true && errors(&v).is_empty(), "{applied}\n{v:#}");
+}
+
 /// `let _ = <mutating call>` throws the value away, so its help writes only
 /// the statement form, for an array as for a deque; the read-first help
 /// would be advice for a value nobody keeps.

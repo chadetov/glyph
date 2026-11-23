@@ -7135,7 +7135,9 @@ impl Assigner<'_> {
                 _ => return,
             },
         };
-        let held_by_store = receiver == MutReceiver::Array && self.is_store_get(object);
+        // Whatever a store holds, an array or a stdlib value, `get()` hands
+        // back that value itself (record 171, F2).
+        let held_by_store = self.is_store_get(object);
         if Some(*span) != self.mut_call {
             self.tm.record_mutating_call(
                 *span,
@@ -7331,8 +7333,14 @@ impl Assigner<'_> {
                         ),
                         _ => false,
                     };
-                let (message, help) =
-                    crate::mutation::mut_on_module_call(name.as_ref(), field.as_ref(), args, array_copy);
+                let rebindable = args.first().is_some_and(|a| self.rebindable(a));
+                let (message, help) = crate::mutation::mut_on_module_call(
+                    name.as_ref(),
+                    field.as_ref(),
+                    args,
+                    array_copy,
+                    rebindable,
+                );
                 self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
                 return;
             }
@@ -7348,8 +7356,9 @@ impl Assigner<'_> {
                     }
                     _ => false,
                 };
+                let rebindable = self.rebindable(object);
                 let (message, help) =
-                    crate::mutation::mut_on_stdlib_reader(module, ty, member, returns_own, object, args);
+                    crate::mutation::mut_on_stdlib_reader(module, ty, member, returns_own, object, args, rebindable);
                 self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
             }
             return;
@@ -7363,8 +7372,34 @@ impl Assigner<'_> {
         if m.mutates {
             return;
         }
-        let (message, help) = crate::mutation::mut_on_pure_method(receiver, m, object, args);
+        let rebindable = self.rebindable(object);
+        let (message, help) = crate::mutation::mut_on_pure_method(receiver, m, object, args, rebindable);
         self.errors.push(TypeError::MutOnNonMutatingCall { message, help, span: *span });
+    }
+
+    /// Whether `mut e = ...` would be legal, for E0241's reassignment help
+    /// (record 171, F1). A field or index path writes contents and always
+    /// is (`mut ACC.total = ...` on a `const ACC`). A bare name is only when
+    /// it is a local: a module `const` is E0212, and an imported name, or
+    /// `ns.NAME` read through a namespace import, is another module's.
+    fn rebindable(&self, e: &Expr) -> bool {
+        if !e.is_place() {
+            return false;
+        }
+        match e {
+            Expr::Ident { span, .. } => matches!(self.resolved.resolutions.get(*span), Some(ResolvedRef::Local(_))),
+            Expr::Member { object, .. } => match object.as_ref() {
+                Expr::Ident { span, .. } => !matches!(
+                    self.resolved.resolutions.get(*span),
+                    Some(ResolvedRef::Module(id)) if matches!(
+                        self.resolved.symbols.table.get(id).map(|s| &s.kind),
+                        Some(SymbolKind::ImportNamespace { .. } | SymbolKind::ImportAlias { .. })
+                    )
+                ),
+                _ => true,
+            },
+            _ => true,
+        }
     }
 
     /// The module path behind the namespace import referenced at `base`,

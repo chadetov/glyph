@@ -1,0 +1,15 @@
+---
+version: 0.1.170
+month: 2026-11
+date: 2026-11-23
+tags: breaking
+headline: A second name for a type gives the same answer as the plain spelling
+---
+            <p>Glyph treated a type alias as a type with its own identity, even when its body was just another type. So <code>type Id = string</code> and <code>type Name = string</code> could not be passed for each other, <code>Maybe&lt;Note&gt;</code> (with <code>type Maybe&lt;T&gt; = Nullable&lt;T&gt;</code>) was refused where <code>Nullable&lt;Note&gt;</code> is declared, and <code>L&lt;string&gt;</code> (with <code>type L&lt;T&gt; = Array&lt;T&gt;</code>) was refused where <code>Array&lt;string&gt;</code> is declared. <code>tsc</code> accepts all of these. In the other direction, <code>type Same&lt;T&gt; = T</code> hid mismatches: a <code>number</code> passed where <code>Same&lt;string&gt;</code> is declared went through.</p>
+
+            <p>Now a declaration whose body is a primitive, <code>unknown</code>, a type parameter or a generic application is read as that body, with its arguments filled in, before two types are compared. Records, unions, <code>extern_ts</code>, <code>typeof</code>, function types and refinements with <code>where</code> keep their own identity. The answer is the same for an alias declared in another module, imported by name or through a namespace. Diagnostics still name the type as you wrote it.</p>
+
+            <p>An alias that refers to itself, such as <code>type F = Array&lt;F&gt;</code>, is not expanded and keeps the treatment it had before. Comparing two such types by their shape is G455.</p>
+
+            <h3>Breaking</h3>
+            <p>Under <code>check --no-tsc</code>. The new refusals are all ones <code>tsc</code> already makes: a <code>number</code> where <code>Same&lt;string&gt;</code> is declared, an <code>Array&lt;number&gt;</code> where <code>type Strs = Array&lt;string&gt;</code> is declared, and the same through records and imports. Several false refusals go away. One refusal that goes away was a real one: <code>W&lt;G&gt;</code> where <code>Array&lt;number&gt;</code> is declared, with <code>type W&lt;X&gt; = Array&lt;X&gt;</code> and <code>type G = Array&lt;G&gt;</code>, was refused only because <code>W</code> had its own name; <code>tsc</code> still refuses it. Across 285 tracked programs nothing changed.</p>

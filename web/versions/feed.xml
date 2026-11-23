@@ -8,6 +8,13 @@
   <updated>2026-11-23T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.170 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.170" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.170</id>
+    <updated>2026-11-23T00:00:00Z</updated>
+    <summary>A second name for a type gives the same answer as the plain spelling</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.169 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.169" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.169</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.141</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>json.parse now checks a generic record's own fields and a union's variant payloads, and refuses with E0304 when one of them has no runtime check.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.140</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.140" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.140</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>json.parse&lt;Rows&gt; now works when Rows comes from another module and names a type that module imports.</summary>
   </entry>
 </feed>

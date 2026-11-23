@@ -22047,3 +22047,57 @@ fn an_unbound_callee_parameter_is_undecided_under_every_import_spelling() {
         );
     }
 }
+
+/// G314, step 2, across a module edge. Inside `fn g<T>`, `T` is `g`'s own,
+/// whatever spelling reached the callee: `ident(xs)` returns `Array<T>`
+/// holding `g`'s `T`, which is refused where `Array<string>` is declared and
+/// accepted where `Array<T>` is, and a sibling's generic record applied to
+/// `T` is refused where its field would have to be an `Array<string>`. The
+/// owner of the sibling's parameters is `(module, name)`, and the binding of
+/// `ident`'s `A` never stands for `g`'s `T`. `tsc` refuses the same two
+/// returns (TS2322).
+#[test]
+fn an_enclosing_parameter_is_decided_under_every_import_spelling() {
+    let lib = "module lib\n\
+               pub type Box<X> = { value: Array<X>, }\n\
+               pub fn ident<A>(x: A) -> A {\n  return x\n}\n";
+    for (label, import, callee, boxed) in [
+        ("named", "import lib { ident, Box }\n", "ident", "Box"),
+        ("namespace", "import lib\n", "lib.ident", "lib.Box"),
+    ] {
+        let root = unique_tmp(&format!("g314b{label}"));
+        let src = root.join("src");
+        write_file(&src, "lib.glyph", lib);
+        write_file(
+            &src,
+            "app.glyph",
+            &format!(
+                "module app\n\
+                 {import}\
+                 pub fn g<T>(xs: Array<T>) -> Array<string> {{\n  return {callee}(xs)\n}}\n\
+                 pub fn h<T>(xs: Array<T>) -> Array<T> {{\n  return {callee}(xs)\n}}\n\
+                 pub fn k<T>(b: {boxed}<T>) -> Record<string, Array<string>> {{\n  return b\n}}\n\
+                 pub fn m<T>(b: {boxed}<T>) -> Record<string, Array<T>> {{\n  return b\n}}\n"
+            ),
+        );
+        let report = build_project(&src, &root.join("dist")).expect("build_project ok");
+        let mismatches: Vec<&String> = report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains("E0204"))
+            .collect();
+        assert_eq!(mismatches.len(), 2, "{label}: {:?}", report.diagnostics);
+        assert!(
+            mismatches[0].contains("app:4:10")
+                && mismatches[0].contains("expected `Array<string>`, found `Array<T>`"),
+            "{label}: g's return: {:?}",
+            report.diagnostics
+        );
+        assert!(
+            mismatches[1].contains("app:10:10")
+                && mismatches[1].contains("expected `Record<string, Array<string>>`"),
+            "{label}: k's return: {:?}",
+            report.diagnostics
+        );
+    }
+}

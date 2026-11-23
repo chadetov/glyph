@@ -603,3 +603,45 @@ fn an_unmarked_src_tree_keys_its_modules_the_way_the_tools_do() {
         "the union arrives described: {described:?}"
     );
 }
+
+/// G263 (record 182). A bound is resolved like an annotation under both
+/// import spellings: an imported name used only in a bound is a use, so it
+/// draws no E0106, and `l.Nope` is E0105 as it is in any annotation. A value
+/// of the bounded parameter is decided as its bound (`T: Named` where
+/// `Other` is declared is E0204) and its members are read off the bound
+/// (`x.nmae` is E0210 naming `name`).
+#[test]
+fn a_bound_resolves_through_both_import_spellings() {
+    let dir = unique_tmp("bound_imports");
+    std::fs::write(
+        dir.join("src/lib.glyph"),
+        "module lib\n\npub type Named = { name: string, }\npub type Other = { id: number, }\n\
+         pub interface HasName {\n  name: string\n}\n",
+    )
+    .expect("write lib");
+    std::fs::write(
+        dir.join("src/main.glyph"),
+        "module main\n\nimport lib { Named, Other, HasName }\nimport lib as l\n\n\
+         pub fn a1<T: Named>(x: T) -> Named {\n  return x\n}\n\
+         pub fn a3<T: l.Named>(x: T) -> Named {\n  return x\n}\n\
+         pub fn b1<T: Named>(x: T) -> Other {\n  return x\n}\n\
+         pub fn c1<T: l.Nope>(x: T) -> T {\n  return x\n}\n\
+         pub fn c2<T: HasName>(x: T) -> l.HasName {\n  return x\n}\n\
+         pub fn c4<T: l.Named>(x: T) -> string {\n  return x.nmae\n}\n",
+    )
+    .expect("write main");
+    let value = check_json(&dir, &["--agent"]);
+    let mut got: Vec<(String, u64)> = value["diagnostics"]
+        .as_array()
+        .expect("array")
+        .iter()
+        .filter(|d| d["code"] != "E0112")
+        .map(|d| (d["code"].as_str().unwrap_or("").to_string(), d["range"]["start"]["line"].as_u64().unwrap_or(0)))
+        .collect();
+    got.sort();
+    assert_eq!(
+        got,
+        [("E0105".to_string(), 15), ("E0204".to_string(), 13), ("E0210".to_string(), 22)],
+        "{value}"
+    );
+}

@@ -1332,9 +1332,11 @@ struct Assigner<'a> {
     enclosing_owner: Option<ParamOwner>,
     /// The type parameters the enclosing `fn` or `component` writes a bound
     /// on (`<T: Named>`), read off the declaration that owns them (record
-    /// 175). The resolver does not resolve a bound yet (G263), so what one
-    /// says is not known here, only that it is there.
-    enclosing_bounded: HashSet<Ident>,
+    /// 175), each with its bound lowered (G263). `None` is a bound the
+    /// checker does not read: an `extern_ts` or `typeof` type, or one in a
+    /// cycle of parameters bounding each other (`<T: U, U: T>`, which `tsc`
+    /// refuses as TS2313).
+    enclosing_bounded: HashMap<Ident, Option<Ty>>,
     /// The written annotation of each parameter and annotated `let`, keyed
     /// the way `local_tys` is. A diagnostic that suggests code reads the
     /// type the program spelled from here: the checker's `Ty` has erased
@@ -1493,7 +1495,7 @@ impl<'a> Assigner<'a> {
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             enclosing_owner: None,
-            enclosing_bounded: HashSet::new(),
+            enclosing_bounded: HashMap::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -1859,7 +1861,7 @@ impl Assigner<'_> {
                 self.return_stack.push(er);
                 self.key_generics = f.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(f.span.start));
-                self.enclosing_bounded = bounded_generics(&f.generics);
+                self.enclosing_bounded = self.bounded_generics(&f.generics);
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
                 // Inside the callable's own return context: the check reads
@@ -1911,7 +1913,7 @@ impl Assigner<'_> {
                 self.return_stack.push(er);
                 self.key_generics = c.generics.iter().map(|g| g.name.clone()).collect();
                 self.enclosing_owner = Some(self.lowerer.param_owner(c.span.start));
-                self.enclosing_bounded = bounded_generics(&c.generics);
+                self.enclosing_bounded = self.bounded_generics(&c.generics);
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
                 if wants_value {
@@ -2635,7 +2637,7 @@ impl Assigner<'_> {
                     // was rebuilt around the literal's own elements, so `for
                     // s in [seen]` bound `s` as `set.Set<set.Set<number>>`
                     // (G447).
-                    let iter_ty = self.tm.get(f.iter.span()).clone();
+                    let iter_ty = self.read_through_bound(self.tm.get(f.iter.span()));
                     let iter_ty = self.widen_fresh_literals(&f.iter, iter_ty);
                     if let Some(elem) = array_elem_ty(&iter_ty) {
                         self.local_tys.insert(v.span.start, elem);
@@ -2845,7 +2847,7 @@ impl Assigner<'_> {
                     .insert(object.span(), Err(format!("its value is read with `{dot}{field}`")));
                 self.walk_expr(object);
                 self.member_object = outer_member_object;
-                let mut obj_ty = self.tm.get(object.span()).clone();
+                let mut obj_ty = self.read_through_bound(self.tm.get(object.span()));
                 // G304, D45. A chain this link continues moves out to it, and
                 // a `?.` over a `Nullable<R>` starts one and reads the field
                 // off `R`. The plain dot over one may read null: E0235.
@@ -3154,7 +3156,7 @@ impl Assigner<'_> {
                     self.null_chains.open(*span, c);
                 }
                 self.walk_expr(index);
-                let obj_ty = self.tm.get(object.span()).clone();
+                let obj_ty = self.read_through_bound(self.tm.get(object.span()));
                 if self.resolves_to_map(&obj_ty) {
                     self.errors.push(TypeError::MapFieldAccess {
                         field: index_key_display(index),
@@ -4203,9 +4205,9 @@ impl Assigner<'_> {
     /// direct caller may fill it with a primitive. A bound is what can make it
     /// a props record, and `tsc --strict` with React 18's types accepts
     /// `<Show label="x" />` against `<T: HasLabel>` and against `<T: L>` for a
-    /// record `L`. The resolver does not resolve a bound (it is emitted as a
-    /// TypeScript `extends` clause for `tsc` to enforce), so this checker
-    /// cannot read one, and a bounded parameter is undecided whatever the
+    /// record `L`. The bound is resolved (G263) and decides the parameter
+    /// inside the component's body, but an element is not checked against it
+    /// yet (G264), so here a bounded parameter is undecided whatever the
     /// bound says.
     fn component_props_param(&self, c: &glyph_ast::ComponentDecl, param: &Param) -> PropsParam {
         if let TypeExpr::Path { segments, .. } = &param.ty {
@@ -8528,10 +8530,81 @@ impl Assigner<'_> {
         if !self.is_own_param(name, owner) {
             return None;
         }
-        Some(match self.enclosing_bounded.contains(name) {
+        Some(match self.enclosing_bounded.contains_key(name) {
             true => RigidParam::Bounded,
             false => RigidParam::Unbounded,
         })
+    }
+
+    /// The names in `generics` that write a bound (`<T: Named>`), each with
+    /// the bound lowered, or `None` where the checker does not read it (an
+    /// `extern_ts` or `typeof` bound, or a cycle of parameters bounding one
+    /// another).
+    fn bounded_generics(&self, generics: &[glyph_ast::GenericParam]) -> HashMap<Ident, Option<Ty>> {
+        let lowered: HashMap<Ident, Ty> = generics
+            .iter()
+            .filter_map(|g| Some((g.name.clone(), self.lowerer.lower(g.bounds.first()?))))
+            .collect();
+        let names: Vec<&Ident> = generics.iter().map(|g| &g.name).collect();
+        lowered
+            .iter()
+            .map(|(name, bound)| {
+                // Follow a chain of bounds that are each a bare parameter of
+                // this list (`<T: U, U: V>`); one that comes back on itself
+                // has no bound to read.
+                let mut seen = vec![name];
+                let mut cur = bound;
+                let cyclic = loop {
+                    let Ty::Param { name: next, .. } = cur else {
+                        break false;
+                    };
+                    if !names.contains(&next) {
+                        break false;
+                    }
+                    if seen.contains(&next) {
+                        break true;
+                    }
+                    seen.push(next);
+                    match lowered.get(next) {
+                        Some(b) => cur = b,
+                        None => break false,
+                    }
+                };
+                let readable = !cyclic && !matches!(bound, Ty::Unknown);
+                (name.clone(), readable.then(|| bound.clone()))
+            })
+            .collect()
+    }
+
+    /// The bound of one of the enclosing body's own parameters, when it
+    /// writes one the checker reads.
+    fn rigid_bound(&self, ty: &Ty) -> Option<&Ty> {
+        let Ty::Param { name, owner } = ty else {
+            return None;
+        };
+        if !self.is_own_param(name, owner) {
+            return None;
+        }
+        self.enclosing_bounded.get(name)?.as_ref()
+    }
+
+    /// `ty` as a receiver: one of the enclosing body's own bounded
+    /// parameters is read as its bound (G263, record 182), followed through
+    /// a bound that is itself such a parameter (`<U: Named, T: U>`). A
+    /// member read, a method call, an index read and a `for` over a value
+    /// of `T: Named` are checked against `Named`'s members exactly as for a
+    /// value of type `Named`. Anything else is returned as it is.
+    fn read_through_bound(&self, ty: &Ty) -> Ty {
+        let mut cur = ty;
+        // `bounded_generics` drops a cycle, so the chain ends; the cap is
+        // the number of parameters a declaration can write in practice.
+        for _ in 0..16 {
+            match self.rigid_bound(cur) {
+                Some(bound) => cur = bound,
+                None => break,
+            }
+        }
+        cur.clone()
     }
 
     /// G314, step 2 (record 88). The verdict on a pairing in which one of
@@ -8552,9 +8625,13 @@ impl Assigner<'_> {
     ///
     /// A bounded `T: Named` is the same where it is declared, since a caller
     /// may choose any `T` the bound admits. As a value it passes wherever
-    /// its bound does, and the bound is not read yet (G263), so a bounded
-    /// parameter where anything but itself or another of the body's
-    /// parameters is declared stays undecided here, as it was before.
+    /// its bound does (G263, record 179): a `T: Named` passes where `Named`
+    /// is declared and is refused where `Other` is, as `tsc` refuses it
+    /// (TS2322). Where a `Nullable<X>` is declared it is compared against
+    /// `X` first, so it passes where `Nullable<T>` is declared, as an
+    /// unbounded one does. A bound the checker does not read (an
+    /// `extern_ts` or `typeof` type, or a cycle) leaves the parameter
+    /// decided only against another of the body's parameters.
     ///
     /// What stays undecided: a value of `unknown` where `T` is declared (that
     /// is G325's), a `void`, and anything the relation cannot read as a
@@ -8570,14 +8647,22 @@ impl Assigner<'_> {
         }
         match found_rigid {
             None => Some(self.distinct_from_rigid_param(found, 0)),
-            // Another of the body's parameters is not assignable from a
-            // bounded one, whatever the bound says.
-            Some(RigidParam::Bounded) => Some(expected_rigid),
-            Some(RigidParam::Unbounded) => {
+            Some(rigid) => {
                 if let Some(("Nullable", args)) = self.container_through_aliases(expected, 0) {
                     return Some(args.first().is_some_and(|inner| self.assign_incompatible_at(found, inner, position)));
                 }
-                Some(self.distinct_from_rigid_param(expected, 0))
+                match (rigid, self.rigid_bound(found)) {
+                    (RigidParam::Unbounded, _) => Some(self.distinct_from_rigid_param(expected, 0)),
+                    // The bound stands in for the parameter: whatever a
+                    // caller chooses is assignable to it. A bound that is
+                    // another of the body's parameters (`<U, T: U>`) passes
+                    // where that parameter is declared, through the same
+                    // rule one step on.
+                    (RigidParam::Bounded, Some(bound)) => Some(self.assign_incompatible_at(bound, expected, position)),
+                    // An unread bound: another of the body's parameters is
+                    // not assignable from it, and nothing else is decided.
+                    (RigidParam::Bounded, None) => Some(expected_rigid),
+                }
             }
         }
     }
@@ -10186,11 +10271,12 @@ impl Assigner<'_> {
     /// g<T>`) is decided there like any other position (G314): refused
     /// unless `V` is `unknown` or that same parameter.
     ///
-    /// A bounded one keeps the rule it had before the relation decided
-    /// parameters: refused unless `V` is `unknown` or that parameter. It is
-    /// stricter than `tsc` where `V` is the bound itself, and it is what
-    /// holds until the bound is read (G263); dropping it would let a `T:
-    /// Named` field pass where `Record<string, string>` is declared.
+    /// A bounded one is decided through its bound (G263) like any other
+    /// position, so a `T: Named` field passes where `Record<string, Named>`
+    /// is declared and is refused where `Record<string, string>` is. One
+    /// whose bound the checker does not read keeps the rule it had before
+    /// the relation decided parameters: refused unless `V` is `unknown` or
+    /// that parameter.
     ///
     /// A parameter of anything else is not decided. One a callee declares
     /// and the call left unbound (`wrap([])` returning a `One<T>`) is known
@@ -10207,7 +10293,7 @@ impl Assigner<'_> {
     /// The relation expands both sides on entry, so only the bounded rule
     /// below needs to do it itself.
     fn map_field_incompatible(&self, field: &Ty, value: &Ty) -> bool {
-        if self.rigid_param(field) == Some(RigidParam::Bounded) {
+        if self.rigid_param(field) == Some(RigidParam::Bounded) && self.rigid_bound(field).is_none() {
             let value = self.expand_transparent(value);
             return !matches!(value, Ty::UnknownTop) && *field != value;
         }
@@ -12041,22 +12127,13 @@ fn alias_body_applied(body: &Ty, owner: &ParamOwner, generics: &[Ident], args: &
 }
 
 /// One of the enclosing body's own type parameters, as the relation decides
-/// it (G314). A bounded one is decided only where it is declared, since its
-/// bound is not read yet (G263).
+/// it (G314). A bounded one is decided as a value through its bound (G263).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RigidParam {
     Unbounded,
     Bounded,
 }
 
-/// The names in `generics` that write a bound (`<T: Named>`).
-fn bounded_generics(generics: &[glyph_ast::GenericParam]) -> HashSet<Ident> {
-    generics
-        .iter()
-        .filter(|g| !g.bounds.is_empty())
-        .map(|g| g.name.clone())
-        .collect()
-}
 
 /// A type parameter's identity (G314): the declaration that owns it, and its
 /// name. Two `T`s are one parameter only when both agree.
@@ -19248,7 +19325,7 @@ component View(props: { s: Status }) -> Component {
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
             enclosing_owner: None,
-            enclosing_bounded: HashSet::new(),
+            enclosing_bounded: HashMap::new(),
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -24014,23 +24091,155 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// G314, step 2. A bounded parameter where it is declared is decided
-    /// like any other: a caller may choose any `T` the bound admits, so a
-    /// `Named` is not a `T: Named`. As a value it would pass wherever its
-    /// bound does (record 88), but the resolver does not resolve a bound yet
-    /// (G263), so it keeps the treatment it had: undecided at a return, and
-    /// a field of it refused where a `Record<string, V>` is declared unless
-    /// `V` is `unknown` or that parameter.
+    /// G263 (record 179). A bounded parameter where it is declared is
+    /// decided like any other: a caller may choose any `T` the bound admits,
+    /// so a `Named` is not a `T: Named`. As a value it passes wherever its
+    /// bound does, and is refused wherever its bound is. Each refused
+    /// function is one `tsc` refuses (TS2322); each accepted one `tsc`
+    /// accepts. `prim` and `field_string` bound by a record, since an
+    /// interface value where a primitive is declared is not refused by the
+    /// relation at all yet (G460).
     #[test]
-    fn a_bounded_type_parameter_keeps_its_treatment_until_the_bound_is_read() {
+    fn a_bounded_type_parameter_is_decided_through_its_bound() {
         let src = "module m\n\
              type Box<T> = { v: T, }\n\
              interface Named { name: string }\n\
+             type Person = { name: string, age: number, }\n\
+             type Other = { id: number, }\n\
              fn bounded<T: Named>(x: T) -> Named { return x }\n\
+             fn other<T: Named>(x: T) -> Other { return x }\n\
+             fn prim<T: Person>(x: T) -> string { return x }\n\
              fn into_bounded<T: Named>(n: Named) -> T { return n }\n\
-             fn field_string<T: Named>(b: Box<T>) -> Record<string, string> { return b }\n\
+             fn same<T: Named>(x: T) -> T { return x }\n\
+             fn nullable<T: Named>(x: T) -> Nullable<T> { return x }\n\
+             fn nullable_bound<T: Named>(x: T) -> Nullable<Named> { return x }\n\
+             fn top<T: Named>(x: T) -> unknown { return x }\n\
+             fn person<T: Person>(x: T) -> Named { return x }\n\
+             fn str_bound<T: string>(x: T) -> string { return x }\n\
+             fn str_num<T: string>(x: T) -> number { return x }\n\
+             fn arr<T: Named>(x: Array<T>) -> Array<Named> { return x }\n\
+             fn arr_out<T: Named>(x: Array<T>) -> Array<Other> { return x }\n\
+             fn sibling<U, T: U>(x: T) -> U { return x }\n\
+             fn sibling_out<U, T: U>(x: T) -> string { return x }\n\
+             fn other_param<T: Named, U: Named>(x: T) -> U { return x }\n\
+             fn field_string<T: Person>(b: Box<T>) -> Record<string, string> { return b }\n\
+             fn field_named<T: Named>(b: Box<T>) -> Record<string, Named> { return b }\n\
              fn field_top<T: Named>(b: Box<T>) -> Record<string, unknown> { return b }\n";
-        assert_eq!(fns_with_mismatches(src), ["field_string", "into_bounded"]);
+        assert_eq!(
+            fns_with_mismatches(src),
+            [
+                "arr_out",
+                "field_string",
+                "into_bounded",
+                "other",
+                "other_param",
+                "prim",
+                "sibling_out",
+                "str_num",
+            ]
+        );
+    }
+
+    /// G263 (record 182). The bound is compared by the relation as it is,
+    /// so a structural interface bound is not the nominal record it matches:
+    /// `T: HasName` where the record `Named` is declared is refused, as the
+    /// concrete `HasName` is. `tsc` accepts that one; it is the one
+    /// refusal here `tsc` does not make, and it is intended. A bound naming
+    /// a sibling passes where that sibling is declared, and a lambda inside
+    /// the declaring function is held to the same rule.
+    #[test]
+    fn a_bounded_parameter_is_compared_as_its_bound_by_the_relation() {
+        let src = "module m\n\
+             type Named = { name: string, }\n\
+             type Other = { id: number, }\n\
+             interface HasName { name: string }\n\
+             fn iface_to_record<T: HasName>(x: T) -> Named { return x }\n\
+             fn record_to_iface<T: Named>(x: T) -> HasName { return x }\n\
+             fn sibling<T, U: T>(x: U) -> T { return x }\n\
+             fn sibling_chain<T: Named, U: T>(x: U) -> Named { return x }\n\
+             fn sibling_chain_out<T: Named, U: T>(x: U) -> Other { return x }\n\
+             fn in_lambda<T: Named>(x: T) -> number {\n  let g = fn() -> Other { return x }\n  return 1\n}\n\
+             fn lambda_ok<T: Named>(x: T) -> number {\n  let g = fn() -> Named { return x }\n  return 1\n}\n\
+             fn unbounded<T>(x: T) -> Named { return x }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            ["iface_to_record", "sibling_chain_out", "unbounded"]
+        );
+        let lambda = errors_of(src)
+            .iter()
+            .filter(|e| matches!(e, TypeError::TypeMismatch { expected, .. } if expected == "Other"))
+            .count();
+        assert_eq!(lambda, 2, "sibling_chain_out and the lambda in in_lambda");
+    }
+
+    /// G263 (record 182). A member read, a method call and a `for` over a
+    /// value of `T: B` are checked against `B` as for a value of type `B`.
+    /// `x.nmae` is E0210 naming `name`, `a.rnak()` on an interface bound is
+    /// E0210 naming `rank`, a member's type is the bound's member's type, and
+    /// a component's bounded props parameter is read the same way. An
+    /// unbounded parameter's member read stays unchecked (record 182, N4).
+    #[test]
+    fn a_member_of_a_bounded_parameter_is_read_off_its_bound() {
+        let src = "module m\n\
+             type Named = { name: string, }\n\
+             interface Ranked { fn rank() -> number }\n\
+             interface HasLabel { label: string }\n\
+             fn typo<T: Named>(x: T) -> string { return x.nmae }\n\
+             fn wrong_ty<T: Named>(x: T) -> number { return x.name }\n\
+             fn method_typo<T: Ranked>(a: T) -> number { return a.rnak() }\n\
+             fn method_ty<T: Ranked>(a: T) -> string { return a.rank() }\n\
+             fn chained<T: Named, U: T>(x: U) -> string { return x.nmae }\n\
+             fn iterate<T: Array<string>>(xs: T) -> number {\n  for s in xs {\n    let n: number = s\n  }\n  return 1\n}\n\
+             fn unbounded<T>(x: T) -> string { return x.name }\n\
+             component Typo<T: HasLabel>(p: T) { return <p>{p.lable}</p> }\n";
+        let errs = errors_of(src);
+        let mut unknown: Vec<(String, Option<String>)> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::UnknownField { field, suggestion, .. } => Some((field.clone(), suggestion.clone())),
+                _ => None,
+            })
+            .collect();
+        unknown.sort();
+        assert_eq!(
+            unknown,
+            [
+                ("lable".to_string(), Some("label".to_string())),
+                ("nmae".to_string(), Some("name".to_string())),
+                ("nmae".to_string(), Some("name".to_string())),
+                ("rnak".to_string(), Some("rank".to_string())),
+            ]
+        );
+        let mismatched: Vec<(String, String)> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, .. } => Some((expected.clone(), found.clone())),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            mismatched,
+            [
+                ("number".to_string(), "string".to_string()),
+                ("string".to_string(), "number".to_string()),
+                ("number".to_string(), "string".to_string()),
+            ]
+        );
+    }
+
+    /// G263. A bound the checker does not read (a cycle of parameters
+    /// bounding each other, which `tsc` refuses on its own as TS2313, or an
+    /// `extern_ts` type) leaves the parameter decided only against another
+    /// of the body's parameters, and a field of it keeps the map rule.
+    #[test]
+    fn an_unread_bound_leaves_the_parameter_undecided() {
+        let src = "module m\n\
+             type Box<T> = { v: T, }\n\
+             fn cyc<T: U, U: T>(x: T) -> string { return x }\n\
+             fn ext<T: extern_ts(\"{ a: string }\")>(x: T) -> string { return x }\n\
+             fn ext_param<T: extern_ts(\"{ a: string }\"), U>(x: T) -> U { return x }\n\
+             fn ext_field<T: extern_ts(\"{ a: string }\")>(b: Box<T>) -> Record<string, string> { return b }\n";
+        assert_eq!(fns_with_mismatches(src), ["ext_field", "ext_param"]);
     }
 
     /// G456 and G458, through G315's transparent declarations. A field typed

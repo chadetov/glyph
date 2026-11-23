@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-457 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+458 entries, 327 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 111 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -12103,7 +12103,7 @@ and is the owner's to confirm.
   and `stages: ["front", "lints"]`; the `C => 3` edit answers `ok: true` with
   `stages: ["front", "lints", "emit"]`.
 
-- **G314. A type parameter nested in a type is not compared.**
+- **G314. [FIXED] A type parameter nested in a type is not compared.**
   `fn g<T>(x: Array<T>) -> Array<string> { return x }` passes Glyph's checker,
   and `tsc` refuses it (``TS2322: Type 'T[]' is not assignable to type
   'string[]'``). The same open parameter inside a record field passes where
@@ -12159,6 +12159,23 @@ and is the owner's to confirm.
   Nothing above is refused yet: `fn g<T>(x: Array<T>) -> Array<string>`
   still passes `--no-tsc`, which is step 2's (0.1.172), so the entry stays
   open.
+
+  Fixed in 0.1.172 (step 2, record 88, record 175; D58). Inside `fn f<T>` the
+  function's own `T` equals only itself: it passes where `T`, `unknown` or
+  `Nullable<T>` is declared, and every other type the checker reads is
+  refused in both directions at every depth. `fn g<T>(x: Array<T>) ->
+  Array<string> { return x }` goes from exit 0 to ``[E0204] type mismatch:
+  expected `Array<string>`, found `Array<T>` `` under `check --no-tsc`, and
+  record 83's field case, a `Box<T>` holding `value: Array<T>` returned where
+  `Record<string, Array<string>>` is declared, from exit 0 to E0204; `tsc`
+  refuses both (TS2322). The object-literal spelling quoted in the earlier
+  reproductions, `{ items: { a: x } }`, passes `--no-tsc` with a plain
+  `number` in place of `x` as well, so it is not about type parameters; it
+  is G454. Before the first refusal, a corpus gate (`param_owner_gate.rs`)
+  was added that requires no parameter without an owner to reach the
+  relation, and substitution was keyed by owner and name. A bounded `T:
+  Named` keeps its earlier treatment as a value until the resolver reads a
+  bound (G263). The two-binary run over 285 corpus units differs nowhere.
 
 - **G315. [FIXED] A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
@@ -15570,3 +15587,19 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.169 (the release build) by record 180's probe m:
   the function is E0204.*
+
+- **G454. An object literal is not compared where a `Record<string, V>` is
+  declared.** `fn a(x: number) -> Record<string, Array<string>> { return {
+  a: x, } }` passes Glyph's checker, and `tsc` refuses it (``TS2322: Type
+  'number' is not assignable to type 'string[]'``). The same literal held in
+  a record field (`{ items: { a: x } }` where a field is declared
+  `Record<string, Array<string>>`) passes too. D57 lists a declared `Record<K,
+  V>` among the types a written literal is not judged against, and the
+  relation sees the literal as `Ty::Unknown`, so no rule reads its values
+  against `V`. This is the spelling G314's earlier reproductions quoted for
+  its field case; it is independent of type parameters. Found while building
+  0.1.172.
+
+  *Reproduced against 0.1.167 (the published release) and the 0.1.172
+  branch build: `check --no-tsc` exits 0 on both programs; full `check`
+  under 0.1.167 reports TS2322 for each.*

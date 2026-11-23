@@ -50,7 +50,7 @@ pub use assign::{
     imported_string_literal_union_values,
     prelude_app, prelude_container, declared_record_fields, expand_transparent, resolve_alias_chain,
     split_type_app,
-    Assignability,
+    unowned_params_at_relation, Assignability,
     CoverageCatchAll, CoverageDecline, CoverageGap, CoverageMention, CoverageSite,
     CoverageSiteRef, CoverageState, CoverageTypeName, DeclTyResolver, FieldAccess, FieldOwner,
     FieldSite, FileFieldUses, FileMatchCoverage, LocalDeclTy,

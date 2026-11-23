@@ -14,7 +14,7 @@
 
 use std::cell::{OnceCell, RefCell};
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use glyph_ast::{
     jsx_member_name, ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild,
@@ -8505,18 +8505,13 @@ impl Assigner<'_> {
     }
 
     /// Whether the type parameter `name`, owned by `owner`, is one the body
-    /// being walked declares. Decided by owner and name together (G314, step
-    /// 1): a `T` some callee declares is a different parameter from the
-    /// enclosing `fn f<T>`'s `T`. A parameter with no known owner is matched
-    /// by name, the rule every parameter had before owners were filled.
+    /// being walked declares. Decided by owner and name together (G314): a
+    /// `T` some callee declares is a different parameter from the enclosing
+    /// `fn f<T>`'s `T`. A parameter with no known owner is never one, since
+    /// nothing says which declaration it belongs to (record 175); the gate
+    /// `unowned_params_at_relation` keeps such parameters out of the corpus.
     fn is_own_param(&self, name: &Ident, owner: &ParamOwner) -> bool {
-        if !self.key_generics.contains(name) {
-            return false;
-        }
-        match owner {
-            ParamOwner::Unresolved => true,
-            owner => self.enclosing_owner.as_ref() == Some(owner),
-        }
+        self.key_generics.contains(name) && self.enclosing_owner.as_ref() == Some(owner)
     }
 
     fn refusal(&self, expected: &Ty, found: String, span: Span) -> Refusal {
@@ -9272,6 +9267,7 @@ impl Assigner<'_> {
         // every depth the relation recurses into.
         let found = &self.expand_transparent(found);
         let expected = &self.expand_transparent(expected);
+        note_unowned_params(found, expected);
         if position == Position::RecordKey {
             return self.record_keys_differ(found, expected);
         }
@@ -11511,6 +11507,56 @@ fn mentions_any_param(ty: &Ty, names: &HashSet<Ident>) -> bool {
     let mut found = HashSet::new();
     param_names_into(ty, &mut found);
     !found.is_disjoint(names)
+}
+
+/// Whether any type parameter `ty` names answers `pred`.
+fn any_param(ty: &Ty, pred: &dyn Fn(&Ident, &ParamOwner) -> bool) -> bool {
+    match ty {
+        Ty::Param { name, owner } => pred(name, owner),
+        Ty::App { base, args } => any_param(base, pred) || args.iter().any(|a| any_param(a, pred)),
+        Ty::Record { fields } => fields.iter().any(|f| any_param(&f.ty, pred)),
+        Ty::Fn { params, return_ty, .. } => {
+            params.iter().any(|p| any_param(&p.ty, pred)) || any_param(return_ty, pred)
+        }
+        Ty::Union { variants } => variants
+            .iter()
+            .any(|v| v.payload.as_ref().is_some_and(|p| any_param(p, pred))),
+        Ty::Pending(inner) => any_param(inner, pred),
+        _ => false,
+    }
+}
+
+/// How many pairings the relation has been handed, in this process, that
+/// held a type parameter with no owner (`ParamOwner::Unresolved`), and the
+/// first `UNOWNED_SAMPLE` of them.
+///
+/// A parameter is decided only when its owner is the callable whose body is
+/// being walked (G314), so one with no owner is never decided, and a miss
+/// would make a check silently weaker rather than wrong. Record 175 asks for
+/// that to be measured, not assumed: the corpus gate
+/// (`glyph-cli/tests/param_owner_gate.rs`) checks every unit in one process
+/// and requires the count to stay at zero. A path that produces one is fixed
+/// where it produces it, never decided by name.
+static UNOWNED_PARAMS: Mutex<(usize, Vec<String>)> = Mutex::new((0, Vec::new()));
+const UNOWNED_SAMPLE: usize = 32;
+
+fn note_unowned_params(found: &Ty, expected: &Ty) {
+    let unowned = |_: &Ident, owner: &ParamOwner| matches!(owner, ParamOwner::Unresolved);
+    if !any_param(found, &unowned) && !any_param(expected, &unowned) {
+        return;
+    }
+    if let Ok(mut seen) = UNOWNED_PARAMS.lock() {
+        seen.0 += 1;
+        if seen.1.len() < UNOWNED_SAMPLE {
+            seen.1.push(format!("found {found:?}, expected {expected:?}"));
+        }
+    }
+}
+
+/// The count and the sample `UNOWNED_PARAMS` holds. For the corpus gate only.
+#[doc(hidden)]
+pub fn unowned_params_at_relation() -> (usize, Vec<String>) {
+    UNOWNED_PARAMS.lock().map(|seen| seen.clone()).unwrap_or_default()
 }
 
 fn ty_has_param(ty: &Ty) -> bool {

@@ -10036,12 +10036,18 @@ impl Assigner<'_> {
     /// is not a parameter of the body being walked, so nothing about it is
     /// known here and the pairing is not decided, as `tsc` infers `never`
     /// for it and accepts.
+    ///
+    /// `V` is read through its transparent declarations first (D46, G315),
+    /// so `Record<string, Same<T>>` with `type Same<T> = T` gives the answer
+    /// `Record<string, T>` gives: the expansion substitutes the argument,
+    /// which keeps its owner, so the parameter it yields is the body's `T`.
     fn map_field_incompatible(&self, field: &Ty, value: &Ty) -> bool {
         if let Ty::Param { owner, .. } = field {
             if owner.is_callable() && self.enclosing_owner.as_ref() != Some(owner) {
                 return false;
             }
-            return !matches!(value, Ty::UnknownTop) && field != value;
+            let value = self.expand_transparent(value);
+            return !matches!(value, Ty::UnknownTop) && *field != value;
         }
         self.assign_incompatible(field, value)
     }
@@ -23618,6 +23624,41 @@ fn f(a: Answer) -> number {
         at.sort();
         let want = |f: &'static str| ("Record<string, string>".to_string(), "One<T>".to_string(), f);
         assert_eq!(at, vec![want("fn f2"), want("fn f3")], "{errs:?}");
+    }
+
+    /// G314, step 1, through G315's transparent declarations. The expansion
+    /// of `W<T>`, `L<T>` and `Same<T>` substitutes arguments that keep their
+    /// owners, so `wrapw([])` through two second names is accepted as
+    /// `wrap([])` is (`a1`, and `a3` inside a `fn a3<T>`), a field typed by
+    /// the enclosing `T` is refused through them (`r1`, `r3`), and a
+    /// `Record<string, Same<T>>` takes it as `Record<string, T>` does (`ok1`,
+    /// which `tsc` accepts).
+    #[test]
+    fn owners_survive_the_expansion_of_a_second_name() {
+        let src = "module m\n\
+             type One<T> = { v: T, }\n\
+             type Same<T> = T\n\
+             type W<T> = One<T>\n\
+             type L<T> = Array<T>\n\
+             fn wrapw<T>(xs: L<T>) -> W<T> { return { v: xs[0], } }\n\
+             fn a1() -> Record<string, string> { return wrapw([]) }\n\
+             fn a3<T>() -> Record<string, Same<string>> { return wrapw([]) }\n\
+             fn r1<T>(x: W<T>) -> Record<string, string> { return x }\n\
+             fn r3<T>(xs: L<T>) -> Record<string, string> { return wrapw(xs) }\n\
+             fn ok1<T>(x: W<T>) -> Record<string, Same<T>> { return x }\n";
+        let errs = errors_of(src);
+        let mut at: Vec<&str> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { span, .. } => {
+                    let line_start = src[..span.start as usize].rfind('\n').map_or(0, |n| n + 1);
+                    src[line_start..].split(['<', '(']).next()
+                }
+                _ => None,
+            })
+            .collect();
+        at.sort();
+        assert_eq!(at, vec!["fn r1", "fn r3"], "{errs:?}");
     }
 
     /// G293. A tagged union has no fields in Glyph, and its runtime encoding

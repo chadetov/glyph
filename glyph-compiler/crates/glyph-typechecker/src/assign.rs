@@ -1278,6 +1278,9 @@ struct Assigner<'a> {
     /// type that names itself through a member does not recurse without end.
     /// See the interface arm of `assign_incompatible_at`.
     relating: RefCell<Vec<(Ty, Ty)>>,
+    /// Whether each transparent declaration the relation has met refers to
+    /// itself (G315, record 176), answered once per declaration.
+    recursive_transparent: RefCell<HashMap<DeclKey, bool>>,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -1471,6 +1474,7 @@ impl<'a> Assigner<'a> {
             absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
+            recursive_transparent: RefCell::new(HashMap::new()),
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -6958,18 +6962,16 @@ impl Assigner<'_> {
     /// replaced by its body with the arguments substituted, at every depth,
     /// so `Record<string, Same<number>>` reads as `Record<string, number>`
     /// and `L<string>` as `Array<string>` (G315).
+    ///
+    /// It terminates because a recursive transparent declaration is never
+    /// expanded (`transparent_body`), so each expansion reaches only
+    /// declarations further down an acyclic graph.
     fn canonicalize_aliases(&self, ty: &Ty) -> Ty {
-        self.canonicalize_aliases_at(ty, 0)
-    }
-
-    fn canonicalize_aliases_at(&self, ty: &Ty, depth: usize) -> Ty {
-        let structural = self.canonicalize_structure(ty, depth);
-        if depth < TRANSPARENT_DEPTH {
-            if let Some(body) = self.transparent_body(&structural) {
-                return self.canonicalize_aliases_at(&body, depth + 1);
-            }
+        let structural = self.canonicalize_structure(ty);
+        match self.transparent_body(&structural) {
+            Some(body) => self.canonicalize_aliases(&body),
+            None => structural,
         }
-        structural
     }
 
     /// The body a transparent declaration stands for at this application of
@@ -6996,16 +6998,29 @@ impl Assigner<'_> {
     /// it, so the expansion cannot depend on how a site wrote the type.
     fn transparent_body(&self, ty: &Ty) -> Option<Ty> {
         let (base, args) = split_type_app(ty);
+        let (key, body, generics) = self.transparent_decl(base)?;
+        if self.is_recursive_transparent(&key, &body) {
+            return None;
+        }
+        alias_body_applied(&body, &generics, args)
+    }
+
+    /// The declaration `base` names when it is transparent: its identity,
+    /// its lowered body (unsubstituted) and its parameters. `None` for a
+    /// declaration with an identity or a body this checker does not read
+    /// through, and for anything that is not a declared name. `base` must be
+    /// at the end of its chain of second names.
+    fn transparent_decl(&self, base: &Ty) -> Option<(DeclKey, Ty, Vec<Ident>)> {
         match base {
             Ty::Imported { module, name } => {
-                let (_, _, decl) =
+                let (module, name, decl) =
                     imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())?;
                 if decl.refined || !is_transparent_body(&decl.body) {
                     return None;
                 }
-                alias_body_applied(&decl.body, &decl.generics, args)
+                Some((DeclKey::Imported(module, name), decl.body, decl.generics))
             }
-            Ty::Named { .. } => {
+            Ty::Named { symbol, .. } => {
                 let td = self.direct_type_decl(base)?;
                 if td.refinement.is_some()
                     || !matches!(&td.body, TypeExpr::Path { .. } | TypeExpr::Generic { .. })
@@ -7017,9 +7032,70 @@ impl Assigner<'_> {
                     return None;
                 }
                 let generics: Vec<Ident> = td.generics.iter().map(|g| g.name.clone()).collect();
-                alias_body_applied(&body, &generics, args)
+                Some((DeclKey::Local(symbol.0), body, generics))
             }
             _ => None,
+        }
+    }
+
+    /// Whether the transparent declaration `key`, whose body is `body`,
+    /// refers to itself: directly (`type F = Array<F>`), or through other
+    /// transparent declarations and second names (`type A<T> = B<T>` beside
+    /// `type B<T> = A<T>`). Such a declaration is not expanded and keeps its
+    /// name (D46, record 176): expanding it would never end, and comparing
+    /// recursive types structurally is a separate rule (G455). Answered once
+    /// per declaration, with a visited set over the declarations reached, so
+    /// the walk is finite whatever the program declares. A record or a union
+    /// the body reaches is not walked into, because it is never expanded.
+    fn is_recursive_transparent(&self, key: &DeclKey, body: &Ty) -> bool {
+        if let Some(known) = self.recursive_transparent.borrow().get(key) {
+            return *known;
+        }
+        let mut visited: HashSet<DeclKey> = HashSet::new();
+        visited.insert(key.clone());
+        let recursive = self.reaches_decl(key, body, &mut visited);
+        self.recursive_transparent.borrow_mut().insert(key.clone(), recursive);
+        recursive
+    }
+
+    /// Whether a name inside `ty`, followed through second names and into
+    /// the bodies of transparent declarations, reaches `target`.
+    fn reaches_decl(&self, target: &DeclKey, ty: &Ty, visited: &mut HashSet<DeclKey>) -> bool {
+        match ty {
+            Ty::Named { .. } | Ty::Imported { .. } => {
+                let end = match ty {
+                    Ty::Named { .. } => self.resolve_alias_chain(ty),
+                    _ => ty.clone(),
+                };
+                let Some((key, body, _)) = self.transparent_decl(&end) else {
+                    // Not transparent, but it may still be the target reached
+                    // through a second name, which never is (a target is
+                    // transparent), so nothing further is reachable here.
+                    return false;
+                };
+                if &key == target {
+                    return true;
+                }
+                if !visited.insert(key) {
+                    return false;
+                }
+                self.reaches_decl(target, &body, visited)
+            }
+            Ty::App { base, args } => {
+                self.reaches_decl(target, base, visited)
+                    || args.iter().any(|a| self.reaches_decl(target, a, visited))
+            }
+            Ty::Fn { params, return_ty, .. } => {
+                params.iter().any(|p| self.reaches_decl(target, &p.ty, visited))
+                    || self.reaches_decl(target, return_ty, visited)
+            }
+            Ty::Record { fields } => fields.iter().any(|f| self.reaches_decl(target, &f.ty, visited)),
+            Ty::Union { variants } => variants
+                .iter()
+                .filter_map(|v| v.payload.as_ref())
+                .any(|p| self.reaches_decl(target, p, visited)),
+            Ty::Pending(inner) => self.reaches_decl(target, inner, visited),
+            _ => false,
         }
     }
 
@@ -7032,7 +7108,7 @@ impl Assigner<'_> {
     fn expand_transparent(&self, ty: &Ty) -> Ty {
         let mut current = ty.clone();
         let mut expanded = false;
-        for _ in 0..TRANSPARENT_DEPTH {
+        loop {
             let (base, args) = split_type_app(&current);
             let end = self.resolve_alias_chain(base);
             let at_end = match args.is_empty() {
@@ -7058,12 +7134,12 @@ impl Assigner<'_> {
 
     /// One level of `canonicalize_aliases`: every name inside `ty` followed
     /// to the end of its chain, with the parts canonicalized in full.
-    fn canonicalize_structure(&self, ty: &Ty, depth: usize) -> Ty {
+    fn canonicalize_structure(&self, ty: &Ty) -> Ty {
         match ty {
             Ty::Named { .. } => self.resolve_alias_chain(ty),
             Ty::App { base, args } => Ty::App {
-                base: Arc::new(self.canonicalize_aliases_at(base, depth)),
-                args: args.iter().map(|a| self.canonicalize_aliases_at(a, depth)).collect(),
+                base: Arc::new(self.canonicalize_aliases(base)),
+                args: args.iter().map(|a| self.canonicalize_aliases(a)).collect(),
             },
             Ty::Fn {
                 params,
@@ -7076,11 +7152,11 @@ impl Assigner<'_> {
                     .map(|p| FnParam {
                         name: p.name.clone(),
                         owned: p.owned,
-                        ty: self.canonicalize_aliases_at(&p.ty, depth),
+                        ty: self.canonicalize_aliases(&p.ty),
                         optional: p.optional,
                     })
                     .collect(),
-                return_ty: Arc::new(self.canonicalize_aliases_at(return_ty, depth)),
+                return_ty: Arc::new(self.canonicalize_aliases(return_ty)),
                 is_async: *is_async,
                 type_params: type_params.clone(),
             },
@@ -7089,7 +7165,7 @@ impl Assigner<'_> {
                     .iter()
                     .map(|f| RecordField {
                         name: f.name.clone(),
-                        ty: self.canonicalize_aliases_at(&f.ty, depth),
+                        ty: self.canonicalize_aliases(&f.ty),
                         optional: f.optional,
                     })
                     .collect(),
@@ -7099,7 +7175,7 @@ impl Assigner<'_> {
                     .iter()
                     .map(|v| UnionVariant {
                         name: v.name.clone(),
-                        payload: v.payload.as_ref().map(|p| self.canonicalize_aliases_at(p, depth)),
+                        payload: v.payload.as_ref().map(|p| self.canonicalize_aliases(p)),
                     })
                     .collect(),
             },
@@ -11715,10 +11791,14 @@ pub(crate) fn type_expr_source(te: &TypeExpr) -> String {
     }
 }
 
-/// How many transparent declarations (`Assigner::transparent_body`) are
-/// expanded through in one reading. A chain is one or two in practice; the
-/// bound is what stops `type R<T> = Array<R<T>>` from unfolding forever.
-const TRANSPARENT_DEPTH: usize = 8;
+/// A type declaration's identity for the recursion check of G315: a symbol
+/// of this module, or the `(module, name)` a sibling's chain of second names
+/// ends at.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum DeclKey {
+    Local(u32),
+    Imported(String, String),
+}
 
 /// Whether a lowered `type` body is one G315 expands: a primitive, `unknown`,
 /// a type parameter or a generic application. Everything else, a record, a
@@ -18883,6 +18963,7 @@ component View(props: { s: Status }) -> Component {
             absent_consumers: HashMap::new(),
             member_object: None,
             relating: RefCell::new(Vec::new()),
+            recursive_transparent: RefCell::new(HashMap::new()),
             decl_ty_resolver: resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -20144,6 +20225,51 @@ fn f(a: Answer) -> number {
                 "{param} as {ret}: {errs:?}"
             );
         }
+    }
+
+    /// Record 176's probes: a transparent declaration that refers to itself,
+    /// directly or through another, is not expanded and keeps its name
+    /// (D46), so each finishes, fast, with exactly the diagnostics 0.1.167
+    /// gave. Expanding them overflowed the stack. `(declarations, parameter,
+    /// return, refused)`: a refusal is the nominal E0204 naming both names.
+    #[test]
+    fn a_recursive_transparent_declaration_keeps_its_name() {
+        let cases: &[(&str, &str, &str, bool)] = &[
+            ("type F = Array<F>\n", "F", "Array<F>", false),
+            ("type F = Array<F>\n", "Array<F>", "F", false),
+            ("type F = Option<F>\ntype G = Option<G>\n", "F", "G", true),
+            ("type F = Array<F>\n", "F", "F", false),
+            ("type F = Array<F>\ntype H = Array<Array<H>>\n", "F", "H", true),
+            (
+                "type F<X> = Result<F<X>, F<X>>\ntype G<X> = Result<G<X>, G<X>>\n",
+                "F<number>",
+                "G<number>",
+                true,
+            ),
+            ("type F = Array<F>\ntype G = Array<G>\n", "F", "G", true),
+            // Through a second declaration: neither is expanded.
+            ("type A<T> = B<T>\ntype B<T> = A<T>\n", "A<number>", "B<number>", true),
+            ("type L = Array<P>\ntype P = L\n", "L", "Array<P>", false),
+        ];
+        for (decls, param, ret, refused) in cases {
+            let src = format!("module x\n{decls}fn g(x: {param}) -> {ret} {{\n  return x\n}}\n");
+            let errs = errors_of(&src);
+            let mismatch = errs.iter().any(|e| matches!(
+                e,
+                TypeError::TypeMismatch { expected, found, .. } if expected == ret && found == param
+            ));
+            assert_eq!(mismatch, *refused, "{decls}{param} as {ret}: {errs:?}");
+            assert_eq!(errs.len(), usize::from(*refused), "{decls}{param} as {ret}: {errs:?}");
+        }
+        // j1: a recursive map alias bound with `let` and passed on.
+        let errs = errors_of(
+            "module x\n\
+             type Json = Record<string, Json>\n\
+             type Node = { kids: Array<Node> }\n\
+             fn depth(j: Json) -> number {\n  return 1\n}\n\
+             fn go() -> number {\n  let j: Json = {}\n  let n: Node = { kids: [], }\n  return depth(j) + n.kids.length\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
     }
 
     /// What G315 leaves alone: a record and a union keep their identity

@@ -116,4 +116,4 @@ These keep a module honest: a dead import is exactly the kind of greppability no
 - Caching the cross-file index instead of rebuilding it per request (a speed win on large trees).
 - Remapping `glyph run`'s own crash stack, since `tsx` does not chain the emitted map through its transform, so that stack still names the emitted `.ts` rather than your `.glyph`.
 
-Code examples on this page are checked against Glyph 0.1.171 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.172 on every build. Last changed 21 Nov 2026.

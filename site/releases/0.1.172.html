@@ -1,0 +1,15 @@
+---
+version: 0.1.172
+month: 2026-11
+date: 2026-11-23
+tags: breaking
+headline: Inside a generic function, its own T is a type of its own
+---
+            <p>Glyph's checker did not hold a generic function to its own type parameter. Inside <code>fn g&lt;T&gt;(x: Array&lt;T&gt;) -&gt; Array&lt;string&gt;</code>, <code>return x</code> passed, and so did <code>return 5</code> where <code>T</code> is declared. Only <code>tsc</code> refused them, so the editor, the MCP tools and the <code>applyEdit</code> gate let them through. Building on 0.1.171, which records the declaration that owns each type parameter, the checker now decides a function's own <code>T</code> wherever that function checks a value.</p>
+
+            <p>A <code>T</code> stands where <code>T</code>, <code>unknown</code> or <code>Nullable&lt;T&gt;</code> is declared, and nowhere else. An <code>Array&lt;T&gt;</code> returned as <code>Array&lt;string&gt;</code>, a <code>number</code> returned as <code>T</code>, a <code>U</code> passed where <code>T</code> is declared, and <code>f(5)</code> with <code>f: fn(T) -&gt; T</code> are now E0204 or E0211. A parameter a callee leaves unbound is not yours to decide and stays open, as before. A <code>T</code> field where <code>Record&lt;string, Nullable&lt;T&gt;&gt;</code> is declared is now accepted, which was a false refusal.</p>
+
+            <p>Two edges remain. A bounded parameter such as <code>T: Named</code> is decided where <code>T</code> is declared, but not yet as a value, because bounds are not resolved; that is the next release, 0.1.173. And a function's last expression is not yet compared with its declared return type at all, so <code>fn f&lt;T&gt;(x: T) -&gt; string { x }</code> still passes; that is 0.1.174.</p>
+
+            <h3>Breaking</h3>
+            <p>Under <code>check --no-tsc</code> only. Every new refusal is one <code>tsc</code> already makes: <code>fn g&lt;T&gt;(x: Array&lt;T&gt;) -&gt; Array&lt;string&gt; { return x }</code> exits 0 under 0.1.171's <code>--no-tsc</code> and 1 under 0.1.172, and full <code>check</code> was red on both. Across 285 tracked programs nothing changed.</p>

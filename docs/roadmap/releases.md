@@ -8735,6 +8735,8 @@ concrete follow-ups, in priority order:
 
 **G490, an `extern_ts` value where a string-literal union is declared** (filed with 0.1.176): `extern_ts("\"read\"")` returned as `"read" | "write"` is refused by `string_literal_union_verdict`, though `tsc` accepts it. A false refusal that predates D65; an `extern_ts` value is not judged anywhere else, so it should not be judged here. Measure with the two-binary run.
 
+**`glyph fix` reads E0240's position from a field, not its message** (record 192): the decline names the one reason that applied by matching words in E0240's message, and a test pins each of the six positions. Carry the `MutationSite` on the diagnostic beside `comparator_missing`, the way `insert_before` already carries the repair, and have `fix` match on it, so a reworded message cannot change what `fix` says.
+
 **G500, a `bigint` is typed as `number`** (record 187): `return 5n` under `-> number` and `let y: number = x` with `x: bigint` pass `check --no-tsc`, and `tsc` refuses both (TS2322). Lower the prelude `bigint` and a bigint literal to a type of their own, distinct from `number` as D38 says, and relate it to nothing but itself, `unknown` and `Nullable<bigint>`. Breaking under `--no-tsc` only; measure the corpus with the two-binary run. E0243's help for a `bigint` array with no written type follows from it.
 
 **G419, `__glyph_pairs` hands `tsc` `any` bindings for an untyped iterand** (record 146): a two-binding `for` over an `extern_ts` or untyped npm value binds `any` for `tsc` and nothing for Glyph's checker, so `let s: string = i` passes and throws at run time. Type the helper's pairs `unknown`, or bind both names `unknown` the way a declared `unknown` iterand does since 0.1.158, and measure the corpus for new refusals.

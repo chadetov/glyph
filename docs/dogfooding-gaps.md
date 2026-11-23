@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-467 entries, 335 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-112 are open. G144, the D28 boundary cast that never reached the returns a
+468 entries, 335 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+113 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16051,3 +16051,22 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.172 (the published release) and the 0.1.176
   branch build: both calls pass `check --no-tsc`.*
+
+- **G500. A `bigint` is typed as `number` by Glyph's checker.** `1n` is a
+  `number` to the checker, and so is a value declared `bigint`, because the
+  prelude `bigint` lowers to the same type as `number`. `fn f() -> number {
+  return 5n }`, `let y: number = x` with `x: bigint`, and the annotated
+  comparator `fn(a: bigint, b: bigint) -> number { return a - b }` all pass
+  `check --no-tsc`, and `tsc` refuses each (``TS2322: Type 'bigint' is not
+  assignable to type 'number'``). `let x = 1n` returned under `-> string` is
+  refused, but the refusal says ``found `number` ``. D38 says the two are
+  distinct. One visible effect: E0243's help for `let xs = [1n, 2n]` then
+  `mut xs.sort()` writes the `number` comparator, because the checker reads
+  the elements as numbers; the refusal is right and the help follows once
+  the literal is typed right, so E0243 takes no workaround of its own. Found
+  by decision record 187 reviewing 0.1.177.
+
+  *Reproduced against 0.1.172 (the published release) and the 0.1.177 branch
+  build by record 187's probes t2 and t3: `check --no-tsc` exits 0 on the
+  three programs; full `check` reports TS2322 for each.*
+

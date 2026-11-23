@@ -131,4 +131,4 @@ Those three examples are each a bug that was in the code first. Writing a mock g
 - The compiler cannot yet warn that you forgot.
 - And there is still no way to write down that a function does not return, so a server's `main` carries a `return 0` that is never reached.
 
-Code examples on this page are checked against Glyph 0.1.169 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.170 on every build. Last changed 21 Nov 2026.

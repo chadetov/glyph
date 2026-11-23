@@ -14883,17 +14883,18 @@ and is the owner's to confirm.
   v.lenght` is E0210, `return v` inside it under `-> number` is E0204, and
   `is Record<string, number> => v[k]` is E0224 as the same read on a
   declared map is. The arm-value form, `is Array<string> => v` as the value
-  of a returned `match`, still passes: no `match` arm's value is compared
-  with its declared position (G470). A map is recognized, and its `V`
+  of a returned `match`, is E0204 through 0.1.174's per-arm comparison
+  (G470). A map is recognized, and its `V`
   read, through every spelling D46 covers: written out, a local alias or a
   chain of them, a named or namespace import of a sibling's alias, and an
   `is` arm naming one (record 183, F1). `Option`, `Result` and `Nullable`
   have no `is` check (E0300), so an arm naming one still does not narrow.
-  Breaking under `check --no-tsc`: those two arms went from exit 0 to 1 on
-  the published 0.1.170, and a declared `Record<string, unknown>` read from
-  1 to 0. The corpus (285 units: every app, every standalone file, catches,
-  the exact-or-absent sources and the negative tests) reports the same
-  diagnostics under 0.1.170 and the new build; its four container arms
+  Breaking under `check --no-tsc`: those two arms go from exit 0 to 1
+  against the published 0.1.172 and the 0.1.174 branch build, and a
+  declared `Record<string, unknown>` read from 1 to 0. The corpus (286
+  units: every app, every standalone file, catches, the exact-or-absent
+  sources and the negative tests) reports the same diagnostics under the
+  0.1.174 branch build and this one; its four container arms
   (`examples/01_validator.glyph` twice, `examples/corpus/infer_output.glyph`,
   `benchmarks/glyph/parse_user.glyph`) narrow and draw nothing new. The one
   emitted change is `01_validator`'s loop inside `is Array<unknown>`, which

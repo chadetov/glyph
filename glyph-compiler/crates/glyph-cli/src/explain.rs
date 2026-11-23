@@ -808,7 +808,16 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `record.has(m, k)` tests for the key alone. Writing is unaffected: \
             `mut m[k] = v` is how a map is built and is always safe. Indexing an \
             array (`xs[i]`) is also untouched, because a bound is a value a \
-            program can check with `array.len`.",
+            program can check with `array.len`.\n\n\
+            A map whose `V` is `unknown` is not reported. The read gives an \
+            `unknown`, which already covers an absent key, and the value has \
+            to be narrowed before anything uses it. The same holds inside an \
+            `is Record<string, unknown>` arm, which narrows the name it \
+            matches:\n\n\
+            \x20        match v {\n           \
+              is Record<string, unknown> => v[k],\n           \
+              else => v,\n         \
+            }",
 
         "E0225" => "E0225: a read and a write that straddle an `await`\n\n\
             The value being written was read before the function suspended, so a \
@@ -2472,7 +2481,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0224",
         phase: "typechecker",
-        meaning: "Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>`",
+        meaning: "Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there and `V` is not `unknown`. Use `record.get`, which returns `Option<V>`",
         fix: "`record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine",
     },
     CodeEntry {

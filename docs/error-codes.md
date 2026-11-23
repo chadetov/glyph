@@ -178,7 +178,7 @@ it. The prefix is a whole first segment, so a module called `standard`, or
 | `E0221` | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
 | `E0222` | `await` outside an `async fn` (the innermost enclosing callable decides, so a sync lambda inside an `async fn` is flagged) |
 | `E0223` | A `match` arm produces no value while the `match` is used as a value (an empty block, or a block whose tail is a `let`/`mut`/`for`/`loop`) |
-| `E0224` | Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>` |
+| `E0224` | Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there and `V` is not `unknown`. Use `record.get`, which returns `Option<V>` |
 | `E0225` | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await` |
 | `E0226` | A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else` |
 | `E0227` | `Nullable<T>` where `T` is itself `Nullable` or `Option` (D45). Two states would share one runtime spelling, or a tagged object would sit under a null-tolerant field. Write `Nullable` over the plain type |

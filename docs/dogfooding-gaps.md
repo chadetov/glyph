@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-451 entries, 323 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-108 are open. G144, the D28 boundary cast that never reached the returns a
+451 entries, 324 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+107 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15099,7 +15099,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with record 161's probe s02: `o1` and `o2` draw nothing under `check --no-tsc` (unused-variable warnings only); `a1` and `a2` are E0204.*
 
-- **G441. An escape inside the `${}` of a `"..."` string moves the nodes
+- **G441. [FIXED] An escape inside the `${}` of a `"..."` string moves the nodes
   after it.** In `"a${f(\"x\") + zz}"` the E0103 on `zz` underlines two bytes
   early: the expression is parsed from the string's value, where each `\"` is
   one byte, and nothing maps a position in the value back to the source.
@@ -15119,6 +15119,25 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.164 (the dev build): `zz` underlined at column 27
   where it starts at column 29.*
+
+  Fixed in 0.1.169 (decision record 166). A backslash inside the `${}` of a
+  `"..."` string is E0002 at the escape's own bytes (``` `\"` is an escape
+  inside the `${}` of a `"..."` string, which Glyph does not allow ```), with
+  the hoist help: bind the value with `let`, or write the string as
+  `"""..."""`. A `"..."` string nested in a `"""` interpolation is held to
+  the same rule. Triple-quoted strings are unchanged, and `"a\n${x}"` and
+  `"\${x}"` are accepted. Every span inside a template is now exact by
+  construction, so the fix driver's escape-region decline (record 168) is
+  removed: no module that parses has the region, and its one remaining
+  trigger was a backslash in a `"""` interpolation, whose ranges were
+  always exact, where it declined a correct repair. The record-169 polish
+  (reasons computed from shifted text) goes with it. `glyph fmt` now keeps
+  a single-line `"""` template in the `"""` spelling, since reprinting it
+  as `"..."` would write the refused form. `"a${f(\"x\")}"` exits 0 under
+  0.1.167 and 1 under this build, with and without `--no-tsc`, so the
+  release is breaking. Across 283 corpus units and the 87 other tracked
+  `.glyph` files under 0.1.167 and this build, nothing changed; the tracked
+  corpus has no site.
 
 - **G437. An object literal missing a required field is named `record` in
   the refusal.** With `type Opt = { name: string, nick?: string, }`, `let o:

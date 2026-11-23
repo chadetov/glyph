@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-460 entries, 330 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-110 are open. G144, the D28 boundary cast that never reached the returns a
+460 entries, 331 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15729,7 +15729,7 @@ and is the owner's to confirm.
   declared is refused the same way; `tsc` refuses both (TS2322).
 
 
-- **G457. A block's last expression is never compared with the declared
+- **G457. [FIXED] A block's last expression is never compared with the declared
   return type.** `fn z() -> string { 5 }` and `fn y(n: number) -> string {
   n }` pass `check --no-tsc`; full `check` reports `TS2322 Type 'number' is
   not assignable to type 'string'` for both. The same holds for a lambda
@@ -15743,6 +15743,19 @@ and is the owner's to confirm.
   caller.*
 
   *Reproduced against 0.1.173 (the release build) with record 179's probe r03: `fn z() -> string { 5 }` and `fn y(n: number) -> string { n }` pass `check --no-tsc` with no diagnostics; full `check` reports TS2322 for both.*
+
+  Fixed in 0.1.174. A tail the emitter writes as a TypeScript `return` (a
+  named callable's with a declared return other than `void`, a component's,
+  a lambda's unless it is written `-> void`) goes through the same function
+  a `return` value does, so D55, D57, D58, the async unwrap and E0238 hold
+  there too; one predicate, `tail::returns_tail`, tells the checker and the
+  pending and mutation walks which tails those are. A `match` where a type
+  is declared (a `return`, a returned tail, an annotated `let` or `const`,
+  an argument) is compared arm by arm, so `return match b { true => 5,
+  false => "x" }` under `-> string` is E0204 at the `5` where its arms used
+  to join to a type nothing compared. The published 0.1.171 exits 0 on
+  `fn z() -> string { 5 }` under `check --no-tsc` and this build exits 1;
+  across 383 units the two binaries agree byte for byte.
 
 - **G458. [FIXED] `Nullable<T>` as a map's value type refuses a `T` field.** `fn
   j<T>(x: One<T>) -> Record<string, Nullable<T>> { return x }` is E0204

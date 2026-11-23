@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-455 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-109 are open. G144, the D28 boundary cast that never reached the returns a
+457 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+111 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12412,7 +12412,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.174 (record 89; renumbered by records 157 to 159, 166 and 171): `unknown` is
+  Planned for 0.1.176 (record 89; renumbered by records 157 to 159, 166 and 171): `unknown` is
   assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -12573,6 +12573,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text`` with the `{"}"}` help.*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, `return <p>abc` then the function's `}` is ``[E0012] Error: parse: `}` cannot appear in JSX text`` with the `{"}"}` help.*
+
 - **G332. An entity in a JSX attribute string is emitted as written.**
   `<p title="&amp;">x</p>` compiles and emits the five characters `&amp;`,
   where TSX decodes it to `&`. Record 93 refused entities in JSX text for this
@@ -12620,6 +12622,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle`` with the general help, not `{"<"}`.*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, `<p>a < b</p>` is ``[E0002] Error: parse: expected JSX element or attribute name, found LAngle`` with the general help, not `{"<"}`.*
+
 - **G334. An invisible character outside a string is named raw, and a BOM is
   refused.** `unexpected character` prints a no-break space, U+200B, a lone
   combining mark or a byte-order mark between backticks as it is, so the
@@ -12645,6 +12649,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build): unchanged, a BOM, a no-break space and U+200B are E0001 with the raw character between the backticks.*
 
   *Reproduced against 0.1.165 (the release build): unchanged, a BOM at offset 0, a no-break space and U+200B are each ``[E0001] Error: parse: lex error: unexpected character`` with the raw character between the backticks and no `U+XXXX`.*
+
+  *Reproduced against 0.1.171 (the release build): unchanged, a BOM at offset 0, a no-break space and U+200B are each ``[E0001] Error: parse: lex error: unexpected character`` with the raw character between the backticks and no `U+XXXX`.*
 
 - **G335. [FIXED] `glyph fmt` writes a statement starting with `(` after one that
   absorbs it as a call.** In a block, `let a = 1` followed by `load()?` and an
@@ -13206,6 +13212,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, `glyph fix` on record 106's `k` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200 listing `Paid` and `Cancelled`.*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, with `import orders { OrderStatus, Pending, Paid, Cancelled }` `glyph fix` prints "removed 2 unused import(s)", rewrites the import to `{ OrderStatus, Pending }`, and then declines the E0200 listing `Paid` and `Cancelled` (the 0.1.165 probe file held the post-fix import and was restored).*
+
 - **G360. `glyph fix`'s decline names a catch-all that comes before the head
   as the arm a rename would take from.** With `other => 2` before `Loadd(n)
   => n`, the decline says "its arm `other` handles `Loaded` now, so renaming
@@ -13252,6 +13260,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, `glyph fix` on record 106's `g/h1_lcvariant` applies the E0220 rename to `Loaded` and still declines the E0200 listing `Loaded`, and `check` on the fixed file reports no diagnostics.*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, `glyph fix` on the lowercase-variant probe applies the E0220 rename of `Loadd` to `Loaded` and still declines the E0200 listing `Loaded`, and `check` on the fixed file reports no diagnostics (the 0.1.165 probe file held the post-fix head and was restored).*
+
 - **G356. A namespaced `is m.T` or `is m.G<X>` pattern has no lowering.** With
   `import w`, `match v { is w.P => … }` is E0300 ("an `is` check on an
   unsupported type"), while `w.P.is(v)` compiles and `import w { P }` with
@@ -13281,6 +13291,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build): unchanged, record 107's a, b and d are E0300; the `w.P.is(v)` control checks clean.*
 
   *Reproduced against 0.1.165 (the release build): unchanged, record 107's a, b and d are ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while the `w.P.is(v)` control checks clean and runs.*
+
+  *Reproduced against 0.1.171 (the release build): unchanged, record 107's a, b and d are ``[E0300] Error: emit: TS emission for an `is` check on an unsupported type is not implemented yet``, while the `w.P.is(v)` control checks clean and runs.*
 
 - **G357. [FIXED] `is Record<K, V>` and `is Array<X>` narrow on the container's shape
   alone.** `match v { is Record<string, int> => … }` takes the arm for `{ a:
@@ -13588,6 +13600,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, the missing, empty, extra, write, `bool`-key, record-key and nullable-key probes exit 0 under `check --no-tsc` and are TS2741, TS2739, TS2353, TS7053 and TS2344 with `tsc` (the `console.log(r)` calls were changed to `console.log("x")` because `console.log` now takes a `string`).*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, the missing, empty, extra, write, `bool`-key, record-key, nullable-key and `json.parse` key probes exit 0 under `check --no-tsc` and are TS2741, TS2739, TS2353, TS7053 and TS2344 with `tsc`.*
+
 - **G373. [FIXED] A `Record<string, V>` stands where a `Record<K, V>` with a narrower
   key is declared.** `fn f(r: Record<string, int>) -> Record<Tier, int> {
   return r }`, a `record.set` or `record.remove` result, and record 113's t5
@@ -13655,6 +13669,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build): unchanged, record 113's `v3` is E0304 on `Idx<Tier>`.*
 
   *Reproduced against 0.1.165 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is still ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``.*
+
+  *Reproduced against 0.1.171 (the release build) by record 113's probe v3: `json.parse<Idx<Tier>>` with `type Idx<K: string> = { m: Record<K, int>, }` is still ``[E0304] Error: emit: cannot validate `Idx<Tier>`: `Idx`'s field `m` has type `Record<K, int>`, and a key type given by a type parameter is not checked at run time``, and so is `Idx.parse<Tier>(json.parse(s))` checked alone; `json.parse<Idx<string>>` passes `check --no-tsc` and runs.*
 
 - **G375. A `Record` check reports the whole map, not the entry.** A bad
   value, a stray key and a missing member all report ``field `m` must be
@@ -14598,6 +14614,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): unchanged, `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])` and `db.query("SELECT * FROM users WHERE name = '${first} ${last}'", [])` are each E0239 under `check --no-tsc` with the general help ``Build the query from constants and pass values in the array; a structure that must vary goes through `taint.sanitize` and `sqlite.from_trusted`.`` and no rewrite.*
 
+  *Reproduced against 0.1.171 (the release build): unchanged, `db.query("SELECT * FROM users WHERE name LIKE '%${name}%'", [])` and `db.query("SELECT * FROM users WHERE name = '${first} ${last}'", [])` are each E0239 under `check --no-tsc` with the general help ``Build the query from constants and pass values in the array; a structure that must vary goes through `taint.sanitize` and `sqlite.from_trusted`.`` and no rewrite.*
+
 - **G412. [FIXED] The formatter and the emitter erase a written `unknown` on a
   lambda parameter.** The parser recorded an omitted lambda annotation as a
   written `unknown` path, so the two were one node and three stages read it
@@ -14719,6 +14737,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.159 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210.*
 
   *Reproduced against 0.1.165 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210 and a declared `m: Record<string, unknown>` read `m[k]` is E0224.*
+
+  *Reproduced against 0.1.171 (the release build): unchanged, `is Record<string, unknown> => v[k]` and `is Array<string> => v.lenght` draw nothing under `--no-tsc`, while `is string => v.lenght` is E0210 and a declared `m: Record<string, unknown>` read `m[k]` is E0224.*
 
 - **G416. How an `unknown` renders as text.** `string.from(v)` is `String(v)`,
   so an `unknown` holding a record prints `[object Object]` and one holding an
@@ -14849,6 +14869,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): `let s: string = pick(5, async fn(n) { await save(1) })` with `fn pick<T>(x: T, f: fn(T) -> void) -> T` gives E0211 and no E0204 under `check --no-tsc`; the same call with a sync callback gives E0204 ``expected `string`, found `number` ``.*
 
+  *Reproduced against 0.1.171 (the release build): `let s: string = pick(5, async fn(n) { await save(1) })` with `fn pick<T>(x: T, f: fn(T) -> void) -> T` gives E0211 and no E0204 under `check --no-tsc`; the same call with a sync callback gives E0204 ``expected `string`, found `number` ``.*
+
 - **G423. [FIXED] Glyph's checker does not type the stdlib `Set`, `Store` and `Deque`,
   so their writes are outside D5's audit.** `let a: number = set.create<string>()`
   and `let b: number = store.create(0)` pass `check --no-tsc` with no
@@ -14923,6 +14945,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build) with record 151's probe `y01`: `check --no-tsc` exits 0 with only an unused-import warning; full `check` reports TS2355.*
 
+  *Reproduced against 0.1.171 (the release build) with record 151's probe `y01`: `check --no-tsc` exits 0 with only an unused-import warning; full `check` reports TS2355.*
+
 - **G425. A method read by index is detached, and the call throws.**
   `xs["push"](1)` passes `check` and `tsc --strict`, then throws
   `TypeError: Cannot convert undefined or null to object` at run time: the
@@ -14937,6 +14961,8 @@ and is the owner's to confirm.
   or null to object`.*
 
   *Reproduced against 0.1.165 (the release build) with record 151's probe `p07_index_callee`: `xs["push"](1)` gets no diagnostics under `check --no-tsc` beyond an unused-import warning, full `check` reports `tsc --strict passed.`, and `glyph run` throws `TypeError: Cannot convert undefined or null to object`.*
+
+  *Reproduced against 0.1.171 (the release build) with record 151's probe `p07_index_callee`: `xs["push"](1)` gets no diagnostics under `check --no-tsc` beyond an unused-import warning, full `check` reports `tsc --strict passed.`, and `glyph run` throws `TypeError: Cannot convert undefined or null to object`.*
 
 - **G426. The value-position help for an optional mutating call drops the
   `?.`.** `let n = s.opt?.pop()` on `type S = { opt?: Array<number>, }` is
@@ -15520,3 +15546,27 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.170 (`origin/main` built locally) and the 0.1.171
   branch build: no diagnostics under `--no-tsc`, TS2322 under full `check`.*
+
+
+- **G457. A block's last expression is never compared with the declared
+  return type.** `fn z() -> string { 5 }` and `fn y(n: number) -> string {
+  n }` pass `check --no-tsc`; full `check` reports `TS2322 Type 'number' is
+  not assignable to type 'string'` for both. The same holds for a lambda
+  with a declared return (`fn() -> string { x }`) and inside generic
+  functions, so every rule the relation enforces at `return`, D58 included,
+  is skipped when the value is written as the tail. The tail form is the
+  idiomatic way to return a value in Glyph. Found by record 179 (N1).
+
+  *Reproduced against 0.1.167 (the release build): `fn z() -> string { 5 }`
+  passes `check --no-tsc` with only an unused-variable warning on the
+  caller.*
+
+- **G458. `Nullable<T>` as a map's value type refuses a `T` field.** `fn
+  j<T>(x: One<T>) -> Record<string, Nullable<T>> { return x }` is E0204
+  (``expected `Record<string, Nullable<T>>`, found `One<T>` ``), the same
+  under `type N<X> = Nullable<X>`, while `tsc --strict` accepts the emitted
+  shape. `map_field_incompatible` compares the field with `V` by equality
+  and does not apply D45. Found by record 180 (N1).
+
+  *Reproduced against 0.1.169 (the release build) by record 180's probe m:
+  the function is E0204.*

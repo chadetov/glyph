@@ -718,7 +718,8 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::RecordRemoveFiniteKey { .. }
         | T::CaseBind { .. }
         | T::PendingNotAwaited { .. }
-        | T::AsyncCallbackIntoSyncVoid { .. } => None,
+        | T::AsyncCallbackIntoSyncVoid { .. }
+        | T::TypeParameterPattern { .. } => None,
     }
 }
 

@@ -12129,6 +12129,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the release build): unchanged; `fn g<T>(x: Array<T>) -> Array<string> { return x }` and an `Array<T>` placed in a `Record<string, Array<string>>` field are `no diagnostics` under `--no-tsc` and ``[TS2322] Error: tsc: Type 'T[]' is not assignable to type 'string[]'.`` under full `check`; record 157's e02 is still ``expected `Record<string, string>`, found `One<?>` ``.*
 
+  *Reproduced against 0.1.168 (the release build): unchanged; `fn g<T>(x: Array<T>) -> Array<string> { return x }` and an `Array<T>` placed in a `Record<string, Array<string>>` field are `no diagnostics` under `--no-tsc` and ``[TS2322] Error: tsc: Type 'T[]' is not assignable to type 'string[]'.`` under full `check`; record 157's e02 was not re-run.*
+
   Step 1 has more rows to give the callee as owner than record 88 listed.
   0.1.163 (G423, step 1) added `set.create`, `set.unique`, `store.create` and
   `collections.deque`, each generic in `T` with `ParamOwner::Unresolved`, and
@@ -12163,6 +12165,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.156 (the release build): unchanged; the message for a `Box<T>` returned from a generic `fn f<T>` now reads ``found `Box<T>` `` where it said ``found `Box<?>` ``. `Record<string, unknown>` still checks clean, and a generic `type Maybe<T> = Nullable<T>` is still E0204 in both directions while the non-generic alias is not.*
 
   *Reproduced against 0.1.162 (the release build): changed; a `Box<T>` returned where `Record<string, Any>` is declared (`type Any = unknown`) now checks clean, `tsc --strict` included, but a generic `type Maybe<T> = Nullable<T>` is still E0204 in both directions (``expected `Nullable<Note>`, found `Maybe<Note>` `` and ``expected `Maybe<Note>`, found `Nullable<Note>` ``) while the non-generic `MaybeNote` is accepted; `Id` against `Name` and `L<string>` against `Array<string>` are still E0204, and record 157's d03 still checks clean.*
+
+  *Reproduced against 0.1.168 (the release build): unchanged from 0.1.162; a `Box<T>` returned where `Record<string, Any>` is declared checks clean, `tsc --strict` included, but a generic `type Maybe<T> = Nullable<T>` is still E0204 in both directions (``expected `Nullable<Note>`, found `Maybe<Note>` `` and ``expected `Maybe<Note>`, found `Nullable<Note>` ``) while the non-generic `MaybeNote` is accepted; `Id` against `Name` and `L<string>` against `Array<string>` are still E0204; record 157's d03 was not re-run.*
 
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its
@@ -12802,6 +12806,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the release build): the first `glyph fmt` pass prints `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`; the original source passes `--no-tsc` and is TS1005 and TS1109 under full `check`.*
 
+  *Reproduced against 0.1.168 (the release build): the first `glyph fmt` pass prints `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`; the original source passes `--no-tsc` and is TS1005 and TS1109 under full `check`.*
+
 - **G344. A value built with `Some(x)` or `Ok(x)` is not typed as an
   `Option` or a `Result`, so its members are not checked.** `let r = Ok(x)`
   then `r.value`, and inline `Ok(x).value` or `Some(x).tag`, pass `glyph
@@ -13405,6 +13411,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.156 (the release build) with the same probe: unchanged, E0106 before `glyph fix` and E0304 after it.*
 
   *Reproduced against 0.1.162 (the release build) with record 111's probe `g/A`: `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>`: `json.parse<m.Page<int>>` has no runtime check to run for it``.*
+
+  *Reproduced against 0.1.168 (the release build) with record 111's probe `g/A`: `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>`: `json.parse<m.Page<int>>` has no runtime check to run for it``.*
 
 - **G369. [FIXED] A descriptor check recurses without bound, so a deeply nested value
   overflows the stack.** A `Tree` nested 20000 deep throws `RangeError:
@@ -14649,6 +14657,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the release build): `string.from(v)` on the `unknown` that `json.parse("{\"code\":7}")` returns reports no diagnostics under `check --no-tsc` and full `check`, and `glyph run` prints `error: [object Object]`.*
 
+  *Reproduced against 0.1.168 (the release build): `string.from(v)` on the `unknown` that `json.parse("{\"code\":7}")` returns reports no diagnostics under `check --no-tsc` and full `check`, and `glyph run` prints `error: [object Object]`.*
+
 - **G417. Hover inside a template string is one column off.** In `return "a
   ${i}"` with `i: number`, hover on the `{` of `${i}` answers `number` and
   hover on `i` itself answers `string`, the type of the whole literal: the
@@ -15019,6 +15029,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.162 (the dev build): `--no-tsc` reports no
   diagnostics; `array.len([1])` without its import is E0103.*
+
+  *Reproduced against 0.1.168 (the release build): `io.println(string.from(5))` without `import std/string` is `no diagnostics` under `--no-tsc`, full `check` and `glyph run` stop on ``[TS2693] Error: tsc: 'string' only refers to a type, but is being used as a value here.``, and `array.len([1])` without its import is E0103.*
 
 - **G433. [FIXED] An unannotated module `const` is typed `Unknown`, so nothing read
   off it is checked.** `const ITEMS = [1, 2]` then a bare `ITEMS.push(3)`

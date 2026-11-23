@@ -1,0 +1,13 @@
+---
+version: 0.1.168
+month: 2026-11
+date: 2026-11-23
+tags: breaking
+headline: A loop over an array literal binds the element type
+---
+            <p><code>for s in [seen]</code>, with <code>seen</code> a <code>set.Set&lt;number&gt;</code>, gave <code>s</code> the type <code>set.Set&lt;set.Set&lt;number&gt;&gt;</code>, so <code>s.has(1)</code> was refused with "expected <code>set.Set&lt;number&gt;</code>, found <code>number</code>". The same happened to <code>for w in [[1]]</code>, which typed <code>w</code> as <code>Array&lt;Array&lt;number&gt;&gt;</code>. The loop widened the element against the array literal itself and rebuilt the element's type around it.</p>
+
+            <p>Now a loop over an array literal binds exactly what a loop over the same array held in a <code>let</code> binds. That includes the index form <code>for i, s in [...]</code>, nested arrays, records, <code>Option</code>s and stdlib types.</p>
+
+            <h3>Breaking</h3>
+            <p>Under <code>check --no-tsc</code> only. The wrong element type also let through lines that misuse the real one, such as <code>s.has(seen)</code> inside <code>for s in [seen]</code>. Those exit 0 under 0.1.167's <code>--no-tsc</code> and 1 under 0.1.168. <code>tsc</code> already refused them, so a full <code>check</code> was red before this release too. Across 285 tracked programs nothing changed.</p>

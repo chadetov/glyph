@@ -92,7 +92,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.167</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.168</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -537,9 +537,9 @@
         <h2 class="block-label" id="release-cadence-and-the-breaking-marker">Release cadence and the Breaking marker<a class="h-anchor" href="#release-cadence-and-the-breaking-marker" aria-label="Link to this section">#</a></h2>
         <p>
           The <a href="/versions/">versions page</a> has an entry for every release from 0.1.0
-          to 0.1.167, 166 in all, and 40 of them shipped between 1 Nov 2026 and 23 Nov 2026. A
+          to 0.1.168, 167 in all, and 41 of them shipped between 1 Nov 2026 and 23 Nov 2026. A
           release is marked Breaking when it rejects a program the previous version accepted,
-          which is how most correctness fixes land. 49 entries carry the marker. It is applied by
+          which is how most correctness fixes land. 50 entries carry the marker. It is applied by
           running the smallest affected program under both versions, not by reading the diff, and
           releases before 0.1.99 were not tested this way, so an unmarked old release is
           untested rather than safe.
@@ -550,12 +550,12 @@
           newest Breaking releases, quoted from their notes:
         </p>
         <ul class="cost-list">
+          <li><a href="/versions/2026-11/#0.1.168">0.1.168</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.167">0.1.167</a>: &ldquo;Seven example apps had 43 such writes, migrated in the same change; across 285 tracked programs nothing else differs.&rdquo;</li>
           <li><a href="/versions/2026-11/#0.1.166">0.1.166</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.165">0.1.165</a>: The note does not say.</li>
           <li><a href="/versions/2026-11/#0.1.163">0.1.163</a>: &ldquo;Across 285 example apps, files, catch cases and test programs, nothing else changed.&rdquo;</li>
           <li><a href="/versions/2026-11/#0.1.162">0.1.162</a>: &ldquo;Across the 285 example apps, standalone files, catch cases and test programs, the only new diagnostic is on the catch case for this mistake.&rdquo;</li>
-          <li><a href="/versions/2026-11/#0.1.161">0.1.161</a>: &ldquo;Across the 97 example apps and standalone files, nothing changes except the catch case for this mistake.&rdquo;</li>
         </ul>
 
         <p>

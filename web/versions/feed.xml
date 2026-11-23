@@ -8,6 +8,13 @@
   <updated>2026-11-23T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.168 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.168" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.168</id>
+    <updated>2026-11-23T00:00:00Z</updated>
+    <summary>A loop over an array literal binds the element type</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.167 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.167" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.167</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.139</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>Reading a member off an Option or a Result is now checked.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.138 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.138" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.138</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>Two ways for glyph fmt to change what a program means are fixed, and the fuzzer now checks for that directly.</summary>
   </entry>
 </feed>

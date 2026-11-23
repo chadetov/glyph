@@ -1,0 +1,17 @@
+---
+version: 0.1.173
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A generic bound is resolved, and a bounded T is checked as its bound
+---
+            <p>Glyph never resolved the bound on a type parameter. <code>fn f&lt;T: Nope&gt;(x: T) -&gt; T</code> passed with no error even though <code>Nope</code> does not exist, and inside the function a <code>T: Named</code> was treated as if nothing was known about it. So <code>x.nmae</code> on a <code>T: Named</code> passed, and returning a <code>T: Named</code> where an unrelated <code>Other</code> is declared passed too. Only <code>tsc</code> caught these.</p>
+
+            <p>Now a bound resolves like any other type name: an unknown name is E0103, and <code>l.Nope</code> through a namespace is E0105. An import used only in a bound no longer draws a false "unused import" warning. A circular bound such as <code>&lt;T: T&gt;</code> or <code>&lt;T: U, U: T&gt;</code> is the new E0114, which <code>tsc</code> also refuses. A bound that refers to its own parameter, such as <code>T: Cmp&lt;T&gt;</code>, is still legal.</p>
+
+            <p>Inside its function, a bounded <code>T</code> passes where <code>T</code> or <code>unknown</code> is declared, and everywhere else it is checked as its bound would be. Member reads, method calls, index reads and loops over a <code>T: B</code> are checked against <code>B</code>. One false refusal goes: a <code>Box&lt;T&gt;</code> with <code>T: Named</code> where <code>Record&lt;string, Named&gt;</code> is declared.</p>
+
+            <p>Calls that pass the wrong type to a bounded parameter, such as <code>label(5)</code> where <code>label&lt;T: Named&gt;</code>, are not checked yet. That is 0.1.179. A generic interface's members are not checked on a value either (G461), so a bound like <code>T: Cmp&lt;T&gt;</code> does not yet guarantee anything about <code>x.cmp(y)</code>.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>fn c&lt;T: Nope&gt;(x: T) -&gt; T</code>, a <code>T: Named</code> returned where <code>Other</code> is declared, and <code>&lt;T: U, U: T&gt;</code> each exit 0 under 0.1.172 and 1 under 0.1.173. Across 286 tracked programs the only change is the new test case for circular bounds.</p>

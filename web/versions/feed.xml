@@ -5,8 +5,15 @@
   <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/" />
   <link rel="self" type="application/atom+xml" href="https://glyphlang.io/versions/feed.xml" />
   <id>https://glyphlang.io/versions/</id>
-  <updated>2026-11-23T00:00:00Z</updated>
+  <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
+  <entry>
+    <title>Glyph 0.1.173 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.173" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.173</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A generic bound is resolved, and a bounded T is checked as its bound</summary>
+  </entry>
   <entry>
     <title>Glyph 0.1.172 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.172" />
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.144</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>A generic record imported from another module is now judged by the module that declares it, the way an imported record already was.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.143 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.143" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.143</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>An is pattern is now checked the same way T.is(v) is.</summary>
   </entry>
 </feed>

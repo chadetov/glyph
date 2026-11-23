@@ -783,10 +783,15 @@ fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
 /// may hold escapes, `\${`, non-ASCII characters or line breaks without
 /// moving it. A `Text` part spans its run of text and an `Expr` part spans
 /// `${` through `}`. The expression is parsed at the offset its first byte
-/// was written at, so its nodes land on their own text. One case stays
-/// approximate: an escape written inside the interpolation itself
-/// (`${f(\"x\")}`) is shorter in the value than in the source, and the nodes
-/// after it sit that many bytes early.
+/// was written at, so its nodes land on their own text.
+///
+/// Inside the `${}` of a `"..."` string a backslash is refused (D22, G441).
+/// Its one use there was `\"x\"`, a way around the rule that a string
+/// literal is not nested in a `"..."` interpolation, and an escape is shorter
+/// in the value than in the source, so every node after it would sit that
+/// many bytes early. With the refusal every span inside a template is exact
+/// by construction. A `"""..."""` string decodes no escapes, so a
+/// backslash inside its `${}` is the byte as written and stays allowed.
 ///
 /// Brace nesting inside an interpolation is tracked so `${{a: 1}.a}` works
 /// (the outer `{` belongs to the interpolation, the inner `{` is an object
@@ -862,6 +867,22 @@ fn split_template_parts(
                 }
                 i += 1;
             }
+            // A backslash inside the `${}` of a `"..."` string (G441): every
+            // character of the value that came from an escape starts at a
+            // `\` in the source. A triple-quoted string has no escapes, so a
+            // `\` there is a character as written.
+            let triple = source.get(span.start as usize..).is_some_and(|r| r.starts_with("\"\"\""));
+            if !triple {
+                let escape = (interp_start..i)
+                    .map(|k| at[k])
+                    .find(|&(a, _)| source.as_bytes().get(a as usize) == Some(&b'\\'));
+                if let Some((a, b)) = escape {
+                    return Err(ParseError::EscapeInInterpolation {
+                        escape: source[a as usize..b as usize].to_string(),
+                        span: Span::new(a, b),
+                    });
+                }
+            }
             if depth != 0 {
                 // The usual cause is a string literal nested inside `${...}`
                 // (`"...${f("x")}..."`): the lexer ends the outer string at the
@@ -887,10 +908,16 @@ fn split_template_parts(
                 " ".repeat(base),
                 resolve_escaped_dollars(&interp_source)
             );
-            let inner_expr = crate::parse_expression(&padded).map_err(|e| ParseError::Expected {
-                expected: "valid expression inside `${...}` template interpolation",
-                found: format!("{e}"),
-                span,
+            let inner_expr = crate::parse_expression(&padded).map_err(|e| match e {
+                // A string nested in this interpolation broke the same rule.
+                // The padding put its span on the file's bytes, so it is
+                // reported where it was written.
+                ParseError::EscapeInInterpolation { .. } => e,
+                e => ParseError::Expected {
+                    expected: "valid expression inside `${...}` template interpolation",
+                    found: format!("{e}"),
+                    span,
+                },
             })?;
             parts.push(TemplatePart::Expr {
                 value: inner_expr,

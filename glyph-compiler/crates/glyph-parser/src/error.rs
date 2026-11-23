@@ -39,6 +39,11 @@ const OTHER_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line. I
 /// propagation, and `1` began a statement.
 const TERNARY_AFTER_STATEMENT_HELP: &str = "Glyph has no `cond ? a : b` conditional: a `?` after an expression propagates an error, so the statement ended there. Write the conditional as a `match` on the condition: `match cond { true => a, false => b, }`. If the `?` was meant to propagate an error, start the next statement on its own line.";
 
+/// The help for a backslash inside the `${}` of a `"..."` string (G441,
+/// record 166). It is the hoist advice the nested-string message has always
+/// given, with the triple-quoted form that holds a string literal as written.
+const ESCAPE_IN_INTERPOLATION_HELP: &str = "A `\"...\"` string cannot nest a string literal or an escape inside `${}` (D22). Bind the value with `let` and interpolate the name: `let label = f(\"x\")`, then `\"a${label}\"`. Or write the whole string as `\"\"\"...\"\"\"`, which reads a string literal inside `${}` as written: `\"\"\"a${f(\"x\")}\"\"\"`.";
+
 /// What begins the statement E0013 refuses, which decides its help.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SameLineStart {
@@ -276,6 +281,18 @@ pub enum ParseError {
         start: SameLineStart,
         span: Span,
     },
+
+    /// A backslash inside the `${}` of a `"..."` string (D22, G441, record
+    /// 166). Its one use there was `\"x\"`, a way to nest the string literal
+    /// the `"..."` form does not allow inside an interpolation, and it hid
+    /// that literal from a grep for `"x"`. The expression is parsed from the
+    /// string's decoded value, where an escape is shorter than in the source,
+    /// so it also moved every span after it. A `"""..."""` string decodes no
+    /// escapes and is not affected. `escape` is the escape as written, so
+    /// the message quotes it, and `span` is its bytes. E0002, the code the
+    /// nested-string refusal it closes has always had.
+    #[error("`{escape}` is an escape inside the `${{}}` of a `\"...\"` string, which Glyph does not allow")]
+    EscapeInInterpolation { escape: String, span: Span },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -364,6 +381,7 @@ impl ParseError {
             | ParseError::EmptyJsxExpression { span }
             | ParseError::JsxBlockComment { span, .. } => *span,
             ParseError::StatementOnSameLine { span, .. } => *span,
+            ParseError::EscapeInInterpolation { span, .. } => *span,
         }
     }
 
@@ -403,6 +421,7 @@ impl ParseError {
             // The lex error it is anywhere else, with JSX-specific help.
             ParseError::JsxBlockComment { .. } => "E0001",
             ParseError::StatementOnSameLine { .. } => "E0013",
+            ParseError::EscapeInInterpolation { .. } => "E0002",
         }
     }
 
@@ -505,6 +524,7 @@ impl ParseError {
                 SameLineStart::Ternary => TERNARY_AFTER_STATEMENT_HELP,
                 SameLineStart::Other => OTHER_AFTER_STATEMENT_HELP,
             }),
+            ParseError::EscapeInInterpolation { .. } => Cow::Borrowed(ESCAPE_IN_INTERPOLATION_HELP),
         })
     }
 }

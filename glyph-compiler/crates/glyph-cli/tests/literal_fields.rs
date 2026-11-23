@@ -581,18 +581,18 @@ pub fn main(argv: Array<string>) -> number {{\n\
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-/// Record 167. Inside the `${}` of a `"..."` string each escape still moves
-/// a range one byte early (G441). In this program five escapes come before
-/// the key `nik`, and a variable `nik` sits five bytes before it, so the
-/// drifted range holds the key's text over the variable. The guard anchors a
-/// key to the object literal holding it, whose own span does not re-parse to
-/// that object here, so the rename declines and the file is byte-identical.
-/// x02's renames (no escape before them) and a key outside any template
-/// still apply; `renames_inside_an_interpolation_apply_at_the_right_bytes`
+/// Records 167 and 168 found a range moved by escapes inside the `${}` of a
+/// `"..."` string landing on a variable of the same name (d01) or on an
+/// identical object literal (d04, d05), so the fix driver declined there.
+/// G441 (record 166) made a backslash in that position a parse error, so
+/// these programs no longer reach the checker or the fix driver: `check`
+/// refuses each at the first escape with E0002, `fix` applies nothing, and
+/// every file is byte-identical. x02's renames and a key outside any
+/// template still apply; `renames_inside_an_interpolation_apply_at_the_right_bytes`
 /// and `a_misspelled_optional_field_is_renamed_by_fix` hold that.
 #[test]
-fn a_key_range_moved_by_escapes_declines() {
-    let source = "module main\n\
+fn an_escape_inside_an_interpolation_stops_check_and_fix_at_parse() {
+    let d01 = "module main\n\
 \n\
 import std/io\n\
 \n\
@@ -611,33 +611,19 @@ pub fn main(argv: Array<string>) -> number {\n\
 \x20 io.println(\"r=${pick(f(\\\"\\t\\\"), f(\\\"\\\"), { name: nik, nik: k })}\")\n\
 \x20 return 0\n\
 }\n";
-    let dir = project("d01", &[("main.glyph", source)]);
-    let (code, out) = check(&dir);
-    assert_eq!(code, 1, "the key is refused: {out}");
-    let (_, out) = glyph(&dir, &["fix", "src"]);
-    assert!(!out.contains("applied E0210"), "{out}");
-    assert!(out.contains("declined E0210"), "{out}");
-    assert_eq!(source_of(&dir), source, "the file is untouched");
-    let _ = std::fs::remove_dir_all(&dir);
-}
-
-/// Record 168. Identical object literals at exactly the distance escapes
-/// move a range (G441) pass any check of text or structure: in d05 the
-/// second literal's key range lands on the first, whose `nik` is a correct
-/// key of `Other`, and the rename moved that value to another field. Every
-/// rule now declines a range after an escape inside the `${}` of a `"..."`
-/// string, decided from the lexer's own escape positions, with the anchor
-/// kept as a second line. d04 (both literals of one type) and d05 decline
-/// and leave the file byte-identical.
-#[test]
-fn every_rule_declines_after_an_escape_inside_an_interpolation() {
-    for (name, source) in [("d04", D04), ("d05", D05)] {
+    for (name, source) in [("d01", d01), ("d04", D04), ("d05", D05)] {
         let dir = project(name, &[("main.glyph", source)]);
         let (code, out) = check(&dir);
         assert_eq!(code, 1, "{name}: {out}");
+        assert!(out.contains("[E0002]") && out.contains("inside the `${}` of a `\"...\"` string"), "{name}: {out}");
+        // Reported at the first escape: its line and its 1-based column.
+        let at = source.find("\\\"").unwrap();
+        let line = source[..at].matches('\n').count() + 1;
+        let col = at - source[..at].rfind('\n').unwrap();
+        assert!(out.contains(&format!("main:{line}:{col}")), "{name}: the first escape at {line}:{col}: {out}");
+        assert!(!out.contains("[E0210]"), "{name}: {out}");
         let (_, out) = glyph(&dir, &["fix", "src"]);
         assert!(!out.contains("applied"), "{name}: {out}");
-        assert!(out.contains("after an escape inside the `${}`"), "{name}: {out}");
         assert_eq!(source_of(&dir), source, "{name}: the file is untouched");
         let _ = std::fs::remove_dir_all(&dir);
     }

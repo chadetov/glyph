@@ -40,6 +40,15 @@ pub fn explain(code: &str) -> Option<&'static str> {
             An export named with a keyword cannot be an imported item \
             (`import pkg { type }`); import the module by namespace and read it \
             as `pkg.type`.\n\n\
+            A backslash inside the `${}` of a `\"...\"` string is reported \
+            under this code too (D22): `\"a${f(\\\"x\\\")}\"` is refused at the \
+            `\\\"`. A `\"...\"` string does not nest a string literal inside \
+            `${}`, and an escaped quote was a second way to write one. Bind the \
+            value with `let` and interpolate the name (`let label = \
+            f(\"x\")`, then `\"a${label}\"`), or write the whole string as \
+            `\"\"\"a${f(\"x\")}\"\"\"`, which decodes no escapes and reads a \
+            string literal inside `${}` as written. An escape outside the \
+            `${}` (`\"a\\n${x}\"`, `\"\\${x}\"`) is unaffected.\n\n\
             Add the expected token shown in the message.",
         "E0003" => "E0003: unexpected token\n\n\
             This token cannot appear in this position. It is usually a typo, a \

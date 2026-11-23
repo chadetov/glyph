@@ -2564,12 +2564,23 @@ impl Assigner<'_> {
                     }
                 }
                 if let Some(v) = elem_binding {
-                    if let Some(elem) = array_elem_ty(&self.tm.get(f.iter.span()).clone()) {
-                        // A written array widens here the way it widens at a
-                        // `let` (G237): `for m in ["read", "write"]` emits a
-                        // TypeScript loop over a `string[]`, so the binding is
-                        // a `string` in the program that runs.
-                        let elem = self.widen_fresh_literals(&f.iter, elem);
+                    // A written array widens here the way it widens at a
+                    // `let` (G237): `for m in ["read", "write"]` emits a
+                    // TypeScript loop over a `string[]`, so the binding is a
+                    // `string` in the program that runs.
+                    //
+                    // The iterand is widened as a whole and the element read
+                    // off the result, which is exactly what `let xs = [..]`
+                    // then `for x in xs` gives. Widening the element type
+                    // against the iterand expression paired an array literal
+                    // with a type that is not its type: any one-argument
+                    // applied element (`set.Set<number>`, `Array<number>`)
+                    // was rebuilt around the literal's own elements, so `for
+                    // s in [seen]` bound `s` as `set.Set<set.Set<number>>`
+                    // (G447).
+                    let iter_ty = self.tm.get(f.iter.span()).clone();
+                    let iter_ty = self.widen_fresh_literals(&f.iter, iter_ty);
+                    if let Some(elem) = array_elem_ty(&iter_ty) {
                         self.local_tys.insert(v.span.start, elem);
                     }
                 }

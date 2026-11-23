@@ -40,6 +40,7 @@ pub mod pending;
 pub mod reassign;
 pub mod stdlib;
 mod stdlib_member_classes;
+mod tail;
 pub mod ty;
 pub mod type_map;
 

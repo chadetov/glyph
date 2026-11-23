@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-446 entries, 322 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-104 are open. G144, the D28 boundary cast that never reached the returns a
+449 entries, 322 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+107 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12342,7 +12342,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.133 (the dev-0.1.133 build, `glyph 0.1.132`): `let
   s: string = u` is `no diagnostics` under `--no-tsc`, TS2322 with `tsc`.*
 
-  Planned for 0.1.173 (record 89; renumbered by records 157 to 159 and 166): `unknown` is
+  Planned for 0.1.174 (record 89; renumbered by records 157 to 159, 166 and 171): `unknown` is
   assignable only to `unknown`, after G315, G314 step 2 and G415.
 
   *Reproduced against 0.1.139 (the release build): `let s: string = u`
@@ -15026,7 +15026,7 @@ and is the owner's to confirm.
   write the string as `"""..."""`); triple-quoted strings are unchanged.
   Remapping spans after the parse and mapping token spans in the sub-parse
   were rejected, since both keep a spelling the language disowns. Breaking,
-  so its own release, 0.1.168. The tracked corpus has no such site. Found
+  so its own release, 0.1.169. The tracked corpus has no such site. Found
   while fixing G435.
 
   *Reproduced against 0.1.164 (the dev build): `zz` underlined at column 27
@@ -15160,3 +15160,41 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.166 (the published release) and the 0.1.167
   branch build: `let n = make().pop()` draws the help above on both.*
+
+- **G447. A `for` loop over an array literal of applied types gives the loop
+  variable the wrong type.** `for s in [seen] { let c = s.has(1) }` with
+  `seen: set.Set<number>` is E0211, ``argument type mismatch: expected
+  `set.Set<number>`, found `number` ``, and `for w in [[1]] { let k: string =
+  w }` reports `w` as `Array<Array<number>>`. Iterating the same array bound
+  with `let` is typed right. It refuses valid programs, so it is scheduled
+  first after 0.1.167. Found by record 171 (probe a08).
+
+  *Reproduced against 0.1.166 (the published release) and the 0.1.167
+  branch build by record 171's probe a08: both report the E0211 and the
+  `Array<Array<number>>` above.*
+
+- **G448. A write through a structural interface evades D5.**
+  `interface Adder { add: fn(number) -> void, }`, `fn via(a: Adder) {
+  a.add(1) }` and `via(seen)` with `seen: set.Set<number>` pass `check` and
+  run, adding to the set with no `mut` anywhere; `interface Pusher { push:
+  fn(number) -> number, }` does the same to an array. So D5's sentence that
+  `grep -n "^\s*mut "` is a complete audit of writes to values whose type
+  the checker knows is false through an interface. Two fixes are on the
+  table and need a decision: refuse passing a type with Mutating members
+  where an interface naming them is declared, or require `mut` on a call
+  through an interface member. D5 lists it as not covered until then.
+  Found by record 171 (probe i01).
+
+  *Reproduced against 0.1.166 (the published release) and the 0.1.167
+  branch build by record 171's probe i01: `check` passes on both and `run`
+  prints `1 2`.*
+
+- **G449. `Some(x)` infers no type.** `let o = Some(seen)` leaves `o`
+  untyped, so `let z: string = o` is not refused and `match o { Some(s) =>
+  s.add(2) }` is not judged by D5. This is D5's "receiver the checker cannot
+  type" edge, not a breach of the rule, but the `Option` should carry its
+  payload type as `tsc` gives it. Found by record 171 (probes a04, a07).
+
+  *Reproduced against 0.1.166 (the published release) and the 0.1.167
+  branch build with record 171's probe a07: both report only the E0204 on
+  `let u: string = v`, none on `let z: string = o`.*

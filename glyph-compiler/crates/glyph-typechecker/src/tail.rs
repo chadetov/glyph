@@ -169,6 +169,24 @@ mod tests {
         assert_eq!(found.len(), 1, "{found:?}");
     }
 
+    /// A bounded parameter at a tail is read through its bound as it is at
+    /// `return` (D58 with G263): it passes where its bound is declared and is
+    /// refused where an unrelated record is.
+    #[test]
+    fn a_bounded_tail_is_decided_through_its_bound() {
+        let src = "module x\ninterface Named {\n  name: string\n}\n\
+                   type Other = { id: number, }\n\
+                   pub fn a<T: Named>(x: T) -> Named {\n  x\n}\n\
+                   pub fn b<T: Named>(x: T) -> Other {\n  x\n}\n\
+                   pub fn c<T: Named>(x: T) -> Other {\n  return x\n}\n";
+        assert_eq!(
+            mismatches(src),
+            vec!["type mismatch: expected `Other`, found `T`".to_string(); 2],
+            "{:?}",
+            errors_of(src)
+        );
+    }
+
     /// An async callable's tail is compared once the pending value is
     /// unwrapped, as `return load()` is (D51).
     #[test]

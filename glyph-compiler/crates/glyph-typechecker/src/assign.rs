@@ -24033,6 +24033,27 @@ fn f(a: Answer) -> number {
         assert_eq!(fns_with_mismatches(src), ["field_string", "into_bounded"]);
     }
 
+    /// G456 and G458, through G315's transparent declarations. A field typed
+    /// `Same<T>` expands to the enclosing `T`, so it is refused where
+    /// `Record<string, string>` is declared (`r2`) as a field typed `T` is,
+    /// and a `Same<T>` value where `string` is declared is refused (`s`). A
+    /// `T` field where `Record<string, Nullable<T>>` is declared, directly or
+    /// through `type N<X> = Nullable<X>`, is compared against `T` (D45) and
+    /// accepted (`j`, `j2`), as `tsc` accepts it.
+    #[test]
+    fn an_enclosing_parameter_is_decided_through_a_second_name() {
+        let src = "module m\n\
+             type One<T> = { v: T, }\n\
+             type Same<T> = T\n\
+             type N<X> = Nullable<X>\n\
+             fn r2<T>(x: One<Same<T>>) -> Record<string, string> { return x }\n\
+             fn j<T>(x: One<T>) -> Record<string, Nullable<T>> { return x }\n\
+             fn j2<T>(x: One<T>) -> Record<string, N<T>> { return x }\n\
+             fn s<T>(x: Same<T>) -> string { return x }\n\
+             fn s2<T>(x: T) -> Same<T> { return x }\n";
+        assert_eq!(fns_with_mismatches(src), ["r2", "s"]);
+    }
+
     /// Record 175, R2. A `type` declaration's own parameter is never decided
     /// where a value is checked. It reaches a value only through a generic
     /// declaration written bare (`let b: Box = ..`), which E0233 refuses, and

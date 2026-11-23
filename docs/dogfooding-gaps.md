@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-458 entries, 327 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-111 are open. G144, the D28 boundary cast that never reached the returns a
+458 entries, 329 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15548,7 +15548,7 @@ and is the owner's to confirm.
   `F` `` for probe b7 under both, and the same for c3 and c5 (``expected
   `H`, found `F` ``).*
 
-- **G456. A record field typed by a second name for the enclosing type
+- **G456. [FIXED] A record field typed by a second name for the enclosing type
   parameter passes where a string map is declared.** With `type One<T> = {
   v: T, }` and `type Same<T> = T`, `fn r2<T>(x: One<Same<T>>) ->
   Record<string, string> { return x }` passes `--no-tsc`, and `tsc --strict`
@@ -15564,6 +15564,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.170 (`origin/main` built locally) and the 0.1.171
   branch build: no diagnostics under `--no-tsc`, TS2322 under full `check`.*
 
+  Fixed in 0.1.172 by D58. The field's `Same<T>` expands to the enclosing
+  `T`, which is now decided, so `r2` is ``[E0204] type mismatch: expected
+  `Record<string, string>`, found `One<Same<T>>` `` under `--no-tsc` where
+  the published 0.1.170 exits 0. A `Same<T>` returned where `string` is
+  declared is refused the same way; `tsc` refuses both (TS2322).
+
 
 - **G457. A block's last expression is never compared with the declared
   return type.** `fn z() -> string { 5 }` and `fn y(n: number) -> string {
@@ -15578,7 +15584,7 @@ and is the owner's to confirm.
   passes `check --no-tsc` with only an unused-variable warning on the
   caller.*
 
-- **G458. `Nullable<T>` as a map's value type refuses a `T` field.** `fn
+- **G458. [FIXED] `Nullable<T>` as a map's value type refuses a `T` field.** `fn
   j<T>(x: One<T>) -> Record<string, Nullable<T>> { return x }` is E0204
   (``expected `Record<string, Nullable<T>>`, found `One<T>` ``), the same
   under `type N<X> = Nullable<X>`, while `tsc --strict` accepts the emitted
@@ -15587,6 +15593,12 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.169 (the release build) by record 180's probe m:
   the function is E0204.*
+
+  Fixed in 0.1.172. A field typed by the enclosing `T` is compared through
+  the relation, which reads `Nullable<X>` against `X` (D45), so `j` and the
+  same function under `type N<X> = Nullable<X>` are accepted; the published
+  0.1.170 refuses both with E0204, and full `check` on this build passes
+  `tsc --strict`.
 
 - **G454. An object literal is not compared where a `Record<string, V>` is
   declared.** `fn a(x: number) -> Record<string, Array<string>> { return {

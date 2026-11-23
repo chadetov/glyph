@@ -46,6 +46,13 @@ Unlike `mutates` this is read off the declarations, not written by hand. What
 is written by hand is `ABSENT_REPLACEMENT`, the `std/*` function E0242 sends
 a reader to, and generation fails on an absent row without an entry.
 
+Each row also carries the text of the method's `@deprecated` tag, read off
+the declarations (G389, E0244). The tag rarely names a replacement, so what
+E0244 sends a reader to is written by hand in `DEPRECATED_REPLACEMENT`, and
+generation fails when a deprecated method has no entry, an entry names a
+method TypeScript does not deprecate, a replacement is absent or deprecated
+itself, a tag's "Use `X`" disagrees with the entry, or node disagrees with it.
+
 Hard-fails (exit 1) on any difference, printing the names on each side.
 """
 
@@ -122,6 +129,12 @@ host.getSourceFile = (name, lang) =>
 const program = ts.createProgram([file], options, host);
 const checker = program.getTypeChecker();
 const scope = checker.getSymbolsInScope(program.getSourceFile(file), ts.SymbolFlags.Interface);
+// The text of a member's `@deprecated` tag, or null (G389, E0244). Read off
+// the property's own declarations, so the tag is the library's words.
+const deprecation = (p) => {
+  const tag = p.getJsDocTags(checker).find((t) => t.name === "deprecated");
+  return tag ? ts.displayPartsToString(tag.text || []).trim() : null;
+};
 const hasThisType = (node) => {
   let found = false;
   const walk = (n) => {
@@ -132,6 +145,7 @@ const hasThisType = (node) => {
   walk(node);
   return found;
 };
+const deprecatedProperties = [];
 function methods(name) {
   const declared = checker.getDeclaredTypeOfSymbol(scope.find((s) => s.name === name));
   const elem = (declared.typeParameters || [])[0];
@@ -151,8 +165,14 @@ function methods(name) {
   for (const p of checker.getPropertiesOfType(declared)) {
     const n = p.getName();
     // Symbol-keyed members have no name a `.` read can spell, and a data
-    // property is read, never called.
-    if (n.startsWith("__@") || !(p.flags & ts.SymbolFlags.Method)) continue;
+    // property is read, never called. A deprecated data property has no row
+    // to carry its tag, so it is reported for the script to refuse.
+    if (n.startsWith("__@")) continue;
+    if (!(p.flags & ts.SymbolFlags.Method)) {
+      if (deprecation(p) !== null) deprecatedProperties.push(`${name}.${n}`);
+      continue;
+    }
+    const deprecated = deprecation(p);
     const sigs = checker.getSignaturesOfType(checker.getTypeOfSymbol(p), ts.SignatureKind.Call);
     const sig = sigs[0];
     // Whether any overload can answer `undefined` or `null` (G392, D56): the
@@ -167,7 +187,7 @@ function methods(name) {
     else if (sig.thisParameter || hasThisType(decl)) untyped = "ThisType";
     else if (checker.getTypePredicateOfSignature(sig)) untyped = "Predicate";
     else if (decl.parameters.some((q) => q.dotDotDotToken)) untyped = "RestParameter";
-    if (untyped) { out[n] = { untyped, absent }; continue; }
+    if (untyped) { out[n] = { untyped, absent, deprecated }; continue; }
     const params = sig.getParameters().map((q, i) => {
       const pd = decl.parameters[i];
       const optional = !!(pd.questionToken || pd.initializer);
@@ -183,7 +203,7 @@ function methods(name) {
       }
       return { ty: map(t), optional };
     });
-    out[n] = { params, ret: map(checker.getReturnTypeOfSignature(sig)), absent };
+    out[n] = { params, ret: map(checker.getReturnTypeOfSignature(sig)), absent, deprecated };
   }
   return out;
 }
@@ -192,6 +212,7 @@ const result = { version: ts.version };
 for (const [key, name] of [["array", "Array"], ["string", "String"], ["number", "Number"]]) {
   result[key] = { ...object, ...methods(name) };
 }
+result.deprecatedProperties = [...new Set(deprecatedProperties)].sort();
 console.log(JSON.stringify(result));
 """
 
@@ -276,6 +297,153 @@ def absent_failures(got: dict) -> list[str]:
                     else f"{kind}: `{name}` changes its receiver, so its replacement is E0240's"
                 )
     return failures
+
+
+# What E0244 sends a reader to for every member TypeScript marks
+# `@deprecated` (G389). The tag itself is read off `lib.d.ts` and written into
+# the row; only 2 of the 16 tags TypeScript 6.0.3 carries name a replacement
+# (`trimLeft`, `trimRight`), so the replacement is written here by hand and
+# held to the tags and to node by `deprecated_failures`. A TypeScript that
+# deprecates another member fails CI until someone writes its entry.
+#
+# - ("Rename", m): the same call under the name `m`, which the language
+#   defines as the same function (`trimLeft` is `trimStart`).
+# - ("Slice", "slice"): `substr(start, length)` is `slice(start, start +
+#   length)` for a start and a length of zero or more; the help computes the
+#   end.
+# - ("Markup", tag, attr): the HTML method builds `<tag attr="arg">s</tag>`,
+#   which a template string writes directly.
+DEPRECATED_REPLACEMENT = {
+    "array": {},
+    "string": {
+        "anchor": ("Markup", "a", "name"),
+        "big": ("Markup", "big", None),
+        "blink": ("Markup", "blink", None),
+        "bold": ("Markup", "b", None),
+        "fixed": ("Markup", "tt", None),
+        "fontcolor": ("Markup", "font", "color"),
+        "fontsize": ("Markup", "font", "size"),
+        "italics": ("Markup", "i", None),
+        "link": ("Markup", "a", "href"),
+        "small": ("Markup", "small", None),
+        "strike": ("Markup", "strike", None),
+        "sub": ("Markup", "sub", None),
+        "substr": ("Slice", "slice"),
+        "sup": ("Markup", "sup", None),
+        "trimLeft": ("Rename", "trimStart"),
+        "trimRight": ("Rename", "trimEnd"),
+    },
+    "number": {},
+}
+
+# A tag that names its replacement says so as "Use `X` instead".
+TAG_USE = re.compile(r"Use `(\w+)`")
+
+# The run-time check on the hand entries: a rename is the same function, a
+# `Markup` method builds exactly the markup the entry names, and `substr` and
+# `slice` read the same characters for every start and length of zero or more
+# (a negative length is `""` from `substr` and counts from the end in `slice`).
+DEPRECATED_ORACLE = r"""
+const table = JSON.parse(process.argv[1]);
+const out = [];
+const recv = 'a&"b';
+for (const [name, entry] of Object.entries(table.string)) {
+  const [kind] = entry;
+  if (kind === "Rename") {
+    if (String.prototype[name] !== String.prototype[entry[1]]) out.push(`string: \`${name}\` is not the same function as \`${entry[1]}\` in node`);
+  } else if (kind === "Markup") {
+    const [, tag, attr] = entry;
+    const arg = 'q"r';
+    const want = attr === null ? `<${tag}>${recv}</${tag}>` : `<${tag} ${attr}="q&quot;r">${recv}</${tag}>`;
+    const got = attr === null ? recv[name]() : recv[name](arg);
+    if (got !== want) out.push(`string: \`${name}\` builds ${JSON.stringify(got)} in node, and the entry says ${JSON.stringify(want)}`);
+  } else if (kind === "Slice") {
+    const s = "abcdefg";
+    for (let a = 0; a <= 9; a++) for (let n = 0; n <= 9; n++) {
+      if (s.substr(a, n) !== s.slice(a, a + n)) out.push(`string: \`substr(${a}, ${n})\` and \`slice(${a}, ${a + n})\` differ in node`);
+    }
+    for (let a = -9; a <= 9; a++) if (s.substr(a) !== s.slice(a)) out.push(`string: \`substr(${a})\` and \`slice(${a})\` differ in node`);
+  } else {
+    out.push(`string: \`${name}\` has an entry of unknown kind ${kind}`);
+  }
+}
+console.log(JSON.stringify(out));
+"""
+
+
+def deprecated_failures(got: dict) -> list[str]:
+    """Every deprecated method has an entry and every entry a deprecated
+    method; a replacement method exists and is not itself deprecated; a tag
+    that names its replacement agrees with the entry; and node agrees with
+    each entry."""
+    failures = [
+        f"`{p}` is a data property TypeScript marks @deprecated, and no row carries a data property's tag"
+        for p in got.get("deprecatedProperties", [])
+    ]
+    for kind in ("array", "string", "number"):
+        tags = {name: row["deprecated"] for name, row in got[kind].items() if row.get("deprecated") is not None}
+        table = DEPRECATED_REPLACEMENT[kind]
+        for name in sorted(set(tags) - set(table)):
+            failures.append(
+                f"{kind}: `{name}` is marked @deprecated ({tags[name]!r}) and has no entry in "
+                "DEPRECATED_REPLACEMENT; write what E0244 should send a reader to"
+            )
+        for name in sorted(set(table) - set(tags)):
+            failures.append(f"{kind}: `{name}` is in DEPRECATED_REPLACEMENT and TypeScript does not mark it @deprecated")
+        for name, entry in sorted(table.items()):
+            if entry[0] in ("Rename", "Slice"):
+                target = entry[1]
+                if target not in got[kind]:
+                    failures.append(f"{kind}: `{name}`'s replacement `{target}` is not a method TypeScript declares")
+                elif target in tags:
+                    failures.append(f"{kind}: `{name}`'s replacement `{target}` is itself marked @deprecated")
+            elif entry[0] != "Markup":
+                failures.append(f"{kind}: `{name}` has an entry of unknown kind {entry[0]!r}")
+            m = TAG_USE.search(tags.get(name) or "")
+            if m and entry != ("Rename", m.group(1)):
+                failures.append(
+                    f"{kind}: `{name}`'s tag says to use `{m.group(1)}`, and DEPRECATED_REPLACEMENT says {entry!r}"
+                )
+    if failures:
+        return failures
+    r = subprocess.run(
+        ["node", "-e", DEPRECATED_ORACLE, json.dumps(DEPRECATED_REPLACEMENT)],
+        capture_output=True, text=True, timeout=60,
+    )
+    if r.returncode != 0:
+        return ["the deprecated-member oracle failed to run:\n" + r.stderr]
+    return json.loads(r.stdout)
+
+
+def rust_str(text: str) -> str:
+    """`text` as a Rust string literal."""
+    out = []
+    for ch in text:
+        if ch in '"\\':
+            out.append("\\" + ch)
+        elif ch == "\n":
+            out.append("\\n")
+        elif ord(ch) < 0x20 or ord(ch) > 0x7E:
+            out.append(f"\\u{{{ord(ch):x}}}")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
+def rust_deprecated(kind: str, name: str, row: dict) -> str:
+    """The row's `deprecated` column: the tag and the hand replacement."""
+    tag = row.get("deprecated")
+    if tag is None:
+        return "None"
+    entry = DEPRECATED_REPLACEMENT[kind][name]
+    if entry[0] == "Rename":
+        repl = f"R::Rename({rust_str(entry[1])})"
+    elif entry[0] == "Slice":
+        repl = "R::Slice"
+    else:
+        attr = "None" if entry[2] is None else f"Some({rust_str(entry[2])})"
+        repl = f"R::Markup {{ tag: {rust_str(entry[1])}, attr: {attr} }}"
+    return f"Some(Deprecated {{ tag: {rust_str(tag)}, replacement: {repl} }})"
 
 
 # The run-time oracle for the array split. Each method is called once, with
@@ -615,12 +783,15 @@ def render_methods(got: dict) -> str:
         "//! node confirms at generation by calling each array method. `absent` is",
         "//! read off the declarations: some overload's return holds `undefined` or",
         "//! `null` (G392, D56), and the script's `ABSENT_REPLACEMENT` names the",
-        "//! `Option` spelling for every such row.",
+        "//! `Option` spelling for every such row. `deprecated` is the text of the",
+        "//! member's `@deprecated` tag, read off the declarations (G389, E0244), with",
+        "//! the script's `DEPRECATED_REPLACEMENT` entry for what to write instead.",
         "",
         "use crate::builtin_members::MethodSig::{Typed, Untyped};",
         "use crate::builtin_members::MethodTy as T;",
+        "use crate::builtin_members::Replacement as R;",
         "use crate::builtin_members::Untyped as U;",
-        "use crate::builtin_members::{opt, req, BuiltinMethod};",
+        "use crate::builtin_members::{opt, req, BuiltinMethod, Deprecated};",
     ]
     for kind in ("array", "string", "number"):
         lines.append("")
@@ -636,8 +807,10 @@ def render_methods(got: dict) -> str:
                 sig = f"Typed {{ params: &[{params}], ret: {rust_ty(row['ret'])} }}"
             mutates = "true" if name in MUTATING[kind] else "false"
             absent = "true" if row["absent"] else "false"
+            deprecated = rust_deprecated(kind, name, row)
             lines.append(
-                f'    BuiltinMethod {{ name: "{name}", mutates: {mutates}, absent: {absent}, sig: {sig} }},'
+                f'    BuiltinMethod {{ name: "{name}", mutates: {mutates}, absent: {absent}, '
+                f'deprecated: {deprecated}, sig: {sig} }},'
             )
         lines.append("];")
     return "\n".join(lines) + "\n"
@@ -737,6 +910,12 @@ def main() -> int:
         for f in missing:
             print("  " + f)
         return 1
+    deprecated = deprecated_failures(methods)
+    if deprecated:
+        print("builtin members: a member TypeScript marks @deprecated and the replacement table disagree")
+        for f in deprecated:
+            print("  " + f)
+        return 1
     stdlib = stdlib_failures(ts_dir)
     if stdlib:
         print("builtin members: the stdlib member split is incomplete or wrong")
@@ -770,6 +949,7 @@ def main() -> int:
         f"{len(table['number'])} number members match TypeScript {got['version']} "
         f"(esnext + dom, with Object's), every method is classified mutating or not and node "
         f"agrees on the array split, every absent-returning method has an `Option` spelling, "
+        f"every deprecated method has a replacement that node confirms, "
         f"every member of a classified stdlib type is Mutating, NonMutating or Outside and node "
         f"agrees by running it, and {METHODS.relative_to(ROOT)} and "
         f"{STDLIB_CLASS_TABLE.relative_to(ROOT)} are what it generates."

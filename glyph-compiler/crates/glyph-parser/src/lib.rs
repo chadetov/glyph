@@ -1386,6 +1386,63 @@ fn main() {
         assert!(msg.contains("nested string") || msg.contains("hoist"), "{msg}");
     }
 
+    /// G441 (record 166): a backslash inside the `${}` of a `"..."` string
+    /// is E0002, reported at the escape's own bytes, with the hoist help.
+    #[test]
+    fn a_backslash_inside_a_quoted_interpolation_is_refused_g441() {
+        let src = "module x\nfn f(s: string) -> string {\n  return s\n}\nfn h() -> string {\n  return \"a${f(\\\"x\\\")}\"\n}\n";
+        let err = crate::parse(src).expect_err("an escape inside `${}` of a \"...\" string");
+        assert_eq!(err.code(), "E0002", "{err:?}");
+        let span = err.span();
+        assert_eq!(&src[span.start as usize..span.end as usize], "\\\"", "{err:?}");
+        assert_eq!(span.start as usize, src.find("\\\"x").unwrap(), "the first escape: {err:?}");
+        assert!(format!("{err}").contains("inside the `${}` of a `\"...\"` string"), "{err}");
+        let help = err.help().unwrap();
+        assert!(help.contains("let label = f(\"x\")") && help.contains("\"\"\"a${f(\"x\")}\"\"\""), "{help}");
+        // Every escape form is refused there, not only `\"`.
+        for inner in ["f(\\\"\\t\\\")", "a + \\\"\\n\\\"", "g(\\\"\\u{e9}\\\")", "f(\\\"\\${x}\\\")", "g(\\\\)"] {
+            let src = format!("module x\nfn h() -> string {{\n  return \"a${{{inner}}}\"\n}}\n");
+            let err = crate::parse(&src).expect_err(&src);
+            assert_eq!(err.code(), "E0002", "{src}: {err:?}");
+            assert!(matches!(err, ParseError::EscapeInInterpolation { .. }), "{src}: {err:?}");
+        }
+    }
+
+    /// G441: an escape outside the `${}` stays legal, and so does `\${`.
+    #[test]
+    fn an_escape_outside_the_interpolation_is_accepted_g441() {
+        for src in [
+            "module x\nfn h(x: string) -> string {\n  return \"a\\n${x}\"\n}\n",
+            "module x\nfn h(x: string) -> string {\n  return \"\\${x}\"\n}\n",
+            "module x\nfn h(x: string) -> string {\n  return \"\\\"${x}\\\" \\t ${x}\\u{e9}\"\n}\n",
+        ] {
+            parse_or_panic(src);
+        }
+    }
+
+    /// G441: a `"""..."""` string decodes no escapes, so a string literal
+    /// and a backslash inside its `${}` are accepted as written, and nodes
+    /// after them sit on their own bytes.
+    #[test]
+    fn a_triple_quoted_interpolation_keeps_its_literals_g441() {
+        let src = "module x\nfn f(s: string) -> string {\n  return s\n}\nfn h() -> string {\n  let _a = \"\"\"x${f(\"a\\tb\") + bb}\"\"\"\n  return \"\"\n}\n";
+        let found = template_spans(src);
+        assert!(found.iter().any(|f| f == "bb=bb"), "{found:?}");
+        assert!(found.iter().all(|f| f.split_once('=').is_some_and(|(a, b)| a == b)), "{found:?}");
+    }
+
+    /// G441: a `"..."` string nested inside a `"""` interpolation is still a
+    /// `"..."` string, so an escape inside its own `${}` is refused, at the
+    /// escape's bytes in the file.
+    #[test]
+    fn a_quoted_string_nested_in_a_triple_interpolation_is_refused_g441() {
+        let src = "module x\nfn h(g: fn(string) -> string) -> string {\n  return \"\"\"${g(\"q${g(\\\"x\\\")}\")}\"\"\"\n}\n";
+        let err = crate::parse(src).expect_err(src);
+        assert!(matches!(err, ParseError::EscapeInInterpolation { .. }), "{err:?}");
+        let span = err.span();
+        assert_eq!(span.start as usize, src.find("\\\"x").unwrap(), "{err:?}");
+    }
+
     #[test]
     fn mut_method_call_d5() {
         let m = parse_or_panic("module x\nfn main() { mut issues.push(1) }\n");

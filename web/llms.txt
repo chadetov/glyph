@@ -608,9 +608,12 @@ pub component Notes() {
 ### Template strings
 
 `"Hello, ${user.email}"` interpolates expressions, calls included:
-`"total: ${format_money(sum)}"`. Write `\${` for a literal dollar-brace. The one
-thing the interior cannot hold is another string literal (`"${f("x")}"`) — bind
-it to a `let` first.
+`"total: ${format_money(sum)}"`. Write `\${` for a literal dollar-brace. Inside
+the `${}` of a `"..."` string you cannot write another string literal
+(`"${f("x")}"`) or a backslash (`"${f(\"x\")}"` is E0002). Bind the value to a
+`let` first, or write the whole string as `"""..."""`, whose `${}` holds a string
+literal as written: `"""total: ${f("x")}"""`. An escape outside the `${}`
+(`"a\n${x}"`) is fine.
 
 A `"..."` string decodes six escapes and nothing else: `\n` (newline), `\t`
 (tab), `\r` (carriage return), `\"` (a literal quote), `\\` (a literal

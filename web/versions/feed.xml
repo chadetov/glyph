@@ -8,6 +8,13 @@
   <updated>2026-11-23T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.169 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.169" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.169</id>
+    <updated>2026-11-23T00:00:00Z</updated>
+    <summary>An escape inside the ${} of a "..." string is a parse error</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.168 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.168" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.168</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.140</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>json.parse&lt;Rows&gt; now works when Rows comes from another module and names a type that module imports.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.139 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.139" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.139</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>Reading a member off an Option or a Result is now checked.</summary>
   </entry>
 </feed>

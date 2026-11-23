@@ -1,0 +1,20 @@
+---
+version: 0.1.169
+month: 2026-11
+date: 2026-11-23
+tags: breaking
+headline: An escape inside the ${} of a "..." string is a parse error
+---
+            <p>A nested string literal inside the <code>${}</code> of a <code>"..."</code> string could only be written with escapes, as in <code>"a${f(\"x\")}"</code>. That spelling existed to get around the rule that says to bind such a value with <code>let</code> first. It also left every position after the escape a few bytes early, so 0.1.165 had to stop <code>glyph fix</code> from touching anything there.</p>
+
+            <p>Now a backslash inside the <code>${}</code> of a <code>"..."</code> string is E0002, pointing at the escape, and the help is written from your code:</p>
+
+<pre><code>[E0002] `\"` is an escape inside the `${}` of a `"..."` string, which Glyph does not allow
+Help: ... Bind the value with `let` and interpolate the name: `let label = x + "é"`, then `"a${label}"`. Or write the whole string as `"""a${x + "é"}"""`, which reads a string literal inside `${}` as written.</code></pre>
+
+            <p>Triple-quoted strings are unchanged, and so is an escape outside the <code>${}</code>, such as <code>"a\n${x}"</code> or <code>"\${x}"</code>. When the text around the <code>${}</code> holds an escape, the help names the <code>"""</code> form only in words, since a <code>"""</code> string would not decode it.</p>
+
+            <p>Two related changes. <code>glyph fmt</code> no longer rewrites a one-line <code>"""</code> template into the <code>"..."</code> spelling; it used to turn valid code into the form this release refuses. And with that region gone, the guard that stopped <code>glyph fix</code> after an escape is removed, so a rename inside a <code>"""</code> interpolation that holds an escape now applies instead of being declined.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>: <code>"a${f(\"x\")}"</code> exits 0 under 0.1.168 and 1 under 0.1.169. No tracked program had such an escape, so nothing in the corpus changed.</p>

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-465 entries, 334 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-111 are open. G144, the D28 boundary cast that never reached the returns a
+467 entries, 334 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+113 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15403,6 +15403,12 @@ and is the owner's to confirm.
   type as its signature (`fn(string) -> string`). Found by record 158 (probes
   r02 and r03).
 
+  D65 (0.1.176) adds sites that reach this message: an `unknown` where a
+  function type is declared reads ``expected `function`, found `unknown` ``,
+  and `fn(string) -> unknown` where `fn(string) -> string` is declared reads
+  ``expected `function`, found `function` `` with neither signature. Noted
+  by record 186 (N2).
+
   *Reproduced against 0.1.161 (the published release) and the 0.1.163 branch
   build: `n.update(fn(v: string) -> string { return v })` on a
   `store.Store<number>` and `apply(fn(v: string) -> string { return v })`
@@ -15978,3 +15984,25 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.171 (the published release): E0204 under `check
   --no-tsc` and under `build`.*
+
+- **G491. The parameter types of a function value are never compared.**
+  `takes_cb(fn(x: number) -> string { .. })` with `takes_cb(f: fn(string) ->
+  string)` passes `check --no-tsc`, and so does `let k2: fn(string) -> void
+  = h` with `h: fn(number) -> void`; full `check` refuses both (TS2345,
+  TS2322). The function rule compares the return and the `async` flag and
+  nothing else. It is also where D65 stops: `let k: fn(unknown) -> void = g`
+  with `g: fn(string) -> void` passes, though `tsc` refuses it, because an
+  `unknown` reaches the parameter contravariantly. Parameters should be
+  compared contravariantly, through the whole relation. Found by record 186
+  (N1, probe u2).
+
+  *Reproduced against 0.1.172 (the published release) and the 0.1.176
+  branch build: all three pass `check --no-tsc`.*
+
+- **G492. A built-in method's rest parameter is not checked.** `s.concat(5)`
+  and `s.concat(u)` with `s: string` and `u: unknown` pass `check --no-tsc`,
+  and `tsc` refuses both (TS2345). `s.startsWith(u)` is refused, so only the
+  variadic parameter is skipped. Found by record 186 (N3).
+
+  *Reproduced against 0.1.172 (the published release) and the 0.1.176
+  branch build: both calls pass `check --no-tsc`.*

@@ -31,8 +31,8 @@ mod text;
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, Primitive, RecordField,
-    SymbolRef, Ty, UnionRef, UnionVariant,
+    builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
+    RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::builtin_members::{MethodSig, MethodTy};
 use crate::type_map::{IdentPattern, TypeMap};
@@ -1325,6 +1325,11 @@ struct Assigner<'a> {
     /// signature's own `K` left unbound at a call, is not decidable and
     /// stays permissive.
     key_generics: Vec<Ident>,
+    /// The owner of `key_generics`: the `fn` or `component` whose body is
+    /// being walked, or `None` outside one. A type parameter is one of the
+    /// body's own only when its owner is this one (G314, step 1), so a
+    /// callee's `T` left unbound at a call inside `fn f<T>` is not `f`'s `T`.
+    enclosing_owner: Option<ParamOwner>,
     /// The written annotation of each parameter and annotated `let`, keyed
     /// the way `local_tys` is. A diagnostic that suggests code reads the
     /// type the program spelled from here: the checker's `Ty` has erased
@@ -1482,6 +1487,7 @@ impl<'a> Assigner<'a> {
             local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
+            enclosing_owner: None,
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -1846,6 +1852,7 @@ impl Assigner<'_> {
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.key_generics = f.generics.iter().map(|g| g.name.clone()).collect();
+                self.enclosing_owner = Some(self.lowerer.param_owner(f.span.start));
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
                 // Inside the callable's own return context: the check reads
@@ -1855,6 +1862,7 @@ impl Assigner<'_> {
                     self.check_value_match_tail(&f.body);
                 }
                 self.key_generics.clear();
+                self.enclosing_owner = None;
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
@@ -1894,12 +1902,14 @@ impl Assigner<'_> {
                 let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.key_generics = c.generics.iter().map(|g| g.name.clone()).collect();
+                self.enclosing_owner = Some(self.lowerer.param_owner(c.span.start));
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
                 if wants_value {
                     self.check_value_match_tail(&c.body);
                 }
                 self.key_generics.clear();
+                self.enclosing_owner = None;
                 self.return_stack.pop();
             }
             Decl::Const(c) => {
@@ -8486,20 +8496,27 @@ impl Assigner<'_> {
         if self.key_generics.is_empty() || !ty_has_param(ty) {
             return ty.clone();
         }
-        let subst: HashMap<Ident, Ty> = self
-            .key_generics
-            .iter()
-            .map(|g| {
-                (
-                    g.clone(),
-                    Ty::Named {
-                        symbol: SymbolRef(u32::MAX),
-                        path: vec![g.clone()],
-                    },
-                )
+        map_params(ty, &|name, owner| {
+            self.is_own_param(name, owner).then(|| Ty::Named {
+                symbol: SymbolRef(u32::MAX),
+                path: vec![name.clone()],
             })
-            .collect();
-        substitute_type_params(ty, &subst)
+        })
+    }
+
+    /// Whether the type parameter `name`, owned by `owner`, is one the body
+    /// being walked declares. Decided by owner and name together (G314, step
+    /// 1): a `T` some callee declares is a different parameter from the
+    /// enclosing `fn f<T>`'s `T`. A parameter with no known owner is matched
+    /// by name, the rule every parameter had before owners were filled.
+    fn is_own_param(&self, name: &Ident, owner: &ParamOwner) -> bool {
+        if !self.key_generics.contains(name) {
+            return false;
+        }
+        match owner {
+            ParamOwner::Unresolved => true,
+            owner => self.enclosing_owner.as_ref() == Some(owner),
+        }
     }
 
     fn refusal(&self, expected: &Ty, found: String, span: Span) -> Refusal {
@@ -9185,7 +9202,7 @@ impl Assigner<'_> {
             // (G373b, G395).
             Ty::Prim(Primitive::Number) => KeyDomain::Number,
             Ty::StringLiteralUnion(values) => KeyDomain::Literals(values.iter().cloned().collect()),
-            Ty::Param { name, .. } if self.key_generics.contains(name) => KeyDomain::Param(name.clone()),
+            Ty::Param { name, owner } if self.is_own_param(name, owner) => KeyDomain::Param(name.clone()),
             Ty::Named { .. } => {
                 let end = self.resolve_alias_chain(ty);
                 if !matches!(end, Ty::Named { .. }) {
@@ -10013,8 +10030,17 @@ impl Assigner<'_> {
     /// relation itself reads an open parameter as undecidable and stays
     /// silent, which would leave the pairing to `tsc` (TS2322) and let it
     /// pass `--no-tsc`, the editor and the playground.
+    ///
+    /// A parameter is compared by owner and name (G314, step 1). One a callee
+    /// declares and the call left unbound (`wrap([])` returning a `One<T>`)
+    /// is not a parameter of the body being walked, so nothing about it is
+    /// known here and the pairing is not decided, as `tsc` infers `never`
+    /// for it and accepts.
     fn map_field_incompatible(&self, field: &Ty, value: &Ty) -> bool {
-        if matches!(field, Ty::Param { .. }) {
+        if let Ty::Param { owner, .. } = field {
+            if owner.is_callable() && self.enclosing_owner.as_ref() != Some(owner) {
+                return false;
+            }
             return !matches!(value, Ty::UnknownTop) && field != value;
         }
         self.assign_incompatible(field, value)
@@ -11831,11 +11857,17 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
     if subst.is_empty() {
         return ty.clone();
     }
+    map_params(ty, &|name, _| subst.get(name).cloned())
+}
+
+/// `ty` with each type parameter `f` answers for replaced by its answer, and
+/// every other one kept.
+fn map_params(ty: &Ty, f: &dyn Fn(&Ident, &ParamOwner) -> Option<Ty>) -> Ty {
     match ty {
-        Ty::Param { name, .. } => subst.get(name).cloned().unwrap_or_else(|| ty.clone()),
+        Ty::Param { name, owner } => f(name, owner).unwrap_or_else(|| ty.clone()),
         Ty::App { base, args } => Ty::App {
-            base: Arc::new(substitute_type_params(base, subst)),
-            args: args.iter().map(|a| substitute_type_params(a, subst)).collect(),
+            base: Arc::new(map_params(base, f)),
+            args: args.iter().map(|a| map_params(a, f)).collect(),
         },
         Ty::Fn {
             params,
@@ -11848,21 +11880,21 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .map(|p| FnParam {
                     name: p.name.clone(),
                     owned: p.owned,
-                    ty: substitute_type_params(&p.ty, subst),
+                    ty: map_params(&p.ty, f),
                     optional: p.optional,
                 })
                 .collect(),
-            return_ty: Arc::new(substitute_type_params(return_ty, subst)),
+            return_ty: Arc::new(map_params(return_ty, f)),
             is_async: *is_async,
             type_params: type_params.clone(),
         },
         Ty::Record { fields } => Ty::Record {
             fields: fields
                 .iter()
-                .map(|f| RecordField {
-                    name: f.name.clone(),
-                    ty: substitute_type_params(&f.ty, subst),
-                    optional: f.optional,
+                .map(|field| RecordField {
+                    name: field.name.clone(),
+                    ty: map_params(&field.ty, f),
+                    optional: field.optional,
                 })
                 .collect(),
         },
@@ -11871,13 +11903,13 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .iter()
                 .map(|v| UnionVariant {
                     name: v.name.clone(),
-                    payload: v.payload.as_ref().map(|p| substitute_type_params(p, subst)),
+                    payload: v.payload.as_ref().map(|p| map_params(p, f)),
                 })
                 .collect(),
         },
         // A pending value of a generic async callee's result: the call site
         // wraps after substituting, but a binding of one carries it on.
-        Ty::Pending(inner) => Ty::Pending(Arc::new(substitute_type_params(inner, subst))),
+        Ty::Pending(inner) => Ty::Pending(Arc::new(map_params(inner, f))),
         other => other.clone(),
     }
 }
@@ -12233,7 +12265,6 @@ fn jsx_writes_children(children: &[JsxChild]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ty::ParamOwner;
     use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module};
 
     fn type_map_of(src: &str) -> (Module, ResolvedModule, TypeMap) {
@@ -18971,6 +19002,7 @@ component View(props: { s: Status }) -> Component {
             local_stdlib_values: HashMap::new(),
             null_chains: NullChains::default(),
             key_generics: Vec::new(),
+            enclosing_owner: None,
             local_type_exprs: HashMap::new(),
             awaited_calls: HashSet::new(),
             refused_lambdas: HashSet::new(),
@@ -23552,6 +23584,40 @@ fn f(a: Answer) -> number {
             got.iter().all(|(e, f)| e == "Record<string, string>" && f.starts_with("Box<")),
             "{errs:?}"
         );
+    }
+
+    /// G314, step 1 (record 157's e02). `wrap([])` binds nothing to
+    /// `wrap`'s `T`, so the `One<T>` it returns holds a parameter of `wrap`,
+    /// not of the body being walked. Nothing is known about it at the call
+    /// site, and `tsc` infers `never` and accepts, so the pairing with a
+    /// `Record<string, string>` is not decided. The same holds inside a
+    /// `fn f4<T>` whose own parameter has the same name: the two `T`s are
+    /// told apart by owner. A field typed by the enclosing function's own
+    /// parameter is still refused (`f2`, `f3`), as `tsc` refuses it.
+    #[test]
+    fn a_callee_parameter_left_unbound_is_not_the_enclosing_parameter() {
+        let src = "module m\n\
+             type One<T> = { v: T, }\n\
+             fn wrap<T>(xs: Array<T>) -> One<T> { return { v: xs[0], } }\n\
+             fn f() -> Record<string, string> { return wrap([]) }\n\
+             fn f4<T>() -> Record<string, string> { return wrap([]) }\n\
+             fn f2<T>(x: One<T>) -> Record<string, string> { return x }\n\
+             fn f3<T>(xs: Array<T>) -> Record<string, string> { return wrap(xs) }\n";
+        let errs = errors_of(src);
+        let mut at: Vec<(String, String, &str)> = errs
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, span, .. } => {
+                    let line_start = src[..span.start as usize].rfind('\n').map_or(0, |n| n + 1);
+                    let fn_name = src[line_start..].split(['<', '(']).next().unwrap_or("");
+                    Some((expected.clone(), found.clone(), fn_name))
+                }
+                _ => None,
+            })
+            .collect();
+        at.sort();
+        let want = |f: &'static str| ("Record<string, string>".to_string(), "One<T>".to_string(), f);
+        assert_eq!(at, vec![want("fn f2"), want("fn f3")], "{errs:?}");
     }
 
     /// G293. A tagged union has no fields in Glyph, and its runtime encoding

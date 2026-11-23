@@ -21996,3 +21996,54 @@ fn an_is_arm_interpolation_after_the_unknown_help_is_accepted() {
     let got = no_text_form_diagnostics("g385-is-arm", text);
     assert!(got.is_empty(), "{got:#?}");
 }
+
+/// G314, step 1, across a module edge. `wrap([])` leaves `wrap`'s `T`
+/// unbound, and the `One<T>` it returns is accepted where a
+/// `Record<string, string>` is declared whether `wrap` is declared here,
+/// imported by name or reached through a namespace: the owner of an imported
+/// parameter is `(module, name)`, never a `SymbolRef` of the sibling's table
+/// that could collide with one of this module's. `wrap(xs)` inside
+/// `fn f3<T>` binds `wrap`'s `T` to `f3`'s, which is still refused under every
+/// spelling, as `tsc` refuses it.
+#[test]
+fn an_unbound_callee_parameter_is_undecided_under_every_import_spelling() {
+    let lib = "module lib\n\
+               pub type One<T> = { v: T, }\n\
+               pub fn wrap<T>(xs: Array<T>) -> One<T> {\n  return { v: xs[0], }\n}\n";
+    for (label, import, callee) in [
+        ("named", "import lib { wrap }\n", "wrap"),
+        ("namespace", "import lib\n", "lib.wrap"),
+    ] {
+        let root = unique_tmp(&format!("g314{label}"));
+        let src = root.join("src");
+        write_file(&src, "lib.glyph", lib);
+        write_file(
+            &src,
+            "app.glyph",
+            &format!(
+                "module app\n\
+                 {import}\
+                 pub fn f() -> Record<string, string> {{\n  return {callee}([])\n}}\n\
+                 pub fn f4<T>() -> Record<string, string> {{\n  return {callee}([])\n}}\n\
+                 pub fn f3<T>(xs: Array<T>) -> Record<string, string> {{\n  return {callee}(xs)\n}}\n"
+            ),
+        );
+        let report = build_project(&src, &root.join("dist")).expect("build_project ok");
+        let mismatches: Vec<&String> = report
+            .diagnostics
+            .iter()
+            .filter(|d| d.contains("E0204"))
+            .collect();
+        assert_eq!(mismatches.len(), 1, "{label}: {:?}", report.diagnostics);
+        assert!(
+            mismatches[0].contains("expected `Record<string, string>`, found `One<T>`"),
+            "{label}: {:?}",
+            report.diagnostics
+        );
+        assert!(
+            mismatches[0].contains("app:10:10"),
+            "{label}: the refusal is f3's return: {:?}",
+            report.diagnostics
+        );
+    }
+}

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-462 entries, 333 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-109 are open. G144, the D28 boundary cast that never reached the returns a
+464 entries, 333 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+111 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -14884,7 +14884,10 @@ and is the owner's to confirm.
   `is Record<string, number> => v[k]` is E0224 as the same read on a
   declared map is. The arm-value form, `is Array<string> => v` as the value
   of a returned `match`, still passes: no `match` arm's value is compared
-  with its declared position (G470). `Option`, `Result` and `Nullable`
+  with its declared position (G470). A map is recognized, and its `V`
+  read, through every spelling D46 covers: written out, a local alias or a
+  chain of them, a named or namespace import of a sibling's alias, and an
+  `is` arm naming one (record 183, F1). `Option`, `Result` and `Nullable`
   have no `is` check (E0300), so an arm naming one still does not narrow.
   Breaking under `check --no-tsc`: those two arms went from exit 0 to 1 on
   the published 0.1.170, and a declared `Record<string, unknown>` read from
@@ -15889,3 +15892,39 @@ and is the owner's to confirm.
   position compares each arm's value with the declared type, so both
   reproductions are E0204, and so is `is Array<string> => v` returned
   where `number` is declared.
+
+- **G471. A write into a container is not compared with its element or
+  value type under `--no-tsc`.** On a declared `v: Array<string>`, `mut
+  v.push(5)` and `mut v[0] = 5` pass, and so does `mut m["k"] = 5` on `m:
+  Record<string, string>`; full `check` reports TS2345 and TS2322 for the
+  three. Inside an `is Array<string>` arm both array writes pass Glyph and
+  `tsc --strict` alike, because `Array.isArray` narrows to `any[]` for
+  `tsc`; only the map write is caught there, through the guard's type
+  predicate. Not a regression (0.1.170 is silent with `v` as `unknown`), but
+  since G415 the arm tells an agent `Array<string>` and lets a `5` in. The
+  write-side counterpart of G325. Found by record 183 (N2, probes `a2` and
+  `a3`).
+
+  *Reproduced against 0.1.175 (the dev-0.1.175 build) with record 183's
+  `a2`: `check --no-tsc` exits 0, and full `check` exits 1 with TS2345,
+  TS2322 and TS2322.*
+
+- **G472. A write through a second, wider name after an `is` check breaks
+  the narrowing.** `let r: Record<string, unknown> = { name: "x", }`, `let
+  v: unknown = r`, then `match v { is User => { mut r["name"] = 5
+  shout(v) }, ... }` checks clean, and `glyph run` throws `TypeError:
+  u.name.toUpperCase is not a function`. With `is Array<string>` and `mut
+  a.unshift(5)` through `a: Array<unknown>` it throws
+  `__glyph_index(...).toUpperCase is not a function`. Record 134's predicate
+  stops narrowing a name something reassigns, not a value changed through
+  another name. Awaiting a decision, with G394: refuse a write through a
+  container whose element or value type is wider than a narrowing held on
+  an alias of the same value (needs alias tracking), drop every narrowing in
+  scope at a `mut` write to a container-typed name, or document it as the
+  hole TypeScript's type guards have. After G325 this is the only route by
+  which a narrowed value can be wrong. Found by record 183 (N3, probes `a4`
+  and `a5`).
+
+  *Reproduced against 0.1.175 (the dev-0.1.175 build) with record 183's
+  `a4` and `a5`: `check --no-tsc` and full `check` exit 0 on both, and
+  `glyph run` throws the two `TypeError`s above.*

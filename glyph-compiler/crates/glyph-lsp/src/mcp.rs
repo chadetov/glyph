@@ -6328,9 +6328,13 @@ enum ArgKind {
     /// The checker refuses it as an argument to every parameter (E0238), so
     /// the site fails as it stands, whatever the parameter becomes.
     Pending,
+    /// `unknown` (D65): it stands only where `unknown` is declared, so the
+    /// cell asks the relation, which refuses it against every type it
+    /// decides (G325).
+    Top,
     /// Everything else: a generic parameter, an application over a structural
     /// base or over a prelude type that is not one of the five containers,
-    /// `unknown`, `never`.
+    /// `never`.
     Other,
 }
 
@@ -6570,7 +6574,8 @@ fn classify_argument(ty: &Ty, scope: &CellScope<'_>) -> ArgKind {
         Ty::Record { .. } | Ty::Fn { .. } => ArgKind::Structural,
         Ty::StringLiteralUnion(_) => ArgKind::StringLiteralUnion,
         Ty::Pending(_) => ArgKind::Pending,
-        Ty::UnknownTop | Ty::Never | Ty::Param { .. } | Ty::Union { .. } => ArgKind::Other,
+        Ty::UnknownTop => ArgKind::Top,
+        Ty::Never | Ty::Param { .. } | Ty::Union { .. } => ArgKind::Other,
     }
 }
 
@@ -6715,6 +6720,24 @@ fn signature_type_cell(
              this site fails as it stands, whatever `{param_ty}` is replaced with; `await` \
              the call"
         )),
+        // G325, D65. An `unknown` argument stands only where `unknown` is
+        // declared. Where it is declared the site compiles, and every
+        // replacement the relation decides refuses it; anywhere else the
+        // relation answers for the pairing as it stands, so the cell asks it
+        // rather than restating which types it decides.
+        (A::Top, P::Top) => will_fail(
+            "`unknown` is assignable only to `unknown` (D65): the argument stands where              `unknown` is declared as the parameter stands, and a replacement the checker              reads (a primitive, a record, a tagged union, a container, a type parameter)              is E0211 here"
+                .to_string(),
+        ),
+        (A::Top, _) => decided_cell(
+            decide(),
+            &format!(
+                "`unknown` is assignable only to `unknown` (D65), so an `unknown` argument                  is compared against every declared type the checker reads. `{arg_ty}`                  against `{param_ty}` is that comparison"
+            ),
+            "The parameter is a type the checker does not read (an `extern_ts` or `typeof`              type, a package type, `Schema<T>` or `infer_output<S>`)",
+            arg_ty,
+            param_ty,
+        ),
         // G234, the third pairing decided by asking the relation. A
         // string-literal union is compared by literal set in both directions
         // and, against anything else, by the question that type asks against
@@ -17140,7 +17163,10 @@ pub fn f() -> number {
             ("api::takes_local", "api::calls_local_ok", "Local", "Local", "WILL_FAIL"),
             ("api::takes_local", "api::calls_local_number", "int", "Local", "WILL_FAIL"),
             ("api::takes_string", "api::calls_string", "Local", "string", "WILL_FAIL"),
-            ("api::takes_local", "api::calls_unknown", "unknown", "Local", "UNDETERMINED"),
+            // G325, D65: `unknown` is refused where a literal union is
+            // declared, and the cell names that rule rather than the
+            // literal-set one.
+            ("api::takes_local", "api::calls_unknown", "unknown", "Local", "WILL_FAIL"),
         ];
         for (entity, caller, from, to, want) in cells {
             let answer = impact(
@@ -17157,10 +17183,11 @@ pub fn f() -> number {
             let cell = entry["arguments"][0]["verdict"].as_str().unwrap_or_default().to_string();
             assert_eq!(cell, want, "cell for `{from}` into `{to}`: {entry}");
             let because = entry["arguments"][0]["because"].as_str().unwrap_or_default();
-            assert!(
-                because.contains("literal set"),
-                "the rule the cell ran is unnamed: {entry}"
-            );
+            let rule = match from {
+                "unknown" => "assignable only to `unknown` (D65)",
+                _ => "literal set",
+            };
+            assert!(because.contains(rule), "the rule the cell ran is unnamed: {entry}");
             let (assignable, is_error) = call_on(
                 &mut server,
                 "glyph_assignable",

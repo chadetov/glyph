@@ -1944,6 +1944,7 @@ impl Assigner<'_> {
                             missing_fields: r.missing_fields,
                             no_common_field: r.no_common_field,
                             record_key: r.record_key,
+                            unknown_value: r.unknown_value,
                             span: r.span,
                         });
                     }
@@ -2511,6 +2512,7 @@ impl Assigner<'_> {
                             missing_fields: r.missing_fields,
                             no_common_field: r.no_common_field,
                             record_key: r.record_key,
+                            unknown_value: r.unknown_value,
                             span: r.span,
                         });
                     }
@@ -3489,6 +3491,7 @@ impl Assigner<'_> {
                                 children_between_tags: false,
                                 sql_escape,
                                 record_key: r.record_key,
+                                unknown_value: r.unknown_value,
                                 kind_help: kind_help.clone(),
                                 span: r.span,
                             });
@@ -4111,6 +4114,7 @@ impl Assigner<'_> {
                     children_between_tags: false,
                     sql_escape: false,
                     record_key: r.record_key,
+                    unknown_value: r.unknown_value,
                     kind_help: None,
                     span: r.span,
                 });
@@ -4166,6 +4170,7 @@ impl Assigner<'_> {
             children_between_tags,
             sql_escape: false,
             record_key: None,
+            unknown_value: false,
             kind_help: None,
             span: j.name_span,
         });
@@ -5378,6 +5383,7 @@ impl Assigner<'_> {
                 missing_fields: r.missing_fields,
                 no_common_field: r.no_common_field,
                 record_key: r.record_key,
+                unknown_value: r.unknown_value,
                 span: r.span,
             });
         }
@@ -8213,6 +8219,10 @@ impl Assigner<'_> {
             r.missing_fields = self.missing_required_fields(found, expected);
             r.no_common_field = self.shares_no_field_with_weak_record(found, expected);
             r.record_key = self.record_key_mismatch(value, found, expected);
+            // Read through every transparent name first, so a `type Raw =
+            // unknown` gets the same help the written word does.
+            r.unknown_value =
+                !self.assign_incompatible(&unknown_top_unread(&self.canonicalize_aliases(found)), expected);
             return Some(r);
         }
         // The walk records `Ty::Unknown` for an object literal, so the type
@@ -8352,6 +8362,7 @@ impl Assigner<'_> {
             children_between_tags: false,
             sql_escape: false,
             record_key: None,
+            unknown_value: false,
             kind_help: self.fn_kind_help(callee, args, arg, found, &slot),
             span: arg.span(),
         })
@@ -8695,9 +8706,9 @@ impl Assigner<'_> {
     /// `extern_ts` or `typeof` type, or a cycle) leaves the parameter
     /// decided only against another of the body's parameters.
     ///
-    /// What stays undecided: a value of `unknown` where `T` is declared (that
-    /// is G325's), a `void`, and anything the relation cannot read as a
-    /// declaration.
+    /// A value of `unknown` where `T` is declared never reaches here: the
+    /// relation refuses it first (G325, D65). What stays undecided is a
+    /// `void` and anything the relation cannot read as a declaration.
     fn rigid_param_verdict(&self, found: &Ty, expected: &Ty, position: Position) -> Option<bool> {
         let found_rigid = self.rigid_param(found);
         let expected_rigid = self.rigid_param(expected).is_some();
@@ -8805,6 +8816,7 @@ impl Assigner<'_> {
             missing_fields: Vec::new(),
             no_common_field: false,
             record_key: None,
+            unknown_value: false,
             span,
         }
     }
@@ -9137,6 +9149,7 @@ impl Assigner<'_> {
                 children_between_tags: false,
                 sql_escape: false,
                 record_key: r.record_key,
+                unknown_value: r.unknown_value,
                 kind_help: None,
                 span: r.span,
             }
@@ -9148,6 +9161,7 @@ impl Assigner<'_> {
                 missing_fields: r.missing_fields,
                 no_common_field: r.no_common_field,
                 record_key: r.record_key,
+                unknown_value: r.unknown_value,
                 span: r.span,
             }
         });
@@ -9534,6 +9548,103 @@ impl Assigner<'_> {
         self.assign_incompatible_at(found, expected, Position::Ordinary)
     }
 
+    /// G325. Whether a value of `unknown` is refused where `expected` is
+    /// declared: whether `expected` is a type the checker decides and is not
+    /// `unknown` itself. `tsc` refuses `unknown` everywhere but `unknown` and
+    /// `any` (TS2322, TS2345), so every type read here as decided is one it
+    /// refuses too.
+    ///
+    /// Only the written `unknown` and `json.parse`'s unwritten `T` are
+    /// `Ty::UnknownTop`. A value the checker has no type for is `Ty::Unknown`
+    /// and never reaches this rule.
+    ///
+    /// Decided: a primitive (`void` included: `return u` under `-> void` is
+    /// TS2322, and a function returning `unknown` where one returning `void`
+    /// is declared never reaches here, since the function rule does not
+    /// compare a `void` return), `never`, a string-literal
+    /// union, a record, a function type, a tagged union, an enclosing type
+    /// parameter (D58), a prelude container (`Nullable<X>` only when `X` is
+    /// decided, since `unknown` is assignable to `unknown | null`), `Issue`, a
+    /// stdlib type, an interface, and a declaration of this module or a
+    /// sibling whose body is one of those.
+    ///
+    /// Undecided, and so not refused: `Ty::Unknown`, a type parameter this
+    /// site does not decide (a callee's, left unbound), a pending value, `Schema<T>`,
+    /// `Component<P>` and `infer_output<S>` (library types whose shape the
+    /// checker does not hold, the last of which may itself be `unknown`), an
+    /// `extern_ts` or `typeof` body, an npm type, and a name the checker
+    /// cannot read a declaration for.
+    fn unknown_refused_where(&self, expected: &Ty, depth: usize) -> bool {
+        if depth > 16 {
+            return false;
+        }
+        let expected = &self.expand_transparent(expected);
+        match expected {
+            Ty::UnknownTop | Ty::Unknown | Ty::Pending(_) => false,
+            Ty::Prim(_)
+            | Ty::Never
+            | Ty::StringLiteralUnion(_)
+            | Ty::Record { .. }
+            | Ty::Fn { .. }
+            | Ty::Union { .. } => true,
+            Ty::Param { .. } => self.rigid_param(expected).is_some(),
+            Ty::App { base, .. } => {
+                if let Some((name, inner)) = self.prelude_container(expected) {
+                    return match name {
+                        "Nullable" => inner
+                            .first()
+                            .is_some_and(|x| self.unknown_refused_where(x, depth + 1)),
+                        _ => true,
+                    };
+                }
+                self.unknown_refused_where(base, depth + 1)
+            }
+            Ty::Named { symbol, path } => {
+                if stdlib_type_path(expected).is_some() || self.interface_member_fields(expected).is_some() {
+                    return true;
+                }
+                // A prelude name, read by its name and its id together, as
+                // `export_inferred` reads one. `Issue` is a record; a bare
+                // container name is E0233's, and `Schema`, `Component` and
+                // `InferOutput` are not read.
+                let prelude_name = path
+                    .last()
+                    .map(|n| n.as_ref())
+                    .filter(|n| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0)));
+                if let Some(name) = prelude_name {
+                    return name == "Issue";
+                }
+                let end = self.resolve_alias_chain(expected);
+                if end != *expected && !matches!(end, Ty::Named { .. }) {
+                    return self.unknown_refused_where(&end, depth + 1);
+                }
+                let Some(td) = self.direct_type_decl(&end) else {
+                    return false;
+                };
+                match &td.body {
+                    TypeExpr::Union { .. } | TypeExpr::Record { .. } | TypeExpr::StringLiteralUnion { .. } | TypeExpr::Fn { .. } => true,
+                    TypeExpr::Extern { .. } | TypeExpr::TypeOf { .. } => false,
+                    TypeExpr::Path { .. } | TypeExpr::Generic { .. } => {
+                        let body = self.lowerer.lower(&td.body);
+                        body != end && self.unknown_refused_where(&body, depth + 1)
+                    }
+                }
+            }
+            Ty::Imported { module, name } => {
+                let Some((_, _, decl)) =
+                    imported_decl_chain_end(self.decl_ty_resolver, module.as_str(), name.as_ref())
+                else {
+                    return false;
+                };
+                // The body crosses the file edge with every name of the
+                // sibling rewritten to a `Ty::Imported` or `Ty::Unknown`
+                // (`export_inferred`), and its own parameters are undecided
+                // here, so it is read like a local type.
+                self.unknown_refused_where(&decl.body, depth + 1)
+            }
+        }
+    }
+
     /// `assign_incompatible`, plus where in a type the pairing sits.
     ///
     /// One position changes the rule: the key argument of a `Record`, which
@@ -9554,6 +9665,14 @@ impl Assigner<'_> {
         note_unowned_params(found, expected);
         if position == Position::RecordKey {
             return self.record_keys_differ(found, expected);
+        }
+        // G325 (records 89 and 182). A value of `unknown` stands only where
+        // `unknown` is declared. Read before every other rule, at every depth
+        // the relation recurses into, so `Array<unknown>` where
+        // `Array<string>` is declared and `Result<unknown, E>` where
+        // `Result<T, E>` is declared are refused through the argument walk.
+        if matches!(found, Ty::UnknownTop) {
+            return self.unknown_refused_where(expected, 0);
         }
         // G387, D52. `sqlite.Sql` is a `string` whose text is fixed when the
         // program is written. As a type it is compared as `string` both ways;
@@ -10928,6 +11047,10 @@ struct Refusal {
     no_common_field: bool,
     /// Both types are `Record` maps whose keys differ in key domain (G373).
     record_key: Option<Box<crate::RecordKeyMismatch>>,
+    /// The refusal is G325's alone: with every `unknown` in the value's type
+    /// read as a type the checker does not know, the pairing is not refused.
+    /// The help then names the ways to check an `unknown`.
+    unknown_value: bool,
     span: Span,
 }
 
@@ -11867,6 +11990,55 @@ fn is_untyped(ty: &Ty) -> bool {
         Ty::Unknown => true,
         Ty::App { base, .. } => is_untyped(base),
         _ => false,
+    }
+}
+
+/// `ty` with every `unknown` in it replaced by the type the checker does not
+/// know, which no rule refuses. A refusal that goes away under it is G325's
+/// alone, which is how the help knows to name the ways to check an `unknown`.
+fn unknown_top_unread(ty: &Ty) -> Ty {
+    match ty {
+        Ty::UnknownTop => Ty::Unknown,
+        Ty::App { base, args } => Ty::App {
+            base: Arc::new(unknown_top_unread(base)),
+            args: args.iter().map(unknown_top_unread).collect(),
+        },
+        Ty::Record { fields } => Ty::Record {
+            fields: fields
+                .iter()
+                .map(|f| RecordField {
+                    ty: unknown_top_unread(&f.ty),
+                    ..f.clone()
+                })
+                .collect(),
+        },
+        Ty::Fn {
+            params,
+            return_ty,
+            is_async,
+            type_params,
+        } => Ty::Fn {
+            params: params
+                .iter()
+                .map(|p| FnParam {
+                    ty: unknown_top_unread(&p.ty),
+                    ..p.clone()
+                })
+                .collect(),
+            return_ty: Arc::new(unknown_top_unread(return_ty)),
+            is_async: *is_async,
+            type_params: type_params.clone(),
+        },
+        Ty::Union { variants } => Ty::Union {
+            variants: variants
+                .iter()
+                .map(|v| UnionVariant {
+                    name: v.name.clone(),
+                    payload: v.payload.as_ref().map(unknown_top_unread),
+                })
+                .collect(),
+        },
+        _ => ty.clone(),
     }
 }
 
@@ -12995,6 +13167,146 @@ mod tests {
         );
         assert!(
             !errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "{errs:?}"
+        );
+    }
+
+    // ----- G325, D65: `unknown` is assignable only to `unknown` -----
+
+    /// The code, the two types and whether the help names the checks, for
+    /// every type mismatch in `errs`.
+    fn g325_refusals(errs: &[TypeError]) -> Vec<(&'static str, String, String, bool)> {
+        errs.iter()
+            .filter_map(|e| match e {
+                TypeError::TypeMismatch { expected, found, unknown_value, .. }
+                | TypeError::ArgumentTypeMismatch { expected, found, unknown_value, .. } => {
+                    Some((e.code(), expected.clone(), found.clone(), *unknown_value))
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Record 182's seven sites, each one `tsc` refuses (TS2322, TS2345):
+    /// a `let`, an argument, a record field, a transparent name for
+    /// `unknown` returned, the generic wrapper that turned `json.parse` into
+    /// a cast, an `Array<unknown>` and a `Nullable<string>`. Every one names
+    /// the checks in its help.
+    #[test]
+    fn an_unknown_where_another_type_is_declared_is_refused_at_every_site() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             type User = { name: string, }\n\
+             type Raw = unknown\n\
+             fn takes(s: string) -> string {\n  return s\n}\n\
+             pub fn a(u: unknown) -> string {\n  let s: string = u\n  return s\n}\n\
+             pub fn b(u: unknown) -> string {\n  return takes(u)\n}\n\
+             pub fn c(u: unknown) -> User {\n  return { name: u, }\n}\n\
+             pub fn d(r: Raw) -> string {\n  return r\n}\n\
+             pub fn e<T>(s: string) -> Result<T, Array<Issue>> {\n  return json.parse(s)\n}\n\
+             pub fn f(u: unknown) -> Array<string> {\n  return [u]\n}\n\
+             pub fn g(u: unknown) -> Nullable<string> {\n  return u\n}\n",
+        );
+        let got = g325_refusals(&errs);
+        let want: Vec<(&str, &str, &str)> = vec![
+            ("E0204", "string", "unknown"),
+            ("E0211", "string", "unknown"),
+            ("E0204", "string", "unknown"),
+            ("E0204", "string", "Raw"),
+            ("E0204", "Result<T, Array<Issue>>", "Result<unknown, Array<Issue>>"),
+            ("E0204", "string", "unknown"),
+            ("E0204", "Nullable<string>", "unknown"),
+        ];
+        assert_eq!(
+            got.iter().map(|(c, e, f, _)| (*c, e.as_str(), f.as_str())).collect::<Vec<_>>(),
+            want,
+            "{errs:?}"
+        );
+        assert!(got.iter().all(|r| r.3), "every one names the checks: {errs:?}");
+        assert!(
+            errs.iter().all(|e| e.help().as_deref() == Some(crate::UNKNOWN_VALUE_HELP)),
+            "{errs:?}"
+        );
+    }
+
+    /// Where `unknown` is declared, an `unknown` stands, through a name for
+    /// it and inside a container; `Nullable<unknown>` is `unknown | null`.
+    /// The explicit renderer and the generated guard and validator take one,
+    /// and so does a stdlib parameter the checker types as nothing at all.
+    #[test]
+    fn an_unknown_where_unknown_or_an_undecided_type_is_declared_stands() {
+        let errs = errors_of(
+            "module m\n\
+             import std/json\n\
+             import std/string\n\
+             import std/io\n\
+             type User = { name: string, }\n\
+             type Raw = unknown\n\
+             type Ext = extern_ts(\"string\")\n\
+             pub fn h(u: unknown) -> unknown {\n  return u\n}\n\
+             pub fn i(r: Raw) -> unknown {\n  return r\n}\n\
+             pub fn j(xs: Array<string>) -> Array<unknown> {\n  return xs\n}\n\
+             pub fn k(u: unknown) -> string {\n  return string.from(u)\n}\n\
+             pub fn l(u: unknown) -> bool {\n  return User.is(u)\n}\n\
+             pub fn n(u: unknown) -> Result<User, Array<Issue>> {\n  return User.parse(u)\n}\n\
+             pub fn o(u: unknown) -> void {\n  io.inspect(u)\n}\n\
+             pub fn p(u: unknown) -> Nullable<unknown> {\n  return u\n}\n\
+             pub fn q(u: unknown) -> Record<string, unknown> {\n  return { a: u, }\n}\n\
+             pub fn r(s: string) -> Result<unknown, Array<Issue>> {\n  return json.parse(s)\n}\n\
+             pub fn t(u: unknown) -> Ext {\n  return u\n}\n\
+             pub fn v(f: fn(number) -> unknown) -> fn(number) -> void {\n  return f\n}\n",
+        );
+        assert!(g325_refusals(&errs).is_empty(), "{errs:?}");
+    }
+
+    /// The rest of the declared types the relation reads: an enclosing type
+    /// parameter (D58 flips from undecided), `void`, `never`, a function
+    /// type, an `Array<unknown>` held in a binding, a function returning
+    /// `unknown` where one returning `string` is declared, and an `is` arm's
+    /// `else` value, which is not narrowed. `tsc` refuses each.
+    #[test]
+    fn an_unknown_is_refused_against_a_parameter_void_never_and_a_function() {
+        let errs = errors_of(
+            "module m\n\
+             fn takes(s: string) -> string {\n  return s\n}\n\
+             pub fn a<T>(u: unknown) -> T {\n  return u\n}\n\
+             pub fn b(u: unknown) -> void {\n  return u\n}\n\
+             pub fn c(u: unknown) -> never {\n  return u\n}\n\
+             pub fn d(u: unknown) -> fn(number) -> string {\n  return u\n}\n\
+             pub fn e(xs: Array<unknown>) -> Array<string> {\n  return xs\n}\n\
+             pub fn f(g: fn(number) -> unknown) -> fn(number) -> string {\n  return g\n}\n\
+             pub fn h(u: unknown) -> string {\n  return match u {\n    is string => u,\n    else => takes(u),\n  }\n}\n",
+        );
+        let got: Vec<(&str, String, String)> =
+            g325_refusals(&errs).into_iter().map(|(c, e, f, _)| (c, e, f)).collect();
+        let want: Vec<(&str, String, String)> = [
+            ("E0204", "T", "unknown"),
+            ("E0204", "void", "unknown"),
+            ("E0204", "never", "unknown"),
+            ("E0204", "function", "unknown"),
+            ("E0204", "Array<string>", "Array<unknown>"),
+            ("E0204", "function", "function"),
+            ("E0211", "string", "unknown"),
+        ]
+        .into_iter()
+        .map(|(c, e, f)| (c, e.to_string(), f.to_string()))
+        .collect();
+        assert_eq!(got, want, "{errs:?}");
+    }
+
+    /// A refusal that is not G325's keeps the ordinary help, though the value
+    /// holds an `unknown`: `Array<unknown>` where a `string` is declared is
+    /// refused for being an array.
+    #[test]
+    fn a_refusal_for_another_reason_keeps_its_own_help() {
+        let errs = errors_of(
+            "module m\n\
+             pub fn a(xs: Array<unknown>) -> string {\n  return xs\n}\n",
+        );
+        assert_eq!(
+            g325_refusals(&errs),
+            vec![("E0204", "string".to_string(), "Array<unknown>".to_string(), false)],
             "{errs:?}"
         );
     }
@@ -21599,11 +21911,11 @@ fn f(a: Answer) -> number {
             assignability_of(src, "Mode", "number"),
             Assignability::Incompatible
         );
-        // An undecidable value where the union is declared is not read at all,
-        // and the relation says so rather than accepting it.
+        // `unknown` stands only where `unknown` is declared (G325, D65). It
+        // was this test's undecidable value until 0.1.176.
         assert_eq!(
             assignability_of(src, "unknown", "Mode"),
-            Assignability::NoRule
+            Assignability::Incompatible
         );
     }
 
@@ -22411,15 +22723,23 @@ fn f(a: Answer) -> number {
 
     /// A field whose value the checker cannot type keeps `Unknown` and sinks
     /// nothing around it: the missing-field question does not depend on any
-    /// field's type, so it is still answered.
+    /// field's type, so it is still answered. An `extern_ts` type is one the
+    /// checker does not read; an `unknown` is read, and refused (G325).
     #[test]
     fn an_undecidable_field_value_does_not_stop_the_missing_field_rule() {
         let errs = errors_of(
             "module m\n\
              type User = { name: string, age: number }\n\
-             fn f(raw: unknown) -> void {\n  let u: User = { name: raw }\n}\n",
+             type Raw = extern_ts(\"any\")\n\
+             fn f(raw: Raw) -> void {\n  let u: User = { name: raw }\n}\n",
         );
         assert_eq!(mismatch_found(&errs), vec!["record"], "errs: {errs:?}");
+        let errs = errors_of(
+            "module m\n\
+             type User = { name: string, age: number }\n\
+             fn f(raw: unknown) -> void {\n  let u: User = { name: raw }\n}\n",
+        );
+        assert_eq!(mismatch_found(&errs), vec!["unknown"], "errs: {errs:?}");
     }
 
     /// A binding takes the literal's type, so the use site is decided the way
@@ -23050,17 +23370,16 @@ fn f(a: Answer) -> number {
         );
     }
 
-    /// What Glyph's checker does not refuse yet: the bare call where a
-    /// `Result<User, …>` is declared (line `a`), a `match` over the call, and
-    /// an empty record, which any object satisfies. Line `a` is not accepted
-    /// by the build: the emitter writes `json.parse<unknown>(body)`, so `tsc`
-    /// refuses it (TS2322) where it used to infer `T = User` from the
-    /// annotation and cast (record 89). Glyph refuses it itself once `unknown`
-    /// is assignable only to `unknown` (G325), and this line flips to
-    /// E0204 then. With a type argument the `Ok` binding is the written type,
-    /// so a misspelled field on it is a Glyph error.
+    /// The bare call where a `Result<User, …>` is declared (line `a`) is the
+    /// unchecked read under another name, and `unknown` is assignable only to
+    /// `unknown` (G325, D65), so it is E0204 with the help that names the
+    /// checks. Before 0.1.176 only `tsc` refused it, because the emitter
+    /// writes `json.parse<unknown>(body)` (record 89). An empty record, which
+    /// any object satisfies, and a `match` over the call stay silent. With a
+    /// type argument the `Ok` binding is the written type, so a misspelled
+    /// field on it is a Glyph error.
     #[test]
-    fn json_parse_against_a_result_or_an_empty_record_stays_silent() {
+    fn json_parse_against_a_result_is_refused_and_against_an_empty_record_is_not() {
         let errs = errors_of(
             "module m\n\
              import std/json\n\
@@ -23077,7 +23396,18 @@ fn f(a: Answer) -> number {
              \x20 }\n\
              }\n",
         );
-        assert!(g289_mismatches(&errs).is_empty(), "{errs:?}");
+        assert_eq!(
+            g289_mismatches(&errs),
+            vec![(
+                "Result<User, Array<Issue>>".to_string(),
+                "Result<unknown, Array<Issue>>".to_string()
+            )],
+            "only line `a`: {errs:?}"
+        );
+        assert!(
+            errs.iter().any(|e| e.help().as_deref() == Some(crate::UNKNOWN_VALUE_HELP)),
+            "line `a` names the checks: {errs:?}"
+        );
         assert!(
             errs.iter().any(|e| matches!(
                 e,

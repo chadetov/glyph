@@ -511,6 +511,16 @@ pub fn explain(code: &str) -> Option<&'static str> {
             position needs and call it. A `T` some callee declares and a call \
             leaves unbound (`wrap([])`) is not your function's `T`, and nothing \
             is decided about it.\n\n\
+            A value of `unknown` stands only where `unknown` is declared \
+            (G325). `let s: string = u` with `u: unknown` is this error, and so \
+            is an `Array<unknown>` where `Array<string>` is declared, a \
+            `json.parse(text)` with no type argument where `Result<User, \
+            Array<Issue>>` is declared, and an `unknown` where a type \
+            parameter or a `Nullable<string>` is declared. Check the value \
+            first: `json.parse<T>(text)` or `T.parse(value)` gives a \
+            `Result<T, Array<Issue>>`, and a `match` arm with an `is` pattern \
+            narrows it. A value the checker has no type for (a package member \
+            it does not read) is not judged.\n\n\
             Change the value, or the declared type, so the two agree.",
         "E0205" => "E0205: `owned` requires a resource type\n\n\
             The `owned` modifier is the narrow D25 carve-out for resource handles \
@@ -619,6 +629,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Inside a generic function its own type parameter is a type of its \
             own here too (D58): with `f: fn(T) -> T` a parameter of `fn g<T>`, \
             `f(5)` is this error, since the call does not choose `T`.\n\n\
+            An `unknown` argument where any other type is declared is this \
+            error, as E0204 describes for a `let` (G325): `takes(u)` with \
+            `takes(s: string)` and `u: unknown`. Check it first with \
+            `T.parse(u)` or an `is` pattern.\n\n\
             A `Record` argument is held to the key rule E0204 describes, and a \
             `std/record` call takes a key of the record's own key type: \
             `record.set(r, \"zzz\", 9)` on a `Record<Tier, int>` is refused at \
@@ -2361,8 +2375,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0204",
         phase: "typechecker",
-        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), a generic function's own type parameter against any other type the checker reads, at any depth (`Array<T>` returned where `Array<string>` is declared, D58), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`. A value is compared with a declared return whether it is written after `return` or is the last expression of the body (`fn z() -> string { 5 }`), and a `match` standing where a type is declared is compared arm by arm, so the refusal underlines the arm that disagrees (`true => 5` in `return match b { true => 5, false => \"x\" }` under `-> string`)",
-        fix: "Make the value and the expected type agree; check an open map with `is Record<Tier, V>`; bind a non-record payload to one name, `Loaded(users)`",
+        meaning: "Type mismatch. Includes a prelude container (`Result`, `Option`, `Array`, `Record`, `Nullable`) where a declared record or union is expected, such as `let user: User = json.parse(body)`, the reverse, a declared record or union where `Array`, `Option` or `Result` is declared (`let r: Result<User, string> = u`), a declared record where a `Record<string, V>` is declared with a required field that is not a `V`, an `@open` record there unless `V` is `unknown`, a tagged union where any `Record<K, V>` is declared, a `Record` whose key is not the same key domain as the declared one (`Record<string, V>` against `Record<Tier, V>` in either direction, two literal unions with different members, a refined key against its base, a type parameter against `string`), a generic function's own type parameter against any other type the checker reads, at any depth (`Array<T>` returned where `Array<string>` is declared, D58), an `unknown` where any type but `unknown` is declared, at any depth (`let s: string = u`, `json.parse(text)` with no type argument where `Result<User, Array<Issue>>` is declared, G325), and an object pattern matched against a value that is not a record (`Loaded({ users })` where `Loaded` carries an `Array<string>`), in a `match` arm or a JSX `<case>`. A value is compared with a declared return whether it is written after `return` or is the last expression of the body (`fn z() -> string { 5 }`), and a `match` standing where a type is declared is compared arm by arm, so the refusal underlines the arm that disagrees (`true => 5` in `return match b { true => 5, false => \"x\" }` under `-> string`)",
+        fix: "Make the value and the expected type agree; check an `unknown` with `json.parse<T>`, `T.parse` or an `is` pattern; check an open map with `is Record<Tier, V>`; bind a non-record payload to one name, `Loaded(users)`",
     },
     CodeEntry {
         code: "E0205",
@@ -2403,8 +2417,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A `match` written as the argument is compared arm by arm, as under E0204",
-        fix: "Pass a value of the expected type",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325)",
+        fix: "Pass a value of the expected type; check an `unknown` with `T.parse` or an `is` pattern first",
     },
     CodeEntry {
         code: "E0212",

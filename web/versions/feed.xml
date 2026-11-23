@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.175 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.175" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.175</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>is Array and is Record arms narrow their value</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.174 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.174" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.174</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.146</id>
     <updated>2026-11-19T00:00:00Z</updated>
     <summary>A { on the line where a statement just ended is now a parse error, E0013.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.145 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.145" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.145</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>is Record&lt;K, V&gt; and is Array&lt;X&gt; now check what the container holds.</summary>
   </entry>
 </feed>

@@ -56,16 +56,16 @@ A release reaches your project only when you move the pin. If an upgrade refuses
 
 ## Release cadence and the Breaking marker
 
-The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.174, 173 in all, and 47 of them shipped between 1 Nov 2026 and 24 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 55 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
+The [versions page](https://glyphlang.io/versions/) has an entry for every release from 0.1.0 to 0.1.175, 174 in all, and 48 of them shipped between 1 Nov 2026 and 24 Nov 2026. A release is marked Breaking when it rejects a program the previous version accepted, which is how most correctness fixes land. 56 entries carry the marker. It is applied by running the smallest affected program under both versions, not by reading the diff, and releases before 0.1.99 were not tested this way, so an unmarked old release is untested rather than safe.
 
 What a Breaking release has cost in practice: each recent note says what happened when the old and new versions were run over the repository's example apps. These are the newest Breaking releases, quoted from their notes:
 
+- [0.1.175](https://glyphlang.io/versions/2026-11/#0.1.175): The note does not say.
 - [0.1.174](https://glyphlang.io/versions/2026-11/#0.1.174): The note does not say.
 - [0.1.173](https://glyphlang.io/versions/2026-11/#0.1.173): The note does not say.
 - [0.1.172](https://glyphlang.io/versions/2026-11/#0.1.172): The note does not say.
 - [0.1.170](https://glyphlang.io/versions/2026-11/#0.1.170): The note does not say.
 - [0.1.169](https://glyphlang.io/versions/2026-11/#0.1.169): The note does not say.
-- [0.1.168](https://glyphlang.io/versions/2026-11/#0.1.168): The note does not say.
 
 The example apps are the project's own code, kept compiling release by release, so a newly refused shape is less likely to turn up in them than in yours. Each note names the shapes it refuses, so read it before upgrading.
 

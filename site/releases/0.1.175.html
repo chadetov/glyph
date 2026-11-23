@@ -1,0 +1,20 @@
+---
+version: 0.1.175
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: is Array and is Record arms narrow their value
+---
+            <p>A <code>match</code> arm such as <code>is string</code> or <code>is User</code> already narrowed the value it matched, so inside the arm the checker knew its type. An <code>is Array&lt;X&gt;</code> or <code>is Record&lt;K, V&gt;</code> arm did not. The value stayed <code>unknown</code>, so <code>is Array&lt;string&gt; =&gt; v.lenght</code> passed <code>check --no-tsc</code> and the typo surfaced only under <code>tsc</code>.</p>
+
+            <p>Those arms now narrow like any other. <code>v.lenght</code> is E0210 with the <code>length</code> suggestion, a callback passed to <code>v.map</code> gets the element type, and <code>is Record&lt;string, number&gt; =&gt; v[k]</code> is E0224, the same answer a declared map gets. <code>Option</code>, <code>Result</code> and <code>Nullable</code> still have no <code>is</code> check (E0300).</p>
+
+            <h3>Reading a map of <code>unknown</code></h3>
+            <p>A key read on a map whose value type is <code>unknown</code> is no longer E0224. A missing key yields <code>undefined</code>, which <code>unknown</code> already allows, so the read is sound. The result is typed <code>unknown</code>, so you still narrow it before use, and putting it straight into a string is E0237. This holds however the map is spelled: written out, through a local alias, an alias of an alias, or an alias imported from another module. Before, only the first two spellings were treated as maps.</p>
+
+            <p>One emitted line changed in the examples: a loop over an <code>is Array&lt;unknown&gt;</code> value now uses <code>entries()</code> directly, since the arm has already settled the shape.</p>
+
+            <p>A write into a container (<code>mut v.push(5)</code> on an <code>Array&lt;string&gt;</code>) is still not compared with its element type. That is G471.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>is Array&lt;string&gt; =&gt; v.lenght</code> and <code>is Record&lt;string, number&gt; =&gt; v[k]</code> exit 0 under 0.1.174's <code>check --no-tsc</code> and 1 under 0.1.175, and so does <code>"${v[k]}"</code> on a <code>Record&lt;string, unknown&gt;</code>. One program goes the other way: <code>m[k]</code> on a declared <code>Record&lt;string, unknown&gt;</code> was E0224 and now passes. Across 286 tracked programs no diagnostic or exit code changed against 0.1.174.</p>

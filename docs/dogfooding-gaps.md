@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-454 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-108 are open. G144, the D28 boundary cast that never reached the returns a
+455 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12150,7 +12150,11 @@ and is the owner's to confirm.
   where `Record<string, string>` is declared goes from E0204 to accepted,
   as `tsc` accepts it, whether `wrap` is local, imported by name or reached
   through a namespace, and inside a `fn f4<T>` whose own parameter is also
-  `T`. The two-binary run over 285 corpus units (0.1.167 against the branch,
+  `T`. A `Record<string, Same<T>>` with `type Same<T> = T` takes a field
+  typed by the enclosing `T` as `Record<string, T>` does, since G315's
+  expansion substitutes arguments that keep their owners (0.1.170 refused
+  it, and `tsc` accepts it). The two-binary run over 285 corpus units (the
+  published 0.1.169 and 0.1.170 built from `main`, each against the branch,
   `build --no-tsc --no-test` and `check --no-tsc --json`) differs nowhere.
   Nothing above is refused yet: `fn g<T>(x: Array<T>) -> Array<string>`
   still passes `--no-tsc`, which is step 2's (0.1.172), so the entry stays
@@ -15500,3 +15504,19 @@ and is the owner's to confirm.
   build: ``[E0204] Error: typecheck: type mismatch: expected `G`, found
   `F` `` for probe b7 under both, and the same for c3 and c5 (``expected
   `H`, found `F` ``).*
+
+- **G456. A record field typed by a second name for the enclosing type
+  parameter passes where a string map is declared.** With `type One<T> = {
+  v: T, }` and `type Same<T> = T`, `fn r2<T>(x: One<Same<T>>) ->
+  Record<string, string> { return x }` passes `--no-tsc`, and `tsc --strict`
+  refuses it (``TS2322: Type 'One<T>' is not assignable to type
+  'Record<string, string>'``). `One<T>` in the same place is E0204. The
+  field's type is `Same<T>`, not a parameter, so the rule for a field typed
+  by the enclosing parameter never sees it, and the relation then reads the
+  `T` it expands to as undecided. 0.1.169 refused the namespace spelling
+  (`l.W<Same<T>>`, by `W`'s name) and passed the local one; 0.1.170 passes
+  both. Refusing it is a new refusal, which step 1 of G314 does not make.
+  Found building G314 step 1 on top of 0.1.170.
+
+  *Reproduced against 0.1.170 (`origin/main` built locally) and the 0.1.171
+  branch build: no diagnostics under `--no-tsc`, TS2322 under full `check`.*

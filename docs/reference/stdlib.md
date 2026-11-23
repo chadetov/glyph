@@ -269,8 +269,9 @@ The string methods TypeScript marks deprecated (`substr`, `trimLeft`,
 each draws warning E0244 with the spelling to use instead: `s.slice(1, 3)` for
 `s.substr(1, 2)`, `s.trimStart()` for `s.trimLeft()`, and a template string
 such as `"<b>${s}</b>"` for `s.bold()`. `substr` takes a length where `slice`
-takes an end, so the two agree only when the start and the length are zero or
-more.
+takes an end, so the two agree only when the start and the length are whole
+numbers of zero or more: `s.substr(0.5, 0.6)` is `""`, and `s.slice(0.5, 1.1)`
+is one character.
 
 One limit on `string.index_of`. Glyph's checker models the return type of most
 `std/string` and `std/array` functions, so a `match` that leaves out the `None`

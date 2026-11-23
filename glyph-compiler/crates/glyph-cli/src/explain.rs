@@ -1443,8 +1443,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             tsconfig asks for, so `tsc` refuses it with or without a \
             comparator. `array.sort` always \
             takes a comparator, so it never needs this check.\n\n\
-            Not judged: a receiver the checker cannot type (an npm value), \
-            and a type parameter with a bound.",
+            A type parameter is read as its bound: `T: string` sorts as \
+            text and `T: Named` takes a comparator. Not judged: a receiver \
+            the checker cannot type (an npm value).",
 
         "E0242" => "E0242: a built-in method that answers absence with `undefined`\n\n\
             Glyph writes a value that may be missing as an `Option`, which \
@@ -2642,7 +2643,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0243",
         phase: "typechecker",
-        meaning: "`sort()` or `toSorted()` with no comparator on an `Array<E>` whose elements are not text (G388): `number`, `int`, `bigint`, `bool`, a record, an interface, a tagged union, `Option`, `Nullable`, an array, `unknown`, or a type parameter with no bound. JavaScript's default order compares each element's text, so `[100, 9, 25]` sorts as `100, 25, 9`; `tsc` accepts it. Text (`string`, a string-literal union, a refined `string`, a second name for one) is accepted; a receiver the checker cannot type and a bounded type parameter are not judged",
+        meaning: "`sort()` or `toSorted()` with no comparator on an `Array<E>` whose elements are not text (G388): `number`, `int`, `bigint`, `bool`, a record, an interface, a tagged union, `Option`, `Nullable`, an array, `unknown`, or a type parameter with no bound. JavaScript's default order compares each element's text, so `[100, 9, 25]` sorts as `100, 25, 9`; `tsc` accepts it. Text (`string`, a string-literal union, a refined `string`, a second name for one, a type parameter bounded by one) is accepted; a bounded type parameter is judged as its bound; a receiver the checker cannot type is not judged",
         fix: "Pass a comparator that is negative when `a` comes first: `mut xs.sort(fn(a: number, b: number) -> number { return a - b })`; for `toSorted`, or where a sort's value is read, `array.sort(xs, cmp)` returns a sorted copy (`toSorted` is newer than the `es2022` library the emitted tsconfig asks for). The help writes the comparator in",
     },
     // ----- emitter (E03xx) -----

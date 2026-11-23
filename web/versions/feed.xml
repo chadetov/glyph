@@ -8,6 +8,13 @@
   <updated>2026-11-23T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.172 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.172" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.172</id>
+    <updated>2026-11-23T00:00:00Z</updated>
+    <summary>Inside a generic function, its own T is a type of its own</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.171</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.171" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.171</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.143</id>
     <updated>2026-11-18T00:00:00Z</updated>
     <summary>An is pattern is now checked the same way T.is(v) is.</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.142 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.142" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.142</id>
-    <updated>2026-11-18T00:00:00Z</updated>
-    <summary>Lint warnings (unused import, unused binding, unreachable code, unreachable module) now show up on a file that has a type error, as long as it parses and its names resolve.</summary>
   </entry>
 </feed>

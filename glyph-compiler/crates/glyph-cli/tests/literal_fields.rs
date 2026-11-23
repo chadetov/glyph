@@ -629,6 +629,45 @@ pub fn main(argv: Array<string>) -> number {\n\
     }
 }
 
+/// G441. The escape-region decline record 168 added to the fix guard is
+/// gone: after the parse error it could only fire in a `"""..."""` string,
+/// whose ranges were always exact, and there it declined a correct repair.
+/// A key and a read after a `"a\tb"` inside a `"""` interpolation are
+/// renamed at their own bytes, and the file checks clean.
+#[test]
+fn a_repair_after_a_backslash_in_a_triple_quoted_interpolation_applies() {
+    let source = r##"module main
+
+import std/io
+
+type Opt = { name: string, nick?: string }
+
+fn f(s: string) -> string {
+  return s
+}
+fn take(o: Opt) -> string {
+  return o.name
+}
+
+pub fn main(argv: Array<string>) -> number {
+  let b: Opt = { name: "a", nick: "b" }
+  io.println("""x${f("a\tb") + b.nik} ${take({ name: f("\\"), nik: "k" })}""")
+  return 0
+}
+"##;
+    let dir = project("t441", &[("main.glyph", source)]);
+    let (code, out) = check(&dir);
+    assert_eq!(code, 1, "{out}");
+    assert_eq!(out.matches("[E0210]").count(), 2, "{out}");
+    let (_, out) = glyph(&dir, &["fix", "src"]);
+    assert_eq!(out.matches("applied E0210").count(), 2, "{out}");
+    assert!(!out.contains("declined"), "{out}");
+    assert_eq!(source_of(&dir), source.replace("b.nik}", "b.nick}").replace("nik: \"k\"", "nick: \"k\""));
+    let (code, out) = check(&dir);
+    assert_eq!(code, 0, "{out}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 const D04: &str = r##"module main
 
 import std/io

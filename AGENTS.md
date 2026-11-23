@@ -629,11 +629,11 @@ let usage = "usage: report <file>
 
 There is a second spelling, `"""..."""`, which is raw: escapes are not decoded,
 so a `\n` inside one stays a backslash and an `n`. Everything else is the same,
-including interpolation — `"""a ${b}"""` interpolates just like `"a ${b}"`. Reach
+including interpolation: `"""a ${b}"""` interpolates just like `"a ${b}"`. Reach
 for it when the text is full of backslashes or quotes (a regex, a snippet of
-another language, a `@doc` block). `glyph fmt` copies a multi-line `"""` literal
-through verbatim; a single-line one that interpolates comes back in the ordinary
-`"..."` spelling, same content.
+another language, a `@doc` block), or when a `${}` needs a string literal.
+`glyph fmt` copies a multi-line `"""` literal through verbatim, and keeps a
+single-line one that interpolates in the `"""` spelling.
 
 ## The standard library
 

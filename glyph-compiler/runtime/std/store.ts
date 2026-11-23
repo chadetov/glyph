@@ -3,9 +3,10 @@
 // A `Store<T>` holds a value in a closure; `get` reads it, `set` replaces it,
 // and `update` maps it. Create one at module scope with `const s = create(...)`
 // so many functions share the same state without threading a `let` through
-// `main` and capturing closures. The binding stays `const` (D20) and no `mut`
-// reassignment is involved — only the store's internal value changes, through a
-// method call — so every mutation is a greppable `s.set(...)`/`s.update(...)`.
+// `main` and capturing closures. The binding stays `const` (D20); only the
+// store's internal value changes, through `set` or `update`, and a Glyph program
+// writes each as a `mut` statement (`mut s.set(...)`, `mut s.update(...)`, D5),
+// so `grep "^\s*mut "` finds every mutation.
 
 export type Store<T> = {
   get: () => T;

@@ -887,9 +887,13 @@ March 3, and February 29 is only accepted in a leap year.
 
 A shared-state primitive. A `Store<T>` holds a value; create one at module scope
 (`const s = create(initial)`) so many functions share it without threading a
-`let` through `main`. The binding stays `const` and no `mut` is involved — only
-the store's internal value changes, through a method call — so every mutation is
-a greppable `s.set(...)`/`s.update(...)`.
+`let` through `main`. The binding stays `const`; only the store's internal value
+changes, through `set` or `update`, and each of those calls is a `mut` statement
+(`mut s.set(...)`, `mut s.update(...)`, D5), so `grep "^\s*mut "` finds every
+write. Without the `mut` it is E0240, and `glyph fix` writes it. `mut s.get()` is
+E0241. On a store of an array, `s.get().push(x)` changes the store through the
+array `get()` hands back, so it is E0240 too; write it through the store,
+`mut s.update(fn(current) { array.push(current, x) })`.
 
 ```
 type Store<T>
@@ -994,8 +998,10 @@ and produces the wrong text.
 ## std/set
 
 A hash set with value semantics for primitives; maps use the built-in
-`Record<K, V>`. Like `std/store`, state lives in a closure and every mutation is
-a greppable method call.
+`Record<K, V>`. Like `std/store`, state lives in a closure. `add` and `remove`
+change the set, so each is a `mut` statement (`mut seen.add(x)`, E0240 without
+it); `has`, `size` and `values` read it, and `mut` before one is E0241. To keep
+what `remove` returns, read `seen.has(x)` first, then write `mut seen.remove(x)`.
 
 ```
 type Set<T>
@@ -1152,7 +1158,11 @@ naming it, the same as for a union you declare yourself.
 ## std/collections
 
 Ordered collections beyond `Array`/`Record`. A `Deque<T>` is a double-ended
-queue; ends that may be empty return `Option<T>`.
+queue; ends that may be empty return `Option<T>`. `push_back`, `push_front`,
+`pop_back` and `pop_front` change it, so each is a `mut` statement
+(`mut q.pop_front()`, E0240 without it); to use what a pop returns, read
+`q.peek_front()` or `q.peek_back()` first. `let _ = q.pop_front()` is E0240 too,
+and `glyph fix` rewrites it to `mut q.pop_front()`.
 
 ```
 type Deque<T>
@@ -1172,7 +1182,9 @@ dq.values() -> Array<T>                           // method
 A persisted SQL database over Node's built-in synchronous SQLite
 (`node:sqlite`). `open` returns a `Db` handle; rows come back as
 `Record<string, unknown>` (the untrusted boundary), so validate each with a
-type's `.parse` before trusting it.
+type's `.parse` before trusting it. A `Db` call writes to the database, not to
+the program's data, so D5's `mut` rule does not apply to it: `db.run(...)` needs
+no `mut`, and `mut` before one is not refused.
 
 ```
 type Row                                          // Record<string, unknown>
@@ -1239,6 +1251,10 @@ d.scale() -> int                                     // method
 d.to_string() -> string                              // method; canonical "10.50"
 d.to_number() -> number                              // method; lossy, for display only
 ```
+
+A `Decimal` never changes. Each method returns a new value, so keep the result
+with `mut price = price.add(tax)`; `mut price.add(tax)` throws the sum away and
+is E0241.
 
 ## std/taint
 

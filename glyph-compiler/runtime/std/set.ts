@@ -2,8 +2,10 @@
 //
 // `create` returns a `Set<T>` whose methods add, test, and remove members and
 // read the size or the values as an array. Like `std/store`, the state lives in
-// a closure and every mutation is a greppable method call (`s.add(...)`); the
-// binding stays `const`. Maps are covered by the built-in `Record<K, V>`.
+// a closure and the binding stays `const`. `add` and `remove` change the set, so
+// a Glyph program writes each as a `mut` statement (`mut s.add(...)`, D5), and
+// `grep "^\s*mut "` finds every one. Maps are covered by the built-in
+// `Record<K, V>`.
 
 export type Set<T> = {
   add: (value: T) => void;

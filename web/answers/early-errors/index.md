@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-22. -->
+<!-- Markdown copy of https://glyphlang.io/answers/early-errors/, generated from the same source as the page. Last changed 2026-11-24. -->
 
 26 · Caught earlier
 
@@ -267,11 +267,11 @@ An agent wrote exactly that while building a CSV query tool. It is `E0236` now, 
 
 `json.parse(body)` with no type argument is the unchecked read, a `Result<unknown, ...>`. Written where a `Result<User, ...>` was declared, `tsc` used to infer `User` from the declaration and the program crashed on its first field read.
 
-The emitter now writes the `unknown` out, so `glyph check` refuses it through `tsc`.
+The emitter writes the `unknown` out, so `tsc` refuses it, and since 0.1.176 Glyph's own checker refuses it too: an `unknown` stands only where `unknown` is declared, at any depth. `--no-tsc` and the editor report `Result<unknown, ...>` written where `Result<User, ...>` is declared as `E0204`, and the help points at `json.parse<T>`, `T.parse` or an `is` pattern.
 
-Glyph's own checker does not yet catch an `unknown` landing inside a declared type, so `--no-tsc` and the editor still miss `Result<unknown, ...>` written where `Result<User, ...>` is declared. (A bare `let user: User = json.parse(body)` is `E0204` from Glyph's own checker, because the outer type is already wrong.) Refusing `unknown` at every depth is planned as G325, on the [release roadmap](https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md).
+`Some(u)` written where `Option<User>` is declared still gets past Glyph's checker, because the payload of `Some` is compared only when it is written out. `tsc` refuses it. That is G436, on the [release roadmap](https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md).
 
-G325
+G436
 
 ## And two more in 0.1.122
 
@@ -529,4 +529,4 @@ Every code
 
   Separately, the read-site pin that keeps a `bool` or string-literal-union binding matchable follows a type alias only inside the module being emitted, so `pub type Ready = bool` in one module and `let r: catalog.Ready = false` in another still reaches `tsc` as `TS2678`. String-literal unions are covered across modules in all three import spellings, and since 0.1.123 the diagnostic names the declaration (expected `Mode`) under every spelling instead of printing its literal set under one of them.
 
-Code examples on this page are checked against Glyph 0.1.175 on every build. Last changed 22 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.175 on every build. Last changed 24 Nov 2026.

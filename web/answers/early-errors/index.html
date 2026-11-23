@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why does Glyph catch what tsc catches, but earlier?","item":"https://glyphlang.io/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/early-errors/#article","headline":"Why does Glyph catch what tsc catches, but earlier?","description":"Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.","url":"https://glyphlang.io/answers/early-errors/","inLanguage":"en","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/early-errors/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/early-errors/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Why does Glyph catch what tsc catches, but earlier?","item":"https://glyphlang.io/answers/early-errors/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/early-errors/#article","headline":"Why does Glyph catch what tsc catches, but earlier?","description":"Glyph reports await outside an async fn, a match arm that produces no value and a missing mut against your source, with the rule and the fix, before tsc.","url":"https://glyphlang.io/answers/early-errors/","inLanguage":"en","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/early-errors/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/early-errors/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/early-errors/" />
@@ -958,15 +958,18 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         was declared, <code>tsc</code> used to infer <code>User</code> from the declaration and
         the program crashed on its first field read.
       </p>
-      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The emitter now writes the
-        <code>unknown</code> out, so <code>glyph check</code> refuses it through <code>tsc</code>.</p></div>
-      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p>Glyph's own checker does not yet catch an <code>unknown</code> landing inside a declared
-        type, so <code>--no-tsc</code> and the editor still miss
-        <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code> is
-        declared. (A bare <code>let user: User = json.parse(body)</code> is <code>E0204</code> from
-        Glyph's own checker, because the outer type is already wrong.) Refusing <code>unknown</code>
-        at every depth is planned as G325, on the <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">release roadmap</a>.</p></div>
-      <div class="ak-chips"><span class="chip gap">G325</span></div>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>The emitter writes the
+        <code>unknown</code> out, so <code>tsc</code> refuses it, and since 0.1.176 Glyph's own
+        checker refuses it too: an <code>unknown</code> stands only where <code>unknown</code> is
+        declared, at any depth. <code>--no-tsc</code> and the editor report
+        <code>Result&lt;unknown, ...&gt;</code> written where <code>Result&lt;User, ...&gt;</code>
+        is declared as <code>E0204</code>, and the help points at <code>json.parse&lt;T&gt;</code>,
+        <code>T.parse</code> or an <code>is</code> pattern.</p></div>
+      <div class="ak-callout limit"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.2l6.2 11H1.8z"/><path d="M8 6.4v3.1M8 11.3v.1"/></svg><p><code>Some(u)</code> written where
+        <code>Option&lt;User&gt;</code> is declared still gets past Glyph's checker, because
+        the payload of <code>Some</code> is compared only when it is written out. <code>tsc</code> refuses it. That is G436,
+        on the <a href="https://github.com/chadetov/glyph/blob/main/docs/roadmap/releases.md">release roadmap</a>.</p></div>
+      <div class="ak-chips"><span class="chip gap">G436</span></div>
 
       <h2 class="ak-h" id="and-two-more-in-0-1-122">And two more in 0.1.122<a class="ak-anchor" href="#and-two-more-in-0-1-122" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
@@ -1329,7 +1332,7 @@ fn wrong() -&gt; Cfg { return { mode: "nope" } }
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.175 on every build. Last changed <time datetime="2026-11-22">22 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.175 on every build. Last changed <time datetime="2026-11-24">24 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/tooling/">
           <span class="dir">&larr; Previous</span>

@@ -2080,10 +2080,12 @@ impl Assigner<'_> {
     /// `T` narrows when it lowers to a primitive or a declared type (or an
     /// application of a declared generic), as record 130 rules. Anything
     /// this checker cannot read (`Unknown`) leaves the name as it was rather
-    /// than erasing what is known about it. A prelude container (`is
-    /// Record<K, V>`, `is Array<X>`) does not narrow in this release: doing
-    /// so exposes E0224 on index reads `tsc` accepts, in tracked programs
-    /// (`examples/01_validator.glyph`), and G415 decides E0224 first.
+    /// than erasing what is known about it. The prelude containers an `is`
+    /// check exists for, `Record<K, V>` and `Array<X>`, narrow like any
+    /// other target (G415, record 134): a key read on the narrowed map is
+    /// E0224 unless `V` is `unknown`, as it is on a declared one. `Option`,
+    /// `Result` and `Nullable` have no `is` check (E0300), so an arm naming
+    /// one leaves the name as it was.
     fn narrow_is_arm(&mut self, scrutinee: &Expr, arm: &MatchArm) -> Option<Narrowed> {
         let Pattern::IsType { ty, .. } = &arm.pattern else { return None };
         let Expr::Ident { span, .. } = scrutinee else { return None };
@@ -2092,8 +2094,10 @@ impl Assigner<'_> {
         if !matches!(
             narrowed,
             Ty::Prim(_) | Ty::Named { .. } | Ty::Imported { .. } | Ty::App { .. }
-        ) || self.prelude_container(&narrowed).is_some()
-        {
+        ) || matches!(
+            self.prelude_container(&narrowed),
+            Some(("Option" | "Result" | "Nullable", _))
+        ) {
             return None;
         }
         let never_reassigned = self.reassigned().never_reassigned(r, self.resolved);
@@ -12856,17 +12860,75 @@ mod tests {
         assert!(errs.is_empty(), "{errs:?}");
     }
 
-    /// G415: a prelude container arm (`is Record<K, V>`, `is Array<X>`) does
-    /// not narrow in this release. Narrowing one exposes E0224 on an index
-    /// read `tsc` accepts, in `examples/01_validator.glyph`; G415 first stops
-    /// E0224 firing when `V` is `unknown`, then containers narrow and this
-    /// test flips (record 134, fork 1).
+    /// G415 (record 134, fork 1): an `is Record<K, V>` or `is Array<X>` arm
+    /// narrows its scrutinee like any other `is` target, so a member the
+    /// container does not have is E0210 inside the arm, and a key read on
+    /// the narrowed map is judged as one on a declared map is.
     #[test]
-    fn g415_a_prelude_container_is_arm_does_not_narrow() {
+    fn g415_a_prelude_container_is_arm_narrows() {
+        let errs = errors_of(
+            "module m\nfn a(v: unknown) -> unknown {\n  return match v { is Array<string> => v.lenght, else => v, }\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "lenght" && type_name == "Array<string>")),
+            "{errs:?}"
+        );
+        // `V` is `unknown`: the read is sound, and nothing is reported.
         let errs = errors_of(
             "module m\nfn a(v: unknown, k: string) -> unknown {\n  return match v { is Record<string, unknown> => v[k], else => v, }\n}\n",
         );
         assert!(errs.is_empty(), "{errs:?}");
+        // `V` is anything else: the read is a guess, E0224 as on a declared map.
+        let errs = errors_of(
+            "module m\nfn a(v: unknown, k: string) -> unknown {\n  return match v { is Record<string, number> => v[k], else => v, }\n}\n",
+        );
+        assert_eq!(errs.iter().map(|e| e.code()).collect::<Vec<_>>(), ["E0224"], "{errs:?}");
+        // The narrowed array's members are typed from its element type.
+        let errs = errors_of(
+            "module m\nfn a(v: unknown) -> unknown {\n  return match v { is Array<number> => v.map(fn(n) -> number { return n + 1 }), else => v, }\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// Record 182's checklist for G415: a narrowed container returned where
+    /// `number` is declared is E0204; record 134's B1 predicate holds for a
+    /// container arm (a closure that reassigns the name stops narrowing),
+    /// a module `const` container arm narrows (B2), and the `else` arm keeps
+    /// `unknown`.
+    #[test]
+    fn g415_container_narrowing_follows_record_134s_rules() {
+        let errs = errors_of(
+            "module m\nfn n(v: unknown) -> number {\n  match v {\n    is Array<string> => {\n      return v\n    },\n    else => {},\n  }\n  return 0\n}\n",
+        );
+        assert_eq!(errs.iter().map(|e| e.code()).collect::<Vec<_>>(), ["E0204"], "{errs:?}");
+        let errs = errors_of(
+            "module m\nfn g(v0: unknown) -> number {\n  let v = v0\n  let set = fn() -> void { mut v = 5 }\n  return match v {\n    is Array<string> => {\n      set()\n      v.lenght\n    },\n    else => 0,\n  }\n}\n",
+        );
+        assert!(!errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })), "{errs:?}");
+        let errs = errors_of(
+            "module m\nconst C: unknown = [\"a\"]\nfn k() -> number {\n  return match C { is Array<string> => C.lenght, else => 0, }\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, type_name, .. } if field == "lenght" && type_name == "Array<string>")),
+            "{errs:?}"
+        );
+        let errs = errors_of(
+            "module m\nfn e(v: unknown) -> number {\n  return match v { is Array<string> => 1, else => v.lenght, }\n}\n",
+        );
+        assert!(errs.is_empty(), "{errs:?}");
+    }
+
+    /// `Option`, `Result` and `Nullable` have no `is` check (E0300 at emit),
+    /// so an arm naming one does not narrow, and the checker adds nothing
+    /// beside the emitter's refusal.
+    #[test]
+    fn g415_an_is_arm_on_a_container_with_no_check_does_not_narrow() {
+        for t in ["Option<string>", "Result<string, string>", "Nullable<string>"] {
+            let errs = errors_of(&format!(
+                "module m\nfn a(v: unknown) -> unknown {{\n  return match v {{ is {t} => v.zzz, else => v, }}\n}}\n"
+            ));
+            assert!(errs.is_empty(), "{t}: {errs:?}");
+        }
     }
 
     /// Record 134, B1: a name some `mut` reassigns anywhere in its scope is

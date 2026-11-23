@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-453 entries, 325 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-108 are open. G144, the D28 boundary cast that never reached the returns a
+453 entries, 326 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+107 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -12138,7 +12138,7 @@ and is the owner's to confirm.
   `collections.Deque<T>` in `stdlib.rs`, whose `T` is the type's own
   parameter (decision record 157, section 4).
 
-- **G315. A second name for `unknown`, a type parameter or a `Nullable` is
+- **G315. [FIXED] A second name for `unknown`, a type parameter or a `Nullable` is
   refused where the plain spelling is accepted.** With `type Any = unknown`, a
   `Box<T>` where `Record<string, Any>` is declared is E0204, and the same
   program with `Record<string, unknown>` passes; `type Maybe<T> =
@@ -12167,6 +12167,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.162 (the release build): changed; a `Box<T>` returned where `Record<string, Any>` is declared (`type Any = unknown`) now checks clean, `tsc --strict` included, but a generic `type Maybe<T> = Nullable<T>` is still E0204 in both directions (``expected `Nullable<Note>`, found `Maybe<Note>` `` and ``expected `Maybe<Note>`, found `Nullable<Note>` ``) while the non-generic `MaybeNote` is accepted; `Id` against `Name` and `L<string>` against `Array<string>` are still E0204, and record 157's d03 still checks clean.*
 
   *Reproduced against 0.1.168 (the release build): unchanged from 0.1.162; a `Box<T>` returned where `Record<string, Any>` is declared checks clean, `tsc --strict` included, but a generic `type Maybe<T> = Nullable<T>` is still E0204 in both directions (``expected `Nullable<Note>`, found `Maybe<Note>` `` and ``expected `Maybe<Note>`, found `Nullable<Note>` ``) while the non-generic `MaybeNote` is accepted; `Id` against `Name` and `L<string>` against `Array<string>` are still E0204; record 157's d03 was not re-run.*
+
+  Fixed in 0.1.170 (decision record 88, amended by record 157, section 4; D45,
+  D46 and D49 amended). Before the relation compares two types, a `type`
+  whose body is a primitive, `unknown`, a type parameter or a generic
+  application is read as its body with the application's arguments
+  substituted, at every depth; a record, a union, an `extern_ts` or `typeof`
+  body, a function type and a body with a `where` keep their declaration. The
+  false refusals are gone: `Maybe<Note>` against `Nullable<Note>` and
+  `L<string>` against `Array<string>` pass both ways, and `Id` passes as a
+  `Name`. The body's refusals are made, each one a `tsc` refusal (TS2322):
+  `Same<string>` given a `number`, `Strs` given an `Array<number>`, and
+  `Record<string, Same<number>>` returned as `Record<string, string>`, so the
+  release is breaking under `--no-tsc`. The same pairs through an alias
+  declared in a sibling module, under a named import and under a namespace
+  import, give the local answers; before this the sibling's spelling refused
+  nothing at all. `type Any = unknown` already checked clean, and a `Raw =
+  unknown` value found where a `string` is declared is still accepted, which
+  is G325's to refuse.
 
 - **G316. [FIXED] `glyph fmt` cuts a run of edge spaces in JSX text to one.**
   In a child list that holds an element, a text child goes on a line of its

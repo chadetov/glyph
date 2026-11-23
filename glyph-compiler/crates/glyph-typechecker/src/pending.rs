@@ -49,10 +49,11 @@ use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, ImportKind, JsxAttr, JsxChild, JsxElement, LetBinding,
-    MatchArmBody, Module, MutKind, ObjectField, Stmt, TemplatePart, TypeExpr,
+    MatchArmBody, Module, MutKind, ObjectField, Stmt, TemplatePart,
 };
 use glyph_resolver::{ResolvedModule, ResolvedRef};
 
+use crate::tail::{returns_tail, Callable};
 use crate::ty::{ty_display, Primitive, Ty};
 use crate::type_map::TypeMap;
 use crate::TypeError;
@@ -176,12 +177,16 @@ pub fn check_pending(module: &Module, resolved: &ResolvedModule, tm: &TypeMap) -
                     true => Frame::waited(),
                     false => Frame::sync(WaitContext::SyncFn(f.name.to_string())),
                 };
-                pass.callable(frame, returns_value(&f.return_ty), &f.body);
+                pass.callable(frame, returns_tail(Callable::Fn, f.return_ty.as_ref()), &f.body);
             }
             // A component returns its element whether or not the return type
             // is written (D19), and it is never async.
             Decl::Component(c) => {
-                pass.callable(Frame::sync(WaitContext::Component(c.name.to_string())), true, &c.body);
+                pass.callable(
+                    Frame::sync(WaitContext::Component(c.name.to_string())),
+                    returns_tail(Callable::Component, c.return_ty.as_ref()),
+                    &c.body,
+                );
             }
             Decl::Const(c) => {
                 pass.frames.push(Frame::waited());
@@ -525,10 +530,7 @@ impl Pass<'_> {
                     }),
                     (false, Some(_)) => Frame::sync(WaitContext::SyncLambda),
                 };
-                let yields = match return_ty {
-                    None => true,
-                    Some(_) => returns_value(return_ty),
-                };
+                let yields = returns_tail(Callable::Lambda, return_ty.as_ref());
                 self.callable_dropping(frame, yields, dropped, body);
             }
             Expr::Jsx(j) => self.jsx(j),
@@ -641,19 +643,6 @@ impl Pass<'_> {
             task: self.task.clone(),
             span: e.span(),
         });
-    }
-}
-
-/// Whether a callable with this written return type yields its tail value:
-/// the emitter's rule (a `void` or unannotated return runs its tail for
-/// effect), so the two agree on what the tail is.
-fn returns_value(return_ty: &Option<TypeExpr>) -> bool {
-    match return_ty {
-        Some(TypeExpr::Path { segments, .. }) => {
-            !(segments.len() == 1 && segments[0].as_ref() == "void")
-        }
-        Some(_) => true,
-        None => false,
     }
 }
 

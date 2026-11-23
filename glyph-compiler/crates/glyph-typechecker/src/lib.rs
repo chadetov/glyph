@@ -524,6 +524,9 @@ pub enum TypeError {
         /// Both types are `Record` maps whose keys are different key domains
         /// (G373). `None` everywhere else.
         record_key: Option<Box<RecordKeyMismatch>>,
+        /// The value is refused only for holding `unknown` where another type
+        /// is declared (G325), so the help names the ways to check one.
+        unknown_value: bool,
         span: Span,
     },
 
@@ -697,6 +700,8 @@ pub enum TypeError {
         sql_escape: bool,
         /// Same rule as `TypeMismatch::record_key`.
         record_key: Option<Box<RecordKeyMismatch>>,
+        /// Same rule as `TypeMismatch::unknown_value`.
+        unknown_value: bool,
         /// The help for a call argument refused because it is the wrong kind
         /// of function (D40 as amended for 0.1.159): a sync function where an
         /// async one is declared, or an async callback where a sync one that
@@ -1561,6 +1566,10 @@ fn missing_fields_suffix(missing: &[String]) -> String {
     }
 }
 
+/// The help on a value refused for holding `unknown` where another type is
+/// declared (G325, record 89).
+pub const UNKNOWN_VALUE_HELP: &str = "An `unknown` stands only where `unknown` is declared. Check it first: `json.parse<T>(text)` or `T.parse(value)` gives a `Result<T, Array<Issue>>`, and a `match` arm with an `is` pattern (`is string => …`) narrows it.";
+
 impl TypeError {
     /// Whether this diagnostic fails the build (`Error`) or is only surfaced
     /// (`Warning`). Everything is an `Error` except the few advisory lints.
@@ -1688,6 +1697,13 @@ impl TypeError {
             if let Some(h) = k.help() {
                 return Some(Cow::Owned(h));
             }
+        }
+        // G325. Said before the taint helps: an `unknown` where a
+        // `taint.Trusted` is declared is unchecked first and untrusted second.
+        if let TypeError::TypeMismatch { unknown_value: true, .. }
+        | TypeError::ArgumentTypeMismatch { unknown_value: true, .. } = self
+        {
+            return Some(Cow::Borrowed(UNKNOWN_VALUE_HELP));
         }
         if let TypeError::SqlFromRuntimeValue { help, .. }
         | TypeError::MutationOutsideMut { help, .. }

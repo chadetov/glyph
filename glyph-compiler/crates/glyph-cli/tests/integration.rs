@@ -18047,35 +18047,37 @@ fn json_parse_with_no_type_argument_is_emitted_as_unknown() {
     assert!(!ts.contains("<unknown><unknown>"), "a written `<unknown>` is not doubled:\n{ts}");
 }
 
-/// The casts the bare call used to make, each refused by the full check now
-/// that the emitted call says `unknown`: an annotation, an argument, a record
-/// field, a `json.parse` value, and a generic wrapper that laundered the call
-/// for any `T`. Each passed `glyph check` and `tsc --strict` in 0.1.132 and
-/// crashed at run time on the first field read.
+/// The casts the bare call used to make: an annotation, an argument, a
+/// record field, a `json.parse` value, and a generic wrapper that laundered
+/// the call for any `T`. Each passed `glyph check` and `tsc --strict` in
+/// 0.1.132 and crashed at run time on the first field read. From 0.1.133
+/// `tsc` refused each, because the emitted call says `unknown`; from 0.1.176
+/// Glyph's own checker refuses each first (G325, D65), so `--no-tsc` and the
+/// agent gate do too.
 #[test]
-fn a_bare_json_parse_cast_is_refused_by_the_full_check() {
-    if !tsc_available() {
-        eprintln!("skipping: tsc not found on PATH");
-        return;
-    }
+fn a_bare_json_parse_cast_is_refused_by_the_checker() {
     let prelude = "module main\nimport std/json\ntype User = { name: string, }\n\
                    type Box = { v: Result<User, Array<Issue>>, }\n\
                    fn take(r: Result<User, Array<Issue>>) -> bool {\n  return true\n}\n";
     let cases = [
-        ("let", "pub fn f(s: string) -> bool {\n  let a: Result<User, Array<Issue>> = json.parse(s)\n  return true\n}\n", "TS2322"),
-        ("argument", "pub fn f(s: string) -> bool {\n  return take(json.parse(s))\n}\n", "TS2345"),
-        ("field", "pub fn f(s: string) -> Box {\n  return { v: json.parse(s), }\n}\n", "TS2322"),
-        ("value", "pub fn f(s: string) -> Result<User, Array<Issue>> {\n  let p = json.parse\n  return p(s)\n}\n", "TS2322"),
-        ("generic", "pub fn read<T>(s: string) -> Result<T, Array<Issue>> {\n  return json.parse(s)\n}\n", "TS2322"),
+        ("let", "pub fn f(s: string) -> bool {\n  let a: Result<User, Array<Issue>> = json.parse(s)\n  return true\n}\n", "E0204"),
+        ("argument", "pub fn f(s: string) -> bool {\n  return take(json.parse(s))\n}\n", "E0211"),
+        ("field", "pub fn f(s: string) -> Box {\n  return { v: json.parse(s), }\n}\n", "E0204"),
+        ("value", "pub fn f(s: string) -> Result<User, Array<Issue>> {\n  let p = json.parse\n  return p(s)\n}\n", "E0204"),
+        ("generic", "pub fn read<T>(s: string) -> Result<T, Array<Issue>> {\n  return json.parse(s)\n}\n", "E0204"),
     ];
     for (dir, body, code_name) in cases {
         let root = unique_tmp(&format!("json-parse-cast-{dir}"));
         write_file(&root, "main.glyph", &format!("{prelude}{body}"));
         let path = root.join("main.glyph");
-        let (code, _stdout, stderr, _) =
-            spawn_glyph(&[std::ffi::OsStr::new("check"), path.as_os_str()]);
+        let (code, _stdout, stderr, _) = spawn_glyph(&[
+            std::ffi::OsStr::new("check"),
+            std::ffi::OsStr::new("--no-tsc"),
+            path.as_os_str(),
+        ]);
         assert_eq!(code, 1, "{dir}: the cast must be refused:\n{stderr}");
         assert!(stderr.contains(code_name), "{dir}: expected {code_name}:\n{stderr}");
+        assert!(stderr.contains("Check it first"), "{dir}: the help names the checks:\n{stderr}");
     }
 }
 
@@ -21362,15 +21364,12 @@ fn main(argv: Array<string>) -> number {
 /// `unknown` to `tsc` as they are to Glyph's checker. The helper the loop
 /// emits is declared `[any, any]`, so this program passed both checks on the
 /// release branch and `glyph run` crashed with `s.toUpperCase is not a
-/// function` on `[10, 20]`. Full `check` refuses each use now: TS2322 where
-/// the index is declared a `string` or a `number`, TS18046 where a method is
-/// called on it.
+/// function` on `[10, 20]`. Glyph's checker refuses the index where a
+/// `string` or a `number` is declared (G325, D65), without `tsc`; full
+/// `check` refuses a method called on it (TS18046), which Glyph's checker
+/// does not judge (G381).
 #[test]
 fn a_declared_unknown_loop_binding_is_unknown_to_tsc() {
-    if !tsc_available() {
-        eprintln!("skipping the record 146 tsc check: tsc not available");
-        return;
-    }
     let text = r#"module main
 
 fn walk(v: unknown) -> string {
@@ -21378,7 +21377,7 @@ fn walk(v: unknown) -> string {
   for i, x in v {
     let n: number = i
     let s: string = i
-    mut out = out + s.toUpperCase() + i.toUpperCase() + "${n},"
+    mut out = out + s + "${n},"
   }
   return out
 }
@@ -21388,11 +21387,33 @@ fn walk(v: unknown) -> string {
     write_file(&src, "main.glyph", text);
     let main = src.join("main.glyph");
     let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("check"), std::ffi::OsStr::new("--no-tsc"), main.as_os_str()]);
+    assert_eq!(code, 1, "{stdout}\n{stderr}");
+    let all = format!("{stdout}\n{stderr}");
+    assert!(all.contains("[E0204] Error: typecheck: type mismatch: expected `number`, found `unknown`"), "{all}");
+    assert!(all.contains("[E0204] Error: typecheck: type mismatch: expected `string`, found `unknown`"), "{all}");
+    if !tsc_available() {
+        eprintln!("skipping the record 146 tsc check: tsc not available");
+        return;
+    }
+    let text = r#"module main
+
+fn walk(v: unknown) -> string {
+  let out = ""
+  for i, x in v {
+    mut out = out + i.toUpperCase() + ","
+  }
+  return out
+}
+"#;
+    let root = unique_tmp("d55-r146-b-tsc");
+    let src = root.join("src");
+    write_file(&src, "main.glyph", text);
+    let main = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
         spawn_glyph(&[std::ffi::OsStr::new("check"), std::ffi::OsStr::new("--no-test"), main.as_os_str()]);
     assert_eq!(code, 1, "{stdout}\n{stderr}");
     let all = format!("{stdout}\n{stderr}");
-    assert!(all.contains("[TS2322] Error: tsc: Type 'unknown' is not assignable to type 'number'."), "{all}");
-    assert!(all.contains("[TS2322] Error: tsc: Type 'unknown' is not assignable to type 'string'."), "{all}");
     assert!(all.contains("[TS18046] Error: tsc: 'i' is of type 'unknown'."), "{all}");
 }
 

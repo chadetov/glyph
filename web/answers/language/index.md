@@ -505,4 +505,4 @@ Patterns
 
   Binding a field, or matching a tag with no payload in one, works in every case.
 
-Code examples on this page are checked against Glyph 0.1.172 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.173 on every build. Last changed 21 Nov 2026.

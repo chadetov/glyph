@@ -10540,6 +10540,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `set_count("x")` on a `useState(0)` pair is `no diagnostics` under `--no-tsc`; with `tsc` it is TS2345 (`'string' is not assignable to parameter of type 'SetStateAction<number>'`), at `"x"`. `glyph query hover` and the editor's `textDocument/hover` answer `null` on `count`, `set_count` and `useState`.*
 
+  *Reproduced against 0.1.173 (the release build): `set_count("x")` on a `useState(0)` pair is `no diagnostics` under `--no-tsc`; with `tsc` it is TS2345 (`'string' is not assignable to parameter of type 'SetStateAction<number>'`), at `"x"`. `glyph query hover` and the editor's `textDocument/hover` answer `null` on `count`, `set_count` and `useState`.*
+
 - **G258. [FIXED] AGENTS.md names the `<for>` directive and never shows its syntax.**
   The dogfood agent guessed `<for each={todos} as={todo}>` and drew E0103 five
   times. The form is `<for todo in={todos} key={todo.id}>`, shown only in the
@@ -10586,6 +10588,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `glyph query definition` and the editor's `textDocument/definition` answer `null` on `Button` in `import ui { Button, Props }` and in `pub component Button`, while hover answers `fn(Props) -> Component` at both and definition at `<Button` resolves to `ui::Button`.*
 
+  *Reproduced against 0.1.173 (the release build): `glyph query definition` and the editor's `textDocument/definition` answer `null` on `Button` in `import ui { Button, Props }` and in `pub component Button`, while hover answers `fn(Props) -> Component` at both and definition at `<Button` resolves to `ui::Button`.*
+
 - **G260. Hover on a namespace base segment depends on position.** `ui` in
   `ui.Button` (value or element) hovers `null`; `ui` in `ui.Props` hovers
   `Props`, because the type entry spans the whole path.
@@ -10612,6 +10616,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `glyph query hover` and the editor's `textDocument/hover` on `ui` give `null` in `let _b = ui.Button` and in `<ui.Button`, and `"Props"` in `p: ui.Props`.*
 
   *Reproduced against 0.1.167 (the release build): `glyph query hover` and the editor's `textDocument/hover` on `ui` give `null` in `let _b = ui.Button` and in `<ui.Button`, and `"Props"` in `p: ui.Props`.*
+
+  *Reproduced against 0.1.173 (the release build): `glyph query hover` and the editor's `textDocument/hover` on `ui` give `null` in `let _b = ui.Button` and in `<ui.Button`, and `"Props"` in `p: ui.Props` (on the `ui` segment itself).*
 
 - **G261. A same-file definition is a zero-width range.** `glyph_definition`
   answers a declaration in the same file as a zero-width range at its start,
@@ -10645,6 +10651,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `glyph query definition` and the editor's `textDocument/definition` on the same-file calls `higher` and `fold_max` in a copy of `examples/corpus/ranking.glyph` give `start == end` (16:0 and 40:0), while the cross-module `ui::Button` spans its whole declaration (4:4 to 6:1).*
 
   *Reproduced against 0.1.167 (the release build): `glyph query definition` and the editor's `textDocument/definition` on the same-file calls `higher` and `fold_max` in a copy of `examples/corpus/ranking.glyph` give `start == end` (16:0 and 40:0), while the cross-module `ui::Button` spans its whole declaration (4:4 to 6:1).*
+
+  *Reproduced against 0.1.173 (the release build): `glyph query definition` and the editor's `textDocument/definition` on the same-file calls `higher` and `fold_max` in a copy of `examples/corpus/ranking.glyph` give `start == end` (16:0 and 40:0), while the cross-module `ui::Button` spans its whole declaration (4:4 to 6:1).*
 
 - **G262. [FIXED] The prelude `Component` takes type arguments without complaint.**
   `-> Component<string>` passes Glyph; since 0.1.126 lowers `Component` to
@@ -10776,6 +10784,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `fn s() -> string { return <p>hi</p> }` is `no diagnostics` under `--no-tsc`, and TS2322 with `tsc`; `component A() -> string` over the same JSX is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`.*
 
+  *Reproduced against 0.1.173 (the release build): `fn s() -> string { return <p>hi</p> }` is `no diagnostics` under `--no-tsc`, and TS2322 with `tsc`; `component A() -> string` over the same JSX is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`. The generic forms `fn sg<T>(x: T) -> string`, `component G<T>(p: { v: T }) -> string` and the bounded `component B<T: Named>(p: { v: T }) -> string` over JSX are `no diagnostics` under `--no-tsc` too, and TS2322 each with `tsc`.*
+
 - **G266. A declared `children` type is never compared with what is written
   between the tags.** With `children?: string`, `<Kids title="t">{5}</Kids>`
   passes Glyph and `tsc` alike, because `createElement` children are
@@ -10806,6 +10816,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `<Kids title="t">{5}</Kids>` with `children?: string` is `no diagnostics` under `--no-tsc`, and `glyph check` with `tsc` passes (`tsc --strict passed`, exit 0).*
 
   *Reproduced against 0.1.167 (the release build): `<Kids title="t">{5}</Kids>` with `children?: string` is `no diagnostics` under `--no-tsc`, and `glyph check` with `tsc` passes (`tsc --strict passed`, exit 0).*
+
+  *Reproduced against 0.1.173 (the release build): `<Kids title="t">{5}</Kids>` with `children?: string` is `no diagnostics` under `--no-tsc`, and `glyph check` with `tsc` passes (`tsc --strict passed`, exit 0).*
 
 - **G267. `default as` on a Glyph module passes the Glyph stages.**
   `import ui { default as f }` against a Glyph module with no default export
@@ -10838,6 +10850,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): with `ui` declaring only `pub fn fmt`, `import ui { default as f }` and `f(1)` are `no diagnostics` under `--no-tsc` and in `glyph query diagnostics`, and TS1192 `has no default export` with `tsc`.*
 
   *Reproduced against 0.1.167 (the release build): with `ui` declaring only `pub fn fmt`, `import ui { default as f }` and `f(1)` are `no diagnostics` under `--no-tsc` and in `glyph query diagnostics`, and TS1192 `has no default export` with `tsc`.*
+
+  *Reproduced against 0.1.173 (the release build): with `ui` declaring only `pub fn fmt`, `import ui { default as f }` and `f(1)` are `no diagnostics` under `--no-tsc` and in `glyph query diagnostics`, and TS1192 `has no default export` with `tsc`.*
 
 - **G268. [FIXED] Impact gives one pairing two verdicts, at an argument and at an
   attribute.** `take(5)` against `take(x: unknown)` is `UNDETERMINED` (the
@@ -10923,6 +10937,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): the bootstrap's `__glyph_eq` from a fresh `glyph build`, run through tsx on node 26 on two distinct self-referencing objects, throws `RangeError: Maximum call stack size exceeded`; `a == b` on two `timers.after(...)` handles is `no diagnostics` under `--no-tsc` (that program itself runs and prints `false`).*
 
   *Reproduced against 0.1.167 (the release build): the bootstrap's `__glyph_eq` from a fresh `glyph build`, run through tsx on node 26 on two distinct self-referencing objects, throws `RangeError: Maximum call stack size exceeded`; `a == b` on two `timers.after(...)` handles is `no diagnostics` under `--no-tsc` (that program itself runs and prints `false`).*
+
+  *Reproduced against 0.1.173 (the release build): the bootstrap's `__glyph_eq` from a fresh `glyph build`, run through tsx on two distinct self-referencing objects, throws `RangeError: Maximum call stack size exceeded`; `a == b` on two `timers.after(...)` handles is `no diagnostics` under `--no-tsc` (that program itself runs and prints `false`).*
 
 - **G273. [FIXED] A fresh object literal with a field the declaration does not name is
   accepted.** `let u: User = { name: "a", extra: 1 }` passes Glyph and is TS2353
@@ -11913,6 +11929,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `return array.concat([1, 2], ["a"])` from a function declared `-> Array<number>` is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`; `glyph llms --json` still gives `concat` `fn(Array<T>, Array<U>) -> Array<T>`.*
 
+  *Reproduced against 0.1.173 (the release build): `return array.concat([1, 2], ["a"])` from a function declared `-> Array<number>` is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`; `glyph llms --json` still gives `concat` `fn(Array<T>, Array<U>) -> Array<T>`.*
+
 - **G308. A trailing optional parameter is published as required.**
   `string.pad_end`, `string.pad_start`, `string.slice`, `string.index_of` and
   `array.slice` each take an optional last argument. The checker's rows say so
@@ -11950,6 +11968,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc` and passes `tsc --strict`, and `glyph llms --json` gives `pad_end` and `pad_start` the signature `fn(string, number, string) -> string`.*
 
   *Reproduced against 0.1.167 (the release build): `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc` and passes `tsc --strict`, and `glyph llms --json` gives `pad_end` and `pad_start` the signature `fn(string, number, string) -> string`.*
+
+  *Reproduced against 0.1.173 (the release build): `string.pad_end(s, 4)` is `no diagnostics` under `--no-tsc` and passes `tsc --strict`, and `glyph llms --json` gives `pad_end` and `pad_start` the signature `fn(string, number, string) -> string`.*
 
 - **G309. [FIXED] The array runtime takes `ReadonlyArray<T>` where the rows declare
   `Array<T>`.** Nineteen `std/array` rows (`any`, `concat`, `filter`, `find`,
@@ -12832,6 +12852,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): refused, "comment inside the tag `<div>` has no canonical place; move it above the statement", and `glyph check` reports it as E0500.*
 
+  *Reproduced against 0.1.173 (the release build): refused, "comment inside the tag `<div>` has no canonical place; move it above the statement", and `glyph check` reports it as E0500 (a warning, exit 0).*
+
 - **G340. A comment between the fields of an object pattern is refused.**
   `{ a,` / `// why` / `b }` in a `match` arm has no one-per-line layout, so
   `glyph fmt` refuses it (E0500) since 0.1.137, where a record body or an
@@ -12851,6 +12873,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `Rect({ a,` / `// why` / `b })` in a `match` arm is refused, "comment inside an object pattern has no canonical place; move it above the match arm".*
 
   *Reproduced against 0.1.167 (the release build): `Rect({ a,` / `// why` / `b })` in a `match` arm is refused, "comment inside an object pattern has no canonical place; move it above the match arm".*
+
+  *Reproduced against 0.1.173 (the release build): `Rect({ a,` / `// why` / `b })` in a `match` arm is refused, "comment inside an object pattern has no canonical place; move it above the match arm".*
 
 - **G341. Only the first refused comment in a file is reported.** A file with
   two comments `glyph fmt` cannot place, in two different functions, draws
@@ -12875,6 +12899,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `check --json` on two refused index comments in two functions reports one E0500, at the first (`main:5:5`); the second is reported (`main:10:5`) only once the first is deleted. E0500 now prints as a warning and check exits 0.*
 
+  *Reproduced against 0.1.173 (the release build): `check --json` on two refused index comments in two functions reports one E0500, at the first (`main:5:5`); the second is reported (`main:10:5`) only once the first is deleted. E0500 prints as a warning and check exits 0.*
+
 - **G342. The playground never shows E0500.** `glyph-wasm` does not run the
   formatter, so the refusal `glyph check`, MCP and the editor report is absent
   there, one more surface that disagrees with the rest (G295). Found by the
@@ -12895,6 +12921,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): no reference to the formatter, `format_module` or `format_refusal` in `crates/glyph-wasm`, and its `Cargo.toml` does not depend on `glyph-formatter`.*
 
   *Reproduced against 0.1.167 (the release build): no reference to the formatter, `format_module` or `format_refusal` in `crates/glyph-wasm`, and its `Cargo.toml` does not depend on `glyph-formatter`.*
+
+  *Reproduced against 0.1.173 (the release build): no reference to the formatter, `format_module` or `format_refusal` in `crates/glyph-wasm`, and its `Cargo.toml` does not depend on `glyph-formatter`.*
 
 - **G343. `glyph fmt` starts a statement with `(` around a lambda call.**
   `let a = 1` then `fn() { return 1 }()` is printed with the second line as
@@ -13460,6 +13488,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) by record 109's probes: `b_secondgen`, `j_tree_hole` and `h_third_genhole` are E0304 naming `meta.b` (`Box<number>`), `meta.t` (`Tree<int>`) and `meta.g` (`G<int>`), while the record-nested `h_third_hole` names `meta.x.m.h` (`H`).*
 
+  *Reproduced against 0.1.173 (the release build) by record 109's probes: `b_secondgen`, `j_tree_hole` and `h_third_genhole` are E0304 naming `meta.b` (`Box<number>`), `meta.t` (`Tree<int>`) and `meta.g` (`G<int>`), while the record-nested `h_third_hole` names `meta.x.m.h` (`H`).*
+
 - **G365. A sibling alias over a private generic is refused where a record
   field of the same type is accepted.** `pub type Rows = Box<int>` with `Box`
   private to its module is E0304 ("declares without `pub`"), while `pub type
@@ -13480,6 +13510,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build) by record 109's probes: `s_alias_privgen` is E0304 ("`Rows`'s body names `Box`, which `model` declares without `pub`"), while `s_rec_privgen` is `no diagnostics`, passes `tsc --strict` and runs `v0 Ok`, `v1 Err`.*
 
   *Reproduced against 0.1.167 (the release build) by record 109's probes: `s_alias_privgen` is E0304 ("`Rows`'s body names `Box`, which `model` declares without `pub`"), while `s_rec_privgen` is `no diagnostics`, passes `tsc --strict` and runs `v0 Ok`, `v1 Err`.*
+
+  *Reproduced against 0.1.173 (the release build) by record 109's probes: `s_alias_privgen` is E0304 ("`Rows`'s body names `Box`, which `model` declares without `pub`"), while `s_rec_privgen` is `no diagnostics`, passes `tsc --strict` and runs `v0 Ok`, `v1 Err`.*
 
 - **G366. [FIXED] A namespaced generic application is checked with a local
   generic of the same name.** `field_check_in` looked a generic up by its last
@@ -13855,6 +13887,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) by record 117's probe `top`: four same-line pairs of top-level declarations are `no diagnostics` under `--no-tsc`, while `top2` (an import and a declaration on one line) is still E0002 ("expected newline after import, found Pub").*
 
+  *Reproduced against 0.1.173 (the release build) by record 117's probe `top`: four same-line pairs of top-level declarations are `no diagnostics` under `--no-tsc`, while `top2` (an import and a declaration on one line) is still E0002 ("expected newline after import, found Pub").*
+
   Planned for 0.1.158 (record 117).
 
 - **G380. [FIXED] A mutating method call needs no `mut`, so `grep "^\s*mut "` is not
@@ -13921,6 +13955,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `--no-tsc` reports no diagnostics; full `check` reports ``[TS18046] Error: tsc: 'data' is of type 'unknown'``.*
 
+  *Reproduced against 0.1.173 (the release build): `--no-tsc` reports no diagnostics; full `check` reports ``[TS18046] Error: tsc: 'data' is of type 'unknown'``.*
+
 - **G382. `string + number` is not typed as a string by Glyph's checker.**
   `fn with_tax(input: string) -> number { return input + 1 }` and `let n:
   number = input + 1` are `no diagnostics` under `check --no-tsc`, while the
@@ -13941,6 +13977,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `return input + 1` in a `-> number` function and `let n: number = "5" + 1` are no diagnostics under `--no-tsc`; full `check` reports ``[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'`` at both.*
 
+  *Reproduced against 0.1.173 (the release build): `return input + 1` in a `-> number` function and `let n: number = "5" + 1` are no diagnostics under `--no-tsc`; full `check` reports ``[TS2322] Error: tsc: Type 'string' is not assignable to type 'number'`` at both.*
+
 - **G383. Renaming an import says only "expected `}`, found As".** `import
   users { get_user as fetch_user }` is E0002 with that message and no help,
   so a TypeScript author cannot tell that Glyph keeps every name as declared
@@ -13957,6 +13995,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): ``[E0002] Error: parse: expected `}`, found As``, with only the generic E0002 help.*
 
   *Reproduced against 0.1.167 (the release build): ``[E0002] Error: parse: expected `}`, found As``, with only the generic E0002 help.*
+
+  *Reproduced against 0.1.173 (the release build): ``[E0002] Error: parse: expected `}`, found As``, with only the generic E0002 help.*
 
 - **G384. [FIXED] An `async` call whose result is dropped is silent.** `save(1)` as a statement inside an `async fn`, where `save` is `async`, and
   `ids.forEach(async fn(id: string) -> void { await save(id) })` both report no
@@ -14080,6 +14120,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): no diagnostics, `tsc --strict` passes; `glyph run` prints `3` and `90`.*
 
+  *Reproduced against 0.1.173 (the release build): no diagnostics, `tsc --strict` passes; `glyph run` prints `3` and `90`.*
+
 - **G387. [FIXED] `std/sqlite` accepts a query built by interpolation.** `db.query("SELECT * FROM users WHERE name = '${name}'", [])` checks clean, so
   the stdlib's own database API takes an injectable string. `std/taint` exists
   but each sink has to opt in. The query parameter should refuse an
@@ -14137,6 +14179,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `mut scores.sort()` is no diagnostics, passes `tsc --strict` and prints `100,25,9`; a bare `scores.sort()` is E0240, whose help writes `mut scores.sort()`, the same text-order sort, while `array.sort(scores)` with no comparator is E0213.*
 
+  *Reproduced against 0.1.173 (the release build): `mut scores.sort()` is no diagnostics, passes `tsc --strict` and prints `100,25,9`; a bare `scores.sort()` is E0240, whose help writes `mut scores.sort()`, the same text-order sort, while `array.sort(scores)` with no comparator is E0213.*
+
 - **G389. A member TypeScript marks `@deprecated` is accepted silently.** `s.substr(1, 2)` checks clean. Agents emit deprecated APIs often (every model
   in one ICSE 2025 study did). The built-in member table comes from the
   TypeScript library declarations, which carry the tag, so a warning can name
@@ -14150,6 +14194,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `s.substr(1, 2)` is no diagnostics, passes `tsc --strict` and prints `el`.*
 
+  *Reproduced against 0.1.173 (the release build): `s.substr(1, 2)` is no diagnostics, passes `tsc --strict` and prints `el`.*
+
 - **G390. E0225 does not see an index write across an `await`.** `let first = c[0]`, `let f = await fee()`, `mut c[0] = first + f` reports
   nothing, while the same read-modify-write on a field (`a.balance`) is E0225.
   Extend the check to element and index writes.
@@ -14161,6 +14207,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): no diagnostics on the index write `mut c[0] = first + f` across an `await`, while the same read-modify-write on `a.balance` in the same file is E0225.*
 
   *Reproduced against 0.1.167 (the release build): no diagnostics on the index write `mut c[0] = first + f` across an `await`, while the same read-modify-write on `a.balance` in the same file is E0225 (the file's only error).*
+
+  *Reproduced against 0.1.173 (the release build): no diagnostics on the index write `mut c[0] = first + f` across an `await`, while the same read-modify-write on `a.balance` in the same file is E0225 (the file's only error).*
 
 - **G391. [FIXED] An optional field decoded from `null` keeps the `null`, so a spread erases a default.** With `type Opts = { timeout_ms?: number }`, `json.parse<Opts>("{\"timeout_ms\": null}")`
   is `Ok` (null is absence, by decision), but the decoded object still holds
@@ -14259,6 +14307,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with the 0.1.161 minimal probe (`return o.timeout_ms * 2` on `timeout_ms?: number`): `--no-tsc` clean, full `check` ``[TS18048] Error: tsc: 'o.timeout_ms' is possibly 'undefined'``.*
 
+  *Reproduced against 0.1.173 (the release build) with the 0.1.161 minimal probe (`return o.timeout_ms * 2` on `timeout_ms?: number`): `--no-tsc` clean, full `check` ``[TS18048] Error: tsc: 'o.timeout_ms' is possibly 'undefined'``.*
+
   Since 0.1.160 any help that names an optional-field receiver inherits the
   missing optionality (record 151, S3). E0240 on `s.opt?.push(1)` quotes the
   `?.` and its help writes `mut s.opt?.push(1)`, which compiles; but a help
@@ -14283,6 +14333,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build) with a minimal probe from the entry's text: `mut wide.push("zzz")` through `let wide: Array<string> = xs` leaves `["a","zzz"]` in the `Array<Tier>`, and `mut rw["k"] = "zzz"` through a widened `Record` alias prints `{"k":"zzz"}`, with no diagnostics and `tsc --strict` passing; E0240 does not apply, since both writes are already `mut` statements.*
 
   *Reproduced against 0.1.167 (the release build) with the 0.1.161 minimal probe: `mut wide.push("zzz")` through `let wide: Array<string> = xs` leaves `["a","zzz"]` in the `Array<Tier>`, and `mut rw["k"] = "zzz"` through a widened `Record` alias prints `{"k":"zzz"}`, with no diagnostics and `tsc --strict` passing; without `mut`, `wide.push("zzz")` is E0240 whose help writes `mut wide.push("zzz")`. Through a store, `let xs = HITS.get()` then `mut xs.push(1)` is no diagnostics and prints `[1]`, while `HITS.get().push(1)` written directly is E0240 with help `mut HITS.update(...)`.*
+
+  *Reproduced against 0.1.173 (the release build) with the 0.1.161 minimal probe: `mut wide.push("zzz")` through `let wide: Array<string> = xs` leaves `["a","zzz"]` in the `Array<Tier>`, and `mut rw["k"] = "zzz"` through a widened `Record` alias prints `{"k":"zzz"}`, with no diagnostics and `tsc --strict` passing; without `mut`, `wide.push("zzz")` is E0240 whose help writes `mut wide.push("zzz")`. Through a store, `let xs = HITS.get()` then `mut xs.push(1)` is no diagnostics, passes `tsc --strict` and prints `[1]`, while `HITS.get().push(1)` written directly is E0240 with help `mut HITS.update(...)`.*
 
   G380 (0.1.160) is its precondition and is closed: every write to an array
   Glyph's checker types is a `mut` statement now, so this can be judged at
@@ -14315,6 +14367,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with stale161b's probe p395 and a minimal display probe: `mut half[1.5] = 7` and a `Record<number, int>` assigned to a `Record<int, int>` are no diagnostics, `{"1.5":7}` printed, the re-parse `Err`; a mismatch on `Record<int, int>` still prints it as `Record<number, number>`.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g395 and g395b: `mut half[1.5] = 7` and a `Record<number, int>` assigned to a `Record<int, int>` are no diagnostics, `{"1.5":7}` printed, the re-parse `Err`; a mismatch on `Record<int, int>` still prints it as `Record<number, number>`.*
+
 - **G396. A refinement's run-time issue prints emitted TypeScript instead of
   the declared predicate.** With `type NotA = string where value != "a"`,
   `json.parse<{ s: NotA }>` on `{"s":"a"}` returns the issue
@@ -14333,6 +14387,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build) with a minimal probe from the entry's text: the issue message `expected NotA (string where !__glyph_eq(value, \"a\"))`, verbatim.*
 
   *Reproduced against 0.1.167 (the release build) with stale161b's probe p396: the issue message `expected NotA (string where !__glyph_eq(value, \"a\"))`, verbatim.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's probe g396: the issue message `expected NotA (string where !__glyph_eq(value, \"a\"))`, verbatim.*
 
 - **G397. An `Option` pattern against a scrutinee that is not an `Option`
   passes Glyph's checker.** `match i.code { Some("missing") => "m", Some(c)
@@ -14357,6 +14413,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with stale161b's probes p397 and p397b: `Some`/`None` arms on `i.code` for an `Issue` are exit 0 under `--no-tsc` (an unused-import warning only), full `check` TS18048 and TS2339; on a plain `string`, a required and an optional `string` field, three E0218s and nothing else.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g397 and g397b: `Some`/`None` arms on `i.code` for an `Issue` are exit 0 under `--no-tsc` (an unused-import warning only), full `check` TS18048 and TS2339; on a plain `string`, a required and an optional `string` field, three E0218s and nothing else.*
+
 - **G398. An inline record field reports `must be an object` for any inner
   issue.** With `type A3 = { t?: { a: int, b?: string, }, }`,
   `json.parse<A3>("{\"t\":{\"a\":\"x\"}}")` reports one issue,
@@ -14380,6 +14438,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with stale161b's probe p398: `check --no-tsc` reports no diagnostics, and `glyph run` prints ``[{"path":["t"],"message":"field `t` must be an object","code":"type"}]`` for both `{"t":{"a":"x"}}` and `{"t":{"a":1,"b":null}}`.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probe g398: `check --no-tsc` reports no diagnostics, and `glyph run` prints ``[{"path":["t"],"message":"field `t` must be an object","code":"type"}]`` for both `{"t":{"a":"x"}}` and `{"t":{"a":1,"b":null}}`.*
+
 - **G399. A generic alias of `Option` or `Nullable` has no run-time check at a
   record field, `json.parse` or `is`.** With `type Maybe<T> = Option<T>` and a
   field `t?: Maybe<int>`, or `type MaybeN<T> = Nullable<T>` and a field
@@ -14402,6 +14462,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build) with minimal probes from the entry's text: E0304 (``field `t` has type `Maybe<int>`, which has no runtime check``, and the same for `MaybeN<int>`) for both aliases.*
 
   *Reproduced against 0.1.167 (the release build) with stale161b's probes p399 and p399b: E0304 (``field `t` has type `Maybe<int>`, which has no runtime check``, and the same for `MaybeN<int>`) for both aliases.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g399 and g399b: E0304 (``field `t` has type `Maybe<int>`, which has no runtime check``, and the same for `MaybeN<int>`) for both aliases.*
 
 - **G400. The null hint drops a suggestion the consumer could spell.** With
   `side` declaring `pub type SRec = { a: int, }` and `pub type SMaybeRec =
@@ -15137,6 +15199,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) by record 156's probe `c2`: `glyph fix` declines E0242 inside the unannotated lambda with ``the declared return is `?` ``.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probe g430: `glyph fix` declines E0242 inside the unannotated lambda with ``the declared return is `?` ``.*
+
 - **G431. A member Glyph's checker does not know on a `boolean` passes
   without `tsc`.** `let same = 1 == 2` then `same.to_string()` is `no
   diagnostics` under `check --no-tsc`; full `check` reports `[TS2339]
@@ -15150,6 +15214,8 @@ and is the owner's to confirm.
   diagnostics; full `check` reports TS2339 on `to_string`.*
 
   *Reproduced against 0.1.167 (the release build) with a minimal probe from the entry's text: `--no-tsc` reports no diagnostics; full `check` reports TS2339 on `to_string`.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's minimal probe: `--no-tsc` reports no diagnostics; full `check` reports TS2339 on `to_string` (and TS2367 on `1 == 2`).*
 
 - **G432. A `??` default that disagrees with a `Nullable` or optional left
   side is left unchecked.** On `n: Nullable<number>`, `let z: string = n ??
@@ -15171,6 +15237,8 @@ and is the owner's to confirm.
   `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` are silent.*
 
   *Reproduced against 0.1.167 (the release build) by record 157's probe a02 and a minimal probe: of seven `??` bound to a `let ...: string`, `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` are still silent (`n ?? 0`, `b.inner?.opt ?? None` and `b.o ?? None` draw E0204, `b.o ?? 0` E0236); `b.n ?? None`, `k ?? 0` on a `number` and `xs[0] ?? 0` draw nothing.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g432 and g432b: `n ?? "x"`, `b.n ?? 0` and `n ?? Some(1)` bound to a `let ...: string` are still silent (`n ?? 0`, `b.inner?.opt ?? None` and `b.o ?? None` draw E0204, `b.o ?? 0` E0236); `b.n ?? None`, `k ?? 0` on a `number` and `xs[0] ?? 0` draw nothing.*
 
 - **G435. [FIXED] Spans inside a `${}` start one column early.** In `"n=${b.nik}
   end"`, E0210 underlines `{b.ni`, and its fix reads the field name as `ni`
@@ -15273,6 +15341,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) by record 158's probes r02 and r03: `n.update(fn(v: string) -> string { return v })` on a `store.Store<number>` and `apply(fn(v: string) -> string { return v })` both print ``expected `function`, found `function` ``.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g434a and g434b: `n.update(fn(v: string) -> string { return v })` on a `store.Store<number>` and `apply(fn(v: string) -> string { return v })` both print ``expected `function`, found `function` ``.*
+
 - **G436. `Some(x)` where an `Option<T>` is declared does not compare a
   non-literal `x` with `T`.** `let o1: Option<number> = Some(d)` with `d` a
   `decimal.Decimal`, and `let o2: Option<number> = Some(u)` with `u` a record
@@ -15289,6 +15359,8 @@ and is the owner's to confirm.
   `check --no-tsc`; `a1` and `a2` are E0204 on the branch.*
 
   *Reproduced against 0.1.167 (the release build) with record 161's probe s02: `o1` and `o2` draw nothing under `check --no-tsc` (unused-variable warnings only); `a1` and `a2` are E0204.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's probe g436: `o1` and `o2` draw nothing under `check --no-tsc` (unused-variable warnings only); `a1` and `a2` are E0204.*
 
 - **G441. [FIXED] An escape inside the `${}` of a `"..."` string moves the nodes
   after it.** In `"a${f(\"x\") + zz}"` the E0103 on `zz` underlines two bytes
@@ -15346,6 +15418,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with minimal probes from the entry's text: `let o: Opt = { nick: "n", }` draws E0204 with ``found `record`: missing field `name` ``, as does an unannotated `const` assigned to `Opt`; with a structural record declared the `const` draws ``expected `record`, found `record`: missing field `name` ``.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g437, g437b and g437c: the literal and the unannotated `const` assigned to `Opt` draw ``found `record`: missing field `name` ``; with a structural record declared the `const` draws ``expected `record`, found `record`: missing field `name` ``.*
+
   Since 0.1.166 the same display reaches a value held by an unannotated
   `const`: with a structural record declared, a `const` missing a field
   draws ``expected `record`, found `record`: missing field ...``, both sides
@@ -15368,6 +15442,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build) with record 163's probe k04: `--no-tsc` reports no diagnostics; full `check` reports the TS2367.*
 
+  *Reproduced against 0.1.173 (the release build) with stale167c's probe g438: `--no-tsc` reports no diagnostics; full `check` reports the TS2367 on `m == "zzz"`.*
+
 - **G439. An array index read is not compared where a type is declared.**
   `let ys = [1, 2]` then `let b: string = ys[0]` is `no diagnostics` under
   `check --no-tsc`; full `check` reports `[TS2322] Type 'number' is not
@@ -15379,6 +15455,8 @@ and is the owner's to confirm.
   `--no-tsc` reports no diagnostics; full `check` reports the TS2322.*
 
   *Reproduced against 0.1.167 (the release build) with record 163's probe k08: `let a: string = XS[0]` and `let b: string = ys[0]` draw no error under `--no-tsc` (only `let c: string = XS` is E0204); with that line removed, full `check` reports the TS2322 on both.*
+
+  *Reproduced against 0.1.173 (the release build) with stale167c's probes g439 and g439b: `let a: string = XS[0]` and `let b: string = ys[0]` draw no error under `--no-tsc` (only `let c: string = XS` is E0204); with that line removed, full `check` reports the TS2322 on both.*
 
 - **G442. `{cond && <el/>}` with a number `cond` passes both checkers and
   renders `0`.** `component A(props: { n: number }) { return
@@ -15556,6 +15634,8 @@ and is the owner's to confirm.
   branch build: `let a: Array<Array<number>> = xs` draws nothing on both,
   and the same line over `[["read"], ["read"]]` is E0204 on both.*
 
+  *Reproduced against 0.1.173 (the release build) with a minimal probe from the entry's text: `let a: Array<Array<number>> = xs` over `[["read"], ["write"]]` draws nothing under `--no-tsc`, the same line over `[["read"], ["read"]]` is E0204, and full `check` reports TS2322 on the first.*
+
 
 - **G451. The index binding of `for i, x in [...]` has no type.** With
   `for i, x in [seen]`, `let c: string = i` passes `check --no-tsc` on both
@@ -15580,6 +15660,8 @@ and is the owner's to confirm.
   build with record 174's probe s05:
   E0002 at 6:9 with that message and help.*
 
+  *Reproduced against 0.1.173 (the release build) with record 174's probe s05: E0002 at 6:9 with ``expected valid expression inside `${...}` template interpolation, found expected matching `}` ...`` and the help "Add the expected token".*
+
 - **G453. A `"""` string cannot hold a literal `${`.** A `"""` string
   decodes no escapes, so `\${y}` inside one is a backslash followed by the
   interpolation `${y}`, not a literal `${y}`, and there is no other
@@ -15590,6 +15672,8 @@ and is the owner's to confirm.
   build with record 174's probe s02:
   `"""x${f("a\tb")} \${y} ${x}"""` is E0103, ``unresolved name `y` `` at
   9:29.*
+
+  *Reproduced against 0.1.173 (the release build) with record 174's probe s02: `"""x${f("a\tb")} \${y} ${x}"""` is E0103, ``unresolved name `y` ``.*
 
 - **G455. A recursive type is compared by name, against its own shape and every other.** `type F =
   Array<F>` against `type G = Array<G>`, `type F = Option<F>` against `type
@@ -15619,6 +15703,8 @@ and is the owner's to confirm.
   build: ``[E0204] Error: typecheck: type mismatch: expected `G`, found
   `F` `` for probe b7 under both, and the same for c3 and c5 (``expected
   `H`, found `F` ``).*
+
+  *Reproduced against 0.1.173 (the release build) with minimal probes from the entry's text: ``[E0204] type mismatch: expected `G`, found `F` `` for `Array<F>`/`Array<G>` and `Option<F>`/`Option<G>`, ``expected `H`, found `F` `` for `Array<F>`/`Array<Array<H>>`; `a(x: G) -> number` and `c(x: Array<G>) -> Array<number>` report nothing under `--no-tsc` and TS2322 under full `check`.*
 
 - **G456. [FIXED] A record field typed by a second name for the enclosing type
   parameter passes where a string map is declared.** With `type One<T> = {
@@ -15656,6 +15742,8 @@ and is the owner's to confirm.
   passes `check --no-tsc` with only an unused-variable warning on the
   caller.*
 
+  *Reproduced against 0.1.173 (the release build) with record 179's probe r03: `fn z() -> string { 5 }` and `fn y(n: number) -> string { n }` pass `check --no-tsc` with no diagnostics; full `check` reports TS2322 for both.*
+
 - **G458. [FIXED] `Nullable<T>` as a map's value type refuses a `T` field.** `fn
   j<T>(x: One<T>) -> Record<string, Nullable<T>> { return x }` is E0204
   (``expected `Record<string, Nullable<T>>`, found `One<T>` ``), the same
@@ -15687,6 +15775,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.167 (the published release) and the 0.1.172
   branch build: `check --no-tsc` exits 0 on both programs; full `check`
   under 0.1.167 reports TS2322 for each.*
+
+  *Reproduced against 0.1.173 (the release build) with the 0.1.172 probes s08 and s13: `check --no-tsc` exits 0 on the returned literal and on the literal held in a record field; full `check` reports TS2322 for each.*
 
 - **G460. An interface value passes where a primitive is declared.** `fn
   z(n: Named) -> string { return n }` with `interface Named { name: string

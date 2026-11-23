@@ -1,0 +1,14 @@
+---
+version: 0.1.171
+month: 2026-11
+date: 2026-11-23
+headline: Each type parameter knows the declaration it belongs to
+---
+            <p>Glyph's checker compared type parameters by name alone, so the <code>T</code> of one generic function could be mistaken for the <code>T</code> of another. With <code>type One&lt;T&gt; = { v: T, }</code> and <code>fn wrap&lt;T&gt;(xs: Array&lt;T&gt;) -&gt; One&lt;T&gt;</code>, a function returning <code>wrap([])</code> where <code>Record&lt;string, string&gt;</code> is declared was refused with "found <code>One&lt;?&gt;</code>", and inside a generic function whose own parameter was also called <code>T</code> the callee's <code>T</code> was read as the caller's. <code>tsc</code> accepts both.</p>
+
+            <p>Now every type parameter carries the declaration that owns it: the function, component, type or interface that declares it, a stdlib function for the stdlib's rows, and the union for <code>Option</code> and <code>Result</code>. Parameters are compared by owner and name. The answer is the same whether the callee is local, imported by name, reached through a namespace or held in a <code>const</code>. With 0.1.170's alias expansion, the same holds through a second name, and one more false refusal goes: <code>Record&lt;string, Same&lt;T&gt;&gt;</code> where a field of type <code>T</code> is returned.</p>
+
+            <p>This release adds no refusals. Across 285 tracked programs the output is byte-identical to 0.1.169 and 0.1.170. The next release uses the owner to decide a function's own type parameter.</p>
+
+            <h3>Not breaking</h3>
+            <p>Every change removes a refusal that <code>tsc</code> does not make.</p>

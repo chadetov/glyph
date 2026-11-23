@@ -98,7 +98,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">One canonical form per construct.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation restricted to two greppable shapes (<code>mut</code>), and a write without one refused (<code>E0240</code>), whether it goes to an array or to a stdlib <code>Set</code>, <code>Store</code> or <code>Deque</code>. A value from an npm package is not judged either way.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -106,11 +106,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Layered on top</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p>Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</span></span></li>
           </ul>
         </section>

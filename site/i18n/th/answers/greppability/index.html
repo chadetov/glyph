@@ -1,7 +1,7 @@
 ---
 title: เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน? · Glyph
 description: ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; ก่อนหน้า | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 next: /answers/why-typescript/ | ถัดไป &rarr; | ทำไมต้อง TypeScript ไม่ใช่ Go หรือภาษาใหม่?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">รูปแบบมาตรฐานเดียวต่อ construct</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาเจอ (<code>mut</code>) และการเขียนลงอาร์เรย์โดยไม่มีคำนำหน้านี้ถูกปฏิเสธ (<code>E0240</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาเจอ (<code>mut</code>) และการเขียนโดยไม่มีคำนำหน้านี้ถูกปฏิเสธ (<code>E0240</code>) ไม่ว่าจะเขียนลงอาร์เรย์ หรือลง <code>Set</code>, <code>Store</code> หรือ <code>Deque</code> ของไลบรารีมาตรฐาน ค่าจากแพ็กเกจ npm ไม่ถูกตัดสินทั้งสองทาง</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> วางซ้อนอยู่ด้านบน</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การเขียนผ่าน <code>Set</code>, <code>Store</code> และ <code>Deque</code> ของไลบรารีมาตรฐานยังไม่ถูกตรวจเรื่อง <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p>ตัวตรวจของ Glyph ยังไม่รู้ชนิดของตัวรับเหล่านี้ <code>seen.add(x)</code> และ <code>mut seen.add(x)</code> จึงผ่านทั้งคู่ และในคอร์ปัสก็มีทั้งสองแบบ การให้ชนิดและทำเครื่องหมายเมธอดที่เขียนค่าคือขั้นต่อไปที่วางแผนไว้ ค่าจากแพ็กเกจ npm ไม่ถูกตัดสินทั้งสองทาง: ใส่ <code>mut</code> หน้าการเรียกของมันได้ แต่ไม่บังคับ</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ</span></span></li>
           </ul>
         </section>

@@ -1,7 +1,7 @@
 ---
 title: Bir ajan (ya da ben) bir şeyin nerede tanımlandığını bulabilir mi? · Glyph
 description: Glyph'teki her yapının aranacak tek bir biçimi vardır; bu yüzden grep (ya da bir ajanın araması) elli yakın eşleşmeye değil, tek tanıma ulaşır.
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; Önceki | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 next: /answers/why-typescript/ | Sonraki &rarr; | Neden TypeScript, neden Go ya da yeni bir dil değil?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün yayında</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Yapı başına tek kanonik biçim.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değiştirme grep ile bulunabilen iki biçimle sınırlı (<code>mut</code>), ve bu ön ek olmadan diziye yazma reddediliyor (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Değiştirme grep ile bulunabilen iki biçimle sınırlı (<code>mut</code>), ve bu ön ek olmadan yazma, ister bir diziye ister standart kütüphanenin bir <code>Set</code>, <code>Store</code> ya da <code>Deque</code> değerine gitsin, reddediliyor (<code>E0240</code>). Bir npm paketinden gelen değer iki yönde de denetlenmez.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Tek anahtar kelimeyle denetimler (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Üstüne eklenenler</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Standart kütüphanenin <code>Set</code>, <code>Store</code> ve <code>Deque</code> türleri üzerinden yapılan yazmalar henüz <code>mut</code> için denetlenmiyor</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Ayrıntılar</summary><div class="body">
-                <p>Glyph'in denetleyicisi bu alıcılara henüz tür vermiyor, bu yüzden <code>seen.add(x)</code> de <code>mut seen.add(x)</code> de kabul ediliyor ve derlemde iki yazım da var. Onlara tür vermek ve yazan metotlarını işaretlemek planlanan bir sonraki adım. Bir npm paketinden gelen değer iki yönde de yargılanmaz: çağrılarından önce <code>mut</code> yazmak serbesttir ve zorunlu değildir.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Dil sunucusu, tüm çalışma alanında tanıma gitme ve referansları bulma ekler: aynı garanti, artık editörünüzde etkileşimli.</span></span></li>
           </ul>
         </section>

@@ -5698,7 +5698,9 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Planned, after G273 · G436, `Some(x)` under a declared `Option<T>` compares `x` with `T`** (record 161). `Some(d)` with a `Decimal`, or `Some(u)` with a user record, where `Option<number>` is declared passes both Glyph checks today and `tsc` refuses it. The non-literal half of G273's `Some`/`Ok`/`Err` positions, built on its machinery.
 
-**Rolling lane · G434, E0211 between two function types names them** (record 158): ``expected `function`, found `function` `` breaks the G75 rule; render the signature.
+**Rolling lane · G434, E0211 between two function types names them** (record 158): ``expected `function`, found `function` `` breaks the G75 rule; render the signature. D65 (0.1.176) adds sites that reach it, such as `fn(string) -> unknown` where `fn(string) -> string` is declared (record 186, N2).
+
+**Rolling lane · G492, a built-in's rest parameter is checked** (record 186, N3): `s.concat(5)` and `s.concat(u)` pass `--no-tsc` while `s.startsWith(u)` is refused; check each variadic argument against the rest element type. It sits beside record 183's writes into containers.
 
 **0.1.164 — Shipped 2026-11-22 · G435, spans inside a `${}` point at the text they name** (decision records 159, B1, 160 and 166; not breaking). Branch `dev-0.1.164`.
 - **The cause.** Each interpolation was parsed from the string's lexed value behind a run of spaces as long as the opening quote's offset plus the character index inside the value. That left out the quote byte, so every node started one column early, and every escape, `\${` and multi-byte character earlier in the string moved it further: `"a${f(\"x\")} ${zz}"` underlined three bytes before `zz`, and `"é😀 ${b.nik}"` four.
@@ -5839,6 +5841,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 - **Measured (before the rebase).** 375 units, one at a time, under the published 0.1.171 and this build with `build --no-tsc --no-test --json`: every app directory, every other tracked `.glyph` file in its own directory (`examples/`, `examples/corpus/`, `benchmarks/`, `playground/examples/`, the fuzz seeds and the compiler's fixtures), `catches/*`, `tests/exact-or-absent/*` and `tests/negative/*`. The output is byte-identical on all 375, so no corpus site needed migrating, which matches record 182's proxy count of 0.
 - **Breaking.** Yes, under `--no-tsc`. `let u: unknown = get()` then `let s: string = u` exits 0 under the published 0.1.171's `check --no-tsc` and 1 under this build's.
 - **Filed.** G490: a value of an `extern_ts` type is refused where a string-literal union is declared, though `tsc` accepts `extern_ts("\"read\"")` returned as `"read" | "write"`. A false refusal in `string_literal_union_verdict` that predates this release; for the orchestrator to place.
+
+**Planned, after 0.1.176 · G491, a function value's parameter types are compared** (record 186, N1; breaking under `--no-tsc`). Parameters are compared contravariantly through the whole relation, so `takes_cb(fn(x: number) -> string { .. })` where `fn(string) -> string` is declared is E0211 (`tsc` TS2345), and D65 then reaches an `unknown` in a parameter (`fn(string) -> void` where `fn(unknown) -> void` is declared). Measure with the two-binary run.
 
 **Planned, its own release after 0.1.170 · G432, a `??` default that disagrees with a `Nullable` or optional left side** (decision record 157, section 1). `n ?? "x"` on a `Nullable<number>` and `b.n ?? None` on a field declared `n?: number` are typed `Unknown`, so a mismatch passes `--no-tsc`; a `??` on a value that can never be absent is dead. Kept out of G429 because index reads make the second a false-refusal risk.
 

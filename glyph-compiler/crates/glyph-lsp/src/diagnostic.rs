@@ -706,6 +706,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::MutOnNonMutatingCall { .. }
         | T::AbsentBuiltinResult { .. }
         | T::TextOrderSort { .. }
+        | T::DeprecatedBuiltinMember { .. }
         | T::NoTextForm { .. }
         | T::TypeNameAsValue { .. }
         | T::RedactUnknownField { .. }

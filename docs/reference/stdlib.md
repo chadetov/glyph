@@ -264,6 +264,14 @@ clamps a negative count to `""` where TS throws, which is what makes
 `pad_start` and `pad_end` leave a string that is already at least `width` long
 untouched, and default the pad to a single space.
 
+The string methods TypeScript marks deprecated (`substr`, `trimLeft`,
+`trimRight`, and the HTML builders such as `bold` and `link`) still work, and
+each draws warning E0244 with the spelling to use instead: `s.slice(1, 3)` for
+`s.substr(1, 2)`, `s.trimStart()` for `s.trimLeft()`, and a template string
+such as `"<b>${s}</b>"` for `s.bold()`. `substr` takes a length where `slice`
+takes an end, so the two agree only when the start and the length are zero or
+more.
+
 One limit on `string.index_of`. Glyph's checker models the return type of most
 `std/string` and `std/array` functions, so a `match` that leaves out the `None`
 arm is an E0200. The six functions with an optional trailing argument

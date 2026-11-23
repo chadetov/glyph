@@ -1266,6 +1266,10 @@ struct Assigner<'a> {
     /// E0242 (G392, D56): a refused call with a default gets the `match` that
     /// handles the absence where the `??` did.
     coalesce_defaults: HashMap<Span, crate::absent::Default>,
+    /// A deprecated built-in member standing as a call's callee, keyed by
+    /// the member's span, for E0244 (G389): the member arm finds it and the
+    /// call reports it, with the arguments the help needs.
+    deprecated_callees: HashMap<Span, (&'static str, crate::builtin_members::Deprecated)>,
     /// How many `${}` interpolations the walk is inside. A `glyph fix`
     /// rewrite that writes a multi-line `match` declines there, and the
     /// help hoists the `match` into a `let` (record 159, B1).
@@ -1486,6 +1490,7 @@ impl<'a> Assigner<'a> {
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            deprecated_callees: HashMap::new(),
             template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,
@@ -2894,6 +2899,7 @@ impl Assigner<'_> {
             self.check_mutating_call(e);
             self.check_absent_call(e);
             self.check_to_sorted(e);
+            self.check_deprecated_call(e);
         }
         // D54: each implicit conversion to text is judged once its operands
         // are typed, by one rule, whichever of the three spellings it takes.
@@ -3115,6 +3121,9 @@ impl Assigner<'_> {
                             None => (None, Ty::Unknown),
                         };
                         let method = receiver.and_then(|r| Some((r, r.method(field.as_ref())?)));
+                        // E0244 (G389): a member TypeScript deprecates.
+                        let found = method.map(|(_, m)| m);
+                        self.note_deprecated_member(object, field.as_ref(), *optional, *span, found, obj_ty.is_unknown());
                         match receiver.filter(|r| !r.has(field.as_ref())) {
                             None if field.as_ref() == "length"
                                 && matches!(
@@ -7791,6 +7800,70 @@ impl Assigner<'_> {
         };
         let (message, help, repair) = crate::absent::absent_call(&c, self.module);
         self.errors.push(TypeError::AbsentBuiltinResult { message, help, repair, span: *span });
+    }
+
+    /// E0244 (G389): a read of a built-in member TypeScript's library marks
+    /// `@deprecated`. `found` is the member the arm resolved on the
+    /// receiver's type; where that type is `Unknown`, the receiver is typed
+    /// the way E0240 and E0242 type it (an element read by index), so the
+    /// three judge the same receivers. A call is held for
+    /// `check_deprecated_call`, which has the arguments the help needs; a
+    /// read alone is reported here.
+    fn note_deprecated_member(
+        &mut self,
+        object: &Expr,
+        field: &str,
+        optional: bool,
+        span: Span,
+        found: Option<&'static crate::builtin_members::BuiltinMethod>,
+        untyped: bool,
+    ) {
+        let m = match found {
+            Some(m) => m,
+            None if untyped => match self.mutation_receiver(object).and_then(|(r, _)| r.method(field)) {
+                Some(m) => m,
+                None => return,
+            },
+            None => return,
+        };
+        let Some(d) = m.deprecated else {
+            return;
+        };
+        if self.call_callee == Some(span) {
+            self.deprecated_callees.insert(span, (m.name, d));
+            return;
+        }
+        let (message, help) = crate::deprecated::deprecated_member(&crate::deprecated::DeprecatedUse {
+            recv: object,
+            optional,
+            method: m.name,
+            deprecated: d,
+            args: None,
+        });
+        self.errors.push(TypeError::DeprecatedBuiltinMember { message, help, span });
+    }
+
+    /// E0244 (G389): a call to a built-in member TypeScript's library marks
+    /// `@deprecated`, found by the member arm while it walked the callee. A
+    /// warning: the member runs everywhere and `tsc` accepts it.
+    fn check_deprecated_call(&mut self, call: &Expr) {
+        let Expr::Call { callee, args, .. } = call else {
+            return;
+        };
+        let Expr::Member { object, optional, span, .. } = callee.as_ref() else {
+            return;
+        };
+        let Some((method, deprecated)) = self.deprecated_callees.remove(span) else {
+            return;
+        };
+        let (message, help) = crate::deprecated::deprecated_member(&crate::deprecated::DeprecatedUse {
+            recv: object,
+            optional: *optional,
+            method,
+            deprecated,
+            args: Some(args),
+        });
+        self.errors.push(TypeError::DeprecatedBuiltinMember { message, help, span: *span });
     }
 
     /// `Ok` when `slot` is the prelude `Option`, so an `Option` placed there
@@ -20135,6 +20208,7 @@ component View(props: { s: Status }) -> Component {
             call_callee: None,
             mut_call: None,
             coalesce_defaults: HashMap::new(),
+            deprecated_callees: HashMap::new(),
             template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,

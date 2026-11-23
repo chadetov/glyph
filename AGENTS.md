@@ -252,6 +252,12 @@ for one). Pass a comparator that is negative when `a` comes first:
 sorted copy write `array.sort(scores, cmp)`, which always takes one;
 `toSorted` is newer than the `es2022` library Glyph's tsconfig asks for.
 
+The string members TypeScript marks deprecated draw warning E0244, which does
+not fail the build: write `s.slice(1, 3)` for `s.substr(1, 2)`,
+`s.trimStart()` and `s.trimEnd()` for `s.trimLeft()` and `s.trimRight()`, and
+a template string such as `"<b>${s}</b>"` for `s.bold()` and the other HTML
+methods.
+
 A `let` can destructure a fixed-length array (D48), which is how a React hook's
 pair is written: `let [count, set_count] = useState(0)`. The pattern holds
 names, `_`, nested `[...]` patterns and a trailing `...rest`, and nothing that

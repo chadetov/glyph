@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-445 entries, 321 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+446 entries, 322 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 104 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -14082,6 +14082,13 @@ and is the owner's to confirm.
   different mechanism from G380 (variance through an alias, not the audit's
   completeness), so it is its own release (record 150, section 5).
 
+  The same family reaches a store (record 157, section 2b). `let xs =
+  HITS.get()` on a `store.Store<Array<number>>`, then `mut xs.push(1)`,
+  writes the array the store holds: the line is a `mut` statement, so the
+  audit finds a write, but it names `xs` and not `HITS`. 0.1.167 refuses
+  `HITS.get().push(1)` written directly (E0240, help `mut
+  HITS.update(...)`); the write through a second name is this entry's.
+
 - **G395. `int` is erased to `number` in the checker.** The lowerer maps
   `int` to `Primitive::Number`, so `Record<number, int>` passes where
   `Record<int, int>` is declared, and after `mut half[1.5] = 7` the
@@ -14676,7 +14683,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.165 (the release build): `let s: string = pick(5, async fn(n) { await save(1) })` with `fn pick<T>(x: T, f: fn(T) -> void) -> T` gives E0211 and no E0204 under `check --no-tsc`; the same call with a sync callback gives E0204 ``expected `string`, found `number` ``.*
 
-- **G423. Glyph's checker does not type the stdlib `Set`, `Store` and `Deque`,
+- **G423. [FIXED] Glyph's checker does not type the stdlib `Set`, `Store` and `Deque`,
   so their writes are outside D5's audit.** `let a: number = set.create<string>()`
   and `let b: number = store.create(0)` pass `check --no-tsc` with no
   diagnostics, so the checker cannot tell `seen.add(x)` from a pure call, and
@@ -14714,6 +14721,24 @@ and is the owner's to confirm.
   b01: `check --no-tsc` exits 0 with only an E0107 warning; the 0.1.163 branch
   build exits 1 with three E0204, one E0211 and one E0210. `seen.add("a")`
   and `mut seen.add("a")` are still accepted there.*
+
+  Fixed in 0.1.167 (step 2, decision record 157, section 2b; D5 amended).
+  Every member of a stdlib type whose members the checker models is
+  Mutating, NonMutating or Outside, in hand sets in
+  `scripts/check_builtin_members.py` that generate
+  `stdlib_member_classes.rs` under a diff gate, are held to the runtime's
+  declared members, and are confirmed in node on fresh instances; a unit
+  test fails when a modeled type has a method with no class. The writing
+  members (`add`, `remove`, `set`, `update` and the four pushes and pops)
+  follow E0240 exactly as the array methods do, the readers and every
+  `Decimal` member take E0241 under `mut`, and every `sqlite.Db` member is
+  judged in neither direction. `glyph fix` writes the `mut` for a bare
+  statement and rewrites `let _ = <call>` to `mut <call>`. The 42 corpus
+  statements and webhook_ingress's `let _ = ring.buffer.pop_front()`
+  migrated in the same release. A bare `seen.add("a")` exits 0 under the
+  published 0.1.166 and 1 under this build. The pin
+  `a_stdlib_set_receiver_is_not_judged_until_g423` became
+  `a_stdlib_set_write_is_judged`.
 
 - **G424. A function declared non-`void` whose body ends in a `mut`
   statement passes Glyph's checker.** `fn f(ys: Array<number>) -> number {
@@ -15119,3 +15144,19 @@ and is the owner's to confirm.
   *Reproduced against 0.1.166 (the release build): `glyph fmt` on the
   two-`{match}` section produces the one-line join above; the
   `<match>`-element version is already formatted.*
+
+- **G446. E0240's value help for an array no name holds writes a refused
+  statement.** `let n = make().pop()` with `fn make() -> Array<number>` is
+  E0240, and its help says to read `array.get(make(), array.len(make()) -
+  1)` first, then write `mut make().pop()` as its own statement. That
+  statement is refused itself (E0240, the receiver is not a place), and the
+  read calls `make()` twice more, so following the help gives a program
+  that does not compile and, if it did, would call `make()` three times.
+  The help for a receiver that is not a place should be the bind-first
+  form the statement position already gets (`let ys = make()`, then the
+  read and `mut ys.pop()`). 0.1.167 gives the stdlib `Set`, `Store` and
+  `Deque` that form in every position; the array path predates it (G380,
+  0.1.160). Found building G423 step 2.
+
+  *Reproduced against 0.1.166 (the published release) and the 0.1.167
+  branch build: `let n = make().pop()` draws the help above on both.*

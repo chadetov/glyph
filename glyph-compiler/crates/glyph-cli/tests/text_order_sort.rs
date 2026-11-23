@@ -333,3 +333,61 @@ fn a_copying_help_drops_a_slice_before_the_sort() {
         }
     }
 }
+
+/// `glyph fix` names the one reason it declines an E0240, for each position
+/// the checker places a call in (record 192). The reason is read off the
+/// diagnostic's message, so this pins each wording: a change to one would
+/// otherwise drop that position to the generic sentence unnoticed.
+#[test]
+fn glyph_fix_names_the_reason_for_each_declined_position() {
+    let body = |stmts: &str| {
+        format!(
+            "module main\n\
+             \n\
+             fn make() -> Array<number> {{\n\
+             \x20 return [1]\n\
+             }}\n\
+             \n\
+             fn tail(ys: Array<number>) -> number {{\n\
+             {stmts}\n\
+             }}\n\
+             \n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 print(\"${{tail([2])}}\")\n\
+             \x20 return 0\n\
+             }}\n"
+        )
+    };
+    let cases = [
+        ("  ys.push(4)", "the call is the body's last expression, so its value is returned"),
+        ("  let n = ys.pop()\n  return ys.length", "the call's value is used"),
+        (
+            "  match ys.length > 0 {\n    true => ys.push(1),\n    false => {},\n  }\n  return ys.length",
+            "the call is an arm of a `match`, which needs a block to hold a statement",
+        ),
+        ("  mut make().push(1)\n  return ys.length", "the call changes a value no name holds"),
+        ("  defer ys.pop()\n  return ys.length", "the call is deferred, and `defer` takes no `mut`"),
+        (
+            "  ys.sort()\n  return ys.length",
+            "the sort compares values that are not text and needs a comparator (E0243), which the help writes",
+        ),
+    ];
+    for (stmts, reason) in cases {
+        let dir = project("fixwhy", &body(stmts));
+        let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+            .current_dir(&dir)
+            .args(["fix", "src"])
+            .output()
+            .expect("run glyph fix");
+        let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+        let declines: Vec<&str> = text.lines().filter(|l| l.contains("declined E0240")).collect();
+        assert_eq!(declines.len(), 1, "{stmts}:\n{text}");
+        assert!(
+            declines[0].ends_with(&format!(
+                "{reason}, so the repair depends on what it was for; the help names one"
+            )) || declines[0].ends_with(reason),
+            "{stmts}: expected `{reason}`:\n{text}"
+        );
+        assert!(!text.contains("stands where `mut ` alone"), "{stmts}: the generic reason:\n{text}");
+    }
+}

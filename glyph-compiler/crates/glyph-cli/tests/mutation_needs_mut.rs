@@ -671,11 +671,16 @@ fn a_write_through_a_stores_array_says_the_store_holds_it() {
             "write the change through the store: `mut HITS.update(fn(current) { array.push(current, 1) })` (with `import std/array`)"
         );
     }
-    let (_, help) = one(&src("  mut HITS.get().sort()"), "E0240");
-    assert_eq!(
-        help,
-        "write the change through the store: `mut HITS.update(fn(current) { array.sort(current, fn(a: number, b: number) -> number { return a - b }) })` (with `import std/array`)"
-    );
+    // A sort of numbers with no comparator is E0243 too (G388), and both
+    // helps write the same repair through the store.
+    let found = refusals(&src("  mut HITS.get().sort()"));
+    assert_eq!(found.iter().map(|f| f.0.as_str()).collect::<Vec<_>>(), vec!["E0240", "E0243"], "{found:#?}");
+    for (_, _, help) in &found {
+        assert_eq!(
+            help,
+            "write the change through the store: `mut HITS.update(fn(current) { array.sort(current, fn(a: number, b: number) -> number { return a - b }) })` (with `import std/array`)"
+        );
+    }
     // A set no name holds gets the bind-first help whether or not its value
     // is read: a read-first help would call `mk()` a second time.
     let fresh = "module main\n\
@@ -1038,7 +1043,10 @@ fn helps_quote_no_elision_and_no_invented_comparator() {
          mut xs.filter(fn(x: number) -> bool { return x > 1 }).push(9)",
     );
     let found = refusals(&src);
-    assert_eq!(found.len(), 5, "{found:#?}");
+    // Five E0240s, and E0243 beside the one on `xs.sort()`, a sort of
+    // numbers with no comparator (G388).
+    assert_eq!(found.len(), 6, "{found:#?}");
+    assert_eq!(found.iter().filter(|f| f.0 == "E0243").count(), 1, "{found:#?}");
     for (_, msg, help) in &found {
         for text in [msg, help] {
             for span in text.split('`').skip(1).step_by(2) {

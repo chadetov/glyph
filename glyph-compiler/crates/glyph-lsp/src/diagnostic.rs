@@ -590,6 +590,9 @@ pub fn from_type_error(
     .missing_fields(err.missing_fields().map(<[String]>::to_vec))
     .with_subject(type_subject(err))
     .with_insertion(match err {
+        // A sort with no comparator over values that are not text takes a
+        // comparator as well as the `mut` (G388), which only the help writes.
+        TypeError::MutationOutsideMut { comparator_missing: true, .. } => None,
         TypeError::MutationOutsideMut { kind: glyph_typechecker::MutationSite::Statement, .. } => Some(("mut ", None)),
         TypeError::MutationOutsideMut {
             kind: glyph_typechecker::MutationSite::Discarded { let_start },
@@ -702,6 +705,7 @@ fn type_subject(err: &TypeError) -> Option<String> {
         | T::MutationOutsideMut { .. }
         | T::MutOnNonMutatingCall { .. }
         | T::AbsentBuiltinResult { .. }
+        | T::TextOrderSort { .. }
         | T::NoTextForm { .. }
         | T::TypeNameAsValue { .. }
         | T::RedactUnknownField { .. }

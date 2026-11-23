@@ -126,13 +126,116 @@ pub enum ElemKind {
     Other,
 }
 
+/// A `sort()` or `toSorted()` with no comparator over elements that are not
+/// text (G388, E0243). JavaScript's default order converts each element to
+/// a string and compares those, so `[100, 9, 25]` sorts as `100, 25, 9`.
+/// What the message and the help need: the element type as the program
+/// wrote it (`int` stays `int`), and whether `a - b` orders it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextOrderSort {
+    /// The element type as written, or as the checker displays it. `None`
+    /// when it has no spelling a help can write (a part the checker could
+    /// not type), so the help names no signature.
+    pub elem: Option<String>,
+    /// `number` or `int`, written that way, which `a - b` orders. `bigint`
+    /// is not one: `a - b` on two of them is a `bigint`, not a `number`.
+    pub subtract: bool,
+}
+
+impl TextOrderSort {
+    /// The comparator the help writes in full, for a `number` or an `int`.
+    pub(crate) fn comparator(&self) -> Option<String> {
+        match (&self.elem, self.subtract) {
+            (Some(e), true) => Some(format!("fn(a: {e}, b: {e}) -> number {{ return a - b }}")),
+            _ => None,
+        }
+    }
+
+    /// What the help says `cmp` is, when it cannot write the comparator.
+    fn cmp_is(&self) -> String {
+        match &self.elem {
+            Some(e) => format!("`cmp` is a `fn(a: {e}, b: {e}) -> number` that is negative when `a` comes first"),
+            None => "`cmp` is a comparator that is negative when `a` comes first".to_string(),
+        }
+    }
+
+    /// The comparator argument the help writes: the comparator itself, or
+    /// `cmp` with the sentence that says what it is.
+    fn argument(&self) -> (String, Option<String>) {
+        match self.comparator() {
+            Some(cmp) => (cmp, None),
+            None => ("cmp".to_string(), Some(self.cmp_is())),
+        }
+    }
+}
+
+/// The form a sort with no comparator is written in, which E0243's help
+/// keeps: a `mut` statement, a value read off `sort`, or `toSorted`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortForm {
+    Statement,
+    Value,
+    ToSorted,
+}
+
+/// E0243's message and help for `recv.method()` with no comparator (G388).
+pub(crate) fn text_order_sort(
+    recv: &Expr,
+    method: &str,
+    optional: bool,
+    form: SortForm,
+    t: &TextOrderSort,
+    ns: &ArrayNs,
+) -> (String, String) {
+    let xs_text = expr_source(recv);
+    let dot = if optional { "?." } else { "." };
+    let call = format!("{xs_text}{dot}{method}()");
+    let quoted = match code(&call) {
+        Some(call) => format!("`{call}`"),
+        None => format!("this `{method}()`"),
+    };
+    let values = match &t.elem {
+        Some(e) => format!("`{e}` values"),
+        None => "its values".to_string(),
+    };
+    let example = match t.subtract {
+        true => ", so `[100, 9, 25]` sorts as `100, 25, 9`",
+        false => "",
+    };
+    let message = format!("{quoted} with no comparator compares {values} as text{example}");
+    let (arg, cmp_is) = t.argument();
+    let then = cmp_is.map(|s| format!(", where {s}")).unwrap_or_default();
+    let Some(xs) = code(&xs_text) else {
+        let what = match &t.elem {
+            Some(e) => format!(", a `fn(a: {e}, b: {e}) -> number` that is negative when `a` comes first"),
+            None => " that is negative when `a` comes first".to_string(),
+        };
+        return (message, format!("pass a comparator{what}"));
+    };
+    let help = match form {
+        SortForm::Statement => format!("pass a comparator: `mut {xs}{dot}sort({arg})`{then}"),
+        SortForm::ToSorted => format!("pass a comparator: `{xs}{dot}toSorted({arg})`{then}"),
+        SortForm::Value => {
+            let a = &ns.name;
+            format!(
+                "`{a}.sort({xs}, {arg})` returns a sorted copy and leaves `{xs}` alone{}{then}",
+                ns.import_note()
+            )
+        }
+    };
+    (message, help)
+}
+
 /// A call the checker found changing a built-in receiver outside the whole
 /// call of a `mut` statement, recorded for the pending pass, which knows the
 /// position it stands in (`TypeMap::record_mutating_call`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MutatingCall {
     pub method: &'static str,
     pub elem: ElemKind,
+    /// A `sort()` with no comparator over elements that are not text, which
+    /// is E0243 beside E0240, and whose E0240 help writes a comparator.
+    pub text_order: Option<TextOrderSort>,
     /// The receiver is a place, so `mut ` before a statement keeps the
     /// change.
     pub place: bool,
@@ -219,6 +322,38 @@ fn comparator(elem: ElemKind) -> Option<&'static str> {
     }
 }
 
+/// The call as the helps write it, and the sentence that follows it. A
+/// `sort()` with no comparator over elements that are not text gets one
+/// (G388): the comparator itself for a `number` or an `int`, otherwise
+/// `cmp` and a sentence saying what `cmp` is. Every other call is written
+/// as it stands.
+fn written_call(c: &CallText, call: &str) -> (String, String) {
+    match c.text_order {
+        Some(t) if c.method == "sort" && c.args.is_empty() => {
+            let (arg, cmp_is) = t.argument();
+            let dot = if c.optional { "?." } else { "." };
+            (
+                format!("{}{dot}sort({arg})", expr_source(c.recv)),
+                cmp_is.map(|s| format!(", where {s}")).unwrap_or_default(),
+            )
+        }
+        _ => (call.to_string(), String::new()),
+    }
+}
+
+/// The help's copying sort, `array.sort(xs, cmp)`, for a call with no
+/// comparator: the one E0243 found missing, else one written for a
+/// `number` or a `string`. `None` when there is none to write.
+fn copy_comparator(c: &CallText) -> Option<(String, String)> {
+    match c.text_order {
+        Some(t) => {
+            let (arg, cmp_is) = t.argument();
+            Some((arg, cmp_is.map(|s| format!(", where {s}")).unwrap_or_default()))
+        }
+        None => comparator(c.elem).map(|cmp| (cmp.to_string(), String::new())),
+    }
+}
+
 /// `a + b` with two number literals folded, so a help reads `0, 1` rather
 /// than `0, 0 + 1`.
 fn plus(a: &str, b: &str) -> String {
@@ -238,6 +373,9 @@ pub(crate) struct CallText<'a> {
     pub elem: ElemKind,
     pub receiver: MutReceiver,
     pub held_by_store: bool,
+    /// Set on a `sort()` with no comparator over elements that are not text
+    /// (G388): every help that writes the call writes a comparator in it.
+    pub text_order: Option<&'a TextOrderSort>,
 }
 
 /// The help for a mutating call whose value is read: a spelling that keeps
@@ -252,8 +390,9 @@ fn value_help(c: &CallText, call: &str, ns: &ArrayNs, then: Option<(&str, &str)>
     let Some(xs) = code(&xs_text) else {
         return "bind the array with `let` first, then write the change as its own `mut` statement".to_string();
     };
-    let stmt = match code(call) {
-        Some(call) => format!("write `mut {call}` as a statement"),
+    let (call, cmp_is) = written_call(c, call);
+    let stmt = match code(&call) {
+        Some(call) => format!("write `mut {call}` as a statement{cmp_is}"),
         None => "write the call as its own `mut` statement".to_string(),
     };
     let sort_copy = |what: &str| -> String {
@@ -262,8 +401,10 @@ fn value_help(c: &CallText, call: &str, ns: &ArrayNs, then: Option<(&str, &str)>
                 Some(cmp) => format!("`{a}.sort({xs}, {cmp})` returns {what} and leaves `{xs}` alone{note}"),
                 None => format!("`{a}.sort` with the same comparator returns {what} and leaves `{xs}` alone{note}"),
             },
-            None => match comparator(c.elem) {
-                Some(cmp) => format!("`{a}.sort({xs}, {cmp})` returns {what} and leaves `{xs}` alone{note}"),
+            None => match copy_comparator(c) {
+                Some((cmp, cmp_is)) => {
+                    format!("`{a}.sort({xs}, {cmp})` returns {what} and leaves `{xs}` alone{note}{cmp_is}")
+                }
                 None => format!("`{a}.sort` with a comparator returns {what} and leaves `{xs}` alone{note}"),
             },
         }
@@ -352,26 +493,31 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
     let changes = format!("{quoted} changes {target} in place");
     let a = &ns.name;
     let note = ns.import_note();
+    // The call as the helps write it: with a comparator, where it sorts
+    // values that are not text and has none (G388).
+    let (fixed, cmp_is) = written_call(c, &call);
     match site {
         MutationSite::Statement => (
             format!("{changes}, and a call that changes a value is written as a `mut` statement"),
-            match code(&call) {
-                Some(call) => format!("write `mut {call}`, so `grep \"^\\s*mut \"` finds every change to {target}"),
+            match code(&fixed) {
+                Some(call) => format!(
+                    "write `mut {call}`{cmp_is}, so `grep \"^\\s*mut \"` finds every change to {target}"
+                ),
                 None => "write `mut ` before the call, so `grep \"^\\s*mut \"` finds every change".to_string(),
             },
         ),
         MutationSite::ArmValue => (
             format!("{changes}, and a call that changes a value is written as a `mut` statement"),
-            match code(&call) {
-                Some(call) => format!("write the arm as a block holding the statement: `{{ mut {call} }}`"),
+            match code(&fixed) {
+                Some(call) => format!("write the arm as a block holding the statement: `{{ mut {call} }}`{cmp_is}"),
                 None => "write the arm as a block holding the call as a `mut` statement".to_string(),
             },
         ),
         MutationSite::Discarded { .. } => (
             format!("{changes}, and `let _ =` throws its value away"),
-            match code(&call) {
+            match code(&fixed) {
                 Some(call) => format!(
-                    "write `mut {call}` in place of the `let _ =`: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change"
+                    "write `mut {call}` in place of the `let _ =`{cmp_is}: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change"
                 ),
                 None => "write `mut ` in place of the `let _ =`: the value was discarded, so the line does the same, and `grep \"^\\s*mut \"` finds the change".to_string(),
             },
@@ -396,9 +542,9 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
         ),
         MutationSite::Deferred => (
             format!("{quoted} is a deferred call that changes {target}, and `defer` takes no `mut`"),
-            match code(&call) {
+            match code(&fixed) {
                 Some(call) => format!(
-                    "write the change in a function and defer the call: `let undo = fn() -> void {{ mut {call} }}`, then `defer undo()`"
+                    "write the change in a function and defer the call: `let undo = fn() -> void {{ mut {call} }}`, then `defer undo()`{cmp_is}"
                 ),
                 None => "write the change as a `mut` statement inside a `fn() -> void` bound with `let`, then `defer` a call to it".to_string(),
             },
@@ -466,8 +612,8 @@ pub(crate) fn mutation_outside_mut(site: MutationSite, c: &CallText, ns: &ArrayN
                         Some(cmp) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}"),
                         None => format!("`{a}.sort` with the same comparator returns the sorted array{note}"),
                     },
-                    None => match comparator(c.elem) {
-                        Some(cmp) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}"),
+                    None => match copy_comparator(c) {
+                        Some((cmp, cmp_is)) => format!("`{a}.sort({x}, {cmp})` returns the sorted array{note}{cmp_is}"),
                         None => format!("`{a}.sort` with a comparator returns the sorted array{note}"),
                     },
                 },

@@ -1341,7 +1341,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `glyph fix` writes that `mut` for you in two cases: a call \
             standing as a statement whose value nothing reads, and \
             `let _ = q.pop_front()`, whose value is thrown away, which it \
-            rewrites to `mut q.pop_front()`.\n\n\
+            rewrites to `mut q.pop_front()`. A `sort()` with no comparator \
+            over values that are not text is E0243 as well, and the help \
+            writes the comparator in; `glyph fix` leaves that one to you.\n\n\
             The call may stand only as the whole call of a `mut` statement. \
             Anywhere else its value is read, and the change hides inside an \
             expression:\n\n\
@@ -1415,6 +1417,31 @@ pub fn explain(code: &str) -> Option<&'static str> {
             Not judged: a call on a receiver the checker cannot type, a \
             `sqlite.Db` member, and functions of an npm package. `mut` there \
             is allowed and not required.",
+
+        "E0243" => "E0243: a sort with no comparator over values that are not text\n\n\
+            With no comparator, JavaScript's `sort` and `toSorted` convert \
+            each element to a string and compare the strings. That is the \
+            right order for text and the wrong one for anything else:\n\n\
+            let scores = [100, 9, 25]\n\
+            mut scores.sort()          // 100, 25, 9\n\n\
+            `tsc` accepts the call on any array. Glyph accepts it when the \
+            elements are text: a `string`, a string-literal union, a refined \
+            `string`, or a second name for one of those. On any other element \
+            type (numbers, `int`, `bigint`, `bool`, records, tagged unions, \
+            `Option`, `Nullable`, arrays, `unknown`, a type parameter with no \
+            bound) the call takes a comparator, a function that is negative \
+            when `a` comes first:\n\n\
+            Before:  mut scores.sort()\n\
+            After:   mut scores.sort(fn(a: number, b: number) -> number { return a - b })\n\n\
+            Before:  let ranked = scores.toSorted()\n\
+            After:   let ranked = scores.toSorted(fn(a: number, b: number) -> number { return a - b })\n\n\
+            The help writes the comparator for a `number` or an `int`, and \
+            names its type for anything else. Where the sort's value is read, \
+            which is E0240 too, it writes `array.sort(xs, cmp)`, which \
+            returns a sorted copy and leaves `xs` alone. `array.sort` always \
+            takes a comparator, so it never needs this check.\n\n\
+            Not judged: a receiver the checker cannot type (an npm value), \
+            and a type parameter with a bound.",
 
         "E0242" => "E0242: a built-in method that answers absence with `undefined`\n\n\
             Glyph writes a value that may be missing as an `Option`, which \
@@ -2608,6 +2635,12 @@ pub static CODES: &[CodeEntry] = &[
         phase: "typechecker",
         meaning: "A built-in method that answers absence with `undefined` or `null` (G392, D56): `find`, `findLast` or `at` on an `Array<T>`, or `at`, `codePointAt` or `match` on a `string`, in any position, through an index or a `?.` included. Glyph writes a value that may be missing as an `Option`, and these hand back a value Glyph's checker cannot see; `xs.at(-1) ?? 0` passes `tsc` too. `pop` and `shift` are E0240's; a call under `mut` is E0241's; a receiver the checker cannot type is not judged",
         fix: "Call the `std/*` function that returns an `Option` and `match` it: `array.find(xs, f)`, `array.find_last(xs, f)`, `array.get(xs, i)` (`array.get(xs, array.len(xs) - 1)` for `at(-1)`), `string.char_at(s, i)`, `string.code_point_at(s, i)`, `regex.matches(p, s)` or `regex.captures(p, s)`. A `??` default becomes the `None` arm. `glyph fix` writes the array rewrites; the help computes the call",
+    },
+    CodeEntry {
+        code: "E0243",
+        phase: "typechecker",
+        meaning: "`sort()` or `toSorted()` with no comparator on an `Array<E>` whose elements are not text (G388): `number`, `int`, `bigint`, `bool`, a record, an interface, a tagged union, `Option`, `Nullable`, an array, `unknown`, or a type parameter with no bound. JavaScript's default order compares each element's text, so `[100, 9, 25]` sorts as `100, 25, 9`; `tsc` accepts it. Text (`string`, a string-literal union, a refined `string`, a second name for one) is accepted; a receiver the checker cannot type and a bounded type parameter are not judged",
+        fix: "Pass a comparator that is negative when `a` comes first: `mut xs.sort(fn(a: number, b: number) -> number { return a - b })`, or `xs.toSorted(...)` with the same; where the value is read, `array.sort(xs, cmp)` returns a sorted copy. The help writes it in the form the call used",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

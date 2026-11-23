@@ -1,0 +1,10 @@
+{
+  "ts": {
+    "command": "tsx ts.ts",
+    "output": "100,25,9"
+  },
+  "glyph": {
+    "command": "glyph build",
+    "output": "[E0243] Error: typecheck: `scores.sort()` with no comparator compares `number` values as text, so `[100, 9, 25]` sorts as `100, 25, 9`\nHelp: pass a comparator: `mut scores.sort(fn(a: number, b: number) -> number { return a - b })`"
+  }
+}

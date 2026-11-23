@@ -386,7 +386,7 @@ impl Pass<'_> {
     }
 
     fn expr(&mut self, e: &Expr, slot: Slot) {
-        if let Some(call) = self.tm.mutating_call(e.span()).copied() {
+        if let Some(call) = self.tm.mutating_call(e.span()).cloned() {
             self.mutation(e, call, &slot);
         }
         // A `match` is reported through its arms, which take its slot.
@@ -580,9 +580,36 @@ impl Pass<'_> {
             elem: call.elem,
             receiver: call.receiver,
             held_by_store: call.held_by_store,
+            text_order: call.text_order.as_ref(),
         };
         let (message, help) = crate::mutation::mutation_outside_mut(site, &text, &self.array_ns);
-        self.errors.push(TypeError::MutationOutsideMut { kind: site, message, help, span: *span });
+        let e0240 = help.clone();
+        self.errors.push(TypeError::MutationOutsideMut {
+            kind: site,
+            message,
+            help,
+            comparator_missing: call.text_order.is_some(),
+            span: *span,
+        });
+        // G388: a sort with no comparator over values that are not text is
+        // E0243 as well, its help written the way E0240's is: a `mut`
+        // statement where E0240 makes one, the copy `array.sort` returns
+        // where the value is read off a receiver or nothing holds it.
+        if let Some(t) = &call.text_order {
+            let form = match site {
+                M::Value | M::NotPlace => crate::mutation::SortForm::Value,
+                _ => crate::mutation::SortForm::Statement,
+            };
+            let (message, help) =
+                crate::mutation::text_order_sort(object, call.method, *optional, form, t, &self.array_ns);
+            // A sort of the array a store hands back changes the store, so
+            // the one repair is E0240's, which writes the comparator in.
+            let help = match call.held_by_store {
+                true => e0240,
+                false => help,
+            };
+            self.errors.push(TypeError::TextOrderSort { message, help, span: *span });
+        }
     }
 
     /// `task.detach` as this module spells it, when `callee` is that.

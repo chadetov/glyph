@@ -1337,8 +1337,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
             mut price.add(tax)         // a `Decimal` never changes\n\
             mut seen.has(x)            // reads the set\n\n\
             To keep a result, assign it: `mut xs = xs.concat(ys)`, \
-            `mut xs = array.push(xs, 1)` or `mut price = price.add(tax)`. To \
-            change `xs` in place, call the method: `mut xs.push(1)`.\n\n\
+            `mut xs = array.push(xs, 1)` or `mut price = price.add(tax)`. A \
+            `const` cannot be reassigned, so bind its result instead: \
+            `let total = PRICE.add(tax)`. To change `xs` in place, call the \
+            method: `mut xs.push(1)`.\n\n\
             It fires on a method of an `Array<T>`, a `string` or a `number` \
             that does not change its receiver, on every member of a \
             `decimal.Decimal`, on the readers of the standard library's \

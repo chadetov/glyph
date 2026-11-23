@@ -137,8 +137,9 @@ pub struct MutatingCall {
     /// change.
     pub place: bool,
     pub receiver: MutReceiver,
-    /// The receiver is the array a `store.Store`'s `get()` hands back, which
-    /// the store still holds, so the change lands in the store.
+    /// The receiver is what a `store.Store`'s `get()` hands back (an array,
+    /// a set, a deque), which the store still holds, so the change lands in
+    /// the store.
     pub held_by_store: bool,
 }
 
@@ -529,11 +530,16 @@ fn gives(receiver: BuiltinReceiver, m: &BuiltinMethod) -> Gives {
 
 /// E0241's message and help for `mut recv.method(args)`, where the method
 /// changes nothing.
+///
+/// `rebindable` is whether `mut recv = ...` is legal: a place whose root is
+/// not a `const` or an import (record 171, F1). Where it is not, the help
+/// binds the result instead of reassigning.
 pub(crate) fn mut_on_pure_method(
     receiver: BuiltinReceiver,
     m: &BuiltinMethod,
     recv: &Expr,
     args: &[Expr],
+    rebindable: bool,
 ) -> (String, String) {
     let xs = expr_source(recv);
     let rendered: Vec<String> = args.iter().map(expr_source).collect();
@@ -543,7 +549,7 @@ pub(crate) fn mut_on_pure_method(
         let message = format!(
             "`{name}` returns a new {what} and leaves `{xs}` unchanged; this `mut` marks no change and the result is discarded"
         );
-        let help = match (recv.is_place(), code(&call), code(&xs)) {
+        let help = match (rebindable, code(&call), code(&xs)) {
             (true, Some(call), _) => format!("to keep it, write `mut {xs} = {call}`"),
             (true, None, Some(xs)) => format!("to keep it, write `mut {xs} = ` before the call"),
             (_, Some(call), _) => format!("to keep it, bind it: `let result = {call}`"),
@@ -574,7 +580,17 @@ pub(crate) fn mut_on_pure_method(
 /// module. `array_copy` is set when `ns` is `std/array` and `f` returns a
 /// new array built from its first argument, which is a place: the call the
 /// author most likely meant is the in-place method or a reassignment.
-pub(crate) fn mut_on_module_call(ns: &str, f: &str, args: &[Expr], array_copy: bool) -> (String, String) {
+///
+/// `rebindable` is whether the first argument can be reassigned
+/// (`mut ITEMS = ...` is E0212 on a `const`, record 171, F1); where it
+/// cannot, the help binds the result instead.
+pub(crate) fn mut_on_module_call(
+    ns: &str,
+    f: &str,
+    args: &[Expr],
+    array_copy: bool,
+    rebindable: bool,
+) -> (String, String) {
     let rendered: Vec<String> = args.iter().map(expr_source).collect();
     let call = format!("{ns}.{f}({})", rendered.join(", "));
     if array_copy {
@@ -590,9 +606,11 @@ pub(crate) fn mut_on_module_call(ns: &str, f: &str, args: &[Expr], array_copy: b
                 }
                 _ => String::new(),
             };
-            let keep = match code(&call) {
-                Some(call) => format!("to keep it, write `mut {xs} = {call}`"),
-                None => format!("to keep it, write `mut {xs} = ` before the call"),
+            let keep = match (rebindable, code(&call)) {
+                (true, Some(call)) => format!("to keep it, write `mut {xs} = {call}`"),
+                (true, None) => format!("to keep it, write `mut {xs} = ` before the call"),
+                (false, Some(call)) => format!("to keep it, bind it: `let result = {call}`"),
+                (false, None) => "to keep it, bind it with `let result = ` before the call".to_string(),
             };
             return (message, format!("{keep}{in_place}"));
         }
@@ -664,11 +682,13 @@ fn stdlib_value_help(c: &CallText, ty: &str, call: &str, tail: Option<(&str, &st
     }
 }
 
-/// E0240's message and help for an array method called on what a
-/// `store.Store`'s `get()` returns, `HITS.get().push(1)`. The store hands
-/// back the array it holds, so the call changes the store, through a call
-/// rather than a place no `mut` line names (record 157, section 2b). The
-/// help writes the change through the store's own writing member.
+/// E0240's message and help for a mutating call on what a `store.Store`'s
+/// `get()` returns, `HITS.get().push(1)` or `ST.get().add(2)`. The store
+/// hands back the value it holds, so the call changes the store, through a
+/// call rather than a place no `mut` line names (record 157, section 2b;
+/// record 171, F2 for a stdlib value). The help writes the change through
+/// the store's own writing member, never through a second name for its
+/// contents, which is the G394 shape.
 fn held_by_store(c: &CallText, args_text: &str, ns: &ArrayNs) -> (String, String) {
     let a = &ns.name;
     let note = ns.import_note();
@@ -682,9 +702,8 @@ fn held_by_store(c: &CallText, args_text: &str, ns: &ArrayNs) -> (String, String
     let Some(s) = code(&store) else {
         return (
             format!(
-                "`.{}` {} the array a store's `get()` returns, which the store still holds, so it changes the store with no `mut` line naming it",
-                c.method,
-                verb(c.method)
+                "`.{}` changes the value a store's `get()` returns, which the store still holds, so it changes the store with no `mut` line naming it",
+                c.method
             ),
             "write the change through the store's `update`, as a `mut` statement".to_string(),
         );
@@ -693,6 +712,25 @@ fn held_by_store(c: &CallText, args_text: &str, ns: &ArrayNs) -> (String, String
         Some(args) => format!("`.{}({args})`", c.method),
         None => format!("`.{}`", c.method),
     };
+    if let MutReceiver::Stdlib { ty, .. } = c.receiver {
+        let what = noun(ty);
+        let message = format!(
+            "{link} changes the {what} `{s}.get()` returns, which `{s}` still holds, so it changes `{s}` with no `mut` line naming it"
+        );
+        // A set or deque method changes it and returns nothing useful, so
+        // the callback writes the change as a statement and ends with the
+        // value; Glyph separates statements by lines.
+        let help = match code(args_text) {
+            Some(args) => format!(
+                "write the change through the store, as a `mut` statement inside the callback that then returns the {what}: `mut {s}.update(fn(current) {{`, then `mut current.{}({args})` and `current` on lines of their own, then `}})`",
+                c.method
+            ),
+            None => format!(
+                "write the change through the store, as a `mut` statement inside the callback of `mut {s}.update` that then returns the {what}"
+            ),
+        };
+        return (message, help);
+    }
     let message = format!(
         "{link} {} the array `{s}.get()` returns, which `{s}` still holds, so it changes `{s}` with no `mut` line naming it",
         verb(c.method)
@@ -727,6 +765,7 @@ pub(crate) fn mut_on_stdlib_reader(
     returns_own: bool,
     recv: &Expr,
     args: &[Expr],
+    rebindable: bool,
 ) -> (String, String) {
     let xs = expr_source(recv);
     let rendered: Vec<String> = args.iter().map(expr_source).collect();
@@ -735,7 +774,7 @@ pub(crate) fn mut_on_stdlib_reader(
         let message = format!(
             "`{member}` returns a new `{module}.{ty}` and leaves `{xs}` unchanged; this `mut` marks no change and the result is discarded"
         );
-        let help = match (recv.is_place(), code(&call), code(&xs)) {
+        let help = match (rebindable, code(&call), code(&xs)) {
             (true, Some(call), _) => format!("to keep it, write `mut {xs} = {call}`"),
             (true, None, Some(xs)) => format!("to keep it, write `mut {xs} = ` before the call"),
             (_, Some(call), _) => format!("to keep it, bind it: `let result = {call}`"),

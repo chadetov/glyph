@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-458 entries, 329 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+459 entries, 330 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 109 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -10661,7 +10661,7 @@ and is the owner's to confirm.
   ``[E0233] Error: typecheck: wrong number of type arguments: `Component`
   takes 0, found 1`` under `--no-tsc`, exit 1 where the published 0.1.131
   exits 0.
-- **G263. A generic bound is never resolved.** `component Show<T: Nope>(p: T)`
+- **G263. [FIXED] A generic bound is never resolved.** `component Show<T: Nope>(p: T)`
   passes Glyph with `Nope` declared nowhere, and `tsc` reports TS2304. The
   bound only reaches the emitter's `extends`, so `<T: string>` is silent too
   while `tsc` refuses its elements.
@@ -10689,7 +10689,21 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.167 (the release build): `fn f<T: Nope>(x: T) -> T` and `fn g<T: string>(x: T) -> T` are `no diagnostics` under `--no-tsc`; with `tsc`, TS2304 `Cannot find name 'Nope'`.*
 
-- **G264. Elements of a bounded generic component are not checked by Glyph.**
+  Fixed in 0.1.173. The resolver binds a declaration's type parameters and
+  then resolves each bound, on a `fn`, a `component`, a `type` and an
+  `interface`, so `fn c<T: Nope>(x: T) -> T` is E0103 (``unresolved name
+  `Nope` ``) where the published 0.1.170 exits 0 under `--no-tsc`; `T:
+  l.Nope` is E0105, and an import used only in a bound no longer draws a
+  false E0106. With the
+  bound read, a bounded parameter is decided as a value through it (D58,
+  record 179): `T: Named` returned where `Named` is declared passes, and
+  where `Other` is declared it is E0204, as `tsc` refuses it (TS2322). `fn g<T: string>(x: T) -> T` is valid TypeScript and passes on
+  both. Member reads on a bounded parameter are checked against the bound:
+  `x.nmae` on `T: Named` is E0210 with ``did you mean `name`?``, as `tsc`
+  reports TS2339. The calling side, where a bound is instantiated, is not
+  checked yet (G264).
+
+- **G264. A bound is not checked where it is instantiated.** First filed as: elements of a bounded generic component are not checked by Glyph.
   `<Show />` and `<Show label="x" other="y" />` against
   `component Show<T: HasLabel>(p: T)` pass Glyph and are TS2769 under `tsc`.
 
@@ -10716,6 +10730,19 @@ and is the owner's to confirm.
   *Reproduced against 0.1.161 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`.*
 
   *Reproduced against 0.1.167 (the release build): `<Show />` and `<Show label="x" other="y" />` against `component Show<T: HasLabel>(p: T)` are `no diagnostics` under `--no-tsc`, and TS2769 twice with `tsc`.*
+
+  Widened by record 182 (probe g8): the elements are one case of a bound
+  never being checked where a parameter is bound. With `fn label<T:
+  HasName>(x: T)`, `label(5)` and `label(o)` with `o: Other` pass `--no-tsc`
+  (TS2345 under `tsc`), and so do `label<Other>(o)` and a `b: Box<Other>`
+  under `type Box<T: HasName>` (TS2344). Since 0.1.173 the bound is
+  resolved and decides the declaring side; this is the calling side,
+  scheduled as its own release because an upgrader's build goes red at a
+  call site rather than inside a generic body.
+
+  *Reproduced against 0.1.170 (the published release) and the 0.1.173
+  branch build: `id(5)` and `id<string>("s")` against `fn id<T: Named>(x:
+  T) -> T` report nothing under `check --no-tsc`.*
 
 - **G265. JSX is untyped in the checker, so a JSX value passes where a string is
   declared.** `fn s() -> string { return <p>hi</p> }` passes Glyph and is
@@ -15659,3 +15686,17 @@ and is the owner's to confirm.
   *Reproduced against 0.1.167 (the published release) and the 0.1.172
   branch build: `check --no-tsc` exits 0 on both programs; full `check`
   under 0.1.167 reports TS2322 for each.*
+
+- **G460. An interface value passes where a primitive is declared.** `fn
+  z(n: Named) -> string { return n }` with `interface Named { name: string
+  }` passes `check --no-tsc`, and so does a `Box<Named>` returned where
+  `Record<string, string>` is declared; `tsc` refuses both (TS2322). The
+  relation compares an interface where one is declared, and has no rule for
+  an interface on the found side against a `string`, a `number` or a
+  `bool`. Since 0.1.173 a bounded parameter is decided through its bound,
+  so `fn p<T: Named>(x: T) -> string { return x }` passes for the same
+  reason, where the same function bounded by a record is E0204. Found while
+  building 0.1.173.
+
+  *Reproduced against 0.1.170 (the published release) and the 0.1.173
+  branch build: `check --no-tsc` exits 0 on both programs.*

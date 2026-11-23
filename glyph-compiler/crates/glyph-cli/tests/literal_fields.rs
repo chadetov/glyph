@@ -629,6 +629,57 @@ pub fn main(argv: Array<string>) -> number {\n\
     }
 }
 
+/// G441, record 174 (F1): the E0002 help for a backslash inside a `${}` is
+/// computed from the code, and both spellings it writes compile. Each
+/// program is refused; the help's `let` form (the binding on the line above,
+/// the string rewritten to interpolate `label`) and its `"""` form are each
+/// applied as an agent would, and the full check, `tsc` included, exits 0
+/// and the run prints the same text both ways.
+#[test]
+fn both_spellings_the_escape_help_writes_compile() {
+    let between = |text: &str, open: &str, close: &str| -> String {
+        let a = text.find(open).unwrap_or_else(|| panic!("no {open:?} in {text}")) + open.len();
+        let b = text[a..].find(close).unwrap_or_else(|| panic!("no {close:?} after {open:?} in {text}"));
+        text[a..a + b].to_string()
+    };
+    for (name, line, printed) in [
+        // Record 174's s03.
+        ("s03", r#"io.println("a${x + \"\\u{e9}\"}")"#, "av\u{e9}"),
+        ("s01", r#"io.println("<${x}> ${f(\"x\")} end")"#, "<v> x end"),
+    ] {
+        let program = |line: &str, pre: &str| {
+            format!(
+                "module main\n\nimport std/io\n\nfn f(s: string) -> string {{\n  return s\n}}\n\npub fn main(argv: Array<string>) -> number {{\n  let x = \"v\"\n{pre}  {line}\n  return 0\n}}\n"
+            )
+        };
+        let dir = project(name, &[("main.glyph", &program(line, ""))]);
+        let (code, out) = glyph(&dir, &["check", "--no-tsc", "--json", "src"]);
+        assert_eq!(code, 1, "{name}: {out}");
+        let json: serde_json::Value = serde_json::from_str(&out).expect("check --json is JSON");
+        let help = json["diagnostics"][0]["help"].as_str().expect("a help").to_string();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let bind = between(&help, "`let label = ", "`, then");
+        let bound = between(&help, "`, then `", "`.");
+        let triple = format!("\"\"\"{}\"\"\"", between(&help, "`\"\"\"", "\"\"\"`"));
+        let at = line.find('"').unwrap();
+        let end = line.rfind('"').unwrap() + 1;
+        let forms = [
+            program(&format!("{}{bound}{}", &line[..at], &line[end..]), &format!("  let label = {bind}\n")),
+            program(&format!("{}{triple}{}", &line[..at], &line[end..]), ""),
+        ];
+        for (k, src) in forms.iter().enumerate() {
+            let dir = project(&format!("{name}_{k}"), &[("main.glyph", src)]);
+            let (code, out) = glyph(&dir, &["check", "src"]);
+            assert_eq!(code, 0, "{name} form {k}: {help}\n{src}\n{out}");
+            let (code, out) = glyph(&dir, &["run", "src/main.glyph"]);
+            assert_eq!(code, 0, "{name} form {k}: {out}");
+            assert!(out.contains(printed), "{name} form {k} printed: {out}\n{src}");
+            let _ = std::fs::remove_dir_all(&dir);
+        }
+    }
+}
+
 /// G441. The escape-region decline record 168 added to the fix guard is
 /// gone: after the parse error it could only fire in a `"""..."""` string,
 /// whose ranges were always exact, and there it declined a correct repair.

@@ -879,6 +879,7 @@ fn split_template_parts(
                 if let Some((a, b)) = escape {
                     return Err(ParseError::EscapeInInterpolation {
                         escape: source[a as usize..b as usize].to_string(),
+                        hoist: hoist_parts(source, span, &chars, at, dollar, interp_start, i),
                         span: Span::new(a, b),
                     });
                 }
@@ -941,6 +942,35 @@ fn split_template_parts(
         });
     }
     Ok(Some(parts))
+}
+
+/// What the E0002 help for a backslash inside a `${}` writes out (G441,
+/// record 174): the interpolation's expression as decoded, and the string's
+/// text before and after that `${}` as written. `None` when the expression
+/// cannot be shown as one line of plain code (a line break, a nested `${}`,
+/// a backtick that would end the help's code span) or the interpolation is
+/// not closed, so the help falls back to words.
+fn hoist_parts(
+    source: &str,
+    span: Span,
+    chars: &[char],
+    at: &[(u32, u32)],
+    dollar: usize,
+    interp_start: usize,
+    close: usize,
+) -> Option<crate::error::Hoist> {
+    if close >= chars.len() {
+        return None;
+    }
+    let raw: String = chars[interp_start..close].iter().collect();
+    let expr = resolve_escaped_dollars(&raw).trim().to_string();
+    let before = source.get(span.start as usize + 1..at[dollar].0 as usize)?.to_string();
+    let after = source.get(at[close].1 as usize..(span.end as usize).checked_sub(1)?)?.to_string();
+    let plain = |t: &str| !t.contains(['\n', '\r', '`']);
+    if expr.is_empty() || expr.contains("${") || !plain(&expr) || !plain(&before) || !plain(&after) {
+        return None;
+    }
+    Some(crate::error::Hoist { expr, before, after })
 }
 
 /// The source bytes of each of the `len` chars of the string value lexed at

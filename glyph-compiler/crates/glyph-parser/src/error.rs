@@ -39,10 +39,46 @@ const OTHER_AFTER_STATEMENT_HELP: &str = "Start the statement on its own line. I
 /// propagation, and `1` began a statement.
 const TERNARY_AFTER_STATEMENT_HELP: &str = "Glyph has no `cond ? a : b` conditional: a `?` after an expression propagates an error, so the statement ended there. Write the conditional as a `match` on the condition: `match cond { true => a, false => b, }`. If the `?` was meant to propagate an error, start the next statement on its own line.";
 
+/// The code a backslash-in-`${}` help writes out (G441, record 174): the
+/// interpolation's expression as decoded, and the string's text before and
+/// after that `${}` as written in the source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hoist {
+    pub expr: String,
+    pub before: String,
+    pub after: String,
+}
+
 /// The help for a backslash inside the `${}` of a `"..."` string (G441,
-/// record 166). It is the hoist advice the nested-string message has always
-/// given, with the triple-quoted form that holds a string literal as written.
-const ESCAPE_IN_INTERPOLATION_HELP: &str = "A `\"...\"` string cannot nest a string literal or an escape inside `${}` (D22). Bind the value with `let` and interpolate the name: `let label = f(\"x\")`, then `\"a${label}\"`. Or write the whole string as `\"\"\"...\"\"\"`, which reads a string literal inside `${}` as written: `\"\"\"a${f(\"x\")}\"\"\"`.";
+/// records 166 and 174), computed from the code as written: the `let` form
+/// binds the decoded expression and interpolates the name in the same text,
+/// and the `"""` form writes the expression inside `${}` as it reads. The
+/// text around the `${}` is copied as written, so the `"""` form is spelled
+/// out only when that text holds no escape (a `"""` string decodes none)
+/// and does not end in a quote (which would run into the closing `"""`).
+fn escape_in_interpolation_help(hoist: Option<&Hoist>) -> String {
+    const RULE: &str = "A `\"...\"` string cannot nest a string literal or an escape inside `${}` (D22).";
+    let Some(Hoist { expr, before, after }) = hoist else {
+        return format!(
+            "{RULE} Bind the expression inside the `${{}}` with `let` and interpolate the name, or write the whole string as `\"\"\"...\"\"\"`, which reads a string literal inside `${{}}` as written and decodes no escapes."
+        );
+    };
+    let bind = format!(
+        "{RULE} Bind the value with `let` and interpolate the name: `let label = {expr}`, then `\"{before}${{label}}{after}\"`."
+    );
+    let raw = |t: &str| !t.contains('\\') && !t.contains("\"\"\"");
+    // The expression is read as written inside a `\"\"\"` interpolation, so
+    // its own escapes (in a nested literal) stay as they are.
+    if raw(before) && raw(after) && !after.ends_with('"') && !expr.contains("\"\"\"") {
+        format!(
+            "{bind} Or write the whole string as `\"\"\"{before}${{{expr}}}{after}\"\"\"`, which reads a string literal inside `${{}}` as written."
+        )
+    } else {
+        format!(
+            "{bind} Or write the whole string as `\"\"\"...\"\"\"`, which reads a string literal inside `${{}}` as written; it decodes no escapes, so write the text around the `${{}}` without them."
+        )
+    }
+}
 
 /// What begins the statement E0013 refuses, which decides its help.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -292,7 +328,11 @@ pub enum ParseError {
     /// the message quotes it, and `span` is its bytes. E0002, the code the
     /// nested-string refusal it closes has always had.
     #[error("`{escape}` is an escape inside the `${{}}` of a `\"...\"` string, which Glyph does not allow")]
-    EscapeInInterpolation { escape: String, span: Span },
+    EscapeInInterpolation {
+        escape: String,
+        hoist: Option<Hoist>,
+        span: Span,
+    },
 }
 
 /// Whether a name position introduces a name or refers to one declared
@@ -524,7 +564,9 @@ impl ParseError {
                 SameLineStart::Ternary => TERNARY_AFTER_STATEMENT_HELP,
                 SameLineStart::Other => OTHER_AFTER_STATEMENT_HELP,
             }),
-            ParseError::EscapeInInterpolation { .. } => Cow::Borrowed(ESCAPE_IN_INTERPOLATION_HELP),
+            ParseError::EscapeInInterpolation { hoist, .. } => {
+                Cow::Owned(escape_in_interpolation_help(hoist.as_ref()))
+            }
         })
     }
 }

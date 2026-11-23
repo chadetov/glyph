@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?","item":"https://glyphlang.io/th/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/greppability/#article","headline":"เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?","description":"ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่","url":"https://glyphlang.io/th/answers/greppability/","inLanguage":"th","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/greppability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/th/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/th/"},{"@type":"ListItem","position":2,"name":"คำตอบ","item":"https://glyphlang.io/th/answers/"},{"@type":"ListItem","position":3,"name":"เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?","item":"https://glyphlang.io/th/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/th/answers/greppability/#article","headline":"เอเจนต์ (หรือฉัน) หาได้ไหมว่าอะไรถูกนิยามไว้ที่ไหน?","description":"ทุก construct ใน Glyph มีรูปแบบเดียวให้ค้นหา grep (หรือการค้นหาของเอเจนต์) จึงเจอนิยามเดียว ไม่ใช่ห้าสิบจุดที่เกือบใช่","url":"https://glyphlang.io/th/answers/greppability/","inLanguage":"th","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/th/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -543,7 +543,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">รูปแบบมาตรฐานเดียวต่อ construct</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาเจอ (<code>mut</code>) และการเขียนลงอาร์เรย์โดยไม่มีคำนำหน้านี้ถูกปฏิเสธ (<code>E0240</code>)</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การแก้ค่าจำกัดไว้สองรูปแบบที่ grep หาเจอ (<code>mut</code>) และการเขียนโดยไม่มีคำนำหน้านี้ถูกปฏิเสธ (<code>E0240</code>) ไม่ว่าจะเขียนลงอาร์เรย์ หรือลง <code>Set</code>, <code>Store</code> หรือ <code>Deque</code> ของไลบรารีมาตรฐาน ค่าจากแพ็กเกจ npm ไม่ถูกตัดสินทั้งสองทาง</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ตรวจสอบได้ด้วย keyword เดียว (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>)</span></span></li>
           </ul>
         </section>
@@ -551,16 +551,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> วางซ้อนอยู่ด้านบน</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">การเขียนผ่าน <code>Set</code>, <code>Store</code> และ <code>Deque</code> ของไลบรารีมาตรฐานยังไม่ถูกตรวจเรื่อง <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>รายละเอียด</summary><div class="body">
-                <p>ตัวตรวจของ Glyph ยังไม่รู้ชนิดของตัวรับเหล่านี้ <code>seen.add(x)</code> และ <code>mut seen.add(x)</code> จึงผ่านทั้งคู่ และในคอร์ปัสก็มีทั้งสองแบบ การให้ชนิดและทำเครื่องหมายเมธอดที่เขียนค่าคือขั้นต่อไปที่วางแผนไว้ ค่าจากแพ็กเกจ npm ไม่ถูกตัดสินทั้งสองทาง: ใส่ <code>mut</code> หน้าการเรียกของมันได้ แต่ไม่บังคับ</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">language server เพิ่ม go-to-definition และ find-references ทั้ง workspace: การรับประกันเดียวกัน ตอนนี้ใช้แบบโต้ตอบได้ใน editor ของคุณ</span></span></li>
           </ul>
         </section>
       </div>
-      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.166 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-21">21 พ.ย. 2026</time></p>
+      <p class="page-stamp">ตัวอย่างโค้ดในหน้านี้ถูกตรวจกับ Glyph 0.1.166 ทุกครั้งที่ build แก้ไขล่าสุด: <time datetime="2026-11-23">23 พ.ย. 2026</time></p>
       <nav class="prevnext" aria-label="ก่อนหน้าและถัดไป">
         <a href="/th/answers/diff-stability/">
           <span class="dir">&larr; ก่อนหน้า</span>

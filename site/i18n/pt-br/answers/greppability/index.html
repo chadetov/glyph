@@ -1,7 +1,7 @@
 ---
 title: Um agente (ou eu) consegue achar onde qualquer coisa está definida? · Glyph
 description: Cada construção em Glyph tem uma única forma a ser buscada, então o grep (ou a busca de um agente) cai na única definição, e não em cinquenta quase acertos.
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; Anterior | As edições do agente vão ficar limpas, ou reformatar o arquivo inteiro?
 next: /answers/why-typescript/ | Próxima &rarr; | Por que TypeScript, e não Go ou uma linguagem nova?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponível hoje</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Uma forma canônica por construção.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutação restrita a duas formas que o grep encontra (<code>mut</code>), e uma escrita em array sem ele, recusada (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutação restrita a duas formas que o grep encontra (<code>mut</code>), e uma escrita sem ele, recusada (<code>E0240</code>), vá ela para um array ou para um <code>Set</code>, um <code>Store</code> ou um <code>Deque</code> da biblioteca padrão. Um valor de um pacote npm não é julgado em nenhum sentido.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Auditorias com uma única palavra-chave (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Por cima disso</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Escritas por meio de <code>Set</code>, <code>Store</code> e <code>Deque</code> da biblioteca padrão ainda não são verificadas quanto ao <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalhes</summary><div class="body">
-                <p>O verificador do Glyph ainda não tipa esses receptores, então <code>seen.add(x)</code> e <code>mut seen.add(x)</code> são aceitos, e o corpus usa as duas grafias. Tipá-los e marcar os métodos que escrevem é o próximo passo planejado. Um valor de um pacote npm não é julgado em nenhuma direção: <code>mut</code> antes de uma chamada dele é permitido e não é obrigatório.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">O language server adiciona go-to-definition e find-references em todo o workspace: a mesma garantia, agora interativa no seu editor.</span></span></li>
           </ul>
         </section>

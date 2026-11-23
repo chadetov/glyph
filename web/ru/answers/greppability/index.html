@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли агент (или я) найти, где что определено?","item":"https://glyphlang.io/ru/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/greppability/#article","headline":"Может ли агент (или я) найти, где что определено?","description":"У каждой конструкции в Glyph одна форма для поиска, поэтому grep (или поиск агента) попадает на единственное определение, а не на пятьдесят почти совпадений.","url":"https://glyphlang.io/ru/answers/greppability/","inLanguage":"ru","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/greppability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли агент (или я) найти, где что определено?","item":"https://glyphlang.io/ru/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/greppability/#article","headline":"Может ли агент (или я) найти, где что определено?","description":"У каждой конструкции в Glyph одна форма для поиска, поэтому grep (или поиск агента) попадает на единственное определение, а не на пятьдесят почти совпадений.","url":"https://glyphlang.io/ru/answers/greppability/","inLanguage":"ru","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -541,7 +541,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Одна каноническая форма на конструкцию.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись в массив без этого префикса отклоняется (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись без этого префикса отклоняется (<code>E0240</code>), идёт ли она в массив или в <code>Set</code>, <code>Store</code> или <code>Deque</code> стандартной библиотеки. Значение из npm-пакета не проверяется ни в одну сторону.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Проверки по одному ключевому слову (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -549,16 +549,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Поверх этого</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Запись через <code>Set</code>, <code>Store</code> и <code>Deque</code> из стандартной библиотеки пока не проверяется на <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p>Проверка типов Glyph пока не знает типов этих получателей, поэтому принимаются и <code>seen.add(x)</code>, и <code>mut seen.add(x)</code>, и в корпусе встречаются оба написания. Следующий запланированный шаг — дать им типы и пометить их записывающие методы. Значение из npm-пакета не оценивается ни в одну сторону: <code>mut</code> перед его вызовом разрешён и не обязателен.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Языковой сервер добавляет переход к определению и поиск ссылок по всему рабочему пространству: та же гарантия, теперь интерактивно в вашем редакторе.</span></span></li>
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.166 при каждой сборке. Последнее изменение: <time datetime="2026-11-21">21 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.166 при каждой сборке. Последнее изменение: <time datetime="2026-11-23">23 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/diff-stability/">
           <span class="dir">&larr; Назад</span>

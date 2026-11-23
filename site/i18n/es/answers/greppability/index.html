@@ -1,7 +1,7 @@
 ---
 title: ¿Puede un agente (o yo) encontrar dónde está definido cualquier cosa? · Glyph
 description: Cada construcción de Glyph tiene una sola forma que buscar, así que grep (o la búsqueda de un agente) da con la única definición, no con cincuenta casi aciertos.
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; Anterior | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
 next: /answers/why-typescript/ | Siguiente &rarr; | ¿Por qué TypeScript, y no Go o un lenguaje nuevo?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una forma canónica por construcción.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>), y una escritura en un array sin él, rechazada (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutación restringida a dos formas que se pueden buscar con grep (<code>mut</code>), y una escritura sin él, rechazada (<code>E0240</code>), vaya a un array o a un <code>Set</code>, un <code>Store</code> o un <code>Deque</code> de la biblioteca estándar. Un valor de un paquete npm no se juzga en ningún sentido.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Auditorías con una sola palabra clave (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Por encima</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Las escrituras a través de <code>Set</code>, <code>Store</code> y <code>Deque</code> de la biblioteca estándar aún no se comprueban con <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Detalles</summary><div class="body">
-                <p>El comprobador de Glyph todavía no tipa esos receptores, así que se aceptan tanto <code>seen.add(x)</code> como <code>mut seen.add(x)</code>, y el corpus usa las dos formas. Tiparlos y marcar sus métodos que escriben es el siguiente paso previsto. Un valor de un paquete npm no se juzga en ninguna dirección: <code>mut</code> delante de una de sus llamadas está permitido y no es obligatorio.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El servidor de lenguaje añade ir a la definición y buscar referencias en todo el workspace: la misma garantía, ahora interactiva en tu editor.</span></span></li>
           </ul>
         </section>

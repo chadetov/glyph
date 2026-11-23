@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/greppability/, generated from the same source as the page. Last changed 2026-11-21. -->
+<!-- Markdown copy of https://glyphlang.io/answers/greppability/, generated from the same source as the page. Last changed 2026-11-23. -->
 
 03 · Navigation by search
 
@@ -66,17 +66,11 @@ The constructs Glyph leaves out so that a search can be trusted, and why a lint 
 ### Shipping today
 
 - One canonical form per construct.
-- Mutation restricted to two greppable shapes (`mut`), and an array write without one refused (`E0240`).
+- Mutation restricted to two greppable shapes (`mut`), and a write without one refused (`E0240`), whether it goes to an array or to a stdlib `Set`, `Store` or `Deque`. A value from an npm package is not judged either way.
 - Single-keyword audits (`fn`, `component`, `owned`, `type`).
 
 ### Layered on top
 
-- Writes through the stdlib `Set`, `Store` and `Deque` are not checked for `mut` yet
-
-  **Details**
-
-  Glyph's checker does not type those receivers yet, so `seen.add(x)` and `mut seen.add(x)` are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: `mut` before one of its calls is allowed and not required.
-
 - The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.
 
-Code examples on this page are checked against Glyph 0.1.166 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.166 on every build. Last changed 23 Nov 2026.

@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェント（や自分）は、何がどこで定義されているかを見つけられるか","item":"https://glyphlang.io/ja/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/greppability/#article","headline":"エージェント（や自分）は、何がどこで定義されているかを見つけられるか","description":"Glyph のすべての構文には検索すべき形が 1 つしかありません。そのため grep（やエージェントの検索）は、50 件の似て非なる候補ではなく、1 つの定義にたどり着きます。","url":"https://glyphlang.io/ja/answers/greppability/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/greppability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エージェント（や自分）は、何がどこで定義されているかを見つけられるか","item":"https://glyphlang.io/ja/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/greppability/#article","headline":"エージェント（や自分）は、何がどこで定義されているかを見つけられるか","description":"Glyph のすべての構文には検索すべき形が 1 つしかありません。そのため grep（やエージェントの検索）は、50 件の似て非なる候補ではなく、1 つの定義にたどり着きます。","url":"https://glyphlang.io/ja/answers/greppability/","inLanguage":"ja","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -543,7 +543,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">構文ごとに 1 つの正規形。</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">変更は grep できる 2 つの形（<code>mut</code>）に限定し、それを付けない配列への書き込みは拒否（<code>E0240</code>）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">変更は grep できる 2 つの形（<code>mut</code>）に限定し、それを付けない書き込みは、配列に対してでも標準ライブラリの <code>Set</code>、<code>Store</code>、<code>Deque</code> に対してでも拒否（<code>E0240</code>）。npm パッケージの値はどちらの方向にも判定しません。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">キーワード 1 つでの監査（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</span></span></li>
           </ul>
         </section>
@@ -551,16 +551,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> その上に重ねるもの</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">標準ライブラリの <code>Set</code>、<code>Store</code>、<code>Deque</code> を通した書き込みは、まだ <code>mut</code> の検査対象外</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p>Glyph のチェッカーはまだこれらのレシーバーに型を付けないので、<code>seen.add(x)</code> と <code>mut seen.add(x)</code> はどちらも受け入れられ、コーパスにも両方の書き方があります。型を付けて書き込みメソッドに印を付けるのが次に予定している作業です。npm パッケージの値はどちらの方向でも判定しません。その呼び出しの前の <code>mut</code> は書いてもよく、必須でもありません。</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">言語サーバーが、ワークスペース全体の定義へのジャンプと参照検索を加えます。同じ保証を、エディタの中で対話的に使えます。</span></span></li>
           </ul>
         </section>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.166 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.166 で検証しています。最終更新：<time datetime="2026-11-23">2026年11月23日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/diff-stability/">
           <span class="dir">&larr; 前へ</span>

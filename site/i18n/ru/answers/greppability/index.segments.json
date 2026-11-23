@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "ru",
-  "source_hash": "09c27df708c026c8",
+  "source_hash": "052cf5d74e78192e",
   "segments": [
     {
       "id": "title",
@@ -179,10 +179,10 @@
       "tr": "Одна каноническая форма на конструкцию."
     },
     {
-      "id": "h-7801641c",
+      "id": "h-6c76d27d",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
-      "tr": "Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись в массив без этого префикса отклоняется (<code>E0240</code>)."
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and a write without one refused (<code>E0240</code>), whether it goes to an array or to a stdlib <code>Set</code>, <code>Store</code> or <code>Deque</code>. A value from an npm package is not judged either way.",
+      "tr": "Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись без этого префикса отклоняется (<code>E0240</code>), идёт ли она в массив или в <code>Set</code>, <code>Store</code> или <code>Deque</code> стандартной библиотеки. Значение из npm-пакета не проверяется ни в одну сторону."
     },
     {
       "id": "h-2e001a35",
@@ -195,24 +195,6 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "Поверх этого"
-    },
-    {
-      "id": "h-97d71b45",
-      "kind": "html",
-      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
-      "tr": "Запись через <code>Set</code>, <code>Store</code> и <code>Deque</code> из стандартной библиотеки пока не проверяется на <code>mut</code>"
-    },
-    {
-      "id": "h-45989de4",
-      "kind": "html",
-      "en": "Details",
-      "tr": "Подробнее"
-    },
-    {
-      "id": "h-84597a40",
-      "kind": "html",
-      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
-      "tr": "Проверка типов Glyph пока не знает типов этих получателей, поэтому принимаются и <code>seen.add(x)</code>, и <code>mut seen.add(x)</code>, и в корпусе встречаются оба написания. Следующий запланированный шаг — дать им типы и пометить их записывающие методы. Значение из npm-пакета не оценивается ни в одну сторону: <code>mut</code> перед его вызовом разрешён и не обязателен."
     },
     {
       "id": "h-87fdbb44",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "ko",
-  "source_hash": "09c27df708c026c8",
+  "source_hash": "052cf5d74e78192e",
   "segments": [
     {
       "id": "title",
@@ -179,10 +179,10 @@
       "tr": "구문마다 하나인 정해진 형태."
     },
     {
-      "id": "h-7801641c",
+      "id": "h-6c76d27d",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
-      "tr": "변경은 grep 가능한 두 가지 형태(<code>mut</code>)로 제한되고, 이를 붙이지 않은 배열 쓰기는 거부(<code>E0240</code>)."
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and a write without one refused (<code>E0240</code>), whether it goes to an array or to a stdlib <code>Set</code>, <code>Store</code> or <code>Deque</code>. A value from an npm package is not judged either way.",
+      "tr": "변경은 grep 가능한 두 가지 형태(<code>mut</code>)로 제한되고, 이를 붙이지 않은 쓰기는 배열에 대한 것이든 표준 라이브러리의 <code>Set</code>, <code>Store</code>, <code>Deque</code>에 대한 것이든 거부(<code>E0240</code>). npm 패키지의 값은 어느 쪽으로도 판정하지 않습니다."
     },
     {
       "id": "h-2e001a35",
@@ -195,24 +195,6 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "그 위에 더해진 것"
-    },
-    {
-      "id": "h-97d71b45",
-      "kind": "html",
-      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
-      "tr": "표준 라이브러리의 <code>Set</code>, <code>Store</code>, <code>Deque</code>를 통한 쓰기는 아직 <code>mut</code> 검사 대상이 아님"
-    },
-    {
-      "id": "h-45989de4",
-      "kind": "html",
-      "en": "Details",
-      "tr": "자세히"
-    },
-    {
-      "id": "h-84597a40",
-      "kind": "html",
-      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
-      "tr": "Glyph의 체커가 아직 이 리시버들의 타입을 알지 못해서 <code>seen.add(x)</code>와 <code>mut seen.add(x)</code>가 모두 통과하고, 코퍼스에도 두 표기가 섞여 있습니다. 타입을 붙이고 쓰기 메서드를 표시하는 것이 다음 계획입니다. npm 패키지의 값은 어느 방향으로도 판정하지 않습니다. 그 호출 앞의 <code>mut</code>는 허용되며 필수는 아닙니다."
     },
     {
       "id": "h-87fdbb44",

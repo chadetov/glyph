@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/greppability/index.html",
   "locale": "zh-cn",
-  "source_hash": "09c27df708c026c8",
+  "source_hash": "052cf5d74e78192e",
   "segments": [
     {
       "id": "title",
@@ -179,10 +179,10 @@
       "tr": "每种结构只有一种标准形式。"
     },
     {
-      "id": "h-7801641c",
+      "id": "h-6c76d27d",
       "kind": "html",
-      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and an array write without one refused (<code>E0240</code>).",
-      "tr": "修改限制为两种可以 grep 的形式（<code>mut</code>），不带这个前缀的数组写入会被拒绝（<code>E0240</code>）。"
+      "en": "Mutation restricted to two greppable shapes (<code>mut</code>), and a write without one refused (<code>E0240</code>), whether it goes to an array or to a stdlib <code>Set</code>, <code>Store</code> or <code>Deque</code>. A value from an npm package is not judged either way.",
+      "tr": "修改限制为两种可以 grep 的形式（<code>mut</code>），不带这个前缀的写入会被拒绝（<code>E0240</code>），无论写入的是数组，还是标准库的 <code>Set</code>、<code>Store</code> 或 <code>Deque</code>。来自 npm 包的值在两个方向上都不判定。"
     },
     {
       "id": "h-2e001a35",
@@ -195,24 +195,6 @@
       "kind": "html",
       "en": "Layered on top",
       "tr": "在此之上"
-    },
-    {
-      "id": "h-97d71b45",
-      "kind": "html",
-      "en": "Writes through the stdlib <code>Set</code>, <code>Store</code> and <code>Deque</code> are not checked for <code>mut</code> yet",
-      "tr": "通过标准库 <code>Set</code>、<code>Store</code> 和 <code>Deque</code> 的写入还没有做 <code>mut</code> 检查"
-    },
-    {
-      "id": "h-45989de4",
-      "kind": "html",
-      "en": "Details",
-      "tr": "详情"
-    },
-    {
-      "id": "h-84597a40",
-      "kind": "html",
-      "en": "Glyph's checker does not type those receivers yet, so <code>seen.add(x)</code> and <code>mut seen.add(x)</code> are both accepted, and the corpus uses both spellings. Typing them and marking their writing methods is the next planned step. A value from an npm package is not judged either way: <code>mut</code> before one of its calls is allowed and not required.",
-      "tr": "Glyph 的检查器还不知道这些接收者的类型，所以 <code>seen.add(x)</code> 和 <code>mut seen.add(x)</code> 都能通过，语料里两种写法都有。给它们加上类型并标记会写入的方法，是下一步的计划。来自 npm 包的值两个方向都不判定：在它的调用前写 <code>mut</code> 可以，但不是必须。"
     },
     {
       "id": "h-87fdbb44",

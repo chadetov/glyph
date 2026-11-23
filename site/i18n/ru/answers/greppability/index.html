@@ -1,7 +1,7 @@
 ---
 title: Может ли агент (или я) найти, где что определено? · Glyph
 description: У каждой конструкции в Glyph одна форма для поиска, поэтому grep (или поиск агента) попадает на единственное определение, а не на пятьдесят почти совпадений.
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; Назад | Останутся ли правки агента чистыми, или он переформатирует весь файл?
 next: /answers/why-typescript/ | Далее &rarr; | Почему TypeScript, а не Go или новый язык?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Одна каноническая форма на конструкцию.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись в массив без этого префикса отклоняется (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Изменения ограничены двумя формами, которые находит grep (<code>mut</code>), а запись без этого префикса отклоняется (<code>E0240</code>), идёт ли она в массив или в <code>Set</code>, <code>Store</code> или <code>Deque</code> стандартной библиотеки. Значение из npm-пакета не проверяется ни в одну сторону.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Проверки по одному ключевому слову (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Поверх этого</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Запись через <code>Set</code>, <code>Store</code> и <code>Deque</code> из стандартной библиотеки пока не проверяется на <code>mut</code></span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p>Проверка типов Glyph пока не знает типов этих получателей, поэтому принимаются и <code>seen.add(x)</code>, и <code>mut seen.add(x)</code>, и в корпусе встречаются оба написания. Следующий запланированный шаг — дать им типы и пометить их записывающие методы. Значение из npm-пакета не оценивается ни в одну сторону: <code>mut</code> перед его вызовом разрешён и не обязателен.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Языковой сервер добавляет переход к определению и поиск ссылок по всему рабочему пространству: та же гарантия, теперь интерактивно в вашем редакторе.</span></span></li>
           </ul>
         </section>

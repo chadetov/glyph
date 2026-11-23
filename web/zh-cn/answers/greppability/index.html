@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"智能体（或者我）能找到任何东西的定义位置吗？","item":"https://glyphlang.io/zh-cn/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/greppability/#article","headline":"智能体（或者我）能找到任何东西的定义位置吗？","description":"Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。","url":"https://glyphlang.io/zh-cn/answers/greppability/","inLanguage":"zh-Hans","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/zh-cn/"},{"@type":"ListItem","position":2,"name":"问答","item":"https://glyphlang.io/zh-cn/answers/"},{"@type":"ListItem","position":3,"name":"智能体（或者我）能找到任何东西的定义位置吗？","item":"https://glyphlang.io/zh-cn/answers/greppability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/zh-cn/answers/greppability/#article","headline":"智能体（或者我）能找到任何东西的定义位置吗？","description":"Glyph 中的每种结构都只有一种可供搜索的形式，所以 grep（或智能体的搜索）会落在唯一的定义上，而不是五十个似是而非的结果。","url":"https://glyphlang.io/zh-cn/answers/greppability/","inLanguage":"zh-Hans","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/zh-cn/answers/greppability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/greppability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/greppability/" />
@@ -543,7 +543,7 @@
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">每种结构只有一种标准形式。</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">修改限制为两种可以 grep 的形式（<code>mut</code>），不带这个前缀的数组写入会被拒绝（<code>E0240</code>）。</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">修改限制为两种可以 grep 的形式（<code>mut</code>），不带这个前缀的写入会被拒绝（<code>E0240</code>），无论写入的是数组，还是标准库的 <code>Set</code>、<code>Store</code> 或 <code>Deque</code>。来自 npm 包的值在两个方向上都不判定。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">用一个关键字就能完成审计（<code>fn</code>、<code>component</code>、<code>owned</code>、<code>type</code>）。</span></span></li>
           </ul>
         </section>
@@ -551,16 +551,11 @@
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> 在此之上</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">通过标准库 <code>Set</code>、<code>Store</code> 和 <code>Deque</code> 的写入还没有做 <code>mut</code> 检查</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>详情</summary><div class="body">
-                <p>Glyph 的检查器还不知道这些接收者的类型，所以 <code>seen.add(x)</code> 和 <code>mut seen.add(x)</code> 都能通过，语料里两种写法都有。给它们加上类型并标记会写入的方法，是下一步的计划。来自 npm 包的值两个方向都不判定：在它的调用前写 <code>mut</code> 可以，但不是必须。</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">语言服务器增加了覆盖整个工作区的跳转到定义和查找引用：同样的保证，现在可以在编辑器中交互使用。</span></span></li>
           </ul>
         </section>
       </div>
-      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.166 检查。最后修改：<time datetime="2026-11-21">2026年11月21日</time>。</p>
+      <p class="page-stamp">本页的代码示例在每次构建时都会用 Glyph 0.1.166 检查。最后修改：<time datetime="2026-11-23">2026年11月23日</time>。</p>
       <nav class="prevnext" aria-label="上一篇和下一篇">
         <a href="/zh-cn/answers/diff-stability/">
           <span class="dir">&larr; 上一篇</span>

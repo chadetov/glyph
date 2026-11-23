@@ -1,7 +1,7 @@
 ---
 title: Kann ein Agent (oder ich) finden, wo etwas definiert ist? · Glyph
 description: Jedes Konstrukt in Glyph hat eine einzige Form, nach der man sucht, also landet grep (oder die Suche eines Agenten) auf der einen Definition statt auf fünfzig Beinahe-Treffern.
-source_hash: 09c27df708c026c8
+source_hash: 052cf5d74e78192e
 prev: /answers/diff-stability/ | &larr; Zurück | Bleiben Änderungen von Agenten sauber, oder formatieren sie meine ganze Datei um?
 next: /answers/why-typescript/ | Weiter &rarr; | Warum TypeScript und nicht Go oder eine neue Sprache?
 ---
@@ -75,7 +75,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
           <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar</h3>
           <ul class="ak-list">
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine kanonische Form pro Konstrukt.</span></span></li>
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation auf zwei greppbare Formen beschränkt (<code>mut</code>), und ein Schreibzugriff auf ein Array ohne dieses Präfix wird abgelehnt (<code>E0240</code>).</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Mutation auf zwei greppbare Formen beschränkt (<code>mut</code>), und ein Schreibzugriff ohne dieses Präfix wird abgelehnt (<code>E0240</code>), ob er an ein Array geht oder an ein <code>Set</code>, einen <code>Store</code> oder eine <code>Deque</code> der Standardbibliothek. Ein Wert aus einem npm-Paket wird in keine Richtung geprüft.</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Prüfungen über ein einziges Schlüsselwort (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</span></span></li>
           </ul>
         </section>
@@ -83,11 +83,6 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         <section class="ak-st next" aria-labelledby="st-next">
           <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Darauf aufbauend</h3>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Schreibzugriffe über <code>Set</code>, <code>Store</code> und <code>Deque</code> der Standardbibliothek werden noch nicht auf <code>mut</code> geprüft</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Details</summary><div class="body">
-                <p>Glyphs Checker kennt die Typen dieser Empfänger noch nicht, also werden <code>seen.add(x)</code> und <code>mut seen.add(x)</code> beide akzeptiert, und der Korpus verwendet beide Schreibweisen. Sie zu typisieren und ihre schreibenden Methoden zu markieren ist der nächste geplante Schritt. Ein Wert aus einem npm-Paket wird in keiner Richtung beurteilt: <code>mut</code> vor einem seiner Aufrufe ist erlaubt und nicht nötig.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Der Language Server ergänzt Go-to-Definition und Find-References über den ganzen Workspace: dieselbe Garantie, jetzt interaktiv in deinem Editor.</span></span></li>
           </ul>
         </section>

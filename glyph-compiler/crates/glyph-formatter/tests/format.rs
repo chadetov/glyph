@@ -465,6 +465,24 @@ fn single_line_template_still_normalizes_its_interpolation() {
 }
 
 #[test]
+fn a_single_line_triple_quoted_template_keeps_its_spelling() {
+    // G441: a `"..."` string refuses a backslash inside `${}`, and it cannot
+    // nest a string literal there. A single-line `"""` template may hold
+    // both, so reprinting it in the `"..."` spelling (as the formatter did
+    // before 0.1.169) wrote `"x${f(\"a\\tb\")}"`, which no longer parses. It
+    // keeps `"""`, its raw text stays raw, and its interiors still normalize.
+    let src = "module x\nfn f(s: string) -> string {\n  return s\n}\nfn g(n: number) -> string {\n  let a = \"\"\"x\\n${f(\"a\\tb\")} \"q\" ${ n+1 }\"\"\"\n  return a\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("\"\"\"x\\n${f(\"a\\tb\")} \"q\" ${n + 1}\"\"\""),
+        "{once}"
+    );
+    assert!(glyph_parser::parse(&once).is_ok(), "{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+    assert_eq!(emit_ts(&once), emit_ts(src), "the meaning is unchanged");
+}
+
+#[test]
 fn format_is_idempotent_on_a_reformatted_snippet() {
     // A deliberately badly-spaced source normalizes, then is stable.
     let src = "module x\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n";

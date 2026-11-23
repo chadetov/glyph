@@ -1909,15 +1909,25 @@ impl Printer {
         // so a single-line template still gets its `${...}` interiors normalized
         // (`"${ a+b }"` becomes `"${a + b}"`). Whether to drop that service and
         // copy every template verbatim is an open question, not settled here.
+        //
+        // A single-line `"""..."""` template keeps its spelling (G441). Its
+        // `${}` may hold a string literal or a backslash as written, and the
+        // `"..."` spelling refuses both inside `${}`, so reprinting it there
+        // would write a file that no longer parses. Its text is raw, so text
+        // and code are written back undecoded.
+        let mut triple = false;
         if let Some(raw) = self.verbatim(span) {
             if raw.contains('\n') {
                 self.push(&raw);
                 return;
             }
+            triple = raw.starts_with("\"\"\"");
         }
-        self.push("\"");
+        let quote = if triple { "\"\"\"" } else { "\"" };
+        self.push(quote);
         for part in parts {
             match part {
+                TemplatePart::Text { content, .. } if triple => self.push(content),
                 TemplatePart::Text { content, .. } => self.push(&escape_string(content)),
                 TemplatePart::Expr { value, .. } => {
                     // The interpolation's code lives inside the outer `"..."`, so
@@ -1947,12 +1957,15 @@ impl Printer {
                     self.cidx = saved_cidx;
                     self.source = saved;
                     self.push("${");
-                    self.push(&escape_string(&code));
+                    match triple {
+                        true => self.push(&code),
+                        false => self.push(&escape_string(&code)),
+                    }
                     self.push("}");
                 }
             }
         }
-        self.push("\"");
+        self.push(quote);
     }
 
     // ----- patterns -----

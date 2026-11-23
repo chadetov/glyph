@@ -44,7 +44,7 @@
       <nav class="site-nav" aria-label="Main">
         <div class="nav-brand">
           <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>Glyph</a>
-          <a href="/versions/" class="nav-version" title="Release notes">v0.1.168</a>
+          <a href="/versions/" class="nav-version" title="Release notes">v0.1.169</a>
         </div>
         <div class="nav-panel" id="nav-panel">
           <ul class="nav-links">
@@ -406,7 +406,7 @@
       </div>
 
       <nav class="month-nav" aria-label="Releases by month">
-        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 41 releases · 36 breaking</span></a>
+        <a href="/versions/2026-11/" class="active" aria-current="true"><span class="mn-month">Nov 2026</span> <span class="mn-count">· 42 releases · 37 breaking</span></a>
         <a href="/versions/2026-10/"><span class="mn-month">Oct 2026</span> <span class="mn-count">· 3 releases · 3 breaking</span></a>
         <a href="/versions/2026-09/"><span class="mn-month">Sep 2026</span> <span class="mn-count">· 25 releases · 10 breaking</span></a>
         <a href="/versions/2026-08/"><span class="mn-month">Aug 2026</span> <span class="mn-count">· 66 releases · 1 breaking</span></a>
@@ -415,15 +415,41 @@
       </nav>
       <div class="month-head">
         <h2 class="month-title">November 2026</h2>
-        <p class="month-sum">41 releases, 36 breaking, 0.1.128 to 0.1.168</p>
+        <p class="month-sum">42 releases, 37 breaking, 0.1.128 to 0.1.169</p>
         <label class="breaking-only" hidden><input type="checkbox" /> Breaking only</label>
       </div>
 
       <div class="releases">
+        <article class="release" id="0.1.169" data-hl="fm" data-breaking>
+          <div class="rel-head">
+            <h3 class="rel-ver">0.1.169</h3>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-tag breaking">Breaking</span>
+            <time class="rel-date" datetime="2026-11-23">23 Nov 2026</time>
+            <a class="rel-link" href="/versions/2026-11/#0.1.169" data-url="https://glyphlang.io/versions/2026-11/#0.1.169" aria-label="Link to 0.1.169">Link</a>
+          </div>
+          <details class="rel-details" open>
+            <summary><span class="rel-headline">An escape inside the ${} of a "..." string is a parse error</span><span class="rel-toggle" aria-hidden="true"></span></summary>
+          <div class="rel-body">
+            <p>A nested string literal inside the <code>${}</code> of a <code>"..."</code> string could only be written with escapes, as in <code>"a${f(\"x\")}"</code>. That spelling existed to get around the rule that says to bind such a value with <code>let</code> first. It also left every position after the escape a few bytes early, so 0.1.165 had to stop <code>glyph fix</code> from touching anything there.</p>
+
+            <p>Now a backslash inside the <code>${}</code> of a <code>"..."</code> string is E0002, pointing at the escape, and the help is written from your code:</p>
+
+<pre class="wraps"><code><span class="e">[E0002]</span> <span class="q">`\"`</span> is an escape inside the <span class="q">`${}`</span> of a <span class="q">`"..."`</span> string, which Glyph does not allow
+<span class="f">Help:</span> ... Bind the value with <span class="q">`let`</span> and interpolate the name: <span class="q">`let label = x + "é"`</span>, then <span class="q">`"a${label}"`</span>. Or write the whole string as <span class="q">`"""a${x + "é"}"""`</span>, which reads a string literal inside <span class="q">`${}`</span> as written.</code></pre>
+
+            <p>Triple-quoted strings are unchanged, and so is an escape outside the <code>${}</code>, such as <code>"a\n${x}"</code> or <code>"\${x}"</code>. When the text around the <code>${}</code> holds an escape, the help names the <code>"""</code> form only in words, since a <code>"""</code> string would not decode it.</p>
+
+            <p>Two related changes. <code>glyph fmt</code> no longer rewrites a one-line <code>"""</code> template into the <code>"..."</code> spelling; it used to turn valid code into the form this release refuses. And with that region gone, the guard that stopped <code>glyph fix</code> after an escape is removed, so a rename inside a <code>"""</code> interpolation that holds an escape now applies instead of being declined.</p>
+
+            <h4>Breaking</h4>
+            <p>Yes, under full <code>check</code> as well as <code>--no-tsc</code>: <code>"a${f(\"x\")}"</code> exits 0 under 0.1.168 and 1 under 0.1.169. No tracked program had such an escape, so nothing in the corpus changed.</p>
+          </div>
+          </details>
+        </article>
         <article class="release" id="0.1.168" data-hl="fm" data-breaking>
           <div class="rel-head">
             <h3 class="rel-ver">0.1.168</h3>
-            <span class="rel-tag latest">Latest</span>
             <span class="rel-tag breaking">Breaking</span>
             <time class="rel-date" datetime="2026-11-23">23 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.168" data-url="https://glyphlang.io/versions/2026-11/#0.1.168" aria-label="Link to 0.1.168">Link</a>
@@ -473,7 +499,7 @@
             <time class="rel-date" datetime="2026-11-22">22 Nov 2026</time>
             <a class="rel-link" href="/versions/2026-11/#0.1.166" data-url="https://glyphlang.io/versions/2026-11/#0.1.166" aria-label="Link to 0.1.166">Link</a>
           </div>
-          <details class="rel-details" open>
+          <details class="rel-details">
             <summary><span class="rel-headline">An unannotated const has the type of its value</span><span class="rel-toggle" aria-hidden="true"></span></summary>
           <div class="rel-body">
             <p>Glyph's own checker gave a module <code>const</code> with no annotation no type at all. So <code>const ITEMS = [1, 2]</code> followed by <code>ITEMS.push(3)</code> slipped past the <code>mut</code> rule, <code>let x: string = CFG.n</code> on <code>const CFG = { n: 1, }</code> passed, and a <code>store.create(0)</code> held in a <code>const</code> was invisible to the checks 0.1.163 added. Only <code>tsc</code> caught any of it, so the editor, the MCP tools and the <code>applyEdit</code> gate let it through.</p>
@@ -1634,7 +1660,7 @@
     <script>
       (function () {
         // An anchor for a release that lives on another month's page goes there.
-        var where = {"0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
+        var where = {"0.1.169":"2026-11","0.1.168":"2026-11","0.1.167":"2026-11","0.1.166":"2026-11","0.1.165":"2026-11","0.1.164":"2026-11","0.1.163":"2026-11","0.1.162":"2026-11","0.1.161":"2026-11","0.1.160":"2026-11","0.1.159":"2026-11","0.1.158":"2026-11","0.1.157":"2026-11","0.1.156":"2026-11","0.1.155":"2026-11","0.1.154":"2026-11","0.1.153":"2026-11","0.1.152":"2026-11","0.1.151":"2026-11","0.1.150":"2026-11","0.1.149":"2026-11","0.1.148":"2026-11","0.1.147":"2026-11","0.1.146":"2026-11","0.1.145":"2026-11","0.1.144":"2026-11","0.1.143":"2026-11","0.1.142":"2026-11","0.1.141":"2026-11","0.1.140":"2026-11","0.1.139":"2026-11","0.1.138":"2026-11","0.1.137":"2026-11","0.1.136":"2026-11","0.1.135":"2026-11","0.1.134":"2026-11","0.1.133":"2026-11","0.1.132":"2026-11","0.1.131":"2026-11","0.1.130":"2026-11","0.1.129":"2026-11","0.1.128":"2026-11","0.1.127":"2026-10","0.1.126":"2026-10","0.1.125":"2026-10","0.1.124":"2026-09","0.1.123":"2026-09","0.1.122":"2026-09","0.1.121":"2026-09","0.1.120":"2026-09","0.1.119":"2026-09","0.1.118":"2026-09","0.1.117":"2026-09","0.1.116":"2026-09","0.1.115":"2026-09","0.1.114":"2026-09","0.1.113":"2026-09","0.1.112":"2026-09","0.1.111":"2026-09","0.1.110":"2026-09","0.1.109":"2026-09","0.1.108":"2026-09","0.1.107":"2026-09","0.1.106":"2026-09","0.1.105":"2026-09","0.1.104":"2026-09","0.1.103":"2026-09","0.1.102":"2026-09","0.1.101":"2026-09","0.1.100":"2026-09","0.1.99":"2026-08","0.1.98":"2026-08","0.1.97":"2026-08","0.1.96":"2026-08","0.1.95":"2026-08","0.1.94":"2026-08","0.1.93":"2026-08","0.1.92":"2026-08","0.1.91":"2026-08","0.1.90":"2026-08","0.1.89":"2026-08","0.1.88":"2026-08","0.1.87":"2026-08","0.1.86":"2026-08","0.1.85":"2026-08","0.1.84":"2026-08","0.1.83":"2026-08","0.1.82":"2026-08","0.1.81":"2026-08","0.1.80":"2026-08","0.1.79":"2026-08","0.1.78":"2026-08","0.1.77":"2026-08","0.1.76":"2026-08","0.1.75":"2026-08","0.1.74":"2026-08","0.1.73":"2026-08","0.1.72":"2026-08","0.1.71":"2026-08","0.1.70":"2026-08","0.1.69":"2026-08","0.1.68":"2026-08","0.1.67":"2026-08","0.1.66":"2026-08","0.1.65":"2026-08","0.1.64":"2026-08","0.1.63":"2026-08","0.1.62":"2026-08","0.1.61":"2026-08","0.1.60":"2026-08","0.1.59":"2026-08","0.1.58":"2026-08","0.1.57":"2026-08","0.1.56":"2026-08","0.1.55":"2026-08","0.1.54":"2026-08","0.1.53":"2026-08","0.1.52":"2026-08","0.1.51":"2026-08","0.1.50":"2026-08","0.1.49":"2026-08","0.1.48":"2026-08","0.1.47":"2026-08","0.1.46":"2026-08","0.1.45":"2026-08","0.1.44":"2026-08","0.1.43":"2026-08","0.1.42":"2026-08","0.1.41":"2026-08","0.1.40":"2026-08","0.1.39":"2026-08","0.1.38":"2026-08","0.1.37":"2026-08","0.1.36":"2026-08","0.1.35":"2026-08","0.1.34":"2026-08","0.1.32":"2026-07","0.1.31":"2026-07","0.1.30":"2026-07","0.1.29":"2026-07","0.1.28":"2026-07","0.1.27":"2026-07","0.1.26":"2026-07","0.1.25":"2026-07","0.1.24":"2026-07","0.1.23":"2026-07","0.1.22":"2026-07","0.1.21":"2026-07","0.1.20":"2026-07","0.1.19":"2026-07","0.1.18":"2026-07","0.1.17":"2026-07","0.1.16":"2026-07","0.1.15":"2026-07","0.1.14":"2026-07","0.1.13":"2026-07","0.1.12":"2026-07","0.1.11":"2026-07","0.1.10":"2026-07","0.1.9":"2026-07","0.1.8":"2026-07","0.1.7":"2026-07","0.1.6":"2026-07","0.1.5":"2026-07","0.1.4":"2026-07","0.1.3":"2026-07","0.1.2":"2026-07","0.1.0":"2026-06"};
         var id = decodeURIComponent(location.hash.slice(1));
         if (id && !document.getElementById(id) && where[id]) {
           location.replace("/versions/" + where[id] + "/" + location.search + "#" + id);

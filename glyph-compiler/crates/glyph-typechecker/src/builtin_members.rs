@@ -140,7 +140,38 @@ pub struct BuiltinMethod {
     /// script, not written by hand. A call to one is E0242, except `pop` and
     /// `shift`, which change the array and are E0240's.
     pub absent: bool,
+    /// The member's `@deprecated` tag in TypeScript's library, with what to
+    /// write instead (G389, E0244). The tag's text is read off the
+    /// declarations; the replacement is the script's `DEPRECATED_REPLACEMENT`,
+    /// held to the tags and to node. `None` for every member TypeScript does
+    /// not deprecate.
+    pub deprecated: Option<Deprecated>,
     pub sig: MethodSig,
+}
+
+/// A member TypeScript's library marks `@deprecated` (G389, E0244).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Deprecated {
+    /// The tag's text, verbatim: "A legacy feature for browser compatibility".
+    pub tag: &'static str,
+    pub replacement: Replacement,
+}
+
+/// What E0244's help writes in place of a deprecated member.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Replacement {
+    /// The same call under another name, which the language defines as the
+    /// same function: `trimLeft` is `trimStart`.
+    Rename(&'static str),
+    /// `substr(start, length)`, which is `slice(start, start + length)` for
+    /// a start and a length of zero or more.
+    Slice,
+    /// An HTML method: `s.bold()` builds `<b>s</b>`, and `s.link(url)`
+    /// builds `<a href="url">s</a>` with each `"` in `url` written `&quot;`.
+    Markup {
+        tag: &'static str,
+        attr: Option<&'static str>,
+    },
 }
 
 /// What the checker knows about a built-in method's call.
@@ -393,6 +424,36 @@ mod tests {
         assert_eq!(absent(BuiltinReceiver::Array), ["at", "find", "findLast", "pop", "shift"]);
         assert_eq!(absent(BuiltinReceiver::String), ["at", "codePointAt", "match"]);
         assert!(absent(BuiltinReceiver::Number).is_empty());
+    }
+
+    /// The `deprecated` column (G389, E0244): read off `lib.d.ts`, so this
+    /// pins the 16 string members TypeScript 6.0.3 marks `@deprecated`, and
+    /// the two whose tag names a replacement.
+    #[test]
+    fn deprecated_rows_are_the_ones_typescript_marks() {
+        let deprecated = |r: BuiltinReceiver| -> Vec<&str> {
+            r.methods().iter().filter(|m| m.deprecated.is_some()).map(|m| m.name).collect()
+        };
+        assert_eq!(
+            deprecated(BuiltinReceiver::String),
+            [
+                "anchor", "big", "blink", "bold", "fixed", "fontcolor", "fontsize", "italics", "link", "small",
+                "strike", "sub", "substr", "sup", "trimLeft", "trimRight",
+            ]
+        );
+        assert!(deprecated(BuiltinReceiver::Array).is_empty());
+        assert!(deprecated(BuiltinReceiver::Number).is_empty());
+        let named: Vec<_> = BuiltinReceiver::String
+            .methods()
+            .iter()
+            .filter_map(|m| Some((m.name, m.deprecated?)))
+            .filter(|(_, d)| d.tag.contains("Use `"))
+            .map(|(name, d)| (name, d.replacement))
+            .collect();
+        assert_eq!(
+            named,
+            [("trimLeft", Replacement::Rename("trimStart")), ("trimRight", Replacement::Rename("trimEnd"))]
+        );
     }
 
     #[test]

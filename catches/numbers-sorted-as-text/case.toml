@@ -1,0 +1,6 @@
+code = "E0243"
+pillar = "verifiability"
+title = "Numbers sorted as text"
+kind = "refused"
+ts_output = "100,25,9"
+fullconfig = "lint:require-array-sort-compare"

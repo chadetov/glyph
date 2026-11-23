@@ -807,8 +807,9 @@ fn plan_e0240(source: &str, d: &Diagnostic) -> Result<(u32, u32, String), String
         }
         (Some(text), None) => Ok((s as u32, s as u32, text.clone())),
         (None, _) => Err(
-            "the call's value is used, or it is an arm of a `match`, a deferred call or a call on a value no name \
-             holds, so the repair depends on what it was for; the help names one"
+            "the call's value is used, or it is an arm of a `match`, a deferred call, a call on a value no name \
+             holds or a sort that needs a comparator (E0243), so the repair depends on what it was for; the help \
+             names one"
                 .to_string(),
         ),
     }

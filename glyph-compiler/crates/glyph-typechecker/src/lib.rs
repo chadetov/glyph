@@ -905,9 +905,29 @@ pub enum TypeError {
     /// where the call stands, which `glyph fix` reads: only a `Statement`
     /// takes the `mut ` it inserts. Message and help are computed from the
     /// call as written.
+    ///
+    /// `comparator_missing` is set on a `sort()` with no comparator over
+    /// values that are not text, which E0243 refuses beside it (G388):
+    /// `mut ` alone would leave that sort, so `glyph fix` writes nothing.
     #[error("{message}")]
     MutationOutsideMut {
         kind: MutationSite,
+        message: String,
+        help: String,
+        comparator_missing: bool,
+        span: Span,
+    },
+
+    /// G388, decision record 182: `sort()` or `toSorted()` with no
+    /// comparator on an `Array<E>` whose elements are not text. JavaScript's
+    /// default order compares the text of each element, so `[100, 9, 25]`
+    /// sorts as `100, 25, 9`. Text is a `string`, a string-literal union, a
+    /// refined `string` and a second name for one of those. A receiver the
+    /// checker cannot type, and an element type it cannot decide (a type
+    /// parameter with a bound, until bounds are read), are not judged. The
+    /// help writes the comparator in the form the call was written in.
+    #[error("{message}")]
+    TextOrderSort {
         message: String,
         help: String,
         span: Span,
@@ -1642,6 +1662,7 @@ impl TypeError {
             TypeError::SqlFromRuntimeValue { span, .. } => *span,
             TypeError::MutationOutsideMut { span, .. } => *span,
             TypeError::MutOnNonMutatingCall { span, .. } => *span,
+            TypeError::TextOrderSort { span, .. } => *span,
             TypeError::AbsentBuiltinResult { span, .. } => *span,
             TypeError::NoTextForm { span, .. } => *span,
             TypeError::TypeNameAsValue { span, .. } => *span,
@@ -1698,6 +1719,7 @@ impl TypeError {
             TypeError::MutationOutsideMut { .. } => "E0240",
             TypeError::MutOnNonMutatingCall { .. } => "E0241",
             TypeError::AbsentBuiltinResult { .. } => "E0242",
+            TypeError::TextOrderSort { .. } => "E0243",
             TypeError::NoTextForm { .. } => "E0237",
             TypeError::TypeNameAsValue { .. } => "E0228",
             TypeError::RedactUnknownField { .. } => "E0219",
@@ -1746,7 +1768,8 @@ impl TypeError {
         if let TypeError::SqlFromRuntimeValue { help, .. }
         | TypeError::MutationOutsideMut { help, .. }
         | TypeError::MutOnNonMutatingCall { help, .. }
-        | TypeError::AbsentBuiltinResult { help, .. } = self
+        | TypeError::AbsentBuiltinResult { help, .. }
+        | TypeError::TextOrderSort { help, .. } = self
         {
             return Some(Cow::Owned(help.clone()));
         }
@@ -2076,6 +2099,7 @@ impl TypeError {
             TypeError::MutationOutsideMut { .. } => unreachable!("answered above with its computed help"),
             TypeError::MutOnNonMutatingCall { .. } => unreachable!("answered above with its computed help"),
             TypeError::AbsentBuiltinResult { .. } => unreachable!("answered above with its computed help"),
+            TypeError::TextOrderSort { .. } => unreachable!("answered above with its computed help"),
         }))
     }
 
@@ -2134,6 +2158,9 @@ impl TypeError {
             ),
             TypeError::AbsentBuiltinResult { .. } => Some(
                 "A missing value in Glyph is an `Option`, which `match` opens and the checker holds to a `None` arm (D56). These methods hand back JavaScript's `undefined` instead, a value Glyph's checker cannot see, so a read off it passes `glyph check` and fails at run time; the `std/*` functions are the same lookups with the absence in the type.",
+            ),
+            TypeError::TextOrderSort { .. } => Some(
+                "With no comparator, JavaScript's `sort` and `toSorted` convert each element to a string and compare the strings, so numbers come out in the order of their digits and a record sorts as `[object Object]`. That order is right for text alone. `tsc` accepts the call on any array, and `array.sort` always takes a comparator.",
             ),
             TypeError::SqlFromRuntimeValue { .. } => Some(
                 "A query's text is fixed when the program is written (D52). Values go in the parameter array, where SQLite binds them as data and never reads them as SQL; `sqlite.from_trusted` is the one way to run text built at run time, and it takes a `taint.Trusted<string>`.",

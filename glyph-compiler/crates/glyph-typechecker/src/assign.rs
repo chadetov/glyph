@@ -2893,6 +2893,7 @@ impl Assigner<'_> {
         if let Expr::Call { .. } = e {
             self.check_mutating_call(e);
             self.check_absent_call(e);
+            self.check_to_sorted(e);
         }
         // D54: each implicit conversion to text is judged once its operands
         // are typed, by one rule, whichever of the three spellings it takes.
@@ -7516,25 +7517,31 @@ impl Assigner<'_> {
             return;
         };
         use crate::mutation::{ElemKind, MemberClass, MutReceiver};
-        let (method, elem, receiver) = match self.mutation_receiver(object) {
-            Some((builtin, elem)) => {
+        let (method, elem, receiver, text_order) = match self.mutation_receiver(object) {
+            Some((builtin, elem_ty)) => {
                 let Some(m) = builtin.method(field.as_ref()) else {
                     return;
                 };
                 if !m.mutates {
                     return;
                 }
-                let elem = match elem {
+                let elem = match elem_ty {
                     Ty::Prim(Primitive::Number) => ElemKind::Number,
                     Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => ElemKind::String,
                     _ => ElemKind::Other,
                 };
-                (m.name, elem, MutReceiver::Array)
+                // G388: a sort with no comparator over values that are not
+                // text.
+                let text_order = match (m.name, args.is_empty()) {
+                    ("sort", true) => self.text_order_sort(object, &elem_ty),
+                    _ => None,
+                };
+                (m.name, elem, MutReceiver::Array, text_order)
             }
             // G423 step 2: a writing member of a modeled stdlib type.
             None => match self.stdlib_member(object, field.as_ref()) {
                 Some(((module, ty, member, MemberClass::Mutating), _)) => {
-                    (member, ElemKind::Other, MutReceiver::Stdlib { module, ty })
+                    (member, ElemKind::Other, MutReceiver::Stdlib { module, ty }, None)
                 }
                 _ => return,
             },
@@ -7543,32 +7550,196 @@ impl Assigner<'_> {
         // back that value itself (record 171, F2).
         let held_by_store = self.is_store_get(object);
         if Some(*span) != self.mut_call {
+            // The pending pass places it, and reports E0243 beside E0240 in
+            // the form the position calls for.
             self.tm.record_mutating_call(
                 *span,
-                crate::mutation::MutatingCall { method, elem, place: object.is_place(), receiver, held_by_store },
+                crate::mutation::MutatingCall {
+                    method,
+                    elem,
+                    text_order,
+                    place: object.is_place(),
+                    receiver,
+                    held_by_store,
+                },
             );
             return;
         }
-        if object.is_place() {
+        let ns = crate::mutation::ArrayNs::of(self.module);
+        // The whole call of a `mut` statement: on a place it is the
+        // statement D5 asks for, and on anything else it is E0240.
+        let refused = (!object.is_place()).then(|| {
+            let text = crate::mutation::CallText {
+                recv: object,
+                method,
+                args,
+                optional: *optional,
+                elem,
+                receiver,
+                held_by_store,
+                text_order: text_order.as_ref(),
+            };
+            crate::mutation::mutation_outside_mut(MutationSite::NotPlace, &text, &ns)
+        });
+        if let Some((message, help)) = &refused {
+            self.errors.push(TypeError::MutationOutsideMut {
+                kind: MutationSite::NotPlace,
+                message: message.clone(),
+                help: help.clone(),
+                comparator_missing: text_order.is_some(),
+                span: *span,
+            });
+        }
+        // G388: a sort with no comparator over values that are not text is
+        // E0243 as well, on a place or not, its help the statement on a
+        // place and the copy `array.sort` returns otherwise.
+        if let Some(t) = &text_order {
+            let form = match object.is_place() {
+                true => crate::mutation::SortForm::Statement,
+                false => crate::mutation::SortForm::Value,
+            };
+            let (message, mut help) = crate::mutation::text_order_sort(object, method, *optional, form, t, &ns);
+            // A sort of the array a store hands back changes the store, so
+            // the one repair is E0240's, which writes the comparator in.
+            if let (true, Some((_, e0240))) = (held_by_store, &refused) {
+                help = e0240.clone();
+            }
+            self.errors.push(TypeError::TextOrderSort { message, help, span: *span });
+        }
+    }
+
+    /// E0243 (G388) for `xs.toSorted()` with no comparator over values that
+    /// are not text. `sort` is judged with E0240 in `check_mutating_call`,
+    /// since where it stands decides the form its help writes; `toSorted`
+    /// returns a copy and is written the same way wherever it stands.
+    fn check_to_sorted(&mut self, call: &Expr) {
+        let Expr::Call { callee, args, span, .. } = call else {
+            return;
+        };
+        let Expr::Member { object, field, optional, .. } = callee.as_ref() else {
+            return;
+        };
+        if field.as_ref() != "toSorted" || !args.is_empty() {
             return;
         }
-        let ns = crate::mutation::ArrayNs::of(self.module);
-        let text = crate::mutation::CallText {
-            recv: object,
-            method,
-            args,
-            optional: *optional,
-            elem,
-            receiver,
-            held_by_store,
+        let Some((BuiltinReceiver::Array, elem)) = self.mutation_receiver(object) else {
+            return;
         };
-        let (message, help) = crate::mutation::mutation_outside_mut(MutationSite::NotPlace, &text, &ns);
-        self.errors.push(TypeError::MutationOutsideMut {
-            kind: MutationSite::NotPlace,
-            message,
-            help,
-            span: *span,
+        let Some(t) = self.text_order_sort(object, &elem) else {
+            return;
+        };
+        let ns = crate::mutation::ArrayNs::of(self.module);
+        let (message, help) = crate::mutation::text_order_sort(
+            object,
+            "toSorted",
+            *optional,
+            crate::mutation::SortForm::ToSorted,
+            &t,
+            &ns,
+        );
+        self.errors.push(TypeError::TextOrderSort { message, help, span: *span });
+    }
+
+    /// What E0243 needs to know about a sort with no comparator over the
+    /// array `object`, whose elements are `elem` (G388, decision record
+    /// 182): `None` when they are text or when the checker cannot decide.
+    fn text_order_sort(&self, object: &Expr, elem: &Ty) -> Option<crate::mutation::TextOrderSort> {
+        if self.sorts_as_text(elem)? {
+            return None;
+        }
+        // The element type as the program wrote it, when the receiver is a
+        // name declared `Array<E>`: the checker reads `int` and `bigint` as
+        // `number`, and a comparator built from that would not say what the
+        // author wrote, or, for a `bigint`, compile.
+        let written = self.written_type_of(object).and_then(|te| match te {
+            TypeExpr::Generic { base, args, .. } if args.len() == 1 => match base.as_ref() {
+                TypeExpr::Path { span, .. }
+                    if matches!(
+                        self.resolved.resolutions.get(*span),
+                        Some(ResolvedRef::Prelude(id)) if self.lowerer.prelude.lookup("Array") == Some(id)
+                    ) =>
+                {
+                    Some(type_expr_source(&args[0]))
+                }
+                _ => None,
+            },
+            _ => None,
         });
+        let shown = crate::display_ty(elem);
+        let elem_text = written.clone().or_else(|| (!shown.contains('?')).then(|| shown.clone()));
+        // `a - b` orders a `number` and an `int`. One the program did not
+        // write is a `number` only when the checker sees one: a `bigint`
+        // reads as `number` too, and it is written `bigint` wherever it is
+        // declared.
+        let subtract = match written.as_deref() {
+            Some(w) => matches!(w, "number" | "int"),
+            None => matches!(elem, Ty::Prim(Primitive::Number)),
+        };
+        Some(crate::mutation::TextOrderSort { elem: elem_text, subtract })
+    }
+
+    /// Whether `ty` names a prelude container (`Option`, `Nullable`,
+    /// `Array`, `Record`, `Result`, `Schema`, `Component`, `Issue`), none of
+    /// which is text. The prelude `string` and `number` lower to primitives.
+    fn is_prelude_name(&self, ty: &Ty) -> bool {
+        let Ty::Named { symbol, path } = ty else {
+            return false;
+        };
+        path.last()
+            .is_some_and(|n| self.lowerer.prelude.lookup(n.as_ref()) == Some(SymbolId(symbol.0)))
+    }
+
+    /// Whether JavaScript's default sort order is right for elements of type
+    /// `elem`: `Some(true)` for text, `Some(false)` for anything else the
+    /// checker can decide, `None` where it cannot.
+    ///
+    /// Text is a `string`, a string-literal union (D30), a refined `string`
+    /// (D39) and a second name for any of those (G315), through any number of
+    /// hops. Not text: `number` (and `int` and `bigint`, which the checker
+    /// reads as `number`), `bool`, `unknown`, records, interfaces, tagged
+    /// unions, `Option`, `Nullable`, arrays, functions, the stdlib's own
+    /// types, and a type parameter of the enclosing declaration with no
+    /// bound. Undecided: a type the checker could not type, a name with no
+    /// declaration it can read, and a type parameter with a bound, whose
+    /// bound the resolver does not resolve yet (G263).
+    fn sorts_as_text(&self, elem: &Ty) -> Option<bool> {
+        let mut current = elem.clone();
+        for _ in 0..16 {
+            current = match &current {
+                Ty::Prim(Primitive::String) | Ty::StringLiteralUnion(_) => return Some(true),
+                Ty::Prim(_) | Ty::UnknownTop | Ty::Record { .. } | Ty::Fn { .. } | Ty::Union { .. } => {
+                    return Some(false)
+                }
+                Ty::Pending(_) => return Some(false),
+                Ty::Unknown | Ty::Never => return None,
+                Ty::Param { name, owner } => {
+                    return match self.is_own_param(name, owner) {
+                        true if self.enclosing_bounded.contains(name) => None,
+                        true => Some(false),
+                        false => None,
+                    }
+                }
+                Ty::Named { .. } | Ty::Imported { .. } => {
+                    if stdlib_type_path(&current).is_some() || self.is_prelude_name(&current) {
+                        return Some(false);
+                    }
+                    match self.alias_body(&current, &[]) {
+                        Some(body) if body != current => body,
+                        _ => return self.record_fields_of(&current).map(|_| false),
+                    }
+                }
+                Ty::App { base, args } => {
+                    if stdlib_type_path(base).is_some() || self.is_prelude_name(base) {
+                        return Some(false);
+                    }
+                    match self.alias_body(base, args) {
+                        Some(body) if body != current => body,
+                        _ => return self.record_fields_of(&current).map(|_| false),
+                    }
+                }
+            };
+        }
+        None
     }
 
     /// E0242 (G392, D56): a call to a built-in method whose TypeScript

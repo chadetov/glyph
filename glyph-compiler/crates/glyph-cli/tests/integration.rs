@@ -13090,6 +13090,61 @@ fn a_second_name_declared_in_a_sibling_gives_the_local_answer_by_every_spelling(
     assert_eq!(answers[0], answers[1], "the import spelling decides nothing");
 }
 
+/// The sibling the G415 spelling test imports: a map of `unknown` and a map
+/// of `string` under names of their own.
+const G415_A: &str = "module a\n\npub type Bag = Record<string, unknown>\n\n\
+     pub type SBag = Record<string, string>\n";
+
+#[test]
+fn a_map_read_gets_one_answer_by_every_spelling_of_the_map() {
+    // G415 and record 183, F1. A key read on a map of `unknown` is typed
+    // `unknown`, so interpolating it is E0237, and a read on a map of any
+    // other `V` is E0224, whichever way the program spells the map: written
+    // out, a local alias, an alias of that alias, a named import and a
+    // namespace import of a sibling's alias, and an `is` arm naming either
+    // import. Before, only the first two spellings were read as a map.
+    let local = "type LBag = Record<string, unknown>\n\ntype LBag2 = LBag\n\n\
+                 type LS = Record<string, string>\n\ntype LS2 = LS\n\n";
+    let cases: [(&str, &str, &str); 12] = [
+        ("Record<string, unknown>", "${m[k]}", "[E0237]"),
+        ("LBag", "${m[k]}", "[E0237]"),
+        ("LBag2", "${m[k]}", "[E0237]"),
+        ("Bag", "${m[k]}", "[E0237]"),
+        ("a.Bag", "${m[k]}", "[E0237]"),
+        ("is a.Bag", "${m[k]}", "[E0237]"),
+        ("Record<string, string>", "m[k]", "[E0224]"),
+        ("LS", "m[k]", "[E0224]"),
+        ("LS2", "m[k]", "[E0224]"),
+        ("SBag", "m[k]", "[E0224]"),
+        ("a.SBag", "m[k]", "[E0224]"),
+        ("is a.SBag", "m[k]", "[E0224]"),
+    ];
+    for (spelling, read, code) in cases {
+        let read = match read.starts_with('$') {
+            true => format!("\"{read}\""),
+            false => read.to_string(),
+        };
+        let body = match spelling.strip_prefix("is ") {
+            Some(t) => format!(
+                "pub fn f(m: unknown, k: string) -> string {{\n  return match m {{\n    is {t} => {read},\n    else => \"\",\n  }}\n}}\n"
+            ),
+            None => format!("pub fn f(m: {spelling}, k: string) -> string {{\n  return {read}\n}}\n"),
+        };
+        let b = format!("module b\n\nimport a {{ Bag, SBag }}\nimport a\n\n{local}{body}");
+        let root = unique_tmp("g415");
+        let src = root.join("src");
+        write_file(&src, "a.glyph", G415_A);
+        write_file(&src, "b.glyph", &b);
+        let report = build_project_inner(&src, &root.join("dist"), false).expect("build runs");
+        let errors: Vec<&String> = report.diagnostics.iter().filter(|d| d.contains("Error")).collect();
+        assert!(
+            errors.len() == 1 && errors[0].contains(code),
+            "`{spelling}` should give exactly {code}: {:?}",
+            report.diagnostics
+        );
+    }
+}
+
 /// The sibling the G302 tests alias: a record and a union.
 const G302_A: &str = "module a\n\npub type Doc = {\n  title: string,\n}\n\n\
      pub type Shape =\n  | Circle(number)\n  | Square(number)\n  | Point\n";

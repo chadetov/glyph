@@ -26141,9 +26141,7 @@ fn f(a: Answer) -> number {
                 "{from} -> {to}"
             );
         }
-        for (from, to) in [("string", "Weak")] {
-            assert_eq!(assignability_of(IFACES, from, to), Assignability::NoRule, "{from} -> {to}");
-        }
+        assert_eq!(assignability_of(IFACES, "string", "Weak"), Assignability::NoRule, "string -> Weak");
     }
 
     /// G263 (record 182). The bound is compared by the relation as it is,

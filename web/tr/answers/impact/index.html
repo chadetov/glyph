@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","item":"https://glyphlang.io/tr/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/impact/#article","headline":"Derleyici bir değişikliğin neyi bozacağını söyleyebilir mi?","description":"glyph_impact, değiştirmek üzere olduğunuz tanımı ve düzenlemeyi alır; dosyaya dokunmadan önce her yer için bir hüküm ve bir gerekçeyle yanıt verir.","url":"https://glyphlang.io/tr/answers/impact/","inLanguage":"tr","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -409,6 +409,7 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Bu sayfa bir çeviridir. Referans alınan sürüm İngilizce sürümdür. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28tr%29%3A+%2Ftr%2Fanswers%2Fimpact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Ftr%2Fanswers%2Fimpact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fimpact%2F%0A%0AWhat+is+wrong%3A%0A">Çeviriyle ilgili bir sorun bildir</a></p>
+      <p class="i18n-stale">Bu sayfanın İngilizce sürümü, bu çeviri yapıldıktan sonra değişti. <a href="/answers/impact/" hreflang="en" data-lang="en">Güncel İngilizce sürümü oku</a></p>
     </div>
     <script>
       (function () {
@@ -532,9 +533,11 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"</span>
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"</span>
     }
   ]
 }</pre>
@@ -637,7 +640,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.184 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-23">23 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.184 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-24">24 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <a href="/tr/answers/binary/">
           <span class="dir">&larr; Önceki</span>

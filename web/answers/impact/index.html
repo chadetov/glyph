@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can the compiler tell me what a change will break?","item":"https://glyphlang.io/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/impact/#article","headline":"Can the compiler tell me what a change will break?","description":"glyph_impact takes the declaration you are about to change and the edit, and answers with a verdict and a reason for every site, before you touch the file.","url":"https://glyphlang.io/answers/impact/","inLanguage":"en","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Can the compiler tell me what a change will break?","item":"https://glyphlang.io/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/impact/#article","headline":"Can the compiler tell me what a change will break?","description":"glyph_impact takes the declaration you are about to change and the edit, and answers with a verdict and a reason for every site, before you touch the file.","url":"https://glyphlang.io/answers/impact/","inLanguage":"en","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -546,9 +546,11 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"</span>
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"</span>
     }
   ]
 }</pre>
@@ -561,8 +563,10 @@
             This mirrors the compiler's
             own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>
             in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and
-            checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the
-            compiler stays silent at the other two.
+            checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would and that the
+            compiler stays silent at the <code>UNDETERMINED</code> one. The <code>NOT_INDEXED</code>
+            value read gets E0204 from the checker since 0.1.185, which compares a function value with
+            the type it is stored as; impact does not follow the value there yet.
           </p>
         </div></details>
       </figure>
@@ -680,7 +684,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed <time datetime="2026-11-23">23 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed <time datetime="2026-11-24">24 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/binary/">
           <span class="dir">&larr; Previous</span>

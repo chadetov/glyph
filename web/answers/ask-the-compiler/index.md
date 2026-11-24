@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/ask-the-compiler/, generated from the same source as the page. Last changed 2026-11-22. -->
+<!-- Markdown copy of https://glyphlang.io/answers/ask-the-compiler/, generated from the same source as the page. Last changed 2026-11-24. -->
 
 22 · Ask the compiler
 
@@ -110,7 +110,7 @@ WILL_FAIL COMPATIBLE UNDETERMINED
 
 Each side is a `module::name` or a Glyph type spelling, read in the scope of the file you name, and the verdict says which of three things happened.
 
-The word is `COMPATIBLE`, not `SAFE`, and the difference is worth a sentence. `SAFE` is `glyph_impact`'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is `UNDETERMINED`, claimed whenever no rule covers the pairing: two function types come back that way, because the relation underneath compares the returns and says nothing about the parameters. Its silence there is not an acceptance, and the tool won't report it as one.
+The word is `COMPATIBLE`, not `SAFE`, and the difference is worth a sentence. `SAFE` is `glyph_impact`'s word, and it means a particular site stays correct after a particular edit. This answer is about two types with no site and no edit in the question. The third verdict is `UNDETERMINED`, claimed whenever no rule covers the pairing. A function returning `void` where one returning a value is declared comes back that way, because the relation skips a `void` return. Its silence there is not an acceptance, and the tool won't report it as one. Two function types are otherwise compared in full since 0.1.185: by kind, by arity, by each parameter and by the return.
 
 ## The other direction: what does this depend on, and what does that module give me
 
@@ -183,4 +183,4 @@ All of that is asked before an edit. After one, the compiler answers in the othe
 
   `glyph_diagnostics` skips three checks `glyph check` makes: `tsc`, the `E0104` check for an import naming no module, which needs the build's view of `node_modules`, and `E0400` for a failing `@example`, which needs the emitted project run. It names all three in `not_run` instead of answering as though it had.
 
-Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 22 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 24 Nov 2026.

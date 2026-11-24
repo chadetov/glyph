@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли компилятор сказать, что сломает изменение?","item":"https://glyphlang.io/ru/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/impact/#article","headline":"Может ли компилятор сказать, что сломает изменение?","description":"glyph_impact принимает объявление, которое вы собираетесь изменить, и саму правку, и отвечает вердиктом с причиной для каждого места, ещё до того, как вы тронете файл.","url":"https://glyphlang.io/ru/answers/impact/","inLanguage":"ru","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/impact/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ru/answers/impact/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ru/"},{"@type":"ListItem","position":2,"name":"Ответы","item":"https://glyphlang.io/ru/answers/"},{"@type":"ListItem","position":3,"name":"Может ли компилятор сказать, что сломает изменение?","item":"https://glyphlang.io/ru/answers/impact/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ru/answers/impact/#article","headline":"Может ли компилятор сказать, что сломает изменение?","description":"glyph_impact принимает объявление, которое вы собираетесь изменить, и саму правку, и отвечает вердиктом с причиной для каждого места, ещё до того, как вы тронете файл.","url":"https://glyphlang.io/ru/answers/impact/","inLanguage":"ru","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ru/answers/impact/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/impact/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/impact/" />
@@ -409,6 +409,7 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fimpact%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fimpact%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fimpact%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
+      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/impact/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -532,9 +533,11 @@
       <span class="pk">"diagnostic"</span>: <span class="k">null</span>,
       <span class="pk">"because"</span>: <span class="s">"this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"</span>
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"</span>
     }
   ]
 }</pre>
@@ -637,7 +640,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.184 при каждой сборке. Последнее изменение: <time datetime="2026-11-23">23 ноя 2026</time>.</p>
+      <p class="page-stamp">Примеры кода на этой странице проверяются Glyph 0.1.184 при каждой сборке. Последнее изменение: <time datetime="2026-11-24">24 ноя 2026</time>.</p>
       <nav class="prevnext" aria-label="Назад и вперёд">
         <a href="/ru/answers/binary/">
           <span class="dir">&larr; Назад</span>

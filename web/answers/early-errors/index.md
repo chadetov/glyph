@@ -495,7 +495,7 @@ Every code
 
   **Details**
 
-  At a call, the wrong kind of function gets a help you can paste: a sync `tick` given to `task.detach` is told to pass `async fn() -> void { tick() }` or declare `async fn tick()`. An `async fn` bound to a `fn(...) -> void` in a `let`, returned, or stored in a field is refused too, but the message only says  expected `function`, found `async function`  and leaves the fix to you.
+  At a call, the wrong kind of function gets a help you can paste: a sync `tick` given to `task.detach` is told to pass `async fn() -> void { tick() }` or declare `async fn tick()`. An `async fn` bound to a `fn(...) -> void` in a `let`, returned, or stored in a field is refused too. The message prints both signatures and says which side is async (expected `fn(string) -> void`, found `async fn(string) -> void`: the function is `async` and the slot is not, so the slot gets a pending value) and leaves the fix to you.
 
 - A top-level `await` is allowed
 

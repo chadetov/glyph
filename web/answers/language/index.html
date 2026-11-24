@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-25","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/language/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"Is this a real language, or a toy with gaps?","item":"https://glyphlang.io/answers/language/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/language/#article","headline":"Is this a real language, or a toy with gaps?","description":"Module visibility, structural interfaces for generic bounds, defer, structured concurrency and match as a value, and the JavaScript semantics it inherits.","url":"https://glyphlang.io/answers/language/","inLanguage":"en","dateModified":"2026-11-26","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/language/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/language/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/language/" />
@@ -1010,6 +1010,12 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
           <code>bigint</code> validates <code>typeof === "bigint"</code> at the
           boundary, so an id sent as a JSON <code>number</code> is rejected rather
           than silently rounded past 2<sup>53</sup>.
+          The checker keeps <code>bigint</code> and <code>number</code> apart, and
+          <code>std/bigint</code> converts between them.
+          <code>bigint.from_number(n)</code> is an <code>Err</code> for a fraction,
+          <code>NaN</code> or an infinity, where <code>BigInt(1.5)</code> would
+          throw, and <code>bigint.to_number(b)</code> is an <code>Err</code> past
+          2<sup>53</sup>, where <code>Number(b)</code> would round without a word.
       </p>
 
       <h2 class="ak-h" id="an-async-callback-finally-has-a-type">An async callback finally has a type<a class="ak-anchor" href="#an-async-callback-finally-has-a-type" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
@@ -1213,7 +1219,7 @@ decimal(<span class="s">"9007199254740993"</span>)<span class="op">?.</span>add(
           </ul>
         </section>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed <time datetime="2026-11-25">25 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed <time datetime="2026-11-26">26 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <a href="/answers/state/">
           <span class="dir">&larr; Previous</span>

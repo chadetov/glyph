@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/answers/language/, generated from the same source as the page. Last changed 2026-11-25. -->
+<!-- Markdown copy of https://glyphlang.io/answers/language/, generated from the same source as the page. Last changed 2026-11-26. -->
 
 16 · Language completeness
 
@@ -318,7 +318,7 @@ decimal("9007199254740993")?.add(decimal("2")?)   # exact past 2^53
 
 ### Large whole numbers
 
-For exact large *whole* numbers, account ids and counters, there is the `bigint` type: literals are `123n`, it emits to a real TypeScript `bigint`, and a record field typed `bigint` validates `typeof === "bigint"` at the boundary, so an id sent as a JSON `number` is rejected rather than silently rounded past 253.
+For exact large *whole* numbers, account ids and counters, there is the `bigint` type: literals are `123n`, it emits to a real TypeScript `bigint`, and a record field typed `bigint` validates `typeof === "bigint"` at the boundary, so an id sent as a JSON `number` is rejected rather than silently rounded past 253. The checker keeps `bigint` and `number` apart, and `std/bigint` converts between them. `bigint.from_number(n)` is an `Err` for a fraction, `NaN` or an infinity, where `BigInt(1.5)` would throw, and `bigint.to_number(b)` is an `Err` past 253, where `Number(b)` would round without a word.
 
 ## An async callback finally has a type
 
@@ -505,4 +505,4 @@ Patterns
 
   Binding a field, or matching a tag with no payload in one, works in every case.
 
-Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed 25 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.197 on every build. Last changed 26 Nov 2026.

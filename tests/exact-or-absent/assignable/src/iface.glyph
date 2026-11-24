@@ -1,0 +1,28 @@
+module iface
+
+// A primitive where an interface is declared is compared through the value's
+// apparent members (G502): a `string` has a `length` and no `name`. `by_name`
+// is E0211 on purpose; `by_len` compiles, as `tsc` accepts it.
+pub interface HasName {
+  name: string
+}
+
+pub interface HasLen {
+  length: number
+}
+
+pub fn named(h: HasName) -> number {
+  return 1
+}
+
+pub fn sized(h: HasLen) -> number {
+  return h.length
+}
+
+pub fn by_name(s: string) -> number {
+  return named(s)
+}
+
+pub fn by_len(s: string) -> number {
+  return sized(s)
+}

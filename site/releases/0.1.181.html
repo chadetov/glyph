@@ -1,0 +1,17 @@
+---
+version: 0.1.181
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: The arguments of a mut method call are checked
+---
+            <p><code>v.indexOf(5)</code> on an <code>Array&lt;string&gt;</code> was already refused, but <code>mut v.push(5)</code> on the same array passed <code>check --no-tsc</code>, and so did <code>mut v.fill("x", "a")</code>, <code>mut v.splice("a", 1)</code> and <code>mut v.unshift(5)</code>. The <code>mut</code> path was not skipping anything. The rows Glyph generates from TypeScript's library left these methods untyped, because they take a rest parameter, are overloaded, or return <code>this</code>.</p>
+
+            <p>The generated rows now carry rest parameters, merge an overload set when one of its overloads has a rest parameter and the merged signature accepts exactly what the overloads accept, and read <code>this</code> as the array type. So a <code>mut</code> method call is checked the way the same call in value position is: the argument count as E0213, and each argument against its parameter as E0211. <code>string.concat</code> checks each argument too (G492), and <code>array.concat</code> now returns <code>Array&lt;T&gt;</code>.</p>
+
+            <p>A comparator passed to <code>sort</code> or <code>toSorted</code> is refused when it takes more than two parameters or returns something that is not a number, with both signatures in the message. Its parameter types are compared from 0.1.185. E0213's help now gives the range a built-in method accepts ("Pass from 2 to 3 arguments") instead of saying Glyph has no optional parameters, which was wrong for these.</p>
+
+            <p>A receiver the checker cannot type is still not judged, and <code>xs.concat(["a"])</code> on an <code>Array&lt;number&gt;</code> still passes (G521).</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>mut v.push(5)</code> on an <code>Array&lt;string&gt;</code> exits 0 under 0.1.180's <code>check --no-tsc</code> and 1 under 0.1.181. Every new refusal is one <code>tsc</code> makes. Across the 375 programs the corpus script measures, the output is identical to 0.1.180.</p>

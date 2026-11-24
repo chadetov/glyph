@@ -35,7 +35,7 @@ use crate::ty::{
     builtin_string_literal_union_decl, builtin_union, field_owner_display, ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive,
     RecordField, SymbolRef, Ty, UnionRef, UnionVariant,
 };
-use crate::builtin_members::{MethodSig, MethodTy};
+use crate::builtin_members::{MethodParam, MethodSig, MethodTy};
 use crate::type_map::{IdentPattern, TypeMap};
 use crate::{
     MutPlaceOrigin, Accepted, AlternativesKind, BuiltinReceiver, CaseBindShape, DestructureRefusal, DiagnosticDecl, MutationSite, PropsRefusal,
@@ -1322,6 +1322,12 @@ struct Assigner<'a> {
     /// the member's span, for E0244 (G389): the member arm finds it and the
     /// call reports it, with the arguments the help needs.
     deprecated_callees: HashMap<Span, (&'static str, crate::builtin_members::Deprecated)>,
+    /// A built-in method with a rest parameter standing as a call's callee,
+    /// keyed by the member's span, with its receiver's element type (G492).
+    /// A Glyph function type has no rest parameter, so the member is typed
+    /// `Unknown` and the call arm types the callee from this for the number
+    /// of arguments it passes.
+    rest_callees: HashMap<Span, (MethodSig, Ty)>,
     /// How many `${}` interpolations the walk is inside. A `glyph fix`
     /// rewrite that writes a multi-line `match` declines there, and the
     /// help hoists the `match` into a `let` (record 159, B1).
@@ -1547,6 +1553,7 @@ impl<'a> Assigner<'a> {
             mut_call: None,
             coalesce_defaults: HashMap::new(),
             deprecated_callees: HashMap::new(),
+            rest_callees: HashMap::new(),
             template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,
@@ -3342,7 +3349,12 @@ impl Assigner<'_> {
                                     });
                                     Ty::Unknown
                                 }
-                                Some((_, m)) => builtin_method_ty(&m.sig, &elem, |t| self.array_ty(t)),
+                                Some((_, m)) => {
+                                    if matches!(m.sig, MethodSig::Rest { .. }) {
+                                        self.rest_callees.insert(*span, (m.sig, elem.clone()));
+                                    }
+                                    builtin_method_ty(&m.sig, &elem, |t| self.array_ty(t))
+                                }
                                 None => self
                                     .stdlib_member_ty(object, field)
                                     .or_else(|| self.descriptor_member_ty(object, field))
@@ -3529,7 +3541,12 @@ impl Assigner<'_> {
                 // Clone the callee's signature so the borrow of `self.tm` ends
                 // before the per-argument checks (which read `self.tm` and push
                 // to `self.errors`).
-                let callee_ty = self.tm.get(callee.span()).clone();
+                // A built-in method with a rest parameter takes as many
+                // arguments as the call passes (G492).
+                let callee_ty = match self.rest_callees.get(&callee.span()) {
+                    Some((sig, elem)) => builtin_rest_ty(sig, elem, args.len(), |t| self.array_ty(t)),
+                    None => self.tm.get(callee.span()).clone(),
+                };
                 // `T.parse<A>(v)` on a generic record: the member alone has no
                 // signature (its descriptor arity depends on the parameters),
                 // so the instantiation is read from the call's own type args.
@@ -3558,6 +3575,11 @@ impl Assigner<'_> {
                     // the ceiling.
                     let required = params.iter().filter(|p| !p.optional).count();
                     if args.len() < required || args.len() > params.len() {
+                        // A rest parameter has no ceiling, so only the floor
+                        // is ever missed there.
+                        let rest = self.rest_callees.contains_key(&callee.span());
+                        let takes = (rest || required < params.len())
+                            .then(|| (required, (!rest).then_some(params.len())));
                         self.errors.push(TypeError::ArgumentCountMismatch {
                             expected: if args.len() < required {
                                 required
@@ -3565,6 +3587,7 @@ impl Assigner<'_> {
                                 params.len()
                             },
                             found: args.len(),
+                            takes,
                             span: *span,
                         });
                     }
@@ -3727,6 +3750,10 @@ impl Assigner<'_> {
                         // A built-in method row types its callback `unknown`
                         // and binds nothing from it; its result is the row's.
                         if let Some(e) = self.builtin_slot_kind_refusal(callee, args, i, a, &found) {
+                            self.errors.push(e);
+                            continue;
+                        }
+                        if let Some(e) = self.builtin_comparator_refusal(callee, args, i, a) {
                             self.errors.push(e);
                             continue;
                         }
@@ -8835,6 +8862,53 @@ impl Assigner<'_> {
         })
     }
 
+    /// E0211 for a comparator passed to `sort` or `toSorted` on an
+    /// `Array<T>` that takes more than the two elements it is called with, or
+    /// whose return is not a `number` (G505). TypeScript declares the slot
+    /// `(a: T, b: T) => number`, and `builtin_callback_slot` holds it; the
+    /// generated row types the parameter `unknown`, since a callback is not a
+    /// shape a row spells. The return is judged by the relation, so a
+    /// comparator whose return it cannot decide is left alone. The
+    /// comparator's own parameter types are not compared with `T` here: the
+    /// relation compares no function's parameters yet (G491).
+    fn builtin_comparator_refusal(&self, callee: &Expr, args: &[Expr], index: usize, arg: &Expr) -> Option<TypeError> {
+        let Expr::Member { field, .. } = callee else {
+            return None;
+        };
+        if !matches!(field.as_ref(), "sort" | "toSorted") {
+            return None;
+        }
+        let slot = self.builtin_callback_slot(callee, args, index)?;
+        let found = self.tm.get(arg.span()).clone();
+        let (Ty::Fn { params: fparams, .. }, Ty::Fn { params: sparams, .. }) = (&found, &slot) else {
+            return None;
+        };
+        let required = fparams.iter().filter(|p| !p.optional).count();
+        let elem = sparams.first().map(|p| ty_display(&p.ty)).unwrap_or_default();
+        let help = match required > sparams.len() {
+            true => format!(
+                "A comparator is called with two elements, and this one takes {required}. Write it with two parameters: `fn(a: {elem}, b: {elem}) -> number`."
+            ),
+            false => {
+                self.value_refusal(arg, &found, &slot)?;
+                "A comparator returns a `number`: below zero when `a` sorts first, above zero when `b` does, and zero when they tie.".to_string()
+            }
+        };
+        Some(TypeError::ArgumentTypeMismatch {
+            expected: fn_signature_text(&slot),
+            found: fn_signature_text(&found),
+            accepted: None,
+            missing_fields: Vec::new(),
+            no_common_field: false,
+            children_between_tags: false,
+            sql_escape: false,
+            record_key: None,
+            unknown_value: false,
+            kind_help: Some(help),
+            span: arg.span(),
+        })
+    }
+
     /// The help for an argument that is the wrong kind of function, when the
     /// relation refuses it for that reason alone (record 144): a sync
     /// function where an async one is declared (G408), or an async callback
@@ -12050,13 +12124,64 @@ fn stdlib_variant_payload(ty: &Ty, variant: &Ident) -> Option<Ty> {
 /// The type of a built-in method read as a callee, from its generated row
 /// (G312): a function of the row's parameters and return type, with `elem`
 /// for the array's `T` and `array` building `Array<X>`. A row the mapping
-/// rules left untyped is `Unknown`, which the call arm leaves unchecked.
+/// rules left untyped is `Unknown`, which the call arm leaves unchecked. A
+/// row with a rest parameter is `Unknown` here too, since a function type
+/// cannot say one; the call arm types it with `builtin_rest_ty`.
 ///
 /// The type parameters are `None`, "not known", rather than an empty list:
 /// `map` and `flatMap` have TypeScript type parameters the row does not
 /// carry, so claiming none would refuse `xs.map<string>(f)`, which `tsc`
 /// accepts.
 fn builtin_method_ty(sig: &MethodSig, elem: &Ty, array: impl Fn(Ty) -> Ty) -> Ty {
+    let MethodSig::Typed { params, ret } = sig else {
+        return Ty::Unknown;
+    };
+    method_fn_ty(params.iter().copied(), *ret, elem, &array)
+}
+
+/// A function type written as Glyph spells one, `fn(string, string) ->
+/// number`, for a diagnostic that compares two of them. `ty_display` prints
+/// every function as `function`.
+fn fn_signature_text(ty: &Ty) -> String {
+    let Ty::Fn {
+        params,
+        return_ty,
+        is_async,
+        ..
+    } = ty
+    else {
+        return ty_display(ty);
+    };
+    let params: Vec<String> = params.iter().map(|p| ty_display(&p.ty)).collect();
+    let kw = if *is_async { "async fn" } else { "fn" };
+    format!("{kw}({}) -> {}", params.join(", "), ty_display(return_ty))
+}
+
+/// The type of a call's callee that is a built-in method with a rest
+/// parameter (G492): the row's fixed parameters, then one optional parameter
+/// of the rest's element type for each argument past them, so the call arm's
+/// arity and argument checks read it as any other signature. The required
+/// fixed parameters still set the floor. `Unknown` for any other row.
+fn builtin_rest_ty(sig: &MethodSig, elem: &Ty, args: usize, array: impl Fn(Ty) -> Ty) -> Ty {
+    let MethodSig::Rest { params, rest, ret } = sig else {
+        return Ty::Unknown;
+    };
+    let rest = MethodParam {
+        ty: *rest,
+        optional: true,
+    };
+    let extra = std::iter::repeat_n(rest, args.saturating_sub(params.len()));
+    method_fn_ty(params.iter().copied().chain(extra), *ret, elem, &array)
+}
+
+/// A function of a built-in method row's parameters and return type, with
+/// `elem` for the array's `T` and `array` building `Array<X>`.
+fn method_fn_ty(
+    params: impl Iterator<Item = MethodParam>,
+    ret: MethodTy,
+    elem: &Ty,
+    array: &dyn Fn(Ty) -> Ty,
+) -> Ty {
     fn lower(t: MethodTy, elem: &Ty, array: &dyn Fn(Ty) -> Ty) -> Ty {
         match t {
             MethodTy::Unknown => Ty::Unknown,
@@ -12068,20 +12193,16 @@ fn builtin_method_ty(sig: &MethodSig, elem: &Ty, array: impl Fn(Ty) -> Ty) -> Ty
             MethodTy::ArrayOf(inner) => array(lower(*inner, elem, array)),
         }
     }
-    let MethodSig::Typed { params, ret } = sig else {
-        return Ty::Unknown;
-    };
     Ty::Fn {
         params: params
-            .iter()
             .map(|p| FnParam {
                 name: None,
                 owned: false,
-                ty: lower(p.ty, elem, &array),
+                ty: lower(p.ty, elem, array),
                 optional: p.optional,
             })
             .collect(),
-        return_ty: Arc::new(lower(*ret, elem, &array)),
+        return_ty: Arc::new(lower(ret, elem, array)),
         is_async: false,
         type_params: None,
     }
@@ -20380,6 +20501,7 @@ component View(props: { s: Status }) -> Component {
             mut_call: None,
             coalesce_defaults: HashMap::new(),
             deprecated_callees: HashMap::new(),
+            rest_callees: HashMap::new(),
             template_depth: 0,
             absent_consumers: HashMap::new(),
             member_object: None,

@@ -114,10 +114,14 @@ console.log(JSON.stringify(out));
 # is the apparent type the member probe above reads names from.
 #
 # The rules are the ones `builtin_members.rs` documents above `BuiltinMethod`:
-# overloads, a `this` type, a type predicate or a rest parameter leave the whole
-# method untyped with the reason; any position outside the closed set below is
-# `Unknown`. A `this` return reads as `T[]` once the checker has resolved it, so
-# it is found in the declaration's syntax, not in the resolved type.
+# overloads, a `this` type, or a type predicate leave the whole method untyped
+# with the reason; any position outside the closed set below is `Unknown`. A
+# rest parameter is the row's `rest`, its element type mapped like any other
+# position (G492). A set of overloads holding a rest parameter is merged into
+# one row when the merge is exact, which `mergeSigs` states. An `Array<T>`
+# method whose only `this` is its return type (`fill`, `sort`) returns `T[]`.
+# A `this` return reads as `T[]` once the checker has resolved it, so it is
+# found in the declaration's syntax, not in the resolved type.
 METHOD_PROBE = r"""
 const ts = require(process.argv[1]);
 const file = "probe.ts";
@@ -181,31 +185,94 @@ function methods(name) {
       const r = checker.getReturnTypeOfSignature(s);
       return (r.isUnion() ? r.types : [r]).some((u) => u.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null));
     });
+    const read = readSig(sig);
+    if (sigs.length > 1) {
+      // Overloads are TypeScript's to resolve, with one exception: a set
+      // holding a rest parameter (`splice`) is merged into one row when the
+      // merge accepts exactly the calls the overloads accept between them.
+      const merged = sigs.some((s) => s.declaration.parameters.some((q) => q.dotDotDotToken)) && mergeSigs(sigs);
+      out[n] = merged ? { ...merged, absent, deprecated } : { untyped: "Overloads", absent, deprecated };
+      continue;
+    }
+    out[n] = { ...read, absent, deprecated };
+  }
+  return out;
+  // One signature as a row: its parameters, its rest parameter's element
+  // type when it has one (G492), and its return, or the reason it is left
+  // untyped. A `this` return is the receiver's own type, which for
+  // `Array<T>` is `T[]` (`fill`, `sort`); a `this` anywhere else is untyped.
+  function readSig(sig) {
     const decl = sig.declaration;
-    let untyped = null;
-    if (sigs.length > 1) untyped = "Overloads";
-    else if (sig.thisParameter || hasThisType(decl)) untyped = "ThisType";
-    else if (checker.getTypePredicateOfSignature(sig)) untyped = "Predicate";
-    else if (decl.parameters.some((q) => q.dotDotDotToken)) untyped = "RestParameter";
-    if (untyped) { out[n] = { untyped, absent, deprecated }; continue; }
-    const params = sig.getParameters().map((q, i) => {
+    const thisReturn = !!decl.type && decl.type.kind === ts.SyntaxKind.ThisType
+      && !decl.parameters.some(hasThisType) && name === "Array";
+    if (sig.thisParameter || (hasThisType(decl) && !thisReturn)) return { untyped: "ThisType" };
+    if (checker.getTypePredicateOfSignature(sig)) return { untyped: "Predicate" };
+    let rest = null;
+    const params = [];
+    sig.getParameters().forEach((q, i) => {
       const pd = decl.parameters[i];
+      if (pd.dotDotDotToken) {
+        const t = checker.getTypeOfSymbol(q);
+        rest = checker.isArrayType(t) ? map(checker.getTypeArguments(t)[0]) : "Unknown";
+        return;
+      }
       const optional = !!(pd.questionToken || pd.initializer);
       let t = checker.getTypeOfSymbol(q);
       // Under `strict` an optional parameter's type carries `undefined`; the
       // row says optional instead, so the `undefined` is dropped and what is
       // left is mapped. `boolean` is itself the union `true | false`.
       if (optional && t.isUnion()) {
-        const rest = t.types.filter((u) => !(u.flags & ts.TypeFlags.Undefined));
-        if (rest.length === 1) t = rest[0];
-        else if (rest.length > 0 && rest.every((u) => u.flags & ts.TypeFlags.BooleanLiteral)) return { ty: "Bool", optional };
-        else return { ty: "Unknown", optional };
+        const left = t.types.filter((u) => !(u.flags & ts.TypeFlags.Undefined));
+        if (left.length === 1) t = left[0];
+        else if (left.length > 0 && left.every((u) => u.flags & ts.TypeFlags.BooleanLiteral)) {
+          params.push({ ty: "Bool", optional });
+          return;
+        } else {
+          params.push({ ty: "Unknown", optional });
+          return;
+        }
       }
-      return { ty: map(t), optional };
+      params.push({ ty: map(t), optional });
     });
-    out[n] = { params, ret: map(checker.getReturnTypeOfSignature(sig)), absent, deprecated };
+    const ret = thisReturn ? "ArrayOf(Elem)" : map(checker.getReturnTypeOfSignature(sig));
+    return rest === null ? { params, ret } : { params, rest, ret };
   }
-  return out;
+  // The overloads as one row, or null. Each must read as a row and declare
+  // no type parameter of its own; the argument counts they accept must join
+  // into one unbroken range, so a count none of them accepts is never let
+  // through or refused by the merge alone; and a position, the rest element
+  // and the return keep a type only where every overload that has one agrees
+  // on it, and are `Unknown` otherwise. A call the merged row refuses is then
+  // refused by every overload whose count it fits.
+  function mergeSigs(sigs) {
+    const rows = [];
+    for (const s of sigs) {
+      if (s.typeParameters && s.typeParameters.length) return null;
+      const r = readSig(s);
+      if (r.untyped) return null;
+      rows.push(r);
+    }
+    const counts = rows
+      .map((r) => [r.params.filter((q) => !q.optional).length, r.rest ? Infinity : r.params.length])
+      .sort((a, b) => a[0] - b[0]);
+    let reach = counts[0][1];
+    for (const [lo, hi] of counts.slice(1)) {
+      if (lo > reach + 1) return null;
+      reach = Math.max(reach, hi);
+    }
+    const floor = counts[0][0];
+    const agree = (tys) => (tys.every((t) => t === tys[0]) ? tys[0] : "Unknown");
+    const width = Math.max(...rows.map((r) => r.params.length));
+    const params = [];
+    for (let i = 0; i < width; i++) {
+      const at = rows.map((r) => (i < r.params.length ? r.params[i].ty : r.rest)).filter((t) => t);
+      params.push({ ty: agree(at), optional: i >= floor });
+    }
+    const rests = rows.filter((r) => r.rest).map((r) => r.rest);
+    const merged = { params, ret: agree(rows.map((r) => r.ret)) };
+    if (rests.length) merged.rest = agree(rests);
+    return merged;
+  }
 }
 const object = methods("Object");
 const result = { version: ts.version };
@@ -793,7 +860,7 @@ def render_methods(got: dict) -> str:
         "//! member's `@deprecated` tag, read off the declarations (G389, E0244), with",
         "//! the script's `DEPRECATED_REPLACEMENT` entry for what to write instead.",
         "",
-        "use crate::builtin_members::MethodSig::{Typed, Untyped};",
+        "use crate::builtin_members::MethodSig::{Rest, Typed, Untyped};",
         "use crate::builtin_members::MethodTy as T;",
         "use crate::builtin_members::Replacement as R;",
         "use crate::builtin_members::Untyped as U;",
@@ -806,6 +873,11 @@ def render_methods(got: dict) -> str:
             row = got[kind][name]
             if "untyped" in row:
                 sig = f"Untyped(U::{row['untyped']})"
+            elif "rest" in row:
+                params = ", ".join(
+                    f"{'opt' if p['optional'] else 'req'}({rust_ty(p['ty'])})" for p in row["params"]
+                )
+                sig = f"Rest {{ params: &[{params}], rest: {rust_ty(row['rest'])}, ret: {rust_ty(row['ret'])} }}"
             else:
                 params = ", ".join(
                     f"{'opt' if p['optional'] else 'req'}({rust_ty(p['ty'])})" for p in row["params"]

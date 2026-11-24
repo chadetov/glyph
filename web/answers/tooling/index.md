@@ -27,7 +27,7 @@ A real one. The compiler ships a language server you launch as `glyph lsp`, whic
 
 The bundled VS Code extension is a thin client around it, but nothing is VS-Code-specific: point **any** LSP-capable editor, Neovim, Helix, Zed, Emacs (eglot), at `glyph lsp` and it behaves the same.
 
-It's the same binary you already installed (`npx @glyphlang/glyph lsp`), so there's no separate server to fetch.
+It's the same binary you already installed (`npx @glyphlang/glyph lsp`), so there's no separate server to fetch. [Editors and integrations](https://glyphlang.io/tooling/) has the install steps and the config for VS Code, Neovim, Helix and Emacs.
 
 ### What the server implements
 

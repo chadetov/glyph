@@ -1,7 +1,7 @@
 ---
 title: Editör, debug ve hata deneyimi nasıl? · Glyph
 description: Her editör için bir dil sunucusu, bir VS Code eklentisi, kararlı kodlu hata mesajları ve glyph --explain. Debug işlemini Glyph'in ürettiği okunabilir TypeScript üzerinde yaparsınız.
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; Önceki | Ajanımın okuduğu dokümantasyon üretiliyor mu, yoksa elle yazılmış ve güncelliğini yitirmiş mi?
 next: /answers/early-errors/ | Sonraki &rarr; | Glyph neden tsc'nin yakaladıklarını daha erken yakalıyor?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | Sonraki &rarr; | Glyph neden tsc'nin yakaladıkla
       <h1 class="q-title">Editör, debug ve hata deneyimi nasıl?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code>, stdio üzerinden Language Server Protocol konuşur; böylece LSP istemcisi olan her editör diagnostic'leri, hover tiplerini, tanıma gitmeyi, tamamlamayı ve kaydederken biçimlendirmeyi alır. Depoda bir VS Code eklentisi var; henüz Marketplace'te değil, bu yüzden onu kaynaktan build edersiniz. Her hata kararlı bir kod, düzeltmeyi ve nedenini taşır.
+        <code>glyph lsp</code>, stdio üzerinden Language Server Protocol konuşur; böylece LSP istemcisi olan her editör diagnostic'leri, hover tiplerini, tanıma gitmeyi, tamamlamayı ve kaydederken biçimlendirmeyi alır. VS Code eklentisi Marketplace'te <code>chadetov.glyph-vscode</code> olarak yayında. Her hata kararlı bir kod, düzeltmeyi ve nedenini taşır.
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | Sonraki &rarr; | Glyph neden tsc'nin yakaladıkla
         Paketle gelen VS Code eklentisi onun etrafında ince bir istemcidir, ama hiçbir şey VS Code'a özgü değildir: LSP destekleyen <strong>herhangi bir</strong> editörü (Neovim, Helix, Zed, Emacs (eglot)) <code>glyph lsp</code>'ye yönlendirin, aynı şekilde davranır.
       </p></div>
       <p>
-        Zaten kurduğunuz binary ile aynıdır (<code>npx @glyphlang/glyph lsp</code>), yani ayrıca indirilecek bir sunucu yoktur.
+        Zaten kurduğunuz binary ile aynıdır (<code>npx @glyphlang/glyph lsp</code>), yani ayrıca indirilecek bir sunucu yoktur. VS Code, Neovim, Helix ve Emacs için kurulum adımları ve yapılandırma <a href="/tooling/">Editörler ve entegrasyonlar</a> sayfasında.
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">Sunucunun uyguladıkları<a class="ak-anchor" href="#what-the-server-implements" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

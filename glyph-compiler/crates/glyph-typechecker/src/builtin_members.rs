@@ -10,9 +10,10 @@
 //! record is E0210 with the record's fields listed.
 //!
 //! The lists are the property names of TypeScript's apparent type for
-//! `string[]`, `string` and `number` under `lib: ["esnext", "dom"]`, plus the members
-//! every object inherits from `Object` (`hasOwnProperty`, `constructor`, ...),
-//! which `tsc` also accepts on both. Read with TypeScript 6.0.3's checker API
+//! `string[]`, `string`, `number` and `boolean` under `lib: ["esnext", "dom"]`, plus
+//! the members every object inherits from `Object` (`hasOwnProperty`,
+//! `constructor`, ...), which `tsc` also accepts on each. The `boolean` list is
+//! read by the relation alone, to compare a `bool` with an interface (G502). Read with TypeScript 6.0.3's checker API
 //! (`getPropertiesOfType(getApparentType(t))`), not written from memory.
 //!
 //! The emitted tsconfig asks for `es2022` (`glyph-cli/src/runtime.rs`), and the
@@ -370,12 +371,67 @@ const NUMBER_MEMBERS: &[&str] = &[
     "valueOf",
 ];
 
+/// `bool`'s members: `Boolean.prototype` under `esnext` (only `valueOf`),
+/// plus `Object`'s. Read by one rule only: a `bool` compared with an
+/// interface through its apparent members (G502). A member read on a `bool`
+/// is not checked against this list (G507), so it is not a
+/// [`BuiltinReceiver`], and `has` and `method` below are its whole surface.
+const BOOLEAN_MEMBERS: &[&str] = &[
+    "constructor",
+    "hasOwnProperty",
+    "isPrototypeOf",
+    "propertyIsEnumerable",
+    "toLocaleString",
+    "toString",
+    "valueOf",
+];
+
+/// The apparent members of a `bool` (G502): what a JavaScript boolean has,
+/// for comparing one with an interface. Kept apart from [`BuiltinReceiver`]
+/// on purpose, because every reader of a `BuiltinReceiver` checks member
+/// reads, and a `bool`'s reads are not checked yet (G507).
+pub struct BooleanMembers;
+
+impl BooleanMembers {
+    /// Whether a JavaScript boolean has the member `name`.
+    pub fn has(name: &str) -> bool {
+        BOOLEAN_MEMBERS.binary_search(&name).is_ok()
+    }
+
+    /// The method `name`, with the signature generated from TypeScript's
+    /// library, when a boolean has a method by that name.
+    pub fn method(name: &str) -> Option<&'static BuiltinMethod> {
+        let methods = crate::builtin_methods::BOOLEAN_METHODS;
+        methods
+            .binary_search_by(|m| m.name.cmp(name))
+            .ok()
+            .map(|i| &methods[i])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// `has` binary-searches, so a list out of order answers "no member" for
     /// a member that is there: a false E0210 on correct code.
+    /// The `bool` list against its generated rows, as the test below holds
+    /// the other three: every member a method or `constructor`, every row a
+    /// member, and both sorted, since both are binary-searched.
+    #[test]
+    fn boolean_members_are_its_rows_and_constructor() {
+        assert!(BOOLEAN_MEMBERS.windows(2).all(|w| w[0] < w[1]));
+        let rows = crate::builtin_methods::BOOLEAN_METHODS;
+        assert!(rows.windows(2).all(|w| w[0].name < w[1].name));
+        for m in rows {
+            assert!(BooleanMembers::has(m.name), "`{}` is a row and not a member", m.name);
+            assert!(!m.mutates, "a boolean is immutable: `{}`", m.name);
+        }
+        for name in BOOLEAN_MEMBERS {
+            assert_eq!(BooleanMembers::method(name).is_some(), *name != "constructor", "`{name}`");
+        }
+    }
+
     #[test]
     fn member_lists_are_sorted_and_unique() {
         for r in [BuiltinReceiver::Array, BuiltinReceiver::String, BuiltinReceiver::Number] {

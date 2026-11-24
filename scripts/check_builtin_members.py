@@ -74,12 +74,12 @@ CI_TOOLS = ROOT / ".github/ci-tools"
 
 # The header sentence naming the TypeScript the lists were read with.
 HEADER_VERSION = re.compile(r"Read with TypeScript (\d+\.\d+\.\d+)")
-ARRAY_RE = re.compile(r"const (ARRAY|STRING|NUMBER)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
+ARRAY_RE = re.compile(r"const (ARRAY|STRING|NUMBER|BOOLEAN)_MEMBERS: &\[&str\] = &\[(.*?)\];", re.S)
 
 PROBE = r"""
 const ts = require(process.argv[1]);
 const file = "probe.ts";
-const text = "declare const a: string[];\ndeclare const s: string;\ndeclare const n: number;\n";
+const text = "declare const a: string[];\ndeclare const s: string;\ndeclare const n: number;\ndeclare const b: boolean;\n";
 const options = { lib: ["lib.esnext.d.ts", "lib.dom.d.ts"], strict: true, noEmit: true };
 const host = ts.createCompilerHost(options);
 const read = host.getSourceFile.bind(host);
@@ -93,7 +93,7 @@ for (const stmt of program.getSourceFile(file).statements) {
   const t = checker.getApparentType(checker.getTypeAtLocation(decl.name));
   // Symbol-keyed members (`[Symbol.iterator]`) have no name a `.` read can spell.
   const names = checker.getPropertiesOfType(t).map((p) => p.getName()).filter((n) => !n.startsWith("__@"));
-  out[{ a: "array", s: "string", n: "number" }[decl.name.text]] = names;
+  out[{ a: "array", s: "string", n: "number", b: "boolean" }[decl.name.text]] = names;
 }
 // `Object.prototype`'s own members, read the same way.
 const objFile = "obj.ts";
@@ -276,7 +276,7 @@ function methods(name) {
 }
 const object = methods("Object");
 const result = { version: ts.version };
-for (const [key, name] of [["array", "Array"], ["string", "String"], ["number", "Number"]]) {
+for (const [key, name] of [["array", "Array"], ["string", "String"], ["number", "Number"], ["boolean", "Boolean"]]) {
   result[key] = { ...object, ...methods(name) };
 }
 result.deprecatedProperties = [...new Set(deprecatedProperties)].sort();
@@ -290,11 +290,17 @@ console.log(JSON.stringify(result));
 # only as the whole call of a `mut` statement (E0240), and `mut` before a
 # non-mutating one is E0241, so a row in the wrong set is either a false
 # refusal or a write the `^\s*mut ` audit misses.
+# The four receivers. `boolean` is read for one rule only: a `bool` compared
+# with an interface through its apparent members (G502, decision record 196).
+# A member read on a `bool` is not checked against it (G507).
+KINDS = ("array", "string", "number", "boolean")
+
 MUTATING = {
     "array": {"copyWithin", "fill", "pop", "push", "reverse", "shift", "sort", "splice", "unshift"},
     # A string and a number are immutable primitives: no method can change one.
     "string": set(),
     "number": set(),
+    "boolean": set(),
 }
 OBJECT_METHODS = {
     "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "toLocaleString", "toString", "valueOf",
@@ -316,6 +322,7 @@ NON_MUTATING = {
         "trim", "trimEnd", "trimLeft", "trimRight", "trimStart",
     },
     "number": OBJECT_METHODS | {"toExponential", "toFixed", "toPrecision"},
+    "boolean": OBJECT_METHODS,
 }
 
 # The `Option` spelling of every method whose call can answer `undefined` or
@@ -339,6 +346,7 @@ ABSENT_REPLACEMENT = {
         "match": "regex.matches, or regex.captures for the groups",
     },
     "number": {},
+    "boolean": {},
 }
 
 
@@ -346,7 +354,7 @@ def absent_failures(got: dict) -> list[str]:
     """Every absent row has a replacement, every replacement an absent row,
     and only a mutating method is left to E0240."""
     failures = []
-    for kind in ("array", "string", "number"):
+    for kind in KINDS:
         absent = {name for name, row in got[kind].items() if row["absent"]}
         table = ABSENT_REPLACEMENT[kind]
         for name in sorted(absent - set(table)):
@@ -401,6 +409,7 @@ DEPRECATED_REPLACEMENT = {
         "trimRight": ("Rename", "trimEnd"),
     },
     "number": {},
+    "boolean": {},
 }
 
 # A tag that names its replacement says so as "Use `X` instead".
@@ -453,7 +462,7 @@ def deprecated_failures(got: dict) -> list[str]:
         f"`{p}` is a data property TypeScript marks @deprecated, and no row carries a data property's tag"
         for p in got.get("deprecatedProperties", [])
     ]
-    for kind in ("array", "string", "number"):
+    for kind in KINDS:
         tags = {name: row["deprecated"] for name, row in got[kind].items() if row.get("deprecated") is not None}
         table = DEPRECATED_REPLACEMENT[kind]
         for name in sorted(set(tags) - set(table)):
@@ -553,7 +562,7 @@ def classification_failures(got: dict) -> list[str]:
     """Every method in exactly one of `MUTATING` and `NON_MUTATING`, and the
     array split confirmed by running each method in node."""
     failures = []
-    for kind in ("array", "string", "number"):
+    for kind in KINDS:
         methods = set(got[kind])
         mut, pure = MUTATING[kind], NON_MUTATING[kind]
         for name in sorted(methods - mut - pure):
@@ -848,7 +857,7 @@ def render_methods(got: dict) -> str:
         "// @generated by `python3 scripts/check_builtin_members.py --write`. Do not edit:",
         "// CI renders this file again and fails when the committed copy differs.",
         "",
-        "//! The methods of a JavaScript array, string and number, with the signature",
+        "//! The methods of a JavaScript array, string, number and boolean, with the signature",
         f"//! TypeScript {got['version']}'s library (`lib: [\"esnext\", \"dom\"]`) declares for",
         "//! each, mapped by the rules `builtin_members.rs` documents above",
         "//! `BuiltinMethod` (G312). Sorted by name: `BuiltinReceiver::method`",
@@ -866,7 +875,7 @@ def render_methods(got: dict) -> str:
         "use crate::builtin_members::Untyped as U;",
         "use crate::builtin_members::{opt, req, BuiltinMethod, Deprecated};",
     ]
-    for kind in ("array", "string", "number"):
+    for kind in KINDS:
         lines.append("")
         lines.append(f"pub(crate) const {kind.upper()}_METHODS: &[BuiltinMethod] = &[")
         for name in sorted(got[kind]):
@@ -933,8 +942,8 @@ def main() -> int:
     table = {}
     for kind, body in ARRAY_RE.findall(src):
         table[kind.lower()] = re.findall(r'"([^"]+)"', body)
-    if set(table) != {"array", "string", "number"}:
-        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS, STRING_MEMBERS and NUMBER_MEMBERS.")
+    if set(table) != set(KINDS):
+        print(f"{TABLE.relative_to(ROOT)}: could not find ARRAY_MEMBERS, STRING_MEMBERS, NUMBER_MEMBERS and BOOLEAN_MEMBERS.")
         return 1
 
     r = subprocess.run(
@@ -957,7 +966,7 @@ def main() -> int:
             f"the table's header says it was read with TypeScript {header.group(1)}, "
             f"and this is {got['version']}: re-read the lists and update the header."
         )
-    for kind in ("array", "string", "number"):
+    for kind in KINDS:
         want = set(got[kind]) | set(got["object"])
         have = set(table[kind])
         missing = sorted(want - have)
@@ -1023,8 +1032,8 @@ def main() -> int:
             print("  " + f)
         return 1
     print(
-        f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string and "
-        f"{len(table['number'])} number members match TypeScript {got['version']} "
+        f"builtin members OK: {len(table['array'])} array, {len(table['string'])} string, "
+        f"{len(table['number'])} number and {len(table['boolean'])} boolean members match TypeScript {got['version']} "
         f"(esnext + dom, with Object's), every method is classified mutating or not and node "
         f"agrees on the array split, every absent-returning method has an `Option` spelling, "
         f"every deprecated method has a replacement that node confirms, "

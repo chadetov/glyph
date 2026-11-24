@@ -212,7 +212,7 @@ pub enum ResolveError {
         path: String,
         under: Option<String>,
         use_instead: String,
-        use_is_project_module: bool,
+        use_has_exports: bool,
         reason: Option<String>,
         span: Span,
     },
@@ -318,8 +318,8 @@ impl ResolveError {
 
     /// A one-line, actionable fix.
     pub fn help(&self) -> Option<std::borrow::Cow<'static, str>> {
-        if let ResolveError::BannedImport { use_instead, use_is_project_module, .. } = self {
-            return Some(crate::import_policy::banned_import_help(use_instead, *use_is_project_module));
+        if let ResolveError::BannedImport { use_instead, use_has_exports, .. } = self {
+            return Some(crate::import_policy::banned_import_help(use_instead, *use_has_exports));
         }
         self.static_help().map(std::borrow::Cow::Borrowed)
     }

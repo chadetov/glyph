@@ -57,8 +57,10 @@ Each entry maps a banned path to an object:
 - **The key** is an import path as written after `import`: an npm package
   (`axios`, `@aws-sdk/client-s3`), a standard-library module (`std/fs`), or a
   module of the project (`db/raw`). It bans that path and every path under it,
-  so `axios` bans `axios/lib/core`, and does not ban `axios-retry`. A key can't
-  be empty, end in `/`, or contain a space or `*`.
+  so `axios` bans `axios/lib/core`, and does not ban `axios-retry`. A scoped
+  package is written `@scope/pkg`, and a Node builtin by its bare name (`fs`),
+  the way Glyph imports it. A key can't be empty, end in `/`, or contain a space
+  or `*`.
 - **`use`** (required) is the import to write instead. A project module or a
   `std/` module must exist. An npm package must be listed in this
   `package.json`'s dependencies; it does not have to be installed. `use` can't
@@ -86,7 +88,9 @@ project (it is under `axios`) ``. When the package isn't installed either, the
 ban is the only error you get, because "install axios" would be the wrong
 advice.
 
-The help names the replacement and where the ban is set. It doesn't mention
+The help names the replacement and where the ban is set, and when the
+replacement is a project or `std/` module it adds the `glyph query exports`
+line that lists what it offers. It doesn't mention
 `allow_in`: the error is read by whoever wrote the import, often an agent, and
 telling it how to lift the ban would defeat the ban. Whoever owns
 `package.json` already knows.
@@ -107,7 +111,7 @@ let client = extern_ts("require('axios')")   // E0115
 ```
 
 Single quotes, double quotes and a backtick string without `${` are all read,
-in both the expression and the type form.
+in both the expression and the type form. A `node:fs` there counts as `fs`.
 
 ### What a ban can't see
 

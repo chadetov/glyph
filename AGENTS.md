@@ -1804,6 +1804,7 @@ such as `banned_import` would otherwise switch the policy off without a word.
 A ban's key is an import path as written after `import`: an npm package
 (scoped included), a `std/` module, or a project module. It bans that path and
 every path under it, so `axios` bans `axios/lib/core` and not `axios-retry`.
+A Node builtin is keyed by its bare name (`fs`), as Glyph imports it.
 `use` is required and names the replacement, which may always import the banned
 path. `reason` is one line, quoted in the error. `allow_in` lists other modules
 that may import it; an entry ending in `/` covers a directory.

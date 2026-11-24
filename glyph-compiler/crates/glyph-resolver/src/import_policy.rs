@@ -41,9 +41,10 @@ pub struct ImportBan {
     pub key: String,
     /// The import to write instead.
     pub use_instead: String,
-    /// Whether `use_instead` is a module of this project, which is what makes
-    /// `glyph query exports --module` an answer worth pointing at.
-    pub use_is_project_module: bool,
+    /// Whether `glyph query exports --module` answers for `use_instead`: a
+    /// module of this project or a `std/` module. An npm package is not one
+    /// it covers, so the help leaves the hint off for it (record 205).
+    pub use_has_exports: bool,
     /// One line, quoted verbatim in the error.
     pub reason: Option<String>,
     /// Project modules that may import it, beyond `use_instead`. An entry
@@ -139,6 +140,12 @@ pub fn verify_banned_imports(
     }
     for (raw, span) in extern_ts_bodies(source) {
         for specifier in quoted_strings(&raw) {
+            // Glyph writes a Node builtin by its bare name (`import fs`), so
+            // a ban's key is `fs`; raw TypeScript may spell it `node:fs`.
+            let specifier = specifier
+                .strip_prefix("node:")
+                .map(str::to_string)
+                .unwrap_or(specifier);
             if let Some(ban) = policy.refusal(&specifier, module_path) {
                 errors.push(banned(specifier, ban, span));
             }
@@ -180,7 +187,7 @@ fn banned(path: String, ban: &ImportBan, span: Span) -> ResolveError {
         under: (path != ban.key).then(|| ban.key.clone()),
         path,
         use_instead: ban.use_instead.clone(),
-        use_is_project_module: ban.use_is_project_module,
+        use_has_exports: ban.use_has_exports,
         reason: ban.reason.clone(),
         span,
     }
@@ -304,9 +311,9 @@ pub(crate) fn banned_import_message(path: &str, under: Option<&str>, reason: Opt
 /// `E0115`'s help. It names the replacement and where the ban is set, and
 /// deliberately not `allow_in`: telling the agent how to lift the ban defeats
 /// it, and the person who owns `package.json` already knows.
-pub(crate) fn banned_import_help(use_instead: &str, use_is_project_module: bool) -> Cow<'static, str> {
+pub(crate) fn banned_import_help(use_instead: &str, use_has_exports: bool) -> Cow<'static, str> {
     let tail = "The ban is set in `glyph.banned_imports` in package.json.";
-    if use_is_project_module {
+    if use_has_exports {
         Cow::Owned(format!(
             "import `{use_instead}` instead; `glyph query exports --module {use_instead}` lists what it offers. {tail}"
         ))
@@ -357,8 +364,8 @@ pub struct GlyphConfigRead {
 /// `glyph publish`'s review-currency policy (Q22).
 pub const GLYPH_KEYS: [&str; 4] = ["src", "banned_imports", "imports", "audit"];
 const BAN_FIELDS: [&str; 3] = ["use", "reason", "allow_in"];
-const IMPORT_AUDIT_FIELDS: [&str; 2] = ["audit", "last_reviewed"];
-const AUDIT_POLICY_FIELDS: [&str; 2] = ["max_age_months", "enforce"];
+pub const IMPORT_AUDIT_FIELDS: [&str; 2] = ["audit", "last_reviewed"];
+pub const AUDIT_POLICY_FIELDS: [&str; 2] = ["max_age_months", "enforce"];
 const AUDIT_KINDS: [&str; 3] = ["first-party", "third-party", "internal"];
 const DEPENDENCY_KEYS: [&str; 4] = [
     "dependencies",
@@ -494,16 +501,15 @@ fn read_bans(
                         continue;
                     };
                     let is_project = (facts.project_module)(u);
-                    if let Some(problem) = use_problem(u, is_project, facts, declared) {
+                    if let Some((problem, help)) = use_problem(u, is_project, facts, declared) {
                         read.errors.push(ConfigError {
                             span: f.value.span,
                             message: format!("`{field_at}` names `{u}`, {problem}"),
-                            help: Some(
-                                "`use` is a module of this project, written by its path under the source root (`http/client` for `src/http/client.glyph`), a `std/` module, or a package listed in this package.json's dependencies.".to_string(),
-                            ),
+                            help: Some(help.to_string()),
                         });
                     }
-                    use_instead = Some((u.clone(), is_project, f.value.span));
+                    let has_exports = is_project || (u.starts_with("std/") && (facts.std_module)(u));
+                    use_instead = Some((u.clone(), has_exports, f.value.span));
                 }
                 "reason" => match &f.value.value {
                     json::Value::String(r) if !r.contains('\n') && !r.contains('\r') => {
@@ -558,12 +564,12 @@ fn read_bans(
                 help: Some(BAN_SHAPE_HELP.to_string()),
             });
         }
-        if let Some((use_instead, use_is_project_module, use_span)) = use_instead {
+        if let Some((use_instead, use_has_exports, use_span)) = use_instead {
             use_spans.push(use_span);
             read.policy.bans.push(ImportBan {
                 key: e.key.clone(),
                 use_instead,
-                use_is_project_module,
+                use_has_exports,
                 reason,
                 allow_in,
             });
@@ -588,20 +594,29 @@ fn key_problem(key: &str) -> Option<&'static str> {
     }
 }
 
-/// Why `use` does not name something importable, or `None`.
+/// Why `use` does not name something importable, with the help for it, or
+/// `None`.
 fn use_problem(
     u: &str,
     is_project: bool,
     facts: &ProjectFacts<'_>,
     declared: &[String],
-) -> Option<&'static str> {
+) -> Option<(&'static str, &'static str)> {
     if u.starts_with("std/") {
-        return (!(facts.std_module)(u)).then_some("which is not a module of the standard library");
+        return (!(facts.std_module)(u)).then_some((
+            "which is not a module of the standard library",
+            "`glyph llms --json` lists the `std/` modules in its `stdlib` section.",
+        ));
     }
     if is_project || declared.iter().any(|d| d == package_name(u)) {
         return None;
     }
-    Some("which is not a module of this project")
+    // Both readings the rule allows are named, so an agent is not sent to
+    // write a module called `luxon` when the package was meant (record 205).
+    Some((
+        "which is neither a module of this project nor a package declared in package.json's dependencies",
+        "Write the path of a module under the source root (`http/client` for `src/http/client.glyph`), or add the package to package.json's `dependencies` (it does not have to be installed).",
+    ))
 }
 
 /// Why an `allow_in` entry names nothing, with the help for it.
@@ -1065,7 +1080,7 @@ mod tests {
         assert_eq!(r.policy.bans.len(), 2);
         let axios = &r.policy.bans[0];
         assert_eq!(axios.use_instead, "http/client");
-        assert!(axios.use_is_project_module);
+        assert!(axios.use_has_exports);
         assert!(axios.covers("axios") && axios.covers("axios/lib/core"));
         assert!(!axios.covers("axios-retry"));
         let fs = &r.policy.bans[1];
@@ -1106,7 +1121,7 @@ mod tests {
         let e = one_error(&text);
         assert_eq!(
             e.message,
-            "`glyph.banned_imports.axios.use` names `http/clinet`, which is not a module of this project"
+            "`glyph.banned_imports.axios.use` names `http/clinet`, which is neither a module of this project nor a package declared in package.json's dependencies"
         );
         assert_eq!(&text[e.span.start as usize..e.span.end as usize], "\"http/clinet\"");
     }

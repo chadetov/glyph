@@ -351,6 +351,74 @@ fn civil_from_days(z: i64) -> Date {
 mod tests {
     use super::*;
 
+    /// The field names serde reads for `T`, from the derive itself: a
+    /// deserializer that records the `fields` list `deserialize_struct` is
+    /// handed and then stops.
+    fn serde_fields<'de, T: Deserialize<'de>>() -> Vec<&'static str> {
+        use serde::de::{self, Visitor};
+        #[derive(Debug)]
+        struct Stop;
+        impl std::fmt::Display for Stop {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("stop")
+            }
+        }
+        impl std::error::Error for Stop {}
+        impl de::Error for Stop {
+            fn custom<M: std::fmt::Display>(_: M) -> Self {
+                Stop
+            }
+        }
+        struct Fields<'a>(&'a mut Vec<&'static str>);
+        impl<'de> de::Deserializer<'de> for Fields<'_> {
+            type Error = Stop;
+            fn deserialize_any<V: Visitor<'de>>(self, _: V) -> Result<V::Value, Stop> {
+                Err(Stop)
+            }
+            fn deserialize_struct<V: Visitor<'de>>(
+                self,
+                _: &'static str,
+                fields: &'static [&'static str],
+                _: V,
+            ) -> Result<V::Value, Stop> {
+                self.0.extend_from_slice(fields);
+                Err(Stop)
+            }
+            serde::forward_to_deserialize_any! {
+                bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+                bytes byte_buf option unit unit_struct newtype_struct seq tuple
+                tuple_struct map enum identifier ignored_any
+            }
+        }
+        let mut out = Vec::new();
+        let _ = T::deserialize(Fields(&mut out));
+        out.sort_unstable();
+        out
+    }
+
+    fn sorted(list: &[&'static str]) -> Vec<&'static str> {
+        let mut v = list.to_vec();
+        v.sort_unstable();
+        v
+    }
+
+    /// Record 205, ruling (1): the `glyph` key is a closed schema (D74), and
+    /// its validator in `glyph-resolver` holds its own copy of the fields
+    /// `glyph publish` reads here. A field added on either side and not the
+    /// other is a key one surface reads and the other refuses, so the two
+    /// lists are held equal. `banned_imports` is the one key the validator
+    /// knows that this struct does not: it is read by the diagnostics'
+    /// loader, not by `glyph publish`.
+    #[test]
+    fn the_closed_schema_matches_the_fields_publish_reads() {
+        assert_eq!(serde_fields::<ImportAudit>(), sorted(&glyph_resolver::IMPORT_AUDIT_FIELDS));
+        assert_eq!(serde_fields::<AuditPolicy>(), sorted(&glyph_resolver::AUDIT_POLICY_FIELDS));
+        let mut config = serde_fields::<GlyphConfig>();
+        config.push("banned_imports");
+        config.sort_unstable();
+        assert_eq!(config, sorted(&glyph_resolver::GLYPH_KEYS));
+    }
+
     fn cfg(json: &str) -> GlyphConfig {
         serde_json::from_str(json).unwrap()
     }

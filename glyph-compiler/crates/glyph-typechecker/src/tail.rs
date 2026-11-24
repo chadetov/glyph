@@ -257,8 +257,8 @@ mod tests {
 
     /// Record 189: a value the checker has no type for is not refused where
     /// `never` is declared, at a `return`, a tail or an unannotated lambda
-    /// parameter, since `tsc` accepts `process.exit(1)` there. A decided
-    /// `number` is still not `never`.
+    /// parameter. `process.exit(1)` is `never` itself since G480, so it fits
+    /// there on that account. A decided `number` is still not `never`.
     #[test]
     fn an_untyped_value_is_not_refused_where_never_is_declared() {
         let src = "module x\nimport std/process\n\

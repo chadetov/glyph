@@ -1,0 +1,25 @@
+module generic_iface
+
+// A generic interface is read through its arguments (G461): `Cmp<number>`
+// has `cmp(o: number)` and `v: number`. `by_ord` is E0211 on purpose,
+// because `Ord` has no `cmp`; `by_rec` compiles, as `tsc` accepts it.
+pub interface Cmp<X> {
+  fn cmp(o: X) -> number
+  v: X
+}
+
+pub type Ord = { v: number }
+
+pub type Rec = { v: number, cmp: fn(number) -> number }
+
+pub fn want(c: Cmp<number>) -> number {
+  return c.v
+}
+
+pub fn by_ord(o: Ord) -> number {
+  return want(o)
+}
+
+pub fn by_rec(r: Rec) -> number {
+  return want(r)
+}

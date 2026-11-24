@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-508 entries, 357 are fixed, 9 are partly fixed, 13 are decided or resolved, and
-129 are open. G144, the D28 boundary cast that never reached the returns a
+509 entries, 359 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+128 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -11965,7 +11965,7 @@ and is the owner's to confirm.
   and a rejected edit leaves the buffer as it was. The gate still checks
   only the edited file: an edit that breaks a module importing it is not
   seen.
-- **G307. `array.concat`'s row accepts two arrays the runtime does not.** The
+- **G307. [FIXED] `array.concat`'s row accepts two arrays the runtime does not.** The
   checker's row is `fn(Array<T>, Array<U>) -> Array<T>`: the second array may
   hold any element type, and the result is typed as the first. The runtime is
   `concat<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>): Array<T>`. So
@@ -12008,6 +12008,16 @@ and is the owner's to confirm.
   *Reproduced against 0.1.185 (the release build): `return array.concat([1, 2], ["a"])` from a function declared `-> Array<number>` is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`; `glyph llms --json` still gives `concat` `fn(Array<T>, Array<U>) -> Array<T>`.*
 
   *Reproduced against 0.1.191 (the release build): `return array.concat([1, 2], ["a"])` from a function declared `-> Array<number>` is `no diagnostics` under `--no-tsc` and TS2322 with `tsc`; `glyph llms --json` still gives `concat` `fn(Array<T>, Array<U>) -> Array<T>`.*
+
+  Fixed in 0.1.194 (decision record 208, R14; D92). The row is
+  `fn(Array<T>, Array<T>) -> Array<T>`, the runtime's own, and
+  `check_stdlib_signatures.py` passes it in both directions. `T` binds from
+  the first argument; a later `string` candidate replaces a bound literal
+  union, a later literal candidate joins it (`array.concat(["a"], ["b"])` is
+  an `Array<"a" | "b">`, as `tsc` infers), and an `int` is a `number` to the
+  checker, so `array.concat(ints, nums)` is an `Array<number>` in either
+  order. `return array.concat([1, 2], ["a"])` under `-> Array<number>` is
+  E0211 at `"a"`.
 
 - **G308. A trailing optional parameter is published as required.**
   `string.pad_end`, `string.pad_start`, `string.slice`, `string.index_of` and
@@ -17038,7 +17048,7 @@ and is the owner's to confirm.
   `async fn()` handler that reads `count_ref.current`, awaits and writes it is
   E0225, and a lambda-local accumulator is silent.
 
-- **G521. `Array.concat`'s arguments are not checked.** On an
+- **G521. [FIXED] `Array.concat`'s arguments are not checked.** On an
   `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and
   `xs.concat([[1]])` pass `check --no-tsc`; `tsc` refuses all three
   (TS2769). Since 0.1.181 the call's return is `Array<T>`, but the merged
@@ -17052,6 +17062,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.187 (the release build): on an `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and `xs.concat([[1]])` all exit 0 under `check --no-tsc`, and full `check` reports three TS2769s.*
 
   *Reproduced against 0.1.193 (the release build): on an `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and `xs.concat([[1]])` all exit 0 under `check --no-tsc`, and full `check` reports three TS2769s.*
+
+  Fixed in 0.1.194 with G307 (decision record 208, R14; D92). On a
+  receiver whose element type is known, each argument of `xs.concat(..)` is
+  accepted when it is the element type or an `Array` of it, which is every
+  reading of `T | ConcatArray<T>` a Glyph value can take, and is E0211
+  otherwise: an array against `Array<T>`, anything else against `T`. The
+  three calls above are E0211; `xs.concat(4)` and `xs.concat([4])` pass, and
+  so does `rows.concat([1, 2])` on an `Array<Array<number>>`.
 
 - **G522. E0211's help on a built-in method's argument says to change the
   parameter's type.** `v.indexOf(5)` on an `Array<string>` is E0211 with
@@ -17577,3 +17595,22 @@ and is the owner's to confirm.
   changes no verdict for `Array` and keeps the class whole. `glyph query assignable`
   answers WILL_FAIL for all six pairings, held by the G536 exact-or-absent
   case.
+
+- **G648. A named union, then a literal, binds first-wins where `tsc` joins
+  them.** With `type Mode = "a" | "b"`, `fn pair<T>(a: T, b: T) -> T` and
+  `m: Mode`, `pair(m, "c")` is E0211 at `"c"` (expected `Mode`, found
+  `"c"`). `tsc` infers `T` as `Mode | "c"` and accepts the call, returned
+  as a `string` or as `Mode | "c"`; returned as `"a"` it is TS2322, which
+  shows the join. G307's binder rule (D92) joins a second literal into a
+  first one only when the first candidate is a written string-literal
+  union; a `Mode` is a named declaration, not a `StringLiteralUnion`, so
+  the first binding stands and the second argument is compared against it.
+  That is a false refusal. It is older than D92: the published 0.1.192
+  refuses the same call with the same message. Filed by decision record
+  214 from record 211, section 4.
+
+  *Reproduced against 0.1.193 (the dev-0.1.194 release build) and the
+  published 0.1.192: `return pair(m, "c")` under `-> string` is E0211,
+  expected `Mode`, found `"c"`, under both `check --no-tsc` and full
+  `check`, exit 1 under each. `tsc` 6.0.3 `--strict` accepts the same
+  function in TypeScript under `: string` and under `: Mode | "c"`.*

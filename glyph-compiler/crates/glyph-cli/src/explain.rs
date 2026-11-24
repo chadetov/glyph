@@ -689,7 +689,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
             TypeScript's library declares, under `mut` as anywhere else: \
             `mut v.push(5)` and `mut v.splice(\"a\", 1)` on an `Array<string>` \
             are this error, and so is `s.concat(5)`, since a rest parameter \
-            checks each argument against its element type. A `sort` or \
+            checks each argument against its element type. An array's own \
+            `xs.concat(..)` takes each argument as an element or an array of \
+            elements, so on an `Array<number>` both `xs.concat(4)` and \
+            `xs.concat([4])` pass while `xs.concat(\"a\")`, `xs.concat([\"a\"])` \
+            and `xs.concat([[1]])` are this error. `array.concat(a, b)` takes \
+            two arrays of one element type. A `sort` or \
             `toSorted` comparator that takes more than two parameters, or \
             returns something other than a `number`, is refused with both \
             signatures printed; its parameter types are not yet compared.\n\n\
@@ -2602,7 +2607,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A function argument is compared with the parameter's function type by arity, by each parameter (what the slot passes must be accepted by the function's own parameter) and by the return, and the message prints both signatures and the first position that differs (G491, G434). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325). A built-in method's arguments are checked against the signature TypeScript's library declares, under `mut` as anywhere else, and a rest parameter (`push`, `unshift`, `splice`'s items, `string.concat`) checks each argument against its element type; a `sort` or `toSorted` comparator that takes more than two parameters or returns something other than a `number` is refused (G505, G492)",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A function argument is compared with the parameter's function type by arity, by each parameter (what the slot passes must be accepted by the function's own parameter) and by the return, and the message prints both signatures and the first position that differs (G491, G434). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325). A built-in method's arguments are checked against the signature TypeScript's library declares, under `mut` as anywhere else, and a rest parameter (`push`, `unshift`, `splice`'s items, `string.concat`) checks each argument against its element type; an array's `xs.concat(..)` takes each argument as an element or an array of elements, and `array.concat(a, b)` takes two arrays of one element type (G307, G521); a `sort` or `toSorted` comparator that takes more than two parameters or returns something other than a `number` is refused (G505, G492)",
         fix: "Pass a value of the expected type; check an `unknown` with `T.parse` or an `is` pattern first",
     },
     CodeEntry {

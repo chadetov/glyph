@@ -29,7 +29,7 @@ use std::collections::BTreeMap;
 use serde::Serialize;
 
 use glyph_resolver::{build_prelude, is_stdlib_type_only, PreludeKind, StdlibStubs, SymbolKind};
-use glyph_typechecker::display_ty;
+use glyph_typechecker::{display_ty, Ty};
 
 use crate::explain::{self, CodeEntry, CODES};
 
@@ -324,13 +324,23 @@ pub struct StdlibExport {
     /// decides whether an import of the name carries `type`.
     pub kind: &'static str,
     /// The signature, rendered by the checker's own `display_ty` from the type
-    /// its own tables hold.
+    /// its own tables hold. `None` for a function with a parameter the caller
+    /// may leave out: a Glyph function type cannot spell one, so no single
+    /// type is the function's, and `call_forms` lists one per arity instead
+    /// (G308).
     pub signature: Option<String>,
     pub signature_absent: Option<String>,
-    /// Set when the signature carries a `?`: which positions the table leaves
-    /// `unknown`, so a reader is never handed a `?` with nothing said about it.
-    /// `None` for a complete signature and for an export with none at all.
+    /// Set when the signature, or a call form, carries a `?`: which positions
+    /// the table leaves `unknown`, so a reader is never handed a `?` with
+    /// nothing said about it. `None` for a complete signature and for an
+    /// export with none at all.
     pub signature_partial: Option<String>,
+    /// For a function whose trailing parameters may be left out, one complete
+    /// function type per legal number of arguments, shortest first:
+    /// `string.pad_end` is `["fn(string, number) -> string", "fn(string,
+    /// number, string) -> string"]`. Absent for every other export.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_forms: Option<Vec<String>>,
     /// For a type whose members the checker models (`set.Set`, `sqlite.Db`,
     /// `fs.FsError`), the member table it checks a member access against, each
     /// rendered by `display_ty`. `None` for every other export. The table is
@@ -381,9 +391,9 @@ pub fn stdlib_signature_holes() -> (Vec<StdlibHole>, Vec<StdlibHole>) {
     let mut absent = Vec::new();
     for m in stdlib().modules {
         for e in m.exports {
-            match (&e.signature, &e.signature_partial) {
-                (Some(_), Some(_)) => partial.push((m.path.clone(), e.name)),
-                (None, _) => absent.push((m.path.clone(), e.name)),
+            match (&e.signature, &e.signature_partial, &e.call_forms) {
+                (_, Some(_), _) => partial.push((m.path.clone(), e.name)),
+                (None, None, None) => absent.push((m.path.clone(), e.name)),
                 _ => {}
             }
         }
@@ -403,34 +413,50 @@ fn stdlib() -> Stdlib {
         let mut out = Vec::with_capacity(names.len());
         for name in names {
             let ty = glyph_typechecker::stdlib_signature(&built, path, &name);
-            let (signature, absent, partial) = match ty {
+            let (signature, absent, partial, call_forms) = match ty {
                 Some(ty) => {
-                    let rendered = display_ty(&ty);
+                    // A row with a parameter the caller may leave out is
+                    // published as its call forms, never as one signature:
+                    // `display_ty` has no spelling for the flag, and a single
+                    // type would say every parameter is required (G308).
+                    let forms = call_forms_of(&ty);
+                    let (rendered, absent) = match &forms {
+                        Some((forms, omittable)) => (
+                            forms.last().cloned().unwrap_or_default(),
+                            Some(format!(
+                                "{omittable} may be left out, and a Glyph function type cannot \
+                                 spell an optional parameter"
+                            )),
+                        ),
+                        None => (display_ty(&ty), None),
+                    };
                     // `?` is `display_ty`'s rendering of `Ty::Unknown`, which is
                     // what the table holds for a position it does not model.
+                    // The longest call form holds every position.
                     let holes = rendered.matches('?').count();
+                    let what = match forms.is_some() {
+                        true => "the longest of these call forms",
+                        false => "this signature",
+                    };
+                    let partial = (holes > 0).then(|| {
+                        format!(
+                            "{what} carries {holes} `?`, which is the checker's \
+                             rendering of `unknown`: the table holds no type for that \
+                             many positions of `{path}::{name}`, so an argument at one \
+                             of them is compared by nothing here and `tsc` on a full \
+                             `glyph build` is what reads it. A position is left this \
+                             way either because the function accepts anything there \
+                             (`string.from`) or because writing the type the \
+                             TypeScript declares would reject a call `tsc` accepts"
+                        )
+                    });
                     match holes {
-                        0 => {
-                            modeled += 1;
-                            (Some(rendered), None, None)
-                        }
-                        n => {
-                            partially_modeled += 1;
-                            (
-                                Some(rendered),
-                                None,
-                                Some(format!(
-                                    "this signature carries {n} `?`, which is the checker's \
-                                     rendering of `unknown`: the table holds no type for that \
-                                     many positions of `{path}::{name}`, so an argument at one \
-                                     of them is compared by nothing here and `tsc` on a full \
-                                     `glyph build` is what reads it. A position is left this \
-                                     way either because the function accepts anything there \
-                                     (`string.from`) or because writing the type the \
-                                     TypeScript declares would reject a call `tsc` accepts"
-                                )),
-                            )
-                        }
+                        0 => modeled += 1,
+                        _ => partially_modeled += 1,
+                    }
+                    match forms {
+                        Some((forms, _)) => (None, absent, partial, Some(forms)),
+                        None => (Some(rendered), None, partial, None),
                     }
                 }
                 None => {
@@ -442,6 +468,7 @@ fn stdlib() -> Stdlib {
                              ships TypeScript no Glyph pass reads, so a use of it is typed \
                              `unknown` here and checked by `tsc` alone"
                         )),
+                        None,
                         None,
                     )
                 }
@@ -469,6 +496,7 @@ fn stdlib() -> Stdlib {
                 signature,
                 signature_absent: absent,
                 signature_partial: partial,
+                call_forms,
                 members,
             });
         }
@@ -484,7 +512,10 @@ fn stdlib() -> Stdlib {
                  is checked by `tsc` alone; `signature_partial` says how many such positions a \
                  signature has, so one with a `?` is never counted as complete. A modeled \
                  parameter is enforced: `fs.read_text(42)` is an error from `glyph check` \
-                 itself, with or without `--no-tsc`",
+                 itself, with or without `--no-tsc`. A function with a parameter the caller \
+                 may leave out has `signature` null, with `signature_absent` naming the \
+                 parameter, and `call_forms` listing one complete function type per number of \
+                 arguments it takes, shortest first; it is counted by its call forms",
         modules: by_path
             .into_iter()
             .map(|(path, exports)| StdlibModule { path, exports })
@@ -493,6 +524,41 @@ fn stdlib() -> Stdlib {
         partially_modeled,
         unmodeled,
     }
+}
+
+/// The call forms of a function type with a parameter the caller may leave
+/// out, rendered by `display_ty`, shortest first, with the phrase that names
+/// the parameters that may be left out (`parameter 3`, `parameters 2 and 3`).
+/// `None` for a type with no such parameter.
+fn call_forms_of(ty: &Ty) -> Option<(Vec<String>, String)> {
+    let Ty::Fn { params, return_ty, is_async, type_params } = ty else {
+        return None;
+    };
+    let required = params.iter().take_while(|p| !p.optional).count();
+    if required == params.len() {
+        return None;
+    }
+    let forms = (required..=params.len())
+        .map(|n| {
+            let mut kept = params[..n].to_vec();
+            for p in &mut kept {
+                p.optional = false;
+            }
+            display_ty(&Ty::Fn {
+                params: kept,
+                return_ty: return_ty.clone(),
+                is_async: *is_async,
+                type_params: type_params.clone(),
+            })
+        })
+        .collect();
+    let positions: Vec<String> = (required + 1..=params.len()).map(|i| i.to_string()).collect();
+    let omittable = match positions.as_slice() {
+        [one] => format!("parameter {one}"),
+        [init @ .., last] => format!("parameters {} and {last}", init.join(", ")),
+        [] => unreachable!("a type with an optional parameter has one"),
+    };
+    Some((forms, omittable))
 }
 
 // ============================================================================
@@ -847,6 +913,10 @@ mod tests {
                     module.path,
                     export.name
                 );
+                // Call forms stand in for a signature, never beside one.
+                if export.call_forms.is_some() {
+                    assert!(export.signature.is_none(), "{}::{}", module.path, export.name);
+                }
             }
         }
         assert!(s.modeled > 0 && s.partially_modeled > 0 && s.unmodeled > 0);
@@ -854,6 +924,100 @@ mod tests {
             s.modeled + s.partially_modeled + s.unmodeled,
             s.modules.iter().map(|m| m.exports.len()).sum::<usize>()
         );
+    }
+
+    /// G308 (decision record 208, R15; D93): a row with a parameter the caller
+    /// may leave out publishes no signature, says why, and lists its call
+    /// forms instead. A Glyph function type cannot spell an optional
+    /// parameter, so `display_ty` rendered `string.pad_end` as `fn(string,
+    /// number, string) -> string`, which says the third argument is required
+    /// while `string.pad_end(s, 4)` is legal.
+    ///
+    /// The list is read off the checker's own table, every export of every
+    /// seeded module, and pinned here, so a row that gains an optional
+    /// parameter fails this test until it is named, and its entry has to be
+    /// published the same way.
+    #[test]
+    fn every_row_with_an_optional_parameter_publishes_its_call_forms() {
+        let built = build_prelude();
+        let stubs = StdlibStubs::new();
+        let mut found: Vec<(String, String)> = Vec::new();
+        for (path, exports) in stubs.iter() {
+            for name in exports.names.iter() {
+                let ty = glyph_typechecker::stdlib_signature(&built, path, name.as_ref());
+                if let Some(Ty::Fn { params, .. }) = ty {
+                    if params.iter().any(|p| p.optional) {
+                        found.push((path.to_string(), name.to_string()));
+                    }
+                }
+            }
+        }
+        found.sort();
+        let pinned: Vec<(String, String)> = [
+            ("std/array", "slice"),
+            ("std/collections", "deque"),
+            ("std/json", "stringify"),
+            ("std/set", "create"),
+            ("std/string", "index_of"),
+            ("std/string", "pad_end"),
+            ("std/string", "pad_start"),
+            ("std/string", "slice"),
+        ]
+        .iter()
+        .map(|(m, n)| (m.to_string(), n.to_string()))
+        .collect();
+        assert_eq!(found, pinned, "the rows with an optional parameter changed");
+
+        let s = stdlib();
+        let export = |m: &str, n: &str| {
+            s.modules
+                .iter()
+                .find(|x| x.path == m)
+                .and_then(|x| x.exports.iter().find(|e| e.name == n))
+                .unwrap_or_else(|| panic!("{m}::{n} is published"))
+        };
+        for (m, n) in &pinned {
+            let e = export(m, n);
+            assert!(e.signature.is_none(), "{m}::{n} still publishes one signature");
+            assert!(
+                e.signature_absent.as_deref().is_some_and(|w| w.contains("may be left out")),
+                "{m}::{n} does not say which parameter may be left out"
+            );
+            assert!(
+                e.call_forms.as_ref().is_some_and(|f| f.len() >= 2),
+                "{m}::{n} has no call forms"
+            );
+        }
+        // Nothing else publishes call forms.
+        for module in &s.modules {
+            for e in &module.exports {
+                let named = pinned.contains(&(module.path.clone(), e.name.clone()));
+                assert_eq!(e.call_forms.is_some(), named, "{}::{}", module.path, e.name);
+            }
+        }
+
+        let pad_end = export("std/string", "pad_end");
+        assert_eq!(
+            pad_end.call_forms.as_deref(),
+            Some(
+                &[
+                    "fn(string, number) -> string".to_string(),
+                    "fn(string, number, string) -> string".to_string(),
+                ][..]
+            )
+        );
+        assert_eq!(
+            pad_end.signature_absent.as_deref(),
+            Some("parameter 3 may be left out, and a Glyph function type cannot spell an optional parameter")
+        );
+        assert!(pad_end.signature_partial.is_none());
+        // `json.stringify` keeps its `?` in each form, and says so.
+        let stringify = export("std/json", "stringify");
+        assert_eq!(
+            stringify.call_forms.as_deref(),
+            Some(&["fn(?) -> string".to_string(), "fn(?, ?) -> string".to_string()][..])
+        );
+        assert!(stringify.signature_partial.is_some());
     }
 
     /// The three counts are the tables, counted, and a `?` is never published
@@ -871,6 +1035,24 @@ mod tests {
         let (mut complete, mut partial, mut absent) = (0usize, 0usize, 0usize);
         for module in &s.modules {
             for e in &module.exports {
+                if let Some(forms) = &e.call_forms {
+                    assert!(e.signature.is_none());
+                    assert!(e.signature_absent.is_some());
+                    let longest = forms.last().expect("a call form");
+                    let holes = longest.matches('?').count();
+                    match &e.signature_partial {
+                        None => {
+                            assert_eq!(holes, 0, "{}::{}: {longest}", module.path, e.name);
+                            complete += 1;
+                        }
+                        Some(why) => {
+                            assert!(holes > 0, "{}::{}: {longest}", module.path, e.name);
+                            assert!(why.contains(&holes.to_string()), "{why}");
+                            partial += 1;
+                        }
+                    }
+                    continue;
+                }
                 match (&e.signature, &e.signature_partial) {
                     (Some(sig), None) => {
                         assert!(

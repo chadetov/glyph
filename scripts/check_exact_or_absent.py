@@ -2253,16 +2253,35 @@ def case_interface_value_either_spelling() -> tuple[bool, str]:
     `Record<string, number>` map is declared (TS2322 under `tsc`). Before
     G536 each spelling was refused in one of the two places and UNDETERMINED
     in the other, so the answer an agent got depended on how the type was
-    written.
+    written. Both are refused where `Option`, `Result` or `Array` is
+    declared too (D49, G586), where before only `Box<number>` was.
+
+    A `Record<string, Raw>` with `Raw = extern_ts("any")` is UNDETERMINED in
+    both spellings, never WILL_FAIL: `tsc` may read `Raw` as `any`, and
+    `Record<string, any>` takes any object type (record 211).
     """
     project = CORPUS / ASSIGNABLE
     path = {"path": "src/iface_spelling.glyph"}
+    refused = (
+        "Ord",
+        "Record<string, number>",
+        "Option<number>",
+        "Result<number, string>",
+        "Array<number>",
+    )
     for frm in ("HasV", "Box<number>"):
-        for to in ("Ord", "Record<string, number>"):
+        for to in refused:
             got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
             if got.get("verdict") != "WILL_FAIL":
                 return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not WILL_FAIL: {got}"
-    return True, "an interface value is refused in both spellings where a record or a map is declared"
+        to = "Record<string, Raw>"
+        got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
+        if got.get("verdict") != "UNDETERMINED":
+            return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not UNDETERMINED: {got}"
+    return True, (
+        "an interface value is refused in both spellings where a record, a map, an Option, "
+        "a Result or an Array is declared, and undecided against a map of an opaque value"
+    )
 
 
 DEPENDENCIES = pathlib.Path("dependencies")

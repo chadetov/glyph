@@ -2,7 +2,10 @@ module iface_spelling
 
 // An interface value is judged the same however its type is spelled (G536):
 // `HasV` and `Box<number>` are both refused where the record `Ord` is
-// declared and where a `Record<string, number>` is declared.
+// declared, where a `Record<string, number>` is declared, and where an
+// `Option`, a `Result` or an `Array` is declared (G586). A map whose value is
+// `Raw` is left undecided in both spellings: `tsc` may read `Raw` as `any`,
+// and `Record<string, any>` takes any object type (record 211).
 pub interface Box<X> {
   v: X
 }
@@ -12,6 +15,8 @@ pub interface HasV {
 }
 
 pub type Ord = { v: number }
+
+pub type Raw = extern_ts("any")
 
 pub fn read(h: HasV, b: Box<number>) -> number {
   return h.v + b.v

@@ -3765,8 +3765,15 @@ impl Assigner<'_> {
                     // Collected only where an error was pushed, so a call
                     // that reported nothing keeps its result.
                     let mut refused_params: HashSet<Ident> = HashSet::new();
+                    let concat_elem = self.array_concat_elem(callee);
                     for (i, (p, a)) in params.iter().zip(args.iter()).enumerate() {
-                        let expected = substitute_type_params(&p.ty, &subst);
+                        let expected = match &concat_elem {
+                            Some(elem) => match self.concat_arg_expected(a, elem) {
+                                Some(t) => t,
+                                None => continue,
+                            },
+                            None => substitute_type_params(&p.ty, &subst),
+                        };
                         let found = self.tm.get(a.span()).clone();
                         if self.is_sql_ty(&expected) {
                             self.note_sql_call_arg(callee, args, i, p);
@@ -4689,6 +4696,50 @@ impl Assigner<'_> {
                 args: vec![elem],
             },
             None => Ty::Unknown,
+        }
+    }
+
+    /// The receiver's element type when `callee` is an array's own `concat`
+    /// method (`xs.concat`) on a receiver whose element type is known.
+    /// TypeScript declares its rest parameter `(T | ConcatArray<T>)[]`, a
+    /// union Glyph cannot spell, so the row leaves it `unknown` and the call
+    /// arm judges each argument by [`Self::concat_arg_expected`] instead
+    /// (G521, D92).
+    fn array_concat_elem(&self, callee: &Expr) -> Option<Ty> {
+        let Expr::Member { field, .. } = callee else { return None };
+        if field.as_ref() != "concat" {
+            return None;
+        }
+        match self.rest_callees.get(&callee.span())? {
+            (MethodSig::Rest { ret: MethodTy::ArrayOf(_), .. }, elem) if !elem.is_unknown() => {
+                Some(elem.clone())
+            }
+            _ => None,
+        }
+    }
+
+    /// What one argument of `xs.concat(..)` is judged against, or `None`
+    /// when it is accepted. An argument is accepted when it is the element
+    /// type `T` or an `Array<T>`, which is every reading of
+    /// `T | ConcatArray<T>` a Glyph value can take. When it is neither, the
+    /// refusal is stated against the reading the value was written for: an
+    /// array against `Array<T>` (`xs.concat(["a"])` on an `Array<number>`
+    /// says the element is a `string`), anything else against `T`. A nested
+    /// `Array<Array<T>>` is neither, and is refused as `tsc` refuses it.
+    fn concat_arg_expected(&mut self, a: &Expr, elem: &Ty) -> Option<Ty> {
+        if self.declared_value_refusals(a, elem, false).is_empty() {
+            return None;
+        }
+        let as_array = self.array_ty(elem.clone());
+        if self.declared_value_refusals(a, &as_array, false).is_empty() {
+            return None;
+        }
+        let found = self.tm.get(a.span());
+        let is_array = prelude_app(self.lowerer.prelude, found, "Array").is_some();
+        if is_array || matches!(a, Expr::Array { .. }) {
+            Some(as_array)
+        } else {
+            Some(elem.clone())
         }
     }
 
@@ -13578,8 +13629,9 @@ fn join_ty(a: &Ty, b: &Ty) -> Ty {
 /// `Param` positions and zips `App` arguments — enough for the common
 /// generic call shapes.
 ///
-/// One exception to "first wins": a `string` candidate supersedes a
-/// string-literal one bound earlier. `array.fold(xs, "", fn(out: string, ..)
+/// Two exceptions to "first wins". A string-literal candidate joins one bound
+/// earlier, so `"a"` then `"b"` bind `"a" | "b"` (G307). And a `string`
+/// candidate supersedes a string-literal one bound earlier. `array.fold(xs, "", fn(out: string, ..)
 /// -> string { .. })` binds `A` from the `""` first, and TypeScript, which
 /// takes every candidate, infers `string` from the two. Keeping `""` would
 /// make the callback's `string` return a mismatch against a literal set, on a
@@ -13602,10 +13654,22 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut Subst, keys: &[Pa
                 return;
             }
             let bound = out.entry(key).or_insert_with(|| concrete.clone());
-            if matches!(bound, Ty::StringLiteralUnion(_))
-                && matches!(concrete, Ty::Prim(Primitive::String))
-            {
-                *bound = concrete.clone();
+            match (&mut *bound, concrete) {
+                (Ty::StringLiteralUnion(_), Ty::Prim(Primitive::String)) => {
+                    *bound = concrete.clone();
+                }
+                // Two literal candidates join (G307, D92):
+                // `array.concat(["a"], ["b"])` binds `T` to `"a" | "b"`,
+                // which is what `tsc` infers from the two, where keeping the
+                // first refused the second array on a program it accepts.
+                (Ty::StringLiteralUnion(have), Ty::StringLiteralUnion(more)) => {
+                    for m in more {
+                        if !have.contains(m) {
+                            have.push(m.clone());
+                        }
+                    }
+                }
+                _ => {}
             }
         }
         // A callback's declared return type binds a parameter the same way a

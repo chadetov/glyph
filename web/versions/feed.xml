@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.179 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.179" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.179</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A value written by mut is checked against the place it goes into</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.178</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.178" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.178</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.150</id>
     <updated>2026-11-20T00:00:00Z</updated>
     <summary>A check refuses a value nested more than 1000 deep instead of crashing</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.149 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.149" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.149</id>
-    <updated>2026-11-19T00:00:00Z</updated>
-    <summary>A statement can no longer start on the line where the one before it ended.</summary>
   </entry>
 </feed>

@@ -923,8 +923,10 @@ mod signature_fixture {
 /// An agent about to change a parameter's type asks what breaks, over the real
 /// protocol, and gets a different verdict for each kind of site, each with the
 /// reason. Then it makes the edit and the compiler confirms the verdicts: the
-/// site called WILL_FAIL is the one E0211 lands on, and the site called
-/// UNDETERMINED is the one the compiler says nothing about.
+/// site called WILL_FAIL is the one E0211 lands on, the site called
+/// UNDETERMINED is the one the compiler says nothing about, and the value read
+/// impact calls NOT_INDEXED is E0204 from the checker (G491), which impact
+/// does not decide (G531).
 #[test]
 fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
     let project = signature_fixture::write(unique_tmp("signature_type"));
@@ -1003,9 +1005,13 @@ fn a_signature_type_change_gets_one_verdict_per_kind_of_site() {
         !reported.iter().any(|(e, _)| e == &project.imported_caller),
         "UNDETERMINED means the compiler says nothing here, and it said something: {broken}"
     );
+    // NOT_INDEXED is impact not deciding the site, not the compiler staying
+    // silent: since G491 the checker compares the value with the type its
+    // `const` declares, and the edited `label` no longer fits it. Impact does
+    // not follow the value to that slot (G531), so it still makes no claim.
     assert!(
-        !reported.iter().any(|(e, _)| e == &project.value_reader),
-        "NOT_INDEXED means the compiler says nothing here, and it said something: {broken}"
+        reported.contains(&(project.value_reader.clone(), "E0204".to_string())),
+        "the value read is compared with its declared function type (G491): {broken}"
     );
 
     assert_eq!(mcp.finish(), 0);

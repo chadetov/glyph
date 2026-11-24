@@ -11679,13 +11679,18 @@ impl Assigner<'_> {
     /// - A declared record with no fields is satisfied by any object, as D49
     ///   says and `tsc` agrees.
     ///
-    /// `Array`, `Option` and `Result` are not decided here (G586): the
-    /// applied spelling keeps the base-against-base refusal it had, and the
-    /// plain spelling keeps what the rest of the relation answers.
+    /// - `Option`, `Result` and `Array` are other declarations too (D49's
+    ///   five prelude containers, G586), so both spellings are refused
+    ///   there whatever the arguments. An `Option` or a `Result` is not
+    ///   compared member by member against its emitted `{ tag, value }`
+    ///   object: that encoding is not a contract (D18), and an interface
+    ///   that spells `tag: "Some"` holds a value `Option`'s descriptor never
+    ///   checked. `tsc` refuses every one of these pairings as well.
     fn interface_value_verdict(&self, found: &Ty, expected: &Ty) -> Option<bool> {
         let members = self.interface_member_fields(found)?;
         if let Some((container, args)) = self.prelude_container(expected) {
             return match container {
+                "Option" | "Result" | "Array" => Some(true),
                 "Nullable" => Some(
                     args.first()
                         .is_some_and(|inner| self.assign_incompatible(found, inner)),
@@ -11713,9 +11718,17 @@ impl Assigner<'_> {
 
     /// G536. An interface's member set against a `Record<key, value>` map,
     /// by `tsc`'s rule (see `interface_value_verdict`).
+    ///
+    /// The index-signature refusal under a `string` or `number` key has one
+    /// exception in `tsc`: a `V` that is `any` exempts the map from it, so
+    /// `Record<string, any>` takes any object type. Glyph reaches `any` only
+    /// through a body it does not read (an `extern_ts` or a `typeof`, D29,
+    /// D32), and such a body is undecided everywhere (record 191), so a `V`
+    /// of that kind leaves the pairing undecided rather than refused (record
+    /// 211, fix 1).
     fn interface_against_map_incompatible(&self, members: &[RecordField], key: &Ty, value: &Ty) -> bool {
         match self.key_domain(key) {
-            KeyDomain::String | KeyDomain::Number => true,
+            KeyDomain::String | KeyDomain::Number => !self.is_opaque_map_value(value),
             KeyDomain::Literals(literals) => literals.iter().any(|lit| {
                 match members.iter().find(|m| m.name.as_ref() == lit.as_str()) {
                     Some(m) => m.optional || self.assign_incompatible(&m.ty, value),
@@ -11724,6 +11737,20 @@ impl Assigner<'_> {
             }),
             KeyDomain::Refined(_) | KeyDomain::Param(_) | KeyDomain::Undecided => false,
         }
+    }
+
+    /// Whether a map's `V` is a type the checker does not read, so `tsc` may
+    /// see `any` there: an `extern_ts` or `typeof` written in place (lowered
+    /// to `Ty::Unknown`), a name whose body is one, local or imported, under
+    /// any second name or transparent declaration, or a `Nullable` of one
+    /// (`any | null` is `any`). A written `unknown` is `Ty::UnknownTop`, which
+    /// `tsc` holds to the index-signature rule, so it is not this.
+    fn is_opaque_map_value(&self, value: &Ty) -> bool {
+        let value = self.expand_transparent(value);
+        if let Some(("Nullable", [inner])) = self.prelude_container(&value) {
+            return self.is_opaque_map_value(inner);
+        }
+        matches!(value, Ty::Unknown) || self.has_opaque_body(&value)
     }
 
     /// One required field of a closed record against the map's `V`, through
@@ -26539,6 +26566,13 @@ fn f(a: Answer) -> number {
     /// literal is a required member holding a `V`. A `Nullable<X>` is the
     /// pairing against `X` (D45), so `Box<number>` now stands where
     /// `Nullable<Box<number>>` is declared.
+    ///
+    /// Record 211. A map whose `V` is an `extern_ts` body may be `any` to
+    /// `tsc`, which exempts it from the index-signature rule, so the pairing
+    /// is left undecided in both spellings, directly, through a second name
+    /// and under a `Nullable`; a written `unknown` is still refused. And
+    /// `Option`, `Result` and `Array` are other declarations (D49, G586):
+    /// both spellings are refused there.
     #[test]
     fn an_interface_value_is_judged_the_same_in_either_spelling() {
         let src = "module m\n\
@@ -26552,6 +26586,18 @@ fn f(a: Answer) -> number {
              type Empty = { }\n\
              type Mode = \"a\" | \"b\"\n\
              type Shape = Circle(number) | Square(number)\n\
+             type Raw = extern_ts(\"any\")\n\
+             type Raw2 = Raw\n\
+             fn ra_plain(h: HasV) -> Record<string, Raw> { return h }\n\
+             fn ra_app(b: Box<number>) -> Record<string, Raw> { return b }\n\
+             fn ra2_plain(h: HasV) -> Record<string, Raw2> { return h }\n\
+             fn ran_app(b: Box<number>) -> Record<int, Nullable<Raw>> { return b }\n\
+             fn op_plain(h: HasV) -> Option<number> { return h }\n\
+             fn op_app(b: Box<number>) -> Option<number> { return b }\n\
+             fn re_plain(h: HasV) -> Result<number, string> { return h }\n\
+             fn re_app(b: Box<number>) -> Result<number, string> { return b }\n\
+             fn ar_plain(h: HasV) -> Array<number> { return h }\n\
+             fn ar_app(b: Box<number>) -> Array<number> { return b }\n\
              fn o_plain(h: HasV) -> Ord { return h }\n\
              fn o_app(b: Box<number>) -> Ord { return b }\n\
              fn o2_plain(h: HasV) -> Ord2 { return h }\n\
@@ -26580,6 +26626,8 @@ fn f(a: Answer) -> number {
         assert_eq!(
             fns_with_mismatches(src),
             [
+                "ar_app",
+                "ar_plain",
                 "m_app",
                 "m_plain",
                 "mi_app",
@@ -26596,6 +26644,10 @@ fn f(a: Answer) -> number {
                 "o2_plain",
                 "o_app",
                 "o_plain",
+                "op_app",
+                "op_plain",
+                "re_app",
+                "re_plain",
                 "u_app",
                 "u_plain",
             ]

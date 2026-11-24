@@ -276,7 +276,13 @@ written plain (`HasV`) or applied (`Box<number>`), is not a declared record, so
 it is refused where one is declared even when it has the fields; TypeScript
 would accept it, but the record's `parse` never saw the value. It is refused
 where a `Record<string, V>` is declared too, as TypeScript refuses it, because
-an interface has no index signature.
+an interface has no index signature. The one exception is a `V` that comes from
+`extern_ts` or `typeof`: TypeScript may read it as `any`, and `Record<string,
+any>` takes any object, so Glyph leaves that pairing to `tsc`. Where an
+`Option`, a `Result` or an `Array` is declared, the interface value is refused
+in either spelling, as TypeScript refuses it. An interface that spells out the
+`{ tag, value }` object an `Option` compiles to is refused as well: that
+object is how an `Option` is stored, not a type to match.
 
 ```glyph
 interface Named {

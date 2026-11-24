@@ -1,0 +1,19 @@
+---
+version: 0.1.177
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A sort of numbers needs a comparator
+---
+            <p>JavaScript's <code>sort()</code> with no comparator compares elements as strings, so <code>[100, 9, 25].sort()</code> gives <code>[100, 25, 9]</code>. <code>tsc</code> accepts it and so did Glyph. It is one of the easiest bugs for an agent to write and one of the hardest to spot in review, because the call looks right.</p>
+
+            <p>Now <code>sort()</code> and <code>toSorted()</code> with no comparator are E0243 unless the elements are text: a <code>string</code>, a string-literal union, a refined string, or an alias of one. Numbers, <code>int</code>, <code>bigint</code>, records, unions, <code>Option</code> and an unbounded type parameter are all refused. A generic <code>T: string</code> sorts as text; <code>T: Named</code> is refused. <code>array.sort</code> already required a comparator and is unchanged.</p>
+
+            <p>The help writes the comparator for you in the form you used: <code>mut xs.sort(fn(a: number, b: number) -&gt; number { return a - b })</code> for numbers, the same with <code>int</code>, and a named <code>cmp</code> with its type for anything else. For <code>toSorted</code> it suggests <code>array.sort(xs, ...)</code>, because the TypeScript target Glyph emits (es2022) has no <code>toSorted</code> and <code>tsc</code> refuses it.</p>
+
+            <p>E0240, which asks for <code>mut</code> on a sort in place, now suggests the comparator form too, and <code>glyph fix</code> no longer adds the <code>mut</code> on its own there, since that would leave a sort E0243 refuses.</p>
+
+            <p>Glyph's checker still types a <code>bigint</code> as <code>number</code>. That is G500.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>mut scores.sort()</code> on <code>[100, 9, 25]</code> exits 0 under 0.1.176 with <code>check --no-tsc</code> and with full <code>check</code>, and 1 under 0.1.177. Across 286 tracked programs the only change is the catch case written to show this bug, which is now refused.</p>

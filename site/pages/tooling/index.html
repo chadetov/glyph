@@ -1,0 +1,267 @@
+---
+title: Editors and integrations · set up Glyph in your tools · Glyph
+description: Install the VS Code extension, point any LSP editor at glyph lsp, connect an agent with glyph mcp, and run the compiler from npm. Config for Neovim, Helix and Emacs.
+layout: article
+nav: tooling
+next_steps: |
+  From here
+  Next &middot; ten minutes | /start/ | start | Your first program | Scaffold a project, run it, break it on purpose. | Start here
+  /mcp/ | agents | The MCP server | All eleven tools and what each one answers.
+  /answers/tooling/ | answers | The editor and error experience | What the language server does, error codes, and debugging.
+---
+      <p class="q-eyebrow">Setup &middot; Editors, agents and the CLI</p>
+      <h1 class="q-title">Editors and integrations</h1>
+
+      <p class="short-answer">
+        Everything here runs off one binary. The <code>glyph</code> command from npm is the
+        compiler, the language server (<code>glyph lsp</code>) and the MCP server
+        (<code>glyph mcp</code>), so once it is installed, wiring up an editor or an agent is a
+        line of config.
+      </p>
+
+      <div class="detail">
+        <h2 class="block-label">VS Code</h2>
+        <p>
+          The extension is on the Visual Studio Marketplace as
+          <a href="https://marketplace.visualstudio.com/items?itemName=chadetov.glyph-vscode">Glyph (glyphlang.io)</a>.
+          Install it from the Extensions view, or paste this into the Quick Open box
+          (Ctrl+P, or Cmd+P on a Mac):
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">quick open</span>
+<pre>ext install chadetov.glyph-vscode</pre>
+      </div>
+      <div class="detail">
+        <p>
+          The extension is a client for the language server, and the server lives in the
+          <code>glyph</code> binary, so you need that too:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npm install -g @glyphlang/glyph
+glyph lsp --help                <span class="cm"># the server subcommand is there</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          Open a <code>.glyph</code> file and the server starts. If <code>glyph</code> is not on the
+          <code>PATH</code> VS Code sees (a project-local install in <code>node_modules</code>, or a
+          build from source), point the extension at it. This is the only setting it has.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">settings.json</span>
+<pre>{
+  "glyph.serverPath": "/absolute/path/to/glyph",
+  "[glyph]": {
+    "editor.defaultFormatter": "chadetov.glyph-vscode",
+    "editor.formatOnSave": true
+  }
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          The <code>[glyph]</code> block is optional and turns on format-on-save in the canonical
+          <code>glyph fmt</code> layout.
+        </p>
+        <p>
+          What you get: highlighting from a grammar generated off the compiler's own keyword
+          table, diagnostics with their <code>E0xxx</code> codes as you type, hover types,
+          go-to-definition across modules, workspace-wide find-references and rename, completion,
+          document and workspace symbols, inlay hints, code actions and formatting.
+        </p>
+        <p>
+          The server runs Glyph's own analysis and does not run <code>tsc</code>, so an error only
+          TypeScript catches shows up at <code>glyph build</code> or <code>glyph check</code>, not
+          while you type. Member completion after <code>.</code> is not implemented yet.
+        </p>
+        <p>
+          Cursor, Windsurf, VSCodium and other VS Code forks install extensions from Open VSX,
+          where the same extension is published as
+          <a href="https://open-vsx.org/extension/chadetov/glyph-vscode"><code>chadetov.glyph-vscode</code></a>.
+          Search for "Glyph" in the editor's extensions view and pick the one from
+          <code>chadetov</code>.
+        </p>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Any editor with an LSP client</h2>
+        <p>
+          Nothing in the server is specific to VS Code. Give your editor's LSP client three things:
+          the command <code>glyph lsp</code>, the stdio transport, and the <code>glyph</code>
+          language for <code>*.glyph</code> files. The server answers the same way in every editor.
+          Outside VS Code it doesn't color anything, so highlighting depends on your editor having
+          a grammar for the language, and none of the editors below ships one yet.
+        </p>
+        <p>
+          The snippets below follow each editor's documented configuration format. We have not run
+          each one in its editor, so if one doesn't work for you, please
+          <a href="https://github.com/chadetov/glyph/issues">open an issue</a>.
+        </p>
+
+        <h2 class="block-label">Neovim</h2>
+        <p>
+          nvim-lspconfig has no entry for Glyph, so use the built-in client. This works on any
+          Neovim with <code>vim.lsp.start</code> (0.8 and later):
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">init.lua</span>
+<pre>vim.filetype.add({ extension = { glyph = "glyph" } })
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "glyph",
+  callback = function(args)
+    vim.lsp.start({
+      name = "glyph",
+      cmd = { "glyph", "lsp" },
+      root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1]),
+    })
+  end,
+})</pre>
+      </div>
+      <div class="detail">
+        <p>On Neovim 0.11 and later, <code>vim.lsp.config</code> says the same thing more briefly:</p>
+      </div>
+      <div class="code">
+        <span class="cap">init.lua, Neovim 0.11+</span>
+<pre>vim.filetype.add({ extension = { glyph = "glyph" } })
+
+vim.lsp.config("glyph", {
+  cmd = { "glyph", "lsp" },
+  filetypes = { "glyph" },
+  root_markers = { "package.json", ".git" },
+})
+vim.lsp.enable("glyph")</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Helix</h2>
+        <p>
+          Helix doesn't know the language, so declare it along with its server in
+          <code>languages.toml</code> (in your config directory, or <code>.helix/</code> in the
+          project):
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">languages.toml</span>
+<pre>[language-server.glyph]
+command = "glyph"
+args = ["lsp"]
+
+[[language]]
+name = "glyph"
+scope = "source.glyph"
+file-types = ["glyph"]
+roots = ["package.json"]
+comment-token = "//"
+language-servers = ["glyph"]</pre>
+      </div>
+      <div class="detail">
+        <p><code>hx --health glyph</code> tells you whether Helix found the server.</p>
+
+        <h2 class="block-label">Emacs</h2>
+        <p>
+          With eglot (built into Emacs 29), define a mode for <code>.glyph</code> files and
+          register the server for it:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">init.el</span>
+<pre>(define-derived-mode glyph-mode prog-mode "Glyph")
+(add-to-list 'auto-mode-alist '("\\.glyph\\'" . glyph-mode))
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs '(glyph-mode "glyph" "lsp")))
+
+(add-hook 'glyph-mode-hook #'eglot-ensure)</pre>
+      </div>
+
+      <div class="detail">
+        <h2 class="block-label">Agents over MCP</h2>
+        <p>
+          <code>glyph mcp</code> runs a Model Context Protocol server over stdio. It gives an agent
+          the compiler's answers about your project: what a symbol is, what a change would break,
+          diagnostics, the type at a position, references. A project made by
+          <code>glyph init</code> already has a <code>.mcp.json</code> registering it, and
+          <code>glyph agents</code> writes the same file (and an <code>AGENTS.md</code>) into a
+          project you already have:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">.mcp.json</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp"]
+    }
+  }
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Claude Code picks up a project's <code>.mcp.json</code> and asks you to approve it. To
+          add the server yourself instead:
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>claude mcp add glyph -- glyph mcp</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Other MCP clients take the same command and arguments in their own config.
+          <code>glyph mcp</code> queries the current directory unless you pass a project root as
+          its argument. If your agent has no MCP client, <code>glyph query</code> asks the same
+          questions from the command line and prints the same JSON. The
+          <a href="/mcp/">MCP page</a> lists all eleven tools with examples.
+        </p>
+
+        <h2 class="block-label">The npm package and the CLI</h2>
+        <p>
+          The compiler ships on npm as <code>@glyphlang/glyph</code>, a prebuilt binary for macOS,
+          Linux and Windows that needs Node 18 or later. You can install it globally, or let each
+          project pin its own copy: <code>glyph init</code> puts the compiler,
+          <code>typescript</code> and <code>tsx</code> in the project's
+          <code>devDependencies</code>, and inside the project <code>npx glyph ...</code> runs that
+          pinned copy.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npx -y @glyphlang/glyph init hello   <span class="cm"># scaffold a project, nothing global</span>
+cd hello
+npm install
+npx glyph run                        <span class="cm"># type-check, compile and run</span>
+npx glyph check src                  <span class="cm"># type-check only, writes nothing</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          An editor or MCP client that starts <code>glyph</code> needs to find it. If you only have
+          the project's copy, give the client <code>./node_modules/.bin/glyph</code> or an absolute
+          path to it. <a href="/start/">Start here</a> walks through a first program in about ten
+          minutes.
+        </p>
+
+        <h2 class="block-label">Not yet</h2>
+        <p>
+          There is no Vite plugin yet. One with React Fast Refresh is on the roadmap. Until then a
+          Vite app imports what <code>glyph build --watch</code> emits, and a change to a Glyph file
+          reloads the whole page rather than hot-swapping the component.
+          <a href="/answers/embedding/">Using Glyph inside a TypeScript app</a> has the setup.
+        </p>
+        <p>
+          GitHub does not highlight <code>.glyph</code> files, because Glyph is not a GitHub
+          Linguist language. Linguist already has an unrelated language named Glyph (Tcl-based,
+          extension <code>.glf</code>), so this one cannot be submitted under that name. The
+          grammar is mirrored at
+          <a href="https://github.com/chadetov/glyph-tmlanguage">github.com/chadetov/glyph-tmlanguage</a>
+          for a future submission.
+        </p>
+        <p>
+          Zed only adds a language through an extension, and there is no Glyph extension for Zed
+          yet, so Zed can't use <code>glyph lsp</code> today.
+        </p>
+      </div>

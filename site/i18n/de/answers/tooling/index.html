@@ -1,7 +1,7 @@
 ---
 title: Wie sieht es mit Editor, Debugging und Fehlermeldungen aus? · Glyph
 description: Ein Language Server für jeden Editor, eine VS-Code-Erweiterung, Fehlermeldungen mit stabilen Codes und glyph --explain. Debuggt wird das lesbare TypeScript, das es erzeugt.
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; Zurück | Ist die Dokumentation, die mein Agent liest, generiert oder von Hand geschrieben und veraltet?
 next: /answers/early-errors/ | Weiter &rarr; | Warum findet Glyph, was tsc findet, nur früher?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | Weiter &rarr; | Warum findet Glyph, was tsc finde
       <h1 class="q-title">Wie sieht es mit Editor, Debugging und Fehlermeldungen aus?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code> spricht das Language Server Protocol über stdio, also bekommt jeder Editor mit LSP-Client Diagnosen, Typen beim Hover, Go-to-Definition, Vervollständigung und Formatieren beim Speichern. Eine VS-Code-Erweiterung liegt im Repository; sie ist noch nicht im Marketplace, also baust du sie aus dem Quellcode. Jeder Fehler hat einen stabilen Code, den Fix und den Grund.
+        <code>glyph lsp</code> spricht das Language Server Protocol über stdio, also bekommt jeder Editor mit LSP-Client Diagnosen, Typen beim Hover, Go-to-Definition, Vervollständigung und Formatieren beim Speichern. Die VS-Code-Erweiterung ist im Marketplace als <code>chadetov.glyph-vscode</code>. Jeder Fehler hat einen stabilen Code, den Fix und den Grund.
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | Weiter &rarr; | Warum findet Glyph, was tsc finde
         Die mitgelieferte VS-Code-Erweiterung ist ein dünner Client darum, aber nichts daran ist VS-Code-spezifisch: Richte <strong>jeden</strong> LSP-fähigen Editor, Neovim, Helix, Zed, Emacs (eglot), auf <code>glyph lsp</code>, und er verhält sich gleich.
       </p></div>
       <p>
-        Es ist dasselbe Binary, das du schon installiert hast (<code>npx @glyphlang/glyph lsp</code>), also gibt es keinen separaten Server zu holen.
+        Es ist dasselbe Binary, das du schon installiert hast (<code>npx @glyphlang/glyph lsp</code>), also gibt es keinen separaten Server zu holen. <a href="/tooling/">Editoren und Integrationen</a> hat die Installationsschritte und die Konfiguration für VS Code, Neovim, Helix und Emacs.
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">Was der Server implementiert<a class="ak-anchor" href="#what-the-server-implements" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

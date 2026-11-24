@@ -1,4 +1,4 @@
-<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-20. -->
+<!-- Markdown copy of https://glyphlang.io/start/, generated from the same source as the page. Last changed 2026-11-24. -->
 
 Start here · ~10 minutes
 
@@ -59,7 +59,7 @@ npx glyph run
 hello from glyph
 ```
 
-`glyph run` type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.
+`glyph run` type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page. To see errors and types in your editor while you follow along, [Editors and integrations](https://glyphlang.io/tooling/) has the setup.
 
 ## 4 · Add something real
 

@@ -1,7 +1,7 @@
 ---
 title: Как обстоят дела с редактором, отладкой и ошибками? · Glyph
 description: Языковой сервер для любого редактора, расширение для VS Code, сообщения об ошибках со стабильными кодами и glyph --explain. Отлаживаете вы читаемый TypeScript, который он генерирует.
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; Назад | Документация, которую читает агент, генерируется или пишется вручную и устаревает?
 next: /answers/early-errors/ | Далее &rarr; | Почему Glyph ловит то же, что tsc, но раньше?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | Далее &rarr; | Почему Glyph ловит
       <h1 class="q-title">Как обстоят дела с редактором, отладкой и ошибками?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code> работает по Language Server Protocol через stdio, поэтому любой редактор с LSP-клиентом получает диагностики, типы при наведении, переход к определению, автодополнение и форматирование при сохранении. Расширение для VS Code лежит в репозитории; в Marketplace его пока нет, так что его собирают из исходников. Каждая ошибка содержит стабильный код, исправление и причину.
+        <code>glyph lsp</code> работает по Language Server Protocol через stdio, поэтому любой редактор с LSP-клиентом получает диагностики, типы при наведении, переход к определению, автодополнение и форматирование при сохранении. Расширение для VS Code есть в Marketplace как <code>chadetov.glyph-vscode</code>. Каждая ошибка содержит стабильный код, исправление и причину.
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | Далее &rarr; | Почему Glyph ловит
         Встроенное расширение для VS Code это тонкий клиент вокруг него, но ничего специфичного для VS Code там нет: направьте <strong>любой</strong> редактор с поддержкой LSP, Neovim, Helix, Zed, Emacs (eglot), на <code>glyph lsp</code>, и он будет вести себя так же.
       </p></div>
       <p>
-        Это тот же бинарный файл, который вы уже установили (<code>npx @glyphlang/glyph lsp</code>), так что отдельный сервер скачивать не нужно.
+        Это тот же бинарный файл, который вы уже установили (<code>npx @glyphlang/glyph lsp</code>), так что отдельный сервер скачивать не нужно. На странице <a href="/tooling/">Редакторы и интеграции</a> есть шаги установки и конфигурация для VS Code, Neovim, Helix и Emacs.
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">Что реализует сервер<a class="ak-anchor" href="#what-the-server-implements" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "ja",
-  "source_hash": "6673445690cb5116",
+  "source_hash": "f61bf6b499f93d2e",
   "segments": [
     {
       "id": "title",
@@ -53,10 +53,10 @@
       "tr": "エディタ、デバッグ、エラーの使い勝手はどうですか？"
     },
     {
-      "id": "h-cfd8c6fd",
+      "id": "h-691421fc",
       "kind": "html",
-      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
-      "tr": "<code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張はリポジトリにありますが、まだ Marketplace には公開していないので、ソースからビルドしてください。どのエラーにも、安定したコード、直し方、理由が付いています。"
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. The VS Code extension is on the Marketplace as <code>chadetov.glyph-vscode</code>. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張は Marketplace に <code>chadetov.glyph-vscode</code> として公開されています。どのエラーにも、安定したコード、直し方、理由が付いています。"
     },
     {
       "id": "h-b37fe312",
@@ -173,10 +173,10 @@
       "tr": "同梱の VS Code 拡張はその薄いクライアントですが、VS Code 固有の部分はありません。Neovim、Helix、Zed、Emacs（eglot）など、LSP に対応した<strong>どの</strong>エディタでも <code>glyph lsp</code> を指定すれば同じように動きます。"
     },
     {
-      "id": "h-1cde591c",
+      "id": "h-8ecb7e15",
       "kind": "html",
-      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
-      "tr": "すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。"
+      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch. <a href=\"/tooling/\">Editors and integrations</a> has the install steps and the config for VS Code, Neovim, Helix and Emacs.",
+      "tr": "すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。VS Code、Neovim、Helix、Emacs のインストール手順と設定は<a href=\"/tooling/\">エディタと連携</a>にあります。"
     },
     {
       "id": "h-7122439f",

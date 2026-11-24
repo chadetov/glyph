@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エディタ、デバッグ、エラーの使い勝手はどうですか？","item":"https://glyphlang.io/ja/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/tooling/#article","headline":"エディタ、デバッグ、エラーの使い勝手はどうですか？","description":"どのエディタでも使える言語サーバー、VS Code 拡張、安定したコード付きのエラーメッセージ、そして glyph --explain。デバッグは出力された読みやすい TypeScript に対して行います。","url":"https://glyphlang.io/ja/answers/tooling/","inLanguage":"ja","dateModified":"2026-11-21","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/tooling/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/ja/answers/tooling/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/ja/"},{"@type":"ListItem","position":2,"name":"Q&A","item":"https://glyphlang.io/ja/answers/"},{"@type":"ListItem","position":3,"name":"エディタ、デバッグ、エラーの使い勝手はどうですか？","item":"https://glyphlang.io/ja/answers/tooling/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/ja/answers/tooling/#article","headline":"エディタ、デバッグ、エラーの使い勝手はどうですか？","description":"どのエディタでも使える言語サーバー、VS Code 拡張、安定したコード付きのエラーメッセージ、そして glyph --explain。デバッグは出力された読みやすい TypeScript に対して行います。","url":"https://glyphlang.io/ja/answers/tooling/","inLanguage":"ja","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/ja/answers/tooling/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/tooling/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/tooling/" />
@@ -102,6 +102,7 @@
                     <p class="nav-col-title">はじめよう</p>
                     <ul>
                       <li><a href="/ja/start/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg></span><span class="nav-text"><span class="nav-label">10 分で始める</span><span class="nav-desc">インストールし、プログラムを書いて、実行する</span></span></a></li>
+                      <li><a href="/tooling/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg></span><span class="nav-text"><span class="nav-label">エディタと連携</span><span class="nav-desc">VS Code、LSP 対応エディタ、MCP、CLI</span></span></a></li>
                       <li><a href="/ja/answers/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9.5L4 20V5z"/><path d="M10 9.2a2 2 0 113 1.7c-.6.4-1 .8-1 1.6M12 14v.01"/></svg></span><span class="nav-text"><span class="nav-label">Q&A <span class="nav-count">28</span></span><span class="nav-desc">エンジニアがよく聞く質問と、実例付きの回答</span></span></a></li>
                       <li><a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4.5A1.5 1.5 0 016.5 3H20v15H6.5A1.5 1.5 0 005 19.5v-15z"/><path d="M5 19.5A1.5 1.5 0 006.5 21H20v-3M9 7.5h7"/></svg></span><span class="nav-text"><span class="nav-label">言語リファレンス</span><span class="nav-desc">GitHub にある完全な仕様</span></span></a></li>
                       <li><a href="/ja/contribute/"><span class="nav-ico"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V9a3 3 0 00-3-3h-4M13 3.5L10.5 6 13 8.5"/></svg></span><span class="nav-text"><span class="nav-label">コントリビュート</span><span class="nav-desc">コンパイラの作りと、貢献の方法</span></span></a></li>
@@ -411,7 +412,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>このページは翻訳です。英語版が正式な内容です。 <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ja%29%3A+%2Fja%2Fanswers%2Ftooling%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fja%2Fanswers%2Ftooling%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Ftooling%2F%0A%0AWhat+is+wrong%3A%0A">翻訳の問題を報告する</a></p>
-      <p class="i18n-stale">このページの英語版は、翻訳後に更新されています。 <a href="/answers/tooling/" hreflang="en" data-lang="en">最新の英語版を読む</a></p>
     </div>
     <script>
       (function () {
@@ -478,7 +478,7 @@
       </nav>
 
       <p class="short-answer">
-        <code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張はリポジトリにありますが、まだ Marketplace には公開していないので、ソースからビルドしてください。どのエラーにも、安定したコード、直し方、理由が付いています。
+        <code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張は Marketplace に <code>chadetov.glyph-vscode</code> として公開されています。どのエラーにも、安定したコード、直し方、理由が付いています。
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -520,7 +520,7 @@
         同梱の VS Code 拡張はその薄いクライアントですが、VS Code 固有の部分はありません。Neovim、Helix、Zed、Emacs（eglot）など、LSP に対応した<strong>どの</strong>エディタでも <code>glyph lsp</code> を指定すれば同じように動きます。
       </p></div>
       <p>
-        すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。
+        すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。VS Code、Neovim、Helix、Emacs のインストール手順と設定は<a href="/tooling/">エディタと連携</a>にあります。
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">サーバーが実装しているもの<a class="ak-anchor" href="#what-the-server-implements" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
@@ -631,7 +631,7 @@
           </ul>
         </section>
       </div>
-      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.181 で検証しています。最終更新：<time datetime="2026-11-21">2026年11月21日</time>。</p>
+      <p class="page-stamp">このページのコード例は、ビルドのたびに Glyph 0.1.181 で検証しています。最終更新：<time datetime="2026-11-24">2026年11月24日</time>。</p>
       <nav class="prevnext" aria-label="前へ・次へ">
         <a href="/ja/answers/generated-docs/">
           <span class="dir">&larr; 前へ</span>
@@ -663,9 +663,9 @@
             <h2>学ぶ</h2>
             <a href="/ja/answers/">Q&amp;A</a>
             <a href="/ja/answers/verifiability/">Q&amp;A を順番に読む</a>
-            <a href="/ja/answers/tooling/">エディタとエージェント向けツール</a>
             <a href="/ja/agents/">エージェント向け</a>
             <a href="/ja/mcp/">MCP サーバー</a>
+            <a href="/tooling/">エディタと連携</a>
             <a href="/llms-pages.txt">Markdown 版のページ</a>
             <a href="/ja/design/">設計</a>
             <a href="/ja/pillars/verifiability/">4 つの柱</a>

@@ -1,8 +1,9 @@
 """Markdown copies of the pages agents read most.
 
 scripts/build_site.py writes web/<path>/index.md next to the HTML of /start/,
-/from-typescript/, /agents/, /teams/, /evidence/, /answers/ and every answer,
-converted from the same rendered body, so the two never disagree. Each HTML
+/from-typescript/, /agents/, /teams/, /evidence/, /mcp/, /tooling/, /answers/
+and every answer, converted from the same rendered body, so the two never
+disagree. Each HTML
 page links its copy with <link rel="alternate" type="text/markdown">, and
 web/llms-pages.txt lists them all. The copies are not in the sitemap.
 
@@ -24,7 +25,7 @@ import re
 from html.parser import HTMLParser
 
 ORIGIN = "https://glyphlang.io"
-PAGES = ("/start/", "/from-typescript/", "/agents/", "/teams/", "/evidence/")
+PAGES = ("/start/", "/from-typescript/", "/agents/", "/teams/", "/evidence/", "/mcp/", "/tooling/")
 
 
 def wanted(url: str) -> bool:

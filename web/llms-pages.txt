@@ -7,8 +7,10 @@
 - [For agents and tool builders](https://glyphlang.io/agents/index.md): How an agent works with Glyph: an MCP server with eleven tools, the same queries on the command line, and glyph check --agent for repairing a red build.
 - [Evidence · how each claim on this site is checked](https://glyphlang.io/evidence/index.md): How each claim on this site is checked: the catches fixtures and the CI gate behind them, the TypeScript setup they are compared with, and how to reproduce one.
 - [Coming from TypeScript · what changes in Glyph](https://glyphlang.io/from-typescript/index.md): Glyph reads almost like TypeScript and compiles to it. What changes: a few syntax deltas, no any, as or !, one greppable escape hatch, and how npm works.
+- [Wire your agent into Glyph over MCP](https://glyphlang.io/mcp/index.md): glyph mcp runs an MCP server with eleven tools: what a symbol is, what a change breaks, diagnostics, references and more. Each is also a glyph query verb.
 - [Start Here · your first Glyph program in 10 minutes](https://glyphlang.io/start/index.md): Scaffold a Glyph project with npx, run it, break it on purpose, read the compiler error and fix it. Ten minutes, nothing installed globally.
 - [For teams · what Glyph guarantees and costs](https://glyphlang.io/teams/index.md): For a lead weighing Glyph: what the compiler guarantees and where it stops, adopting it in a TypeScript app, the exit story, version pinning and pre-1.0 status.
+- [Editors and integrations · set up Glyph in your tools](https://glyphlang.io/tooling/index.md): Install the VS Code extension, point any LSP editor at glyph lsp, connect an agent with glyph mcp, and run the compiler from npm. Config for Neovim, Helix and Emacs.
 
 ## Answers
 

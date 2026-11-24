@@ -4,6 +4,7 @@ A statically typed, transpile-to-TypeScript language built so code an AI agent w
 
 [![npm](https://img.shields.io/npm/v/@glyphlang/glyph.svg)](https://www.npmjs.com/package/@glyphlang/glyph)
 [![downloads](https://img.shields.io/npm/dm/@glyphlang/glyph.svg)](https://www.npmjs.com/package/@glyphlang/glyph)
+[![VS Code](https://img.shields.io/visual-studio-marketplace/v/chadetov.glyph-vscode?label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=chadetov.glyph-vscode)
 [![CI](https://github.com/chadetov/glyph/actions/workflows/ci.yml/badge.svg)](https://github.com/chadetov/glyph/actions/workflows/ci.yml)
 [![install size](https://packagephobia.com/badge?p=@glyphlang/glyph)](https://packagephobia.com/result?p=@glyphlang/glyph)
 [![license](https://img.shields.io/npm/l/@glyphlang/glyph.svg)](https://github.com/chadetov/glyph)

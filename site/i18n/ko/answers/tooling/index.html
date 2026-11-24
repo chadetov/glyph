@@ -1,7 +1,7 @@
 ---
 title: 에디터, 디버깅, 오류 경험은 어떤가요? · Glyph
 description: 어떤 에디터에서나 쓸 수 있는 언어 서버, VS Code 확장, 고정된 코드를 가진 오류 메시지와 glyph --explain. 디버깅은 생성된 읽을 수 있는 TypeScript로 합니다.
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; 이전 | 에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?
 next: /answers/early-errors/ | 다음 &rarr; | Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | 다음 &rarr; | Glyph는 왜 tsc가 잡는 것을
       <h1 class="q-title">에디터, 디버깅, 오류 경험은 어떤가요?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code>는 stdio로 Language Server Protocol을 주고받으므로, LSP 클라이언트가 있는 에디터라면 진단, hover 타입, 정의로 이동, 자동 완성, 저장 시 포맷을 쓸 수 있습니다. VS Code 확장은 저장소에 있지만 아직 Marketplace에는 없으므로 소스에서 빌드해야 합니다. 모든 오류에는 고정된 코드, 수정 방법, 이유가 있습니다.
+        <code>glyph lsp</code>는 stdio로 Language Server Protocol을 주고받으므로, LSP 클라이언트가 있는 에디터라면 진단, hover 타입, 정의로 이동, 자동 완성, 저장 시 포맷을 쓸 수 있습니다. VS Code 확장은 Marketplace에 <code>chadetov.glyph-vscode</code>로 올라가 있습니다. 모든 오류에는 고정된 코드, 수정 방법, 이유가 있습니다.
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | 다음 &rarr; | Glyph는 왜 tsc가 잡는 것을
         함께 제공되는 VS Code 확장은 그 위의 얇은 클라이언트일 뿐이며, VS Code에 특화된 것은 없습니다. Neovim, Helix, Zed, Emacs(eglot) 등 LSP를 지원하는 <strong>어떤</strong> 에디터든 <code>glyph lsp</code>를 가리키게 하면 똑같이 동작합니다.
       </p></div>
       <p>
-        이미 설치한 바이너리(<code>npx @glyphlang/glyph lsp</code>)와 같으므로 따로 받을 서버가 없습니다.
+        이미 설치한 바이너리(<code>npx @glyphlang/glyph lsp</code>)와 같으므로 따로 받을 서버가 없습니다. VS Code, Neovim, Helix, Emacs의 설치 방법과 설정은 <a href="/tooling/">에디터와 연동</a>에 있습니다.
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">서버가 구현하는 것<a class="ak-anchor" href="#what-the-server-implements" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

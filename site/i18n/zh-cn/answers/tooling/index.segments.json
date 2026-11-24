@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "zh-cn",
-  "source_hash": "6673445690cb5116",
+  "source_hash": "f61bf6b499f93d2e",
   "segments": [
     {
       "id": "title",
@@ -53,10 +53,10 @@
       "tr": "编辑器、调试和报错的体验如何？"
     },
     {
-      "id": "h-cfd8c6fd",
+      "id": "h-691421fc",
       "kind": "html",
-      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
-      "tr": "<code>glyph lsp</code> 通过 stdio 使用 Language Server Protocol，所以任何带 LSP 客户端的编辑器都能获得诊断、悬停类型、跳转到定义、补全和保存时格式化。仓库里有一个 VS Code 扩展；它还没有上架 Marketplace，所以需要你从源码构建。每个错误都带有稳定的错误码、修复方法和原因。"
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. The VS Code extension is on the Marketplace as <code>chadetov.glyph-vscode</code>. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code> 通过 stdio 使用 Language Server Protocol，所以任何带 LSP 客户端的编辑器都能获得诊断、悬停类型、跳转到定义、补全和保存时格式化。VS Code 扩展已在 Marketplace 上架，ID 为 <code>chadetov.glyph-vscode</code>。每个错误都带有稳定的错误码、修复方法和原因。"
     },
     {
       "id": "h-b37fe312",
@@ -173,10 +173,10 @@
       "tr": "随附的 VS Code 扩展只是它外面的一层薄客户端，没有任何东西是 VS Code 专属的：把<strong>任何</strong>支持 LSP 的编辑器，比如 Neovim、Helix、Zed、Emacs（eglot），指向 <code>glyph lsp</code>，行为都一样。"
     },
     {
-      "id": "h-1cde591c",
+      "id": "h-8ecb7e15",
       "kind": "html",
-      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
-      "tr": "它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。"
+      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch. <a href=\"/tooling/\">Editors and integrations</a> has the install steps and the config for VS Code, Neovim, Helix and Emacs.",
+      "tr": "它就是你已经安装的那个二进制文件（<code>npx @glyphlang/glyph lsp</code>），所以不需要另外获取服务器。VS Code、Neovim、Helix 和 Emacs 的安装步骤和配置见<a href=\"/tooling/\">编辑器与集成</a>。"
     },
     {
       "id": "h-7122439f",

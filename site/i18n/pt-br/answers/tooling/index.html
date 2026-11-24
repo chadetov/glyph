@@ -1,7 +1,7 @@
 ---
 title: Como é a experiência de editor, depuração e erros? · Glyph
 description: Um language server para qualquer editor, uma extensão para VS Code, mensagens de erro com códigos estáveis e glyph --explain. Você depura o TypeScript legível que ele emite.
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; Anterior | A documentação que meu agente lê é gerada, ou escrita à mão e desatualizada?
 next: /answers/early-errors/ | Próxima &rarr; | Por que o Glyph detecta o que o tsc detecta, só que antes?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | Próxima &rarr; | Por que o Glyph detecta o que o
       <h1 class="q-title">Como é a experiência de editor, depuração e erros?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code> fala o Language Server Protocol via stdio, então qualquer editor com cliente LSP ganha diagnósticos, tipos no hover, go-to-definition, autocomplete e format-on-save. Há uma extensão para VS Code no repositório; ela ainda não está no Marketplace, então você faz o build a partir do código-fonte. Todo erro traz um código estável, a correção e o motivo.
+        <code>glyph lsp</code> fala o Language Server Protocol via stdio, então qualquer editor com cliente LSP ganha diagnósticos, tipos no hover, go-to-definition, autocomplete e format-on-save. A extensão para VS Code está no Marketplace como <code>chadetov.glyph-vscode</code>. Todo erro traz um código estável, a correção e o motivo.
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | Próxima &rarr; | Por que o Glyph detecta o que o
         A extensão de VS Code incluída é um cliente fino em volta dele, mas nada é específico do VS Code: aponte <strong>qualquer</strong> editor com suporte a LSP, Neovim, Helix, Zed, Emacs (eglot), para <code>glyph lsp</code> e ele se comporta igual.
       </p></div>
       <p>
-        É o mesmo binário que você já instalou (<code>npx @glyphlang/glyph lsp</code>), então não há servidor separado para baixar.
+        É o mesmo binário que você já instalou (<code>npx @glyphlang/glyph lsp</code>), então não há servidor separado para baixar. <a href="/tooling/">Editores e integrações</a> tem os passos de instalação e a configuração para VS Code, Neovim, Helix e Emacs.
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">O que o servidor implementa<a class="ak-anchor" href="#what-the-server-implements" aria-label="Link para esta seção"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

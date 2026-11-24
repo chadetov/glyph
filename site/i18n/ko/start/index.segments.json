@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "ko",
-  "source_hash": "afa9668b9f2c7e17",
+  "source_hash": "88cafa720928cdcc",
   "segments": [
     {
       "id": "title",
@@ -173,10 +173,10 @@
       "tr": "3 &middot; 실행하기"
     },
     {
-      "id": "h-168ebd5f",
+      "id": "h-2420f0a6",
       "kind": "html",
-      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
-      "tr": "<code>glyph run</code>은 코드를 타입 검사하고, TypeScript로 컴파일하고, 실행했습니다. 이 페이지의 나머지 부분에서 반복할 루프가 바로 이것입니다."
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page. To see errors and types in your editor while you follow along, <a href=\"/tooling/\">Editors and integrations</a> has the setup.",
+      "tr": "<code>glyph run</code>은 코드를 타입 검사하고, TypeScript로 컴파일하고, 실행했습니다. 이 페이지의 나머지 부분에서 반복할 루프가 바로 이것입니다. 따라 하면서 에디터에서 오류와 타입을 보고 싶다면 <a href=\"/tooling/\">에디터와 연동</a>에 설정 방법이 있습니다."
     },
     {
       "id": "h-e7d3d489",

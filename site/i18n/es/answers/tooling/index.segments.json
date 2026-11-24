@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/tooling/index.html",
   "locale": "es",
-  "source_hash": "6673445690cb5116",
+  "source_hash": "f61bf6b499f93d2e",
   "segments": [
     {
       "id": "title",
@@ -53,10 +53,10 @@
       "tr": "¿Cómo es la experiencia con el editor, la depuración y los errores?"
     },
     {
-      "id": "h-cfd8c6fd",
+      "id": "h-691421fc",
       "kind": "html",
-      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. A VS Code extension is in the repository; it is not on the Marketplace yet, so you build it from source. Every error carries a stable code, the fix, and the reason.",
-      "tr": "<code>glyph lsp</code> habla el Language Server Protocol por stdio, así que cualquier editor con un cliente LSP tiene diagnósticos, tipos al pasar el ratón, ir a la definición, autocompletado y formateo al guardar. Hay una extensión de VS Code en el repositorio; todavía no está en el Marketplace, así que la compilas desde el código fuente. Cada error lleva un código estable, el arreglo y el motivo."
+      "en": "<code>glyph lsp</code> speaks the Language Server Protocol over stdio, so any editor with an LSP client gets diagnostics, hover types, go-to-definition, completion and format-on-save. The VS Code extension is on the Marketplace as <code>chadetov.glyph-vscode</code>. Every error carries a stable code, the fix, and the reason.",
+      "tr": "<code>glyph lsp</code> habla el Language Server Protocol por stdio, así que cualquier editor con un cliente LSP tiene diagnósticos, tipos al pasar el ratón, ir a la definición, autocompletado y formateo al guardar. La extensión de VS Code está en el Marketplace como <code>chadetov.glyph-vscode</code>. Cada error lleva un código estable, el arreglo y el motivo."
     },
     {
       "id": "h-b37fe312",
@@ -173,10 +173,10 @@
       "tr": "La extensión de VS Code incluida es un cliente ligero a su alrededor, pero nada es específico de VS Code: apunta <strong>cualquier</strong> editor con soporte LSP, Neovim, Helix, Zed, Emacs (eglot), a <code>glyph lsp</code> y se comporta igual."
     },
     {
-      "id": "h-1cde591c",
+      "id": "h-8ecb7e15",
       "kind": "html",
-      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch.",
-      "tr": "Es el mismo binario que ya instalaste (<code>npx @glyphlang/glyph lsp</code>), así que no hay un servidor aparte que descargar."
+      "en": "It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>), so there's no separate server to fetch. <a href=\"/tooling/\">Editors and integrations</a> has the install steps and the config for VS Code, Neovim, Helix and Emacs.",
+      "tr": "Es el mismo binario que ya instalaste (<code>npx @glyphlang/glyph lsp</code>), así que no hay un servidor aparte que descargar. <a href=\"/tooling/\">Editores e integraciones</a> tiene los pasos de instalación y la configuración para VS Code, Neovim, Helix y Emacs."
     },
     {
       "id": "h-7122439f",

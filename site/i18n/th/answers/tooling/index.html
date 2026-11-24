@@ -1,7 +1,7 @@
 ---
 title: ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร? · Glyph
 description: language server สำหรับทุก editor, extension ของ VS Code, ข้อความ error ที่มีรหัสคงที่ และ glyph --explain คุณดีบัก TypeScript ที่อ่านได้ซึ่งมัน emit ออกมา
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; ก่อนหน้า | เอกสารที่เอเจนต์อ่านถูก generate ขึ้นมา หรือเขียนด้วยมือและล้าสมัย?
 next: /answers/early-errors/ | ถัดไป &rarr; | ทำไม Glyph จับสิ่งที่ tsc จับได้ แต่เร็วกว่า?
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | ถัดไป &rarr; | ทำไม Glyph จ�
       <h1 class="q-title">ประสบการณ์ด้าน editor การดีบัก และ error เป็นอย่างไร?</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code> สื่อสาร Language Server Protocol ผ่าน stdio ทุก editor ที่มี LSP client จึงได้ diagnostic, type ตอน hover, go-to-definition, completion และ format-on-save มี extension ของ VS Code อยู่ใน repository ยังไม่ได้ขึ้น Marketplace คุณจึงต้อง build จากซอร์ส ทุก error มีรหัสคงที่ วิธีแก้ และเหตุผล
+        <code>glyph lsp</code> สื่อสาร Language Server Protocol ผ่าน stdio ทุก editor ที่มี LSP client จึงได้ diagnostic, type ตอน hover, go-to-definition, completion และ format-on-save extension ของ VS Code อยู่บน Marketplace ในชื่อ <code>chadetov.glyph-vscode</code> ทุก error มีรหัสคงที่ วิธีแก้ และเหตุผล
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | ถัดไป &rarr; | ทำไม Glyph จ�
         extension ของ VS Code ที่มาด้วยเป็นแค่ client บางๆ ครอบมัน แต่ไม่มีอะไรผูกกับ VS Code: ชี้ editor <strong>ใดก็ได้</strong>ที่รองรับ LSP เช่น Neovim, Helix, Zed, Emacs (eglot) ไปที่ <code>glyph lsp</code> แล้วมันทำงานเหมือนกัน
       </p></div>
       <p>
-        มันคือ binary ตัวเดียวกับที่คุณติดตั้งไว้แล้ว (<code>npx @glyphlang/glyph lsp</code>) จึงไม่มี server แยกให้ดึงมา
+        มันคือ binary ตัวเดียวกับที่คุณติดตั้งไว้แล้ว (<code>npx @glyphlang/glyph lsp</code>) จึงไม่มี server แยกให้ดึงมา ขั้นตอนติดตั้งและ config สำหรับ VS Code, Neovim, Helix และ Emacs อยู่ที่ <a href="/tooling/">Editor และการเชื่อมต่อ</a>
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">สิ่งที่ server ทำได้<a class="ak-anchor" href="#what-the-server-implements" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

@@ -16172,7 +16172,7 @@ and is the owner's to confirm.
   reproductions are E0204, and so is `is Array<string> => v` returned
   where `number` is declared.
 
-- **G471. [HALF FIXED] A write into a container is not compared with its element or
+- **G471. [FIXED] A write into a container is not compared with its element or
   value type under `--no-tsc`.** On a declared `v: Array<string>`, `mut
   v.push(5)` and `mut v[0] = 5` pass, and so does `mut m["k"] = 5` on `m:
   Record<string, string>`; full `check` reports TS2345 and TS2322 for the
@@ -16190,8 +16190,11 @@ and is the owner's to confirm.
 
   The index half is fixed in 0.1.179 with G501: `mut v[0] = 5` and `mut
   m["k"] = 5` are E0204, and so is `mut u[0] = 5` inside an `is
-  Array<string>` arm, which `tsc` accepts. The method half (`mut
-  v.push(5)`) is 0.1.181's, with G505. The key a write uses is G511.
+  Array<string>` arm, which `tsc` accepts. The key a write uses is G511.
+
+  The method half is fixed in 0.1.181 with G505 (decision record 196,
+  section 3): `mut v.push(5)` on an `Array<string>` is E0211, in an `is
+  Array<string>` arm as well. With both halves closed, G471 is fixed.
 
 - **G472. A write through a second, wider name after an `is` check breaks
   the narrowing.** `let r: Record<string, unknown> = { name: "x", }`, `let
@@ -16246,7 +16249,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.178 (the release build) with record 186's probe u2 cut to its three gap lines (its `e` and `i2` draw intended E0211s that stop full `check` before `tsc`): `takes_cb(fn(x: number) -> string { .. })`, `let k: fn(unknown) -> void = g` and `let k2: fn(string) -> void = h` all pass `check --no-tsc`; full `check` reports TS2345 and two TS2322.*
 
-- **G492. A built-in method's rest parameter is not checked.** `s.concat(5)`
+- **G492. [FIXED] A built-in method's rest parameter is not checked.** `s.concat(5)`
   and `s.concat(u)` with `s: string` and `u: unknown` pass `check --no-tsc`,
   and `tsc` refuses both (TS2345). `s.startsWith(u)` is refused, so only the
   variadic parameter is skipped. Found by record 186 (N3).
@@ -16255,6 +16258,12 @@ and is the owner's to confirm.
   branch build: both calls pass `check --no-tsc`.*
 
   *Reproduced against 0.1.178 (the release build): `s.concat(5)` and `s.concat(u)` pass `check --no-tsc` and full `check` reports TS2345 on both; `s.startsWith(u)` is still E0211.*
+
+  Fixed in 0.1.181 with G505 (decision record 196, section 3): a rest
+  parameter is part of the generated row, and each argument past the fixed
+  parameters is checked against its element type, so `s.concat(5)` and
+  `s.concat(u)` are E0211, and so are `push`, `unshift` and the items of
+  `splice` and `toSpliced`.
 
 - **G500. A `bigint` is typed as `number` by Glyph's checker.** `1n` is a
   `number` to the checker, and so is a value declared `bigint`, because the
@@ -16330,7 +16339,7 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `n134.glyph`: `check --no-tsc` exits 0.*
 
-- **G505. The arguments of a `mut` method call are never checked.** On an
+- **G505. [FIXED] The arguments of a `mut` method call are never checked.** On an
   `Array<string>`, `mut v.push(5)`, `mut v.push("a", 5)`, `mut v.unshift(5)`,
   `mut v.fill("x", "a")`, `mut v.splice("a", 1)`, `mut v.splice(0, 1, 5)` and
   `mut v.copyWithin("a", 1)` pass `check --no-tsc`; `tsc` refuses each. The
@@ -16342,6 +16351,17 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `m2b.glyph`: `check --no-tsc` exits 0, and full `check` reports nine
   errors.*
+
+  Fixed in 0.1.181 (decision record 196, section 3). The `mut` path was not
+  skipping anything: the rows generated from TypeScript's library left these
+  methods untyped, `push` and `unshift` for their rest parameter, `splice`
+  for its two overloads, `fill`, `copyWithin` and `sort` for their `this`
+  return. The generator now writes a rest parameter into the row, merges an
+  overload set holding one when the merge accepts exactly what the overloads
+  accept, and reads an `Array<T>` method's `this` return as `T[]`. Lines 5 to
+  11 and 13 of `m2b.glyph` are E0211, each one a refusal `tsc` makes. The
+  `sort` comparator's count and return are checked; its parameter types wait
+  for G491 (0.1.183), so line 12 stays silent.
 
 - **G506. A call inside an `@example` is in no relation, so `glyph_impact`
   and `glyph_references` miss it.** With `@example normalize("  Hi ") ==

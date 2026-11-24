@@ -633,6 +633,14 @@ pub fn explain(code: &str) -> Option<&'static str> {
             error, as E0204 describes for a `let` (G325): `takes(u)` with \
             `takes(s: string)` and `u: unknown`. Check it first with \
             `T.parse(u)` or an `is` pattern.\n\n\
+            A built-in method's arguments are checked against the signature \
+            TypeScript's library declares, under `mut` as anywhere else: \
+            `mut v.push(5)` and `mut v.splice(\"a\", 1)` on an `Array<string>` \
+            are this error, and so is `s.concat(5)`, since a rest parameter \
+            checks each argument against its element type. A `sort` or \
+            `toSorted` comparator that takes more than two parameters, or \
+            returns something other than a `number`, is refused with both \
+            signatures printed; its parameter types are not yet compared.\n\n\
             A `Record` argument is held to the key rule E0204 describes, and a \
             `std/record` call takes a key of the record's own key type: \
             `record.set(r, \"zzz\", 9)` on a `Record<Tier, int>` is refused at \
@@ -662,6 +670,11 @@ pub fn explain(code: &str) -> Option<&'static str> {
             A call passes more or fewer arguments than the function declares. \
             Glyph has no optional parameters, no default values, and no \
             variadics: one argument per parameter, always.\n\n\
+            A built-in method and a stdlib function follow TypeScript's \
+            declaration instead, which can make trailing parameters optional \
+            or end in a rest parameter: `v.splice()` is this error, since \
+            `splice` takes at least one argument, and the help names the \
+            range the callee accepts.\n\n\
             Supply the missing argument, or drop the extra one. If a parameter \
             is genuinely optional, model it in the type — `Option<T>` with an \
             explicit `None` at the call site says so where a defaulted \
@@ -1078,9 +1091,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             property (`xs.length`). The methods are read from a table generated \
             out of TypeScript's library, which also types each call: \
             `let n: string = xs.indexOf(2)` is E0204, and `xs.indexOf(\"a\")` on \
-            an `Array<number>` is E0211. A method with overloads, a `this` \
-            type, a type predicate or a rest parameter (`split`, `sort`, \
-            `push`) stays unchecked, and its call is left to `tsc`.",
+            an `Array<number>` is E0211. A rest parameter is checked argument \
+            by argument (`mut xs.push(\"a\")` on an `Array<number>` is E0211), \
+            and an `Array<T>` method returning `this` (`fill`, `sort`) returns \
+            `Array<T>`. A method with overloads, a `this` parameter or a type \
+            predicate (`split`, `replace`, `flat`) stays unchecked, and its \
+            call is left to `tsc`; an overload set holding a rest parameter \
+            (`splice`) is merged into one checked signature.",
         "E0235" => "E0235: a read through a `Nullable` that does not handle the null\n\n\
             `Nullable<T>` (D45) is `T | null`. A field of a `Nullable<R>` is read \
             with `?.`, and the field is checked against `R` as it would be on an \
@@ -2486,7 +2503,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0211",
         phase: "typechecker",
-        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325)",
+        meaning: "Call argument type does not match the parameter type. A JSX attribute on a component element counts: the element passes one props object, so the attribute is checked against the props record's field of that name. A `Record` argument is held to E0204's key rule, a `std/record` key argument must be the record's own key type, and `record.remove` on a `Record` keyed by a string-literal union is refused at the record. An async function passed where a sync `fn(...) -> void` is declared (`ids.forEach(save)`, an async lambda given to `timers.every` or a socket handler) is refused too: the slot calls it without waiting, so each call runs on its own and its errors are lost (D40). A `match` written as the argument is compared arm by arm, as under E0204. An `unknown` argument where any type but `unknown` is declared is refused (G325). A built-in method's arguments are checked against the signature TypeScript's library declares, under `mut` as anywhere else, and a rest parameter (`push`, `unshift`, `splice`'s items, `string.concat`) checks each argument against its element type; a `sort` or `toSorted` comparator that takes more than two parameters or returns something other than a `number` is refused (G505, G492)",
         fix: "Pass a value of the expected type; check an `unknown` with `T.parse` or an `is` pattern first",
     },
     CodeEntry {
@@ -2498,8 +2515,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0213",
         phase: "typechecker",
-        meaning: "Wrong number of call arguments",
-        fix: "One argument per parameter",
+        meaning: "Wrong number of call arguments. A Glyph function takes exactly one per parameter; a built-in method or a stdlib function with optional parameters takes a range, and the help names it",
+        fix: "One argument per parameter; a built-in method takes the range its help names",
     },
     CodeEntry {
         code: "E0214",

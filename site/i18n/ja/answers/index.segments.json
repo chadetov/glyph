@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/index.html",
   "locale": "ja",
-  "source_hash": "f574b9ebcd22635e",
+  "source_hash": "88a6cb03294ad00e",
   "segments": [
     {
       "id": "title",
@@ -381,6 +381,18 @@
       "kind": "html",
       "en": "<code>glyph llms --json</code> emits the diagnostics, the prelude, the stdlib signatures and the tool manual out of the compiler's own tables, and a gate fails when a hand-written copy disagrees.",
       "tr": "<code>glyph llms --json</code> は、診断、prelude、標準ライブラリのシグネチャ、ツールのマニュアルをコンパイラ自身のテーブルから出力します。手書きのコピーが食い違えば、ゲートが失敗します。"
+    },
+    {
+      "id": "h-6f02dbb6",
+      "kind": "html",
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "ラッパーがあるのに、エージェントがライブラリを直接インポートするのを止められますか？"
+    },
+    {
+      "id": "h-1ca6f891",
+      "kind": "html",
+      "en": "Ban the import path in <code>package.json</code> and name the replacement. An import of it is <code>E0115</code>, and the help points at your wrapper.",
+      "tr": "<code>package.json</code> でインポートパスを禁止し、代わりに使うモジュールを指定します。そのインポートは <code>E0115</code> になり、ヘルプがラッパーを示します。"
     },
     {
       "id": "h-8479d742",

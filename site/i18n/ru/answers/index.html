@@ -1,7 +1,7 @@
 ---
 title: Ответы · что инженеры спрашивают о Glyph · Glyph
 description: Конкретные ответы на вопросы инженеров о Glyph: что мешает тихим поломкам, React и npm, почему не TypeScript с инструментами и отладка в продакшене.
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">Ответы</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">Может ли агент спросить у компилятора, что такое символ, до того как писать код?</span><p><code>glyph_symbol</code>: варианты union с синтаксисом, который создаёт каждый, за один вызов. Одиннадцать инструментов, у каждого есть команда <code>glyph query</code>.</p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">Когда сборка падает, говорит ли компилятор агенту, как её починить?</span><p>Диагностика содержит виновный символ, допустимые альтернативы и то, что исправляющая правка не должна сломать. <code>glyph fix</code> записывает те исправления, которые компилятор определяет сам.</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">Документация, которую читает агент, генерируется или пишется вручную и устаревает?</span><p><code>glyph llms --json</code> выдаёт диагностики, прелюдию, сигнатуры стандартной библиотеки и руководство по инструментам из собственных таблиц компилятора, а гейт падает, если рукописная копия с ними расходится.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">Можно ли запретить агенту импортировать библиотеку напрямую, если у нас есть для неё обёртка?</span><p>Запретите путь импорта в <code>package.json</code> и укажите замену. Его импорт даёт <code>E0115</code>, а подсказка указывает на вашу обёртку.</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">Ошибки, редакторы и продакшен</h2>
         <p class="ans-group-sub">Что вы видите, когда что-то не так, от редактора до дежурства.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">Как обстоят дела с редактором, отладкой и ошибками?</span><p>Языковой сервер для любого редактора с LSP и ошибки со стабильным кодом, которые называют исправление.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Почему Glyph ловит то же, что tsc, но раньше?</span><p>Контекст <code>await</code>, ветка <code>match</code> без значения и пропущенный <code>mut</code> сообщаются относительно вашего исходного кода, а не сгенерированного TypeScript.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">Когда разбор не удаётся, узнаю ли я почему?</span><p>Какое поле, какое правило нарушено, какой предикат <code>where</code> не выполнен и <code>code</code>, по которому можно ветвиться.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">Когда в три часа ночи всё ломается в продакшене, что видит дежурный?</span><p>Читаемый TS, который принадлежит вам, source maps обратно в ваш <code>.glyph</code> и <code>run</code>, который сообщает то же, что и <code>build</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">Как обстоят дела с редактором, отладкой и ошибками?</span><p>Языковой сервер для любого редактора с LSP и ошибки со стабильным кодом, которые называют исправление.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">Почему Glyph ловит то же, что tsc, но раньше?</span><p>Контекст <code>await</code>, ветка <code>match</code> без значения и пропущенный <code>mut</code> сообщаются относительно вашего исходного кода, а не сгенерированного TypeScript.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">Когда разбор не удаётся, узнаю ли я почему?</span><p>Какое поле, какое правило нарушено, какой предикат <code>where</code> не выполнен и <code>code</code>, по которому можно ветвиться.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">Когда в три часа ночи всё ломается в продакшене, что видит дежурный?</span><p>Читаемый TS, который принадлежит вам, source maps обратно в ваш <code>.glyph</code> и <code>run</code>, который сообщает то же, что и <code>build</code>.</p></a>
         </div>
       </div>
 

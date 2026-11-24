@@ -1,7 +1,7 @@
 ---
 title: 问答 · 工程师关于 Glyph 的常见问题 · Glyph
 description: 针对工程师关于 Glyph 的问题的具体回答：什么能防止悄无声息的破坏，React 和 npm，为什么不用配齐工具的 TypeScript，以及生产环境中的调试。
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">问答</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">我的智能体能在写代码之前问编译器某个符号是什么吗？</span><p><code>glyph_symbol</code>：一次调用就能拿到联合类型的各个变体，以及构造每个变体的语法。共十一个工具，每个都有对应的 <code>glyph query</code> 子命令。</p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">构建失败时，编译器会告诉智能体怎么修吗？</span><p>诊断会带上出错的符号、合法的替代写法，以及修复性编辑不能破坏的东西。编译器能自行确定的修复，由 <code>glyph fix</code> 直接写入。</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">智能体读的文档是生成的，还是手写的、已经过时的？</span><p><code>glyph llms --json</code> 从编译器自己的表中输出诊断、prelude、标准库签名和工具手册，手写的副本与之不一致时检查会失败。</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">我们已经有封装了，能阻止智能体直接导入原始库吗？</span><p>在 <code>package.json</code> 中禁止该导入路径并指明替代模块。导入它会得到 <code>E0115</code>，帮助信息会指向你的封装。</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">错误、编辑器与生产环境</h2>
         <p class="ans-group-sub">出问题时你会看到什么，从编辑器到值班。</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">编辑器、调试和报错的体验如何？</span><p>适用于任何 LSP 编辑器的语言服务器，以及带稳定错误码、会指出修复方法的报错。</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">为什么 Glyph 能发现 tsc 能发现的问题，而且更早？</span><p><code>await</code> 上下文、没有值的 <code>match</code> 分支、缺少的 <code>mut</code>，都针对你的源码报告，而不是针对生成的 TypeScript。</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">解析失败时，我能知道原因吗？</span><p>哪个字段、违反了哪条规则、违反了哪个 <code>where</code> 谓词，以及一个可以用来分支处理的 <code>code</code>。</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">凌晨 3 点在生产环境出问题时，值班的人会看到什么？</span><p>你自己掌握的可读 TS，指回 <code>.glyph</code> 的 source map，以及报告内容与 <code>build</code> 一致的 <code>run</code>。</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">编辑器、调试和报错的体验如何？</span><p>适用于任何 LSP 编辑器的语言服务器，以及带稳定错误码、会指出修复方法的报错。</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">为什么 Glyph 能发现 tsc 能发现的问题，而且更早？</span><p><code>await</code> 上下文、没有值的 <code>match</code> 分支、缺少的 <code>mut</code>，都针对你的源码报告，而不是针对生成的 TypeScript。</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">解析失败时，我能知道原因吗？</span><p>哪个字段、违反了哪条规则、违反了哪个 <code>where</code> 谓词，以及一个可以用来分支处理的 <code>code</code>。</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">凌晨 3 点在生产环境出问题时，值班的人会看到什么？</span><p>你自己掌握的可读 TS，指回 <code>.glyph</code> 的 source map，以及报告内容与 <code>build</code> 一致的 <code>run</code>。</p></a>
         </div>
       </div>
 

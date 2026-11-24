@@ -1,0 +1,139 @@
+---
+title: Can I stop an agent importing the raw library? · Glyph
+description: Ban an import path in package.json and name the module to use instead. An import of it is a compile error whose help points at your wrapper, and extern_ts is covered too.
+layout: article
+article_class: ak
+nav: answers
+subnav: answers
+prev: /answers/generated-docs/ | &larr; Previous | Is the documentation my agent reads generated, or written by hand and out of date?
+next: /answers/tooling/ | Next &rarr; | What's the editor, debugging, and error experience?
+head: |
+  <link rel="stylesheet" href="/answer-kit.css" />
+---
+      <p class="q-eyebrow">25 &middot; Guarded libraries</p>
+      <h1 class="q-title">Can I stop an agent importing the raw library when we have a wrapper for it?</h1>
+
+      <p class="short-answer">
+        Yes. List the import path under <code>glyph.banned_imports</code> in
+        <code>package.json</code> with the module to use instead. An import of it anywhere else is
+        error <code>E0115</code>, and its help names your wrapper. The check runs in
+        <code>glyph check</code>, <code>glyph build</code>, the editor and the MCP server.
+      </p>
+
+      <figure class="ak-hero" id="see-it">
+        <div class="two-up">
+        <div class="code">
+          <span class="cap">package.json</span>
+<pre>"glyph": {
+  "src": "src",
+  "banned_imports": {
+    "axios": {
+      "use": "http/client",
+      "reason": "requests go through the
+                 retry and auth wrapper"
+    }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">glyph check</span>
+<pre>[E0115] Error: import: `axios` is banned
+in this project: requests go through the
+retry and auth wrapper
+ 3 │ import axios { default as ax }
+   │        ──┬──
+Help: import `http/client` instead;
+`glyph query exports --module http/client`
+lists what it offers.</pre>
+        </div>
+        </div>
+        <figcaption><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><span>The rule lives in the project's own manifest, and the error says what to write instead.</span></figcaption>
+      </figure>
+
+      <h2 class="ak-h" id="why-it-matters">Why it matters<a class="ak-anchor" href="#why-it-matters" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Most codebases have a few libraries that are meant to be used one way. The HTTP client
+        goes through a wrapper that retries and attaches auth. The database driver goes through
+        the query layer. Raw file access goes through a storage module so tests can swap it.
+      </p>
+      <div class="ak-callout"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg><p>A person learns this in their first code review.
+        An agent doesn't. It has seen a thousand projects call <code>axios</code> directly, so
+        that is what it writes, and the result compiles, passes the tests and skips the retry
+        logic. A ban turns the convention into a compile error the agent reads in the same loop
+        as any other.</p></div>
+
+      <h2 class="ak-h" id="what-you-write">What you write<a class="ak-anchor" href="#what-you-write" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        Each entry maps a banned import path to the replacement, with an optional reason and an
+        optional list of modules that may still use it.
+      </p>
+      <div class="code">
+        <span class="cap">package.json</span>
+<pre>"banned_imports": {
+  "axios":  { "use": "http/client", "reason": "requests go through the retry and auth wrapper" },
+  "std/fs": { "use": "storage", "allow_in": ["storage", "migrations/"] }
+}</pre>
+      </div>
+      <ul class="ak-cards">
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg></span><b>A key covers what is under it</b><code>axios</code> bans
+          <code>axios/lib/core</code> too, and does not ban <code>axios-retry</code>. A key can be
+          an npm package, a <code>std/</code> module or a module of your own.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg></span><b>The wrapper may use it</b>The module <code>use</code>
+          names can always import the banned path. <code>allow_in</code> adds others, and an entry
+          ending in <code>/</code> covers a directory.</li>
+        <li><span class="ic"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v3.9M8 4.9v.1"/></svg></span><b>The help says what to do</b>It names the
+          replacement and the query that lists what it exports. It doesn't mention
+          <code>allow_in</code>, because telling the agent how to lift the ban would defeat it.</li>
+      </ul>
+
+      <h2 class="ak-h" id="the-escape-hatch-is-covered">The escape hatch is covered<a class="ak-anchor" href="#the-escape-hatch-is-covered" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        <code>extern_ts</code> lets a module drop into raw TypeScript, which makes it the obvious
+        way around a ban. The same specifier quoted inside an <code>extern_ts</code> body is
+        <code>E0115</code> as well:
+      </p>
+      <div class="code">
+        <span class="cap">main.glyph</span>
+<pre>let ax = extern_ts("require('axios')")   <span class="add">// E0115</span></pre>
+      </div>
+      <p>When the package isn't installed either, <code>E0115</code> is the only error. The
+        usual "unresolved import" would tell the agent to install it, which is the wrong advice.</p>
+
+      <h2 class="ak-h" id="typos-fail-loudly">Typos fail loudly<a class="ak-anchor" href="#typos-fail-loudly" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <p class="ak-lede">
+        The <code>glyph</code> key is a closed schema. An unknown key or field is error
+        <code>E0116</code>, reported in <code>package.json</code> at the key with its JSON path,
+        so <code>banned_import</code> or <code>alow_in</code> can't switch a policy off without
+        anyone noticing.
+      </p>
+      <div class="code">
+        <span class="cap">glyph check</span>
+<pre>[E0116] Error: config: `glyph.banned_imports.axios.alow_in` is not a field
+Glyph reads (known: `use`, `reason`, `allow_in`); did you mean `allow_in`?</pre>
+      </div>
+      <p>A <code>use</code> that names no module, a <code>use</code> that is itself banned, and an
+        <code>allow_in</code> entry naming a module that doesn't exist are all <code>E0116</code>
+        too. The full reference is in the
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/configuration.md">configuration guide</a>.</p>
+
+      <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
+      <div class="ak-status">
+        <section class="ak-st today" aria-labelledby="st-today">
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>E0115</code> and <code>E0116</code> in <code>glyph check</code>, <code>glyph build</code>, the language server and the MCP <code>glyph_diagnostics</code> tool.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">The editor and the MCP server re-read <code>package.json</code> when it changes, with no restart.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A nested project with its own marker is governed by its own key. Bans are not inherited.</span></span></li>
+          </ul>
+        </section>
+
+        <section class="ak-st next" aria-labelledby="st-next">
+          <h3 class="ak-st-h" id="st-next"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg> Where it stops</h3>
+          <ul class="ak-list">
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A specifier computed inside raw TypeScript (<code>extern_ts("require(name)")</code>) isn't seen. <code>grep extern_ts</code> is how to review those.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Hand-written <code>.ts</code> files in a hybrid project, and npm code importing the package itself, are outside what Glyph compiles.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">A <code>package.json</code> that doesn't parse isn't a project marker, so its bans don't apply. Making that an error is filed.</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">No query lists a project's bans yet; an agent reads <code>package.json</code> or meets them as <code>E0115</code>. A query verb is filed.</span></span></li>
+          </ul>
+        </section>
+      </div>

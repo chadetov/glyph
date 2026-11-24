@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/generated-docs/index.html",
   "locale": "zh-cn",
-  "source_hash": "cfa565ac48a19111",
+  "source_hash": "61722b2a96424269",
   "segments": [
     {
       "id": "title",
@@ -37,8 +37,8 @@
     {
       "id": "next.title",
       "kind": "next.title",
-      "en": "What's the editor, debugging, and error experience?",
-      "tr": "编辑器、调试和报错的体验如何？"
+      "en": "Can I stop an agent importing the raw library when we have a wrapper for it?",
+      "tr": "我们已经有封装了，能阻止智能体直接导入原始库吗？"
     },
     {
       "id": "h-594c6826",

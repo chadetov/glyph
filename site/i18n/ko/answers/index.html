@@ -1,7 +1,7 @@
 ---
 title: 답변 · 엔지니어들이 Glyph에 대해 묻는 것 · Glyph
 description: 엔지니어들이 Glyph에 대해 묻는 질문에 대한 구체적인 답: 조용한 파손을 무엇이 막는지, React와 npm, 왜 도구를 갖춘 TypeScript가 아닌지, 프로덕션에서의 디버깅.
-source_hash: f574b9ebcd22635e
+source_hash: 88a6cb03294ad00e
 ---
       <header class="page-hero">
         <p class="eyebrow">답변</p>
@@ -67,6 +67,7 @@ source_hash: f574b9ebcd22635e
           <a class="a-card" href="/answers/ask-the-compiler/"><span class="n">22</span><span class="q">에이전트가 코드를 쓰기 전에 컴파일러에게 심볼이 무엇인지 물어볼 수 있나요?</span><p><code>glyph_symbol</code>: 유니언의 variant와 각각을 생성하는 문법을 한 번의 호출로. 도구 열한 개, 각각 <code>glyph query</code> 동사가 있습니다.</p></a>
           <a class="a-card" href="/answers/repair-protocol/"><span class="n">23</span><span class="q">빌드가 실패하면 컴파일러가 에이전트에게 고치는 방법을 알려 주나요?</span><p>진단에는 문제가 된 심볼, 가능한 대안, 수정하는 편집이 깨뜨리면 안 되는 것이 담깁니다. 컴파일러가 스스로 결정할 수 있는 수정은 <code>glyph fix</code>가 직접 씁니다.</p></a>
           <a class="a-card" href="/answers/generated-docs/"><span class="n">24</span><span class="q">에이전트가 읽는 문서는 생성된 것인가요, 사람이 써서 낡은 것인가요?</span><p><code>glyph llms --json</code>은 진단, prelude, stdlib 시그니처, 도구 설명서를 컴파일러 자체 테이블에서 출력하고, 사람이 쓴 사본이 이와 다르면 게이트가 실패합니다.</p></a>
+          <a class="a-card" href="/answers/banned-imports/"><span class="n">25</span><span class="q">래퍼가 있는데도 에이전트가 원래 라이브러리를 직접 가져오지 못하게 막을 수 있나요?</span><p><code>package.json</code>에서 import 경로를 금지하고 대체할 모듈을 지정합니다. 그 경로를 가져오면 <code>E0115</code>이고, 도움말이 래퍼를 가리킵니다.</p></a>
         </div>
       </div>
 
@@ -74,10 +75,10 @@ source_hash: f574b9ebcd22635e
         <h2 class="block-label">오류, 에디터, 프로덕션</h2>
         <p class="ans-group-sub">무언가 잘못되었을 때 에디터에서 온콜까지 보게 되는 것.</p>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">25</span><span class="q">에디터, 디버깅, 오류 경험은 어떤가요?</span><p>모든 LSP 에디터를 위한 언어 서버와, 수정 방법을 알려 주는 고정된 코드를 가진 오류.</p></a>
-          <a class="a-card" href="/answers/early-errors/"><span class="n">26</span><span class="q">Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?</span><p><code>await</code> 문맥, 값이 없는 <code>match</code> arm, 빠진 <code>mut</code>을 생성된 TypeScript가 아니라 여러분의 소스 기준으로 보고합니다.</p></a>
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">27</span><span class="q">파싱이 실패하면 이유를 알 수 있나요?</span><p>어떤 필드인지, 어떤 규칙을 어겼는지, 위반한 <code>where</code> 조건, 그리고 분기에 쓸 <code>code</code>.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">28</span><span class="q">새벽 3시에 프로덕션에서 장애가 나면 온콜 담당자는 무엇을 보나요?</span><p>직접 소유한 읽을 수 있는 TS, <code>.glyph</code>로 연결되는 소스 맵, 그리고 <code>build</code>가 보고하는 것을 똑같이 보고하는 <code>run</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">26</span><span class="q">에디터, 디버깅, 오류 경험은 어떤가요?</span><p>모든 LSP 에디터를 위한 언어 서버와, 수정 방법을 알려 주는 고정된 코드를 가진 오류.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">27</span><span class="q">Glyph는 왜 tsc가 잡는 것을 더 일찍 잡나요?</span><p><code>await</code> 문맥, 값이 없는 <code>match</code> arm, 빠진 <code>mut</code>을 생성된 TypeScript가 아니라 여러분의 소스 기준으로 보고합니다.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">28</span><span class="q">파싱이 실패하면 이유를 알 수 있나요?</span><p>어떤 필드인지, 어떤 규칙을 어겼는지, 위반한 <code>where</code> 조건, 그리고 분기에 쓸 <code>code</code>.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">29</span><span class="q">새벽 3시에 프로덕션에서 장애가 나면 온콜 담당자는 무엇을 보나요?</span><p>직접 소유한 읽을 수 있는 TS, <code>.glyph</code>로 연결되는 소스 맵, 그리고 <code>build</code>가 보고하는 것을 똑같이 보고하는 <code>run</code>.</p></a>
         </div>
       </div>
 

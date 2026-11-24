@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-487 entries, 348 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-119 are open. G144, the D28 boundary cast that never reached the returns a
+489 entries, 349 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+120 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16645,7 +16645,7 @@ and is the owner's to confirm.
   `sort` comparator's count and return are checked; its parameter types wait
   for G491 (0.1.183), so line 12 stays silent.
 
-- **G506. A call inside an `@example` is in no relation, so `glyph_impact`
+- **G506. [FIXED] A call inside an `@example` is in no relation, so `glyph_impact`
   and `glyph_references` miss it.** With `@example normalize("  Hi ") ==
   "hi"` on `normalize` and two calls in `twice`, `glyph query impact --entity
   main::normalize --change rename` lists the two calls in `twice` and not the
@@ -16658,6 +16658,18 @@ and is the owner's to confirm.
   `@example` line.*
 
   *Reproduced against 0.1.184 (the release build) by record 196's impact probe (`normalize` with `@example normalize("  Hi ") == "hi"`, two calls in `twice`): `glyph query impact --entity main::normalize --change rename` gives two CALLS entries, both in `twice`, with `not_indexed: []`, and no entry for the `@example` line.*
+
+  *Fixed in 0.1.186 (D73).* The analysis database builds the file the example
+  gate builds, with each `@example` and each `@doc` `glyph @run` fence
+  appended as a function, and resolves it with the same front end. A name used
+  in a test is a `CALLS` or `REFERENCES` site with `context` (`example` or
+  `doc_run`), its `entity` the declaration the annotation is written above,
+  reported where the author wrote it. Under `rename` and `remove` it is
+  `WILL_FAIL` with E0103 (E0105 for a namespace-qualified name), the codes the
+  gate's build raises; under `change_arity` and `change_signature_type` a call
+  is decided per argument. A test the analysis cannot read is named under
+  `not_indexed`. `glyph_dependencies` reads the same view. The probe now lists
+  three entries, the third at line 3 with `context: "example"` and E0103.
 
 - **G507. A member read on a `bool` is not checked.** `b.nope` on a `bool`
   passes `check --no-tsc`, while `n.nope` on a `number` is E0210. The
@@ -16837,3 +16849,29 @@ and is the owner's to confirm.
   *Reproduced against 0.1.184 (the 0.1.185 branch build on main after
   0.1.184, before the version bump): the one-line program exits 0 under `check --no-tsc` with no
   diagnostic.*
+- **G546. The editor's references and rename do not see a name in a test.**
+  The language server's `textDocument/references` and `textDocument/rename`
+  read each file's own resolution table, so a call inside an `@example` or a
+  `@doc` `glyph @run` fence is not listed, and a rename leaves it spelling the
+  old name; the example gate then fails the next `glyph check` with E0103.
+  `glyph_references` and `glyph_impact` read the gate's view of the file since
+  0.1.186 (G506); the server's own sweep does not. Filed by 0.1.186.
+
+  *Reproduced against 0.1.178 (the 0.1.186 branch build, which still prints
+  0.1.178): `global_occurrences` in
+  `glyph-lsp/src/lib.rs` reads an `Analysis` built from the file alone, and
+  `glyph_references` on the same project lists the example call.*
+
+- **G547. A field access or a `match` inside a test is in no relation.** A
+  member read inside an `@example` or a `@doc` `glyph @run` fence is not in
+  `FIELD_ACCESS`, and a `match` there is not in `MATCH_SITES`, because both
+  relations are written by the checker pass over the program, which does not
+  type the tests. Renaming a field an example reads breaks the example, and
+  `glyph_impact` does not list it. Since 0.1.186 every `FIELD_ACCESS` and
+  `MATCH_SITES` search names the class under `not_indexed`, so the answer is
+  not silent about it. Filed by 0.1.186.
+
+  *Reproduced against 0.1.178 (the 0.1.186 branch build, which still prints
+  0.1.178): `glyph_dependencies` of a declaration
+  whose `@example` reads a record field lists no `FIELD_ACCESS` edge for it
+  and names the class under `not_indexed`.*

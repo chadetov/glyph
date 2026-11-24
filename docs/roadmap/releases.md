@@ -8780,6 +8780,14 @@ concrete follow-ups, in priority order:
 
 **G507, a member read on a `bool` is checked** (record 196): `b.nope` on a `bool` passes `--no-tsc` while `n.nope` on a `number` is E0210. After 0.1.182, which adds the `boolean` apparent-member list to the generated table.
 
+**G526, a primitive against an all-optional interface it shares nothing with** (filed with 0.1.182): `fn w(s: string) -> Weak { return s }` with `interface Weak { label?: string }` passes `--no-tsc`; `tsc` refuses it (TS2559). Mirror `weak_record_disjoint` in `apparent_gap`, the way a record's weak-type refusal already works.
+
+**G527, a prelude container against an interface** (filed with 0.1.182): `Option`, `Result` and `Record` where an interface is declared, and an interface where one of them is declared, pass `--no-tsc`; `tsc` refuses all four probes (TS2322, TS2741). Record 196 left both directions out of 0.1.182.
+
+**G528, an interface where `Nullable<T>` is declared** (record 200): `let n2: Nullable<string> = h` with `h: HasName` passes `--no-tsc`, though `Nullable<string>` emits as `string | null` and an object is neither; `tsc` refuses it (TS2322). The relation decides `Nullable<T>` one level in for a primitive found there and not for an interface. Beside G527.
+
+**The help on an interface refusal names the missing member** (record 200, ruling 3): E0204 and E0211 between a primitive and an interface carry the reason in the sentence and the generic help. The help should say what to write: add the member to the value's type, pass a value that has it, or change the declared type.
+
 **G419, `__glyph_pairs` hands `tsc` `any` bindings for an untyped iterand** (record 146): a two-binding `for` over an `extern_ts` or untyped npm value binds `any` for `tsc` and nothing for Glyph's checker, so `let s: string = i` passes and throws at run time. Type the helper's pairs `unknown`, or bind both names `unknown` the way a declared `unknown` iterand does since 0.1.158, and measure the corpus for new refusals.
 
 **G417, hover inside a template string is one column off** (records 142 and 143): on `"a ${i}"` hover answers `number` at the `{` and the literal's `string` at `i`, so an agent asking through MCP reads the wrong type. Fix the interpolated expression's recorded spans. Fixed by 0.1.164 (G435); confirmed against 0.1.169.

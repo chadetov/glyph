@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-483 entries, 344 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-119 are open. G144, the D28 boundary cast that never reached the returns a
+484 entries, 344 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+120 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16539,3 +16539,14 @@ and is the owner's to confirm.
   *Reproduced against 0.1.182 (the branch build): `check --no-tsc` exits 0
   on all four functions; full `check` reports TS2322 three times and TS2741
   once.*
+
+- **G528. An interface value where `Nullable<T>` is declared passes.** `let
+  n2: Nullable<string> = h` with `h: HasName` passes `check --no-tsc`, though
+  `Nullable<string>` emits as `string | null` and an object is neither; full
+  `check` reports `TS2322 Type 'HasName' is not assignable to type
+  'string'`. The relation decides `Nullable<T>` one level in for a primitive
+  found there (G216), and 0.1.182's interface rule (G460) is not reached
+  through it. Filed by record 200.
+
+  *Reproduced against 0.1.182 (the branch build, dev-0.1.182): `check
+  --no-tsc` exits 0; full `check` under 0.1.178 reports TS2322.*

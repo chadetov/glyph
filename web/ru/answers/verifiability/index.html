@@ -1109,11 +1109,6 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
 
           <p class="ak-st-group">Инструменты и стандартная библиотека</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Девять функций <code>std/string</code> и <code>std/array</code> всё ещё возвращают нетипизированные значения</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
-                <p>Возвращаемые типы стандартной библиотеки, которые моделирует проверка, покрывают половину <code>std/string</code> и <code>std/array</code> с фиксированным числом аргументов; шесть функций с необязательным последним аргументом (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) и <code>array.map</code>/<code>flat_map</code>/<code>zip</code> пока не типизированы, поэтому значению, полученному прямо из них, нужна аннотация, прежде чем перебирать его с индексом.</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">Обращение к членам примитивов и массивов не даёт диагностики там, где не запускается <code>tsc</code></span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Подробнее</summary><div class="body">
                 <p>Обращение к членам и вызовы на <code>string</code>, <code>number</code>, <code>bool</code> и <code>Array&lt;T&gt;</code> оставлены <code>tsc</code> намеренно, это не дыра; Glyph разрешает там обычные члены JS, поэтому <code>s.length</code> и <code>xs.length</code> компилируются и проходят <code>tsc --strict</code>, а не хватает диагностики для четырёх мест, где <code>tsc</code> никогда не запускается: <code>glyph check --no-tsc</code>, языкового сервера, MCP-сервера и песочницы.</p>

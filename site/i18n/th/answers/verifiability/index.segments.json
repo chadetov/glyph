@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "th",
-  "source_hash": "1e2bb584f23aca40",
+  "source_hash": "4ef9ca89bab7351b",
   "segments": [
     {
       "id": "title",
@@ -1257,18 +1257,6 @@
       "kind": "html",
       "en": "Tooling and the standard library",
       "tr": "เครื่องมือและ standard library"
-    },
-    {
-      "id": "h-3aeea93f",
-      "kind": "html",
-      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
-      "tr": "ฟังก์ชันเก้าตัวของ <code>std/string</code> และ <code>std/array</code> ยังคืนค่าที่ไม่มี type"
-    },
-    {
-      "id": "h-b4a6a924",
-      "kind": "html",
-      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
-      "tr": "return type ของ stdlib ที่ตัวตรวจ model ไว้ครอบคลุมครึ่งที่มีจำนวน argument ตายตัวของ <code>std/string</code> และ <code>std/array</code> ฟังก์ชันหกตัวที่มี argument ท้ายที่ไม่บังคับ (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) และ <code>array.map</code>/<code>flat_map</code>/<code>zip</code> ยังไม่มี type ค่าที่ออกมาจากตัวใดตัวหนึ่งโดยตรงจึงต้องมี annotation ก่อนวนด้วย index"
     },
     {
       "id": "h-201d023a",

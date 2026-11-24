@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "tr",
-  "source_hash": "1e2bb584f23aca40",
+  "source_hash": "4ef9ca89bab7351b",
   "segments": [
     {
       "id": "title",
@@ -1257,18 +1257,6 @@
       "kind": "html",
       "en": "Tooling and the standard library",
       "tr": "Araçlar ve standart kütüphane"
-    },
-    {
-      "id": "h-3aeea93f",
-      "kind": "html",
-      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
-      "tr": "Dokuz <code>std/string</code> ve <code>std/array</code> fonksiyonu hâlâ tipsiz değerler döndürüyor"
-    },
-    {
-      "id": "h-b4a6a924",
-      "kind": "html",
-      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
-      "tr": "Checker'ın modellediği stdlib dönüş tipleri, <code>std/string</code> ve <code>std/array</code>'in sabit sayıda argüman alan yarısını kapsıyor; isteğe bağlı bir son argümanı olan altı fonksiyon (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) ve <code>array.map</code>/<code>flat_map</code>/<code>zip</code> hâlâ tipsiz; dolayısıyla bunlardan birinden doğrudan çıkan bir değer, onu bir index ile yinelemeden önce bir annotation'a ihtiyaç duyuyor."
     },
     {
       "id": "h-201d023a",

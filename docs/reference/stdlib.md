@@ -273,16 +273,14 @@ takes an end, so the two agree only when the start and the length are whole
 numbers of zero or more: `s.substr(0.5, 0.6)` is `""`, and `s.slice(0.5, 1.1)`
 is one character.
 
-One limit on `string.index_of`. Glyph's checker models the return type of most
-`std/string` and `std/array` functions, so a `match` that leaves out the `None`
-arm is an E0200. The six functions with an optional trailing argument
-(`string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
-`array.slice`, `json.stringify`) are the exception. The arity check compares one
-number against one number, so modeling them would report a false error on every
-call that omits the last argument, and until it learns a range they stay
-untyped. A `match` on `string.index_of` that omits the `None` arm therefore
-builds clean and throws at run time; write the arm. `array.index_of` is modeled
-and does report E0200.
+Glyph's checker models the return type of the `std/string` and `std/array`
+functions, so a `match` on `string.index_of` or `array.index_of` that leaves out
+the `None` arm is E0200. That holds for the six functions with an optional
+trailing argument (`string.slice`, `string.index_of`, `string.pad_start`,
+`string.pad_end`, `array.slice`, `json.stringify`) too: the arity check takes a
+range, so a call that omits the last argument passes and one with too few or too
+many is E0213. `glyph llms --json` lists each legal arity of these rows under
+`call_forms`, since a Glyph function type cannot spell an optional parameter.
 
 ## std/io
 

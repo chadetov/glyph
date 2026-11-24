@@ -1,7 +1,7 @@
 ---
 title: エージェントがコードを気づかれずに壊すのを、何が防ぐのか · Glyph
 description: TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。
-source_hash: 1e2bb584f23aca40
+source_hash: 4ef9ca89bab7351b
 next: /answers/diff-stability/ | 次へ &rarr; | エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？
 ---
       <p class="q-eyebrow">01 &middot; 中心となる約束</p>
@@ -640,11 +640,6 @@ pub fn guest() -&gt; Profile {
 
           <p class="ak-st-group">ツールと標準ライブラリ</p>
           <ul class="ak-list">
-            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>std/string</code> と <code>std/array</code> の 9 つの関数は、今も型のない値を返す</span></span>
-              <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
-                <p>チェッカーがモデル化している標準ライブラリの戻り値の型は、<code>std/string</code> と <code>std/array</code> のうち引数の数が固定された半分をカバーしています。省略可能な末尾引数を持つ 6 つの関数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）と <code>array.map</code>/<code>flat_map</code>/<code>zip</code> はまだ型がないので、それらから直接得た値をインデックス付きで反復するには型注釈が必要です。</p>
-              </div></details>
-            </li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">プリミティブと配列のメンバーアクセスは、<code>tsc</code> が実行されない場所では診断がない</span></span>
               <details class="more mini"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>詳細</summary><div class="body">
                 <p><code>string</code>、<code>number</code>、<code>bool</code>、<code>Array&lt;T&gt;</code> に対するメンバーアクセスと呼び出しは、穴ではなく設計として <code>tsc</code> に任せています。Glyph はそこで JS の生のメンバーを許すので、<code>s.length</code> や <code>xs.length</code> はコンパイルでき、<code>tsc --strict</code> も通過します。欠けているのは、<code>tsc</code> を一切実行しない 4 つの場所での診断です。<code>glyph check --no-tsc</code>、言語サーバー、MCP サーバー、Playground です。</p>

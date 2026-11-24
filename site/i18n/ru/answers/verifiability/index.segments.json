@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ru",
-  "source_hash": "1e2bb584f23aca40",
+  "source_hash": "4ef9ca89bab7351b",
   "segments": [
     {
       "id": "title",
@@ -1257,18 +1257,6 @@
       "kind": "html",
       "en": "Tooling and the standard library",
       "tr": "Инструменты и стандартная библиотека"
-    },
-    {
-      "id": "h-3aeea93f",
-      "kind": "html",
-      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
-      "tr": "Девять функций <code>std/string</code> и <code>std/array</code> всё ещё возвращают нетипизированные значения"
-    },
-    {
-      "id": "h-b4a6a924",
-      "kind": "html",
-      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
-      "tr": "Возвращаемые типы стандартной библиотеки, которые моделирует проверка, покрывают половину <code>std/string</code> и <code>std/array</code> с фиксированным числом аргументов; шесть функций с необязательным последним аргументом (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) и <code>array.map</code>/<code>flat_map</code>/<code>zip</code> пока не типизированы, поэтому значению, полученному прямо из них, нужна аннотация, прежде чем перебирать его с индексом."
     },
     {
       "id": "h-201d023a",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "1e2bb584f23aca40",
+  "source_hash": "4ef9ca89bab7351b",
   "segments": [
     {
       "id": "title",
@@ -1257,18 +1257,6 @@
       "kind": "html",
       "en": "Tooling and the standard library",
       "tr": "ツールと標準ライブラリ"
-    },
-    {
-      "id": "h-3aeea93f",
-      "kind": "html",
-      "en": "Nine <code>std/string</code> and <code>std/array</code> functions still return untyped values",
-      "tr": "<code>std/string</code> と <code>std/array</code> の 9 つの関数は、今も型のない値を返す"
-    },
-    {
-      "id": "h-b4a6a924",
-      "kind": "html",
-      "en": "The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.",
-      "tr": "チェッカーがモデル化している標準ライブラリの戻り値の型は、<code>std/string</code> と <code>std/array</code> のうち引数の数が固定された半分をカバーしています。省略可能な末尾引数を持つ 6 つの関数（<code>array.slice</code>、<code>string.slice</code>、<code>string.index_of</code>、<code>string.pad_start</code>、<code>string.pad_end</code>、<code>json.stringify</code>）と <code>array.map</code>/<code>flat_map</code>/<code>zip</code> はまだ型がないので、それらから直接得た値をインデックス付きで反復するには型注釈が必要です。"
     },
     {
       "id": "h-201d023a",

@@ -627,12 +627,6 @@ Data boundaries
 
 Tooling and the standard library
 
-- Nine `std/string` and `std/array` functions still return untyped values
-
-  **Details**
-
-  The stdlib return types the checker models cover the fixed-arity half of `std/string` and `std/array`; the six functions with an optional trailing argument (`array.slice`, `string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`, `json.stringify`) and `array.map`/`flat_map`/`zip` are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index.
-
 - Member access on primitives and arrays has no diagnostic where `tsc` doesn't run
 
   **Details**

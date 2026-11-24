@@ -5895,6 +5895,8 @@ The one number that moved the wrong way is the keystroke's growth exponent, whic
 
 **Next batch · G307, `array.concat` takes one element type** (record 88). Both parameters are `Array<T>`, bound by the existing rule (the first binding wins, and a `string` candidate replaces a literal union bound earlier), extended so a `number` candidate replaces a bound `int` (D31). `Array<number>` with `Array<string>` is refused, as `tsc` refuses it; both orders of each pair are tested
 
+**Next batch · G521, `Array.concat`'s arguments are checked** (record 199). The method spelling of G307's hole, scheduled beside it: on an `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and `xs.concat([[1]])` pass `--no-tsc` and `tsc` refuses each (TS2769). The merged row's rest element is `T | ConcatArray<T>`, which Glyph cannot spell, so the arguments stay undecided until an argument can be read as either a `T` or an array of `T`.
+
 **Next batch · G308, an optional trailing parameter is published as incomplete** (record 88). `string.pad_end`, `pad_start`, `string.slice`, `string.index_of`, `array.slice` and `json.stringify` are published in `llms` and AGENTS.md as incomplete rows, where they say today that every parameter is required. A spelling for an optional parameter in a function type is a language decision user code should drive. Changes the `llms` bytes, so it lands before 0.1.186
 
 **Next batch · Stdlib signatures from one source** (record 88; decided in record 79, decision 5)
@@ -8763,6 +8765,8 @@ concrete follow-ups, in priority order:
 **`glyph fix` reads E0240's position from a field, not its message** (record 192): the decline names the one reason that applied by matching words in E0240's message, and a test pins each of the six positions. Carry the `MutationSite` on the diagnostic beside `comparator_missing`, the way `insert_before` already carries the repair, and have `fix` match on it, so a reworded message cannot change what `fix` says.
 
 **G500, a `bigint` is typed as `number`** (record 187): `return 5n` under `-> number` and `let y: number = x` with `x: bigint` pass `check --no-tsc`, and `tsc` refuses both (TS2322). Lower the prelude `bigint` and a bigint literal to a type of their own, distinct from `number` as D38 says, and relate it to nothing but itself, `unknown` and `Nullable<bigint>`. Breaking under `--no-tsc` only; measure the corpus with the two-binary run. E0243's help for a `bigint` array with no written type follows from it.
+
+**G522, E0211's help on a built-in method's argument** (record 199): drop "or change the parameter's type" for a built-in receiver, whose parameter is TypeScript's library. `v.indexOf(5)` on an `Array<string>` has had that help since G312.
 
 **G507, a member read on a `bool` is checked** (record 196): `b.nope` on a `bool` passes `--no-tsc` while `n.nope` on a `number` is E0210. After 0.1.182, which adds the `boolean` apparent-member list to the generated table.
 

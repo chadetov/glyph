@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-479 entries, 339 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+481 entries, 342 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -15723,7 +15723,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.179 (the release build) with stale173c's probe g438: `--no-tsc` reports no diagnostics; full `check` reports the TS2367 on `m == "zzz"`.*
 
-- **G439. An array index read is not compared where a type is declared.**
+- **G439. An array index read has no type, so nothing that uses it is checked.**
   `let ys = [1, 2]` then `let b: string = ys[0]` is `no diagnostics` under
   `check --no-tsc`; full `check` reports `[TS2322] Type 'number' is not
   assignable to type 'string'`. The same holds for `XS[0]` on a typed
@@ -15738,6 +15738,25 @@ and is the owner's to confirm.
   *Reproduced against 0.1.173 (the release build) with stale167c's probes g439 and g439b: `let a: string = XS[0]` and `let b: string = ys[0]` draw no error under `--no-tsc` (only `let c: string = XS` is E0204); with that line removed, full `check` reports the TS2322 on both.*
 
   *Reproduced against 0.1.179 (the release build) with stale173c's probes g439 and g439b: `let a: string = XS[0]` and `let b: string = ys[0]` draw no error under `--no-tsc` (only `let c: string = XS` is E0204); with that line removed, full `check` reports the TS2322 on both.*
+
+  Widened by decision record 199. The declared position is one case of a
+  wider fact: an element read by index is typed `Unknown`, so every use of it
+  goes unchecked. That covers a `let` annotation, a `return`, an argument, a
+  member read (`s.lenght` on `let s = xs[0]`) and a method receiver
+  (`mut rows[0].push(5)` on an `Array<Array<string>>`, `mut ts[0].tags.push(5)`,
+  and `let r = rows[0]` followed by `mut r.push(5)`). A field-name typo off
+  `xs[0]` passes the editor and MCP. The fix types `Array<E>[i]` as `E` and
+  `Record<K, V>[k]` as `V` where E0224 allows the read, and leaves an unknown
+  receiver undecided. G501's index-target typing (0.1.179) is the write side
+  of the same fact, and both should read the element type from one place.
+
+  *Reproduced against 0.1.178 (the published release) by record 199's probes
+  `idx.glyph` and `idx2.glyph`. In `idx.glyph`, `let n: number = xs[0]`,
+  `rows[0]`, `rows[0][0]`, `ts[0]` and `ts[0].tags` exit 0 under `check
+  --no-tsc` (only unused-variable warnings), and full `check` reports five
+  TS2322s. In `idx2.glyph`, `return xs[0]` and `return xs[i]` under `->
+  number`, `let s = xs[0]` then `return s`, and `return s.lenght` exit 0
+  under `check --no-tsc`; full `check` reports three TS2322s and a TS2551.*
 
 - **G442. `{cond && <el/>}` with a number `cond` passes both checkers and
   renders `0`.** `component A(props: { n: number }) { return
@@ -16438,3 +16457,23 @@ and is the owner's to confirm.
   build by record 197's probe `adv.glyph`: `lam` (L103, `let first = c[0]`,
   `await fee()`, `mut c[0] = first + f` inside an async lambda) draws no
   E0225 under either.*
+
+- **G521. `Array.concat`'s arguments are not checked.** On an
+  `Array<number>`, `xs.concat(["a"])`, `xs.concat("a")` and
+  `xs.concat([[1]])` pass `check --no-tsc`; `tsc` refuses all three
+  (TS2769). Since 0.1.181 the call's return is `Array<T>`, but the merged
+  rest element is `T | ConcatArray<T>`, which Glyph cannot spell, so each
+  argument is left undecided. A miss, not a wrong answer. It is the method
+  spelling of G307's `array.concat` hole. Filed by decision record 199.
+
+  *Reproduced against 0.1.181 (the dev-0.1.181 build): all three calls exit
+  0 under `check --no-tsc`, and full `check` reports three TS2769s.*
+
+- **G522. E0211's help on a built-in method's argument says to change the
+  parameter's type.** `v.indexOf(5)` on an `Array<string>` is E0211 with
+  "Pass a value of the expected type, or change the parameter's type." The
+  parameter is TypeScript's library, so the second clause cannot be acted on;
+  it should be dropped for a built-in receiver. Filed by decision record 199.
+
+  *Reproduced against 0.1.178 (the published release): `v.indexOf(5)` is
+  E0211 with that help.*

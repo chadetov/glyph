@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "zh-cn",
-  "source_hash": "e671c7332b99f6a8",
+  "source_hash": "e091eea38f6b5238",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "状态"
     },
     {
-      "id": "h-33711ac1",
+      "id": "h-3a6d82eb",
       "kind": "html",
-      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
-      "tr": "Glyph 还在 1.0 之前。1.0 之前，语法、标准库和生成的 TypeScript 的形式都可能变化，某个版本也可能拒绝以前能编译的代码。<a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> 说明了哪些可能变化、哪些保持稳定。<a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> 直接写明，项目目前主要由一个人维护。"
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today. <a href=\"/maintainers/\">Who maintains Glyph</a> covers what happens if that person steps away, how decisions are made and how to report a security issue.",
+      "tr": "Glyph 还在 1.0 之前。1.0 之前，语法、标准库和生成的 TypeScript 的形式都可能变化，某个版本也可能拒绝以前能编译的代码。<a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> 说明了哪些可能变化、哪些保持稳定。<a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> 直接写明，项目目前主要由一个人维护。<a href=\"/maintainers/\">谁在维护 Glyph</a> 说明了这个人退出后会怎样、决策如何做出，以及如何报告安全问题。"
     },
     {
       "id": "h-731f8c8c",

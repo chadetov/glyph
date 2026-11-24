@@ -56,6 +56,7 @@
     "footer.source": "Source",
     "footer.issues": "Issues",
     "footer.contribute": "Contribute",
+    "footer.maintainers": "Who maintains it",
     "footer.gh_releases": "Releases on GitHub",
     "footer.edit": "Edit this page",
     "footer.tagline": "Glyph: TypeScript your agents can't quietly break.",

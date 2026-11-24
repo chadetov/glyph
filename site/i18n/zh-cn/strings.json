@@ -55,6 +55,7 @@
     "footer.source": "源代码",
     "footer.issues": "Issues",
     "footer.contribute": "参与贡献",
+    "footer.maintainers": "维护者",
     "footer.gh_releases": "GitHub 上的 Releases",
     "footer.edit": "编辑本页",
     "footer.tagline": "Glyph：你的智能体没法悄悄改坏的 TypeScript。",

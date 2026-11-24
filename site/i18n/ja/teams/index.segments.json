@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "ja",
-  "source_hash": "e671c7332b99f6a8",
+  "source_hash": "e091eea38f6b5238",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "現状"
     },
     {
-      "id": "h-33711ac1",
+      "id": "h-3a6d82eb",
       "kind": "html",
-      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
-      "tr": "Glyph は 1.0 前です。1.0 までは、構文、標準ライブラリ、出力される TypeScript の形が変わる可能性があり、以前はコンパイルが通ったコードをリリースが拒否することもあります。何が変わりうるか、何を安定に保つかは <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> に書かれています。<a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> には、現在このプロジェクトは主に 1 人でメンテナンスされていると率直に書かれています。"
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today. <a href=\"/maintainers/\">Who maintains Glyph</a> covers what happens if that person steps away, how decisions are made and how to report a security issue.",
+      "tr": "Glyph は 1.0 前です。1.0 までは、構文、標準ライブラリ、出力される TypeScript の形が変わる可能性があり、以前はコンパイルが通ったコードをリリースが拒否することもあります。何が変わりうるか、何を安定に保つかは <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> に書かれています。<a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> には、現在このプロジェクトは主に 1 人でメンテナンスされていると率直に書かれています。その人が離れた場合にどうなるか、どのように意思決定するか、セキュリティ上の問題をどう報告するかは<a href=\"/maintainers/\">「Glyph のメンテナー」</a>にまとめています。"
     },
     {
       "id": "h-731f8c8c",

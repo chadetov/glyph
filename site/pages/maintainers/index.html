@@ -1,0 +1,190 @@
+---
+title: Who maintains Glyph · governance, security and releases · Glyph
+description: Who maintains Glyph, what happens if the lead steps away, how decisions are made, how to report a security issue, and how releases and deprecations work.
+layout: article
+nav: teams
+next_steps: |
+  Where to go next
+  Recommended | /teams/ | teams | For teams | What the compiler guarantees, what adopting it costs, and how you get out. | Read it
+  /contribute/ | contribute | Contribute | How the compiler is built, and how issues and pull requests work.
+  /versions/ | versions | Release notes | Every release, with the Breaking ones marked.
+---
+      <p class="q-eyebrow">Who maintains it</p>
+      <h1 class="q-title">Who maintains Glyph, and what happens if they stop</h1>
+
+      <p class="short-answer">
+        One person maintains Glyph today: the project lead, who handles the language design, the
+        compiler and the releases. If the project stopped, the TypeScript your builds emitted
+        would keep compiling with <code>tsc</code> and no Glyph dependency, and the MIT or
+        Apache-2.0 licence lets anyone fork it.
+      </p>
+
+      <div class="table-scroll">
+        <table class="ref-table">
+          <thead>
+            <tr><th>Maintainer</th><th>Area</th><th>GitHub</th></tr>
+          </thead>
+          <tbody>
+            <tr><td data-label="Maintainer">Project lead</td><td data-label="Area">Language design, compiler, releases</td><td data-label="GitHub"><a href="https://github.com/chadetov">@chadetov</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail">
+        <p>
+          That table is
+          <a href="https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md">MAINTAINERS.md</a>,
+          and this page says what it and the other project documents commit to. Maintainers review
+          and merge pull requests, triage issues, shepherd RFCs, cut releases and uphold the
+          <a href="https://github.com/chadetov/glyph/blob/main/.github/CODE_OF_CONDUCT.md">Code of Conduct</a>.
+        </p>
+
+        <h2 class="block-label">The bus factor</h2>
+        <p>
+          The bus factor is one. Growing the maintainer list is a stated goal, but it has not
+          happened yet. Three things limit what a stalled project would cost you:
+        </p>
+        <ul>
+          <li>
+            The output is yours. <code>glyph build</code> writes plain TypeScript that passes
+            <code>tsc --strict</code>, and you commit it. Without Glyph, your code keeps building
+            with <code>tsc</code>.
+          </li>
+          <li>
+            The licence is MIT or Apache-2.0, at your option, so anyone can fork the compiler and
+            continue it.
+          </li>
+          <li>
+            <code>glyph init</code> pins the compiler to an exact version, and published npm
+            versions are never yanked, so a build you have today keeps the compiler it was tested
+            with.
+          </li>
+        </ul>
+
+        <h2 class="block-label">If the lead steps away</h2>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/.github/GOVERNANCE.md">GOVERNANCE.md</a>
+          treats the repository, the <code>glyphlang.io</code> domain and the npm org as project
+          assets rather than personal ones. If the project lead becomes unavailable, the remaining
+          maintainers choose a new lead by majority vote. With one maintainer listed, there is
+          nobody to hold that vote today, so until a second maintainer is added, continuity rests on
+          the emitted TypeScript and the licence.
+        </p>
+        <p>
+          Maintainers are added by invitation from the existing ones, on a record of good
+          contributions and reviews and agreement with the project's direction. There is no
+          quota. If you have been contributing and want to help maintain it, open a thread in
+          <a href="https://github.com/chadetov/glyph/discussions">Discussions</a>.
+        </p>
+
+        <h2 class="block-label">How decisions are made</h2>
+        <p>
+          The model is a project lead with the final say on language design and direction, and
+          review, triage and merging shared among the maintainers. The stated intent is to move
+          toward a steering council as the contributor base grows.
+        </p>
+        <ul>
+          <li>
+            Bug fixes, docs, diagnostics, examples and tooling go through ordinary pull-request
+            review. Three CI checks must pass before anything merges: version consistency, the
+            test suite with the examples type-checked, and the site's links, HTML and sub-nav.
+            GitHub does not let an author approve their own pull request, so on a one-maintainer
+            repository a required review would mean either nothing merges or an admin bypasses
+            it. Reviews are not required for that reason, and that is the first setting to revisit
+            when a second maintainer arrives.
+          </li>
+          <li>
+            A change to the language's syntax or semantics goes through the
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/rfcs/README.md">RFC process</a>:
+            a written proposal, public discussion, and a maintainer decision recorded on the RFC.
+            The <a href="/design/">four pillars</a> are the criteria, and "the constraint is the
+            point" is a valid reason to decline. A proposal that reopens the abandoned,
+            annotation-heavy direction starts from a presumption of no.
+          </li>
+          <li>
+            When maintainers disagree, the proposal stays open for at least a week so every
+            objection is answered in writing. If there is still no consensus, the lead decides and
+            records the reasoning on the issue or RFC. A contested language change defaults to not
+            shipping, because reversing a released syntax decision is expensive.
+          </li>
+          <li>
+            A change to the governance document is itself an RFC, and its history is in the
+            repository.
+          </li>
+        </ul>
+
+        <h2 class="block-label">Reporting a security issue</h2>
+        <p>
+          Report it privately, through a
+          <a href="https://github.com/chadetov/glyph/security/advisories/new">private security advisory</a>
+          on the repository, or by email to <code>security@glyphlang.io</code> with a description,
+          the affected version and a reproducer if you have one. Please don't open a public issue
+          until it has been triaged and a fix is available.
+        </p>
+        <p>
+          <a href="https://github.com/chadetov/glyph/blob/main/.github/SECURITY.md">SECURITY.md</a>
+          promises an acknowledgement within a few days, an assessment of severity and affected
+          versions, a fix released as promptly as the severity warrants and named in the
+          <a href="/versions/">release notes</a>, and credit in the advisory unless you would
+          rather stay anonymous.
+        </p>
+        <p>
+          In scope: the compiler and CLI (<code>@glyphlang/glyph</code> and its platform
+          packages), the bundled standard-library runtime, <code>glyph gen</code>, and any way
+          Glyph could emit unsafe TypeScript or run untrusted input during a build. Out of scope:
+          vulnerabilities in npm packages you install yourself, which go upstream, and issues that
+          need an already compromised developer machine. Published npm packages carry provenance
+          attestations, and CI fails when the Cargo version and the npm package versions
+          disagree.
+        </p>
+
+        <h2 class="block-label">Release cadence</h2>
+        <p>
+          Releases are cut when work lands, not on a calendar, and the 0.1.x line moves quickly.
+          A minor bump (0.2.0, 0.3.0) marks a milestone reached, not a date. Every release is a
+          <code>v*</code> git tag that triggers the publish workflow, so the npm version and the
+          tagged source always match. A release is marked Breaking when it rejects a program the
+          previous version accepted; <a href="/teams/">the teams page</a> says what that has meant
+          in practice, and <a href="/versions/">the release notes</a> list every version.
+        </p>
+
+        <h2 class="block-label">Deprecation policy</h2>
+        <p>
+          When a construct or a standard-library name is going away:
+        </p>
+        <ol>
+          <li>
+            A release marks it deprecated with a warning that names the replacement, and the
+            release notes say so.
+          </li>
+          <li>
+            It keeps working for at least one more 0.1.x release after the warning first appears,
+            so an upgrade never breaks and forces a fix in the same step.
+          </li>
+          <li>
+            Where the migration is mechanical, <code>glyph fmt</code> or a codemod does the
+            rewrite.
+          </li>
+        </ol>
+        <p>
+          The policy covers names being removed. It does not cover new diagnostics: before 1.0 a
+          release may reject code that compiled before, with no deprecation window, because
+          catching a latent bug is usually the point of the change. After 1.0 the windows lengthen,
+          and a breaking language change needs a major version.
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>
+          has the full pre-1.0 policy.
+        </p>
+
+        <h2 class="block-label">Who uses it</h2>
+        <p>
+          No company or production deployment is documented, and there are no case studies yet.
+          Two applications by authors with no connection to the project have been read and
+          recorded in the repository:
+          <a href="https://github.com/canpolatoral/glyph-hello">glyph-hello</a>, a tic-tac-toe
+          game whose engine, HTTP server and terminal client are Glyph, and
+          <a href="https://github.com/yildizadem/glyph-kanban">glyph-kanban</a>, a React Kanban
+          board whose domain core is 292 lines of Glyph imported by hand-written TSX under Vite.
+          What each one found is in the
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">gap log</a>.
+        </p>
+      </div>

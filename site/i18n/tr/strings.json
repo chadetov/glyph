@@ -55,6 +55,7 @@
     "footer.source": "Kaynak kod",
     "footer.issues": "Issue'lar",
     "footer.contribute": "Katkıda bulun",
+    "footer.maintainers": "Bakımını kim yapıyor",
     "footer.gh_releases": "GitHub'daki release'ler",
     "footer.edit": "Bu sayfayı düzenle",
     "footer.tagline": "Glyph: ajanlarınızın siz fark etmeden bozamayacağı TypeScript.",

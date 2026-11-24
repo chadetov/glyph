@@ -55,6 +55,7 @@
     "footer.source": "소스 코드",
     "footer.issues": "이슈",
     "footer.contribute": "기여하기",
+    "footer.maintainers": "메인테이너",
     "footer.gh_releases": "GitHub 릴리스",
     "footer.edit": "이 페이지 편집",
     "footer.tagline": "Glyph: 에이전트가 몰래 깨뜨릴 수 없는 TypeScript.",

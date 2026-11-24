@@ -43,4 +43,4 @@ One document, [llms.txt](https://glyphlang.io/llms.txt), gives an agent the prog
 
 - A success-rate benchmark (tries-to-correct against TypeScript on the same task) to turn “it held up” into a measured number.
 
-Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.184 on every build. Last changed 21 Nov 2026.

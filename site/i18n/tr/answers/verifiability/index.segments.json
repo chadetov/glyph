@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "tr",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "Döngü binding'i hiçbir eleman tipi taşımıyordu; bu yüzden bir string-literal union üzerindeki <code>match</code>, <code>string</code> üzerinde bir match'e düşüyor ve derleyici bir catch-all eklemeyi tavsiye ediyordu."
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "İndeksle okuma, elemanın tipine sahiptir"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "<code>xs[0]</code> üzerinde bir yazım hatası: artık E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "Bir <code>Array&lt;E&gt;</code> üzerinde <code>xs[i]</code> bir <code>E</code>'dir, bu yüzden editör, <code>glyph check --no-tsc</code> ve agent araçları onunla ne yaptığını kontrol eder: bir alan okuma, bir metot çağrısı, bir <code>return</code>, bir argüman, annotation'lı bir <code>let</code>."
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "Geçmiş <span class=\"hint\">önceden neyin kontrol edildiği</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "0.1.183'e kadar indeksle okunan bir elemanın Glyph tarafında tipi yoktu. <code>-&gt; number</code> altında <code>return xs[0]</code>, <code>rows[0]</code> üzerinde yanlış yazılmış bir alan ve bir <code>number</code> parametresine verilen <code>xs[0]</code> hepsi geçiyordu; onları yalnızca tam bir build'in <code>tsc</code> adımı yakalıyordu. Tip, <code>tsc</code>'nin üretilen koda verdiği tiptir ve üretilen ayar <code>noUncheckedIndexedAccess</code>'i kapalı bırakır: <code>E | undefined</code> değil, <code>E</code>. Glyph'in indeksi sonun ötesinde <code>undefined</code> döndürmek yerine <code>RangeError</code> fırlatır; bir <code>Option</code> istediğinde <code>array.get</code> kullan. Bir <code>Record</code> üzerinde anahtar okuma, değer tipi <code>unknown</code> değilse hâlâ <code>E0224</code>'tür ve bir <code>string</code> ya da npm değeri üzerindeki indeks değerlendirilmez."
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "Denetim bildirimi okur, bu yüzden yalnızca cevabın kesin olduğu yerde devreye girer. <code>type Id = string</code> gibi bir ilkel takma ad, adlandırdığı <code>string</code> olarak okunur ve aynı şekilde karara bağlanır. Dize literali birleşimi (D30) literalleriyle karşılaştırılır, bir <code>interface</code> değeri ise <code>string</code> bildirilen yerde reddedilir, çünkü değeri bir nesnedir. <code>extern_ts</code> veya <code>typeof</code> gövdesi hâlâ bir şey söylemez, <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> açıklamasına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır."
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>\"abc\"</code> kabul edilir. Üç eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526), bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527), ve denetleyicinin hâlâ <code>number</code> olarak okuduğu <code>bigint</code> (G500)."
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>\"abc\"</code> kabul edilir. Bir <code>bigint</code> kendi üyeleri üzerinden okunur, bu yüzden orada reddedilir: <code>length</code> üyesi yoktur. İki eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526) ve bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527)."
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "Şu anki durum"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "Bugün sunulanlar <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "Bugün sunulanlar <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "Eleman tipini koruyan bir <code>for</code> binding'i"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "Elemanın tipini taşıyan bir indeks okuması, <code>xs[i]</code>, böylece kullanımları kontrol edilir"
     },
     {
       "id": "h-d7829106",

@@ -1,7 +1,7 @@
 ---
 title: 什么能防止智能体悄悄改坏我的代码？ · Glyph
 description: 在 TypeScript 中能编译通过随后出错的改动，比如漏掉的分支、未处理的错误或被改名的字段，在 Glyph 中都是智能体必须修复的编译错误。
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | 下一篇 &rarr; | 智能体的编辑会保持干净，还是会把整个文件重新格式化？
 ---
       <p class="q-eyebrow">01 &middot; 核心承诺</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">按下标读取的值具有元素的类型<a class="ak-anchor" href="#index-read" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap"><code>xs[0]</code> 后的拼写错误：现在是 E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede"><code>Array&lt;E&gt;</code> 上的 <code>xs[i]</code> 是一个 <code>E</code>，所以编辑器、<code>glyph check --no-tsc</code> 和智能体工具都会检查你怎么用它：读取字段、调用方法、<code>return</code>、作为参数、带标注的 <code>let</code>。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>历史 <span class="hint">以前检查了什么</span></summary><div class="body">
+        <p>
+          在 0.1.183 及以前，按下标读取的元素在 Glyph 这边没有类型。<code>-&gt; number</code> 下的 <code>return xs[0]</code>、<code>rows[0]</code> 上拼错的字段、传给 <code>number</code> 参数的 <code>xs[0]</code> 都能通过，只有完整构建中的 <code>tsc</code> 步骤才会发现。这个类型就是 <code>tsc</code> 给生成代码的类型，生成的配置没有打开 <code>noUncheckedIndexedAccess</code>：是 <code>E</code>，不是 <code>E | undefined</code>。Glyph 的下标越界时抛出 <code>RangeError</code>，而不是返回 <code>undefined</code>；想要 <code>Option</code> 时用 <code>array.get</code>。对 <code>Record</code> 按键读取仍然是 <code>E0224</code>，除非它的值类型是 <code>unknown</code>；对 <code>string</code> 或 npm 值的下标不做判断。
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">导入的泛型联合类型受检<a class="ak-anchor" href="#imported-generic" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">对导入的泛型联合类型做 match 时漏掉的变体</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           这项检查读取声明，所以只在答案确定的地方触发。像 <code>type Id = string</code> 这样的原始类型别名会被读成它所指的 <code>string</code>，因此判定方式相同。字符串字面量联合 (D30) 按其字面量比较，而 <code>interface</code> 的值在声明了 <code>string</code> 的地方会被拒绝，因为它的值是一个对象。<code>extern_ts</code> 或 <code>typeof</code> 主体仍然不作判断，<code>void</code> 也被排除在外。它对参数、<code>return</code> 和 <code>let</code> 注解一视同仁，因为三者共用同一个关系。
         </p>
         <p>
-          反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>"abc"</code> 会被接受，因为字符串有 <code>length</code>。有三种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，<code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)，以及检查器仍按 <code>number</code> 读取的 <code>bigint</code> (G500)。
+          反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>"abc"</code> 会被接受，因为字符串有 <code>length</code>。<code>bigint</code> 按它自己的成员来读，所以在那里会被拒绝：它没有 <code>length</code>。有两种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，以及 <code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)。
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">当前状态<a class="ak-anchor" href="#where-it-stands" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 现已提供 <span class="count">21</span></h3>
 
           <p class="ak-st-group">匹配</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">负载位置上的变体按负载自身的标签分派，而不是绑定它</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">两个会对应同一标签的分支以 <code>E0305</code> 被拒绝，而不是让其中一个悄悄胜出</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">保留元素类型的 <code>for</code> 绑定</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">按下标读取 <code>xs[i]</code> 具有元素的类型，因此它的用法会被检查</span></span></li>
           </ul>
 
           <p class="ak-st-group">错误与测试</p>

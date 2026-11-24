@@ -1,7 +1,7 @@
 ---
 title: Bir ajanın kodumu sessizce bozmasını ne engelliyor? · Glyph
 description: TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | Sonraki &rarr; | Ajan düzenlemeleri temiz mi kalacak, yoksa tüm dosyamı yeniden mi biçimlendirecek?
 ---
       <p class="q-eyebrow">01 &middot; Temel vaat</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">İndeksle okuma, elemanın tipine sahiptir<a class="ak-anchor" href="#index-read" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap"><code>xs[0]</code> üzerinde bir yazım hatası: artık E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede">Bir <code>Array&lt;E&gt;</code> üzerinde <code>xs[i]</code> bir <code>E</code>'dir, bu yüzden editör, <code>glyph check --no-tsc</code> ve agent araçları onunla ne yaptığını kontrol eder: bir alan okuma, bir metot çağrısı, bir <code>return</code>, bir argüman, annotation'lı bir <code>let</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geçmiş <span class="hint">önceden neyin kontrol edildiği</span></summary><div class="body">
+        <p>
+          0.1.183'e kadar indeksle okunan bir elemanın Glyph tarafında tipi yoktu. <code>-&gt; number</code> altında <code>return xs[0]</code>, <code>rows[0]</code> üzerinde yanlış yazılmış bir alan ve bir <code>number</code> parametresine verilen <code>xs[0]</code> hepsi geçiyordu; onları yalnızca tam bir build'in <code>tsc</code> adımı yakalıyordu. Tip, <code>tsc</code>'nin üretilen koda verdiği tiptir ve üretilen ayar <code>noUncheckedIndexedAccess</code>'i kapalı bırakır: <code>E | undefined</code> değil, <code>E</code>. Glyph'in indeksi sonun ötesinde <code>undefined</code> döndürmek yerine <code>RangeError</code> fırlatır; bir <code>Option</code> istediğinde <code>array.get</code> kullan. Bir <code>Record</code> üzerinde anahtar okuma, değer tipi <code>unknown</code> değilse hâlâ <code>E0224</code>'tür ve bir <code>string</code> ya da npm değeri üzerindeki indeks değerlendirilmez.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">Import edilen generic union'lar kontrol edilir<a class="ak-anchor" href="#imported-generic" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">import edilen generic bir union üzerindeki match'te dışarıda bırakılmış bir variant</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           Denetim bildirimi okur, bu yüzden yalnızca cevabın kesin olduğu yerde devreye girer. <code>type Id = string</code> gibi bir ilkel takma ad, adlandırdığı <code>string</code> olarak okunur ve aynı şekilde karara bağlanır. Dize literali birleşimi (D30) literalleriyle karşılaştırılır, bir <code>interface</code> değeri ise <code>string</code> bildirilen yerde reddedilir, çünkü değeri bir nesnedir. <code>extern_ts</code> veya <code>typeof</code> gövdesi hâlâ bir şey söylemez, <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> açıklamasına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır.
         </p>
         <p>
-          Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>"abc"</code> kabul edilir. Üç eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526), bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527), ve denetleyicinin hâlâ <code>number</code> olarak okuduğu <code>bigint</code> (G500).
+          Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>"abc"</code> kabul edilir. Bir <code>bigint</code> kendi üyeleri üzerinden okunur, bu yüzden orada reddedilir: <code>length</code> üyesi yoktur. İki eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526) ve bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527).
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">Şu anki durum<a class="ak-anchor" href="#where-it-stands" aria-label="Bu bölüme bağlantı"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Bugün sunulanlar <span class="count">21</span></h3>
 
           <p class="ak-st-group">Eşleştirme</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Payload konumundaki bir variant, payload'ı bağlamak yerine onun kendi tag'ine göre dallanır</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Aynı tag'e cevap verecek iki arm, birinin sessizce kazanması yerine <code>E0305</code> olarak reddedilir</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eleman tipini koruyan bir <code>for</code> binding'i</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Elemanın tipini taşıyan bir indeks okuması, <code>xs[i]</code>, böylece kullanımları kontrol edilir</span></span></li>
           </ul>
 
           <p class="ak-st-group">Hatalar ve testler</p>

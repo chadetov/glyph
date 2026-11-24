@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "pt-br",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "A variável do loop não carregava o tipo do elemento, então um <code>match</code> sobre uma union de literais de string virava um match sobre <code>string</code> e o compilador sugeria adicionar um catch-all."
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "Uma leitura por índice tem o tipo do elemento"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "um erro de digitação depois de <code>xs[0]</code>: agora E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "<code>xs[i]</code> em um <code>Array&lt;E&gt;</code> é um <code>E</code>, então o editor, o <code>glyph check --no-tsc</code> e as ferramentas do agente verificam o que você faz com ele: ler um campo, chamar um método, um <code>return</code>, um argumento, um <code>let</code> anotado."
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "Histórico <span class=\"hint\">o que era verificado antes</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "Até a 0.1.183 um elemento lido por índice não tinha tipo do lado do Glyph. <code>return xs[0]</code> sob <code>-&gt; number</code>, um campo com erro de digitação em <code>rows[0]</code> e <code>xs[0]</code> passado para um parâmetro <code>number</code> passavam, e só a etapa do <code>tsc</code> de um build completo pegava. O tipo é o que o <code>tsc</code> dá ao código gerado, que deixa <code>noUncheckedIndexedAccess</code> desligado: <code>E</code>, não <code>E | undefined</code>. O índice do Glyph lança um <code>RangeError</code> depois do fim em vez de devolver <code>undefined</code>; use <code>array.get</code> quando quiser um <code>Option</code>. Ler uma chave de um <code>Record</code> continua sendo <code>E0224</code>, a menos que o tipo do valor seja <code>unknown</code>, e um índice em uma <code>string</code> ou em um valor do npm não é julgado."
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "A verificação lê a declaração, então só dispara onde a resposta é certa. Um alias primitivo como <code>type Id = string</code> é lido como o <code>string</code> que ele nomeia, então é decidido do mesmo jeito. Uma união de literais de string (D30) é comparada pelos seus literais, e um valor de um <code>interface</code> é recusado onde um <code>string</code> é declarado, porque o valor dele é um objeto. Um corpo <code>extern_ts</code> ou <code>typeof</code> continua sem dizer nada, e <code>void</code> também fica de fora. Ela alcança um argumento, um <code>return</code> e uma anotação de <code>let</code> da mesma forma, já que os três compartilham uma relação."
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "A outra direção passa pelos membros do valor, como no TypeScript: <code>5</code> é recusado onde <code>interface HasName { name: string }</code> é declarada, e <code>\"abc\"</code> é aceito onde <code>interface HasLen { length: number }</code> é declarada, porque uma string tem <code>length</code>. Três pares ainda não são decididos e ficam para o <code>tsc</code>: uma interface cujos membros são todos opcionais e não compartilha nenhum com o valor (G526), <code>Option</code>, <code>Result</code> e <code>Record</code> contra uma interface (G527), e <code>bigint</code>, que o checker ainda lê como <code>number</code> (G500)."
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "A outra direção passa pelos membros do valor, como no TypeScript: <code>5</code> é recusado onde <code>interface HasName { name: string }</code> é declarada, e <code>\"abc\"</code> é aceito onde <code>interface HasLen { length: number }</code> é declarada, porque uma string tem <code>length</code>. Um <code>bigint</code> é lido pelos próprios membros, então é recusado ali: ele não tem <code>length</code>. Dois pares ainda não são decididos e ficam para o <code>tsc</code>: uma interface cujos membros são todos opcionais e não compartilha nenhum com o valor (G526), e <code>Option</code>, <code>Result</code> e <code>Record</code> contra uma interface (G527)."
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "Situação atual"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "Disponível hoje <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "Disponível hoje <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "Uma variável de <code>for</code> que mantém o tipo do elemento"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "Uma leitura por índice, <code>xs[i]</code>, com o tipo do elemento, então o uso dela é verificado"
     },
     {
       "id": "h-d7829106",

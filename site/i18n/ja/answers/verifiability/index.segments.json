@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "ループの束縛は要素の型を持っていなかったので、文字列リテラルのユニオンに対する <code>match</code> が <code>string</code> に対する match に格下げされ、コンパイラは catch-all を追加するよう助言していました。"
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "インデックスでの読み取りは要素の型を持つ"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "<code>xs[0]</code> からのタイプミス: 今は E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "<code>Array&lt;E&gt;</code> に対する <code>xs[i]</code> は <code>E</code> です。そのため、エディター、<code>glyph check --no-tsc</code>、エージェント向けツールが、それをどう使うかを検査します。フィールドの読み取り、メソッド呼び出し、<code>return</code>、引数、型注釈付きの <code>let</code> です。"
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "経緯 <span class=\"hint\">以前は何が検査されていたか</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "0.1.183 までは、インデックスで読んだ要素は Glyph 側で型を持っていませんでした。<code>-&gt; number</code> の下での <code>return xs[0]</code>、<code>rows[0]</code> のフィールド名の綴り間違い、<code>number</code> の引数に渡した <code>xs[0]</code> はどれも通り、完全なビルドの <code>tsc</code> の段階でしか見つかりませんでした。型は、<code>tsc</code> が生成されたコードに与えるものと同じです。生成される設定は <code>noUncheckedIndexedAccess</code> をオフにしているので、<code>E | undefined</code> ではなく <code>E</code> です。Glyph のインデックスは末尾を越えると <code>undefined</code> を返す代わりに <code>RangeError</code> を投げます。<code>Option</code> が欲しいときは <code>array.get</code> を使ってください。<code>Record</code> のキー読み取りは、値の型が <code>unknown</code> でない限り今も <code>E0224</code> で、<code>string</code> や npm の値に対するインデックスは判定しません。"
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "このチェックは宣言を読むので、答えが確実な場所でだけ発動します。<code>type Id = string</code> のようなプリミティブの別名は、それが指す <code>string</code> として読まれるので、同じように判定されます。文字列リテラルのユニオン (D30) はそのリテラルで比較され、<code>interface</code> の値は、その値がオブジェクトなので、<code>string</code> が宣言された場所では拒否されます。<code>extern_ts</code> や <code>typeof</code> の本体については引き続き何も言わず、<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の注釈のどれにも同じように届きます。三つとも一つの関係を共有しているからです。"
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>\"abc\"</code> は受け入れられます。まだ判定されず <code>tsc</code> に任せている組み合わせが三つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526)、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527)、そしてチェッカーがまだ <code>number</code> として読む <code>bigint</code> (G500) です。"
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>\"abc\"</code> は受け入れられます。<code>bigint</code> はそれ自身のメンバーを通して読まれるので、そこでは拒否されます。<code>length</code> を持たないからです。まだ判定されず <code>tsc</code> に任せている組み合わせが二つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526) と、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527) です。"
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "現状"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "提供中 <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "提供中 <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "要素の型を保つ <code>for</code> の束縛"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "要素の型を持つインデックス読み取り <code>xs[i]</code>。その使い方が検査されます"
     },
     {
       "id": "h-d7829106",

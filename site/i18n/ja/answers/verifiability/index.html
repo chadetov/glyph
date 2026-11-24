@@ -1,7 +1,7 @@
 ---
 title: エージェントがコードを気づかれずに壊すのを、何が防ぐのか · Glyph
 description: TypeScript ではコンパイルが通ってから壊れる変更（ケースの抜け、処理されないエラー、フィールド名の変更）が、Glyph ではエージェントが直さなければならないコンパイルエラーになります。
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | 次へ &rarr; | エージェントの編集は差分がきれいなままか、それともファイル全体を整形し直してしまうのか？
 ---
       <p class="q-eyebrow">01 &middot; 中心となる約束</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">インデックスでの読み取りは要素の型を持つ<a class="ak-anchor" href="#index-read" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap"><code>xs[0]</code> からのタイプミス: 今は E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede"><code>Array&lt;E&gt;</code> に対する <code>xs[i]</code> は <code>E</code> です。そのため、エディター、<code>glyph check --no-tsc</code>、エージェント向けツールが、それをどう使うかを検査します。フィールドの読み取り、メソッド呼び出し、<code>return</code>、引数、型注釈付きの <code>let</code> です。</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>経緯 <span class="hint">以前は何が検査されていたか</span></summary><div class="body">
+        <p>
+          0.1.183 までは、インデックスで読んだ要素は Glyph 側で型を持っていませんでした。<code>-&gt; number</code> の下での <code>return xs[0]</code>、<code>rows[0]</code> のフィールド名の綴り間違い、<code>number</code> の引数に渡した <code>xs[0]</code> はどれも通り、完全なビルドの <code>tsc</code> の段階でしか見つかりませんでした。型は、<code>tsc</code> が生成されたコードに与えるものと同じです。生成される設定は <code>noUncheckedIndexedAccess</code> をオフにしているので、<code>E | undefined</code> ではなく <code>E</code> です。Glyph のインデックスは末尾を越えると <code>undefined</code> を返す代わりに <code>RangeError</code> を投げます。<code>Option</code> が欲しいときは <code>array.get</code> を使ってください。<code>Record</code> のキー読み取りは、値の型が <code>unknown</code> でない限り今も <code>E0224</code> で、<code>string</code> や npm の値に対するインデックスは判定しません。
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">インポートしたジェネリックなユニオンも検査される<a class="ak-anchor" href="#imported-generic" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">インポートしたジェネリックなユニオンに対する match で、バリアントが 1 つ抜けている</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           このチェックは宣言を読むので、答えが確実な場所でだけ発動します。<code>type Id = string</code> のようなプリミティブの別名は、それが指す <code>string</code> として読まれるので、同じように判定されます。文字列リテラルのユニオン (D30) はそのリテラルで比較され、<code>interface</code> の値は、その値がオブジェクトなので、<code>string</code> が宣言された場所では拒否されます。<code>extern_ts</code> や <code>typeof</code> の本体については引き続き何も言わず、<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の注釈のどれにも同じように届きます。三つとも一つの関係を共有しているからです。
         </p>
         <p>
-          逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>"abc"</code> は受け入れられます。まだ判定されず <code>tsc</code> に任せている組み合わせが三つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526)、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527)、そしてチェッカーがまだ <code>number</code> として読む <code>bigint</code> (G500) です。
+          逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>"abc"</code> は受け入れられます。<code>bigint</code> はそれ自身のメンバーを通して読まれるので、そこでは拒否されます。<code>length</code> を持たないからです。まだ判定されず <code>tsc</code> に任せている組み合わせが二つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526) と、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527) です。
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">現状<a class="ak-anchor" href="#where-it-stands" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 提供中 <span class="count">21</span></h3>
 
           <p class="ak-st-group">マッチ</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">ペイロードの位置にあるバリアントは、ペイロードを束縛するのではなく、ペイロード自身のタグで分岐</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">同じタグに応える 2 つのアームは、一方が黙って勝つのではなく <code>E0305</code> として拒否</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">要素の型を保つ <code>for</code> の束縛</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">要素の型を持つインデックス読み取り <code>xs[i]</code>。その使い方が検査されます</span></span></li>
           </ul>
 
           <p class="ak-st-group">エラーとテスト</p>

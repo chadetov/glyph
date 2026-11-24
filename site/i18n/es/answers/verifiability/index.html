@@ -1,7 +1,7 @@
 ---
 title: ¿Qué impide que un agente rompa mi código sin que nadie lo note? · Glyph
 description: Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | Siguiente &rarr; | ¿Las ediciones del agente se quedarán limpias, o me reformatearán el archivo entero?
 ---
       <p class="q-eyebrow">01 &middot; La promesa central</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">Una lectura por índice tiene el tipo de su elemento<a class="ak-anchor" href="#index-read" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">una errata tras <code>xs[0]</code>: ahora E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede"><code>xs[i]</code> sobre un <code>Array&lt;E&gt;</code> es un <code>E</code>, así que el editor, <code>glyph check --no-tsc</code> y las herramientas del agente comprueban lo que haces con él: leer un campo, llamar a un método, un <code>return</code>, un argumento, un <code>let</code> anotado.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Historia <span class="hint">qué se comprobaba antes</span></summary><div class="body">
+        <p>
+          Hasta 0.1.183 un elemento leído por índice no tenía tipo para Glyph. <code>return xs[0]</code> bajo <code>-&gt; number</code>, un campo mal escrito sobre <code>rows[0]</code> y <code>xs[0]</code> pasado a un parámetro <code>number</code> pasaban, y solo el paso de <code>tsc</code> de un build completo los detectaba. El tipo es el que <code>tsc</code> da al código generado, que deja <code>noUncheckedIndexedAccess</code> desactivado: <code>E</code>, no <code>E | undefined</code>. El índice de Glyph lanza un <code>RangeError</code> más allá del final en lugar de devolver <code>undefined</code>; usa <code>array.get</code> cuando quieras un <code>Option</code>. Leer una clave de un <code>Record</code> sigue siendo <code>E0224</code> salvo que su tipo de valor sea <code>unknown</code>, y un índice sobre un <code>string</code> o sobre un valor de npm no se juzga.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">Las uniones genéricas importadas se comprueban<a class="ak-anchor" href="#imported-generic" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">una variante que falta en un match sobre una unión genérica importada</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           La comprobación lee la declaración, así que solo salta donde la respuesta es segura. Un alias primitivo como <code>type Id = string</code> se lee como el <code>string</code> que nombra, así que se decide igual. Una unión de literales de cadena (D30) se compara por sus literales, y un valor de un <code>interface</code> se rechaza donde se declara un <code>string</code>, porque su valor es un objeto. Un cuerpo <code>extern_ts</code> o <code>typeof</code> sigue sin decir nada, y <code>void</code> también queda excluido. Llega igual a un argumento, a un <code>return</code> y a una anotación de <code>let</code>, porque los tres comparten una relación.
         </p>
         <p>
-          La otra dirección pasa por los miembros del valor, como en TypeScript: <code>5</code> se rechaza donde se declara <code>interface HasName { name: string }</code>, y <code>"abc"</code> se acepta donde se declara <code>interface HasLen { length: number }</code>, porque una cadena tiene <code>length</code>. Tres emparejamientos aún no se deciden y quedan para <code>tsc</code>: una interfaz cuyos miembros son todos opcionales y no comparte ninguno con el valor (G526), <code>Option</code>, <code>Result</code> y <code>Record</code> frente a una interfaz (G527), y <code>bigint</code>, que el checker todavía lee como <code>number</code> (G500).
+          La otra dirección pasa por los miembros del valor, como en TypeScript: <code>5</code> se rechaza donde se declara <code>interface HasName { name: string }</code>, y <code>"abc"</code> se acepta donde se declara <code>interface HasLen { length: number }</code>, porque una cadena tiene <code>length</code>. Un <code>bigint</code> se lee por sus propios miembros, así que ahí se rechaza: no tiene <code>length</code>. Dos emparejamientos aún no se deciden y quedan para <code>tsc</code>: una interfaz cuyos miembros son todos opcionales y no comparte ninguno con el valor (G526), y <code>Option</code>, <code>Result</code> y <code>Record</code> frente a una interfaz (G527).
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">Dónde está<a class="ak-anchor" href="#where-it-stands" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Disponible hoy <span class="count">21</span></h3>
 
           <p class="ak-st-group">Match</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una variante en posición de payload discrimina por la etiqueta del propio payload en lugar de enlazarlo</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Dos brazos que responderían a la misma etiqueta se rechazan como <code>E0305</code> en lugar de que uno gane sin avisar</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Un binding de <code>for</code> que mantiene el tipo de sus elementos</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Una lectura por índice, <code>xs[i]</code>, con el tipo de su elemento, así que se comprueba cómo se usa</span></span></li>
           </ul>
 
           <p class="ak-st-group">Errores y tests</p>

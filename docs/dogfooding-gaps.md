@@ -13019,6 +13019,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.174 (the release build): the first `glyph fmt` pass prints `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
 
+  *Reproduced against 0.1.180 (the release build): the first `glyph fmt` pass prints `(fn() { return 1 })()`, the second `let a = 1(fn() { return 1 })()`.*
+
 - **G344. A value built with `Some(x)` or `Ok(x)` is not typed as an
   `Option` or a `Result`, so its members are not checked.** `let r = Ok(x)`
   then `r.value`, and inline `Ok(x).value` or `Some(x).tag`, pass `glyph
@@ -13682,6 +13684,8 @@ and is the owner's to confirm.
   *Reproduced against 0.1.168 (the release build) with record 111's probe `g/A`: `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>`: `json.parse<m.Page<int>>` has no runtime check to run for it``.*
 
   *Reproduced against 0.1.174 (the release build) with record 111's probe `g/A`: `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>` ``.*
+
+  *Reproduced against 0.1.180 (the release build) with record 111's probe `g/A`: `Page` draws ``[E0106] Warning: lint: unused import `Page` ``, `glyph fix` removes it, and the program is then ``[E0304] Error: emit: cannot validate `m.Page<int>` ``.*
 
 - **G369. [FIXED] A descriptor check recurses without bound, so a deeply nested value
   overflows the stack.** A `Tree` nested 20000 deep throws `RangeError:
@@ -15117,6 +15121,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.174 (the release build): `string.from(v)` on the `unknown` that `json.parse("{\"code\":7}")` returns reports no diagnostics under `check --no-tsc` and full `check`, and `glyph run` prints `error: [object Object]`.*
 
+  *Reproduced against 0.1.180 (the release build): `string.from(v)` on the `unknown` that `json.parse("{\"code\":7}")` returns reports no diagnostics under `check --no-tsc` and full `check`, and `glyph run` prints `error: [object Object]`.*
+
 - **G417. [FIXED] Hover inside a template string is one column off.** In `return "a
   ${i}"` with `i: number`, hover on the `{` of `${i}` answers `number` and
   hover on `i` itself answers `string`, the type of the whole literal: the
@@ -15548,6 +15554,8 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.174 (the release build): `io.println(string.from(5))` without `import std/string` is `no diagnostics` under `--no-tsc`, full `check` stops on TS2693 (`'string' only refers to a type`), and `array.len([1])` without its import is E0103.*
 
+  *Reproduced against 0.1.180 (the release build): `io.println(string.from(5))` without `import std/string` is `no diagnostics` under `--no-tsc`, full `check` stops on TS2693 (`'string' only refers to a type`), and `array.len([1])` without its import is E0103.*
+
 - **G433. [FIXED] An unannotated module `const` is typed `Unknown`, so nothing read
   off it is checked.** `const ITEMS = [1, 2]` then a bare `ITEMS.push(3)`
   draws no E0240, `const CFG = { n: 1, }` then `let x: string = CFG.n` draws
@@ -15937,6 +15945,8 @@ and is the owner's to confirm.
   `let c: string = i` is accepted under `--no-tsc`.*
 
   *Reproduced against 0.1.174 (the release build): with `for i, x in [seen]`, `let c: string = i` is accepted under `--no-tsc` and is TS2322 under full `check`.*
+
+  *Reproduced against 0.1.180 (the release build): with `for i, x in [seen]`, `let c: string = i` is accepted under `--no-tsc` and is TS2322 under full `check`.*
 
 - **G452. A nested string inside a `"..."` interpolation inside a `"""`
   string gets the generic E0002.** `"""${g("q${g("x")}")}"""` is refused

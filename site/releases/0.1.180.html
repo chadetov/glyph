@@ -1,0 +1,15 @@
+---
+version: 0.1.180
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A lost update across an await is caught on elements and map entries too
+---
+            <p>E0225 catches a read of a parameter's field before an <code>await</code> and a write to it after: whatever another task wrote in between is lost. Until now it only looked at fields, so <code>a.balance</code> was caught and <code>c[0]</code> was not.</p>
+
+            <p>It now covers elements and map entries: <code>c[0]</code>, <code>m["k"]</code>, <code>a[0].balance</code> and <code>c[i]</code>. An index counts when its key cannot change between the read and the write, which means a literal, or a name no <code>mut</code> reassigns anywhere in the function. A read written <code>array.get(c, 0)</code> or <code>record.get(m, "k")</code> counts as a read of that element, and the message says so: <code>(read through `array.get(c, 0)`)</code>. That matters for maps, where Glyph refuses the bare <code>m[k]</code> read.</p>
+
+            <p>A key that can change (<code>c[i + 1]</code>, or a name some <code>mut</code> reassigns), a local array, a <code>push</code>, and a re-read after the <code>await</code> are all left alone. Async lambdas are still not checked (G517). The rule also fires when the value written was read again after the <code>await</code>, which cannot lose an update; that was already true for fields and is G516, scheduled next in the rolling lane.</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. Reading <code>c[0]</code>, awaiting, then writing <code>mut c[0] = ...</code> exits 0 under 0.1.179 and 1 under 0.1.180. <code>tsc</code> says nothing about any of these; this check is Glyph's own. Across the 375 programs the corpus script measures, the only change is the catch case written to show this bug, which is now a refused case.</p>

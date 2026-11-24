@@ -14,8 +14,8 @@
 //! remove: nothing about the source looks wrong and no test fails unless it
 //! happens to interleave.
 //!
-//! **The rule is deliberately narrow.** It fires only when the *same place* is
-//! read, then an `await` intervenes, then that place is written. Two wider rules
+//! **The rule is deliberately narrow.** It fires only when a value read from a
+//! place before an `await` reaches a write to that same place after it. Two wider rules
 //! were rejected: forbidding `mut` on any binding captured by more than one live
 //! task needs escape analysis and would reject correct code, and an
 //! `owned`-style marker for shared mutable state is a much larger design still
@@ -56,11 +56,22 @@
 //!   of a place and do not fire.
 //! - The write clears the place, so a second read-modify-write after it starts
 //!   fresh rather than reporting the first read twice.
+//!
+//! **The value has to reach the write (G516).** A read of the place taints the
+//! `let` it initializes, and any `let` initialized from a tainted one, so
+//! `let first = c[0]`, `let x = first * 2`, `await`, `mut c[0] = x` fires
+//! through `x`. A read made after the `await` is fresh: `let now = c[0]` there,
+//! or `mut c[0] = c[0] + f`, writes a current value and does not fire, though
+//! the place was also read before the suspension. A binding some `mut`
+//! reassigns (the `Reassigned` predicate) carries no taint, because what it
+//! holds at the write is not decidable from its initializer; that is a stated
+//! miss, preferred to a false refusal. The one-statement form, `mut c.n =
+//! await f(c.n)`, still fires on the read inside the value.
 
 use crate::assign::stdlib_callee;
 use crate::reassign::Reassigned;
 use crate::TypeError;
-use glyph_ast::{Block, Decl, Expr, Module, MutKind, Span, Stmt};
+use glyph_ast::{Block, Decl, Expr, LetBinding, LetStmt, Module, MutKind, Span, Stmt};
 use glyph_resolver::{ResolvedModule, ResolvedRef};
 use std::collections::HashMap;
 
@@ -155,8 +166,11 @@ struct Read {
     via: Option<String>,
 }
 
-/// What we know about a place inside one block.
-struct Seen {
+/// A read of a place whose value a `let` binding carries, directly or through
+/// other `let`s derived from it.
+#[derive(Debug, Clone)]
+struct Origin {
+    place: Place,
     /// Where it was read.
     read_at: Span,
     /// The `array.get` / `record.get` call it was read through, if any.
@@ -164,6 +178,21 @@ struct Seen {
     /// Whether an `await` has run since that read.
     awaited: bool,
 }
+
+impl From<Read> for Origin {
+    fn from(r: Read) -> Self {
+        Origin {
+            place: r.place,
+            read_at: r.span,
+            via: r.via,
+            awaited: false,
+        }
+    }
+}
+
+/// The tracked `let` bindings of one block (keyed by definition-site span
+/// start, as `ResolvedRef::Local` keys them) and the reads each one carries.
+type Carried = HashMap<u32, Vec<Origin>>;
 
 impl Straddle<'_> {
     /// Whether a write to this place can reach memory another task holds:
@@ -177,9 +206,9 @@ impl Straddle<'_> {
     /// body) starts clean, which under-reports across block boundaries and never
     /// over-reports inside one.
     fn block(&mut self, b: &Block) {
-        let mut seen: HashMap<Place, Seen> = HashMap::new();
+        let mut carried: Carried = HashMap::new();
         for stmt in &b.stmts {
-            self.stmt(stmt, &mut seen);
+            self.stmt(stmt, &mut carried);
         }
     }
 
@@ -189,24 +218,43 @@ impl Straddle<'_> {
         out
     }
 
-    fn stmt(&mut self, stmt: &Stmt, seen: &mut HashMap<Place, Seen>) {
+    /// The reads every tracked binding `e` mentions carries, at any depth of
+    /// `e` (a lambda or a `match` arm inside it included).
+    fn carried_by(&self, e: &Expr, carried: &Carried) -> Vec<Origin> {
+        let mut out = Vec::new();
+        if !carried.is_empty() {
+            mentions(e, &mut |span| {
+                if let Some(ResolvedRef::Local(def)) = self.places.resolved.resolutions.get(span) {
+                    if let Some(origins) = carried.get(&def) {
+                        out.extend(origins.iter().cloned());
+                    }
+                }
+            });
+        }
+        out
+    }
+
+    fn stmt(&mut self, stmt: &Stmt, carried: &mut Carried) {
         match stmt {
             Stmt::Mut(m) => match &m.kind {
                 MutKind::Assign { target, value } => {
-                    // The value is evaluated before the write lands, so a read
-                    // in it counts, and an `await` in it suspends between that
-                    // read and the write.
-                    let reads = self.reads(value);
                     let value_awaits = has_await(value);
 
                     if let Some(place) = self.places.place_of(target).filter(|p| self.is_shared(p)) {
-                        // Cross-statement: read, then a statement that awaited,
-                        // then this write. Single statement:
-                        // `mut c.n = await f(c.n)`.
-                        let earlier = seen.get(&place).filter(|s| s.awaited);
+                        // Cross-statement: a value read from the place, then a
+                        // statement that awaited, then this write of a value
+                        // derived from that read. Single statement:
+                        // `mut c.n = await f(c.n)`, where the read is evaluated
+                        // before the suspension inside the value itself.
+                        let earlier = self
+                            .carried_by(value, carried)
+                            .into_iter()
+                            .filter(|o| o.awaited && o.place == place)
+                            .min_by_key(|o| o.read_at.start);
+                        let reads = self.reads(value);
                         let inline = reads.iter().find(|r| value_awaits && r.place == place);
                         let found = match (earlier, inline) {
-                            (Some(s), _) => Some((s.read_at, s.via.clone())),
+                            (Some(o), _) => Some((o.read_at, o.via)),
                             (None, Some(r)) => Some((m.span, r.via.clone())),
                             (None, None) => None,
                         };
@@ -222,54 +270,69 @@ impl Straddle<'_> {
                         }
                         // The write makes the place current again, so a later
                         // read-modify-write is judged on its own.
-                        seen.remove(&place);
+                        for origins in carried.values_mut() {
+                            origins.retain(|o| o.place != place);
+                        }
                     }
-                    note_reads(seen, reads);
                     if value_awaits {
-                        mark_awaited(seen);
+                        mark_awaited(carried);
                     }
                 }
                 MutKind::MethodCall { call } => {
-                    let reads = self.reads(call);
-                    note_reads(seen, reads);
                     if has_await(call) {
-                        mark_awaited(seen);
+                        mark_awaited(carried);
                     }
                 }
             },
-            Stmt::Let(l) => {
-                // Order matters: the reads in this initializer are recorded
-                // first, then the suspension marks them, so
-                // `let x = await f(c.n)` leaves `c.n` already stale.
-                let reads = self.reads(&l.value);
-                note_reads(seen, reads);
-                if has_await(&l.value) {
-                    mark_awaited(seen);
-                }
-            }
+            Stmt::Let(l) => self.let_stmt(l, carried),
             Stmt::Expr(e) => {
-                let reads = self.reads(e);
-                note_reads(seen, reads);
                 if has_await(e) {
-                    mark_awaited(seen);
+                    mark_awaited(carried);
                 }
             }
-            Stmt::Return(r) => {
-                if let Some(e) = &r.value {
-                    let reads = self.reads(e);
-                    note_reads(seen, reads);
-                }
-            }
+            Stmt::Return(_) => {}
             // A nested block is analysed independently, so an `await` inside it
-            // conservatively marks the enclosing places too: the suspension is
+            // conservatively marks the enclosing reads too: the suspension is
             // real whether or not the write is in the same block.
             other => {
                 if stmt_has_await(other) {
-                    mark_awaited(seen);
+                    mark_awaited(carried);
                 }
                 for b in nested_blocks(other) {
                     self.block(b);
                 }
+            }
+        }
+    }
+
+    /// A `let` carries every place its initializer reads and everything the
+    /// tracked bindings it mentions carry. Order matters: those reads are
+    /// taken first, then a suspension in the initializer marks them, so
+    /// `let x = await f(c.n)` leaves `c.n` already stale.
+    fn let_stmt(&mut self, l: &LetStmt, carried: &mut Carried) {
+        let mut origins: Vec<Origin> = self.reads(&l.value).into_iter().map(Origin::from).collect();
+        origins.extend(self.carried_by(&l.value, carried));
+        if has_await(&l.value) {
+            mark_awaited(carried);
+            for o in &mut origins {
+                o.awaited = true;
+            }
+        }
+        if origins.is_empty() {
+            return;
+        }
+        let defs: Vec<u32> = match &l.binding {
+            LetBinding::Name(_) => vec![l.span.start],
+            LetBinding::Pattern(p) => p.bindings().into_iter().map(|(_, span)| span.start).collect(),
+        };
+        for def in defs {
+            // A binding some `mut` reassigns may hold anything at the write.
+            if self
+                .places
+                .reassigned
+                .never_reassigned(ResolvedRef::Local(def), self.places.resolved)
+            {
+                carried.insert(def, origins.clone());
             }
         }
     }
@@ -391,19 +454,26 @@ impl Places<'_> {
     }
 }
 
-fn note_reads(seen: &mut HashMap<Place, Seen>, reads: Vec<Read>) {
-    for r in reads {
-        seen.entry(r.place).or_insert(Seen {
-            read_at: r.span,
-            via: r.via,
-            awaited: false,
-        });
+fn mark_awaited(carried: &mut Carried) {
+    for o in carried.values_mut().flatten() {
+        o.awaited = true;
     }
 }
 
-fn mark_awaited(seen: &mut HashMap<Place, Seen>) {
-    for s in seen.values_mut() {
-        s.awaited = true;
+/// Call `f` with the span of every name `e` mentions, at any depth: inside a
+/// lambda body or a `match` arm written as a block too.
+fn mentions(e: &Expr, f: &mut impl FnMut(Span)) {
+    if let Expr::Ident { span, .. } = e {
+        f(*span);
+    }
+    glyph_ast::visit::child_exprs(e, &mut |child| mentions(child, f));
+    glyph_ast::visit::child_blocks(e, &mut |b| block_mentions(b, f));
+}
+
+fn block_mentions(b: &Block, f: &mut impl FnMut(Span)) {
+    for s in &b.stmts {
+        glyph_ast::visit::stmt_exprs(s, &mut |e| mentions(e, f));
+        glyph_ast::visit::stmt_blocks(s, &mut |inner| block_mentions(inner, f));
     }
 }
 
@@ -698,6 +768,146 @@ mod tests {
              }\n"
         )
         .is_empty());
+    }
+
+    /// G516: the value written was read after the `await`, so no update can be
+    /// lost, though the place was also read before it (record 197's
+    /// `fld.glyph`, all three functions).
+    #[test]
+    fn a_value_read_again_after_the_await_is_not_an_error() {
+        assert!(with_head(
+            "pub async fn reread(a: Acct) -> number {\n\
+             \x20 let first = a.balance\n\
+             \x20 let f = await fee()\n\
+             \x20 mut a.balance = a.balance + f\n\
+             \x20 return first\n\
+             }\n\
+             pub async fn reread_idx(c: Array<number>) -> number {\n\
+             \x20 let first = c[0]\n\
+             \x20 let f = await fee()\n\
+             \x20 let now = c[0]\n\
+             \x20 mut c[0] = now + f\n\
+             \x20 return first\n\
+             }\n\
+             pub async fn reread_fld(a: Acct) -> number {\n\
+             \x20 let first = a.balance\n\
+             \x20 let f = await fee()\n\
+             \x20 let now = a.balance\n\
+             \x20 mut a.balance = now + f\n\
+             \x20 return first\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// G516: the stale value still reaches the write through a `let` derived
+    /// from the read, so it fires, and the message points at the read.
+    #[test]
+    fn a_stale_value_reaching_the_write_through_a_derived_let_is_an_error() {
+        let src = format!(
+            "{HEAD}pub async fn derived(c: Array<number>) -> number {{\n\
+             \x20 let first = c[0]\n\
+             \x20 let x = first * 2\n\
+             \x20 let f = await fee()\n\
+             \x20 mut c[0] = x\n\
+             \x20 return f\n\
+             }}\n"
+        );
+        assert_eq!(messages(&src), vec![format!("`c[0]` {LOST}")]);
+        let m = glyph_parser::parse(&src).expect("parse");
+        let syms = collect_module_symbols(&m).unwrap();
+        let (resolved, _) = resolve_module(&m, syms, &build_prelude());
+        let errs = check_await_straddle(&m, &resolved);
+        let crate::TypeError::MutAcrossAwait { read_at, .. } = &errs[0] else {
+            panic!("expected E0225");
+        };
+        assert_eq!(&src[read_at.start as usize..read_at.end as usize], "c[0]");
+    }
+
+    /// Derivation through a `let` made after the `await` from a stale binding
+    /// still carries the stale read.
+    #[test]
+    fn a_let_derived_after_the_await_from_a_stale_one_is_an_error() {
+        assert_eq!(
+            with_head(
+                "pub async fn late(a: Acct) -> number {\n\
+                 \x20 let first = a.balance\n\
+                 \x20 let f = await fee()\n\
+                 \x20 let next = first + f\n\
+                 \x20 mut a.balance = next\n\
+                 \x20 return 0\n\
+                 }\n"
+            ),
+            vec![format!("`a.balance` {LOST}")]
+        );
+    }
+
+    /// A pre-await read the write does not use draws nothing: the value
+    /// written is unrelated to it.
+    #[test]
+    fn a_stale_read_the_write_does_not_use_is_not_an_error() {
+        assert!(with_head(
+            "pub async fn unrelated(a: Acct, n: number) -> number {\n\
+             \x20 let first = a.balance\n\
+             \x20 let f = await fee()\n\
+             \x20 mut a.balance = n + f\n\
+             \x20 return first\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// A binding some `mut` reassigns is not tracked: what it holds at the
+    /// write is not decidable from its initializer. A stated miss, preferred
+    /// to a false refusal.
+    #[test]
+    fn a_reassigned_binding_carries_no_taint() {
+        assert!(with_head(
+            "pub async fn moved_on(c: Array<number>) -> number {\n\
+             \x20 let first = c[0]\n\
+             \x20 mut first = 0\n\
+             \x20 let f = await fee()\n\
+             \x20 mut c[0] = first + f\n\
+             \x20 return 0\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// A destructuring `let` taints every name it binds.
+    #[test]
+    fn a_destructured_let_carries_the_read() {
+        assert_eq!(
+            with_head(
+                "pub async fn pair(g: Array<Array<number>>) -> number {\n\
+                 \x20 let [x, y] = g[0]\n\
+                 \x20 let f = await fee()\n\
+                 \x20 mut g[0] = [y, x + f]\n\
+                 \x20 return 0\n\
+                 }\n"
+            ),
+            vec![format!("`g[0]` {LOST}")]
+        );
+    }
+
+    /// The write clears the place: a second write of the same stale value
+    /// after another `await` is not reported twice (record 197's
+    /// `written_twice`).
+    #[test]
+    fn a_write_clears_what_the_bindings_carry_for_that_place() {
+        assert_eq!(
+            with_head(
+                "pub async fn twice(c: Array<number>) -> number {\n\
+                 \x20 let first = c[0]\n\
+                 \x20 let f = await fee()\n\
+                 \x20 mut c[0] = first + f\n\
+                 \x20 let g = await fee()\n\
+                 \x20 mut c[0] = first + g\n\
+                 \x20 return 0\n\
+                 }\n"
+            ),
+            vec![format!("`c[0]` {LOST}")]
+        );
     }
 
     /// The failure the rule exists for: two of these running concurrently both

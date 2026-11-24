@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.185 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.185" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.185</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A function value's parameters are compared, and function types are printed</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.184 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.184" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.184</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.156</id>
     <updated>2026-11-21T00:00:00Z</updated>
     <summary>A lambda parameter has the type you wrote, and is arms narrow</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.155 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.155" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.155</id>
-    <updated>2026-11-21T00:00:00Z</updated>
-    <summary>A SQL query's text has to be fixed when the program is written</summary>
   </entry>
 </feed>

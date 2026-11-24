@@ -1,0 +1,17 @@
+---
+version: 0.1.185
+month: 2026-11
+date: 2026-11-24
+tags: breaking
+headline: A function value's parameters are compared, and function types are printed
+---
+            <p>Glyph compared a function value's return type with the function type its position declared, but never its parameters. <code>takes_cb(fn(x: number) -&gt; string { .. })</code> where <code>fn(string) -&gt; string</code> is declared passed <code>check --no-tsc</code>, and so did a callback taking a <code>number</code> passed to <code>array.map</code> over strings. When the return did differ, the message read <code>expected `function`, found `function`</code>.</p>
+
+            <p>Parameters are now compared too, the safe way round: the slot's argument has to be accepted by the function's parameter. A function taking more required parameters than the slot passes is refused; one taking fewer is fine, as in TypeScript. A generic function value like <code>id&lt;T&gt;</code> is fitted to the slot before it is compared, and if it can't be fitted it is left to <code>tsc</code> rather than refused. A method member of an interface is compared the same way, which is stricter than TypeScript's method bivariance on purpose.</p>
+
+            <p>Every message about two function types now prints both signatures and says where they part, for example <code>expected `fn(string) -&gt; string`, found `fn(number) -&gt; string`: parameter 1: the slot passes a `string`, which the function's `number` parameter does not take</code>. A <code>sort</code> comparator's parameter types are now checked against the array's element type as well.</p>
+
+            <p><code>glyph query assignable</code> answers for function types instead of UNDETERMINED. <code>glyph_impact</code> still does not decide a function read as a value (G531), and a generic function value whose shape cannot fit (<code>fn first&lt;T&gt;(xs: Array&lt;T&gt;)</code> where <code>fn(string) -&gt; number</code> is declared) is still left to <code>tsc</code> (G532).</p>
+
+            <h3>Breaking</h3>
+            <p>Yes. <code>takes_cb(fn(x: number) -&gt; string { return "n" })</code> exits 0 under 0.1.184's <code>check --no-tsc</code> and 1 under 0.1.185. Every new refusal is one <code>tsc</code> makes, except a method member's parameter, which is Glyph's stricter rule. Across the 375 programs the corpus script measures, three error messages now print signatures where they printed <code>function</code>; no exit code changed.</p>

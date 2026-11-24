@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","item":"https://glyphlang.io/tr/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/verifiability/#article","headline":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","description":"TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.","url":"https://glyphlang.io/tr/answers/verifiability/","inLanguage":"tr","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/tr/"},{"@type":"ListItem","position":2,"name":"Yanıtlar","item":"https://glyphlang.io/tr/answers/"},{"@type":"ListItem","position":3,"name":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","item":"https://glyphlang.io/tr/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/tr/answers/verifiability/#article","headline":"Bir ajanın kodumu sessizce bozmasını ne engelliyor?","description":"TypeScript'te derlenip sonra bozulan değişiklikler, örneğin eksik bir durum, ele alınmamış bir hata ya da adı değiştirilmiş bir alan, Glyph'te ajanın düzeltmek zorunda olduğu derleme hatalarıdır.","url":"https://glyphlang.io/tr/answers/verifiability/","inLanguage":"tr","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/tr/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Bu sayfa bir çeviridir. Referans alınan sürüm İngilizce sürümdür. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28tr%29%3A+%2Ftr%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Ftr%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Çeviriyle ilgili bir sorun bildir</a></p>
-      <p class="i18n-stale">Bu sayfanın İngilizce sürümü, bu çeviri yapıldıktan sonra değişti. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Güncel İngilizce sürümü oku</a></p>
     </div>
     <script>
       (function () {
@@ -922,7 +921,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <code>string</code>, <code>number</code> ya da <code>bool</code> tipli bir parametre, bildirilmiş bir union'ın ya da record'ın değerini hiç şikâyet etmeden kabul ediyordu; oysa uyuşmayan bir <code>bool</code> argümanıyla yapılan aynı çağrı zaten <code>E0211</code>'di.
         </p>
         <p>
-          Kontrol tanımı okur, bu yüzden yalnızca cevabın kesin olduğu yerde tetiklenir. İlkel bir alias, bir string-literal union (D30), bir <code>extern_ts</code> ya da <code>typeof</code> gövdesi ve bir <code>interface</code> hâlâ hiçbir şey söylemez, çünkü bunların hiçbiri bir tagged union ya da record gibi kanıtlanabilir biçimde <code>string</code> olmayan bir şey değildir; <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> annotation'ına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır.
+          Denetim bildirimi okur, bu yüzden yalnızca cevabın kesin olduğu yerde devreye girer. <code>type Id = string</code> gibi bir ilkel takma ad, adlandırdığı <code>string</code> olarak okunur ve aynı şekilde karara bağlanır. Dize literali birleşimi (D30) literalleriyle karşılaştırılır, bir <code>interface</code> değeri ise <code>string</code> bildirilen yerde reddedilir, çünkü değeri bir nesnedir. <code>extern_ts</code> veya <code>typeof</code> gövdesi hâlâ bir şey söylemez, <code>void</code> de hariç tutulur. Bir argümana, bir <code>return</code>'e ve bir <code>let</code> açıklamasına aynı şekilde ulaşır, çünkü üçü de tek bir ilişkiyi paylaşır.
+        </p>
+        <p>
+          Öteki yön, TypeScript'teki gibi değerin üyelerinden geçer: <code>interface HasName { name: string }</code> bildirilen yerde <code>5</code> reddedilir, <code>interface HasLen { length: number }</code> bildirilen yerde ise bir dizenin <code>length</code> üyesi olduğu için <code>"abc"</code> kabul edilir. Üç eşleşme henüz karara bağlanmıyor ve <code>tsc</code>'ye bırakılıyor: tüm üyeleri isteğe bağlı olup değerle hiçbirini paylaşmayan bir arayüz (G526), bir arayüze karşı <code>Option</code>, <code>Result</code> ve <code>Record</code> (G527), ve denetleyicinin hâlâ <code>number</code> olarak okuduğu <code>bigint</code> (G500).
         </p>
       </div></details>
 
@@ -949,7 +951,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Tip annotation'ı taşıyan modül düzeyindeki bir <code>const</code>, annotation ne derse desin <code>Ty::Unknown</code>'a dönüştürülüyordu; bu yüzden üzerindeki bir alan yazım hatası, bir fonksiyon içindeki aynı annotation'lı <code>let</code>'in zaten bildirdiği yerde görünmüyordu.
         </p>
         <p>
-          Annotation'sız bir <code>const</code> hiçbir şey iddia etmez ve bilerek <code>Unknown</code> kalır: tipini başlatıcıdan çıkarmak, farklı bir yanlış pozitif yüzeyi olan farklı bir soru. İki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında breaking, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlıyor; tam bir <code>glyph build</code> iki durumda da <code>tsc</code> üzerinden zaten kırmızıydı.
+          0.1.166'dan beri açıklamasız bir <code>const</code>, başlatıcısının tipine sahiptir; <code>tsc</code>'nin, yayıcının yazdığı TypeScript <code>const</code>'unu okuduğu gibi okunur: <code>const MODE = "read"</code> literal tipini korur, bir nesne veya dizi içindeki literal ise genişletilir, yani <code>const ITEMS = [1, 2]</code> bir <code>Array&lt;number&gt;</code> olur ve <code>mut</code> dışındaki <code>ITEMS.push(3)</code> E0240'tır. Denetleyicinin tipleyemediği bir başlatıcı, <code>const</code>'u tipsiz bırakır. Her iki düzeltme de <code>glyph check --no-tsc</code>, dil sunucusu ve playground altında uyumluluğu bozar, çünkü her biri önceki sürümün kabul ettiği bir programı yakalamaya başlar; tam bir <code>glyph build</code> her iki durumda da <code>tsc</code> yüzünden zaten kırmızıydı.
         </p>
       </div></details>
 
@@ -1116,7 +1118,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Bunun neden Glyph'in dört temel ilkesinin ilki olduğu ve garantisinin nerede bittiği, <a href="/tr/pillars/verifiability/">doğrulanabilirlik ilkesi sayfasında</a> anlatılıyor.
         </p>
       </div>
-      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.181 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-22">22 Kas 2026</time>.</p>
+      <p class="page-stamp">Bu sayfadaki kod örnekleri her build'de Glyph 0.1.181 ile kontrol edilir. Son değişiklik: <time datetime="2026-11-24">24 Kas 2026</time>.</p>
       <nav class="prevnext" aria-label="Önceki ve sonraki">
         <div class="spacer"></div>
         <a href="/tr/answers/diff-stability/" class="nx cta">

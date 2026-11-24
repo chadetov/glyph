@@ -43,7 +43,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-22","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/es/"},{"@type":"ListItem","position":2,"name":"Respuestas","item":"https://glyphlang.io/es/answers/"},{"@type":"ListItem","position":3,"name":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","item":"https://glyphlang.io/es/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/es/answers/verifiability/#article","headline":"¿Qué impide que un agente rompa mi código sin que nadie lo note?","description":"Los cambios que en TypeScript compilan y luego fallan, como un caso que falta, un error sin manejar o un campo renombrado, son en Glyph errores de compilación que el agente tiene que corregir.","url":"https://glyphlang.io/es/answers/verifiability/","inLanguage":"es","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/es/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Esta página es una traducción. La versión en inglés es la de referencia. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28es%29%3A+%2Fes%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fes%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Informar de un problema con la traducción</a></p>
-      <p class="i18n-stale">La versión en inglés de esta página ha cambiado desde que se tradujo. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Leer la versión actual en inglés</a></p>
     </div>
     <script>
       (function () {
@@ -922,7 +921,10 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Un parámetro de tipo <code>string</code>, <code>number</code> o <code>bool</code> aceptaba antes un valor de una unión o un record declarados sin ninguna queja, aunque la llamada idéntica con un argumento <code>bool</code> que no encajaba ya era <code>E0211</code>.
         </p>
         <p>
-          La comprobación lee la declaración, así que solo salta donde la respuesta es segura. Un alias de un primitivo, una unión de literales de string (D30), un cuerpo <code>extern_ts</code> o <code>typeof</code> y una <code>interface</code> siguen sin decir nada, porque de ninguno de ellos se puede demostrar que no es un <code>string</code> como se puede con una unión etiquetada o un record; <code>void</code> también queda excluido. Llega igual a un argumento, a un <code>return</code> y a la anotación de un <code>let</code>, ya que los tres comparten una misma relación.
+          La comprobación lee la declaración, así que solo salta donde la respuesta es segura. Un alias primitivo como <code>type Id = string</code> se lee como el <code>string</code> que nombra, así que se decide igual. Una unión de literales de cadena (D30) se compara por sus literales, y un valor de un <code>interface</code> se rechaza donde se declara un <code>string</code>, porque su valor es un objeto. Un cuerpo <code>extern_ts</code> o <code>typeof</code> sigue sin decir nada, y <code>void</code> también queda excluido. Llega igual a un argumento, a un <code>return</code> y a una anotación de <code>let</code>, porque los tres comparten una relación.
+        </p>
+        <p>
+          La otra dirección pasa por los miembros del valor, como en TypeScript: <code>5</code> se rechaza donde se declara <code>interface HasName { name: string }</code>, y <code>"abc"</code> se acepta donde se declara <code>interface HasLen { length: number }</code>, porque una cadena tiene <code>length</code>. Tres emparejamientos aún no se deciden y quedan para <code>tsc</code>: una interfaz cuyos miembros son todos opcionales y no comparte ninguno con el valor (G526), <code>Option</code>, <code>Result</code> y <code>Record</code> frente a una interfaz (G527), y <code>bigint</code>, que el checker todavía lee como <code>number</code> (G500).
         </p>
       </div></details>
 
@@ -949,7 +951,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Un <code>const</code> de nivel de módulo con una anotación de tipo se traducía a <code>Ty::Unknown</code> dijera lo que dijera la anotación, así que una errata en un campo era invisible justo donde el <code>let</code> anotado idéntico dentro de una función ya la informaba.
         </p>
         <p>
-          Un <code>const</code> sin anotar no afirma nada y se queda en <code>Unknown</code> a propósito: inferirlo a partir del inicializador es otra cuestión, con otro margen de falsos positivos. Los dos arreglos son breaking con <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground, ya que cada uno empieza a detectar un programa que la versión anterior aceptaba; un <code>glyph build</code> completo ya estaba en rojo a través de <code>tsc</code> en los dos casos.
+          Desde 0.1.166 una <code>const</code> sin anotar tiene el tipo de su inicializador, leído como <code>tsc</code> lee la <code>const</code> de TypeScript que escribe el emisor: <code>const MODE = "read"</code> conserva su tipo literal, y un literal dentro de un objeto o un array se ensancha, así que <code>const ITEMS = [1, 2]</code> es un <code>Array&lt;number&gt;</code> y <code>ITEMS.push(3)</code> fuera de <code>mut</code> es E0240. Un inicializador que el checker no puede tipar deja la <code>const</code> sin tipo. Ambos arreglos rompen compatibilidad en <code>glyph check --no-tsc</code>, el servidor de lenguaje y el playground, porque cada uno empieza a detectar un programa que la versión anterior aceptaba; un <code>glyph build</code> completo ya estaba en rojo por <code>tsc</code> en ambos casos.
         </p>
       </div></details>
 
@@ -1116,7 +1118,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Por qué este es el primero de los cuatro pilares de Glyph, y dónde se detiene su garantía, está en la <a href="/es/pillars/verifiability/">página del pilar de verificabilidad</a>.
         </p>
       </div>
-      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.181 en cada build. Último cambio: <time datetime="2026-11-22">22 nov 2026</time>.</p>
+      <p class="page-stamp">Los ejemplos de código de esta página se comprueban con Glyph 0.1.181 en cada build. Último cambio: <time datetime="2026-11-24">24 nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Anterior y siguiente">
         <div class="spacer"></div>
         <a href="/es/answers/diff-stability/" class="nx cta">

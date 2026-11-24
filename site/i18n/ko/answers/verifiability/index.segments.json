@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "b4c6f18de84ea473",
+  "source_hash": "d0316fc0c6629e95",
   "segments": [
     {
       "id": "title",
@@ -815,10 +815,16 @@
       "tr": "<code>string</code>, <code>number</code>, <code>bool</code> 타입의 매개변수는 선언된 유니언이나 레코드 값을 아무 불평 없이 받아들였습니다. 같은 호출에 맞지 않는 <code>bool</code> 인자를 넘기면 이미 <code>E0211</code>이었는데도 말입니다."
     },
     {
-      "id": "h-da7fe218",
+      "id": "h-27fcd0d0",
       "kind": "html",
-      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
-      "tr": "검사는 선언을 읽으므로 답이 확실한 곳에서만 발생합니다. 원시 타입 별칭, 문자열 리터럴 유니언(D30), <code>extern_ts</code>나 <code>typeof</code> 본문, 그리고 <code>interface</code>는 모두 여전히 아무 말도 하지 않습니다. 태그 유니언이나 레코드처럼 <code>string</code>이 아니라고 증명할 수 있는 것이 아니기 때문입니다. <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 타입 표기 모두에 똑같이 적용되는데, 셋이 같은 관계를 공유하기 때문입니다."
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as <code>type Id = string</code> is read as the <code>string</code> it names, so it is decided the same way. A string-literal union (D30) is compared by its literals, and an <code>interface</code> value is refused where a <code>string</code> is declared, because its value is an object. An <code>extern_ts</code> or <code>typeof</code> body still says nothing, and <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "이 검사는 선언을 읽으므로 답이 확실한 곳에서만 발동합니다. <code>type Id = string</code> 같은 원시 타입 별칭은 그것이 가리키는 <code>string</code>으로 읽히므로 똑같이 판정됩니다. 문자열 리터럴 유니언(D30)은 리터럴로 비교되고, <code>interface</code> 값은 그 값이 객체이므로 <code>string</code>이 선언된 곳에서 거부됩니다. <code>extern_ts</code>나 <code>typeof</code> 본문은 여전히 아무 말도 하지 않고, <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 주석에 똑같이 적용되는데, 셋 모두 하나의 관계를 공유하기 때문입니다."
+    },
+    {
+      "id": "h-1a3fe46b",
+      "kind": "html",
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
+      "tr": "반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>\"abc\"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 세 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527), 그리고 검사기가 아직 <code>number</code>로 읽는 <code>bigint</code>(G500)입니다."
     },
     {
       "id": "h-77fa2d03",
@@ -851,10 +857,10 @@
       "tr": "타입 표기가 있는 모듈 수준 <code>const</code>는 표기가 무엇이든 <code>Ty::Unknown</code>으로 변환되었으므로, 함수 안의 같은 표기를 가진 <code>let</code>에서는 이미 보고되던 필드 오타가 거기서는 보이지 않았습니다."
     },
     {
-      "id": "h-4319dca8",
+      "id": "h-909e48dc",
       "kind": "html",
-      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
-      "tr": "타입 표기가 없는 <code>const</code>는 아무것도 주장하지 않으며, 의도적으로 <code>Unknown</code>으로 남습니다. 초기값에서 타입을 추론하는 것은 오탐의 범위가 다른 별개의 문제입니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 breaking입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code>를 통해 실패했습니다."
+      "en": "Since 0.1.166 an unannotated <code>const</code> has its initializer's type, read the way <code>tsc</code> reads the TypeScript <code>const</code> the emitter writes: <code>const MODE = \"read\"</code> keeps its literal type, and a literal inside an object or an array widens, so <code>const ITEMS = [1, 2]</code> is an <code>Array&lt;number&gt;</code> and <code>ITEMS.push(3)</code> outside <code>mut</code> is E0240. An initializer the checker cannot type leaves the <code>const</code> untyped. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "0.1.166부터 주석 없는 <code>const</code>는 초기화식의 타입을 가집니다. 이미터가 쓰는 TypeScript <code>const</code>를 <code>tsc</code>가 읽는 방식 그대로입니다. <code>const MODE = \"read\"</code>는 리터럴 타입을 유지하고, 객체나 배열 안의 리터럴은 넓혀지므로 <code>const ITEMS = [1, 2]</code>는 <code>Array&lt;number&gt;</code>이고 <code>mut</code> 밖의 <code>ITEMS.push(3)</code>은 E0240입니다. 검사기가 타입을 정할 수 없는 초기화식은 그 <code>const</code>를 타입 없이 둡니다. 두 수정 모두 <code>glyph check --no-tsc</code>, 언어 서버, 플레이그라운드에서 호환성을 깨는 변경입니다. 각각 이전 릴리스가 받아들이던 프로그램을 잡기 시작하기 때문입니다. 전체 <code>glyph build</code>는 두 경우 모두 이미 <code>tsc</code> 때문에 빨간색이었습니다."
     },
     {
       "id": "h-ec63b0ad",

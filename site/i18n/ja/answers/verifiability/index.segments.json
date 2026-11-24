@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ja",
-  "source_hash": "b4c6f18de84ea473",
+  "source_hash": "d0316fc0c6629e95",
   "segments": [
     {
       "id": "title",
@@ -815,10 +815,16 @@
       "tr": "<code>string</code>、<code>number</code>、<code>bool</code> と型付けされたパラメータは、宣言されたユニオンやレコードの値を何の文句もなく受け入れていました。同じ呼び出しで <code>bool</code> の引数が合わない場合は、すでに <code>E0211</code> だったにもかかわらずです。"
     },
     {
-      "id": "h-da7fe218",
+      "id": "h-27fcd0d0",
       "kind": "html",
-      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias, a string-literal union (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an <code>interface</code> all still say nothing, because none of those is provably not a <code>string</code> the way a tagged union or record is; <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
-      "tr": "この検査は宣言を読むので、答えが確実な場所でだけ働きます。プリミティブの別名、文字列リテラルのユニオン（D30）、<code>extern_ts</code> や <code>typeof</code> の本体、<code>interface</code> では、今も何も言いません。どれも、タグ付きユニオンやレコードのように <code>string</code> ではないと証明できるものではないからです。<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の型注釈のどれにも同じように働きます。3 つとも 1 つの関係を共有しているからです。"
+      "en": "The check reads the declaration, so it only fires where the answer is certain. A primitive alias such as <code>type Id = string</code> is read as the <code>string</code> it names, so it is decided the same way. A string-literal union (D30) is compared by its literals, and an <code>interface</code> value is refused where a <code>string</code> is declared, because its value is an object. An <code>extern_ts</code> or <code>typeof</code> body still says nothing, and <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a <code>let</code> annotation alike, since all three share one relation.",
+      "tr": "このチェックは宣言を読むので、答えが確実な場所でだけ発動します。<code>type Id = string</code> のようなプリミティブの別名は、それが指す <code>string</code> として読まれるので、同じように判定されます。文字列リテラルのユニオン (D30) はそのリテラルで比較され、<code>interface</code> の値は、その値がオブジェクトなので、<code>string</code> が宣言された場所では拒否されます。<code>extern_ts</code> や <code>typeof</code> の本体については引き続き何も言わず、<code>void</code> も対象外です。引数、<code>return</code>、<code>let</code> の注釈のどれにも同じように届きます。三つとも一つの関係を共有しているからです。"
+    },
+    {
+      "id": "h-1a3fe46b",
+      "kind": "html",
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
+      "tr": "逆方向は TypeScript と同じく値のメンバーを通ります。<code>interface HasName { name: string }</code> が宣言された場所では <code>5</code> は拒否され、<code>interface HasLen { length: number }</code> が宣言された場所では、文字列には <code>length</code> があるので <code>\"abc\"</code> は受け入れられます。まだ判定されず <code>tsc</code> に任せている組み合わせが三つあります。メンバーがすべて省略可能で値と一つも共有しないインターフェース (G526)、インターフェースに対する <code>Option</code>、<code>Result</code>、<code>Record</code> (G527)、そしてチェッカーがまだ <code>number</code> として読む <code>bigint</code> (G500) です。"
     },
     {
       "id": "h-77fa2d03",
@@ -851,10 +857,10 @@
       "tr": "型注釈の付いたモジュールレベルの <code>const</code> は、注釈の内容にかかわらず <code>Ty::Unknown</code> に変換されていました。そのため、関数の中の同じ注釈付き <code>let</code> ならすでに報告されていたフィールドのタイプミスが、ちょうどそこで見えなくなっていました。"
     },
     {
-      "id": "h-4319dca8",
+      "id": "h-909e48dc",
       "kind": "html",
-      "en": "An unannotated <code>const</code> claims nothing and stays <code>Unknown</code> on purpose: inferring one from the initializer is a different question with a different false-positive surface. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
-      "tr": "型注釈のない <code>const</code> は何も主張せず、意図して <code>Unknown</code> のままにしています。初期化式から推論するのは別の問題で、誤検出の範囲も異なります。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、Playground では破壊的です。どちらも前のリリースが受け入れていたプログラムを検出し始めるからです。完全な <code>glyph build</code> は、どちらの場合もすでに <code>tsc</code> によって赤になっていました。"
+      "en": "Since 0.1.166 an unannotated <code>const</code> has its initializer's type, read the way <code>tsc</code> reads the TypeScript <code>const</code> the emitter writes: <code>const MODE = \"read\"</code> keeps its literal type, and a literal inside an object or an array widens, so <code>const ITEMS = [1, 2]</code> is an <code>Array&lt;number&gt;</code> and <code>ITEMS.push(3)</code> outside <code>mut</code> is E0240. An initializer the checker cannot type leaves the <code>const</code> untyped. Both fixes are breaking under <code>glyph check --no-tsc</code>, the language server and the playground, since each starts catching a program the previous release accepted; a full <code>glyph build</code> was already red through <code>tsc</code> in both cases.",
+      "tr": "0.1.166 以降、注釈のない <code>const</code> は初期化子の型を持ちます。エミッタが書く TypeScript の <code>const</code> を <code>tsc</code> が読むのと同じ読み方です。<code>const MODE = \"read\"</code> はリテラル型を保ち、オブジェクトや配列の中のリテラルは広げられるので、<code>const ITEMS = [1, 2]</code> は <code>Array&lt;number&gt;</code> になり、<code>mut</code> の外での <code>ITEMS.push(3)</code> は E0240 です。チェッカーが型を付けられない初期化子では、その <code>const</code> は型なしのままです。どちらの修正も <code>glyph check --no-tsc</code>、言語サーバー、プレイグラウンドでは破壊的変更です。それぞれ前のリリースが受け入れていたプログラムを捕まえ始めるからです。完全な <code>glyph build</code> はどちらの場合もすでに <code>tsc</code> によって赤でした。"
     },
     {
       "id": "h-ec63b0ad",

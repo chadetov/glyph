@@ -44,7 +44,7 @@
     <meta name="theme-color" content="#0d1424" />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="/css/answer-kit.css" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"What stops an agent from silently breaking my code?","item":"https://glyphlang.io/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/verifiability/#article","headline":"What stops an agent from silently breaking my code?","description":"Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.","url":"https://glyphlang.io/answers/verifiability/","inLanguage":"en","dateModified":"2026-11-23","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/verifiability/#breadcrumb"}}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","@id":"https://glyphlang.io/answers/verifiability/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Glyph","item":"https://glyphlang.io/"},{"@type":"ListItem","position":2,"name":"Answers","item":"https://glyphlang.io/answers/"},{"@type":"ListItem","position":3,"name":"What stops an agent from silently breaking my code?","item":"https://glyphlang.io/answers/verifiability/"}]},{"@type":"TechArticle","@id":"https://glyphlang.io/answers/verifiability/#article","headline":"What stops an agent from silently breaking my code?","description":"Changes that compile and then break in TypeScript, like a missing case, an unhandled error or a renamed field, are compile errors in Glyph the agent must fix.","url":"https://glyphlang.io/answers/verifiability/","inLanguage":"en","dateModified":"2026-11-24","image":"https://glyphlang.io/og.png","isPartOf":{"@id":"https://glyphlang.io/#website"},"about":{"@id":"https://glyphlang.io/#software"},"author":{"@id":"https://glyphlang.io/#project"},"publisher":{"@id":"https://glyphlang.io/#project"},"breadcrumb":{"@id":"https://glyphlang.io/answers/verifiability/#breadcrumb"}}]}</script>
 
     <link rel="alternate" hreflang="en" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="alternate" hreflang="pt-BR" href="https://glyphlang.io/pt-br/answers/verifiability/" />
@@ -1131,11 +1131,22 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           The check reads the declaration, so it only fires where the answer is certain. A
           primitive alias such as <code>type Id = string</code> is read as the
           <code>string</code> it names, so it is decided the same way. A string-literal union
-          (D30), an <code>extern_ts</code> or <code>typeof</code> body, and an
-          <code>interface</code> still say nothing, because none of those is provably not a
-          <code>string</code> the way a tagged union or record is; <code>void</code> is excluded
-          too. It reaches an argument, a <code>return</code>, and a
+          (D30) is compared by its literals, and an <code>interface</code> value is refused
+          where a <code>string</code> is declared, because its value is an object. An
+          <code>extern_ts</code> or <code>typeof</code> body still says nothing, and
+          <code>void</code> is excluded too. It reaches an argument, a <code>return</code>, and a
           <code>let</code> annotation alike, since all three share one relation.
+        </p>
+        <p>
+          The other direction goes through the value's members, as in TypeScript:
+          <code>5</code> is refused where <code>interface HasName { name: string }</code> is
+          declared, and <code>"abc"</code> is accepted where
+          <code>interface HasLen { length: number }</code> is, because a string has a
+          <code>length</code>. Three pairings are not decided yet and are left to
+          <code>tsc</code>: an interface whose members are all optional and share none with the
+          value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against
+          an interface (G527), and <code>bigint</code>, which the checker still reads as a
+          <code>number</code> (G500).
         </p>
       </div></details>
 
@@ -1352,7 +1363,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           <a href="/pillars/verifiability/">verifiability pillar page</a>.
         </p>
       </div>
-      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.181 on every build. Last changed <time datetime="2026-11-23">23 Nov 2026</time>.</p>
+      <p class="page-stamp">Code examples on this page are checked against Glyph 0.1.181 on every build. Last changed <time datetime="2026-11-24">24 Nov 2026</time>.</p>
       <nav class="prevnext" aria-label="Previous and next">
         <div class="spacer"></div>
         <a href="/answers/diff-stability/" class="nx cta">

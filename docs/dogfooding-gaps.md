@@ -16255,17 +16255,24 @@ and is the owner's to confirm.
   *Reproduced against 0.1.178 (the published release) by record 196's probe
   `boolm.glyph`: `b.nope` exits 0 under `check --no-tsc`.*
 
-- **G511. The key an index write uses is not held to the map's key type.**
-  On `m: Record<Mode, number>` with `type Mode = "read" | "write"`, `mut
-  m["exec"] = 2` passes `check --no-tsc`; `tsc` refuses it (TS7053). Record
-  196 assumed E0204's key rule already covered a written key; it covers a
-  `Record` value against a `Record` type, not the index of a write. The
-  read `m["exec"]` is E0224 ("may not be there"), which is the wrong
-  sentence for a write. Which code and message the write takes is open.
-  Filed by the 0.1.179 builder.
+- **G511. An index expression's key is not compared with the key type.**
+  On reads and writes, for maps and arrays. With `type Mode = "read" |
+  "write"`, `mut m["exec"] = 2` on `m: Record<Mode, number>`, the read
+  `u["exec"]` on `u: Record<Mode, unknown>` and `mut v["a"] = "x"` on `v:
+  Array<string>` pass `check --no-tsc`; `tsc` refuses all three (TS7053,
+  TS2345 through the emitted index helper, TS7015). Record 196 assumed
+  E0204's key rule covered a written key; that rule compares the key
+  domains of two whole `Record` types and never reads a written key. E0224
+  lets the read through because `V` is `unknown`, and it means something
+  else (a read that may be absent). Decided by record 201: E0204 underlined
+  at the key, ``expected `Mode`, found `"exec"` `` with the note "`m`'s keys
+  are `Mode`", and for an array ``expected `number`, found `string` `` with
+  the note "an array is indexed by a number". No new code. Filed by the
+  0.1.179 builder, widened by record 201.
 
-  *Reproduced against 0.1.179 (the dev-0.1.179 build): `check --no-tsc`
-  exits 0, and full `check` reports TS7053.*
+  *Reproduced against 0.1.179 (the dev-0.1.179 build) with record 201's
+  `key.glyph`: `check --no-tsc` exits 0, and full `check` exits 1 with
+  TS7053, TS2345 and TS7015.*
 
 - **G512. [FIXED] A `let` over an unannotated `const` holds the `const`'s
   literal type.** With `const DIR = "out"`, `let d = DIR` held `"out"`,

@@ -1,7 +1,7 @@
 ---
 title: 编译器能告诉我改动会破坏什么吗？ · Glyph
 description: glyph_impact 接受你将要修改的声明和这次编辑，在你动文件之前，为每个位置给出一个结论和原因。
-source_hash: ca78870bae5132f9
+source_hash: 1fb08f4f1824ead4
 prev: /answers/binary/ | &larr; 上一篇 | 能处理二进制数据吗，还是一切都是字符串？
 next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写代码之前问编译器某个符号是什么吗？
 ---
@@ -122,6 +122,37 @@ next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写�
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        <code>@example</code> 中的调用，或带 <code>glyph @run</code> 标记的 <code>@doc</code> 代码块中的调用，同样是一个位置。构建会运行这些测试，所以重命名会像破坏其他调用者一样破坏它们。每个条目都带有 <code>context</code>：测试中的位置为 <code>"example"</code> 或 <code>"doc_run"</code>，程序中的位置为 null。下面重命名 <code>normalize</code> 时，除了 <code>twice</code> 中的两处调用，还会列出它自己的示例：
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename，第三个条目</span>
+<pre>{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">在真实应用上<a class="ak-anchor" href="#on-a-real-application" aria-label="链接到本节"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         <code>examples/apps/csvql</code> 是本仓库中一个由十一个文件组成的 CSV 查询引擎，它有一个标签联合 <code>Value</code>，目前有四个变体。询问 <code>glyph_impact</code> 添加第五个变体（<code>Blob</code>）会怎样，会在 4 个文件中找到 10 个 match 位置：8 个会编译失败，2 个包含会悄悄吸收新变体的兜底分支。
@@ -148,6 +179,7 @@ next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写�
                 <p>覆盖范围（一次搜索能读到和读不到什么）按每次搜索说明，而不是对整个答案只说一次，每个节点都标明它来自 Glyph 源码、<code>extern_ts</code> 逃生口，还是不透明的 <code>.d.ts</code>。</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl"><code>@example</code> 或 <code>@doc</code> <code>glyph @run</code> 代码块中的调用和名称会带着 <code>context</code> 列出，<code>glyph_references</code> 和 <code>glyph_dependencies</code> 也以同样方式列出。</span></span></li>
           </ul>
         </section>
 
@@ -169,6 +201,7 @@ next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写�
                 <p><code>UNDETERMINED</code> 和 <code>NOT_INDEXED</code> 是不同的判断：检查器没有类型的参数，或者与一个没有规则读取的字段配对的记录，是 <code>UNDETERMINED</code>（检查过但无法判定）；被当作值读取而不是被调用的函数是 <code>NOT_INDEXED</code>（在那里根本无法提出这个问题）。</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">编辑器的重命名还不会处理测试，因此 <code>@example</code> 中会留下旧名称 (G546)。测试中的字段访问或 <code>match</code> 不会被列出；这些搜索会在 <code>not_indexed</code> 中注明这种情况 (G547)。</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">最需要留意的是 <code>ABSORBS</code>：这个位置会继续编译通过，却已被证明是错的，而通过的构建永远不会让你看到这一点。</span></span></li>
           </ul>
         </section>

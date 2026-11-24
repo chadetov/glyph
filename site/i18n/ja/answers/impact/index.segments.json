@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "ja",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "変更の指定は必須です。判定は編集についての事実だからです。編集を指定しなければ、すべての箇所が結果ではなく単なる参照として返ってきてしまいます。答えには、エンティティ、変更、そして <code>impact</code> のリストが含まれます。箇所ごとに 1 エントリで、それぞれに所属する宣言、<code>relation</code>、<code>verdict</code>、<code>because</code>、そして該当するものがちょうど 1 つあればコンパイラが出す診断コードが入ります。"
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "<code>@example</code> の中の呼び出しや、<code>glyph @run</code> が付いた <code>@doc</code> のコードブロック内の呼び出しもサイトです。ビルドはそれらのテストを実行するので、名前の変更は他の呼び出し元と同じようにそれらを壊します。各エントリには <code>context</code> があり、テスト内のサイトなら <code>\"example\"</code> か <code>\"doc_run\"</code>、プログラム内なら null です。下の <code>normalize</code> の名前変更では、<code>twice</code> の 2 つの呼び出しに加えて自分自身の例も列挙されます:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename、3 番目のエントリ"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "カバー範囲（検索が読めたものと読めなかったもの）は、答え全体で 1 回ではなく検索ごとに示され、どのノードにも、それが Glyph のソース、<code>extern_ts</code> の抜け道、中身の見えない <code>.d.ts</code> のどれから来たかが付きます。"
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "<code>@example</code> や <code>@doc</code> の <code>glyph @run</code> ブロック内の呼び出しと名前は <code>context</code> 付きで列挙され、<code>glyph_references</code> と <code>glyph_dependencies</code> も同じように列挙します。"
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> と <code>NOT_INDEXED</code> は異なる主張です。型検査器が型を持たない引数や、どのルールも読まないフィールドとのレコードの対応は <code>UNDETERMINED</code>（調べたが決められなかった）で、呼び出されずに値として読まれる関数は <code>NOT_INDEXED</code>（そこではそもそも質問ができなかった）です。"
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "エディタの名前変更はまだテストに届かないため、<code>@example</code> に古い名前が残ります (G546)。テスト内のフィールドアクセスや <code>match</code> は列挙されず、それらの検索はこのケースを <code>not_indexed</code> に挙げます (G547)。"
     },
     {
       "id": "h-32f66691",

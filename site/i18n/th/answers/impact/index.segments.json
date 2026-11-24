@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "th",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "การเปลี่ยนแปลงเป็นสิ่งบังคับ เพราะคำตัดสินคือข้อเท็จจริงเกี่ยวกับการแก้ ถ้าไม่ระบุการแก้ ทุกจุดจะกลับมาเป็นแค่ reference แทนที่จะเป็นผลที่ตามมา คำตอบระบุ entity การเปลี่ยนแปลง และรายการ <code>impact</code>: หนึ่งรายการต่อจุด แต่ละรายการมี declaration ที่มันอยู่ <code>relation</code>, <code>verdict</code>, <code>because</code> และรหัส diagnostic ที่คอมไพเลอร์จะแจ้งเมื่อมีอยู่ตัวเดียว"
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "การเรียกภายใน <code>@example</code> หรือภายในบล็อก <code>@doc</code> ที่ติดแท็ก <code>glyph @run</code> ก็นับเป็นตำแหน่งเช่นกัน บิลด์รันเทสต์เหล่านี้ การเปลี่ยนชื่อจึงทำให้มันพังเหมือนผู้เรียกอื่น ทุกรายการมี <code>context</code>: <code>\"example\"</code> หรือ <code>\"doc_run\"</code> สำหรับตำแหน่งในเทสต์ และ null สำหรับตำแหน่งในโปรแกรม การเปลี่ยนชื่อ <code>normalize</code> ด้านล่างจะแสดงตัวอย่างของมันเองพร้อมกับการเรียกสองครั้งใน <code>twice</code>:"
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename รายการที่สาม"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "ความครอบคลุม (การค้นหาอ่านอะไรได้และอะไรไม่ได้) ระบุทีละการค้นหา แทนที่จะระบุครั้งเดียวทั้งคำตอบ และทุก node บอกว่ามาจากซอร์ส Glyph, ทางออก <code>extern_ts</code> หรือ <code>.d.ts</code> ที่มองไม่เห็นข้างใน"
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "การเรียกและชื่อภายใน <code>@example</code> หรือบล็อก <code>@doc</code> <code>glyph @run</code> จะแสดงพร้อม <code>context</code> และ <code>glyph_references</code> กับ <code>glyph_dependencies</code> ก็แสดงแบบเดียวกัน"
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> และ <code>NOT_INDEXED</code> เป็นข้อกล่าวอ้างคนละแบบ: argument ที่ตัวตรวจไม่มี type ให้ หรือ record ที่จับคู่กับ field ที่ไม่มีกฎไหนอ่าน คือ <code>UNDETERMINED</code> (ดูแล้วแต่ตัดสินไม่ได้) ฟังก์ชันที่ถูกอ่านเป็นค่าแทนที่จะถูกเรียกคือ <code>NOT_INDEXED</code> (คำถามถามไม่ได้ตรงนั้นตั้งแต่แรก)"
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "การเปลี่ยนชื่อในเอดิเตอร์ยังไปไม่ถึงเทสต์ จึงทิ้ง <code>@example</code> ไว้ด้วยชื่อเดิม (G546) การเข้าถึงฟิลด์หรือ <code>match</code> ภายในเทสต์จะไม่ถูกแสดง การค้นหาเหล่านั้นระบุกรณีนี้ไว้ใน <code>not_indexed</code> (G547)"
     },
     {
       "id": "h-32f66691",

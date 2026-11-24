@@ -1,7 +1,7 @@
 ---
 title: ¿Puede el compilador decirme qué va a romper un cambio? · Glyph
 description: glyph_impact recibe la declaración que vas a cambiar y la edición, y responde con un veredicto y un motivo para cada sitio, antes de que toques el archivo.
-source_hash: ca78870bae5132f9
+source_hash: 1fb08f4f1824ead4
 prev: /answers/binary/ | &larr; Anterior | ¿Puedo manejar datos binarios, o todo es un string?
 next: /answers/ask-the-compiler/ | Siguiente &rarr; | ¿Puede mi agente preguntarle al compilador qué es un símbolo antes de escribir código?
 ---
@@ -122,6 +122,37 @@ next: /answers/ask-the-compiler/ | Siguiente &rarr; | ¿Puede mi agente pregunta
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        Una llamada dentro de un <code>@example</code>, o dentro de un bloque de <code>@doc</code> marcado con <code>glyph @run</code>, también es un sitio. El build ejecuta esas pruebas, así que un renombrado las rompe como a cualquier otro llamador. Cada entrada lleva <code>context</code>: <code>"example"</code> o <code>"doc_run"</code> para un sitio en una prueba, null para uno en el programa. Renombrar <code>normalize</code> abajo lista su propio ejemplo además de las dos llamadas en <code>twice</code>:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename, la tercera entrada</span>
+<pre>{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">En una aplicación real<a class="ak-anchor" href="#on-a-real-application" aria-label="Enlace a esta sección"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         <code>examples/apps/csvql</code>, un motor de consultas CSV de once archivos de este repositorio, tiene una unión etiquetada, <code>Value</code>, con cuatro variantes hoy. Preguntarle a <code>glyph_impact</code> qué pasa al añadir una quinta (<code>Blob</code>) encuentra 10 sitios con match en 4 archivos: 8 dejarán de compilar, y 2 contienen un brazo comodín que absorberá la nueva variante sin avisar.
@@ -148,6 +179,7 @@ next: /answers/ask-the-compiler/ | Siguiente &rarr; | ¿Puede mi agente pregunta
                 <p>La cobertura (lo que una búsqueda pudo y no pudo leer) se indica por búsqueda y no una sola vez para toda la respuesta, y cada nodo indica si viene de código Glyph, de una vía de escape <code>extern_ts</code> o de un <code>.d.ts</code> opaco.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Las llamadas y los nombres dentro de un <code>@example</code> o de un bloque <code>@doc</code> <code>glyph @run</code> se listan con <code>context</code>, y <code>glyph_references</code> y <code>glyph_dependencies</code> los listan igual.</span></span></li>
           </ul>
         </section>
 
@@ -169,6 +201,7 @@ next: /answers/ask-the-compiler/ | Siguiente &rarr; | ¿Puede mi agente pregunta
                 <p><code>UNDETERMINED</code> y <code>NOT_INDEXED</code> son afirmaciones distintas: un argumento para el que el checker no tiene tipo, o un emparejamiento de record con un campo que ninguna regla lee, es <code>UNDETERMINED</code> (miró y no pudo decidir); una función leída como valor en lugar de llamada es <code>NOT_INDEXED</code> (la pregunta nunca se pudo hacer ahí).</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">El renombrado del editor todavía no llega a las pruebas, así que deja un <code>@example</code> con el nombre antiguo (G546). Un acceso a campo o un <code>match</code> dentro de una prueba no se lista; esas búsquedas nombran el caso en <code>not_indexed</code> (G547).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>ABSORBS</code> es el que hay que vigilar: el sitio sigue compilando y aun así se demuestra que está mal, algo que un build en verde nunca te va a mostrar.</span></span></li>
           </ul>
         </section>

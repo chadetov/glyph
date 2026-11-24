@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/impact/index.html",
   "locale": "zh-cn",
-  "source_hash": "ca78870bae5132f9",
+  "source_hash": "1fb08f4f1824ead4",
   "segments": [
     {
       "id": "title",
@@ -221,6 +221,18 @@
       "tr": "修改是必填的，因为结论是关于某次编辑的事实；如果不指定编辑，每个位置返回的都只能是一个单纯的引用，而不是一个后果。答案会给出实体、修改，以及一个 <code>impact</code> 列表：每个位置一条，每条包含它所在的声明、一个 <code>relation</code>、一个 <code>verdict</code>、一个 <code>because</code>，以及恰好只有一个诊断码时编译器会报出的那个诊断码。"
     },
     {
+      "id": "h-ef9faf49",
+      "kind": "html",
+      "en": "A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries <code>context</code>: <code>\"example\"</code> or <code>\"doc_run\"</code> for a site in a test, null for one in the program. Renaming <code>normalize</code> below lists its own example as well as the two calls in <code>twice</code>:",
+      "tr": "<code>@example</code> 中的调用，或带 <code>glyph @run</code> 标记的 <code>@doc</code> 代码块中的调用，同样是一个位置。构建会运行这些测试，所以重命名会像破坏其他调用者一样破坏它们。每个条目都带有 <code>context</code>：测试中的位置为 <code>\"example\"</code> 或 <code>\"doc_run\"</code>，程序中的位置为 null。下面重命名 <code>normalize</code> 时，除了 <code>twice</code> 中的两处调用，还会列出它自己的示例："
+    },
+    {
+      "id": "h-44ba008e",
+      "kind": "html",
+      "en": "glyph query impact --entity main::normalize --change rename, the third entry",
+      "tr": "glyph query impact --entity main::normalize --change rename，第三个条目"
+    },
+    {
       "id": "h-ed0c982f",
       "kind": "html",
       "en": "On a real application",
@@ -299,6 +311,12 @@
       "tr": "覆盖范围（一次搜索能读到和读不到什么）按每次搜索说明，而不是对整个答案只说一次，每个节点都标明它来自 Glyph 源码、<code>extern_ts</code> 逃生口，还是不透明的 <code>.d.ts</code>。"
     },
     {
+      "id": "h-e3f9447c",
+      "kind": "html",
+      "en": "Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.",
+      "tr": "<code>@example</code> 或 <code>@doc</code> <code>glyph @run</code> 代码块中的调用和名称会带着 <code>context</code> 列出，<code>glyph_references</code> 和 <code>glyph_dependencies</code> 也以同样方式列出。"
+    },
+    {
       "id": "h-c647197d",
       "kind": "html",
       "en": "Where it stops",
@@ -339,6 +357,12 @@
       "kind": "html",
       "en": "<code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).",
       "tr": "<code>UNDETERMINED</code> 和 <code>NOT_INDEXED</code> 是不同的判断：检查器没有类型的参数，或者与一个没有规则读取的字段配对的记录，是 <code>UNDETERMINED</code>（检查过但无法判定）；被当作值读取而不是被调用的函数是 <code>NOT_INDEXED</code>（在那里根本无法提出这个问题）。"
+    },
+    {
+      "id": "h-3074b99c",
+      "kind": "html",
+      "en": "The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).",
+      "tr": "编辑器的重命名还不会处理测试，因此 <code>@example</code> 中会留下旧名称 (G546)。测试中的字段访问或 <code>match</code> 不会被列出；这些搜索会在 <code>not_indexed</code> 中注明这种情况 (G547)。"
     },
     {
       "id": "h-32f66691",

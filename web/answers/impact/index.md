@@ -100,6 +100,37 @@ The request names an entity by its `module::name` identity and a change from a c
 
 The change is required, because a verdict is a fact about an edit; with no edit named, every site would come back as a bare reference instead of a consequence. The answer names the entity, the change, and an `impact` list: one entry per site, each with the declaration it sits in, a `relation`, a `verdict`, a `because`, and the diagnostic code the compiler raises when there is exactly one.
 
+A call inside an `@example`, or inside a `@doc` fence tagged `glyph @run`, is a site too. The build runs those tests, so a rename breaks them like any other caller. Each entry carries `context`: `"example"` or `"doc_run"` for a site in a test, null for one in the program. Renaming `normalize` below lists its own example as well as the two calls in `twice`:
+
+main.glyph
+
+```
+module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}
+```
+
+glyph query impact --entity main::normalize --change rename, the third entry
+
+```
+{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}
+```
+
 ## On a real application
 
 `examples/apps/csvql`, an eleven-file CSV query engine in this repository, has one tagged union, `Value`, with four variants today. Asking `glyph_impact` what adding a fifth (`Blob`) does finds 10 match sites across 4 files: 8 will fail compilation, and 2 contain a catch-all arm that will silently absorb the new variant.
@@ -125,6 +156,8 @@ The change is required, because a verdict is a fact about an edit; with no edit 
 
   Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an `extern_ts` escape, or an opaque `.d.ts`.
 
+- Calls and names inside an `@example` or a `@doc` `glyph @run` fence are listed with `context`, and `glyph_references` and `glyph_dependencies` list them the same way.
+
 ### Where it stops
 
 - Depth is exact at one hop and empty past it
@@ -145,6 +178,7 @@ The change is required, because a verdict is a fact about an edit; with no edit 
 
   `UNDETERMINED` and `NOT_INDEXED` are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is `UNDETERMINED` (it looked and couldn't decide); a function read as a value instead of called is `NOT_INDEXED` (the question was never askable there).
 
+- The editor's rename does not reach tests yet, so it leaves an `@example` spelling the old name (G546). A field access or a `match` inside a test is not listed; those searches name the case under `not_indexed` (G547).
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
 Code examples on this page are checked against Glyph 0.1.185 on every build. Last changed 24 Nov 2026.

@@ -156,6 +156,42 @@ head: |
         </p>
       </div></details>
 
+      <p class="ak-lede">
+        A call inside an <code>@example</code>, or inside a <code>@doc</code> fence tagged
+        <code>glyph @run</code>, is a site too. The build runs those tests, so a rename breaks
+        them like any other caller. Each entry carries <code>context</code>:
+        <code>"example"</code> or <code>"doc_run"</code> for a site in a test, null for one in
+        the program. Renaming <code>normalize</code> below lists its own example as well as the
+        two calls in <code>twice</code>:
+      </p>
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">main.glyph</span>
+<pre>module main
+
+@example normalize("  Hi ") == "hi"
+pub fn normalize(s: string) -> string {
+  return s.trim().toLowerCase()
+}
+
+@example twice("a") == "aa"
+pub fn twice(s: string) -> string {
+  return normalize(s) + normalize(s)
+}</pre>
+        </div>
+        <div class="code term">
+          <span class="cap">glyph query impact --entity main::normalize --change rename, the third entry</span>
+<pre>{
+  "entity": "main::normalize",
+  "context": "example",
+  "relation": "CALLS",
+  "line": 2,
+  "verdict": "WILL_FAIL",
+  "diagnostic": "E0103"
+}</pre>
+        </div>
+      </div>
+
       <h2 class="ak-h" id="on-a-real-application">On a real application<a class="ak-anchor" href="#on-a-real-application" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <p class="ak-lede">
         <code>examples/apps/csvql</code>, an eleven-file CSV query engine in this repository,
@@ -191,6 +227,7 @@ head: |
                 <p>Coverage (what a search could and couldn't read) is stated per search rather than once for the whole answer, and every node carries whether it came from Glyph source, an <code>extern_ts</code> escape, or an opaque <code>.d.ts</code>.</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Calls and names inside an <code>@example</code> or a <code>@doc</code> <code>glyph @run</code> fence are listed with <code>context</code>, and <code>glyph_references</code> and <code>glyph_dependencies</code> list them the same way.</span></span></li>
           </ul>
         </section>
 
@@ -212,6 +249,7 @@ head: |
                 <p><code>UNDETERMINED</code> and <code>NOT_INDEXED</code> are different claims: an argument the checker holds no type for, or a record pairing with a field no rule reads, is <code>UNDETERMINED</code> (it looked and couldn't decide); a function read as a value instead of called is <code>NOT_INDEXED</code> (the question was never askable there).</p>
               </div></details>
             </li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl">The editor's rename does not reach tests yet, so it leaves an <code>@example</code> spelling the old name (G546). A field access or a <code>match</code> inside a test is not listed; those searches name the case under <code>not_indexed</code> (G547).</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5" stroke-dasharray="3.2 2.3"/></svg><span><span class="lbl"><code>ABSORBS</code> is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.</span></span></li>
           </ul>
         </section>

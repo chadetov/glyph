@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "zh-cn",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "循环绑定不带元素类型，所以对字符串字面量联合类型的 <code>match</code> 退化成了对 <code>string</code> 的 match，编译器还建议加一个兜底分支。"
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "按下标读取的值具有元素的类型"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "<code>xs[0]</code> 后的拼写错误：现在是 E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "<code>Array&lt;E&gt;</code> 上的 <code>xs[i]</code> 是一个 <code>E</code>，所以编辑器、<code>glyph check --no-tsc</code> 和智能体工具都会检查你怎么用它：读取字段、调用方法、<code>return</code>、作为参数、带标注的 <code>let</code>。"
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "历史 <span class=\"hint\">以前检查了什么</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "在 0.1.183 及以前，按下标读取的元素在 Glyph 这边没有类型。<code>-&gt; number</code> 下的 <code>return xs[0]</code>、<code>rows[0]</code> 上拼错的字段、传给 <code>number</code> 参数的 <code>xs[0]</code> 都能通过，只有完整构建中的 <code>tsc</code> 步骤才会发现。这个类型就是 <code>tsc</code> 给生成代码的类型，生成的配置没有打开 <code>noUncheckedIndexedAccess</code>：是 <code>E</code>，不是 <code>E | undefined</code>。Glyph 的下标越界时抛出 <code>RangeError</code>，而不是返回 <code>undefined</code>；想要 <code>Option</code> 时用 <code>array.get</code>。对 <code>Record</code> 按键读取仍然是 <code>E0224</code>，除非它的值类型是 <code>unknown</code>；对 <code>string</code> 或 npm 值的下标不做判断。"
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "这项检查读取声明，所以只在答案确定的地方触发。像 <code>type Id = string</code> 这样的原始类型别名会被读成它所指的 <code>string</code>，因此判定方式相同。字符串字面量联合 (D30) 按其字面量比较，而 <code>interface</code> 的值在声明了 <code>string</code> 的地方会被拒绝，因为它的值是一个对象。<code>extern_ts</code> 或 <code>typeof</code> 主体仍然不作判断，<code>void</code> 也被排除在外。它对参数、<code>return</code> 和 <code>let</code> 注解一视同仁，因为三者共用同一个关系。"
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>\"abc\"</code> 会被接受，因为字符串有 <code>length</code>。有三种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，<code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)，以及检查器仍按 <code>number</code> 读取的 <code>bigint</code> (G500)。"
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "反方向则和 TypeScript 一样，经过值的成员来判断：在声明了 <code>interface HasName { name: string }</code> 的地方，<code>5</code> 会被拒绝；在声明了 <code>interface HasLen { length: number }</code> 的地方，<code>\"abc\"</code> 会被接受，因为字符串有 <code>length</code>。<code>bigint</code> 按它自己的成员来读，所以在那里会被拒绝：它没有 <code>length</code>。有两种配对还没有判定，交给 <code>tsc</code>：成员全部可选且与该值没有任何共同成员的接口 (G526)，以及 <code>Option</code>、<code>Result</code> 和 <code>Record</code> 对接口 (G527)。"
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "当前状态"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "现已提供 <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "现已提供 <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "保留元素类型的 <code>for</code> 绑定"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "按下标读取 <code>xs[i]</code> 具有元素的类型，因此它的用法会被检查"
     },
     {
       "id": "h-d7829106",

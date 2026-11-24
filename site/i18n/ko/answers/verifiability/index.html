@@ -1,7 +1,7 @@
 ---
 title: 에이전트가 내 코드를 조용히 깨뜨리는 것을 무엇이 막아 주나요? · Glyph
 description: TypeScript에서는 컴파일된 뒤 깨지는 변경, 예를 들어 빠진 case, 처리하지 않은 오류, 이름이 바뀐 필드가 Glyph에서는 에이전트가 고쳐야 하는 컴파일 오류가 됩니다.
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | 다음 &rarr; | 에이전트의 편집이 깔끔하게 유지되나요, 아니면 파일 전체를 다시 포맷하나요?
 ---
       <p class="q-eyebrow">01 &middot; 핵심 약속</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">인덱스로 읽은 값은 요소의 타입을 가집니다<a class="ak-anchor" href="#index-read" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap"><code>xs[0]</code>에서 낸 오타: 이제 E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede"><code>Array&lt;E&gt;</code>에 대한 <code>xs[i]</code>는 <code>E</code>이므로, 에디터와 <code>glyph check --no-tsc</code>, 에이전트 도구가 그 값으로 하는 일을 검사합니다. 필드 읽기, 메서드 호출, <code>return</code>, 인자, 타입을 표기한 <code>let</code>입니다.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>이력 <span class="hint">이전에는 무엇을 검사했는지</span></summary><div class="body">
+        <p>
+          0.1.183까지는 인덱스로 읽은 요소가 Glyph 쪽에서 타입이 없었습니다. <code>-&gt; number</code> 아래의 <code>return xs[0]</code>, <code>rows[0]</code>의 철자가 틀린 필드, <code>number</code> 매개변수에 넘긴 <code>xs[0]</code>가 모두 통과했고, 전체 빌드의 <code>tsc</code> 단계에서만 잡혔습니다. 타입은 <code>tsc</code>가 생성된 코드에 주는 타입과 같습니다. 생성된 설정은 <code>noUncheckedIndexedAccess</code>를 끈 상태이므로 <code>E | undefined</code>가 아니라 <code>E</code>입니다. Glyph의 인덱스는 끝을 넘으면 <code>undefined</code>를 돌려주는 대신 <code>RangeError</code>를 던집니다. <code>Option</code>이 필요하면 <code>array.get</code>을 쓰세요. <code>Record</code>의 키 읽기는 값 타입이 <code>unknown</code>이 아니면 여전히 <code>E0224</code>이고, <code>string</code>이나 npm 값에 대한 인덱스는 판단하지 않습니다.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">import한 제네릭 유니언도 검사됩니다<a class="ak-anchor" href="#imported-generic" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">import한 제네릭 유니언에 대한 match에서 빠진 variant</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           이 검사는 선언을 읽으므로 답이 확실한 곳에서만 발동합니다. <code>type Id = string</code> 같은 원시 타입 별칭은 그것이 가리키는 <code>string</code>으로 읽히므로 똑같이 판정됩니다. 문자열 리터럴 유니언(D30)은 리터럴로 비교되고, <code>interface</code> 값은 그 값이 객체이므로 <code>string</code>이 선언된 곳에서 거부됩니다. <code>extern_ts</code>나 <code>typeof</code> 본문은 여전히 아무 말도 하지 않고, <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 주석에 똑같이 적용되는데, 셋 모두 하나의 관계를 공유하기 때문입니다.
         </p>
         <p>
-          반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>"abc"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 세 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527), 그리고 검사기가 아직 <code>number</code>로 읽는 <code>bigint</code>(G500)입니다.
+          반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>"abc"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. <code>bigint</code>는 자기 멤버를 통해 읽히므로 그곳에서 거부됩니다. <code>length</code>가 없기 때문입니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 두 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 그리고 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527)입니다.
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">현재 상태<a class="ak-anchor" href="#where-it-stands" aria-label="이 섹션으로 연결되는 링크"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> 지금 제공되는 것 <span class="count">21</span></h3>
 
           <p class="ak-st-group">매칭</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">payload 위치의 variant가 payload를 바인딩하지 않고 payload 자신의 태그로 분기</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">같은 태그에 답하는 두 arm을 하나가 조용히 이기게 두지 않고 <code>E0305</code>로 거부</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">요소 타입을 유지하는 <code>for</code> 바인딩</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">요소의 타입을 가지는 인덱스 읽기 <code>xs[i]</code>, 그래서 그 사용이 검사됩니다</span></span></li>
           </ul>
 
           <p class="ak-st-group">오류와 테스트</p>

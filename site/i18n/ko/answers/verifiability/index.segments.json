@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "ko",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "반복문 바인딩에 요소 타입이 없었으므로, 문자열 리터럴 유니언에 대한 <code>match</code>가 <code>string</code>에 대한 match로 격하되었고 컴파일러는 catch-all을 추가하라고 조언했습니다."
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "인덱스로 읽은 값은 요소의 타입을 가집니다"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "<code>xs[0]</code>에서 낸 오타: 이제 E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "<code>Array&lt;E&gt;</code>에 대한 <code>xs[i]</code>는 <code>E</code>이므로, 에디터와 <code>glyph check --no-tsc</code>, 에이전트 도구가 그 값으로 하는 일을 검사합니다. 필드 읽기, 메서드 호출, <code>return</code>, 인자, 타입을 표기한 <code>let</code>입니다."
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "이력 <span class=\"hint\">이전에는 무엇을 검사했는지</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "0.1.183까지는 인덱스로 읽은 요소가 Glyph 쪽에서 타입이 없었습니다. <code>-&gt; number</code> 아래의 <code>return xs[0]</code>, <code>rows[0]</code>의 철자가 틀린 필드, <code>number</code> 매개변수에 넘긴 <code>xs[0]</code>가 모두 통과했고, 전체 빌드의 <code>tsc</code> 단계에서만 잡혔습니다. 타입은 <code>tsc</code>가 생성된 코드에 주는 타입과 같습니다. 생성된 설정은 <code>noUncheckedIndexedAccess</code>를 끈 상태이므로 <code>E | undefined</code>가 아니라 <code>E</code>입니다. Glyph의 인덱스는 끝을 넘으면 <code>undefined</code>를 돌려주는 대신 <code>RangeError</code>를 던집니다. <code>Option</code>이 필요하면 <code>array.get</code>을 쓰세요. <code>Record</code>의 키 읽기는 값 타입이 <code>unknown</code>이 아니면 여전히 <code>E0224</code>이고, <code>string</code>이나 npm 값에 대한 인덱스는 판단하지 않습니다."
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "이 검사는 선언을 읽으므로 답이 확실한 곳에서만 발동합니다. <code>type Id = string</code> 같은 원시 타입 별칭은 그것이 가리키는 <code>string</code>으로 읽히므로 똑같이 판정됩니다. 문자열 리터럴 유니언(D30)은 리터럴로 비교되고, <code>interface</code> 값은 그 값이 객체이므로 <code>string</code>이 선언된 곳에서 거부됩니다. <code>extern_ts</code>나 <code>typeof</code> 본문은 여전히 아무 말도 하지 않고, <code>void</code>도 제외됩니다. 인자, <code>return</code>, <code>let</code> 주석에 똑같이 적용되는데, 셋 모두 하나의 관계를 공유하기 때문입니다."
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>\"abc\"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 세 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527), 그리고 검사기가 아직 <code>number</code>로 읽는 <code>bigint</code>(G500)입니다."
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "반대 방향은 TypeScript처럼 값의 멤버를 거칩니다. <code>interface HasName { name: string }</code>이 선언된 곳에서 <code>5</code>는 거부되고, <code>interface HasLen { length: number }</code>이 선언된 곳에서 <code>\"abc\"</code>는 문자열에 <code>length</code>가 있으므로 받아들여집니다. <code>bigint</code>는 자기 멤버를 통해 읽히므로 그곳에서 거부됩니다. <code>length</code>가 없기 때문입니다. 아직 판정하지 않고 <code>tsc</code>에 맡기는 짝이 두 가지 있습니다. 멤버가 모두 선택적이고 값과 하나도 공유하지 않는 인터페이스(G526), 그리고 인터페이스에 대한 <code>Option</code>, <code>Result</code>, <code>Record</code>(G527)입니다."
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "현재 상태"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "지금 제공되는 것 <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "지금 제공되는 것 <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "요소 타입을 유지하는 <code>for</code> 바인딩"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "요소의 타입을 가지는 인덱스 읽기 <code>xs[i]</code>, 그래서 그 사용이 검사됩니다"
     },
     {
       "id": "h-d7829106",

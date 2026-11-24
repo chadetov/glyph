@@ -1,7 +1,7 @@
 ---
 title: อะไรกันเอเจนต์ไม่ให้ทำโค้ดของฉันพังแบบเงียบๆ? · Glyph
 description: การเปลี่ยนแปลงที่คอมไพล์ผ่านแล้วพังใน TypeScript เช่น case ที่ขาด error ที่ไม่ได้จัดการ หรือ field ที่เปลี่ยนชื่อ เป็น compile error ใน Glyph ที่เอเจนต์ต้องแก้
-source_hash: d0316fc0c6629e95
+source_hash: 1e2bb584f23aca40
 next: /answers/diff-stability/ | ถัดไป &rarr; | การแก้ของเอเจนต์จะสะอาด หรือจัดรูปแบบไฟล์ใหม่ทั้งไฟล์?
 ---
       <p class="q-eyebrow">01 &middot; คำสัญญาหลัก</p>
@@ -394,6 +394,23 @@ fn same() -&gt; bool {
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">การอ่านด้วย index มี type ของ element<a class="ak-anchor" href="#index-read" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">พิมพ์ผิดหลัง <code>xs[0]</code>: ตอนนี้เป็น E0210</span>
+<pre>fn first_len(xs: Array&lt;string&gt;) -&gt; number {
+  let s = xs[0]
+  return s.lenght
+}
+
+<span class="add">[E0210]</span> type `string` has no field `lenght`; did you mean `length`?</pre>
+      </div>
+      <p class="ak-lede"><code>xs[i]</code> บน <code>Array&lt;E&gt;</code> คือ <code>E</code> ดังนั้น editor, <code>glyph check --no-tsc</code> และเครื่องมือของ agent จะตรวจสิ่งที่คุณทำกับมัน: การอ่าน field, การเรียก method, <code>return</code>, argument และ <code>let</code> ที่มี annotation</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>ประวัติ <span class="hint">ก่อนหน้านี้ตรวจอะไรบ้าง</span></summary><div class="body">
+        <p>
+          จนถึง 0.1.183 element ที่อ่านด้วย index ไม่มี type ในฝั่งของ Glyph <code>return xs[0]</code> ภายใต้ <code>-&gt; number</code>, field ที่สะกดผิดบน <code>rows[0]</code> และ <code>xs[0]</code> ที่ส่งให้ parameter แบบ <code>number</code> ผ่านไปได้ทั้งหมด และมีแค่ขั้น <code>tsc</code> ของ build เต็มที่จับได้ type นี้คือ type ที่ <code>tsc</code> ให้กับโค้ดที่สร้างขึ้น ซึ่งปิด <code>noUncheckedIndexedAccess</code> ไว้: เป็น <code>E</code> ไม่ใช่ <code>E | undefined</code> index ของ Glyph จะโยน <code>RangeError</code> เมื่อเกินท้าย แทนที่จะคืน <code>undefined</code> ถ้าต้องการ <code>Option</code> ให้ใช้ <code>array.get</code> การอ่าน key บน <code>Record</code> ยังเป็น <code>E0224</code> เว้นแต่ type ของค่าเป็น <code>unknown</code> และ index บน <code>string</code> หรือค่าจาก npm จะไม่ถูกตัดสิน
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">union แบบ generic ที่ import มาถูกตรวจ<a class="ak-anchor" href="#imported-generic" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">variant ที่ขาดไปใน match บน union แบบ generic ที่ import มา</span>
@@ -457,7 +474,7 @@ fn charge(r: PaymentResult) -&gt; number {
           การตรวจนี้อ่านการประกาศ จึงทำงานเฉพาะที่ที่คำตอบแน่นอน ชื่อแฝงของชนิดพื้นฐานอย่าง <code>type Id = string</code> ถูกอ่านเป็น <code>string</code> ที่มันอ้างถึง จึงตัดสินแบบเดียวกัน ยูเนียนของสตริงลิเทอรัล (D30) ถูกเทียบด้วยลิเทอรัลของมัน และค่าของ <code>interface</code> ถูกปฏิเสธในที่ที่ประกาศ <code>string</code> เพราะค่าของมันเป็นออบเจกต์ ส่วนเนื้อหาแบบ <code>extern_ts</code> หรือ <code>typeof</code> ยังไม่บอกอะไร และ <code>void</code> ก็ถูกยกเว้นเช่นกัน การตรวจนี้ครอบคลุมอาร์กิวเมนต์ <code>return</code> และคำกำกับของ <code>let</code> เหมือนกัน เพราะทั้งสามใช้ความสัมพันธ์เดียวกัน
         </p>
         <p>
-          อีกทิศทางหนึ่งตัดสินผ่านสมาชิกของค่า เหมือนใน TypeScript: <code>5</code> ถูกปฏิเสธในที่ที่ประกาศ <code>interface HasName { name: string }</code> และ <code>"abc"</code> ถูกยอมรับในที่ที่ประกาศ <code>interface HasLen { length: number }</code> เพราะสตริงมี <code>length</code> มีสามคู่ที่ยังไม่ตัดสินและปล่อยให้ <code>tsc</code> ทำ: อินเทอร์เฟซที่สมาชิกทุกตัวเป็นแบบไม่บังคับและไม่มีตัวใดตรงกับค่าเลย (G526), <code>Option</code>, <code>Result</code> และ <code>Record</code> เทียบกับอินเทอร์เฟซ (G527) และ <code>bigint</code> ซึ่งตัวตรวจยังอ่านเป็น <code>number</code> (G500)
+          อีกทิศทางหนึ่งตัดสินผ่านสมาชิกของค่า เหมือนใน TypeScript: <code>5</code> ถูกปฏิเสธในที่ที่ประกาศ <code>interface HasName { name: string }</code> และ <code>"abc"</code> ถูกยอมรับในที่ที่ประกาศ <code>interface HasLen { length: number }</code> เพราะสตริงมี <code>length</code> ส่วน <code>bigint</code> ถูกอ่านผ่านสมาชิกของมันเอง จึงถูกปฏิเสธที่นั่น เพราะไม่มี <code>length</code> มีสองคู่ที่ยังไม่ตัดสินและปล่อยให้ <code>tsc</code> ทำ: อินเทอร์เฟซที่สมาชิกทุกตัวเป็นแบบไม่บังคับและไม่มีตัวใดตรงกับค่าเลย (G526) และ <code>Option</code>, <code>Result</code> และ <code>Record</code> เทียบกับอินเทอร์เฟซ (G527)
         </p>
       </div></details>
 
@@ -512,7 +529,7 @@ pub fn guest() -&gt; Profile {
       <h2 class="ak-h" id="where-it-stands">สถานะตอนนี้<a class="ak-anchor" href="#where-it-stands" aria-label="ลิงก์มายังหัวข้อนี้"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> ใช้ได้วันนี้ <span class="count">21</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -522,6 +539,7 @@ pub fn guest() -&gt; Profile {
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">variant ในตำแหน่ง payload dispatch ตาม tag ของ payload เอง แทนที่จะ bind มัน</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">arm สองตัวที่จะตอบ tag เดียวกันถูกปฏิเสธเป็น <code>E0305</code> แทนที่ตัวหนึ่งจะชนะไปเงียบๆ</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">binding ของ <code>for</code> ที่รักษา type ของ element ไว้</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">การอ่านด้วย index <code>xs[i]</code> มี type ของ element จึงตรวจการใช้งานของมันได้</span></span></li>
           </ul>
 
           <p class="ak-st-group">error และเทสต์</p>

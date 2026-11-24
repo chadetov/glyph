@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/verifiability/index.html",
   "locale": "th",
-  "source_hash": "d0316fc0c6629e95",
+  "source_hash": "1e2bb584f23aca40",
   "segments": [
     {
       "id": "title",
@@ -713,6 +713,36 @@
       "tr": "binding ของ loop ไม่มี type ของ element <code>match</code> บน union ของ string literal จึงลดลงเป็น match บน <code>string</code> และคอมไพเลอร์แนะนำให้เพิ่ม catch-all"
     },
     {
+      "id": "h-ff33d34a",
+      "kind": "html",
+      "en": "An index read has its element's type",
+      "tr": "การอ่านด้วย index มี type ของ element"
+    },
+    {
+      "id": "h-fae4b2be",
+      "kind": "html",
+      "en": "a typo off <code>xs[0]</code>: now E0210",
+      "tr": "พิมพ์ผิดหลัง <code>xs[0]</code>: ตอนนี้เป็น E0210"
+    },
+    {
+      "id": "h-b1fded5d",
+      "kind": "html",
+      "en": "<code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the agent tools check what you do with it: a field read, a method call, a <code>return</code>, an argument, an annotated <code>let</code>.",
+      "tr": "<code>xs[i]</code> บน <code>Array&lt;E&gt;</code> คือ <code>E</code> ดังนั้น editor, <code>glyph check --no-tsc</code> และเครื่องมือของ agent จะตรวจสิ่งที่คุณทำกับมัน: การอ่าน field, การเรียก method, <code>return</code>, argument และ <code>let</code> ที่มี annotation"
+    },
+    {
+      "id": "h-097c877b",
+      "kind": "html",
+      "en": "History <span class=\"hint\">what was checked before</span>",
+      "tr": "ประวัติ <span class=\"hint\">ก่อนหน้านี้ตรวจอะไรบ้าง</span>"
+    },
+    {
+      "id": "h-9e41191b",
+      "kind": "html",
+      "en": "Up to 0.1.183 an element read by index had no type on Glyph's side. <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a <code>number</code> parameter all went through, and only the <code>tsc</code> step of a full build caught them. The type is the one <code>tsc</code> gives the emitted code, which leaves <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not <code>E | undefined</code>. Glyph's index throws a <code>RangeError</code> past the end instead of handing back <code>undefined</code>; use <code>array.get</code> when you want an <code>Option</code>. A key read on a <code>Record</code> is still <code>E0224</code> unless its value type is <code>unknown</code>, and an index on a <code>string</code> or on an npm value is not judged.",
+      "tr": "จนถึง 0.1.183 element ที่อ่านด้วย index ไม่มี type ในฝั่งของ Glyph <code>return xs[0]</code> ภายใต้ <code>-&gt; number</code>, field ที่สะกดผิดบน <code>rows[0]</code> และ <code>xs[0]</code> ที่ส่งให้ parameter แบบ <code>number</code> ผ่านไปได้ทั้งหมด และมีแค่ขั้น <code>tsc</code> ของ build เต็มที่จับได้ type นี้คือ type ที่ <code>tsc</code> ให้กับโค้ดที่สร้างขึ้น ซึ่งปิด <code>noUncheckedIndexedAccess</code> ไว้: เป็น <code>E</code> ไม่ใช่ <code>E | undefined</code> index ของ Glyph จะโยน <code>RangeError</code> เมื่อเกินท้าย แทนที่จะคืน <code>undefined</code> ถ้าต้องการ <code>Option</code> ให้ใช้ <code>array.get</code> การอ่าน key บน <code>Record</code> ยังเป็น <code>E0224</code> เว้นแต่ type ของค่าเป็น <code>unknown</code> และ index บน <code>string</code> หรือค่าจาก npm จะไม่ถูกตัดสิน"
+    },
+    {
       "id": "h-c324ad5a",
       "kind": "html",
       "en": "Imported generic unions are checked",
@@ -821,10 +851,10 @@
       "tr": "การตรวจนี้อ่านการประกาศ จึงทำงานเฉพาะที่ที่คำตอบแน่นอน ชื่อแฝงของชนิดพื้นฐานอย่าง <code>type Id = string</code> ถูกอ่านเป็น <code>string</code> ที่มันอ้างถึง จึงตัดสินแบบเดียวกัน ยูเนียนของสตริงลิเทอรัล (D30) ถูกเทียบด้วยลิเทอรัลของมัน และค่าของ <code>interface</code> ถูกปฏิเสธในที่ที่ประกาศ <code>string</code> เพราะค่าของมันเป็นออบเจกต์ ส่วนเนื้อหาแบบ <code>extern_ts</code> หรือ <code>typeof</code> ยังไม่บอกอะไร และ <code>void</code> ก็ถูกยกเว้นเช่นกัน การตรวจนี้ครอบคลุมอาร์กิวเมนต์ <code>return</code> และคำกำกับของ <code>let</code> เหมือนกัน เพราะทั้งสามใช้ความสัมพันธ์เดียวกัน"
     },
     {
-      "id": "h-1a3fe46b",
+      "id": "h-457c3f5b",
       "kind": "html",
-      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. Three pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527), and <code>bigint</code>, which the checker still reads as a <code>number</code> (G500).",
-      "tr": "อีกทิศทางหนึ่งตัดสินผ่านสมาชิกของค่า เหมือนใน TypeScript: <code>5</code> ถูกปฏิเสธในที่ที่ประกาศ <code>interface HasName { name: string }</code> และ <code>\"abc\"</code> ถูกยอมรับในที่ที่ประกาศ <code>interface HasLen { length: number }</code> เพราะสตริงมี <code>length</code> มีสามคู่ที่ยังไม่ตัดสินและปล่อยให้ <code>tsc</code> ทำ: อินเทอร์เฟซที่สมาชิกทุกตัวเป็นแบบไม่บังคับและไม่มีตัวใดตรงกับค่าเลย (G526), <code>Option</code>, <code>Result</code> และ <code>Record</code> เทียบกับอินเทอร์เฟซ (G527) และ <code>bigint</code> ซึ่งตัวตรวจยังอ่านเป็น <code>number</code> (G500)"
+      "en": "The other direction goes through the value's members, as in TypeScript: <code>5</code> is refused where <code>interface HasName { name: string }</code> is declared, and <code>\"abc\"</code> is accepted where <code>interface HasLen { length: number }</code> is, because a string has a <code>length</code>. A <code>bigint</code> is read through its own members, so it is refused there: it has no <code>length</code>. Two pairings are not decided yet and are left to <code>tsc</code>: an interface whose members are all optional and share none with the value (G526), and <code>Option</code>, <code>Result</code> and <code>Record</code> against an interface (G527).",
+      "tr": "อีกทิศทางหนึ่งตัดสินผ่านสมาชิกของค่า เหมือนใน TypeScript: <code>5</code> ถูกปฏิเสธในที่ที่ประกาศ <code>interface HasName { name: string }</code> และ <code>\"abc\"</code> ถูกยอมรับในที่ที่ประกาศ <code>interface HasLen { length: number }</code> เพราะสตริงมี <code>length</code> ส่วน <code>bigint</code> ถูกอ่านผ่านสมาชิกของมันเอง จึงถูกปฏิเสธที่นั่น เพราะไม่มี <code>length</code> มีสองคู่ที่ยังไม่ตัดสินและปล่อยให้ <code>tsc</code> ทำ: อินเทอร์เฟซที่สมาชิกทุกตัวเป็นแบบไม่บังคับและไม่มีตัวใดตรงกับค่าเลย (G526) และ <code>Option</code>, <code>Result</code> และ <code>Record</code> เทียบกับอินเทอร์เฟซ (G527)"
     },
     {
       "id": "h-77fa2d03",
@@ -899,10 +929,10 @@
       "tr": "สถานะตอนนี้"
     },
     {
-      "id": "h-2bf5bdf7",
+      "id": "h-cfd661b8",
       "kind": "html",
-      "en": "Shipping today <span class=\"count\">20</span>",
-      "tr": "ใช้ได้วันนี้ <span class=\"count\">20</span>"
+      "en": "Shipping today <span class=\"count\">21</span>",
+      "tr": "ใช้ได้วันนี้ <span class=\"count\">21</span>"
     },
     {
       "id": "h-f9b8704d",
@@ -945,6 +975,12 @@
       "kind": "html",
       "en": "A <code>for</code> binding that keeps its element type",
       "tr": "binding ของ <code>for</code> ที่รักษา type ของ element ไว้"
+    },
+    {
+      "id": "h-7e9a2e84",
+      "kind": "html",
+      "en": "An index read, <code>xs[i]</code>, typed as its element, so its uses are checked",
+      "tr": "การอ่านด้วย index <code>xs[i]</code> มี type ของ element จึงตรวจการใช้งานของมันได้"
     },
     {
       "id": "h-d7829106",

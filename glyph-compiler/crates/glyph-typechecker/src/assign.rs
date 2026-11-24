@@ -8507,7 +8507,9 @@ impl Assigner<'_> {
                 }
                 _ => match stdlib_type_fields(self, ty) {
                     Some(fields) => Some(undeclared(fields)),
-                    None => self.named_record_shape(base, args),
+                    None => self
+                        .named_record_shape(base, args)
+                        .or_else(|| self.interface_member_shape(ty)),
                 },
             },
             _ => None,
@@ -8535,11 +8537,13 @@ impl Assigner<'_> {
         })
     }
 
-    /// `interface_member_fields` with the declaration it read them from.
+    /// `interface_member_fields` with the declaration it read them from. An
+    /// application `I<A..>` reads its members off `I`, so a member used
+    /// through any application is a use of `I`'s member.
     fn interface_member_shape(&self, ty: &Ty) -> Option<RecordShape> {
         let fields = self.interface_member_fields(ty)?;
         Some(RecordShape {
-            owner: self.local_owner(ty)?,
+            owner: self.local_owner(split_type_app(ty).0)?,
             fields,
         })
     }
@@ -8688,19 +8692,32 @@ impl Assigner<'_> {
         )
     }
 
-    /// The member set of a `Ty::Named` pointing at a **structural interface**
-    /// (D34), rendered as `RecordField`s: a `fn m(p: P) -> R` method member
-    /// becomes a field `m: fn(p: P) -> R`, and a `name: T` / `name?: T`
-    /// property member becomes a field of the same type and optionality.
-    /// Returns `None` for any type that is not a decidable interface, so
-    /// callers stay permissive on everything else.
+    /// The member set of a **structural interface** (D34), rendered as
+    /// `RecordField`s: a `fn m(p: P) -> R` method member becomes a field
+    /// `m: fn(p: P) -> R`, and a `name: T` / `name?: T` property member
+    /// becomes a field of the same type and optionality. Returns `None` for
+    /// any type that is not a decidable interface, so callers stay permissive
+    /// on everything else.
     ///
     /// An interface is structural: a value satisfies it when it carries every
     /// member, with no nominal identity (no `impl`). Assignability against an
     /// interface used as an ordinary type therefore compares these member
     /// fields, not the interface's name.
+    ///
+    /// G461 (D34). An application `I<A1..An>` of `interface I<X1..Xn>` has
+    /// `I`'s members with each `Xi` replaced by `Ai`. This is the one place
+    /// that substitution happens: a member read or a method call on a value
+    /// of `I<A..>`, a bounded `T: I<T>` read through its bound, and the
+    /// relation comparing a value where `I<A..>` is declared all read the
+    /// member set from here, so a guarantee does not depend on which of
+    /// those uses a program wrote. There are no variance markers: `I<string>`
+    /// against `I<number>` is decided by comparing the two substituted member
+    /// sets, so each argument is compared wherever the declaration uses its
+    /// parameter, and nowhere else. An application whose argument count is
+    /// not the declaration's (E0233's refusal) answers `None`.
     fn interface_member_fields(&self, ty: &Ty) -> Option<Vec<RecordField>> {
-        let Ty::Named { symbol, path } = ty else {
+        let (base, args) = split_type_app(ty);
+        let Ty::Named { symbol, path } = base else {
             return None;
         };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
@@ -8715,6 +8732,15 @@ impl Assigner<'_> {
         let Decl::Interface(iface) = self.module.items.get(decl_idx as usize)? else {
             return None;
         };
+        let subst = match args.is_empty() {
+            true => Subst::new(),
+            false if args.len() != iface.generics.len() => return None,
+            false => {
+                let generics: Vec<Ident> = iface.generics.iter().map(|g| g.name.clone()).collect();
+                decl_subst(&self.lowerer.param_owner(iface.span.start), &generics, args)
+            }
+        };
+        let lower = |t: &TypeExpr| substitute_type_params(&self.lowerer.lower(t), &subst);
         Some(
             iface
                 .members
@@ -8733,14 +8759,14 @@ impl Assigner<'_> {
                                 .map(|p| FnParam {
                                     name: Some(p.name.clone()),
                                     owned: false,
-                                    ty: self.lowerer.lower(&p.ty),
-                optional: false,
+                                    ty: lower(&p.ty),
+                                    optional: false,
                                 })
                                 .collect(),
                             return_ty: Arc::new(
                                 return_ty
                                     .as_ref()
-                                    .map(|rt| self.lowerer.lower(rt))
+                                    .map(lower)
                                     .unwrap_or(Ty::Prim(Primitive::Void)),
                             ),
                             is_async: false,
@@ -8751,7 +8777,7 @@ impl Assigner<'_> {
                     },
                     InterfaceMember::Field(f) => RecordField {
                         name: f.name.clone(),
-                        ty: self.lowerer.lower(&f.ty),
+                        ty: lower(&f.ty),
                         optional: f.optional,
                     },
                 })
@@ -10651,8 +10677,19 @@ impl Assigner<'_> {
                     // that is refused is refused on its own. The free function
                     // compared `Node` against `Tree` by name one level down and
                     // refused a program `tsc` accepts.
+                    //
+                    // An application can also name a larger application of
+                    // itself (`interface P<X> { next: P<Array<X>> }`), so a
+                    // walk against a record that names itself (`type R = {
+                    // next: R }`) meets a new pairing at every level and
+                    // never one it has seen. Past `RELATING_DEPTH` nested
+                    // pairings the comparison stops and refuses nothing,
+                    // which is what `tsc` does with a structure it finds
+                    // too deeply nested to compare.
                     let pair = (found.clone(), expected.clone());
-                    if self.relating.borrow().contains(&pair) {
+                    if self.relating.borrow().contains(&pair)
+                        || self.relating.borrow().len() >= RELATING_DEPTH
+                    {
                         return false;
                     }
                     self.relating.borrow_mut().push(pair);
@@ -13642,6 +13679,12 @@ type ParamKey = (ParamOwner, Ident);
 /// `wrap(xs)` inside `fn f<T>` binds `wrap`'s `T` to `Array<T>` and leaves
 /// `f`'s `T` as it is.
 type Subst = HashMap<ParamKey, Ty>;
+
+/// How many interface pairings the relation compares inside one another
+/// before it stops and refuses nothing (G461). A pairing that names itself
+/// is caught by identity well before this; only an application that names a
+/// larger application of itself at every level gets here.
+const RELATING_DEPTH: usize = 32;
 
 /// The binding of the declaration `owner`'s parameters `generics` to an
 /// application's `args`, by position.
@@ -26228,6 +26271,97 @@ fn f(a: Answer) -> number {
                 ("string".to_string(), "number".to_string()),
                 ("number".to_string(), "string".to_string()),
             ]
+        );
+    }
+
+    /// G461 (D34). A generic interface applied to its arguments has the
+    /// interface's members with each parameter replaced by its argument, and
+    /// a member read or a method call on a value of the application is
+    /// checked against that set as for a non-generic interface: the
+    /// member's type where it is returned (E0204), an unknown member with
+    /// the did-you-mean (E0210), and a method's argument (E0211). An F-bound
+    /// `T: Cmp<T>` is read through its bound with `X := T`, so `a.cmp(b)`
+    /// takes a `T` and returns a `number`. `tsc` refuses each refused line
+    /// (TS2322, TS2339, TS2345) and accepts each accepted one.
+    #[test]
+    fn a_generic_interface_application_reads_its_members_through_its_arguments() {
+        let src = "module m\n\
+             interface Cmp<X> {\n  fn cmp(o: X) -> number\n  v: X\n}\n\
+             interface Pair<A, B> { a: A, b: B }\n\
+             fn c0(c: Cmp<string>) -> string { return c.cmp(\"a\") }\n\
+             fn c1(c: Cmp<string>) -> number { return c.v }\n\
+             fn c3(c: Cmp<string>) -> number { return c.cmp(5) }\n\
+             fn ok(c: Cmp<string>) -> number { return c.cmp(c.v) }\n\
+             fn p_ok(p: Pair<string, number>) -> number { return p.b }\n\
+             fn p_bad(p: Pair<string, number>) -> string { return p.b }\n\
+             fn fb<T: Cmp<T>>(a: T, b: T) -> number { return a.cmp(b) }\n\
+             fn fb2<T: Cmp<T>>(a: T) -> string { return a.cmp(a) }\n\
+             fn fb3<T: Cmp<T>>(a: T) -> number { return a.cmp(5) }\n\
+             fn fbv<T: Cmp<T>>(a: T) -> T { return a.v }\n\
+             fn open<T>(c: Cmp<T>, x: T) -> number { return c.cmp(x) }\n\
+             fn typo(c: Cmp<string>) -> number { return c.cpm(\"a\") }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            ["c0", "c1", "c3", "fb2", "fb3", "p_bad"]
+        );
+        let unknown: Vec<(String, Option<String>)> = errors_of(src)
+            .iter()
+            .filter_map(|e| match e {
+                TypeError::UnknownField { field, suggestion, type_name, .. } => {
+                    assert_eq!(type_name, "Cmp<string>");
+                    Some((field.clone(), suggestion.clone()))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(unknown, [("cpm".to_string(), Some("cmp".to_string()))]);
+    }
+
+    /// G461 (D34). A value where an application `I<A..>` is declared is
+    /// compared against the substituted member set, as a value where a
+    /// non-generic interface is declared is. Variance comes from the
+    /// substitution and nothing else: `Box<Mode>` passes where `Box<string>`
+    /// is declared and `Box<string>` is refused where `Box<number>` is, and
+    /// an interface whose parameter appears only as a method parameter
+    /// (`Sink<X>`) is not compared argument against argument, which refused
+    /// `Sink<string>` where `Sink<Mode>` is declared although `tsc` accepts
+    /// it. A record carrying the substituted members passes, one missing a
+    /// member is refused, and a self-referential application terminates.
+    /// Each refusal is one `tsc` makes (TS2322, TS2345, TS2739).
+    #[test]
+    fn a_value_is_compared_with_a_generic_interface_application_through_its_arguments() {
+        let src = "module m\n\
+             interface Cmp<X> {\n  fn cmp(o: X) -> number\n  v: X\n}\n\
+             interface Ord2<X> {\n  fn cmp(o: X) -> number\n  v: number\n}\n\
+             interface Box<X> { v: X }\n\
+             interface Sink<X> {\n  fn put(x: X) -> void\n}\n\
+             interface Tree<X> { v: X, kids: Array<Tree<X>> }\n\
+             interface Grow<X> { next: Grow<Array<X>> }\n\
+             interface Plain {\n  fn put(o: number) -> number\n}\n\
+             type Ord = { v: number, }\n\
+             type Rec = { v: number, cmp: fn(Rec) -> number, }\n\
+             type TNode = { v: number, kids: Array<TNode>, }\n\
+             type Loop = { next: Loop, }\n\
+             type Mode = \"a\" | \"b\"\n\
+             fn want(c: Cmp<number>) -> number { return 1 }\n\
+             fn a0(o: Ord) -> number { return want(o) }\n\
+             fn a1(o: Plain) -> number { return want(o) }\n\
+             fn sn(c: Cmp<string>) -> Cmp<number> { return c }\n\
+             fn same(c: Cmp<string>) -> Cmp<string> { return c }\n\
+             fn rec_ok(r: Rec) -> Ord2<Rec> { return r }\n\
+             fn rec_v(r: Rec) -> Cmp<Rec> { return r }\n\
+             fn bx_bad(b: Box<string>) -> Box<number> { return b }\n\
+             fn bx_ok(b: Box<Mode>) -> Box<string> { return b }\n\
+             fn sink_ok(s: Sink<string>) -> Sink<Mode> { return s }\n\
+             fn tree_ok(n: TNode) -> Tree<number> { return n }\n\
+             fn tree_bad(n: TNode) -> Tree<string> { return n }\n\
+             fn grow(l: Loop) -> Grow<number> { return l }\n\
+             fn arr_bad(xs: Array<Cmp<string>>) -> Array<Cmp<number>> { return xs }\n\
+             fn lit_ok() -> Box<number> { return { v: 1, } }\n\
+             fn lit_bad() -> Box<number> { return { v: \"a\", } }\n";
+        assert_eq!(
+            fns_with_mismatches(src),
+            ["a0", "a1", "arr_bad", "bx_bad", "lit_bad", "rec_v", "sn", "tree_bad"]
         );
     }
 

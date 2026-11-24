@@ -126,7 +126,7 @@
       "patterns": [
         {
           "name": "support.type.primitive.glyph",
-          "match": "\\b(string|number|int|bigint|bool|unknown|never|void)\\b"
+          "match": "\\b(string|number|int|bigint|bool|void|unknown|never)\\b"
         },
         {
           "name": "entity.name.function.constructor.glyph",

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "ja",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "{{catches:count}} 件中 <span>{{catches:none}}</span> 件"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}}チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のケースが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（TypeScript のケース {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。"
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}}チェック済みのケースは全部で {{catches:total}} 件です。TypeScript のケースが {{catches:count}} 件、Glyph には存在しない JavaScript の落とし穴が {{catches:trap-count}} 件、Glyph がまだ塞いでいない穴が {{catches:gap-cases}} 件です。そのうち {{catches:refused-all}} 件はビルド時に Glyph が拒否します（TypeScript のケース {{catches:refused}} 件と落とし穴 {{catches:traps-refused}} 件）。 各ケースの TypeScript、Glyph、エラーは<a href=\"/catches/\">「検出できるもの」のページ</a>にすべて載っています。"
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "<code>WILL_FAIL</code> の各エントリには、そこで出るエラーが付いています。実際にケースだけを追加すると、ちょうどその 8 つの <code>E0200</code> エラーが出ました。 <code>ABSORBS</code> の 2 か所は何も出しません。 <code>render::literal_text</code> は日付リテラルを引用符なしで出力し、 <code>exec::total</code> はすべての日付を 0 として数えていたはずです。コンパイラのエラーだけを頼りに作業するエージェントは、8 か所を直して通ったビルドのまま止まります。修正後にもう一度聞くと、コンパイラは 10 か所すべてで <code>WILL_FAIL</code> と答えるので、次のケースもすり抜けられません。"
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph はまだすべてを検出できるわけではありません。既知の穴 {{catches:gap-count}} 件には再現コードと gap 番号が付いています。また、ロジックの誤りは TypeScript と同じく Glyph でも通ってしまいます。 <a href=\"/catches/#not-yet\">まだ検出できないもの &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph はまだすべてを検出できるわけではありません。既知の穴 {{catches:gap-count}} 件には再現コードと gap 番号が付いています。また、ロジックの誤りは TypeScript と同じく Glyph でも通ってしまいます。 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">gap ログ</a>には、Glyph でアプリを作る中で見つかった制約がすべて番号と状態つきで記録されています。 <a href=\"/catches/#not-yet\">まだ検出できないもの &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

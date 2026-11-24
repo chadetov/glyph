@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "th",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "<span>{{catches:none}}</span> จาก {{catches:count}}"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)"
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี) <a href=\"/catches/\">หน้า “สิ่งที่จับได้”</a> แสดงทุกกรณีพร้อม TypeScript, Glyph และข้อผิดพลาดของกรณีนั้น"
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "แต่ละรายการ <code>WILL_FAIL</code> บอก error ที่จะเกิดขึ้นมาด้วย และเมื่อเพิ่มแค่ case อย่างเดียวก็ได้ error <code>E0200</code> แปดตัวนั้นพอดี ส่วนสองจุด <code>ABSORBS</code> ไม่รายงานอะไรเลย <code>render::literal_text</code> จะพิมพ์ literal วันที่ออกมาโดยไม่มีเครื่องหมายคำพูด และ <code>exec::total</code> จะนับทุกวันที่เป็นศูนย์ เอเจนต์ที่ทำงานจาก error ของคอมไพเลอร์อย่างเดียวจะแก้แปดจุดแล้วหยุดพร้อม build สีเขียว เมื่อถามซ้ำหลังแก้แล้ว คอมไพเลอร์ตอบ <code>WILL_FAIL</code> ทั้งสิบจุด case ถัดไปจึงหลุดรอดไปไม่ได้เช่นกัน"
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph ได้เหมือนที่ผ่าน TypeScript <a href=\"/catches/#not-yet\">สิ่งที่ยังจับไม่ได้ &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph ได้เหมือนที่ผ่าน TypeScript <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">บันทึก gap</a> ให้หมายเลขกับข้อจำกัดทุกข้อที่พบระหว่างสร้างแอปด้วย Glyph พร้อมสถานะ <a href=\"/catches/#not-yet\">สิ่งที่ยังจับไม่ได้ &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

@@ -64,7 +64,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> of {{catches:count}}</p>
-          <p>{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).</p>
+          <p>{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href="/catches/">The catches page</a> lists every case with its TypeScript, its Glyph and the error.</p>
         </div>
       </div>
     </section>
@@ -127,6 +127,8 @@ glyph check: tsc --strict passed.</span></pre>
           Glyph does not catch everything yet. {{catches:gap-count}} known holes
           have a reproduction and a gap number, and logic errors pass in Glyph as
           they do in TypeScript.
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">The gap log</a>
+          numbers every limitation found by building apps in Glyph, with its status.
           <a href="/catches/#not-yet">What it does not catch yet &rarr;</a>
         </p>
       </div>

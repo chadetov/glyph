@@ -1,7 +1,7 @@
 ---
 title: Glyph: tipada, compila para TypeScript, para agentes de IA
 description: Glyph é uma linguagem estaticamente tipada que compila para TypeScript, para que o código de um agente de IA seja lido, verificado e alterado sem adivinhar.
-source_hash: 3a419cdee3b04e4b
+source_hash: 77dd26b0cd309cc4
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, linguagem de programação, typescript, transpilador, agentes de ia, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -59,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> de {{catches:count}}</p>
-          <p>{{catches:measured}} No total são {{catches:total}} casos verificados: {{catches:count}} casos de TypeScript, {{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph e {{catches:gap-cases}} brechas que o Glyph ainda não fecha. O Glyph recusa {{catches:refused-all}} deles no build ({{catches:refused}} casos de TypeScript e {{catches:traps-refused}} armadilhas).</p>
+          <p>{{catches:measured}} No total são {{catches:total}} casos verificados: {{catches:count}} casos de TypeScript, {{catches:trap-count}} armadilhas de JavaScript que não existem em Glyph e {{catches:gap-cases}} brechas que o Glyph ainda não fecha. O Glyph recusa {{catches:refused-all}} deles no build ({{catches:refused}} casos de TypeScript e {{catches:traps-refused}} armadilhas). <a href="/catches/">A página “O que detecta”</a> mostra cada caso com seu TypeScript, seu Glyph e o erro.</p>
         </div>
       </div>
     </section>
@@ -107,7 +107,7 @@ glyph check: tsc --strict passed.</span></pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          O Glyph ainda não detecta tudo. {{catches:gap-count}} falhas conhecidas têm uma reprodução e um número de gap, e erros de lógica passam no Glyph do mesmo jeito que passam no TypeScript. <a href="/catches/#not-yet">O que ele ainda não detecta &rarr;</a>
+          O Glyph ainda não detecta tudo. {{catches:gap-count}} falhas conhecidas têm uma reprodução e um número de gap, e erros de lógica passam no Glyph do mesmo jeito que passam no TypeScript. <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">O registro de gaps</a> numera cada limitação encontrada ao construir apps em Glyph, com seu status. <a href="/catches/#not-yet">O que ele ainda não detecta &rarr;</a>
         </p>
       </div>
     </section>

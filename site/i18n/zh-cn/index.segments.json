@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "zh-cn",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "{{catches:count}} 个中有 <span>{{catches:none}}</span> 个"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。"
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。 <a href=\"/catches/\">“能发现什么”页面</a>列出了每个案例的 TypeScript、Glyph 和报错。"
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "每条 <code>WILL_FAIL</code> 都附带它会触发的错误；只加这个 case 时，得到的正好是这八个 <code>E0200</code> 错误。两处 <code>ABSORBS</code> 什么都不报：<code>render::literal_text</code> 会把日期字面量打印成不带引号的样子，<code>exec::total</code> 会把每个日期都算作零。只看编译器错误工作的智能体会修好八处，然后带着通过的构建停手。修完之后再问一次，编译器在全部十处都回答 <code>WILL_FAIL</code>，所以下一个 case 也漏不过去。"
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href=\"/catches/#not-yet\">它目前还发现不了的问题 &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">gap 日志</a>为用 Glyph 构建应用时发现的每个限制编号，并标注其状态。 <a href=\"/catches/#not-yet\">它目前还发现不了的问题 &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

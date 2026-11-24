@@ -1,7 +1,7 @@
 ---
 title: Glyph: типизирован, компилируется в TypeScript, для ИИ-агентов
 description: Glyph: статически типизированный язык, который компилируется в TypeScript, чтобы код ИИ-агента можно было читать, проверять и менять без догадок.
-source_hash: 3a419cdee3b04e4b
+source_hash: 77dd26b0cd309cc4
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, язык программирования, typescript, транспайлер, ии-агенты, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -59,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> из {{catches:count}}</p>
-          <p>{{catches:measured}} Всего проверенных случаев: {{catches:total}}. Из них случаев в TypeScript: {{catches:count}}, ловушек JavaScript, которых нет в Glyph: {{catches:trap-count}}, и дыр, которые Glyph пока не закрывает: {{catches:gap-cases}}. При сборке Glyph отклоняет {{catches:refused-all}} из них (случаев TypeScript: {{catches:refused}}, ловушек: {{catches:traps-refused}}).</p>
+          <p>{{catches:measured}} Всего проверенных случаев: {{catches:total}}. Из них случаев в TypeScript: {{catches:count}}, ловушек JavaScript, которых нет в Glyph: {{catches:trap-count}}, и дыр, которые Glyph пока не закрывает: {{catches:gap-cases}}. При сборке Glyph отклоняет {{catches:refused-all}} из них (случаев TypeScript: {{catches:refused}}, ловушек: {{catches:traps-refused}}). <a href="/catches/">Страница «Что он ловит»</a> показывает каждый случай: его TypeScript, его Glyph и ошибку.</p>
         </div>
       </div>
     </section>
@@ -107,7 +107,7 @@ glyph check: tsc --strict passed.</span></pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph пока ловит не всё. Известных дыр, у каждой из которых есть воспроизведение и номер gap: {{catches:gap-count}}. Логические ошибки проходят в Glyph так же, как в TypeScript. <a href="/catches/#not-yet">Что он пока не ловит &rarr;</a>
+          Glyph пока ловит не всё. Известных дыр, у каждой из которых есть воспроизведение и номер gap: {{catches:gap-count}}. Логические ошибки проходят в Glyph так же, как в TypeScript. <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">Журнал gap</a> нумерует каждое ограничение, найденное при создании приложений на Glyph, и указывает его статус. <a href="/catches/#not-yet">Что он пока не ловит &rarr;</a>
         </p>
       </div>
     </section>

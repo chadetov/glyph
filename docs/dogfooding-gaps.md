@@ -17115,6 +17115,12 @@ and is the owner's to confirm.
   E0211 under `check --no-tsc` and full `check`; both workarounds pass full
   `check`.*
 
+  G631 is the same problem as G603, which the release that fixes it
+  (R5, with D86) files on its own branch. Decision record 212 makes G603
+  the canonical number. Whichever of the two branches merges second marks
+  this entry `[DUPLICATE of G603]`, folds its reproduction into G603, and
+  points the "React: not yet" row at G603.
+
 - **G632. A hook call inside a `match` arm or a loop is not refused.** React
   matches hook calls by their order, so a hook that runs on some renders and
   not others breaks the component at run time. `let [n, set_n] =
@@ -17126,6 +17132,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.183 (the published release): a component returning
   a `match` whose `true` arm calls `useState` is `no diagnostics` and `tsc
   --strict passed`.*
+
+  G632 is the same problem as G596, which the release that fixes it
+  (R3, with D84) files on its own branch. Decision record 212 makes G596
+  the canonical number. Whichever of the two branches merges second marks
+  this entry `[DUPLICATE of G596]`, folds its reproduction into G596, and
+  points the "React: not yet" row at G596.
 
 - **G633. An effect lambda that returns its last expression passes Glyph's
   checker.** `useEffect(fn() { storage.set("k", "v") }, [])` passes `check
@@ -17140,6 +17152,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.183 (the published release): `check --no-tsc`
   exits clean; full `check` reports TS2345; the `-> void` spelling passes
   full `check`.*
+
+  G633 is the same problem as G594, which the release that fixes it
+  (R2, with D83) files on its own branch. Decision record 212 makes G594
+  the canonical number. Whichever of the two branches merges second marks
+  this entry `[DUPLICATE of G594]`, folds its reproduction into G594, and
+  points the "React: not yet" row at G594.
 
 - **G634. A component cannot take a `ref`, and `forwardRef` is checked by
   `tsc` only.** `<Field label="x" ref={r} />` on a `component Field(props: {
@@ -17207,6 +17225,12 @@ and is the owner's to confirm.
   with Chromium: under `glyph build src --out gen --watch`, editing a label
   in `src/app.glyph` gave two page loads and a counter at 0; editing the
   same string in `gen/app.ts` directly, with no watch running, did the same.*
+
+  G638 is the same problem as G609, which the release that fixes it
+  (R8, with D88) files on its own branch. Decision record 212 makes G609
+  the canonical number. Whichever of the two branches merges second marks
+  this entry `[DUPLICATE of G609]`, folds its reproduction into G609, and
+  points the "React: not yet" row at G609.
 
 - **G639. [DECIDED - not planned] Class components.** Glyph has no classes,
   so `class Old extends Component { }` is E0003 at `class`. Decision record

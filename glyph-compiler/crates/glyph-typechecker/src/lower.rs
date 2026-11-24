@@ -16,7 +16,7 @@ use glyph_ast::{Decl, GenericParam, Ident, LambdaParam, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::ty::{
-    FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
+    DeclBounds, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
 };
 
 /// Holds the resolver-side context a `TypeExpr → Ty` recursion needs. Cheap
@@ -696,6 +696,28 @@ impl ExportLowerer<'_> {
         }
     }
 
+    /// The type parameters of `decl` and the bound each writes, as another
+    /// module sees them: [`written_bounds`] over the declaration's generics, lowered
+    /// on the export view so a bound naming a sibling type reaches the
+    /// consumer as `Ty::Imported`. `None` for a declaration with no type
+    /// parameter list (a `const`, an `import`).
+    pub fn lower_exported_bounds(
+        &self,
+        decl: &glyph_ast::Decl,
+    ) -> Option<DeclBounds> {
+        let generics = match decl {
+            Decl::Fn(f) => &f.generics,
+            Decl::Component(c) => &c.generics,
+            Decl::Type(t) => &t.generics,
+            Decl::Interface(i) => &i.generics,
+            Decl::Const(_) | Decl::Import(_) => return None,
+        };
+        Some(DeclBounds {
+            generics: generics.iter().map(|g| g.name.clone()).collect(),
+            bounds: written_bounds(generics, &|t| self.0.lower(t)),
+        })
+    }
+
     /// Lower a `fn`/`component` declaration's signature as another module
     /// sees it: the callable counterpart of `lower_exported_type`. A `pub fn`
     /// whose return type (or a param type) names a sibling `type` needs the
@@ -841,6 +863,55 @@ pub(crate) fn module_key(path: &glyph_ast::ModulePath) -> ModuleKey {
 /// once and reuse it.
 pub fn lower_type_expr(te: &TypeExpr, resolved: &ResolvedModule, prelude: &Prelude) -> Ty {
     Lowerer::new(resolved, prelude).lower(te)
+}
+
+/// The names in `generics` that write a bound (`<T: Named>`), each with the
+/// bound `lower` gives it, or `None` where the checker does not read it (an
+/// `extern_ts` or `typeof` bound, which lowers to nothing decidable, or a
+/// cycle of parameters bounding one another, which has no bound to read).
+/// A parameter written with no bound is absent.
+///
+/// One reading for both sides of a module edge: the body of a generic
+/// declaration reads its own parameters through it (G263), and a caller or
+/// an application reads the declaration's bounds through it (G264), local
+/// or imported.
+pub(crate) fn written_bounds(
+    generics: &[GenericParam],
+    lower: &dyn Fn(&TypeExpr) -> Ty,
+) -> std::collections::HashMap<Ident, Option<Ty>> {
+    let lowered: std::collections::HashMap<Ident, Ty> = generics
+        .iter()
+        .filter_map(|g| Some((g.name.clone(), lower(g.bounds.first()?))))
+        .collect();
+    let names: Vec<&Ident> = generics.iter().map(|g| &g.name).collect();
+    lowered
+        .iter()
+        .map(|(name, bound)| {
+            // Follow a chain of bounds that are each a bare parameter of this
+            // list (`<T: U, U: V>`); one that comes back on itself has no
+            // bound to read.
+            let mut seen = vec![name];
+            let mut cur = bound;
+            let cyclic = loop {
+                let Ty::Param { name: next, .. } = cur else {
+                    break false;
+                };
+                if !names.contains(&next) {
+                    break false;
+                }
+                if seen.contains(&next) {
+                    break true;
+                }
+                seen.push(next);
+                match lowered.get(next) {
+                    Some(b) => cur = b,
+                    None => break false,
+                }
+            };
+            let readable = !cyclic && !matches!(bound, Ty::Unknown);
+            (name.clone(), readable.then(|| bound.clone()))
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -1217,3 +1288,4 @@ type T = { f: Result<User, FeedError> }
         assert_eq!(ty, Ty::Unknown);
     }
 }
+

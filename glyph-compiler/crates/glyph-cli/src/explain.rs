@@ -933,7 +933,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             value read again after the `await` (`let now = c[0]` there, or `mut \
             c[0] = c[0] + f`) is current and is not, even when the place was also \
             read before it. A binding some `mut` reassigns carries nothing, so a \
-            stale value passed through one is a miss rather than a report.",
+            stale value passed through one is a miss rather than a report.\n\n\
+            An `async fn(..) { .. }` lambda is checked too, wherever it is \
+            written: in a sync function, a component, or an event handler. \
+            Inside one, a place counts when it is reached through the lambda's \
+            own parameters or through any binding it captures, a local of the \
+            enclosing function included, because every run of the lambda shares \
+            it. A binding the lambda declares itself does not count.",
 
         // ----- emitter (E03xx) -----
         "E0226" => "E0226: every arm can fail and no arm is a catch-all\n\n\
@@ -2680,7 +2686,7 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0225",
         phase: "typechecker",
-        meaning: "A parameter's field or element (`c.n`, `c[0]`, `m[\"k\"]`, `a[i].n`) is read before an `await`, and a value from that read is written back to it after the `await`, directly or through a `let` derived from it, so a concurrent write in between is lost. A read through `array.get` or `record.get` counts. Move the read after the `await`",
+        meaning: "A parameter's field or element (`c.n`, `c[0]`, `m[\"k\"]`, `a[i].n`) is read before an `await`, and a value from that read is written back to it after the `await`, directly or through a `let` derived from it, so a concurrent write in between is lost. A read through `array.get` or `record.get` counts. Inside an `async` lambda, a binding it captures counts as a parameter does. Move the read after the `await`",
         fix: "Move the read after the `await`. A value read again after the `await` is current and is not reported, nor is a local counter across an `await` or an index whose key can change (`c[i + 1]`, or a name some `mut` reassigns)",
     },
     CodeEntry {

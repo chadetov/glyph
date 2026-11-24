@@ -32,7 +32,7 @@
 //!
 //! Consequences of that narrowness, all intentional:
 //!
-//! - **Only a parameter's contents count.** A parameter is a value the caller
+//! - **Only a parameter's contents count** in a top-level `async fn`. A parameter is a value the caller
 //!   handed over and may also have handed to something else, which is the only
 //!   way another task reaches it; the failing example writes `c.n` where `c` is
 //!   a parameter. A local accumulator is per-invocation and cannot be raced, so
@@ -57,6 +57,16 @@
 //! - The write clears the place, so a second read-modify-write after it starts
 //!   fresh rather than reporting the first read twice.
 //!
+//! **Async lambdas are checked too (G517).** Every `async fn(..) { .. }`
+//! lambda is visited, at any depth: inside a sync function, a component, an
+//! event handler, or another async function. Inside one, a place is rooted at
+//! the lambda's own parameters or at any binding it captures from an
+//! enclosing scope, a parameter or a local. A captured local counts because
+//! the lambda can run many times at once and every run shares it, so
+//! `let v = count_ref.current`, `await save()`, `mut count_ref.current = v + 1`
+//! in a component's handler loses clicks. A binding the lambda declares itself
+//! is per-run, like a top-level function's local, and does not count.
+//!
 //! **The value has to reach the write (G516).** A read of the place taints the
 //! `let` it initializes, and any `let` initialized from a tainted one, so
 //! `let first = c[0]`, `let x = first * 2`, `await`, `mut c[0] = x` fires
@@ -71,41 +81,125 @@
 use crate::assign::stdlib_callee;
 use crate::reassign::Reassigned;
 use crate::TypeError;
-use glyph_ast::{Block, Decl, Expr, LetBinding, LetStmt, Module, MutKind, Span, Stmt};
+use glyph_ast::{
+    Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, LetBinding, LetStmt, Module, MutKind, Span, Stmt,
+};
 use glyph_resolver::{ResolvedModule, ResolvedRef};
 use std::collections::HashMap;
 
-/// Report every read-await-write on one place inside an `async` function.
+/// Report every read-await-write on one place inside an `async` function or
+/// an `async` lambda.
 ///
-/// Synchronous functions cannot suspend, so nothing can interleave between the
+/// Synchronous code cannot suspend, so nothing can interleave between the
 /// read and the write and the pattern is safe there.
 pub fn check_await_straddle(module: &Module, resolved: &ResolvedModule) -> Vec<TypeError> {
     let mut errors = Vec::new();
-    // Computed only when some async function exists, which most modules lack.
-    let mut reassigned: Option<Reassigned> = None;
+    let mut lambdas = Vec::new();
+    let mut has_async_fn = false;
+    for item in &module.items {
+        match item {
+            Decl::Fn(f) => {
+                has_async_fn |= f.is_async;
+                lambdas_in_block(&f.body, &mut lambdas);
+            }
+            Decl::Component(c) => lambdas_in_block(&c.body, &mut lambdas),
+            Decl::Const(c) => lambdas_in_expr(&c.value, &mut lambdas),
+            Decl::Type(_) | Decl::Interface(_) | Decl::Import(_) => {}
+        }
+    }
+    // Most modules have neither, and the predicate walks the whole module.
+    if !has_async_fn && lambdas.is_empty() {
+        return errors;
+    }
+    let reassigned = Reassigned::of(module, resolved);
+    let places = Places {
+        resolved,
+        reassigned: &reassigned,
+    };
     for item in &module.items {
         let f = match item {
             Decl::Fn(f) if f.is_async => f,
-            // A component is not async and cannot contain an `await`.
+            // A component is not async; its async lambdas are visited below.
             _ => continue,
         };
-        let reassigned = reassigned.get_or_insert_with(|| Reassigned::of(module, resolved));
         let mut checker = Straddle {
             errors: &mut errors,
-            params: f.params.iter().map(|p| p.name.to_string()).collect(),
-            places: Places { resolved, reassigned },
+            scope: Scope::Fn(f.params.iter().map(|p| p.name.to_string()).collect()),
+            places,
         };
         checker.block(&f.body);
     }
+    for (span, params, body) in lambdas {
+        let mut checker = Straddle {
+            errors: &mut errors,
+            scope: Scope::Lambda { span, params },
+            places,
+        };
+        checker.block(body);
+    }
+    errors.sort_by_key(|e| e.span().start);
     errors
+}
+
+/// Which places another task can reach, by the code being checked.
+enum Scope {
+    /// A top-level `async fn`: a place through one of its parameters, by name.
+    Fn(Vec<String>),
+    /// An `async` lambda: a place through one of its own parameters (keyed by
+    /// definition-site span start) or through any binding defined outside
+    /// `span`, which it captures.
+    Lambda { span: Span, params: Vec<u32> },
 }
 
 struct Straddle<'a> {
     errors: &'a mut Vec<TypeError>,
-    /// The enclosing function's parameter names. Only a place reached through
-    /// one of these can be reached by another task.
-    params: Vec<String>,
+    scope: Scope,
     places: Places<'a>,
+}
+
+/// Every `async` lambda in a block, at any depth, with its span and the
+/// definition keys of its parameters.
+type Lambda<'m> = (Span, Vec<u32>, &'m Block);
+
+fn lambdas_in_block<'m>(b: &'m Block, out: &mut Vec<Lambda<'m>>) {
+    for s in &b.stmts {
+        glyph_ast::visit::stmt_exprs(s, &mut |e| lambdas_in_expr(e, out));
+        glyph_ast::visit::stmt_blocks(s, &mut |inner| lambdas_in_block(inner, out));
+    }
+}
+
+fn lambdas_in_expr<'m>(e: &'m Expr, out: &mut Vec<Lambda<'m>>) {
+    match e {
+        Expr::Lambda {
+            params,
+            body,
+            is_async: true,
+            span,
+            ..
+        } => out.push((*span, params.iter().map(|p| p.span.start).collect(), body)),
+        // The shared visitor treats JSX as a leaf, and an attribute is where a
+        // component's event handlers live.
+        Expr::Jsx(j) => return lambdas_in_jsx(j, out),
+        _ => {}
+    }
+    glyph_ast::visit::child_exprs(e, &mut |child| lambdas_in_expr(child, out));
+    glyph_ast::visit::child_blocks(e, &mut |b| lambdas_in_block(b, out));
+}
+
+fn lambdas_in_jsx<'m>(j: &'m JsxElement, out: &mut Vec<Lambda<'m>>) {
+    for a in &j.attrs {
+        match a {
+            JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => lambdas_in_expr(value, out),
+            JsxAttr::String { .. } | JsxAttr::Positional { .. } | JsxAttr::Pattern { .. } => {}
+        }
+    }
+    for c in &j.children {
+        match c {
+            JsxChild::Element(el) => lambdas_in_jsx(el, out),
+            JsxChild::Expr(e) => lambdas_in_expr(e, out),
+            JsxChild::Text { .. } => {}
+        }
+    }
 }
 
 /// One step of a place after its root.
@@ -195,11 +289,26 @@ impl From<Read> for Origin {
 type Carried = HashMap<u32, Vec<Origin>>;
 
 impl Straddle<'_> {
-    /// Whether a write to this place can reach memory another task holds:
-    /// something *through* one of this function's parameters. A local, or a
-    /// parameter rebound whole, cannot.
-    fn is_shared(&self, place: &Place) -> bool {
-        !place.path.is_empty() && self.params.iter().any(|p| p == &place.root)
+    /// Whether a write to `target`, the place `place` names, can reach memory
+    /// another task holds. In a top-level function, something *through* one of
+    /// its parameters; in a lambda, through one of its parameters or through a
+    /// binding it captures. A binding of its own, or a root rebound whole,
+    /// cannot.
+    fn is_shared(&self, place: &Place, target: &Expr) -> bool {
+        if place.path.is_empty() {
+            return false;
+        }
+        match &self.scope {
+            Scope::Fn(params) => params.iter().any(|p| p == &place.root),
+            Scope::Lambda { span, params } => {
+                let Some(ResolvedRef::Local(def)) =
+                    root_span(target).and_then(|r| self.places.resolved.resolutions.get(r))
+                else {
+                    return false;
+                };
+                params.contains(&def) || def < span.start || def >= span.end
+            }
+        }
     }
 
     /// Each block is analysed on its own. A nested block (a `match` arm, a loop
@@ -240,7 +349,7 @@ impl Straddle<'_> {
                 MutKind::Assign { target, value } => {
                     let value_awaits = has_await(value);
 
-                    if let Some(place) = self.places.place_of(target).filter(|p| self.is_shared(p)) {
+                    if let Some(place) = self.places.place_of(target).filter(|p| self.is_shared(p, target)) {
                         // Cross-statement: a value read from the place, then a
                         // statement that awaited, then this write of a value
                         // derived from that read. Single statement:
@@ -339,6 +448,7 @@ impl Straddle<'_> {
 }
 
 /// Naming places, which needs the module's resolution for a name key.
+#[derive(Clone, Copy)]
 struct Places<'a> {
     resolved: &'a ResolvedModule,
     reassigned: &'a Reassigned,
@@ -451,6 +561,15 @@ impl Places<'_> {
             }
             _ => {}
         }
+    }
+}
+
+/// The span of the name a place expression starts from.
+fn root_span(e: &Expr) -> Option<Span> {
+    match e {
+        Expr::Ident { span, .. } => Some(*span),
+        Expr::Member { object, .. } | Expr::Index { object, .. } => root_span(object),
+        _ => None,
     }
 }
 
@@ -907,6 +1026,161 @@ mod tests {
                  }\n"
             ),
             vec![format!("`c[0]` {LOST}")]
+        );
+    }
+
+    /// G517: an async lambda is visited, and a parameter of the function it
+    /// sits in is captured, so it is shared (record 197's `lam`).
+    #[test]
+    fn an_async_lambda_capturing_a_parameter_is_checked() {
+        assert_eq!(
+            with_head(
+                "pub async fn lam(c: Array<number>) -> number {\n\
+                 \x20 let h = async fn() -> number {\n\
+                 \x20   let first = c[0]\n\
+                 \x20   let f = await fee()\n\
+                 \x20   mut c[0] = first + f\n\
+                 \x20   return 0\n\
+                 \x20 }\n\
+                 \x20 return await h()\n\
+                 }\n"
+            ),
+            vec![format!("`c[0]` {LOST}")]
+        );
+    }
+
+    /// A captured local counts: every run of the handler shares it. Here in a
+    /// sync component, the shape a click handler has.
+    #[test]
+    fn a_captured_local_in_a_components_handler_is_checked() {
+        assert_eq!(
+            messages(
+                "module m\n\
+                 import react { useRef }\n\
+                 async fn save() -> void {\n\
+                 \x20 return\n\
+                 }\n\
+                 pub component Counter(props: { label: string, }) {\n\
+                 \x20 let count_ref = useRef(0)\n\
+                 \x20 let on_click = async fn() -> void {\n\
+                 \x20   let v = count_ref.current\n\
+                 \x20   await save()\n\
+                 \x20   mut count_ref.current = v + 1\n\
+                 \x20 }\n\
+                 \x20 return <button onClick={on_click}>{props.label}</button>\n\
+                 }\n"
+            ),
+            vec![format!("`count_ref.current` {LOST}")]
+        );
+    }
+
+    /// A handler written inline in a JSX attribute is visited too.
+    #[test]
+    fn an_async_lambda_inside_a_jsx_attribute_is_checked() {
+        assert_eq!(
+            with_head(
+                "pub component Pay(props: { acct: Acct, }) {\n\
+                 \x20 return <button onClick={async fn() -> void {\n\
+                 \x20   let b = props.acct.balance\n\
+                 \x20   let f = await fee()\n\
+                 \x20   mut props.acct.balance = b - f\n\
+                 \x20 }}>pay</button>\n\
+                 }\n"
+            ),
+            vec![format!("`props.acct.balance` {LOST}")]
+        );
+    }
+
+    /// The lambda's own parameter is shared, as a top-level function's is,
+    /// and a lambda returned from a sync function is visited.
+    #[test]
+    fn an_async_lambdas_own_parameter_is_shared() {
+        assert_eq!(
+            with_head(
+                "pub fn make() -> async fn(Acct) -> number {\n\
+                 \x20 return async fn(a: Acct) -> number {\n\
+                 \x20   let before = a.balance\n\
+                 \x20   let f = await fee()\n\
+                 \x20   mut a.balance = before + f\n\
+                 \x20   return 0\n\
+                 \x20 }\n\
+                 }\n"
+            ),
+            vec![format!("`a.balance` {LOST}")]
+        );
+    }
+
+    /// A binding the lambda declares itself is per-run and cannot be raced.
+    #[test]
+    fn a_lambda_local_accumulator_is_not_an_error() {
+        assert!(with_head(
+            "pub fn make() -> async fn() -> number {\n\
+             \x20 return async fn() -> number {\n\
+             \x20   let acc: Acct = { balance: 0, }\n\
+             \x20   let before = acc.balance\n\
+             \x20   let f = await fee()\n\
+             \x20   mut acc.balance = before + f\n\
+             \x20   return acc.balance\n\
+             \x20 }\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// G516's rule holds inside a lambda: a re-read after the `await` is
+    /// current.
+    #[test]
+    fn a_reread_inside_an_async_lambda_is_not_an_error() {
+        assert!(with_head(
+            "pub async fn f(a: Acct) -> number {\n\
+             \x20 let h = async fn() -> number {\n\
+             \x20   let before = a.balance\n\
+             \x20   let f = await fee()\n\
+             \x20   mut a.balance = a.balance + f\n\
+             \x20   return before\n\
+             \x20 }\n\
+             \x20 return await h()\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// A sync lambda cannot suspend.
+    #[test]
+    fn a_sync_lambda_is_not_checked() {
+        assert!(with_head(
+            "pub fn f(a: Acct) -> fn() -> number {\n\
+             \x20 return fn() -> number {\n\
+             \x20   let before = a.balance\n\
+             \x20   mut a.balance = before + 1\n\
+             \x20   return 0\n\
+             \x20 }\n\
+             }\n"
+        )
+        .is_empty());
+    }
+
+    /// A lambda nested in an async lambda captures the outer one's local, so
+    /// that local is shared from the inner one's point of view; the outer one
+    /// is checked on its own and reports nothing for its own local.
+    #[test]
+    fn a_nested_async_lambda_shares_the_outer_ones_local() {
+        assert_eq!(
+            with_head(
+                "pub fn make() -> async fn() -> number {\n\
+                 \x20 return async fn() -> number {\n\
+                 \x20   let acc: Acct = { balance: 0, }\n\
+                 \x20   let inner = async fn() -> void {\n\
+                 \x20     let b = acc.balance\n\
+                 \x20     let f = await fee()\n\
+                 \x20     mut acc.balance = b + f\n\
+                 \x20   }\n\
+                 \x20   await inner()\n\
+                 \x20   return acc.balance\n\
+                 \x20 }\n\
+                 }\n"
+            ),
+            vec![format!("`acc.balance` {LOST}")]
         );
     }
 

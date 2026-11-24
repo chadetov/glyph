@@ -8894,8 +8894,6 @@ concrete follow-ups, in priority order:
 
 **G538, a recursive pairing is decided while it is being compared** (decision record 207, ruling 3b): `S = { next: S, v: number }` where `Q<number>` is declared, under `interface Q<X> { next: Q<X>  v: X }`, is UNDETERMINED in `glyph query assignable`, though `tsc` accepts it and it holds. The refusing relation already assumes a pairing it is in the middle of comparing holds, so nothing is refused; what is missing is the accepting face, which claims no acceptance where an interface is declared. Treating a pairing in progress as holding there too decides regular recursive types soundly, so the cap stops being the answer for them.
 
-**G517, E0225 looks inside async lambdas** (record 197): `check_await_straddle` visits only top-level `async fn` declarations, so a read, `await`, write in `async fn() { ... }` is silent. Schedule beside G516, after it, so the lambda walk starts from the corrected rule.
-
 **G480, `process.exit` returns `never`** (record 189): the `std/process` row types `exit` as `Ty::Unknown` under a stale comment saying Glyph cannot write `never`. Type it `never` (D47), and measure the corpus first: a `match` with an exiting arm then joins differently, which changes what a let-bound or returned `match` is typed as.
 
 **`glyph fix` reads E0240's position from a field, not its message** (record 192): the decline names the one reason that applied by matching words in E0240's message, and a test pins each of the six positions. Carry the `MutationSite` on the diagnostic beside `comparator_missing`, the way `insert_before` already carries the repair, and have `fix` match on it, so a reworded message cannot change what `fix` says.

@@ -1,6 +1,16 @@
 .gitignore
 .vscodeignore
 PUBLISHING.md
-node_modules/.bin/**
+package-lock.json
+*.vsix
 **/*.map
 **/.DS_Store
+node_modules/.bin/**
+node_modules/.package-lock.json
+node_modules/**/*.d.ts
+node_modules/**/README.md
+node_modules/**/changelog.md
+node_modules/**/CHANGELOG.md
+node_modules/**/.github/**
+node_modules/**/*.bnf
+node_modules/**/metaModel.schema.json

@@ -1189,7 +1189,10 @@ mod tests {
             \x20 return a + b.n + d + e + c[0]\n\
             }\n";
         let c = codes(body);
-        assert_eq!(c, vec!["E0238"; 5], "{c:?}");
+        // Six: the five calls, and `c[0]`, which reads a pending `number`
+        // out of `c` since an index read is typed as its element (D77), as
+        // a name holding an async call is refused where it is used.
+        assert_eq!(c, vec!["E0238"; 6], "{c:?}");
     }
 
     #[test]

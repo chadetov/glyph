@@ -73,4 +73,4 @@ The constructs Glyph leaves out so that a search can be trusted, and why a lint 
 
 - The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.
 
-Code examples on this page are checked against Glyph 0.1.177 on every build. Last changed 23 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.178 on every build. Last changed 23 Nov 2026.

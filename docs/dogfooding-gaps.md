@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-507 entries, 352 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+508 entries, 353 are fixed, 9 are partly fixed, 13 are decided or resolved, and
 133 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -17048,7 +17048,7 @@ and is the owner's to confirm.
   the version bump): no verb `glyph query --help` lists reads
   `glyph.banned_imports`.*
 
-- **G536. An interface's value is judged by spelling where a record or a
+- **G536. [FIXED] An interface's value is judged by spelling where a record or a
   map is declared.** With `interface HasV { v: number }`, `interface
   Box<X> { v: X }` and `type Ord = { v: number, }`, a `HasV` returned
   where `Ord` is declared is E0204 (D49 holds an interface value apart
@@ -17076,6 +17076,21 @@ and is the owner's to confirm.
   *Reproduced against 0.1.186 (the 0.1.188 branch build on 0.1.186, which
   prints 0.1.186): the same two E0204s, and nothing for `Box<number>` into
   `Ord` or `HasV` into `Record<string, number>`.*
+
+  Fixed in the G536 release: one rule judges an interface value, plain or
+  applied, before either spelling reaches the name check or the
+  base-against-base walk. Where a record with fields, a tagged union or a
+  modeled stdlib type is declared it is refused (D49); a record with no
+  fields takes it. Where a `Nullable<X>` is declared it is the pairing
+  against `X` (D45), which also stopped `Box<number>` being refused where
+  `Nullable<Box<number>>` is declared. Where a `Record<K, V>` is declared
+  it is decided as `tsc` decides it: a `string`, `number` or `int` key
+  refuses it whatever `V` is, and a string-literal union key accepts it
+  when every literal is a required member holding a `V`, which stopped
+  `GTwo<number>` (`a: X  b: X`) being refused where `Record<Mode, number>`
+  is declared. `HasV` where `Empty` (`type Empty = { }`) is declared is no
+  longer refused, as D49 says and `tsc` agrees. `Array`, `Option` and
+  `Result` are G586.
 
 - **G537. The depth cap's reason says no rule exists.** With `interface
   P<X> { next: P<Array<X>> }` and `type R = { next: R, }`, the relation
@@ -17304,3 +17319,24 @@ and is the owner's to confirm.
   components as not planned before 1.0. A framework that needs the directive
   can keep that file in TypeScript and import the emitted Glyph modules from
   it.
+
+- **G586. An interface value against `Option` and `Result` is still judged
+  by spelling.** G536 gave an interface value one rule where a record, a
+  tagged union, a `Record` map or a `Nullable` is declared, and left the
+  other prelude containers alone. With `interface HasV { v: number }` and
+  `interface Box<X> { v: X }`, `Box<number>` where `Option<number>` or
+  `Result<number, string>` is declared is E0204 (the base-against-base
+  walk reads `Box` against `Option`), and `HasV` there is silent. `tsc`
+  refuses all four (TS2322: neither interface has `tag`). `Array` had the
+  same split on the base G536 was built on; 0.1.182 refuses the plain
+  spelling there too, so it closes at the rebase. Refusing an interface
+  outright where `Option` or `Result` is declared would refuse an
+  interface that declares the tagged shape itself, which `tsc` accepts,
+  so the rule is a decision rather than a mechanical extension: refuse by
+  class as D49 does for records, or compare the members against the
+  emitted tagged shape. Filed by the G536 builder.
+
+  *Reproduced against 0.1.179 (the G536 build on dev-0.1.188-g461, which
+  still reports 0.1.179): `check --no-tsc` gives E0204 for `Box<number>`
+  into `Option<number>` and into `Result<number, string>`, and nothing for
+  `HasV` into either.*

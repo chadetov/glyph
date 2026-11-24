@@ -354,7 +354,12 @@ impl ResolveError {
                             "Glyph's boolean type is `bool`, not `boolean`."
                         }
                         "String" => "Glyph's string type is `string` (lowercase).",
-                        "Number" => "Glyph's number type is `number` (lowercase).",
+                        "Number" => "Glyph's number type is `number` (lowercase). To turn a `bigint` into one, `import std/bigint` and call `bigint.to_number(b)`, which returns a `Result`.",
+                        // G571: the conversion lives in `std/bigint` and returns a
+                        // `Result`, because `BigInt(1.5)` throws.
+                        "BigInt" => {
+                            "Glyph has no `BigInt()`: it throws on a fraction. `import std/bigint` and call `bigint.from_number(n)`, which returns a `Result` that is `Err` for anything but a whole number. A `bigint` literal is written `123n`."
+                        }
                         "Int" | "integer" | "Integer" => {
                             "Glyph's whole-number type is `int` (lowercase); it emits as TypeScript `number` and adds a runtime `Number.isInteger` boundary check. Use `number` for any real number."
                         }
@@ -477,6 +482,16 @@ mod tests {
         assert!(unresolved("Number").help().unwrap().contains("`number`"));
         assert!(unresolved("null").help().unwrap().contains("Option"));
         assert!(unresolved("undefined").help().unwrap().contains("Option"));
+    }
+
+    /// G571: `BigInt(n)` and `Number(b)` name the `std/bigint` conversion.
+    #[test]
+    fn the_js_number_bigint_conversions_point_at_std_bigint() {
+        let help = unresolved("BigInt").help().unwrap();
+        assert!(help.contains("bigint.from_number"), "{help}");
+        assert!(!help.contains("fix the spelling"), "{help}");
+        let help = unresolved("Number").help().unwrap();
+        assert!(help.contains("bigint.to_number"), "{help}");
     }
 
     /// G254: a host global names the std module that wraps it, rather than

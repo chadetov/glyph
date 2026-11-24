@@ -100,7 +100,7 @@ KNOWN: dict[tuple[str, str, str], str] = {
 # check rather than being guessed at.
 BARE_TYPES = {
     "Array", "Option", "Result", "Record", "Nullable", "Issue", "Schema",
-    "string", "number", "int", "bool", "void", "unknown", "never", "fn", "async",
+    "string", "number", "int", "bigint", "bool", "void", "unknown", "never", "fn", "async",
 }
 
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*")

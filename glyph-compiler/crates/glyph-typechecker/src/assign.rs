@@ -8618,7 +8618,7 @@ impl Assigner<'_> {
                     Expr::Number { raw, .. } if raw.bytes().all(|b| b.is_ascii_digit() || b == b'_') => format!(
                         "Write the literal as a `bigint`, `{raw}n`, so both operands are `bigint`s."
                     ),
-                    _ => "Give both operands the same type: declare the `number` one a `bigint`, or keep both `number`s. Glyph has no conversion between the two.".to_string(),
+                    _ => "Give both operands the same type. `import std/bigint`, then `bigint.from_number(n)` turns a whole `number` into a `bigint` and `bigint.to_number(b)` turns a `bigint` within 2^53 into a `number`; each returns a `Result`.".to_string(),
                 };
                 self.errors.push(TypeError::BigIntOperator {
                     message: format!(

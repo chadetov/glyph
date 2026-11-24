@@ -1608,7 +1608,17 @@ pub fn explain(code: &str) -> Option<&'static str> {
             After:   fn next(id: bigint) -> bigint { return id + 1n }\n\n\
             Before:  return mask >>> 2n\n\
             After:   return mask >> 2n\n\n\
-            For a number literal the help writes it with the `n` suffix. A \
+            For a number literal the help writes it with the `n` suffix. For a \
+            value, convert one side with `std/bigint` (G571): \
+            `bigint.from_number(n)` is `Err` for a fraction, `NaN` or an \
+            infinity, and `bigint.to_number(b)` is `Err` past \
+            `Number.MAX_SAFE_INTEGER`, where the conversion would round.\n\n\
+            Before:  fn total(id: bigint, n: number) -> bigint { return id + n }\n\
+            After:   fn total(id: bigint, n: number) -> Result<bigint, string> {\n\
+            \x20          let m = bigint.from_number(n)?\n\
+            \x20          return Ok(id + m)\n\
+            \x20        }\n\n\
+            A \
             comparison (`<`, `>`, `<=`, `>=`) between a `bigint` and a \
             `number` is legal and is not refused. Two bigints give a \
             `bigint`, so `a - b` is not a comparator's `number`.\n\n\
@@ -2857,7 +2867,7 @@ pub static CODES: &[CodeEntry] = &[
         code: "E0258",
         phase: "typechecker",
         meaning: "An arithmetic, bitwise or shift operator with a `bigint` on one side and a `number` (or `int`) on the other, or `>>>` on a `bigint` (G500, D38). JavaScript throws a TypeError for both and `tsc` refuses both (TS2365). A comparison between the two is legal and is not refused. An operand the checker cannot type is not judged",
-        fix: "Give both operands the same type. A number literal beside a `bigint` takes the `n` suffix (`id + 1n`); use `>>` for a `bigint`'s right shift. Glyph has no conversion between `number` and `bigint`",
+        fix: "Give both operands the same type. A number literal beside a `bigint` takes the `n` suffix (`id + 1n`); use `>>` for a `bigint`'s right shift. To convert one operand, `import std/bigint`: `bigint.from_number(n)` and `bigint.to_number(b)` each return a `Result`",
     },
     // ----- emitter (E03xx) -----
     CodeEntry {

@@ -246,6 +246,9 @@ impl StdlibStubs {
         s.add("std/sqlite", &["Db", "Row", "Sql", "from_trusted", "open"]);
         // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
         s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
+        // The two conversions between `number` and `bigint` (G571). Each is a
+        // `Result`: `BigInt(1.5)` throws and `Number(b)` past 2^53 rounds.
+        s.add("std/bigint", &["from_number", "to_number"]);
         // Locale-aware plurals, numbers, money, dates, lists and collation.
         // `Intl` is a namespace global, so no method form reached it and CLDR
         // plural data had no route at all; an app guessing `n == 1` is wrong in

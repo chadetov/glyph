@@ -1,0 +1,12 @@
+module neg
+
+// `bigint.to_number` is a `Result`: a `bigint` past 2^53 has no exact `number`,
+// and a match has to say what happens then.
+import std/bigint
+
+pub fn main() -> void {
+  let n = match bigint.to_number(9007199254740993n) {
+    Ok(n) => n,
+  }
+  print("${n}")
+}

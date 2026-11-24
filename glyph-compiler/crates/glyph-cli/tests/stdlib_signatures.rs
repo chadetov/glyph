@@ -37,6 +37,7 @@ fn the_modeled_stdlib_signatures_accept_the_calls_they_describe() {
     let source = r#"module ok
 
 import std/array
+import std/bigint
 import std/collections
 import std/console
 import std/dom
@@ -201,6 +202,17 @@ fn numbers() -> number {
     + math.PI + math.E
 }
 
+fn widened() -> number {
+  let big: bigint = match bigint.from_number(42) {
+    Ok(b) => b + 1n,
+    Err(_) => 0n,
+  }
+  return match bigint.to_number(big) {
+    Ok(n) => n,
+    Err(_) => 0,
+  }
+}
+
 fn paths() -> string {
   return path.join(["a", "b"]) + path.dirname("a/b") + path.basename("a/b")
     + path.extname("a.md") + path.normalize("a//b") + path.relative("a", "a/b")
@@ -273,7 +285,7 @@ fn environment() -> string {
 }
 
 pub fn main() -> void {
-  io.println(string.from(arrays() + records() + numbers() + patterns() + clocks() + holders()))
+  io.println(string.from(arrays() + records() + numbers() + widened() + patterns() + clocks() + holders()))
   io.eprintln(strings() + paths() + environment() + page())
   io.print("")
   io.eprint("")
@@ -313,7 +325,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
     let (modeled, partial, unmodeled, total) = glyph_cli::llms::stdlib_coverage();
     assert_eq!(
         (modeled, partial, unmodeled),
-        (150, 50, 147),
+        (152, 50, 147),
         "stdlib coverage moved: {modeled} modeled, {partial} partial, {unmodeled} unmodeled \
          over {total} exports. If that is the change you made, update this pin."
     );
@@ -333,7 +345,7 @@ fn the_stdlib_coverage_counts_are_pinned() {
 /// one grows, a signature was loosened and this is where it shows.
 #[test]
 fn the_modeled_modules_have_exactly_the_holes_they_document() {
-    let expected: [(&str, &[&str], &[&str]); 17] = [
+    let expected: [(&str, &[&str], &[&str]); 18] = [
         // The unifier takes the first candidate it binds for a type parameter
         // and never widens it, so a second `T` slot would reject a call `tsc`
         // accepts. These three take a `T` on the release that joins candidates.
@@ -344,6 +356,8 @@ fn the_modeled_modules_have_exactly_the_holes_they_document() {
         // Both render anything, the way `string.from` does.
         ("std/io", &["inspect", "render"], &[]),
         ("std/math", &[], &[]),
+        // The two conversions (G571), modeled all the way down.
+        ("std/bigint", &[], &[]),
         // The element type is left off while an omitted return annotation
         // lowers to `void`: see the note on the row.
         ("std/path", &["join"], &[]),

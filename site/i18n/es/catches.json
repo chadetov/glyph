@@ -500,12 +500,6 @@
         "tr": "<code>.sort()</code> sobre números los ordena como texto: <code>100,25,9</code>."
       }
     },
-    "gap-g390-index-update-across-await": {
-      "summary": {
-        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
-        "tr": "Una actualización perdida a través de <code>await</code> sobre <code>c[0]</code>, cuando la misma escritura en un campo se rechaza."
-      }
-    },
     "gap-g391-null-in-optional-field": {
       "summary": {
         "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",

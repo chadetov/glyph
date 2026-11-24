@@ -1,0 +1,8 @@
+module shout
+
+import fixtures { sample }
+
+@example shout(sample()) == "X"
+pub fn shout(s: string) -> string {
+  return s.toUpperCase()
+}

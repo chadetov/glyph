@@ -548,6 +548,11 @@ impl Types {
 
 impl_wrapper_salsa_value!(Types);
 
+mod gate_view;
+pub use gate_view::{
+    test_view, test_view_types, TestContext, TestRegion, TestView, UnreadTest,
+};
+
 // ============================================================================
 // Stage 6 wrapper: DeclTy (per-declaration intermediate)
 // ============================================================================

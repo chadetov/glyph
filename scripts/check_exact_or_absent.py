@@ -2328,6 +2328,34 @@ def case_a_change_is_required_for_a_consequence() -> tuple[bool, str]:
     return True, "a consequence needs an edit, and the kinds are a closed set"
 
 
+def case_a_site_in_an_example_is_a_site() -> tuple[bool, str]:
+    """A declaration whose only caller is another declaration's `@example`.
+
+    0.1.178 answered its removal with an empty list, and an empty list means no
+    site breaks. The example gate compiles that call and fails on it, so the
+    site is in the answer, in the declaration the annotation sits above, with
+    `context` saying it is in a test (G506, D73).
+    """
+    project = CORPUS / "example-sites"
+    a = impact(project, "fixtures::sample", {"kind": "remove"})
+    if "error" in a:
+        return False, f"refused: {a['error'][:160]}"
+    entries = [e for e in a.get("impact") or [] if e.get("relation") == "CALLS"]
+    if len(entries) != 1:
+        return False, f"expected the one example call, got {len(entries)} CALLS entries"
+    e = entries[0]
+    want = {"entity": "shout::shout", "context": "example", "verdict": "WILL_FAIL",
+            "diagnostic": "E0103", "path": "src/shout.glyph", "line": 4}
+    for k, v in want.items():
+        if e.get(k) != v:
+            return False, f"the example site has {k}={e.get(k)!r}, expected {v!r}"
+    refs = references(project, "src/fixtures.glyph", "sample", "CALLS")
+    edges = edges_of(refs, "CALLS")
+    if [(x.get("from"), x.get("context")) for x in edges] != [("shout::shout", "example")]:
+        return False, f"glyph_references does not carry the example call: {edges}"
+    return True, "the only caller, an @example, is listed with its context"
+
+
 HARD = [
     ("missing identity", case_missing_identity),
     ("ambiguous identity", case_ambiguous_identity),
@@ -2373,6 +2401,7 @@ HARD = [
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
+    ("a call in an @example is a site", case_a_site_in_an_example_is_a_site),
 ]
 
 KNOWN: list[tuple[str, object, str]] = []

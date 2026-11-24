@@ -488,11 +488,11 @@ const HOVER_MANUAL: &str = "The type at a position in a Glyph file, read inside 
 
 const DEFINITION_MANUAL: &str = "Where the name at a position is defined (a file path and range), following imports across modules, with the `module::name` `entity` it names so the answer chains into the other tools. One declaration has one answer whichever way it is imported: `Button` under `import ui { Button }`, the member half of `ui.Button` under `import ui` or `import ui as u` (in value position, in type position as `ui.Props`, and in both tags of a `<ui.Button>` element) all answer the declaration in `ui`. The namespace itself (`ui` in `ui.Button`) answers the `import` that binds it, with `entity` null and `entity_absent` saying why. A stdlib name keeps its `entity` and answers `path` and `range` null, with `path_absent` and `range_absent` saying the stdlib has no `.glyph` source. A name an npm package or a Node builtin declares is refused, since its declaration is TypeScript. `null` where the position is on no name, and on a name no module declares (an unbound name, or `ui.Nope`).";
 
-const REFERENCES_MANUAL: &str = "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers three of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, under whichever spelling the import gives it: `ui.fmt(1)` under `import ui` or `u.fmt(1)` under `import ui as u` is a call of `ui::fmt`, the same site `fmt(1)` is under `import ui { fmt }`. `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. `GENERATED_FROM`: the declaration was written by a `glyph gen` run, and the edge names the source artifact it was written from. It is read out of the generation record the generator writes into the file's header, one line per declaration that run wrote, so a declaration somebody added below the generated ones gets no edge and a variant of a generated union gets one. The edge carries `generator` (`openapi`, `dts` or `zod`), `source` (the artifact, resolved against the project root), `source_hash` (its content at generation time), `source_hash_now`, and `source_state`: `UNCHANGED` when the artifact still holds those bytes, `CHANGED` when it does not, and null with `source_state_absent` when it could not be read, which is a third answer rather than a difference. `source_state` is a fact about that one artifact's bytes: it does not say a fresh run would write this file, and for `dts` and `zod`, which follow references out of the entry file, it does not cover the files they followed into. Its `to` is null with `to_absent`, because the far end is an artifact rather than a declaration and has no `module::name` identity. Its `provenance` is `ASSERTED`: the record is the generator's own claim and nothing in the compiler re-derives it, which is why the hash is there. Coverage for this relation is its own and not the sweep's, since the record lives in the file that declares the entity: `unindexed` names that file when it was generated and its record cannot be read (written before records existed, or a format version this build does not know), and `not_indexed` names the classes a record cannot be keyed by, of which a local binding is one. An empty list under this relation means the declaring file was read and nothing records the declaration as generated. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
+const REFERENCES_MANUAL: &str = "Every edge into a symbol across the whole project, split by relation. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position. The answer is `{ entity, provenance, relations }`, and `relations` holds one entry per relation asked for. Relation names come from one closed vocabulary shared by every tool here, and this tool answers three of them for a symbol address. `CALLS`: the site applies the symbol to an argument list, so it stops compiling when the parameters, the arity, or a variant payload change. The callee has to be the name itself, under whichever spelling the import gives it: `ui.fmt(1)` under `import ui` or `u.fmt(1)` under `import ui as u` is a call of `ui::fmt`, the same site `fmt(1)` is under `import ui { fmt }`. `io.println()` calls a member of `io` and not `io`, and a call through a local alias calls the alias; applying a tagged-union variant (`Ok(3)`) is a call, since the site breaks the same way when the payload changes. `REFERENCES`: every other occurrence, which is the declaration's own name, an import binding, a type annotation naming the symbol, a value read, the symbol passed as an argument rather than applied to one, a match pattern naming a variant, and a JSX element naming a component. Together the two lists are every occurrence, so asking for one loses no site. Both cover the tests the example gate runs as well as the program: a name used in an `@example` or in a `@doc` fence tagged `glyph @run` is an occurrence, read off the file as the gate compiles it, and its edge's `from` is the declaration the annotation is written above. Every `CALLS` and `REFERENCES` edge carries `context`: `example` or `doc_run` for an edge in a test, null for one in the program. A test whose text the analysis could not read is named under the relation's `not_indexed`, one by one. `GENERATED_FROM`: the declaration was written by a `glyph gen` run, and the edge names the source artifact it was written from. It is read out of the generation record the generator writes into the file's header, one line per declaration that run wrote, so a declaration somebody added below the generated ones gets no edge and a variant of a generated union gets one. The edge carries `generator` (`openapi`, `dts` or `zod`), `source` (the artifact, resolved against the project root), `source_hash` (its content at generation time), `source_hash_now`, and `source_state`: `UNCHANGED` when the artifact still holds those bytes, `CHANGED` when it does not, and null with `source_state_absent` when it could not be read, which is a third answer rather than a difference. `source_state` is a fact about that one artifact's bytes: it does not say a fresh run would write this file, and for `dts` and `zod`, which follow references out of the entry file, it does not cover the files they followed into. Its `to` is null with `to_absent`, because the far end is an artifact rather than a declaration and has no `module::name` identity. Its `provenance` is `ASSERTED`: the record is the generator's own claim and nothing in the compiler re-derives it, which is why the hash is there. Coverage for this relation is its own and not the sweep's, since the record lives in the file that declares the entity: `unindexed` names that file when it was generated and its record cannot be read (written before records existed, or a format version this build does not know), and `not_indexed` names the classes a record cannot be keyed by, of which a local binding is one. An empty list under this relation means the declaring file was read and nothing records the declaration as generated. Each edge carries `relation`, `from` (the declaration it sits in, as `module::name`, or null with `from_absent` when it is at module level), `to`, `provenance`, and where it is, so an entry read on its own still says what it is about. `provenance` says whether the far end is a fact or a claim, and the three values mean one thing each. `PROVED`: the symbol is declared by a `.glyph` module this project holds, or by a stdlib module the compiler carries and checks the export list of. `ASSERTED`: no Glyph module declares it and a TypeScript declaration does, either a `declare module` in a `.d.ts` this project carries or an installed package of that name, so `tsc` checks the far end and Glyph's resolver never read it; `provenance_detail` names the evidence. `UNDETERMINED`: neither, and the detail says what was checked. Each relation also carries `unindexed`, the files the sweep could not read, named one by one rather than counted: a project file that does not parse holds occurrences this answer cannot see, and leaving it out would make a partial list look like a complete one. Coverage is stated per relation and never per answer. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
 
 const VARIANTS_MANUAL: &str = "Every match site in the project over one tagged union, and which variants each site's arms name. Use it before adding or removing a variant: it is the list of places that have to change. The answer names its relation, `MATCH_SITES`, on the envelope and on every site it keyed, so an entry lifted out of the reply still says what put it there; a site under `unkeyed` carries `relation` null and `relation_absent` instead, because this project never joined it to the type and an edge it never made must not be claimed. Each site carries the declaration it sits in (as `module::name`), the scrutinee as written in the source, its line, and the arm ordinals with the variant each one names, so you can go to it after the lines around it have moved. `state` says what the compiler concluded, and the four states are not equally safe. `exhaustive`: every variant is named and no arm was skipped, so adding a variant breaks this site and the compiler will point you at it. `has_catch_all`: one of the arms absorbs everything the earlier arms did not name, so adding a variant leaves this site compiling and silently routes the new variant to the catch-all, which is more dangerous than a site that fails to compile because nothing tells you it is now wrong. `declined`: the checker either read an arm it does not model or found variants no arm names, and `missing` lists those. `scrutinee_unresolved`: the scrutinee's type never resolved, so nothing about the site is checked today. A site that reaches this type through a payload rather than as its own scrutinee (`Ok(Some(n))` reaching `Option` inside a match on `Result`) is filed under the type it matches on, so it is listed under `nested` instead, with the depth on each arm and the type it does match on. Those sites break the same way when a variant is added, so read both lists. A union with no declaration in this project (a prelude or stdlib one) is reported under its name with no declaration to go to, and a site whose type this project cannot key is listed under `unkeyed` rather than left out of the answer. The `type` block carries the union's own `variants` in declaration order, or an explicit `null` with `variants_unavailable` saying why they could not be read. A name that turns out not to be a tagged union at all, a record for instance, is refused rather than answered with an empty site list, because an empty list means a union nothing matches on. Send `proposed_variant` to ask what your edit does rather than what is there. Each site then carries a `consequence`: `WILL_FAIL`, the site stops compiling once the variant exists and the compiler points at it; `ABSORBS`, the site keeps compiling and an arm silently takes the new variant, which is the one nothing will tell you about; `UNDETERMINED`, the compiler concluded nothing about this site, either an arm it read nothing from or a scrutinee whose type never resolved, so it cannot say; `NOT_INDEXED`, a site under `unkeyed`, which this project never joined to the type. A proposed name the union already has is refused, since that is not the change it looks like. `summary` is the arithmetic over that list, so two callers reading one answer reach the same figures: `sites` and `files` are the totals, `consequences` (or `states`, without `proposed_variant`) is the breakdown, and `lines` renders them as the sentences a reader wants, counts aligned. Every total states what it could not count, in `not_counted` and in `lines` both, and `not_counted` is present and empty rather than absent when a total covers everything: sites that reach the type through a payload (`nested`), sites this project could not key to it (`unkeyed`), sites filed under a module the project's file list no longer holds, and files the sweep never read, whose site count is `null` because it is unknown rather than zero. A count reads as authoritative in a way a list does not, so a total that silently left any of those out would be a partial list with a figure in front of it. `unindexed` names those files one by one, since a project file that does not parse or does not resolve holds match sites this answer cannot see. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it. A union whose node is `opaque-ts` or `extern` has no variant list here, so a site over it is `scrutinee_unresolved` and never `exhaustive`: whether its arms are the whole union is not a question this project can answer.";
 
-const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number`, `bigint` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number`, `bigint` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number`, `bigint` or `bool`, reading the container and never its arguments (G216), and a `string`, `number`, `bigint` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number`, `bigint` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Five pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, a structural record against a declared record (local, imported, generic or a second name for one, compared field by field through the whole relation, and refused when the record's fields are all optional and the value shares none of them, which is TypeScript's TS2559), a string-literal union on either side, and a `string`, `number`, `bool` or `Array` against an interface this module declares, or that interface against one of them (compared through the value's apparent members as TypeScript's library declares them, G502, and refused the other way round because an interface's value is an object, G460). Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, an `extern_ts` or `typeof` body), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number`, `bigint` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike. The checker does compare a function value against the type its use context expects (by kind, arity, each parameter and the return, G491), but impact does not decide those sites: it would have to follow the value to the slot it lands in, which this relation does not hold. A JSX element is decided as the call it lowers to, `createElement(Button, { label: \"go\" })`: one argument, the props record the element builds from its written attributes (`key` aside, which is React's own), against the component's one parameter, through the cell a call argument gets, so an element and the call written with that record answer alike. Its entry carries that argument under `arguments` and each written attribute under `attributes`, paired with the field of the props record the checker compares it against and decided by the relation on that pairing. An element that spreads an object into its props is `UNDETERMINED`, since the checker does not ask which props a spread supplies. Under `change_arity` an element of a component that takes one props record is `ABSORBS` when it passes anything (a prop, a spread, a child) and `SAFE` when it passes nothing: the edit that keeps the declaration legal removes the parameter, the checker compares an element of a parameterless component against nothing and `tsc` accepts it, and a second parameter is E0214 at the declaration. An element of a component with no parameter is `NOT_INDEXED`, since the record the edit adds is not named and E0211 at the element turns on its required fields, and so is an element of a `fn`, which no parameter bound applies to. The `import` line that names the declaration is `SAFE` under both kinds: an import resolves the name against the module's exports, which hold a declaration's name when it is `pub` and nothing else of it, and both edits keep the name and the `pub`. The `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
+const IMPACT_MANUAL: &str = "What breaks if you make one named change to one declaration. Address the entity by its `module::name` identity, the same one a diagnostic and `glyph_references` report, or `module::Record.field` for a record field. `change` is required, because a verdict is a fact about an edit: with no edit named there is nothing for `WILL_FAIL`, `ABSORBS` or `SAFE` to be true of and every entry would come back a bare reference. The kinds are closed: `add_variant` and `remove_variant` (each with `change.variant`), `rename`, `change_arity`, `change_signature_type`, `remove`. `rename` takes no new name, since every site naming the old one stops resolving whatever you rename it to. Each kind travels along one carrier relation and no other, and the carrier is exact at hop 1 and empty at hop 2: Glyph never infers a declaration's type from its body, so a callee's type cannot reach a caller's signature and a change to X can only invalidate expressions that name X. Adding or removing a variant carries along `MATCH_SITES` over the union (and, when a name goes away, `CALLS` and `REFERENCES` over the variant); renaming or removing a declaration and changing its arity or a signature type carry along `CALLS` and `REFERENCES`; renaming or removing a field carries along `FIELD_ACCESS`. `CALLS` and `REFERENCES` cover the tests the example gate runs as well as the program: a name used in an `@example` (the property form included) or in a `@doc` fence tagged `glyph @run` is a site, read off the file as the gate compiles it, with each test appended as a function. Such an entry's `entity` is the declaration the annotation is written above, its position is where the name is written in the annotation, and its `context` is `example` or `doc_run`; every other entry's `context` is null. A site in the entity's own `@example` is a use of the name and not the declaration's own name, so it is a site rather than `excluded`. Under `rename` and `remove` such a site is `WILL_FAIL` with the code the gate's build raises there once the rest of the project compiles: `E0103` for a bare name and `E0105` for a namespace-qualified one, which `glyph check` prints as they are and files under `E0403` (\"examples did not compile\") in `--json`. Under `change_arity` and `change_signature_type` a call in a test is decided as any call is, per argument against the checker's own types for the test. A test whose text the analysis could not read (an `@example` that does not parse, which the gate reports as malformed) is named under the search's `not_indexed`, one by one. A field access or a `match` inside a test is not in `FIELD_ACCESS` or `MATCH_SITES`, which are written by the checker pass over the program, and those searches name that class. The answer is `{ entity, entity_kind, change, depth_requested, depth_answered, searches, impact }`. `impact` is one entry per site, each with `entity` (the declaration it sits in, so an entry lifted out of the reply still says what it is about), `context` on a `CALLS` or `REFERENCES` entry, `relation`, `verdict`, `because` (the reason that verdict and no other), `diagnostic` (the code the compiler raises, or null with `diagnostic_absent` when more than one is possible or none is), and `searches`, the searches that produced it. The verdicts are closed and each means one thing. `WILL_FAIL`: the compiler has enough to prove this site stops compiling. `ABSORBS`: it can prove the change is absorbed here silently, which is the dangerous one, because the site keeps compiling and stops being right. `SAFE`: it can prove this site is still correct. `UNDETERMINED`: it indexed the relationship, looked at this site, and cannot establish the consequence. `NOT_INDEXED`: it does not index the semantic class the question needs, so no site of this shape can be decided at all. The last two are different claims and must not be read as two shades of the same one: the first says looking harder at this site is what is missing, the second says the question was never askable. `change_signature_type` means a parameter's declared type is replaced by one the argument at a site does not satisfy, and a call site is decided per argument against the checker's own comparison rules, the pairing being the argument's type against the parameter as declared today. The change names no replacement type, so every `WILL_FAIL` under it is a statement about the argument: the checker compares an argument of that type against the classes of parameter its `because` names, and a replacement outside those classes is the `UNDETERMINED` cell of the same table, not a caught one. `WILL_FAIL` with E0211 where the checker compares the pairing: a primitive against a primitive, a declared type against a declared type (compared by the declaration each name resolves to, across a module boundary as well: G226), a tagged union or record against a `string`, `number`, `bigint` or `bool`, whether declared in the calling module (the rule G201 added) or read through another module's exports (G215), a `string`, `number`, `bigint` or `bool` against a tagged union or a record with at least one field, declared in the calling module or imported (the reverse of both), a prelude container (`Option`, `Result`, `Array`, `Record`, `Nullable`) against a `string`, `number`, `bigint` or `bool`, reading the container and never its arguments (G216), and a `string`, `number`, `bigint` or `bool` against `Option`, `Result`, `Array` or `Record`; a `string`, `number`, `bigint` or `bool` against `Nullable<T>` is decided one level in, against `T`, since `Nullable<T>` emits as `T | null` and a bare `T` is one of the two. Five pairings are decided by running the relation rather than by a sentence written here, because their rules recurse and no sentence about two kinds is true of them: a prelude container against a prelude container, a structural record against a structural record, a structural record against a declared record (local, imported, generic or a second name for one, compared field by field through the whole relation, and refused when the record's fields are all optional and the value shares none of them, which is TypeScript's TS2559), a string-literal union on either side, and a `string`, `number`, `bool` or `Array` against an interface this module declares, or that interface against one of them (compared through the value's apparent members as TypeScript's library declares them, G502, and refused the other way round because an interface's value is an object, G460). Running it, the relation either reads the pairing or does not, and reading it is `WILL_FAIL` whichever way it came out, since an accepted pairing is a pairing a replacement can be refused at. Only a pairing it declines is `UNDETERMINED`. `glyph_assignable` is the same call and reports the acceptance as `COMPATIBLE`, which is what it is called when the question is about two types rather than about an edit. `UNDETERMINED` where the checker has no rule for the pairing, and `because` names which: an argument whose type the checker does not hold, a primitive against the zero-field record `type T = { }` wherever it is declared (excluded because TypeScript lets a `string` satisfy the empty object type), a primitive against a declared type whose body is neither a union nor a record (an alias, an `extern_ts` or `typeof` body), an imported declaration whose exported body is not a union or a record at the end of its chain of names (the same shapes, and a generic application), a generic application against a bare declared name, a prelude container against a `void` parameter or a `void` argument against a prelude container (the container rule is stated over `string`, `number`, `bigint` and `bool` only, as every shape rule in the checker is), or an imported declaration against a parameter that is neither a primitive nor a declared name (an application of a prelude type, say). A site is the weakest of its arguments, and a call entry carries `arguments`, one per argument paired with a parameter, each with its own verdict and reason. A function read as a value rather than applied is `NOT_INDEXED`, under this kind and under `change_arity` alike. The checker does compare a function value against the type its use context expects (by kind, arity, each parameter and the return, G491), but impact does not decide those sites: it would have to follow the value to the slot it lands in, which this relation does not hold. A JSX element is decided as the call it lowers to, `createElement(Button, { label: \"go\" })`: one argument, the props record the element builds from its written attributes (`key` aside, which is React's own), against the component's one parameter, through the cell a call argument gets, so an element and the call written with that record answer alike. Its entry carries that argument under `arguments` and each written attribute under `attributes`, paired with the field of the props record the checker compares it against and decided by the relation on that pairing. An element that spreads an object into its props is `UNDETERMINED`, since the checker does not ask which props a spread supplies. Under `change_arity` an element of a component that takes one props record is `ABSORBS` when it passes anything (a prop, a spread, a child) and `SAFE` when it passes nothing: the edit that keeps the declaration legal removes the parameter, the checker compares an element of a parameterless component against nothing and `tsc` accepts it, and a second parameter is E0214 at the declaration. An element of a component with no parameter is `NOT_INDEXED`, since the record the edit adds is not named and E0211 at the element turns on its required fields, and so is an element of a `fn`, which no parameter bound applies to. The `import` line that names the declaration is `SAFE` under both kinds: an import resolves the name against the module's exports, which hold a declaration's name when it is `pub` and nothing else of it, and both edits keep the name and the `pub`. The `CALLS` search names the one class the relation does not hold, a return-type change reaching the typed position a call's result flows into. **Coverage is stated per search and never per answer.** One search is one relation run once from one subject, identified as `RELATION:subject`, and it carries its own `guarantee` (what it is exact about), `unindexed` (project files it could not read, named one by one, since a file that does not parse holds sites this answer cannot see), `not_indexed` (classes of site the relation does not hold at all) and `excluded` (the declaration's own name, which is where the edit is made rather than a site it breaks). An entry's guarantee is the conjunction along the searches it names, which is why there is no single coverage sentence over the whole list: two relations read different tables and fail to reach different things. `relations` optionally narrows the answer to some of the carrier's relations; a name outside the closed vocabulary is an error, and so is a relation this change does not carry along. `depth` counts hops and defaults to 1. A request for 2 or more is answered rather than refused: the answer is the exact hop-1 answer plus `next_query`, naming the question that would be exact, because what a second hop is about is a different edit (the repair one of these sites gets) and that edit does not exist until somebody makes it. Every node an answer names carries `origin`, which says what the thing is rather than how the edge into it was checked. `glyph`: declared in Glyph source the compiler read, a `.glyph` module of this project or the stdlib surface the compiler carries. `extern`: a Glyph declaration of this project whose definition is an `extern_ts` escape, so it is keyed and addressable and there is raw TypeScript behind the name that no Glyph pass reads. `opaque-ts`: no Glyph module declares it and a `.d.ts` this project carries or an installed package asserts it. A node that is none of the three carries `origin` null with `origin_absent` saying what was checked, rather than being rounded to the nearest of them. `origin_detail` names the file or the escape it was read from. It is never part of the identity: `payments::PaymentResult` is spelled that way whether it came out of Glyph source or out of a generated boundary, so an answer can be joined to another answer by the key alone. Read it beside `provenance`, which is a different fact: an `extern_ts` type alias is `PROVED`, because the resolver did read the declaration, and `extern`, because there is no shape behind it.";
 
 const SYMBOL_MANUAL: &str = "Everything the compiler holds about one symbol, in one call: what it is, how it is written, and what a `match` over it must do. Address it by its `module::name` identity, the same one a diagnostic, `glyph_references` and `glyph_impact` report, or by a position (`path`, `line`, `character`). Ask this before writing a call, a record literal or a `match` over a type you did not declare; it is the answer grep cannot give, because the compiler resolved the name to emit the program.\n\nThe answer is one object. `kind` is the vocabulary the rest of it is read by: `record`, `union`, `string-literal-union`, `alias`, `function-type`, `extern-ts`, `typeof`, `function`, `component`, `const`, `interface`, `variant`. An `interface` is never reported as a `type`, because its members are a different fact from a record's fields. `entity`, `module` and `name` are the identity; `pub` is whether the symbol is exported from its module; `generics` are the type parameters it takes, in order; `path` and `range` are where it is declared; `origin` is what kind of declaration the compiler read, exactly as the other tools define it.\n\n`type` is the whole symbol lowered and rendered by the compiler. `fields` carries a record's fields with their types and whether each is optional. `variants` carries a tagged union's variants, each with its `payload` and the `construct` string that writes one (`Paid({ transaction_id: string })`, `Pending`), so a caller never has to guess the constructor's shape. `literals` carries a string-literal union's values. `parameters` and `returns` carry a callable's signature, each parameter with its ordinal, name, type, `owned` and `optional`. `members` carries an interface's members, each marked `method` or `property`. `owner` names the union a variant belongs to. `construct` is the syntax that builds a value: a variant has one, a record does not (a record is a bare object literal typed by its annotation, and the reason says so). `exhaustive_match` is whether a `match` whose scrutinee has this type must name every case. `examples` are the `@example` expressions written above the declaration, verbatim: each one is compiled and run by `glyph check`, so it is a use of this symbol known to work.\n\nEvery fact is a pair. A key is always present, and beside it `<key>_absent` says why it is null: `fields` is null on a union, `variants` is null on a record, and each says which. Absent is never omission and never a guess. `exhaustive_match` has three answers rather than two: `true` and `false` are what the exhaustiveness check does, and `null` is where the answer belongs to a declaration this one only names (an alias, an `extern_ts` body), where `false` would be a caller dropping an arm believing nothing stops it.\n\nWhat it refuses. A name the module does not declare is refused rather than answered with an empty shape. An import binding is refused, with the instruction to ask under the module that declares it. `module::Record.field` is refused: a field is read out of `fields`, and `glyph_references` and `glyph_impact` are the two that take the field form. A position on a file-private binding is refused, because it has no identity; `glyph_hover` answers there instead.";
 
@@ -500,7 +500,7 @@ const SYMBOLS_MANUAL: &str = "Search the project's top-level declarations (and t
 
 const ASSIGNABLE_MANUAL: &str = "Can a value of one type go where another is declared. Asks the checker's own assignability relation, the one it runs at a `let`, a `const`, a `return` and a call argument, and reports nothing it did not decide. Use it before you widen a parameter, reach for a cast, or assume a boundary type flows into a scalar: `Nullable<int>` into `int` is refused and TypeScript cannot catch it, because the emitted `number | null` narrows.\\n\\n`path` is a `.glyph` file, and it names the scope both types are read in as well as the project they are counted in. `from` and `to` are each either a `module::name` addressing a type declaration, the same identity `glyph_symbol` and `glyph_impact` use, or a Glyph type expression written exactly as it would appear in an annotation in that file: `string`, `int`, `Nullable<int>`, `Option<Order>`, `Array<string>`, `{ id: string }`, `fn(number) -> bool`, `orders.Order` through a namespace import. Both are resolved by the compiler's own parser, resolver and lowerer in that file's scope, so a second name (D46), an imported declaration and a prelude container all mean here what they mean there. A spelling that is not a type expression, a `module::name` this project does not hold or that names something other than a type, and a name the file's scope does not reach are each refused with the reason rather than answered.\\n\\nThe answer is `{ path, module, from, to, verdict, because, diagnostics, resolved_in }`, with `from` and `to` each carrying `asked`, `form` (`spelling` or `entity`), `read_as` (the type the compiler resolved it to, which is where you see `int` come back as `number`) and `entity`. The verdicts are closed and each means one thing. `WILL_FAIL`: a rule of the relation refuses the pairing, so every site that writes it is a diagnostic, and `diagnostics` names the code per site, E0204 at an annotated `let` or `const` and at a `return`, E0211 at a call argument. `COMPATIBLE`: a rule read the pairing and accepted it. `UNDETERMINED`: no rule covers the pairing, so Glyph reports nothing here and only `tsc` on a full `glyph build` would see a mismatch; `because` names what is missing.\\n\\n`COMPATIBLE` is never the absence of a refusal. The relation refuses only what it can prove wrong, so a silent pass is not an acceptance, and this claims one only where a rule is total over the pairing: it would have refused had the two sides differed in the way it reads. Two function types are compared by kind, by arity, by each parameter contravariantly and by the return, and come back `COMPATIBLE` only when every one of those is accepted. A generic function value is first instantiated against the declared type's parameters, and one whose type parameters those do not bind comes back `UNDETERMINED`, as does a function returning `void` where one returning a value is declared, since the relation skips a `void` return. A `COMPATIBLE` answer is Glyph accepting, not a proof that `tsc` will.";
 
-const DEPENDENCIES_MANUAL: &str = "What one declaration depends on: every declaration its own source names, split by relation. The mirror of `glyph_references`, which asks the same tables from the other end, so the two agree edge for edge over one declaration's extent. Address the declaration by its `module::name` identity. `CALLS` is every name it applies to an argument list; `REFERENCES` is every name it reads without applying (an annotation naming a type, a value read, a variant in a pattern, a name passed as an argument, an import binding used); `FIELD_ACCESS` is every member access the checker joined to the record that declares the field, whose `to` is `module::Record.field`. The two name relations are read out of the resolver's own table and never out of a scan of the text, so an import edge is here because the resolver bound the name; the field relation is read out of the checker's field-use table, so a site is there because a field set resolved. A name the resolver bound to a local binding or to a prelude built-in is not an edge, because neither has a `module::name` to put at the far end. `MATCH_SITES` is refused with the surface that answers it, `glyph_variants`. The answer is `{ entity, entity_kind, origin, depth_requested, depth_answered, relations }`, and each relation carries its own `edges`, its own `guarantee`, and the files it could not read under `unindexed`; `FIELD_ACCESS` carries `unkeyed` besides, for a member access the checker reached and could not join to any record. Every edge names both ends (`from`, `to`), the relation it stands in, its `provenance` (whether the compiler proved the far end or a TypeScript declaration asserted it), the far end's `origin`, and where in the declaration it sits. Exact at hop 1: every edge is inside the declaration's own extent. `depth` of 2 or more is answered rather than refused, with `next_query` naming the one-call-per-root question that would be exact, because composing hops here would merge several declarations' edges into one list where nothing says whose edge is whose.";
+const DEPENDENCIES_MANUAL: &str = "What one declaration depends on: every declaration its own source names, split by relation. The mirror of `glyph_references`, which asks the same tables from the other end, so the two agree edge for edge over one declaration's extent. Address the declaration by its `module::name` identity. `CALLS` is every name it applies to an argument list; `REFERENCES` is every name it reads without applying (an annotation naming a type, a value read, a variant in a pattern, a name passed as an argument, an import binding used); `FIELD_ACCESS` is every member access the checker joined to the record that declares the field, whose `to` is `module::Record.field`. The two name relations are read out of the resolver's own table and never out of a scan of the text, so an import edge is here because the resolver bound the name; the field relation is read out of the checker's field-use table, so a site is there because a field set resolved. A name the resolver bound to a local binding or to a prelude built-in is not an edge, because neither has a `module::name` to put at the far end. `MATCH_SITES` is refused with the surface that answers it, `glyph_variants`. The answer is `{ entity, entity_kind, origin, depth_requested, depth_answered, relations }`, and each relation carries its own `edges`, its own `guarantee`, and the files it could not read under `unindexed`; `FIELD_ACCESS` carries `unkeyed` besides, for a member access the checker reached and could not join to any record. Every edge names both ends (`from`, `to`), the relation it stands in, its `provenance` (whether the compiler proved the far end or a TypeScript declaration asserted it), the far end's `origin`, and where in the declaration it sits. A name used in the declaration's own `@example`s or `@doc` `glyph @run` fences is an edge too, read off the file as the example gate compiles it, and `CALLS` and `REFERENCES` edges carry `context`: `example` or `doc_run` for one in a test, null for one in the source. A field access in a test is not in `FIELD_ACCESS`, which names that class under `not_indexed`. Exact at hop 1: every edge is inside the declaration's own extent or its own tests. `depth` of 2 or more is answered rather than refused, with `next_query` naming the one-call-per-root question that would be exact, because composing hops here would merge several declarations' edges into one list where nothing says whose edge is whose.";
 
 const EXPORTS_MANUAL: &str = "What one module makes visible to an importer. The set of names is the compiler's own export query, the one the import verifier reads, so a name is here exactly when another module may `import` it: a `pub` declaration, or a variant a `pub` tagged union hoists. An `import` is not re-exported (D15), so a name this module imports is not in the list. Each entry is the `glyph_symbols` entry shape: `name`, the `module::name` identity every other tool is keyed by, `module`, `kind` in `glyph_symbol`'s vocabulary, `pub`, `location`, and a one-line `signature` (null with `signature_absent` where the compiler lowered no type, which an unannotated `const` whose initializer the checker cannot type is). `glyph_symbol` on the identity is the rest of the description. A module this project does not hold is refused rather than answered with an empty list, since an empty list says the module exports nothing. A module the compiler could not parse or resolve answers `exports` null with `exports_absent` saying which, and names the file under `unindexed`.";
 
@@ -1122,6 +1122,7 @@ fn unresolvable(
             None,
             wanted,
             BTreeMap::new(),
+            &[],
             &[],
             // The file the address is in did not parse or did not resolve, so
             // the address never became a subject. There is nothing for a
@@ -2218,7 +2219,7 @@ fn edge_value(
         Some(_) => Origin::pair(to_origin),
         None => (Value::Null, Value::Null),
     };
-    json!({
+    let mut value = json!({
         "relation": span.relation.wire(),
         "from": from,
         "from_absent": from.is_none().then_some(MODULE_LEVEL),
@@ -2230,7 +2231,25 @@ fn edge_value(
         "provenance": provenance.wire(),
         "path": display_path(file.root, file.path),
         "range": range_json(index, file.text, span.start, span.end),
-    })
+    });
+    // G506: an occurrence is either in the program or in a test the example
+    // gate runs, and an entry says which. Only the two occurrence relations
+    // can sit in a test; a field access or a match site in one is a class
+    // those relations name as not indexed.
+    if matches!(span.relation, Relation::Calls | Relation::References) {
+        if let Some(out) = value.as_object_mut() {
+            out.insert("context".to_string(), Value::Null);
+        }
+    }
+    value
+}
+
+/// Stamp the test an occurrence sits in on its edge, `"example"` or
+/// `"doc_run"`; an occurrence in the program keeps `null`.
+fn set_context(value: &mut Value, test: Option<&glyph_db::TestRegion>) {
+    if let (Some(out), Some(region)) = (value.as_object_mut(), test) {
+        out.insert("context".to_string(), json!(region.context.wire()));
+    }
 }
 
 /// The answer one `glyph_references` call returns.
@@ -2249,6 +2268,7 @@ fn relations_answer(
     wanted: &[Relation],
     mut edges: BTreeMap<Relation, Vec<Value>>,
     unindexed: &[Value],
+    not_indexed: &[String],
     generated: &GeneratedFrom,
 ) -> String {
     let mut relations = serde_json::Map::new();
@@ -2263,6 +2283,7 @@ fn relations_answer(
             json!({
                 "edges": edges.remove(relation).unwrap_or_default(),
                 "unindexed": unindexed,
+                "not_indexed": not_indexed,
             })
         };
         relations.insert(relation.wire().to_string(), entry);
@@ -2400,6 +2421,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                     &wanted,
                     BTreeMap::new(),
                     &[],
+                    &[],
                     &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
                 ));
             };
@@ -2456,6 +2478,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 // The binding itself is not something a generation record can
                 // name. The declaration around it is, and it may well be
                 // generated, which is why this is a named class and not `[]`.
+                &[],
                 &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
             ));
         }
@@ -2476,6 +2499,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 None,
                 &wanted,
                 BTreeMap::new(),
+                &[],
                 &[],
                 &GeneratedFrom::not_indexed(GENERATED_FROM_NEEDS_AN_ENTITY),
             ));
@@ -2503,11 +2527,14 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     // does not parse holds occurrences this answer cannot see, and dropping it
     // silently is what makes a partial list look like a complete one.
     let mut unindexed: Vec<Value> = Vec::new();
+    // Tests the example gate runs that the sweep could not read, named one by
+    // one (G506).
+    let mut not_indexed: Vec<String> = Vec::new();
     for (fpath, entry) in project.searched() {
         let ftext = entry.file.source_text(db);
         let fparsed = glyph_db::parse_module(db, entry.file);
         let fresolved = glyph_db::resolve(db, entry.file);
-        let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
+        if fparsed.module().is_none() || fresolved.resolved().is_none() {
             unindexed.push(json!({
                 "path": display_path(&root, fpath),
                 "why": match fparsed.module() {
@@ -2516,6 +2543,19 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 },
             }));
             continue;
+        }
+        // The file as the example gate compiles it, so a name used in an
+        // `@example` or a `@doc` `glyph @run` fence is an occurrence here as
+        // it is to the gate (G506). With no test in the file it is the file.
+        let gate = glyph_db::test_view(db, entry.file);
+        for test in gate.unread() {
+            not_indexed.push(unread_test(&root, fpath, &entry.module_path, test));
+        }
+        let vtext = gate.text(ftext);
+        let (Some(fmodule), Some(fresolved)) =
+            (gate.parsed().module(), gate.resolved().resolved())
+        else {
+            continue;
         };
         let spans = global_relations_in(
             fmodule,
@@ -2523,7 +2563,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
             &entry.module_path,
             &sym_module,
             &name,
-            ftext,
+            vtext,
             true,
         );
         if spans.is_empty() {
@@ -2532,7 +2572,22 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         let index = LineIndex::new(ftext);
         let file = FileCtx { path: fpath, root: &root, text: ftext };
         for span in spans {
-            let decl = enclosing_decl_name(fmodule, span.start);
+            let test = gate.region_of(span.start, span.end);
+            let span = match test {
+                Some(region) => match region.map(span.start, span.end) {
+                    Some((start, end)) => RelatedSpan {
+                        start,
+                        end,
+                        relation: span.relation,
+                    },
+                    None => continue,
+                },
+                None => span,
+            };
+            let decl = match test {
+                Some(region) => Some(region.decl.clone()),
+                None => enclosing_decl_name(fmodule, span.start),
+            };
             // The near end sits in this file, so its origin is read off the
             // parse already in hand rather than looked up again.
             let from_origin = decl.as_deref().map(|d| match extern_ts_escape(fmodule, d) {
@@ -2550,19 +2605,18 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
                 )),
             });
             let from = decl.map(|d| format!("{}::{d}", entry.module_path));
-            edges.push((
-                span.relation,
-                edge_value(
-                    file,
-                    &index,
-                    &span,
-                    from,
-                    from_origin.as_ref(),
-                    Some(&entity),
-                    origin.as_ref(),
-                    &provenance,
-                ),
-            ));
+            let mut value = edge_value(
+                file,
+                &index,
+                &span,
+                from,
+                from_origin.as_ref(),
+                Some(&entity),
+                origin.as_ref(),
+                &provenance,
+            );
+            set_context(&mut value, test);
+            edges.push((span.relation, value));
         }
     }
     // Both relations are read off the same parse and the same resolution table,
@@ -2577,6 +2631,7 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
         &wanted,
         group_by_relation(edges),
         &unindexed,
+        &not_indexed,
         &generated,
     ))
 }
@@ -2632,6 +2687,22 @@ impl FieldAddress {
     }
 }
 
+/// A `match` in a test the example gate runs, for the same reason as
+/// [`TEST_FIELD_NOT_INDEXED`]: the match-coverage relation is written by the
+/// checker pass over the program.
+const TEST_MATCH_NOT_INDEXED: &str = "a `match` inside an `@example` or a `@doc` `glyph \
+     @run` fence. The example gate compiles those, and the match-coverage relation is written \
+     by the checker pass over the program, which does not type them (G547).";
+
+/// A field access in a test the example gate runs. The analysis reads the
+/// names in an `@example` and a `@doc` `glyph @run` fence off the file as the
+/// gate compiles it (G506), and the field-use relation is still read off the
+/// file's own checker pass, which never sees a test.
+const TEST_FIELD_NOT_INDEXED: &str = "a field access inside an `@example` or a `@doc` \
+     `glyph @run` fence. The example gate compiles those, and the field-use relation is \
+     written by the checker pass over the program, which does not type them, so a renamed \
+     field breaks the test and the gate is what reports it (G547).";
+
 /// The classes of site this relation does not hold, named rather than left to
 /// be discovered.
 ///
@@ -2641,6 +2712,7 @@ impl FieldAddress {
 /// on the emitted TypeScript, which is exactly why a caller cannot infer them
 /// from the sites that are here.
 const FIELD_NOT_INDEXED: &[&str] = &[
+    TEST_FIELD_NOT_INDEXED,
     "a record literal that constructs this record. An object literal gets no \
      expected type from the checker, so no key in one is ever joined to a field \
      of a declaration; renaming the field breaks the literal, and `tsc` is what \
@@ -5558,7 +5630,7 @@ fn impact_match_sites(
             )
         },
         unindexed: Vec::new(),
-        not_indexed: Vec::new(),
+        not_indexed: vec![TEST_MATCH_NOT_INDEXED.to_string()],
         excluded: Vec::new(),
     };
     // A match site is never the declaration it is about, so this search has no
@@ -5769,15 +5841,18 @@ fn impact_occurrences(
             Relation::Calls => format!(
                 "every site that applies `{subject}` to an argument list, across the \
                  project, under every import spelling: `ui.f()` through a namespace or \
-                 aliased import is the same call `f()` is through a named one. Exact: the \
-                 callee has to be the name itself, so a call through a local alias applies \
-                 the alias and is reported under {}.",
+                 aliased import is the same call `f()` is through a named one. A call inside \
+                 an `@example` or a `@doc` `glyph @run` fence is a site too, read off the \
+                 file as the example gate compiles it, with `context` saying which. Exact: \
+                 the callee has to be the name itself, so a call through a local alias \
+                 applies the alias and is reported under {}.",
                 Relation::References.wire()
             ),
             _ => format!(
                 "every occurrence of `{subject}` that does not apply it: the declaration's \
                  own name, an import binding, a type annotation, a value read, the name \
-                 passed as an argument, a `match` pattern naming a variant, a JSX element. \
+                 passed as an argument, a `match` pattern naming a variant, a JSX element, \
+                 in the program and in its `@example`s and `@doc` `glyph @run` fences. \
                  Together with {} this is every occurrence, so asking for one loses no site.",
                 Relation::Calls.wire()
             ),
@@ -5843,7 +5918,7 @@ fn impact_occurrences(
         let ftext = entry.file.source_text(db);
         let fparsed = glyph_db::parse_module(db, entry.file);
         let fresolved = glyph_db::resolve(db, entry.file);
-        let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
+        if fparsed.module().is_none() || fresolved.resolved().is_none() {
             let why = match fparsed.module() {
                 None => "the file does not parse, so no occurrence in it was read",
                 Some(_) => "the file does not resolve, so no occurrence in it was read",
@@ -5854,6 +5929,23 @@ fn impact_occurrences(
                     .push(json!({ "path": display_path(root, fpath), "why": why }));
             }
             continue;
+        }
+        // G506: the file as the example gate compiles it, with every
+        // `@example` and `@doc` `glyph @run` fence appended. A site in one of
+        // those is a site the edit breaks like any other, and the file's own
+        // resolution table never sees it. With no test in the file the view
+        // is the file itself.
+        let gate = glyph_db::test_view(db, entry.file);
+        for test in gate.unread() {
+            for search in &mut searches {
+                search.not_indexed.push(unread_test(root, fpath, &entry.module_path, test));
+            }
+        }
+        let vtext = gate.text(ftext);
+        let (Some(fmodule), Some(fresolved)) =
+            (gate.parsed().module(), gate.resolved().resolved())
+        else {
+            continue;
         };
         let spans = global_relations_in(
             fmodule,
@@ -5861,7 +5953,7 @@ fn impact_occurrences(
             &entry.module_path,
             &plan.module,
             &plan.name,
-            ftext,
+            vtext,
             true,
         );
         if spans.is_empty() {
@@ -5873,7 +5965,7 @@ fn impact_occurrences(
         let signature = matches!(change, Change::SignatureType)
             .then(|| SignatureView {
                 calls: call_argument_spans(fmodule),
-                types: glyph_db::type_map(db, entry.file),
+                types: glyph_db::test_view_types(db, entry.file),
             });
         // The two kinds that change a signature decide a JSX element from
         // what it writes and from the callee's parameters as this file sees
@@ -5909,7 +6001,21 @@ fn impact_occurrences(
                 continue;
             }
             let mut out = serde_json::Map::new();
-            let decl = enclosing_decl_name(fmodule, span.start);
+            // A site inside a test is reported where its author wrote it, and
+            // its entity is the declaration the annotation is written above:
+            // the function the gate synthesized for it is nobody's code.
+            let test = gate.region_of(span.start, span.end);
+            let at = match test {
+                Some(region) => match region.map(span.start, span.end) {
+                    Some(at) => at,
+                    None => continue,
+                },
+                None => (span.start, span.end),
+            };
+            let decl = match test {
+                Some(region) => Some(region.decl.clone()),
+                None => enclosing_decl_name(fmodule, span.start),
+            };
             // Read off the parse already in hand. The node this entry carries a
             // verdict about is the declaration the occurrence sits in, and a
             // verdict is only as readable as knowing what it is a verdict
@@ -5943,13 +6049,17 @@ fn impact_occurrences(
             out.insert("origin".to_string(), wire);
             out.insert("origin_absent".to_string(), absent);
             out.insert("path".to_string(), json!(display_path(root, fpath)));
-            let (line, _) = index.position(ftext, span.start as usize);
+            let (line, _) = index.position(ftext, at.0 as usize);
             out.insert("line".to_string(), json!(line));
+            out.insert("range".to_string(), range_json(&index, ftext, at.0, at.1));
             out.insert(
-                "range".to_string(),
-                range_json(&index, ftext, span.start, span.end),
+                "context".to_string(),
+                json!(test.map(|region| region.context.wire())),
             );
-            let is_edit_site = entry.module_path == plan.module
+            // A site in the entity's own `@example` names the entity, but it
+            // is a use of the name and not the name being edited.
+            let is_edit_site = test.is_none()
+                && entry.module_path == plan.module
                 && span.start >= plan.decl_span.0
                 && span.end <= plan.decl_span.1;
             if is_edit_site {
@@ -5985,7 +6095,7 @@ fn impact_occurrences(
                         params.as_deref(),
                         view.types.type_map(),
                         &scope,
-                        ftext,
+                        vtext,
                     );
                     out.insert("arguments".to_string(), json!(site.arguments));
                     site
@@ -5999,7 +6109,7 @@ fn impact_occurrences(
                         params.as_deref(),
                         view.types.type_map(),
                         &scope,
-                        ftext,
+                        vtext,
                     );
                     out.insert("arguments".to_string(), json!(site.arguments));
                     out.insert("attributes".to_string(), json!(site.attributes));
@@ -6012,13 +6122,18 @@ fn impact_occurrences(
                     let read = ReadSite::of(fmodule, &tags, &span);
                     let (verdict, because, code, absent) =
                         occurrence_verdict(change, span.relation, read);
-                    SiteVerdict {
-                        verdict,
-                        because: because.to_string(),
-                        code,
-                        absent,
-                        arguments: Vec::new(),
-                        attributes: Vec::new(),
+                    match test {
+                        Some(region) if matches!(change, Change::Rename | Change::Remove) => {
+                            test_site_gone(region, fresolved, &span, &entry.module_path)
+                        }
+                        _ => SiteVerdict {
+                            verdict,
+                            because: because.to_string(),
+                            code,
+                            absent,
+                            arguments: Vec::new(),
+                            attributes: Vec::new(),
+                        },
                     }
                 }
             };
@@ -6039,6 +6154,60 @@ fn impact_occurrences(
         }
     }
     (searches, entries)
+}
+
+/// A test the example gate runs that the analysis could not read, as a
+/// `not_indexed` line. Named one by one, because a site missing from the list
+/// would otherwise read as no site at all (G506).
+fn unread_test(root: &Path, fpath: &Path, module: &str, test: &glyph_db::UnreadTest) -> String {
+    format!(
+        "the {} number {} on `{module}::{}` in {}: {}",
+        test.context.describe(),
+        test.nth,
+        test.decl,
+        display_path(root, fpath),
+        test.why
+    )
+}
+
+/// What a rename or a removal does to a site inside a test (G506).
+///
+/// Measured rather than reasoned, on 0.1.178: the gate builds a copy of the
+/// file with each test appended and stops on the copy's diagnostics, which
+/// `glyph check` prints as they are and files under `E0403` in `--json`. A
+/// bare name that no longer resolves is `E0103` there, in the declaring module
+/// and in an importing one alike once its `import` line is repaired, for a
+/// function, a `const` and a type argument. A namespace-qualified name
+/// (`text.normalize(...)`) is `E0105`, from the import check on qualified
+/// names. The gate runs only when the rest of the project compiles, which is
+/// why the code is the one this site raises once every other site is repaired.
+fn test_site_gone(
+    region: &glyph_db::TestRegion,
+    resolved: &glyph_resolver::ResolvedModule,
+    span: &RelatedSpan,
+    module: &str,
+) -> SiteVerdict {
+    let bare = resolved
+        .resolutions
+        .get(glyph_ast::Span::new(span.start, span.end))
+        .is_some();
+    let code = if bare { "E0103" } else { "E0105" };
+    SiteVerdict {
+        verdict: Verdict::WillFail,
+        because: format!(
+            "this site is in the {} on `{module}::{}`, which the example gate compiles as a \
+             function appended to a copy of this file, and it spells a name the edit takes \
+             away. The gate's build raises {code} here (`glyph check` fails with \"examples \
+             did not compile\", filed under E0403 in `--json`) once the rest of the project \
+             compiles, since the gate runs only then",
+            region.context.describe(),
+            region.decl
+        ),
+        code: Some(code),
+        absent: "",
+        arguments: Vec::new(),
+        attributes: Vec::new(),
+    }
 }
 
 /// What kind of site a non-applying occurrence is, which decides what is
@@ -8177,6 +8346,7 @@ fn tool_dependencies(args: &Value, server: &mut Server) -> Result<String, String
                 "why": "the file does not resolve, so no name in this declaration was bound \
                         to a symbol and no edge out of it was read",
             })],
+            &[],
             depth,
         ));
     };
@@ -8222,6 +8392,64 @@ fn tool_dependencies(args: &Value, server: &mut Server) -> Result<String, String
             with_line(out);
         }
         edges.push((dep.span.relation, value));
+    }
+
+    // G506: the names this declaration's own tests use. An `@example` and a
+    // `@doc` `glyph @run` fence are compiled by the example gate and by
+    // nothing else, so they are read off the file as the gate compiles it,
+    // each test's text being the extent its edges are taken from. A variant
+    // carries no annotations of its own, and its union's tests are the
+    // union's edges.
+    let gate = glyph_db::test_view(db, entry.file);
+    let mut not_indexed: Vec<String> = Vec::new();
+    if variant.is_none() {
+        for test in gate.unread().iter().filter(|t| t.decl == name) {
+            not_indexed.push(unread_test(&root, fpath, &module, test));
+        }
+    }
+    if let (Some(gmodule), Some(gresolved), None) = (
+        gate.parsed().module(),
+        gate.resolved().resolved(),
+        variant,
+    ) {
+        let gtext = gate.text(text);
+        for region in gate.regions().iter().filter(|r| r.decl == name) {
+            for dep in crate::analysis::global_dependencies_in(
+                gmodule, gresolved, &module, region.body, gtext,
+            ) {
+                let Some((start, end)) = region.map(dep.span.start, dep.span.end) else {
+                    continue;
+                };
+                let span = RelatedSpan {
+                    start,
+                    end,
+                    relation: dep.span.relation,
+                };
+                let key = (dep.module.clone(), dep.name.clone());
+                let node = nodes.entry(key).or_insert_with(|| {
+                    (
+                        symbol_provenance(project, &root, &dep.module, &dep.name),
+                        symbol_origin(project, &root, &dep.module, &dep.name),
+                    )
+                });
+                let to = format!("{}::{}", dep.module, dep.name);
+                let mut value = edge_value(
+                    file,
+                    &index,
+                    &span,
+                    Some(entity.clone()),
+                    origin.as_ref(),
+                    Some(&to),
+                    node.1.as_ref(),
+                    &node.0,
+                );
+                set_context(&mut value, Some(region));
+                if let Some(out) = value.as_object_mut() {
+                    with_line(out);
+                }
+                edges.push((span.relation, value));
+            }
+        }
     }
 
     // The field half, read from the checker's own field-use relation rather
@@ -8307,6 +8535,7 @@ fn tool_dependencies(args: &Value, server: &mut Server) -> Result<String, String
         group_by_relation(edges),
         unkeyed,
         &[],
+        &not_indexed,
         depth,
     ))
 }
@@ -8365,6 +8594,7 @@ fn dependencies_answer(
     mut edges: BTreeMap<Relation, Vec<Value>>,
     unkeyed: Vec<Value>,
     unindexed: &[Value],
+    not_indexed: &[String],
     depth: u32,
 ) -> String {
     let mut relations = serde_json::Map::new();
@@ -8372,20 +8602,27 @@ fn dependencies_answer(
         let mut entry = json!({
             "edges": edges.remove(relation).unwrap_or_default(),
             "unindexed": unindexed,
+            "not_indexed": match relation {
+                Relation::FieldAccess => vec![TEST_FIELD_NOT_INDEXED.to_string()],
+                _ => not_indexed.to_vec(),
+            },
             "guarantee": match relation {
-                Relation::Calls => "every name inside this declaration that it applies to an \
-                                    argument list. Exact: a name is here because the resolver \
-                                    bound it, and the callee has to be the name itself, \
-                                    written bare or as a namespace member (`ui.f()` is a call \
-                                    of `ui::f`), so a call through a local alias applies \
-                                    something else and is under REFERENCES.",
-                Relation::References => "every name inside this declaration that it reads \
-                                         without applying: an annotation, a value read, a \
-                                         variant in a pattern, a name passed as an argument. \
-                                         Exact: a name is here because the resolver bound it \
-                                         to a module-level symbol. A local binding and a \
-                                         prelude built-in have no `module::name`, so neither \
-                                         is an edge.",
+                Relation::Calls => "every name inside this declaration, or inside its own \
+                                    `@example`s and `@doc` `glyph @run` fences, that it \
+                                    applies to an argument list; an edge in a test carries \
+                                    `context` (`example` or `doc_run`). Exact: a name is here \
+                                    because the resolver bound it, and the callee has to be \
+                                    the name itself, written bare or as a namespace member \
+                                    (`ui.f()` is a call of `ui::f`), so a call through a local \
+                                    alias applies something else and is under REFERENCES.",
+                Relation::References => "every name inside this declaration, or inside its \
+                                         own `@example`s and `@doc` `glyph @run` fences, that \
+                                         it reads without applying: an annotation, a value \
+                                         read, a variant in a pattern, a name passed as an \
+                                         argument. Exact: a name is here because the resolver \
+                                         bound it to a module-level symbol. A local binding \
+                                         and a prelude built-in have no `module::name`, so \
+                                         neither is an edge.",
                 _ => "every member access inside this declaration that the checker joined to \
                       the record declaring the field. Exact for member accesses: a site is \
                       here because a field set resolved, not because a spelling matched.",
@@ -19329,4 +19566,298 @@ pub fn f() -> number {
         assert_paired(&a["to"]);
     }
 
+    // ---------------------------------------------------------------------
+    // G506: a site in an `@example` or a `@doc` `glyph @run` fence
+    // ---------------------------------------------------------------------
+
+    /// The project record 196 probed: `normalize` carries an `@example` that
+    /// calls it, and `twice` calls it twice and carries its own.
+    fn example_root() -> PathBuf {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "main.glyph",
+            "module main\n\n\
+             @example normalize(\"  Hi \") == \"hi\"\n\
+             pub fn normalize(s: string) -> string {\n  return s.trim().toLowerCase()\n}\n\n\
+             @example twice(\"a\") == \"aa\"\n\
+             pub fn twice(s: string) -> string {\n  return normalize(s) + normalize(s)\n}\n",
+        );
+        root
+    }
+
+    /// The entries of an impact answer under one relation that sit in a test.
+    fn test_entries(answer: &Value) -> Vec<Value> {
+        answer["impact"]
+            .as_array()
+            .unwrap_or_else(|| panic!("no `impact` in {answer}"))
+            .iter()
+            .filter(|e| !e["context"].is_null())
+            .cloned()
+            .collect()
+    }
+
+    /// Record 196's first probe. 0.1.178 listed the two calls in `twice` and
+    /// missed the `@example` call at line 3, while the `CALLS` search claimed
+    /// every site with `not_indexed: []`. The example call is a site now, with
+    /// the code the gate's build raises there (measured: E0103, under the
+    /// E0403 gate failure in `--json`), and it is not held out as the edit.
+    #[test]
+    fn a_rename_lists_the_call_in_an_example() {
+        let root = example_root();
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "main::normalize", "change": { "kind": "rename" } }),
+        );
+        let entries = answer["impact"].as_array().unwrap();
+        assert_eq!(entries.len(), 3, "{answer}");
+        for e in entries {
+            assert!(e.as_object().unwrap().contains_key("context"), "{e}");
+        }
+        let tests = test_entries(&answer);
+        assert_eq!(tests.len(), 1, "{answer}");
+        let e = &tests[0];
+        assert_eq!(e["context"], "example", "{e}");
+        assert_eq!(e["entity"], "main::normalize", "{e}");
+        assert_eq!(e["relation"], "CALLS", "{e}");
+        assert_eq!(e["verdict"], "WILL_FAIL", "{e}");
+        assert_eq!(e["diagnostic"], "E0103", "{e}");
+        // Line 3 of the file, 0-based, on the name as written.
+        assert_eq!(e["line"], 2, "{e}");
+        assert_eq!(e["range"]["start"]["character"], 9, "{e}");
+        assert_eq!(e["range"]["end"]["character"], 18, "{e}");
+        let excluded: Vec<Value> = answer["searches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|s| s["excluded"].as_array().cloned().unwrap_or_default())
+            .collect();
+        assert_eq!(excluded.len(), 1, "only the declaration's own name: {answer}");
+        assert_eq!(excluded[0]["line"], 3, "{answer}");
+        for s in answer["searches"].as_array().unwrap() {
+            assert_eq!(s["not_indexed"], json!([]), "{s}");
+        }
+    }
+
+    /// Record 196's third probe: under `change_signature_type` the example
+    /// call is decided per argument, `"  Hi "` against `string`, from the
+    /// checker's own types for the test.
+    #[test]
+    fn a_signature_change_decides_the_example_call_per_argument() {
+        let root = example_root();
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "main::normalize", "change": { "kind": "change_signature_type" } }),
+        );
+        let tests = test_entries(&answer);
+        assert_eq!(tests.len(), 1, "{answer}");
+        let e = &tests[0];
+        assert_eq!(e["verdict"], "WILL_FAIL", "{e}");
+        assert_eq!(e["diagnostic"], "E0211", "{e}");
+        assert_eq!(e["arguments"][0]["source"], "\"  Hi \"", "{e}");
+        // The literal's own type, as the checker types the same argument in
+        // a call in the program.
+        assert_eq!(e["arguments"][0]["type"], "\"  Hi \"", "{e}");
+        assert_eq!(e["arguments"][0]["parameter_type"], "string", "{e}");
+        let arity = impact(
+            &mut server,
+            json!({ "entity": "main::normalize", "change": { "kind": "change_arity" } }),
+        );
+        let tests = test_entries(&arity);
+        assert_eq!(tests.len(), 1, "{arity}");
+        assert_eq!(tests[0]["diagnostic"], "E0213", "{arity}");
+    }
+
+    /// Record 196's second probe, through `glyph_references`: the example
+    /// call is a `CALLS` edge from the declaration the annotation is written
+    /// above, and every other occurrence edge says it is in the program.
+    #[test]
+    fn references_carry_the_example_call_with_its_context() {
+        let root = example_root();
+        let (value, is_error) = call(
+            &root,
+            "glyph_references",
+            json!({ "path": "main.glyph", "name": "normalize" }),
+        );
+        assert!(!is_error, "{value}");
+        let calls = value["relations"]["CALLS"]["edges"].as_array().unwrap();
+        assert_eq!(calls.len(), 3, "{value}");
+        let in_test: Vec<&Value> = calls.iter().filter(|e| e["context"] == "example").collect();
+        assert_eq!(in_test.len(), 1, "{value}");
+        assert_eq!(in_test[0]["from"], "main::normalize", "{value}");
+        assert_eq!(in_test[0]["range"]["start"]["line"], 2, "{value}");
+        for e in calls.iter().filter(|e| e["context"] != "example") {
+            assert!(e["context"].is_null(), "{e}");
+        }
+        for e in value["relations"]["REFERENCES"]["edges"].as_array().unwrap() {
+            assert!(e["context"].is_null(), "{e}");
+        }
+        assert_eq!(value["relations"]["CALLS"]["not_indexed"], json!([]), "{value}");
+    }
+
+    /// A `@doc` fence tagged `glyph @run`, the property form of an
+    /// `@example`, and an `@example` continued onto a second line are all
+    /// tests the gate compiles, and each site is reported where its author
+    /// wrote it.
+    #[test]
+    fn doc_run_property_and_continued_examples_are_sites() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        let text = "module text\n\n\
+                    import std/result { Result, Ok }\n\
+                    import std/test\n\
+                    import std/stream\n\n\
+                    @example test.property(fn(n) { normalize(\"a\") == \"a\" }, stream.ints())\n  \
+                    == Ok(void)\n\
+                    @example \"b\"\n  == normalize(\"B\")\n\
+                    @doc \"\"\"\nTrims.\n\n```glyph @run\nlet a = normalize(\" X \")\n```\n\"\"\"\n\
+                    pub fn normalize(s: string) -> string {\n  return s.trim().toLowerCase()\n}\n";
+        write(&root, "text.glyph", text);
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "text::normalize", "change": { "kind": "rename" } }),
+        );
+        let mut got: Vec<(String, u64, u64)> = test_entries(&answer)
+            .iter()
+            .map(|e| {
+                (
+                    e["context"].as_str().unwrap().to_string(),
+                    e["line"].as_u64().unwrap(),
+                    e["range"]["start"]["character"].as_u64().unwrap(),
+                )
+            })
+            .collect();
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                ("doc_run".to_string(), 14, 8),
+                ("example".to_string(), 6, 31),
+                ("example".to_string(), 9, 5),
+            ],
+            "{answer}"
+        );
+        for e in test_entries(&answer) {
+            let (line, start, end) = (
+                e["range"]["start"]["line"].as_u64().unwrap() as usize,
+                e["range"]["start"]["character"].as_u64().unwrap() as usize,
+                e["range"]["end"]["character"].as_u64().unwrap() as usize,
+            );
+            assert_eq!(&text.lines().nth(line).unwrap()[start..end], "normalize", "{e}");
+            assert_eq!(e["entity"], "text::normalize", "{e}");
+        }
+    }
+
+    /// From another module: a bare name in an example is E0103 once its
+    /// `import` line is repaired, a namespace-qualified one is E0105 (both
+    /// measured on 0.1.178's gate), and an example that does not parse is
+    /// named under `not_indexed` rather than left out.
+    #[test]
+    fn example_sites_in_an_importer_and_an_unreadable_example() {
+        let root = example_root();
+        write(
+            &root,
+            "named.glyph",
+            "module named\n\nimport main { normalize }\n\n\
+             @example normalize(\" B\") == \"b\"\n\
+             pub fn other() -> number {\n  return 1\n}\n\n\
+             @example 1 == == 1\n\
+             pub fn broken() -> number {\n  return 2\n}\n",
+        );
+        write(
+            &root,
+            "spaced.glyph",
+            "module spaced\n\nimport main\n\n\
+             @example main.normalize(\" A\") == \"a\"\n\
+             pub fn other() -> number {\n  return 1\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "main::normalize", "change": { "kind": "remove" } }),
+        );
+        let codes: BTreeMap<String, (u64, String)> = test_entries(&answer)
+            .iter()
+            .filter(|e| e["path"] != "main.glyph")
+            .map(|e| {
+                (
+                    e["entity"].as_str().unwrap().to_string(),
+                    (
+                        e["line"].as_u64().unwrap(),
+                        e["diagnostic"].as_str().unwrap().to_string(),
+                    ),
+                )
+            })
+            .collect();
+        assert_eq!(
+            codes,
+            BTreeMap::from([
+                ("named::other".to_string(), (4, "E0103".to_string())),
+                ("spaced::other".to_string(), (4, "E0105".to_string())),
+            ]),
+            "{answer}"
+        );
+        for s in answer["searches"].as_array().unwrap() {
+            let named = s["not_indexed"].to_string();
+            assert!(named.contains("`named::broken`"), "{s}");
+            assert!(named.contains("malformed"), "{s}");
+        }
+    }
+
+    /// Record 196's exact-or-absent case: a declaration whose only caller is
+    /// another declaration's `@example`. 0.1.178 answered an empty list for
+    /// its removal, which reads as "nothing breaks".
+    #[test]
+    fn a_declaration_called_only_from_an_example_has_that_site() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), "{\"name\":\"i\",\"glyph\":{}}").unwrap();
+        write(
+            &root,
+            "main.glyph",
+            "module main\n\nfn fixture() -> string {\n  return \"x\"\n}\n\n\
+             @example shout(fixture()) == \"X\"\n\
+             pub fn shout(s: string) -> string {\n  return s.toUpperCase()\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let answer = impact(
+            &mut server,
+            json!({ "entity": "main::fixture", "change": { "kind": "remove" } }),
+        );
+        let entries = answer["impact"].as_array().unwrap();
+        assert_eq!(entries.len(), 1, "{answer}");
+        assert_eq!(entries[0]["entity"], "main::shout", "{answer}");
+        assert_eq!(entries[0]["context"], "example", "{answer}");
+        assert_eq!(entries[0]["relation"], "CALLS", "{answer}");
+        assert_eq!(entries[0]["diagnostic"], "E0103", "{answer}");
+    }
+
+    /// `glyph_dependencies` reads the same view: `twice`'s own example calls
+    /// `twice`, which is an edge in a test, beside its two program calls of
+    /// `normalize`.
+    #[test]
+    fn dependencies_include_the_declarations_own_tests() {
+        let root = example_root();
+        let value = dependencies_of(&root, "main::twice");
+        let calls = value["relations"]["CALLS"]["edges"].as_array().unwrap();
+        let mut got: Vec<(String, Value)> = calls
+            .iter()
+            .map(|e| (e["to"].as_str().unwrap().to_string(), e["context"].clone()))
+            .collect();
+        got.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.to_string().cmp(&b.1.to_string())));
+        assert_eq!(
+            got,
+            vec![
+                ("main::normalize".to_string(), Value::Null),
+                ("main::normalize".to_string(), Value::Null),
+                ("main::twice".to_string(), json!("example")),
+            ],
+            "{value}"
+        );
+        let field = value["relations"]["FIELD_ACCESS"]["not_indexed"].to_string();
+        assert!(field.contains("@example"), "{value}");
+    }
 }

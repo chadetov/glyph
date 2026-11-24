@@ -1,0 +1,7 @@
+module fixtures
+
+// Called by nothing in the program. Its only caller is the `@example` on
+// `shout`, in another module, which the example gate compiles and runs.
+pub fn sample() -> string {
+  return "x"
+}

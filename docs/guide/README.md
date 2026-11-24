@@ -20,6 +20,7 @@ then [tutorial](tutorial.md).
 **Building something:** [cookbook](cookbook.md) for recipes,
 [idioms](idioms.md) for conventions, [typed-apis](typed-apis.md) and
 [external-imports](external-imports.md) for real dependencies,
+[configuration](configuration.md) for the `glyph` key and banned imports,
 [databases](databases.md) to persist data.
 **When you're stuck:** [troubleshooting](troubleshooting.md),
 [anti-patterns](anti-patterns.md), [error codes](../error-codes.md).
@@ -45,6 +46,7 @@ then [tutorial](tutorial.md).
 | [`databases.md`](databases.md) | You want to talk to a real database (SQLite, Postgres, MongoDB, Redis, MySQL) with validated rows |
 | [`editor-setup.md`](editor-setup.md) | You want VS Code (or another editor) set up with diagnostics, hover, and format-on-save |
 | [`external-imports.md`](external-imports.md) | You want to import an npm package or Node builtin (and how `.types/` works) |
+| [`configuration.md`](configuration.md) | You want to set the source directory, or stop the project's code (and the agents writing it) importing a library directly |
 | [`../reference/stdlib.md`](../reference/stdlib.md) | You want every std module and its exact signatures |
 | [`../language/spec.md`](../language/spec.md) | You need the exact language reference |
 | [`../error-codes.md`](../error-codes.md) | You hit a diagnostic and want the fix |

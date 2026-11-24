@@ -588,6 +588,7 @@ name = "glyph-resolver"
 version = "0.1.186"
 dependencies = [
  "glyph-ast",
+ "glyph-lexer",
  "glyph-parser",
  "insta",
  "thiserror",

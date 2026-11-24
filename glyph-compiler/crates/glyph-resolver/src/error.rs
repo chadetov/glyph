@@ -202,6 +202,20 @@ pub enum ResolveError {
     /// before its author adds `pub`.
     #[error("this module declares nothing `pub`, has no `main`, and nothing in the project imports it: everything in it is unreachable")]
     NoExportSurface { span: Span },
+
+    /// An import of a path the project bans in `glyph.banned_imports`, or the
+    /// same specifier quoted in an `extern_ts` body (D74). `under` is the key
+    /// that bans it when that is not the path itself (`axios` for
+    /// `axios/lib/core`). `span` is the import path, or the `extern_ts` string.
+    #[error("{}", crate::import_policy::banned_import_message(path, under.as_deref(), reason.as_deref()))]
+    BannedImport {
+        path: String,
+        under: Option<String>,
+        use_instead: String,
+        use_is_project_module: bool,
+        reason: Option<String>,
+        span: Span,
+    },
 }
 
 /// A diagnostic's severity. Mirrors the typechecker's `Severity`; the resolver
@@ -232,6 +246,7 @@ impl ResolveError {
             ResolveError::PrimitiveUnionType { span, .. } => *span,
             ResolveError::NoExportSurface { span } => *span,
             ResolveError::CircularBound { span, .. } => *span,
+            ResolveError::BannedImport { span, .. } => *span,
         }
     }
 
@@ -266,6 +281,7 @@ impl ResolveError {
             ResolveError::NoExportSurface { .. } => "E0112",
             ResolveError::ReservedModulePrefix { .. } => "E0113",
             ResolveError::CircularBound { .. } => "E0114",
+            ResolveError::BannedImport { .. } => "E0115",
         }
     }
 
@@ -301,7 +317,14 @@ impl ResolveError {
     }
 
     /// A one-line, actionable fix.
-    pub fn help(&self) -> Option<&'static str> {
+    pub fn help(&self) -> Option<std::borrow::Cow<'static, str>> {
+        if let ResolveError::BannedImport { use_instead, use_is_project_module, .. } = self {
+            return Some(crate::import_policy::banned_import_help(use_instead, *use_is_project_module));
+        }
+        self.static_help().map(std::borrow::Cow::Borrowed)
+    }
+
+    fn static_help(&self) -> Option<&'static str> {
         Some(match self {
             ResolveError::DuplicateName { .. } => {
                 "Rename one of them. Every top-level name must be unique (greppability)."
@@ -414,6 +437,8 @@ impl ResolveError {
             ResolveError::ReservedModulePrefix { .. } => {
                 "Rename the module to a path of your own (`io`, `app/io`). `std/` names the stdlib modules the compiler carries and `extern/<name>` names a hand-written TypeScript file under `<src>/extern/`, so an import of either path reaches the compiler's module and never this file."
             }
+            // Its help names the replacement, so it is built in `help`.
+            ResolveError::BannedImport { .. } => return None,
         })
     }
 }
@@ -583,7 +608,7 @@ pub fn std_module_suggestion(wanted: &str, modules: &[String]) -> String {
 }
 
 /// Levenshtein distance, two rows rather than a full matrix.
-fn edit_distance(a: &str, b: &str) -> usize {
+pub(crate) fn edit_distance(a: &str, b: &str) -> usize {
     let a: Vec<char> = a.chars().collect();
     let b: Vec<char> = b.chars().collect();
     if a.is_empty() {

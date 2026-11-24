@@ -28,6 +28,7 @@ mod overlay;
 /// type; it lives here because `glyph-cli` depends on this crate and not the
 /// other way round.
 pub mod diagnostic;
+pub mod project_config;
 
 /// The span-containment walk that decides which top-level declaration a byte
 /// offset belongs to. Re-exported because `glyph-cli` attributes a `--json`
@@ -161,6 +162,9 @@ struct Publisher {
     /// out. Without it a run that checked as current could be overtaken by a
     /// newer keystroke's publish and land after it.
     gate: Arc<tokio::sync::Mutex<()>>,
+    /// The manifests last published with an `E0116` on them, so a fix (or a
+    /// project dropping out of the live set) clears them.
+    config_published: Arc<Mutex<std::collections::HashSet<Url>>>,
 }
 
 impl Publisher {
@@ -344,6 +348,41 @@ impl Publisher {
         }
     }
 
+    /// Publish every live project's `E0116` list on its `package.json` (D74).
+    ///
+    /// A manifest is not a document the editor opened in this server, so it
+    /// has no generation: the list is computed from the last rescan and sent
+    /// unversioned. A manifest that had errors and has none now, or whose
+    /// project is no longer live, is sent an empty list.
+    async fn publish_configs(&self) {
+        let lists = self.ws.lock().expect("workspace mutex").config_diagnostics();
+        let _gate = self.gate.lock().await;
+        let mut sends: Vec<(Url, Vec<Diagnostic>)> = Vec::new();
+        {
+            let mut published = self.config_published.lock().expect("config mutex");
+            let mut now = std::collections::HashSet::new();
+            for (uri, text, list) in lists {
+                if list.is_empty() {
+                    if published.contains(&uri) {
+                        sends.push((uri, Vec::new()));
+                    }
+                    continue;
+                }
+                now.insert(uri.clone());
+                sends.push((uri, to_lsp_diagnostics(&text, list)));
+            }
+            for uri in published.iter() {
+                if !now.contains(uri) && !sends.iter().any(|(u, _)| u == uri) {
+                    sends.push((uri.clone(), Vec::new()));
+                }
+            }
+            *published = now;
+        }
+        for (uri, diagnostics) in sends {
+            self.send(uri, None, diagnostics).await;
+        }
+    }
+
     /// Hand one publish to the sink. Callers hold the gate.
     async fn send(&self, uri: Url, version: Option<i32>, diagnostics: Vec<Diagnostic>) {
         match &self.sink {
@@ -421,6 +460,7 @@ impl Backend {
             docs: Arc::new(Mutex::new(HashMap::new())),
             generations: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             gate: Arc::new(tokio::sync::Mutex::new(())),
+            config_published: Arc::new(Mutex::new(std::collections::HashSet::new())),
         };
         Backend {
             client,
@@ -514,6 +554,9 @@ impl Backend {
             self.publisher.others_full(&mut ws, workspace.as_deref(), except)
         };
         self.publisher.publish_others(others, cause).await;
+        // A rescan re-read every manifest it reached, so the `E0116` lists may
+        // have moved too.
+        self.publisher.publish_configs().await;
     }
 }
 
@@ -687,10 +730,19 @@ impl LanguageServer for Backend {
             id: "glyph-watched-files".to_string(),
             method: "workspace/didChangeWatchedFiles".to_string(),
             register_options: serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
-                watchers: vec![FileSystemWatcher {
-                    glob_pattern: GlobPattern::String("**/*.glyph".to_string()),
-                    kind: None,
-                }],
+                watchers: vec![
+                    FileSystemWatcher {
+                        glob_pattern: GlobPattern::String("**/*.glyph".to_string()),
+                        kind: None,
+                    },
+                    // The `glyph` key's bans (D74): an edit to a manifest
+                    // changes which imports are errors without any `.glyph`
+                    // file changing.
+                    FileSystemWatcher {
+                        glob_pattern: GlobPattern::String("**/package.json".to_string()),
+                        kind: None,
+                    },
+                ],
             })
             .ok(),
         };
@@ -2172,6 +2224,7 @@ mod tests {
             docs: Arc::new(Mutex::new(HashMap::new())),
             generations: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             gate: Arc::new(tokio::sync::Mutex::new(())),
+            config_published: Arc::new(Mutex::new(std::collections::HashSet::new())),
         };
         (publisher, log)
     }
@@ -2232,6 +2285,74 @@ mod tests {
             *log.lock().unwrap(),
             vec![(uri, Some(2), vec!["E0302".to_string()])],
             "the current run publishes the emitter's refusal"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// D74: the editor reports a banned import as E0115, a malformed `glyph`
+    /// key as E0116 on the manifest, and follows an edit to `package.json`
+    /// after the watched-file rescan, with no restart.
+    #[tokio::test]
+    async fn an_edit_to_the_manifest_reaches_the_editor_without_a_restart() {
+        let dir = tmp_dir("bans");
+        std::fs::create_dir_all(dir.join("src")).expect("src");
+        std::fs::create_dir_all(dir.join(".git")).expect("git");
+        let banned = r#"{"name":"p","glyph":{"src":"src","banned_imports":{"std/fs":{"use":"storage"}}}}"#;
+        let manifest = dir.join("package.json");
+        std::fs::write(&manifest, banned).expect("manifest");
+        std::fs::write(
+            dir.join("src/storage.glyph"),
+            "module storage\nimport std/fs\npub fn ok(p: string) -> bool {\n  return fs.exists(p)\n}\n",
+        )
+        .expect("storage");
+        let path = dir.join("src/main.glyph");
+        let text = "module main\nimport std/fs\npub fn ok(p: string) -> bool {\n  return fs.exists(p)\n}\n";
+        std::fs::write(&path, text).expect("main");
+        let uri = Url::from_file_path(&path).expect("uri");
+        let manifest_uri = Url::from_file_path(&manifest).expect("manifest uri");
+        let root = analysis_root_in(None, &uri);
+        let (publisher, log) = recording();
+        let codes = |publisher: &Publisher| -> Vec<String> {
+            let mut ws = publisher.ws.lock().unwrap();
+            publisher
+                .compute(&mut ws, &root, &uri, Stages::All)
+                .into_iter()
+                .filter_map(|d| match d.code {
+                    Some(NumberOrString::String(c)) => Some(c),
+                    _ => None,
+                })
+                .collect()
+        };
+        publisher.ws.lock().unwrap().set_buffer(&uri, text.to_string());
+        publisher.ws.lock().unwrap().rescan(&root);
+        assert_eq!(codes(&publisher), vec!["E0115".to_string()]);
+
+        // The ban is lifted on disk; the watched-file event rescans.
+        std::fs::write(&manifest, r#"{"name":"p","glyph":{"src":"src"}}"#).expect("lift");
+        publisher.ws.lock().unwrap().rescan_live();
+        assert!(codes(&publisher).is_empty());
+
+        // A typo in the key: E0116 is published on the manifest, and cleared
+        // once the typo is fixed.
+        std::fs::write(&manifest, banned.replace("banned_imports", "banned_import")).expect("typo");
+        publisher.ws.lock().unwrap().rescan_live();
+        publisher.publish_configs().await;
+        std::fs::write(&manifest, banned).expect("fixed");
+        publisher.ws.lock().unwrap().rescan_live();
+        publisher.publish_configs().await;
+        assert_eq!(codes(&publisher), vec!["E0115".to_string()]);
+        let published: Vec<(Url, Vec<String>)> = log
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(u, _, c)| (u.clone(), c.clone()))
+            .collect();
+        assert_eq!(
+            published,
+            vec![
+                (manifest_uri.clone(), vec!["E0116".to_string()]),
+                (manifest_uri, Vec::new()),
+            ]
         );
         let _ = std::fs::remove_dir_all(&dir);
     }

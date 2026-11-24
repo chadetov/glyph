@@ -2526,7 +2526,7 @@ fn resolve_diag(e: &glyph_resolver::ResolveError, module: &Module) -> GlyphDiagn
     GlyphDiagnostic {
         start: e.span().start,
         end: e.span().end,
-        message: with_help(format!("{e}"), e.help()),
+        message: with_help(format!("{e}"), e.help().as_deref()),
         code: e.code().to_string(),
         decl_name: enclosing_decl_name(module, e.span().start),
         // A resolve error is about a name, not about a union's variant set.

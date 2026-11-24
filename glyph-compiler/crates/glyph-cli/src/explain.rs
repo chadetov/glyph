@@ -420,6 +420,40 @@ pub fn explain(code: &str) -> Option<&'static str> {
             TypeScript importer and a module mid-build-out legitimately passes \
             through this state before its author adds `pub`.",
 
+        "E0115" => "E0115: banned import\n\n\
+            The project's package.json bans this import path (D74):\n\n\
+            \"glyph\": {\n\
+            \x20 \"banned_imports\": {\n\
+            \x20   \"axios\": { \"use\": \"http/client\", \"reason\": \"requests go through the retry and auth wrapper\" }\n\
+            \x20 }\n\
+            }\n\n\
+            import axios { default as ax }   // E0115: `axios` is banned in this project: ...\n\n\
+            A key bans its own path and every path under it, so `axios/lib/core` \
+            is refused too and `axios-retry` is not. The module `use` names may \
+            import it, as may the modules `allow_in` lists (an entry ending in \
+            `/` covers a directory). The same specifier quoted in an \
+            `extern_ts` body (`extern_ts(\"require('axios')\")`) is refused as \
+            well.\n\n\
+            Import the replacement the help names. `glyph query exports \
+            --module <use>` lists what it offers. The ban cannot see a \
+            specifier computed inside raw TypeScript, a hand-written `.ts` \
+            file, or npm code importing the package itself; `grep extern_ts` \
+            is the review route for the first.",
+        "E0116" => "E0116: malformed `glyph` key\n\n\
+            The `glyph` key in package.json is a closed schema. Glyph reads \
+            `src`, `banned_imports`, and `glyph publish`'s `imports` and \
+            `audit`, and anything else is an error rather than ignored, because \
+            a misspelled key (`banned_import`, `alow_in`) would otherwise switch \
+            a policy off without a word.\n\n\
+            The error sits on the key or value in package.json and names its \
+            JSON path:\n\n\
+            `glyph.banned_imports.axios.alow_in` is not a field Glyph reads (known: `use`, `reason`, `allow_in`); did you mean `allow_in`?\n\n\
+            It also covers a `src` that is not a string, a ban key that is not \
+            an import path (empty, ending in `/`, holding a space or `*`), a \
+            ban with no `use`, a `use` that names no module of the project, \
+            standard library or dependency list, a `use` that is itself banned, \
+            and an `allow_in` entry naming no module or directory under the \
+            source root.",
         "E0114" => "E0114: circular bound\n\n\
             A type parameter's bound leads back to itself through other \
             parameters of the same list:\n\n\
@@ -2472,6 +2506,18 @@ pub static CODES: &[CodeEntry] = &[
         phase: "resolver",
         meaning: "A circular bound: type parameters bounding each other back to the start (`<T: U, U: T>`, `<T: T>`)",
         fix: "Bound one of them by a type that is not another parameter of the list, or drop the bound",
+    },
+    CodeEntry {
+        code: "E0115",
+        phase: "resolver",
+        meaning: "A banned import: the project's `package.json` bans this path in `glyph.banned_imports` (D74), and this module is neither the replacement `use` names nor one `allow_in` lists. A key bans its own path and every path under it (`axios` bans `axios/lib/core`, not `axios-retry`). The same specifier quoted inside an `extern_ts` body is this error too. When the package is also not installed, this is reported instead of E0104",
+        fix: "Import the module the help names instead",
+    },
+    CodeEntry {
+        code: "E0116",
+        phase: "resolver",
+        meaning: "A malformed `glyph` key in `package.json`, reported at the key or value with its JSON path: an unknown key or ban field (the key is a closed schema, so a typo cannot switch a setting off), a non-string `src`, a ban key that is not an import path, a `use` that names no module (or is itself banned), or an `allow_in` entry that names no module or directory under the source root",
+        fix: "Fix the key or value the message names",
     },
     // ----- typechecker (E02xx) -----
     CodeEntry {

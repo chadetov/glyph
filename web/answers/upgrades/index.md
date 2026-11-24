@@ -126,4 +126,4 @@ npm finished. Confirm with:
 - And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.
 - `glyph --update` shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on `PATH` is the version you asked for; that is why it points at `glyph --version` instead of saying it worked.
 
-Code examples on this page are checked against Glyph 0.1.179 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.180 on every build. Last changed 21 Nov 2026.

@@ -8,6 +8,13 @@
   <updated>2026-11-24T00:00:00Z</updated>
   <author><name>The Glyph project</name></author>
   <entry>
+    <title>Glyph 0.1.180 (breaking)</title>
+    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.180" />
+    <id>https://glyphlang.io/versions/2026-11/#0.1.180</id>
+    <updated>2026-11-24T00:00:00Z</updated>
+    <summary>A lost update across an await is caught on elements and map entries too</summary>
+  </entry>
+  <entry>
     <title>Glyph 0.1.179 (breaking)</title>
     <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.179" />
     <id>https://glyphlang.io/versions/2026-11/#0.1.179</id>
@@ -209,12 +216,5 @@
     <id>https://glyphlang.io/versions/2026-11/#0.1.151</id>
     <updated>2026-11-20T00:00:00Z</updated>
     <summary>A where refinement over a string-literal union is refused, with help built from your own types</summary>
-  </entry>
-  <entry>
-    <title>Glyph 0.1.150 (breaking)</title>
-    <link rel="alternate" type="text/html" href="https://glyphlang.io/versions/2026-11/#0.1.150" />
-    <id>https://glyphlang.io/versions/2026-11/#0.1.150</id>
-    <updated>2026-11-20T00:00:00Z</updated>
-    <summary>A check refuses a value nested more than 1000 deep instead of crashing</summary>
   </entry>
 </feed>

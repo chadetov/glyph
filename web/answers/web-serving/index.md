@@ -88,4 +88,4 @@ A handler returns `Result<Response, string>`, so a 404 is an ordinary `Ok` and a
 - Also missing on the client side: a timeout, a redirect policy, `head`, and the final URL a redirect landed on.
 - There is no static-file server and no template engine, and there is no plan for either.
 
-Code examples on this page are checked against Glyph 0.1.179 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.180 on every build. Last changed 21 Nov 2026.

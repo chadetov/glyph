@@ -82,12 +82,16 @@ MCP over stdio and exposes eleven tools over the project:
 - `glyph_impact` — what breaks if you make one named change to one declaration
   (`add_variant`, `remove_variant`, `rename`, `change_arity`,
   `change_signature_type`, `remove`), per site, with the diagnostic each will
-  raise. Call it before changing a declaration, not after.
+  raise. Call it before changing a declaration, not after. A name used in an
+  `@example` or a `@doc` `glyph @run` fence is a site too: its entry carries
+  `context` (`example` or `doc_run`, null for a site in the program) and names
+  the declaration the annotation sits above.
 - `glyph_variants` — every `match` site in the project over one tagged union and
   which variants each site's arms name, with the union's own variants and their
   construction syntax.
 - `glyph_references` — every edge into a symbol across the project, split by
   relation (`CALLS`, `REFERENCES`, `GENERATED_FROM`), each with its provenance.
+  A `CALLS` or `REFERENCES` edge carries `context` as `glyph_impact` does.
 - `glyph_definition` — where the name at a position is defined, following
   imports, with the `module::name` identity so the answer chains into
   `glyph_impact`.

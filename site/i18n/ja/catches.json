@@ -500,12 +500,6 @@
         "tr": "数値に対する <code>.sort()</code> は数値を文字列として並べ替えます：<code>100,25,9</code>。"
       }
     },
-    "gap-g390-index-update-across-await": {
-      "summary": {
-        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
-        "tr": "<code>c[0]</code> に対する <code>await</code> をまたいだ更新の消失。フィールドへの同じ書き込みなら拒否されます。"
-      }
-    },
     "gap-g391-null-in-optional-field": {
       "summary": {
         "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",

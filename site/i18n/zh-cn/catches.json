@@ -500,12 +500,6 @@
         "tr": "对数字调用 <code>.sort()</code> 会按文本排序：<code>100,25,9</code>。"
       }
     },
-    "gap-g390-index-update-across-await": {
-      "summary": {
-        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
-        "tr": "在 <code>c[0]</code> 上跨 <code>await</code> 的丢失更新，而对字段做同样的写入会被拒绝。"
-      }
-    },
     "gap-g391-null-in-optional-field": {
       "summary": {
         "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",

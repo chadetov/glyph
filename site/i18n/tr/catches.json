@@ -500,12 +500,6 @@
         "tr": "Sayılar üzerinde <code>.sort()</code>, onları metin olarak sıralar: <code>100,25,9</code>."
       }
     },
-    "gap-g390-index-update-across-await": {
-      "summary": {
-        "en": "A lost update across <code>await</code> on <code>c[0]</code>, where the same write to a field is refused.",
-        "tr": "<code>c[0]</code> üzerinde <code>await</code> boyunca kaybolan bir güncelleme; oysa bir alana yapılan aynı yazma reddedilir."
-      }
-    },
     "gap-g391-null-in-optional-field": {
       "summary": {
         "en": "A JSON <code>null</code> in an optional field survives the check, so a spread over a default leaves <code>null</code> behind.",

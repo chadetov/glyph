@@ -142,12 +142,13 @@ before moving between versions, and pin the compiler in `devDependencies`, which
 
 ## Editor support
 
-The TextMate grammar and a VS Code extension live in
-[`editors/vscode/`](editors/vscode/). Neither is on the Marketplace yet, so
-install it from source:
+The VS Code extension is on the Marketplace as `chadetov.glyph-vscode`
+("Glyph (glyphlang.io)"); its source and the TextMate grammar live in
+[`editors/vscode/`](editors/vscode/). It needs the `glyph` binary from
+`npm install -g @glyphlang/glyph`.
 
 ```sh
-cd editors/vscode && npx @vscode/vsce package && code --install-extension glyph-vscode-*.vsix
+code --install-extension chadetov.glyph-vscode
 ```
 
 The grammar is generated from the lexer's keyword table, so a keyword the

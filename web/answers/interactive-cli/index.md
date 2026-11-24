@@ -109,4 +109,4 @@ let body = io.read_to_string()
 
   A program that wants to redraw a screen has no cursor control: `std/io` has no cursor or screen functions and no other stdlib module adds them, so a full-screen terminal UI still means writing the escape codes yourself.
 
-Code examples on this page are checked against Glyph 0.1.182 on every build. Last changed 21 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.183 on every build. Last changed 21 Nov 2026.

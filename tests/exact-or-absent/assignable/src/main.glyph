@@ -9,6 +9,18 @@ type Order = { id: string }
 // `accepting_rule` must not claim to accept.
 type Loose = { id?: string }
 
+// An interface only a `number` satisfies: a `bigint` has no `toFixed`. It is
+// how `bigint` against `number` reaches the relation through a member set
+// (G500), and the answer is a refusal (record 204).
+interface Fx {
+  fn toFixed(d: number) -> string
+}
+
+// An interface a `bigint` satisfies: every JavaScript value has `toString`.
+interface Shows {
+  fn toString() -> string
+}
+
 fn label(o: Order) -> string {
   return o.id
 }

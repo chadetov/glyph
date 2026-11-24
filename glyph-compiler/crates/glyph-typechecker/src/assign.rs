@@ -3071,7 +3071,12 @@ impl Assigner<'_> {
 
     fn walk_expr_node(&mut self, e: &Expr) {
         match e {
-            Expr::Number { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::Number)),
+            // `1n` is a `bigint` (D38), which TypeScript keeps apart from a
+            // `number`; the lexer accepts the suffix on an integer only.
+            Expr::Number { span, raw } => {
+                let p = if raw.ends_with('n') { Primitive::BigInt } else { Primitive::Number };
+                self.tm.insert(*span, Ty::Prim(p))
+            }
             // A written string literal is typed as the one-literal union it
             // spells (G237), which is what TypeScript reads it as. The rule
             // that widens it back to `string` is `widen_fresh_literals`, and
@@ -3112,9 +3117,20 @@ impl Assigner<'_> {
                 };
                 self.tm.insert(*span, ty);
             }
-            Expr::Unary { operand: child, span, .. } => {
+            Expr::Unary { operand: child, span, op } => {
                 self.walk_expr(child);
-                self.tm.insert(*span, Ty::Unknown);
+                // `-n` and `~n` on a `bigint` are a `bigint` (D38). Every
+                // other unary result stays untyped, as it was.
+                let ty = match op {
+                    glyph_ast::UnaryOp::Neg | glyph_ast::UnaryOp::BitNot
+                        if self.numeric_prim(&self.read_through_bound(self.tm.get(child.span())))
+                            == Some(Primitive::BigInt) =>
+                    {
+                        Ty::Prim(Primitive::BigInt)
+                    }
+                    _ => Ty::Unknown,
+                };
+                self.tm.insert(*span, ty);
             }
             Expr::Member { object, field, span, optional } => {
                 // The object of a member access is the one expression position
@@ -3431,7 +3447,7 @@ impl Assigner<'_> {
                         self.null_chains.handle(right.span());
                         Ty::Unknown
                     }
-                    _ => Ty::Unknown,
+                    _ => self.bigint_operator(*op, left, right, *span),
                 };
                 self.tm.insert(*span, ty);
             }
@@ -5262,8 +5278,8 @@ impl Assigner<'_> {
         }
     }
 
-    /// Whether a `Record` key is numeric: `number` (with `int` and `bigint`,
-    /// which the checker does not tell apart), or a refinement of one.
+    /// Whether a `Record` key is numeric: `number` (with `int`, which the
+    /// checker does not tell apart from it), or a refinement of one.
     /// `Object.keys` yields strings for such a map, so `record.keys` answers
     /// `Array<string>` for it rather than `Array<K>`.
     fn key_is_numeric(&self, k: &Ty) -> bool {
@@ -5995,6 +6011,7 @@ impl Assigner<'_> {
         // primitive), mirroring the bool recovery just above.
         let value_kind = match scrutinee_ty {
             Ty::Prim(Primitive::Number) => Some("number"),
+            Ty::Prim(Primitive::BigInt) => Some("bigint"),
             Ty::Prim(Primitive::String) => Some("string"),
             _ => arms.iter().find_map(|a| match &a.pattern {
                 Pattern::Literal {
@@ -7811,9 +7828,8 @@ impl Assigner<'_> {
             return None;
         }
         // The element type as the program wrote it, when the receiver is a
-        // name declared `Array<E>`: the checker reads `int` and `bigint` as
-        // `number`, and a comparator built from that would not say what the
-        // author wrote, or, for a `bigint`, compile.
+        // name declared `Array<E>`: the checker reads `int` as `number`, and
+        // a comparator built from that would not say what the author wrote.
         let written = self.written_type_of(object).and_then(|te| match te {
             TypeExpr::Generic { base, args, .. } if args.len() == 1 => match base.as_ref() {
                 TypeExpr::Path { span, .. }
@@ -7830,15 +7846,18 @@ impl Assigner<'_> {
         });
         let shown = crate::display_ty(elem);
         let elem_text = written.clone().or_else(|| (!shown.contains('?')).then(|| shown.clone()));
-        // `a - b` orders a `number` and an `int`. One the program did not
-        // write is a `number` only when the checker sees one: a `bigint`
-        // reads as `number` too, and it is written `bigint` wherever it is
-        // declared.
-        let subtract = match written.as_deref() {
-            Some(w) => matches!(w, "number" | "int"),
-            None => matches!(elem, Ty::Prim(Primitive::Number)),
+        // `a - b` orders a `number` and an `int`, written that way or seen
+        // as a `number` by the checker. A `bigint`, under any name, is
+        // compared instead: `a - b` on two is a `bigint`, which a comparator
+        // may not return (D38).
+        use crate::mutation::NumericOrder;
+        let order = match (written.as_deref(), self.numeric_prim(elem)) {
+            (_, Some(Primitive::BigInt)) => NumericOrder::Compare,
+            (Some("number" | "int"), _) => NumericOrder::Subtract,
+            (None, _) if matches!(elem, Ty::Prim(Primitive::Number)) => NumericOrder::Subtract,
+            _ => NumericOrder::Unwritten,
         };
-        Some(crate::mutation::TextOrderSort { elem: elem_text, subtract })
+        Some(crate::mutation::TextOrderSort { elem: elem_text, order })
     }
 
     /// Whether `ty` names a prelude container (`Option`, `Nullable`,
@@ -8259,12 +8278,94 @@ impl Assigner<'_> {
                     return Some((BuiltinReceiver::String, Ty::Unknown))
                 }
                 Ty::Prim(Primitive::Number) => return Some((BuiltinReceiver::Number, Ty::Unknown)),
+                Ty::Prim(Primitive::BigInt) => return Some((BuiltinReceiver::BigInt, Ty::Unknown)),
                 Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
                 Ty::App { base, args } => self.alias_body(base, args)?,
                 _ => return None,
             };
         }
         None
+    }
+
+    /// Whether `ty` is a `number` or a `bigint` (D38), read through second
+    /// names and `where` refinements. `None` for any other type, and for a
+    /// name whose declaration the checker cannot read.
+    fn numeric_prim(&self, ty: &Ty) -> Option<Primitive> {
+        let mut current = ty.clone();
+        // A chain can cross modules, where the per-module cycle guard cannot
+        // see it; the bound stops a cycle there.
+        for _ in 0..16 {
+            current = match &current {
+                Ty::Prim(p @ (Primitive::Number | Primitive::BigInt)) => return Some(*p),
+                Ty::Named { .. } | Ty::Imported { .. } => self.alias_body(&current, &[])?,
+                Ty::App { base, args } => self.alias_body(base, args)?,
+                _ => return None,
+            };
+        }
+        None
+    }
+
+    /// D38, G500: an arithmetic, bitwise or shift operator with a `bigint`
+    /// operand. Two bigints give a `bigint`. A `bigint` beside a `number` is
+    /// E0258, and so is `>>>` on a `bigint`: `tsc` refuses both (TS2365) and
+    /// JavaScript throws a `TypeError` for both. Every other operator result
+    /// stays `Unknown`, as it was before `bigint` had a type of its own.
+    fn bigint_operator(&mut self, op: glyph_ast::BinOp, left: &Expr, right: &Expr, span: Span) -> Ty {
+        use glyph_ast::BinOp as B;
+        let symbol = match op {
+            B::Add => "+",
+            B::Sub => "-",
+            B::Mul => "*",
+            B::Div => "/",
+            B::Rem => "%",
+            B::BitOr => "|",
+            B::BitXor => "^",
+            B::BitAnd => "&",
+            B::Shl => "<<",
+            B::Shr => ">>",
+            B::UShr => ">>>",
+            _ => return Ty::Unknown,
+        };
+        let kind = |me: &Self, x: &Expr| me.numeric_prim(&me.read_through_bound(me.tm.get(x.span())));
+        let (l, r) = (kind(self, left), kind(self, right));
+        // Quoted when both operands have a short spelling (a name, a literal,
+        // a member, a call, an index), which needs no parentheses.
+        let (ls, rs) = (crate::pending::expr_source(left), crate::pending::expr_source(right));
+        let shown = match ls.contains("...") || rs.contains("...") || ls.len() + rs.len() > 80 {
+            true => format!("this `{symbol}`"),
+            false => format!("`{ls} {symbol} {rs}`"),
+        };
+        match (l, r) {
+            (Some(Primitive::BigInt), Some(Primitive::BigInt)) if op == B::UShr => {
+                self.errors.push(TypeError::BigIntOperator {
+                    message: format!(
+                        "{shown} applies `>>>` to a `bigint`, which has no unsigned right shift: JavaScript throws a TypeError"
+                    ),
+                    help: "Use `>>`, which shifts a `bigint` right and keeps its sign. A `bigint` has no fixed width, so there is no unsigned form of it to shift.".to_string(),
+                    span,
+                });
+                Ty::Unknown
+            }
+            (Some(Primitive::BigInt), Some(Primitive::BigInt)) => Ty::Prim(Primitive::BigInt),
+            (Some(Primitive::BigInt), Some(Primitive::Number)) | (Some(Primitive::Number), Some(Primitive::BigInt)) => {
+                let number_side = if l == Some(Primitive::Number) { left } else { right };
+                let help = match number_side {
+                    Expr::Number { raw, .. } if raw.bytes().all(|b| b.is_ascii_digit() || b == b'_') => format!(
+                        "Write the literal as a `bigint`, `{raw}n`, so both operands are `bigint`s."
+                    ),
+                    _ => "Give both operands the same type: declare the `number` one a `bigint`, or keep both `number`s. Glyph has no conversion between the two.".to_string(),
+                };
+                self.errors.push(TypeError::BigIntOperator {
+                    message: format!(
+                        "{shown} applies `{symbol}` to a `bigint` and a `number`, which JavaScript refuses to mix: it throws a TypeError"
+                    ),
+                    help,
+                    span,
+                });
+                Ty::Unknown
+            }
+            _ => Ty::Unknown,
+        }
     }
 
     /// The body of the alias `base` names, with its generic parameters
@@ -8619,7 +8720,8 @@ impl Assigner<'_> {
 
     /// What a value of `ty` has as members when it is a primitive or an
     /// array (G502): a `string`, a string-literal union or a refined `string`,
-    /// a `number` (`int` included), a `bool`, or an `Array<T>`, written
+    /// a `number` (`int` included), a `bigint` (its own members, never a
+    /// number's: record 204), a `bool`, or an `Array<T>`, written
     /// directly or through second names. The element type comes back beside
     /// it, for the rows that name the array's `T`. `None` for every other
     /// type, a `void` included.
@@ -10250,9 +10352,10 @@ impl Assigner<'_> {
         }
         match ty {
             Ty::Prim(Primitive::String) => KeyDomain::String,
-            // `int` and `bigint` are erased to `number` by the lowerer, so the
-            // three are one domain here until `int` has an identity of its own
-            // (G373b, G395).
+            // `int` is erased to `number` by the lowerer, so the two are one
+            // domain here until `int` has an identity of its own (G373b,
+            // G395). A `bigint` is no key at all to `tsc` (`Record`'s key is
+            // `string | number | symbol`), so it falls to `Undecided` below.
             Ty::Prim(Primitive::Number) => KeyDomain::Number,
             Ty::StringLiteralUnion(values) => KeyDomain::Literals(values.iter().cloned().collect()),
             Ty::Param { name, owner } if self.is_own_param(name, owner) => KeyDomain::Param(name.clone()),
@@ -10563,7 +10666,8 @@ impl Assigner<'_> {
         // change was invisible at exactly the call sites most likely to be
         // wrong, and `glyph check --no-tsc` accepted the program.
         //
-        // Only these three primitives. `void` is left out for the same reason
+        // Only these four primitives (`string`, `number`, `bigint`, `bool`).
+        // `void` is left out for the same reason
         // the scalar-versus-record arm leaves it out. The general question of
         // how much of assignability should become decidable is a separate
         // decision, and answering it wrongly rejects correct programs, which
@@ -10948,7 +11052,7 @@ impl Assigner<'_> {
                 };
                 self.accepting_rule(&found, args.first()?)?;
                 Some(
-                    "a `string`, a `number` or a `bool` where a `Nullable<T>` is \
+                    "a `string`, a `number`, a `bigint` or a `bool` where a `Nullable<T>` is \
                      declared is compared against `T` (G216), and that pairing is \
                      itself accepted",
                 )
@@ -11870,8 +11974,7 @@ struct Refusal {
 /// - A type parameter of the body being walked is equal only to itself. At a
 ///   call site the comparison is made after inference, so the parameter has
 ///   been replaced by what the call bound.
-/// - `number`, which includes `int` and `bigint` until `int` survives
-///   lowering (G373b).
+/// - `number`, which includes `int` until `int` survives lowering (G373b).
 /// - Everything else is `Undecided`, and an undecided key refuses nothing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum KeyDomain {
@@ -12098,11 +12201,11 @@ impl ImportedUnionOrRecord {
     }
 }
 
-/// True for a concrete scalar primitive (`string`/`number`/`bool`) — the ones
-/// that are never a record or function. `void` is deliberately excluded; its
-/// assignability in return and callback positions is subtler.
+/// True for a concrete scalar primitive (`string`/`number`/`bigint`/`bool`)
+/// — the ones that are never a record or function. `void` is deliberately
+/// excluded; its assignability in return and callback positions is subtler.
 fn is_concrete_scalar(p: Primitive) -> bool {
-    matches!(p, Primitive::String | Primitive::Number | Primitive::Bool)
+    matches!(p, Primitive::String | Primitive::Number | Primitive::BigInt | Primitive::Bool)
 }
 
 /// E0228's clause for a type whose shape the checker cannot see into: an
@@ -12396,6 +12499,7 @@ fn method_fn_ty(
         match t {
             MethodTy::Unknown => Ty::Unknown,
             MethodTy::Number => Ty::Prim(Primitive::Number),
+            MethodTy::BigInt => Ty::Prim(Primitive::BigInt),
             MethodTy::String => Ty::Prim(Primitive::String),
             MethodTy::Bool => Ty::Prim(Primitive::Bool),
             MethodTy::Void => Ty::Prim(Primitive::Void),
@@ -17708,6 +17812,68 @@ fn outer() -> string {
     /// same union declared in the program.
     fn codes_of(src: &str) -> Vec<&'static str> {
         errors_of(src).iter().map(|e| e.code()).collect()
+    }
+
+    /// G500, D38: `bigint` is its own primitive. Each refusal below is one
+    /// `tsc` makes (TS2322, TS2345, TS2365, TS2339); each acceptance is a
+    /// program `tsc --strict` accepts.
+    #[test]
+    fn a_bigint_is_not_a_number() {
+        let cases: &[(&str, &[&str])] = &[
+            ("fn f() -> number { return 5n }", &["E0204"]),
+            ("fn f(x: bigint) -> number { let y: number = x\n  return y }", &["E0204"]),
+            ("fn f() -> string { let x = 1n\n  return x }", &["E0204"]),
+            ("fn f(x: int) -> bigint { return x }", &["E0204"]),
+            ("fn f(x: number) -> bigint { return x }", &["E0204"]),
+            ("fn f(a: bigint, b: bigint) -> number { return a - b }", &["E0204"]),
+            ("fn f(x: bigint) -> number { return -x }", &["E0204"]),
+            ("fn g(n: number) -> number { return n }\nfn f() -> number { return g(1n) }", &["E0211"]),
+            ("fn f(x: bigint) -> bigint { return x + 1 }", &["E0258"]),
+            ("fn f(x: bigint, y: int) -> bigint { return x * y }", &["E0258"]),
+            ("fn f(x: bigint) -> bigint { return x >>> 1n }", &["E0258"]),
+            ("fn f(x: bigint) -> string { return x.toFixed(2) }", &["E0210"]),
+            // Accepted, as `tsc` accepts them.
+            ("fn f(x: bigint, y: bigint) -> bigint { return x * y + (x % y) - (x >> 1n) }", &[]),
+            ("fn f(x: bigint) -> bigint { return -x + ~x }", &[]),
+            ("fn f(x: bigint, y: number) -> bool { return x < y }", &[]),
+            ("fn f(x: bigint) -> string { return \"${x}\" + x.toString(16) }", &[]),
+            ("fn f(x: bigint) -> bigint { return x.valueOf() }", &[]),
+            ("fn f(x: bigint) -> Nullable<bigint> { return x }", &[]),
+            ("type Id = bigint\nfn f(x: Id, y: bigint) -> Id { return x + y }", &[]),
+            ("fn f(x: bigint, s: string) -> string { return s + x }", &[]),
+            // An interface is met through a `bigint`'s own members, never a
+            // number's (record 204): no `toFixed`, no `length`, a `toString`.
+            ("interface Fx {\n  fn toFixed(d: number) -> string\n}\nfn f(x: bigint) -> Fx { return x }", &["E0204"]),
+            ("interface HasLen {\n  length: number\n}\nfn f(x: bigint) -> HasLen { return x }", &["E0204"]),
+            ("interface Shows {\n  fn toString() -> string\n}\nfn f(x: bigint) -> Shows { return x }", &[]),
+        ];
+        for (src, want) in cases {
+            let src = format!("module x\n{src}\n");
+            assert_eq!(codes_of(&src), *want, "{src}");
+        }
+    }
+
+    /// E0258's help writes the `n` suffix for a number literal.
+    #[test]
+    fn a_bigint_beside_a_number_literal_is_helped_to_a_bigint_literal() {
+        let errs = errors_of("module x\nfn f(x: bigint) -> bigint { return x + 1 }\n");
+        let [e] = errs.as_slice() else { panic!("{errs:?}") };
+        assert_eq!(e.to_string(), "`x + 1` applies `+` to a `bigint` and a `number`, which JavaScript refuses to mix: it throws a TypeError");
+        assert_eq!(e.help().as_deref(), Some("Write the literal as a `bigint`, `1n`, so both operands are `bigint`s."));
+    }
+
+    #[test]
+    fn bigint_and_number_are_decided_against_each_other() {
+        for (from, to) in [("bigint", "number"), ("number", "bigint"), ("int", "bigint")] {
+            assert!(
+                matches!(assignability_of("module x", from, to), Assignability::Incompatible),
+                "{from} -> {to}"
+            );
+        }
+        assert!(matches!(
+            assignability_of("module x", "bigint", "bigint"),
+            Assignability::Compatible { .. }
+        ));
     }
 
     /// G294. Every string-literal union the standard library exports, matched

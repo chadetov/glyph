@@ -428,7 +428,7 @@
       <div class="detail">
         <h2 class="block-label" id="what-it-guarantees">Neyi garanti ediyor<a class="h-anchor" href="#what-it-guarantees" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Glyph'in neyi yakaladığına dair her iddia, repodaki <code>catches/</code> dizininde bir vakadır: aynı program TypeScript'te ve Glyph'te, ikisi de bir CI kontrolüyle çalıştırılır. Toplam 47 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 5 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak). Reddetmediği hatalardan 3 tanesi uyarı verir, 9 tanesi çalışma zamanındaki bir sınır kontrolünde durdurulan hatalı veridir ve 2 tanesi çalışırken durur. Ajanların yazdığı kodu inceleyen birinin en çok dayandıkları:
+          Glyph'in neyi yakaladığına dair her iddia, repodaki <code>catches/</code> dizininde bir vakadır: aynı program TypeScript'te ve Glyph'te, ikisi de bir CI kontrolüyle çalıştırılır. Toplam 46 doğrulanmış vaka var: 37 TypeScript vakası, Glyph'te var olmayan 5 JavaScript tuzağı ve Glyph'in henüz kapatmadığı 4 açık. Glyph bunların 28 tanesini derleme sırasında reddeder (23 TypeScript vakası ve 5 tuzak). Reddetmediği hatalardan 3 tanesi uyarı verir, 9 tanesi çalışma zamanındaki bir sınır kontrolünde durdurulan hatalı veridir ve 2 tanesi çalışırken durur. Ajanların yazdığı kodu inceleyen birinin en çok dayandıkları:
         </p>
       </div>
 
@@ -454,7 +454,7 @@
 
         <h2 class="block-label" id="where-it-stops">Nerede duruyor<a class="h-anchor" href="#where-it-stops" aria-label="Bu bölümün bağlantısı">#</a></h2>
         <p>
-          Garantiler Glyph'te yazılmış kodu kapsar. Bir npm bağımlılığının içinde fırlatılan exception yine <code>Result</code>'ı atlar ve bir paketin <code>.d.ts</code>'inden import edilen tipin çalışma zamanı kontrolü yoktur. Glyph'in içinde, 5 açık gap numaralarıyla birlikte <a href="/tr/catches/#not-yet">henüz yakalamadıkları</a> bölümünde listelenir; tam kayıt <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>'dedir. Strict TypeScript artı zod, eslint ve ts-pattern ile bir karşılaştırma için, o kurulumun hâlâ önde olduğu yerler dahil, bkz. <a href="/tr/answers/vs-tooled-ts/">neden araçlarla donatılmış TypeScript değil</a>.
+          Garantiler Glyph'te yazılmış kodu kapsar. Bir npm bağımlılığının içinde fırlatılan exception yine <code>Result</code>'ı atlar ve bir paketin <code>.d.ts</code>'inden import edilen tipin çalışma zamanı kontrolü yoktur. Glyph'in içinde, 4 açık gap numaralarıyla birlikte <a href="/tr/catches/#not-yet">henüz yakalamadıkları</a> bölümünde listelenir; tam kayıt <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">docs/dogfooding-gaps.md</a>'dedir. Strict TypeScript artı zod, eslint ve ts-pattern ile bir karşılaştırma için, o kurulumun hâlâ önde olduğu yerler dahil, bkz. <a href="/tr/answers/vs-tooled-ts/">neden araçlarla donatılmış TypeScript değil</a>.
         </p>
 
         <h2 class="block-label" id="adopting-it-inside-an-existing-app">Mevcut bir uygulamanın içinde benimsemek<a class="h-anchor" href="#adopting-it-inside-an-existing-app" aria-label="Bu bölümün bağlantısı">#</a></h2>

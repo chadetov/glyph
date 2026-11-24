@@ -565,7 +565,7 @@ pub enum TypeError {
     /// deliberately narrow — assignability over named, generic, record, and
     /// function types is a later day — so it never fires on a type it can't
     /// judge with certainty.
-    #[error("type mismatch: expected `{expected}`, found `{found}`{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected))]
+    #[error("type mismatch: expected `{expected}`, found `{found}`{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason))]
     TypeMismatch {
         expected: String,
         found: String,
@@ -595,6 +595,11 @@ pub enum TypeError {
         /// The place a `mut` writes, when the value is refused there (G501).
         /// `None` at every other site.
         place: Option<Box<MutPlace>>,
+        /// Why an interface and a primitive or an array do not fit, when
+        /// that is the refusal (G460, G502): the member the value lacks, or
+        /// that an interface's value is an object. Appended to the sentence.
+        /// `None` everywhere else.
+        interface_reason: Option<String>,
         span: Span,
     },
 
@@ -761,7 +766,7 @@ pub enum TypeError {
     /// application over a different base) — an argument or parameter whose type
     /// can't be judged stays permissive, so the check never produces a false
     /// positive.
-    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected))]
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`{}{}{}", missing_fields_suffix(.missing_fields), no_common_field_suffix(*.no_common_field, .expected), interface_reason_suffix(.interface_reason))]
     ArgumentTypeMismatch {
         expected: String,
         found: String,
@@ -788,6 +793,8 @@ pub enum TypeError {
         record_key: Option<Box<RecordKeyMismatch>>,
         /// Same rule as `TypeMismatch::unknown_value`.
         unknown_value: bool,
+        /// Same rule as `TypeMismatch::interface_reason`.
+        interface_reason: Option<String>,
         /// The help for a call argument refused because it is the wrong kind
         /// of function (D40 as amended for 0.1.159): a sync function where an
         /// async one is declared, or an async callback where a sync one that
@@ -1665,6 +1672,16 @@ fn no_common_field_suffix(no_common_field: bool, expected: &str) -> String {
         format!(": it has no field in common with `{expected}`, whose fields are all optional")
     } else {
         String::new()
+    }
+}
+
+/// The tail a refusal between an interface and a primitive or an array gets
+/// (G460, G502): the member the value lacks, or that an interface's value is
+/// an object and so never a primitive.
+fn interface_reason_suffix(reason: &Option<String>) -> String {
+    match reason {
+        Some(r) => format!(": {r}"),
+        None => String::new(),
     }
 }
 

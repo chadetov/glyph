@@ -2061,6 +2061,54 @@ def case_assignable_has_no_rule_and_says_so() -> tuple[bool, str]:
     return True, "the undecided pairings are undecided, and the decided ones are decided"
 
 
+def case_interface_against_primitive_both_tools() -> tuple[bool, str]:
+    """A primitive and an interface: impact and assignable give one answer.
+
+    Until 0.1.182 both tools answered UNDETERMINED for a `string` against an
+    interface, in both directions, because the relation had no rule there
+    (G460, G502). It now compares a primitive with an interface through the
+    value's apparent members, read from TypeScript's library, and refuses an
+    interface's value where a primitive is declared. So `string` into
+    `HasName` and `HasName` into `string` are refusals, `string` into
+    `HasLen` is an acceptance (a string has a `length`, and `tsc` agrees),
+    and the impact cell at each call site is the same call: WILL_FAIL for a
+    pairing the relation reads either way, with E0211 at the refused one.
+    """
+    project = CORPUS / ASSIGNABLE
+    path = {"path": "src/iface.glyph"}
+    want = {
+        ("string", "HasName"): "WILL_FAIL",
+        ("HasName", "string"): "WILL_FAIL",
+        ("string", "HasLen"): "COMPATIBLE",
+    }
+    for (frm, to), verdict in want.items():
+        got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
+        if got.get("verdict") != verdict:
+            return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not {verdict}: {got}"
+    for entity, caller, to, code in (
+        ("iface::named", "iface::by_name", "HasName", "E0211"),
+        ("iface::sized", "iface::by_len", "HasLen", None),
+    ):
+        a = impact(project, entity, {"kind": "change_signature_type"})
+        if "error" in a:
+            return False, f"impact on {entity} refused: {a['error'][:120]}"
+        entries = [e for e in a.get("impact") or []
+                   if e.get("entity") == caller and e.get("relation") == "CALLS"]
+        if len(entries) != 1:
+            return False, f"no one CALLS site of {entity} in {caller}: {entries}"
+        cell = (entries[0].get("arguments") or [{}])[0]
+        pairing = call(project, "glyph_assignable", {**path, "from": "string", "to": to}).get("verdict")
+        expect = "WILL_FAIL" if pairing in ("COMPATIBLE", "WILL_FAIL") else pairing
+        if cell.get("verdict") != expect:
+            return False, (f"impact says {cell.get('verdict')} and assignable says {pairing} "
+                           f"about `string` into `{to}`: {cell}")
+        if "no rule" in (cell.get("because") or ""):
+            return False, f"the cell for `string` into `{to}` still says no rule: {cell}"
+        if code is not None and entries[0].get("diagnostic") != code:
+            return False, f"the refused site names {entries[0].get('diagnostic')}, not {code}: {entries[0]}"
+    return True, "a primitive and an interface get one answer from impact and from assignable"
+
+
 DEPENDENCIES = pathlib.Path("dependencies")
 EXPORTS = pathlib.Path("exports")
 
@@ -2266,6 +2314,7 @@ HARD = [
     ("an unparsed call site is unindexed, not judged", case_signature_type_unparsed_site_is_unindexed),
     ("a consequence needs a named change", case_a_change_is_required_for_a_consequence),
     ("assignability: no rule is not compatible", case_assignable_has_no_rule_and_says_so),
+    ("a primitive and an interface, both tools", case_interface_against_primitive_both_tools),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
 ]

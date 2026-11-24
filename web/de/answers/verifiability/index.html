@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Diese Seite ist eine Übersetzung. Maßgeblich ist die englische Version. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28de%29%3A+%2Fde%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fde%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Ein Problem mit der Übersetzung melden</a></p>
-      <p class="i18n-stale">Die englische Version dieser Seite hat sich seit dieser Übersetzung geändert. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Aktuelle englische Version lesen</a></p>
     </div>
     <script>
       (function () {
@@ -862,6 +861,23 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">Ein Indexzugriff hat den Typ seines Elements<a class="ak-anchor" href="#index-read" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">ein Tippfehler an <code>xs[0]</code>: jetzt E0210</span>
+<pre><span class="k">fn</span> first_len(xs: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> s = xs[<span class="n">0</span>]
+  <span class="k">return</span> s.lenght
+}
+
+<span class="add">[E0210]</span> <span class="k">type</span> <span class="s">`string`</span> has no field <span class="s">`lenght`</span>; did you mean <span class="s">`length`</span><span class="op">?</span></pre>
+      </div>
+      <p class="ak-lede"><code>xs[i]</code> auf einem <code>Array&lt;E&gt;</code> ist ein <code>E</code>, also prüfen der Editor, <code>glyph check --no-tsc</code> und die Agent-Tools, was du damit machst: einen Feldzugriff, einen Methodenaufruf, ein <code>return</code>, ein Argument, ein annotiertes <code>let</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>Geschichte <span class="hint">was vorher geprüft wurde</span></summary><div class="body">
+        <p>
+          Bis 0.1.183 hatte ein per Index gelesenes Element auf Glyphs Seite keinen Typ. <code>return xs[0]</code> unter <code>-&gt; number</code>, ein falsch geschriebenes Feld an <code>rows[0]</code> und <code>xs[0]</code> als Argument für einen <code>number</code>-Parameter gingen alle durch, und erst der <code>tsc</code>-Schritt eines vollständigen Builds fand sie. Der Typ ist der, den <code>tsc</code> dem erzeugten Code gibt, der <code>noUncheckedIndexedAccess</code> ausgeschaltet lässt: <code>E</code>, nicht <code>E | undefined</code>. Glyphs Index wirft hinter dem Ende einen <code>RangeError</code>, statt <code>undefined</code> zurückzugeben; nimm <code>array.get</code>, wenn du ein <code>Option</code> willst. Ein Schlüsselzugriff auf ein <code>Record</code> ist weiterhin <code>E0224</code>, außer sein Werttyp ist <code>unknown</code>, und ein Index auf einem <code>string</code> oder einem npm-Wert wird nicht beurteilt.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">Importierte generische Unions werden geprüft<a class="ak-anchor" href="#imported-generic" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">eine Variante, die in einem match über eine importierte generische Union fehlt</span>
@@ -925,7 +941,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Die Prüfung liest die Deklaration, also schlägt sie nur an, wo die Antwort sicher ist. Ein primitiver Alias wie <code>type Id = string</code> wird als der <code>string</code> gelesen, den er benennt, und wird darum genauso entschieden. Eine Union aus String-Literalen (D30) wird über ihre Literale verglichen, und ein Wert eines <code>interface</code> wird abgelehnt, wo ein <code>string</code> deklariert ist, weil sein Wert ein Objekt ist. Ein <code>extern_ts</code>- oder <code>typeof</code>-Rumpf sagt weiterhin nichts, und <code>void</code> ist ebenfalls ausgenommen. Sie erreicht ein Argument, ein <code>return</code> und eine <code>let</code>-Annotation gleichermaßen, da alle drei eine Relation teilen.
         </p>
         <p>
-          Die andere Richtung läuft über die Member des Werts, wie in TypeScript: <code>5</code> wird abgelehnt, wo <code>interface HasName { name: string }</code> deklariert ist, und <code>"abc"</code> wird akzeptiert, wo <code>interface HasLen { length: number }</code> deklariert ist, weil ein String eine <code>length</code> hat. Drei Paarungen sind noch nicht entschieden und bleiben <code>tsc</code> überlassen: ein Interface, dessen Member alle optional sind und keinen mit dem Wert teilen (G526), <code>Option</code>, <code>Result</code> und <code>Record</code> gegen ein Interface (G527), und <code>bigint</code>, das der Checker noch als <code>number</code> liest (G500).
+          Die andere Richtung läuft über die Member des Werts, wie in TypeScript: <code>5</code> wird abgelehnt, wo <code>interface HasName { name: string }</code> deklariert ist, und <code>"abc"</code> wird akzeptiert, wo <code>interface HasLen { length: number }</code> deklariert ist, weil ein String eine <code>length</code> hat. Ein <code>bigint</code> wird über seine eigenen Member gelesen, also wird er dort abgelehnt: Er hat keine <code>length</code>. Zwei Paarungen sind noch nicht entschieden und bleiben <code>tsc</code> überlassen: ein Interface, dessen Member alle optional sind und keinen mit dem Wert teilen (G526), und <code>Option</code>, <code>Result</code> und <code>Record</code> gegen ein Interface (G527).
         </p>
       </div></details>
 
@@ -980,7 +996,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
       <h2 class="ak-h" id="where-it-stands">Wo es steht<a class="ak-anchor" href="#where-it-stands" aria-label="Link zu diesem Abschnitt"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Heute verfügbar <span class="count">21</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -990,6 +1006,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Eine Variante an Payload-Position verzweigt über den eigenen Tag des Payloads, statt ihn zu binden</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Zwei Arme, die auf denselben Tag antworten würden, werden als <code>E0305</code> abgelehnt, statt dass einer still gewinnt</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein <code>for</code>-Binding, das seinen Elementtyp behält</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Ein Indexzugriff, <code>xs[i]</code>, mit dem Typ seines Elements, damit seine Verwendungen geprüft werden</span></span></li>
           </ul>
 
           <p class="ak-st-group">Fehler und Tests</p>

@@ -377,6 +377,25 @@ It now names the variant you have not handled, which is advice to satisfy the ch
 
 The loop binding carried no element type, so a `match` over a string-literal union degraded to a match over `string` and the compiler advised adding a catch-all.
 
+### An index read has its element's type
+
+a typo off `xs[0]`: now E0210
+
+```
+fn first_len(xs: Array<string>) -> number {
+  let s = xs[0]
+  return s.lenght
+}
+
+[E0210] type `string` has no field `lenght`; did you mean `length`?
+```
+
+`xs[i]` on an `Array<E>` is an `E`, so the editor, `glyph check --no-tsc` and the agent tools check what you do with it: a field read, a method call, a `return`, an argument, an annotated `let`.
+
+**History what was checked before **
+
+Up to 0.1.183 an element read by index had no type on Glyph's side. `return xs[0]` under `-> number`, a misspelled field on `rows[0]`, and `xs[0]` passed to a `number` parameter all went through, and only the `tsc` step of a full build caught them. The type is the one `tsc` gives the emitted code, which leaves `noUncheckedIndexedAccess` off: `E`, not `E | undefined`. Glyph's index throws a `RangeError` past the end instead of handing back `undefined`; use `array.get` when you want an `Option`. A key read on a `Record` is still `E0224` unless its value type is `unknown`, and an index on a `string` or on an npm value is not judged.
+
 ### Imported generic unions are checked
 
 a variant left out of a match on an imported generic union
@@ -498,7 +517,7 @@ It is judged wherever a written literal meets a declared type: a `let`, a `retur
 
 ## Where it stands
 
-### Shipping today 20
+### Shipping today 21
 
 Matching
 
@@ -508,6 +527,7 @@ Matching
 - A variant in payload position dispatching on the payload's own tag rather than binding it
 - Two arms that would answer the same tag refused as `E0305` instead of one silently winning
 - A `for` binding that keeps its element type
+- An index read, `xs[i]`, typed as its element, so its uses are checked
 
 Errors and tests
 

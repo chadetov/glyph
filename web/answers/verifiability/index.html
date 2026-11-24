@@ -1043,6 +1043,38 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">An index read has its element's type<a class="ak-anchor" href="#index-read" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">a typo off <code>xs[0]</code>: now E0210</span>
+<pre><span class="k">fn</span> first_len(xs: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> s = xs[<span class="n">0</span>]
+  <span class="k">return</span> s.lenght
+}
+
+<span class="add">[E0210]</span> <span class="k">type</span> <span class="s">`string`</span> has no field <span class="s">`lenght`</span>; did you mean <span class="s">`length`</span><span class="op">?</span></pre>
+      </div>
+      <p class="ak-lede"><code>xs[i]</code> on an <code>Array&lt;E&gt;</code> is an
+          <code>E</code>, so the editor, <code>glyph check --no-tsc</code> and the
+          agent tools check what you do with it: a field read, a method call, a
+          <code>return</code>, an argument, an annotated <code>let</code>.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>History <span class="hint">what was checked before</span></summary><div class="body">
+        <p>
+          Up to 0.1.183 an element read by index had no type on Glyph's side.
+          <code>return xs[0]</code> under <code>-&gt; number</code>, a misspelled
+          field on <code>rows[0]</code>, and <code>xs[0]</code> passed to a
+          <code>number</code> parameter all went through, and only the
+          <code>tsc</code> step of a full build caught them. The type is the one
+          <code>tsc</code> gives the emitted code, which leaves
+          <code>noUncheckedIndexedAccess</code> off: <code>E</code>, not
+          <code>E | undefined</code>. Glyph's index throws a
+          <code>RangeError</code> past the end instead of handing back
+          <code>undefined</code>; use <code>array.get</code> when you want an
+          <code>Option</code>. A key read on a <code>Record</code> is still
+          <code>E0224</code> unless its value type is <code>unknown</code>, and an
+          index on a <code>string</code> or on an npm value is not judged.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">Imported generic unions are checked<a class="ak-anchor" href="#imported-generic" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">a variant left out of a match on an imported generic union</span>
@@ -1223,7 +1255,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
       <h2 class="ak-h" id="where-it-stands">Where it stands<a class="ak-anchor" href="#where-it-stands" aria-label="Link to this section"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Shipping today <span class="count">21</span></h3>
 
           <p class="ak-st-group">Matching</p>
           <ul class="ak-list">
@@ -1233,6 +1265,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A variant in payload position dispatching on the payload's own tag rather than binding it</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Two arms that would answer the same tag refused as <code>E0305</code> instead of one silently winning</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">A <code>for</code> binding that keeps its element type</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">An index read, <code>xs[i]</code>, typed as its element, so its uses are checked</span></span></li>
           </ul>
 
           <p class="ak-st-group">Errors and tests</p>

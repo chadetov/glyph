@@ -409,7 +409,6 @@
     </div>
     <div class="i18n-note" role="note">
       <p>Эта страница является переводом. Основной считается английская версия. <a href="https://github.com/chadetov/glyph/issues/new?title=Translation+%28ru%29%3A+%2Fru%2Fanswers%2Fverifiability%2F&amp;body=Page%3A+https%3A%2F%2Fglyphlang.io%2Fru%2Fanswers%2Fverifiability%2F%0AEnglish%3A+https%3A%2F%2Fglyphlang.io%2Fanswers%2Fverifiability%2F%0A%0AWhat+is+wrong%3A%0A">Сообщить о проблеме с переводом</a></p>
-      <p class="i18n-stale">Английская версия этой страницы изменилась после перевода. <a href="/answers/verifiability/" hreflang="en" data-lang="en">Читать актуальную английскую версию</a></p>
     </div>
     <script>
       (function () {
@@ -862,6 +861,23 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
         </p>
       </div></details>
 
+      <h3 class="ak-h3" id="index-read">Чтение по индексу имеет тип элемента<a class="ak-anchor" href="#index-read" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
+      <div class="code">
+        <span class="cap">опечатка после <code>xs[0]</code>: теперь E0210</span>
+<pre><span class="k">fn</span> first_len(xs: <span class="t">Array</span>&lt;<span class="t">string</span>&gt;) <span class="op">-&gt;</span> <span class="t">number</span> {
+  <span class="k">let</span> s = xs[<span class="n">0</span>]
+  <span class="k">return</span> s.lenght
+}
+
+<span class="add">[E0210]</span> <span class="k">type</span> <span class="s">`string`</span> has no field <span class="s">`lenght`</span>; did you mean <span class="s">`length`</span><span class="op">?</span></pre>
+      </div>
+      <p class="ak-lede"><code>xs[i]</code> на <code>Array&lt;E&gt;</code> имеет тип <code>E</code>, поэтому редактор, <code>glyph check --no-tsc</code> и инструменты агента проверяют, что вы с ним делаете: чтение поля, вызов метода, <code>return</code>, аргумент, <code>let</code> с аннотацией.</p>
+      <details class="more"><summary><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6 3.5L10.5 8 6 12.5"/></svg>История <span class="hint">что проверялось раньше</span></summary><div class="body">
+        <p>
+          До 0.1.183 элемент, прочитанный по индексу, не имел типа на стороне Glyph. <code>return xs[0]</code> под <code>-&gt; number</code>, поле с опечаткой на <code>rows[0]</code> и <code>xs[0]</code>, переданный в параметр типа <code>number</code>, проходили, и ловил их только шаг <code>tsc</code> полной сборки. Тип тот же, что <code>tsc</code> даёт сгенерированному коду, где <code>noUncheckedIndexedAccess</code> выключен: <code>E</code>, а не <code>E | undefined</code>. Индекс Glyph за концом массива бросает <code>RangeError</code>, а не возвращает <code>undefined</code>; если нужен <code>Option</code>, используйте <code>array.get</code>. Чтение ключа из <code>Record</code> по-прежнему <code>E0224</code>, если тип значения не <code>unknown</code>, а индекс по <code>string</code> или по значению из npm не проверяется.
+        </p>
+      </div></details>
+
       <h3 class="ak-h3" id="imported-generic">Импортированные обобщённые union проверяются<a class="ak-anchor" href="#imported-generic" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>
       <div class="code">
         <span class="cap">вариант, пропущенный в match по импортированному обобщённому union</span>
@@ -925,7 +941,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
           Проверка читает объявление, поэтому срабатывает только там, где ответ точен. Примитивный алиас вроде <code>type Id = string</code> читается как <code>string</code>, который он называет, и решается так же. Объединение строковых литералов (D30) сравнивается по своим литералам, а значение <code>interface</code> отклоняется там, где объявлен <code>string</code>, потому что его значение объект. Тело <code>extern_ts</code> или <code>typeof</code> по-прежнему ничего не сообщает, и <code>void</code> тоже исключён. Проверка одинаково доходит до аргумента, <code>return</code> и аннотации <code>let</code>, потому что все три используют одно отношение.
         </p>
         <p>
-          Обратное направление идёт через члены значения, как в TypeScript: <code>5</code> отклоняется там, где объявлен <code>interface HasName { name: string }</code>, а <code>"abc"</code> принимается там, где объявлен <code>interface HasLen { length: number }</code>, потому что у строки есть <code>length</code>. Три пары пока не решаются и остаются <code>tsc</code>: интерфейс, все члены которого необязательны и ни один не совпадает со значением (G526), <code>Option</code>, <code>Result</code> и <code>Record</code> против интерфейса (G527), и <code>bigint</code>, который проверка всё ещё читает как <code>number</code> (G500).
+          Обратное направление идёт через члены значения, как в TypeScript: <code>5</code> отклоняется там, где объявлен <code>interface HasName { name: string }</code>, а <code>"abc"</code> принимается там, где объявлен <code>interface HasLen { length: number }</code>, потому что у строки есть <code>length</code>. <code>bigint</code> читается через собственные члены, поэтому там он отклоняется: у него нет <code>length</code>. Две пары пока не решаются и остаются <code>tsc</code>: интерфейс, все члены которого необязательны и ни один не совпадает со значением (G526), и <code>Option</code>, <code>Result</code> и <code>Record</code> против интерфейса (G527).
         </p>
       </div></details>
 
@@ -980,7 +996,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
       <h2 class="ak-h" id="where-it-stands">Текущее состояние<a class="ak-anchor" href="#where-it-stands" aria-label="Ссылка на этот раздел"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h2>
       <div class="ak-status">
         <section class="ak-st today" aria-labelledby="st-today">
-          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">20</span></h3>
+          <h3 class="ak-st-h" id="st-today"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg> Уже работает <span class="count">21</span></h3>
 
           <p class="ak-st-group">Сопоставление</p>
           <ul class="ak-list">
@@ -990,6 +1006,7 @@ Help: pass `users` and the same callback to `array.find`, which returns `Option&
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Вариант в позиции полезной нагрузки выбирается по собственному тегу полезной нагрузки, а не связывает её</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Две ветки, которые отвечали бы на один и тот же тег, отклоняются как <code>E0305</code>, а не так, что одна из них молча побеждает</span></span></li>
             <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Переменная <code>for</code>, которая сохраняет тип элемента</span></span></li>
+            <li><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.5"/><path d="M5.3 8.2l1.8 1.8 3.6-3.8"/></svg><span><span class="lbl">Чтение по индексу, <code>xs[i]</code>, с типом элемента, поэтому его использование проверяется</span></span></li>
           </ul>
 
           <p class="ak-st-group">Ошибки и тесты</p>

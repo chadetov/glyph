@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "answers/index.html",
   "locale": "zh-cn",
-  "source_hash": "7b426c7229ab79c8",
+  "source_hash": "1265c3636f4c1daf",
   "segments": [
     {
       "id": "title",
@@ -233,10 +233,10 @@
       "tr": "Glyph 在 React 上还有哪些做不到？"
     },
     {
-      "id": "h-d40c1975",
+      "id": "h-22b3c31d",
       "kind": "html",
-      "en": "Twelve rows, each with a gap number and what to write meanwhile.",
-      "tr": "十二项，每项附有 gap 编号和在此之前的写法。"
+      "en": "One row per gap number, with what to write meanwhile.",
+      "tr": "每个 gap 编号一项，附有在此之前的写法。"
     },
     {
       "id": "h-d14ef0f9",

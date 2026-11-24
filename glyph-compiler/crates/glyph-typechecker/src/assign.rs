@@ -2864,8 +2864,9 @@ impl Assigner<'_> {
     ///   what is read here is the declared type.
     /// - `r.f` holds the field's declared type, which the member walk
     ///   recorded at the target.
-    /// - `v[i]` holds `E` on an `Array<E>` and `V` on a `Record<K, V>`. A
-    ///   receiver of any other type is not judged.
+    /// - `v[i]` holds `E` on an `Array<E>` and `V` on a `Record<K, V>`, read
+    ///   by `indexed_element_ty`, the lookup a read of `v[i]` uses (D77), so
+    ///   the two never disagree. A receiver of any other type is not judged.
     fn mut_place(&self, target: &Expr) -> Option<(Ty, MutPlaceOrigin)> {
         match target {
             Expr::Ident { span, .. } => {
@@ -2888,11 +2889,9 @@ impl Assigner<'_> {
             }
             Expr::Index { object, .. } => {
                 let obj_ty = self.read_through_bound(self.tm.get(object.span()));
-                let (ty, map) = match self.builtin_receiver_elem(&obj_ty) {
-                    Some((BuiltinReceiver::Array, elem)) => (elem, false),
-                    Some(_) => return None,
-                    None => (self.map_value_ty(&obj_ty)?, true),
-                };
+                // The same lookup a read of the slot uses (D77, record 203).
+                let (ty, container_kind) = self.indexed_element_ty(&obj_ty)?;
+                let map = container_kind == IndexedContainer::Map;
                 let container = ty_display(&self.named_params(&obj_ty));
                 Some((ty, MutPlaceOrigin::Element { container, map }))
             }
@@ -3451,11 +3450,16 @@ impl Assigner<'_> {
                 };
                 self.tm.insert(*span, ty);
             }
-            // Indexing. `xs[i]` on an array stays unchecked: the bound is a
-            // value, and a program that has just measured `array.len` is not
-            // making a mistake. A `Record<K, V>` map is different, because
-            // there is no bound to check against and the key is a guess, so
-            // the same reasoning as the dot form applies (E0224).
+            // Indexing. `xs[i]` on an array is not judged for its bound: the
+            // bound is a value, and a program that has just measured
+            // `array.len` is not making a mistake (Glyph's index throws a
+            // `RangeError` out of range, record 159). The read is typed as
+            // the element, `E` on an `Array<E>` (G439, D77), so every use of
+            // it is checked like any other typed value. A `Record<K, V>` map
+            // is different, because there is no bound to check against and
+            // the key is a guess, so the same reasoning as the dot form
+            // applies (E0224); a read E0224 allows is typed `V`. Any other
+            // receiver leaves the read `Unknown`.
             Expr::Index {
                 object,
                 index,
@@ -3469,16 +3473,19 @@ impl Assigner<'_> {
                 }
                 self.walk_expr(index);
                 let obj_ty = self.read_through_bound(self.tm.get(object.span()));
-                let ty = match self.map_read(&obj_ty) {
-                    Some(Ok(read)) => read,
-                    Some(Err(())) => {
-                        self.errors.push(TypeError::MapFieldAccess {
-                            field: index_key_display(index),
-                            type_name: ty_display(&obj_ty),
-                            span: *span,
-                        });
-                        Ty::Unknown
-                    }
+                let ty = match self.indexed_element_ty(&obj_ty) {
+                    Some((elem, IndexedContainer::Array)) => elem,
+                    Some((_, IndexedContainer::Map)) => match self.map_read(&obj_ty) {
+                        Some(Ok(read)) => read,
+                        _ => {
+                            self.errors.push(TypeError::MapFieldAccess {
+                                field: index_key_display(index),
+                                type_name: ty_display(&obj_ty),
+                                span: *span,
+                            });
+                            Ty::Unknown
+                        }
+                    },
                     None => Ty::Unknown,
                 };
                 self.tm.insert(*span, ty);
@@ -8092,6 +8099,33 @@ impl Assigner<'_> {
             && matches!(self.stdlib_member(inner, "get"), Some((("store", "Store", _, _), _)))
     }
 
+    /// The type of the element `container[i]` names, and which kind of
+    /// container it is: `E` on an `Array<E>`, `V` on a `Record<K, V>` map.
+    /// The one place an index's element type is read from (G439, D77), so a
+    /// read (`xs[i]`) and a write (`mut xs[i] = v`) agree on what the slot
+    /// holds. `container` is read through aliases (local, chained, imported,
+    /// generic) the way `builtin_receiver_elem` and `map_value_ty` read
+    /// them; the caller reads a bounded type parameter through its bound
+    /// first (`read_through_bound`).
+    ///
+    /// `None` for anything else: a string, a number, an interop value, an
+    /// unbounded type parameter, a type whose body the checker cannot read.
+    /// Such an index stays undecided. The element of an `Array` written
+    /// with no argument is `Unknown`, and so stays undecided too.
+    ///
+    /// This answers what the slot holds, not whether reading it is allowed:
+    /// a map read is still subject to E0224 (`map_read`). Matches `tsc`
+    /// with `noUncheckedIndexedAccess` off, as the generated tsconfig has
+    /// it: `__glyph_index`'s `C[K]` is `E` on an `E[]` and `V` on a
+    /// `Record<K, V>`, with no `| undefined`.
+    fn indexed_element_ty(&self, container: &Ty) -> Option<(Ty, IndexedContainer)> {
+        match self.builtin_receiver_elem(container) {
+            Some((BuiltinReceiver::Array, elem)) => Some((elem, IndexedContainer::Array)),
+            Some(_) => None,
+            None => Some((self.map_value_ty(container)?, IndexedContainer::Map)),
+        }
+    }
+
     /// The built-in receiver a call's object is, with the array's element
     /// type, for E0240 (`receiver_ty`).
     fn mutation_receiver(&self, object: &Expr) -> Option<(BuiltinReceiver, Ty)> {
@@ -8103,9 +8137,9 @@ impl Assigner<'_> {
     /// still knows the type of: an element of an `Array<E>` read by index is
     /// an `E`, and a field of it the field's type (record 151, F2), and an
     /// array method known to return a new array returns an array (`filter`
-    /// is overloaded, so its row is untyped). The index read keeps the type
-    /// it carries everywhere else; whether `xs[i]` is `T` or `T | undefined`
-    /// is a separate decision.
+    /// is overloaded, so its row is untyped). Since D77 the walk types an
+    /// index read as its element itself (`indexed_element_ty`), so the index
+    /// arm here only answers for a node the walk left `Unknown`.
     fn receiver_ty(&self, object: &Expr) -> Option<Ty> {
         let ty = self.tm.get(object.span());
         if !ty.is_unknown() {
@@ -8113,7 +8147,7 @@ impl Assigner<'_> {
         }
         match object {
             Expr::Index { object: base, .. } => {
-                let (BuiltinReceiver::Array, elem) = self.builtin_receiver_elem(&self.receiver_ty(base)?)? else {
+                let (elem, IndexedContainer::Array) = self.indexed_element_ty(&self.receiver_ty(base)?)? else {
                     return None;
                 };
                 (!elem.is_unknown()).then_some(elem)
@@ -12280,6 +12314,15 @@ pub(crate) fn stdlib_named(module: &str, name: &str) -> Ty {
 /// This is what `Lowerer` consults for a written `fs.FsError` annotation, and
 /// the restriction is the point: a stdlib type with no modeled shape keeps
 /// lowering to `Ty::Unknown`, so nothing the checker cannot judge becomes newly
+/// Which kind of container an index reads from (`indexed_element_ty`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum IndexedContainer {
+    /// An `Array<E>`: the index is a position, and the element is `E`.
+    Array,
+    /// A `Record<K, V>` map: the index is a key, and the value is `V`.
+    Map,
+}
+
 /// How to name the key in an E0224 about `map[k]`. A literal is quoted as
 /// written; anything computed is described rather than rendered, since the
 /// point of the diagnostic is that its value is not known here.
@@ -18117,7 +18160,7 @@ fn outer() -> string {
         );
         assert!(
             !errs.iter().any(|e| e.code() == "E0224"),
-            "array indexing must stay unchecked, got {errs:?}"
+            "an array index is not a map read, got {errs:?}"
         );
     }
 
@@ -26552,5 +26595,96 @@ pub fn f() -> number {
 }
 "#;
         assert_eq!(mut_refusals(src), vec![(20, "Mode".to_string(), "\"exec\"".to_string())]);
+    }
+
+    // G439, D77: an index read is typed as its element, so each use of it is
+    // checked as any other typed value is. Probes are record 199's `idx` and
+    // `idx2`; `tsc --strict` (no `noUncheckedIndexedAccess`) refuses each.
+
+    fn index_codes(src: &str) -> Vec<&'static str> {
+        errors_of(src).iter().map(|e| e.code()).filter(|c| *c != "E0107").collect()
+    }
+
+    #[test]
+    fn an_index_read_is_compared_at_return_and_let() {
+        let src = "module x\ntype T = { tags: Array<string>, }\n\
+                   pub fn a(xs: Array<string>) -> number {\n  return xs[0]\n}\n\
+                   pub fn b(xs: Array<string>) -> number {\n  let s = xs[0]\n  return s\n}\n\
+                   pub fn d(xs: Array<string>, i: number) -> number {\n  return xs[i]\n}\n\
+                   pub fn e(rows: Array<Array<string>>, ts: Array<T>) -> void {\n\
+                   \x20 let _n2: number = rows[0]\n  let _n3: number = rows[0][0]\n\
+                   \x20 let _n4: number = ts[0]\n  let _n5: number = ts[0].tags\n  return void\n}\n";
+        assert_eq!(index_codes(src), vec!["E0204"; 7], "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn a_member_of_an_index_read_is_checked() {
+        let src = "module x\ntype T = { tags: Array<string>, }\n\
+                   pub fn c(xs: Array<string>, ts: Array<T>) -> number {\n\
+                   \x20 let s = xs[0]\n  let _t = ts[0].tagz\n  return s.lenght\n}\n";
+        assert_eq!(index_codes(src), vec!["E0210", "E0210"], "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn an_index_read_is_compared_as_an_argument() {
+        let src = "module x\nfn take(n: number) -> number {\n  return n\n}\n\
+                   pub fn a(xs: Array<string>) -> number {\n  return take(xs[0])\n}\n";
+        assert_eq!(index_codes(src), vec!["E0211"], "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn a_well_typed_index_read_passes() {
+        let src = "module x\ntype Row = { name: string, }\ntype Rows = Array<Row>\n\
+                   pub fn a(xs: Array<string>, rows: Rows, i: number) -> string {\n\
+                   \x20 let _l: number = xs[i].length\n  let _u = xs[0].toUpperCase()\n\
+                   \x20 let _r: Row = rows[0]\n  return rows[i].name\n}\n\
+                   pub fn first<T>(xs: Array<T>) -> T {\n  return xs[0]\n}\n";
+        assert_eq!(index_codes(src), Vec::<&str>::new(), "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn an_index_read_on_a_bounded_parameter_reads_the_bound() {
+        let src = "module x\ntype Row = { name: string, }\n\
+                   pub fn a<R: Array<Row>>(rs: R) -> number {\n  return rs[0].name\n}\n";
+        assert_eq!(index_codes(src), vec!["E0204"], "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn an_index_read_on_a_receiver_outside_the_rule_stays_undecided() {
+        // A string's index and a map's `unknown` value are not this rule's:
+        // the first stays `Unknown`, the second keeps E0224's `unknown`.
+        let src = "module x\n\
+                   pub fn a(s: string, m: Record<string, unknown>) -> void {\n\
+                   \x20 let _n: number = s[0]\n  let _u: unknown = m[\"k\"]\n  return void\n}\n";
+        assert_eq!(index_codes(src), Vec::<&str>::new(), "{:?}", errors_of(src));
+    }
+
+    #[test]
+    fn a_map_read_e0224_refuses_is_not_typed() {
+        let src = "module x\npub fn a(m: Record<string, string>) -> number {\n  return m[\"k\"]\n}\n";
+        assert_eq!(index_codes(src), vec!["E0224"], "{:?}", errors_of(src));
+    }
+
+    /// Record 203's merge check: a read and a `mut` write of the same slot
+    /// take one element type, on an alias and on a bounded container alike,
+    /// and both refusals name it.
+    #[test]
+    fn an_index_read_and_write_agree_on_the_element_type() {
+        let src = "module x\ntype Rows = Array<string>\n\
+                   pub fn a(rows: Rows) -> number {\n\
+                   \x20 let n: number = rows[0]\n  mut rows[0] = 5\n  return n\n}\n\
+                   pub fn b<T: Array<string>>(rows: T) -> number {\n\
+                   \x20 let n: number = rows[0]\n  mut rows[0] = 5\n  return n\n}\n";
+        let got: Vec<(usize, String, String)> = mut_refusals(src);
+        let want: Vec<(usize, String, String)> = vec![
+            (4, "number", "string"),
+            (5, "string", "number"),
+            (9, "number", "string"),
+            (10, "string", "number"),
+        ]
+        .into_iter()
+        .map(|(l, e, f)| (l, e.to_string(), f.to_string()))
+        .collect();
+        assert_eq!(got, want, "{:?}", errors_of(src));
     }
 }

@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-485 entries, 345 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-120 are open. G144, the D28 boundary cast that never reached the returns a
+485 entries, 346 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15791,7 +15791,7 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.179 (the release build) with stale173c's probe g438: `--no-tsc` reports no diagnostics; full `check` reports the TS2367 on `m == "zzz"`.*
 
-- **G439. An array index read has no type, so nothing that uses it is checked.**
+- **G439. [FIXED] An array index read has no type, so nothing that uses it is checked.**
   `let ys = [1, 2]` then `let b: string = ys[0]` is `no diagnostics` under
   `check --no-tsc`; full `check` reports `[TS2322] Type 'number' is not
   assignable to type 'string'`. The same holds for `XS[0]` on a typed
@@ -15825,6 +15825,16 @@ and is the owner's to confirm.
   TS2322s. In `idx2.glyph`, `return xs[0]` and `return xs[i]` under `->
   number`, `let s = xs[0]` then `return s`, and `return s.lenght` exit 0
   under `check --no-tsc`; full `check` reports three TS2322s and a TS2551.*
+
+  Fixed in 0.1.184 (record 199, ruling 2; D77): an index read is typed as
+  its element, `E` on an `Array<E>` and `V` on a `Record<K, V>` where E0224
+  allows the read, through aliases and a bounded parameter's bound. Every use
+  is then checked as any other typed value is. Under the 0.1.184 build
+  `idx2.glyph` gives 3 E0204 and an E0210 and `idx.glyph` 5 E0204 under
+  `--no-tsc`, one for each `tsc` error. An index on any other receiver (a
+  `string`, an unbounded type parameter, an interop value) stays undecided.
+  The read and G501's `mut` write take the element type from one helper,
+  `indexed_element_ty` (record 203).
 
 - **G442. `{cond && <el/>}` with a number `cond` passes both checkers and
   renders `0`.** `component A(props: { n: number }) { return

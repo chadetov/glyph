@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-508 entries, 353 are fixed, 9 are partly fixed, 13 are decided or resolved, and
-133 are open. G144, the D28 boundary cast that never reached the returns a
+508 entries, 354 are fixed, 9 are partly fixed, 13 are decided or resolved, and
+132 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -17085,12 +17085,21 @@ and is the owner's to confirm.
   against `X` (D45), which also stopped `Box<number>` being refused where
   `Nullable<Box<number>>` is declared. Where a `Record<K, V>` is declared
   it is decided as `tsc` decides it: a `string`, `number` or `int` key
-  refuses it whatever `V` is, and a string-literal union key accepts it
+  refuses it, and a string-literal union key accepts it
   when every literal is a required member holding a `V`, which stopped
   `GTwo<number>` (`a: X  b: X`) being refused where `Record<Mode, number>`
   is declared. `HasV` where `Empty` (`type Empty = { }`) is declared is no
   longer refused, as D49 says and `tsc` agrees. `Array`, `Option` and
   `Result` are G586.
+
+  Record 211 found one false refusal in that rule, fixed in the same
+  release: under a `string`, `number` or `int` key a `V` the checker does
+  not read (an `extern_ts` or `typeof` body, in place or through a local
+  or imported name, or a `Nullable` of one) leaves the pairing undecided,
+  because `tsc` may read it as `any` and `Record<string, any>` takes any
+  object type. `HasV` and `Box<number>` where `Record<string, Raw>` is
+  declared, with `Raw = extern_ts("any")`, are silent again, and `glyph
+  query assignable` answers UNDETERMINED for both.
 
 - **G537. The depth cap's reason says no rule exists.** With `interface
   P<X> { next: P<Array<X>> }` and `type R = { next: R, }`, the relation
@@ -17320,7 +17329,7 @@ and is the owner's to confirm.
   can keep that file in TypeScript and import the emitted Glyph modules from
   it.
 
-- **G586. An interface value against `Option` and `Result` is still judged
+- **G586. [FIXED] An interface value against `Option` and `Result` is still judged
   by spelling.** G536 gave an interface value one rule where a record, a
   tagged union, a `Record` map or a `Nullable` is declared, and left the
   other prelude containers alone. With `interface HasV { v: number }` and
@@ -17340,3 +17349,19 @@ and is the owner's to confirm.
   still reports 0.1.179): `check --no-tsc` gives E0204 for `Box<number>`
   into `Option<number>` and into `Result<number, string>`, and nothing for
   `HasV` into either.*
+
+  Decided by record 211: refuse by class, as D49 already counts `Option`
+  and `Result` among the prelude containers that are other declarations.
+  Comparing members against the emitted tagged shape was rejected, since
+  it would make the runtime encoding part of the type surface (D18) and
+  accept an interface that spells `tag: "Some"`, a value `Option`'s
+  descriptor never checked. Folded into the G536 release.
+
+  Fixed in the G536 release: an interface value, plain or applied, is
+  refused where `Option`, `Result` or `Array` is declared, whatever the
+  arguments, as one arm of the rule G536 added. `Array` is in the arm
+  rather than left to 0.1.182, because on this base `HasV` where
+  `Array<number>` is declared was still silent, and the rule should not
+  wait on a rebase to hold for both spellings. `glyph query assignable`
+  answers WILL_FAIL for all six pairings, held by the G536 exact-or-absent
+  case.

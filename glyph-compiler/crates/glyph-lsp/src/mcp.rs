@@ -107,6 +107,9 @@ struct Project {
     /// runs with, and so the probe's own declaration indices are the ones its
     /// resolver hands out.
     probe: Option<SourceFile>,
+    /// The `glyph` key governing this root (D74), re-read on every refresh,
+    /// so an edit to `package.json` is in the next answer without a restart.
+    config: crate::project_config::ProjectConfig,
 }
 
 impl Project {
@@ -126,6 +129,7 @@ impl Project {
             outsider: None,
             entries: Vec::new(),
             probe: None,
+            config: crate::project_config::ProjectConfig::default(),
         }
     }
 
@@ -169,6 +173,7 @@ impl Project {
     /// holds that comparison now. The same applies to `set_project`, which is
     /// written only when the entry set changes.
     fn refresh(&mut self, target: &Path) {
+        self.config = crate::project_config::load_project_config(&self.root);
         let mut walked = Vec::new();
         collect_glyph_files(&self.root, &mut walked);
         let mut candidates: BTreeSet<PathBuf> = walked.into_iter().collect();
@@ -482,7 +487,7 @@ fn initialize_result() -> Value {
 // the contract now and point here for the rest, and nothing was deleted to do
 // it: what follows is the text that was in them.
 
-const DIAGNOSTICS_MANUAL: &str = "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the three checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk; `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`; and `E0400`, a failing `@example` or `@doc @run`, which is decided by emitting the project and running the example rather than by reading it. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.";
+const DIAGNOSTICS_MANUAL: &str = "Every diagnostic the compiler reports for one file, checked inside its project. The answer is `{ path, module, project_root, member, diagnostics, unindexed, not_run }`, and each entry of `diagnostics` is the structured diagnostic `glyph check --json` prints, field for field, from the same type: `code`, `severity` (`error` or `warning`), `message`, `help`, `note`, `file` (the module half of the file's identity, the same spelling `entity` is counted from), `range` (1-based `line` and `col`, with the byte `offset`), `stage` (`parse`, `collect`, `import`, `resolve`, `typecheck`, `lint`, `emit`, `config`), and `entity`, the `module::name` declaration the diagnostic sits in or null when there is none. An exhaustiveness error also carries `union` and `missing_variants`, which address the union rather than describing it: `union.name` is what `glyph_variants` takes and `union.declaration` is what `glyph_impact` takes, so the repair continues without a regex over the message. The file is checked in its project, so a non-exhaustive match over an imported union, a wrong field on an imported record, and an unknown export are all answered the way the compiler answers them; a reading of the file on its own reports none of the three, and reports the import of a variant the missing arms would have named as unused. Coverage is stated on the answer. `member` is false for a file the project walk does not reach (a dot directory, `target/`, `node_modules/`), which is still checked from its own contents against the project's modules, with `member_detail` saying so. `unindexed` names the project files that could not be read, one by one, because a sibling that does not parse declares nothing this file's check can see. `not_run` names the three checks `glyph check` makes and this does not: `tsc`, which reads emitted TypeScript on disk; `E0104`, an import naming no module, where telling a mistyped sibling from an installed package needs the build's view of `node_modules`; and `E0400`, a failing `@example` or `@doc @run`, which is decided by emitting the project and running the example rather than by reading it. A banned import (E0115) is reported against the bans in the project's `package.json`, which is re-read on every call. A malformed `glyph` key in that manifest (E0116) is in every file's answer, with `file` naming the manifest from the project root (`../package.json` under `src/`), `module` and `entity` null, and `stage` `config`. A file that does not parse answers with its parse error alone, since every stage after it needs an AST. A path that is not a readable `.glyph` file is an error rather than an empty answer.";
 
 const HOVER_MANUAL: &str = "The type at a position in a Glyph file, read inside the file's project. It answers an expression, a declaration's own name, a parameter, a written annotation, a tagged-union variant (as the syntax that constructs it) and a local binding at its definition site. A name declared in another module answers too, from that module's own lowered declaration rather than from the import binding: the binding inside `import m { N }`, an imported function where it is called (named or through a namespace), an imported variant used as a value, an imported annotated `const`, and a field read off an imported record. `null` where the compiler holds no type for the position: a keyword, a literal, whitespace, an unannotated `const` whose initializer the checker cannot type (an npm value, an `extern_ts` result), and a namespace import binding, which names a module rather than a declaration.";
 
@@ -738,7 +743,16 @@ fn tool_diagnostics(args: &Value, server: &mut Server) -> Result<String, String>
         .map(|(_, f)| glyph_db::parse_module(db, f.file))
         .collect();
 
-    let diagnostics = crate::diagnostic::project_file_diagnostics(db, file, &module_path, &tables);
+    let mut diagnostics = crate::diagnostic::project_file_diagnostics(
+        db,
+        file,
+        &module_path,
+        &tables,
+        &project.config.policy,
+    );
+    // A malformed `glyph` key (E0116) fails `glyph check` on every file of the
+    // project, so it is in every file's answer, at the manifest.
+    diagnostics.extend(project.config.diagnostics(&project_root));
 
     // What the project could not be read from. The queried file is not in this
     // list: its own parse failure is the first diagnostic above, which is a
@@ -11316,6 +11330,46 @@ mod tests {
             .map(|d| d["code"].as_str().unwrap())
             .collect();
         assert!(codes.contains(&"E0210"), "{codes:?}");
+    }
+
+    /// D74: a banned import is E0115 here as under `glyph check`, a malformed
+    /// `glyph` key is E0116 at the manifest in every file's answer, and an
+    /// edit to `package.json` is in the next answer from the same server,
+    /// with no restart.
+    #[test]
+    fn diagnostics_tool_reads_the_projects_bans_and_follows_an_edit_to_them() {
+        let root = tmp_root();
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+        let banned = r#"{"name":"p","glyph":{"src":"src","banned_imports":{"std/fs":{"use":"storage"}}}}"#;
+        std::fs::write(root.join("package.json"), banned).unwrap();
+        write(&src, "storage.glyph", "module storage\nimport std/fs\npub fn ok(p: string) -> bool {\n  return fs.exists(p)\n}\n");
+        write(&src, "main.glyph", "module main\nimport std/fs\npub fn ok(p: string) -> bool {\n  return fs.exists(p)\n}\n");
+        let mut server = Server::new(root.clone());
+        let codes = |v: &Value| -> Vec<String> {
+            reported(v).iter().map(|d| d["code"].as_str().unwrap().to_string()).collect()
+        };
+
+        let (value, is_error) = call_on(&mut server, "glyph_diagnostics", json!({ "path": "src/main.glyph" }));
+        assert!(!is_error, "{value}");
+        assert_eq!(codes(&value), vec!["E0115"], "{value}");
+        assert_eq!(reported(&value)[0]["message"], "`std/fs` is banned in this project");
+        let (value, _) = call_on(&mut server, "glyph_diagnostics", json!({ "path": "src/storage.glyph" }));
+        assert!(codes(&value).is_empty(), "the replacement may import it: {value}");
+
+        // The ban is lifted on disk: the same server answers without it.
+        std::fs::write(root.join("package.json"), r#"{"name":"p","glyph":{"src":"src"}}"#).unwrap();
+        let (value, _) = call_on(&mut server, "glyph_diagnostics", json!({ "path": "src/main.glyph" }));
+        assert!(codes(&value).is_empty(), "{value}");
+
+        // A typo in the key is E0116, at the manifest, in the file's answer.
+        std::fs::write(root.join("package.json"), banned.replace("banned_imports", "banned_import")).unwrap();
+        let (value, _) = call_on(&mut server, "glyph_diagnostics", json!({ "path": "src/main.glyph" }));
+        assert_eq!(codes(&value), vec!["E0116"], "{value}");
+        let d = &reported(&value)[0];
+        assert_eq!(d["file"], "../package.json", "{value}");
+        assert_eq!(d["stage"], "config", "{value}");
+        assert!(d["module"].is_null(), "{value}");
     }
 
     /// Record 97 Q1: `glyph_diagnostics` reports a comment `glyph fmt`

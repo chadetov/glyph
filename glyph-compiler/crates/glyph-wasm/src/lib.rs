@@ -259,7 +259,7 @@ fn resolve_diag(
         glyph_resolver::Severity::Error => "error",
         _ => "warning",
     };
-    diag(index, source, e.span(), e.code(), &format!("{e}"), e.help(), severity)
+    diag(index, source, e.span(), e.code(), &format!("{e}"), e.help().as_deref(), severity)
 }
 
 /// An error-severity `Diagnostic`, for the phases that only produce errors.

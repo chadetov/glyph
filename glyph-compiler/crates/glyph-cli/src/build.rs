@@ -603,11 +603,34 @@ fn build_project_inner_with(
     // by the local-import check below.
     let external_modules = external_module_names(src, resolve_from);
 
+    // The `glyph` key governing this project (D74), read from where its
+    // dependencies are, so a staged copy keeps the original's bans. A
+    // malformed key (E0116) is reported once, at the manifest, before any
+    // module.
+    let config = glyph_lsp::project_config::load_project_config(resolve_from);
+    let mut report = BuildReport::default();
+    if let Some(manifest) = &config.manifest {
+        let label = glyph_lsp::project_config::manifest_label(resolve_from, manifest);
+        for e in &config.errors {
+            report.diagnostics.push(crate::render::render_config_error(
+                &label,
+                &config.text,
+                e,
+                with_color,
+            ));
+            report.structured.push(glyph_lsp::diagnostic::from_config_error(
+                &label,
+                &config.text,
+                e,
+            ));
+            report.error_count += 1;
+        }
+    }
+
     // Run the pipeline for each file. Collect diagnostics in the same
     // order as the file walk so the report is reproducible. Each
     // diagnostic is ariadne-rendered against the file's source so the
     // output includes the failing line + a caret pointer.
-    let mut report = BuildReport::default();
     for (module_path, sf) in &entries {
         report.modules.push(module_path.clone());
         let err_start = report.error_count;
@@ -694,12 +717,36 @@ fn build_project_inner_with(
         // about unknown modules (npm packages have no exports table), which
         // left the local case silent: the type degraded and the user saw a
         // non-exhaustive match instead of the import that failed.
+        // A banned import (E0115, D74). It replaces the E0104 the same import
+        // would get when the package is not installed: "install axios" is the
+        // wrong advice about a package the project has said not to use.
+        for e in &glyph_resolver::verify_banned_imports(ast, &source, module_path, &config.policy) {
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, e, with_color));
+            report
+                .structured
+                .push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    ast,
+                ));
+            report.error_count += 1;
+        }
+
         if let Some(ast) = parsed.module() {
             let local_import_errors = glyph_resolver::verify_local_imports(
                 ast,
                 &src.display().to_string(),
                 &|path: &str| module_resolution(path, &project_modules, &external_modules),
                 &|path: &str| locate_module_site(src, &files, other_projects, path),
+            );
+            let local_import_errors = glyph_resolver::drop_superseded_by_ban(
+                local_import_errors,
+                ast,
+                module_path,
+                &config.policy,
             );
             for e in &local_import_errors {
                 report
@@ -717,8 +764,13 @@ fn build_project_inner_with(
             }
         }
 
-        let diags = import_diagnostics(&db, *sf);
-        for e in diags.errors() {
+        let diags = glyph_resolver::drop_superseded_by_ban(
+            import_diagnostics(&db, *sf).errors().to_vec(),
+            ast,
+            module_path,
+            &config.policy,
+        );
+        for e in &diags {
             report
                 .diagnostics
                 .push(render_resolve_error(module_path, &source, e, with_color));

@@ -111,11 +111,29 @@ pub fn read_package_json(dir: &Path) -> Result<Option<PackageJson>, String> {
 /// This is the only place the marker is interpreted. `is_project_root` and
 /// `project_src` are views of it, so no caller can accidentally apply the `src/`
 /// convention to a directory that is not a project.
+///
+/// The marker is the key's presence, whatever it holds. A `glyph` key with a
+/// value Glyph does not read (`"src": 5`, an unknown key) still marks the
+/// project, and the build reports it as E0116 at the manifest (D74) rather
+/// than quietly treating the directory as unmarked. This is the reading the
+/// language server's `marked_project_src` has always made.
 pub fn project_src_checked(dir: &Path) -> Result<Option<PathBuf>, String> {
-    match read_package_json(dir)? {
-        Some(PackageJson { glyph: Some(g), .. }) => Ok(Some(resolve_src(dir, &g))),
-        _ => Ok(None),
-    }
+    let path = dir.join("package.json");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
+    };
+    let manifest: serde_json::Value =
+        serde_json::from_str(&text).map_err(|e| format!("invalid {}: {e}", path.display()))?;
+    let Some(glyph) = manifest.get("glyph") else {
+        return Ok(None);
+    };
+    let config = GlyphConfig {
+        src: glyph.get("src").and_then(|s| s.as_str()).map(str::to_string),
+        ..GlyphConfig::default()
+    };
+    Ok(Some(resolve_src(dir, &config)))
 }
 
 /// Whether `dir` is a Glyph project root (D41). See [`project_src_checked`].

@@ -24,6 +24,7 @@
 
 mod collect;
 mod error;
+mod import_policy;
 mod lints;
 mod module_graph;
 mod stdlib_types;
@@ -34,6 +35,10 @@ mod symbol;
 
 pub use collect::{collect_module_symbols, ModuleSymbols};
 pub use error::{AlternativesKind, ResolveError, Severity, ShadowOrigin};
+pub use import_policy::{
+    drop_superseded_by_ban, read_glyph_config, verify_banned_imports, ConfigError, GlyphConfigRead,
+    ImportBan, ImportPolicy, ProjectFacts, GLYPH_KEYS,
+};
 pub use lints::{module_lints, no_export_surface_lint};
 pub use reserved::JS_GLOBALS;
 pub use module_graph::{

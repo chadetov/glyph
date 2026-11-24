@@ -98,6 +98,7 @@ use tower_lsp::lsp_types::Url;
 
 use crate::analysis::{analysis_in, hover_in, module_outline, Analysis};
 use crate::diagnostic::{project_file_diagnostics_staged, project_tables, Diagnostic, Stages, StagesRan};
+use crate::project_config::{load_project_config, ProjectConfig};
 use crate::{collect_glyph_files, module_path_of};
 
 /// How many project databases stay live at once, least-recently-used evicted.
@@ -152,6 +153,9 @@ struct ProjectDb {
     /// `ProjectFiles::entries` directly, so a write of an identical list
     /// invalidates every memoized imported declaration for nothing.
     entries: Vec<(String, SourceFile)>,
+    /// The `glyph` key governing this root (D74), re-read on every scan, so
+    /// an edit to `package.json` reaches the next list without a restart.
+    config: ProjectConfig,
 }
 
 impl ProjectDb {
@@ -168,6 +172,7 @@ impl ProjectDb {
             db,
             handles: HashMap::new(),
             entries: Vec::new(),
+            config: ProjectConfig::default(),
         }
     }
 
@@ -233,6 +238,7 @@ impl ProjectDb {
     /// This is the expensive half and it is deliberately not on the request
     /// path: see [`Workspace::rescan`] for when it runs.
     fn scan(&mut self, open: &HashMap<Url, String>) {
+        self.config = load_project_config(&self.root);
         let mut walked = Vec::new();
         collect_glyph_files(&self.root, &mut walked);
         let mut seen: HashSet<Url> = HashSet::new();
@@ -499,7 +505,14 @@ impl Workspace {
         }
         let tables = project_tables(&project.db, &entries);
         let (diagnostics, ran) =
-            project_file_diagnostics_staged(&project.db, file, &module_path, &tables, stages);
+            project_file_diagnostics_staged(
+                &project.db,
+                file,
+                &module_path,
+                &tables,
+                &project.config.policy,
+                stages,
+            );
         Some((file.source_text(&project.db).as_str(), diagnostics, ran))
     }
 
@@ -557,6 +570,7 @@ impl Workspace {
                     *file,
                     module_path,
                     &tables,
+                    &project.config.policy,
                     Stages::All,
                 );
                 let text = (!list.is_empty()).then(|| file.source_text(&project.db).clone());
@@ -573,6 +587,23 @@ impl Workspace {
             }
         }
         out.sort_by(|a, b| a.0.cmp(&b.0));
+        out
+    }
+
+    /// The `E0116` list of every live project's manifest, keyed by the
+    /// manifest's URI, with the manifest text the ranges are in. A project
+    /// whose manifest is clean is in the list with no diagnostics, so a
+    /// publish of it clears what an earlier one showed.
+    pub(crate) fn config_diagnostics(&self) -> Vec<(Url, String, Vec<Diagnostic>)> {
+        let mut out: Vec<(Url, String, Vec<Diagnostic>)> = Vec::new();
+        for project in &self.projects {
+            let Some(manifest) = &project.config.manifest else { continue };
+            let Ok(uri) = Url::from_file_path(manifest) else { continue };
+            if out.iter().any(|(u, ..)| *u == uri) {
+                continue;
+            }
+            out.push((uri, project.config.text.clone(), project.config.diagnostics(&project.root)));
+        }
         out
     }
 

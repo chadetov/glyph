@@ -88,10 +88,32 @@ pub fn render_resolve_error(
         stage,
         &message,
         err.code(),
-        err.help(),
+        err.help().as_deref(),
         None,
         with_color,
         severity,
+    )
+}
+
+/// Render a malformed `glyph` key (`E0116`, D74) against the manifest text,
+/// under the `config` stage tag. `path` names the manifest.
+pub fn render_config_error(
+    path: &str,
+    source: &str,
+    err: &glyph_resolver::ConfigError,
+    with_color: bool,
+) -> String {
+    build_report(
+        path,
+        source,
+        err.span,
+        "config",
+        &err.message,
+        err.code(),
+        err.help.as_deref(),
+        None,
+        with_color,
+        Severity::Error,
     )
 }
 

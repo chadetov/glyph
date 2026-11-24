@@ -28,7 +28,7 @@ use glyph_ast::Span;
 use glyph_db::{Db, SourceFile};
 use glyph_emit::{EmitError, ProjectTables};
 use glyph_parser::ParseError;
-use glyph_resolver::ResolveError;
+use glyph_resolver::{ImportPolicy, ResolveError};
 use glyph_typechecker::{AlternativesKind, DiagnosticDecl, Severity, TypeError};
 
 /// One structured diagnostic.
@@ -522,7 +522,7 @@ pub fn from_resolve_error(
         severity,
         stage_label_for(err),
         format!("{err}"),
-        err.help(),
+        err.help().as_deref(),
         None,
         entity_id(module_path, module, err.span().start),
     )
@@ -655,7 +655,8 @@ fn resolve_subject(err: &ResolveError) -> Option<String> {
         | R::ShadowedGlobalName { .. }
         | R::PrimitiveUnionType { .. }
         | R::NoExportSurface { .. }
-        | R::CircularBound { .. } => None,
+        | R::CircularBound { .. }
+        | R::BannedImport { .. } => None,
     }
 }
 
@@ -729,6 +730,28 @@ fn type_subject(err: &TypeError) -> Option<String> {
     }
 }
 
+/// A malformed `glyph` key (`E0116`, D74) as a structured diagnostic. It is
+/// about `package.json`, not a module: `file` is the manifest's path from the
+/// project root (`../package.json` under the `src/` layout `glyph init`
+/// writes), `module` and `entity` are null, and the stage is `config`.
+pub fn from_config_error(file: &str, source: &str, err: &glyph_resolver::ConfigError) -> Diagnostic {
+    let mut d = Diagnostic::new(
+        "package",
+        source,
+        err.span,
+        err.code(),
+        "error",
+        "config",
+        err.message.clone(),
+        err.help.as_deref(),
+        None,
+        None,
+    );
+    d.file = file.to_string();
+    d.module = None;
+    d
+}
+
 pub fn from_emit_error(
     module_path: &str,
     source: &str,
@@ -798,6 +821,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::PrimitiveUnionType { .. } => "collect",
         ResolveError::NoExportSurface { .. } => "lint",
         ResolveError::CircularBound { .. } => "resolve",
+        ResolveError::BannedImport { .. } => "import",
     }
 }
 
@@ -877,8 +901,9 @@ pub fn project_file_diagnostics(
     file: SourceFile,
     module_path: &str,
     tables: &ProjectTables,
+    policy: &ImportPolicy,
 ) -> Vec<Diagnostic> {
-    project_file_diagnostics_through(db, file, module_path, tables, Stages::All)
+    project_file_diagnostics_through(db, file, module_path, tables, policy, Stages::All)
 }
 
 /// How far down the pipeline [`project_file_diagnostics_through`] goes.
@@ -904,9 +929,10 @@ pub fn project_file_diagnostics_through(
     file: SourceFile,
     module_path: &str,
     tables: &ProjectTables,
+    policy: &ImportPolicy,
     stages: Stages,
 ) -> Vec<Diagnostic> {
-    project_file_diagnostics_staged(db, file, module_path, tables, stages).0
+    project_file_diagnostics_staged(db, file, module_path, tables, policy, stages).0
 }
 
 /// The stages of the pipeline that ran on one file, in pipeline order, as the
@@ -943,6 +969,7 @@ pub fn project_file_diagnostics_staged(
     file: SourceFile,
     module_path: &str,
     tables: &ProjectTables,
+    policy: &ImportPolicy,
     stages: Stages,
 ) -> (Vec<Diagnostic>, StagesRan) {
     let mut ran = StagesRan::default();
@@ -971,7 +998,19 @@ pub fn project_file_diagnostics_staged(
         out.push(from_resolve_error(module_path, &source, e, ast));
     }
 
-    for e in glyph_db::import_diagnostics(db, file).errors() {
+    // A banned import (E0115, D74), in the import stage where an unresolved
+    // one is reported, and in place of the E0104 a missing std module would
+    // also get.
+    for e in &glyph_resolver::verify_banned_imports(ast, &source, module_path, policy) {
+        out.push(from_resolve_error(module_path, &source, e, ast));
+    }
+    let imports = glyph_resolver::drop_superseded_by_ban(
+        glyph_db::import_diagnostics(db, file).errors().to_vec(),
+        ast,
+        module_path,
+        policy,
+    );
+    for e in &imports {
         out.push(from_resolve_error(module_path, &source, e, ast));
     }
 

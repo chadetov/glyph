@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "ko",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "{{catches:count}}개 중 <span>{{catches:none}}</span>개"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}} 확인된 사례는 모두 {{catches:total}}건입니다. TypeScript 사례 {{catches:count}}건, Glyph에는 없는 JavaScript 함정 {{catches:trap-count}}건, Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 그중 {{catches:refused-all}}건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 {{catches:refused}}건, 함정 {{catches:traps-refused}}건)."
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}} 확인된 사례는 모두 {{catches:total}}건입니다. TypeScript 사례 {{catches:count}}건, Glyph에는 없는 JavaScript 함정 {{catches:trap-count}}건, Glyph가 아직 막지 못한 구멍 {{catches:gap-cases}}건입니다. 그중 {{catches:refused-all}}건은 빌드할 때 Glyph가 거부합니다(TypeScript 사례 {{catches:refused}}건, 함정 {{catches:traps-refused}}건). <a href=\"/catches/\">「잡아내는 것」 페이지</a>에 모든 사례의 TypeScript, Glyph, 오류가 실려 있습니다."
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "<code>WILL_FAIL</code> 항목마다 거기서 날 오류가 함께 나옵니다. 케이스만 추가했을 때 나온 것도 정확히 그 여덟 개의 <code>E0200</code> 오류였습니다. <code>ABSORBS</code> 두 곳은 아무것도 내지 않습니다. <code>render::literal_text</code>는 날짜 리터럴을 따옴표 없이 출력했을 것이고, <code>exec::total</code>은 모든 날짜를 0으로 셌을 것입니다. 컴파일러 오류만 보고 일하는 에이전트는 여덟 곳을 고치고 초록색 빌드에서 멈춥니다. 수정 후 다시 물으면 컴파일러는 열 곳 모두에서 <code>WILL_FAIL</code>이라고 답하므로, 다음 케이스도 빠져나가지 못합니다."
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍 {{catches:gap-count}}개에는 재현 코드와 gap 번호가 붙어 있고, 논리 오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다. <a href=\"/catches/#not-yet\">아직 잡아내지 못하는 것 &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph가 아직 모든 것을 잡아내지는 못합니다. 알려진 구멍 {{catches:gap-count}}개에는 재현 코드와 gap 번호가 붙어 있고, 논리 오류는 TypeScript에서와 마찬가지로 Glyph에서도 통과합니다. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">gap 로그</a>에는 Glyph로 앱을 만들며 발견한 모든 제약이 번호와 상태와 함께 기록되어 있습니다. <a href=\"/catches/#not-yet\">아직 잡아내지 못하는 것 &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

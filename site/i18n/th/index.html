@@ -1,7 +1,7 @@
 ---
 title: Glyph: ภาษามี type ที่คอมไพล์เป็น TypeScript สำหรับเอเจนต์ AI
 description: Glyph เป็นภาษาแบบ static typing ที่คอมไพล์เป็น TypeScript ออกแบบมาให้โค้ดที่เอเจนต์ AI เขียนอ่านได้ ตรวจสอบได้ และแก้ไขได้โดยไม่ต้องเดา
-source_hash: 3a419cdee3b04e4b
+source_hash: 77dd26b0cd309cc4
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, ภาษาโปรแกรม, typescript, transpiler, เอเจนต์ ai, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -59,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big"><span>{{catches:none}}</span> จาก {{catches:count}}</p>
-          <p>{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี)</p>
+          <p>{{catches:measured}} รวมทั้งหมดมี {{catches:total}} กรณีที่ตรวจแล้ว ได้แก่ กรณีของ TypeScript {{catches:count}} กรณี กับดักของ JavaScript ที่ไม่มีใน Glyph {{catches:trap-count}} กรณี และช่องโหว่ที่ Glyph ยังปิดไม่ได้ {{catches:gap-cases}} กรณี Glyph ปฏิเสธ {{catches:refused-all}} กรณีในจำนวนนี้ตอน build (กรณีของ TypeScript {{catches:refused}} กรณี และกับดัก {{catches:traps-refused}} กรณี) <a href="/catches/">หน้า “สิ่งที่จับได้”</a> แสดงทุกกรณีพร้อม TypeScript, Glyph และข้อผิดพลาดของกรณีนั้น</p>
         </div>
       </div>
     </section>
@@ -107,7 +107,7 @@ glyph check: tsc --strict passed.</span></pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph ได้เหมือนที่ผ่าน TypeScript <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
+          Glyph ยังจับไม่ได้ทุกอย่าง ช่องโหว่ที่รู้แล้ว {{catches:gap-count}} จุด มีโค้ดสำหรับทำซ้ำและหมายเลข gap กำกับไว้ และ logic error ก็ผ่าน Glyph ได้เหมือนที่ผ่าน TypeScript <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">บันทึก gap</a> ให้หมายเลขกับข้อจำกัดทุกข้อที่พบระหว่างสร้างแอปด้วย Glyph พร้อมสถานะ <a href="/catches/#not-yet">สิ่งที่ยังจับไม่ได้ &rarr;</a>
         </p>
       </div>
     </section>

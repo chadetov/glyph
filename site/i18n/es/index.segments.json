@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "es",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "<span>{{catches:none}}</span> de {{catches:count}}"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}} En total hay {{catches:total}} casos comprobados: {{catches:count}} casos de TypeScript, {{catches:trap-count}} trampas de JavaScript que no existen en Glyph y {{catches:gap-cases}} huecos que Glyph aún no cierra. Glyph rechaza {{catches:refused-all}} de ellos al compilar ({{catches:refused}} casos de TypeScript y {{catches:traps-refused}} trampas)."
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}} En total hay {{catches:total}} casos comprobados: {{catches:count}} casos de TypeScript, {{catches:trap-count}} trampas de JavaScript que no existen en Glyph y {{catches:gap-cases}} huecos que Glyph aún no cierra. Glyph rechaza {{catches:refused-all}} de ellos al compilar ({{catches:refused}} casos de TypeScript y {{catches:traps-refused}} trampas). <a href=\"/catches/\">La página «Lo que detecta»</a> muestra cada caso con su TypeScript, su Glyph y el error."
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "Cada entrada <code>WILL_FAIL</code> trae el error que va a producir, y añadir solo el caso dio exactamente esos ocho errores <code>E0200</code>. Los dos sitios <code>ABSORBS</code> no producen nada: <code>render::literal_text</code> habría impreso un literal de fecha sin comillas, y <code>exec::total</code> habría contado cada fecha como cero. Un agente que trabaja solo con los errores del compilador corrige ocho sitios y se detiene con una build en verde. Si se le vuelve a preguntar después del arreglo, el compilador responde <code>WILL_FAIL</code> en los diez, así que el próximo caso tampoco se cuela."
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph todavía no lo detecta todo. {{catches:gap-count}} agujeros conocidos tienen una reproducción y un número de gap, y los errores de lógica pasan en Glyph igual que en TypeScript. <a href=\"/catches/#not-yet\">Lo que todavía no detecta &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph todavía no lo detecta todo. {{catches:gap-count}} agujeros conocidos tienen una reproducción y un número de gap, y los errores de lógica pasan en Glyph igual que en TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">El registro de gaps</a> numera cada limitación encontrada al construir apps en Glyph, con su estado. <a href=\"/catches/#not-yet\">Lo que todavía no detecta &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

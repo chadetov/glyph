@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "index.html",
   "locale": "tr",
-  "source_hash": "3a419cdee3b04e4b",
+  "source_hash": "77dd26b0cd309cc4",
   "segments": [
     {
       "id": "title",
@@ -185,10 +185,10 @@
       "tr": "{{catches:count}} vakadan <span>{{catches:none}}</span> tanesi"
     },
     {
-      "id": "h-19744fc5",
+      "id": "h-8849d6e0",
       "kind": "html",
-      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps).",
-      "tr": "{{catches:measured}} Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript vakası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} TypeScript vakası ve {{catches:traps-refused}} tuzak)."
+      "en": "{{catches:measured}} There are {{catches:total}} checked cases: {{catches:count}} TypeScript cases, {{catches:trap-count}} JavaScript traps that do not exist in Glyph, and {{catches:gap-cases}} holes Glyph does not close yet. Glyph refuses {{catches:refused-all}} of them when you build ({{catches:refused}} TypeScript cases and {{catches:traps-refused}} traps). <a href=\"/catches/\">The catches page</a> lists every case with its TypeScript, its Glyph and the error.",
+      "tr": "{{catches:measured}} Toplam {{catches:total}} doğrulanmış vaka var: {{catches:count}} TypeScript vakası, Glyph'te var olmayan {{catches:trap-count}} JavaScript tuzağı ve Glyph'in henüz kapatmadığı {{catches:gap-cases}} açık. Glyph bunların {{catches:refused-all}} tanesini derleme sırasında reddeder ({{catches:refused}} TypeScript vakası ve {{catches:traps-refused}} tuzak). <a href=\"/catches/\">“Yakaladıkları” sayfası</a> her vakayı TypeScript’i, Glyph’i ve hatasıyla birlikte listeler."
     },
     {
       "id": "h-36c9b818",
@@ -227,10 +227,10 @@
       "tr": "Her <code>WILL_FAIL</code> kaydı, orada çıkacak hatayla birlikte geliyor; sadece case'i eklemek tam olarak bu sekiz <code>E0200</code> hatasını verdi. İki <code>ABSORBS</code> noktası hiçbir şey vermiyor: <code>render::literal_text</code> bir tarih literal'ını tırnaksız yazdıracaktı, <code>exec::total</code> da her tarihi sıfır sayacaktı. Yalnızca derleyici hatalarıyla çalışan bir ajan sekiz noktayı düzeltir ve yeşil bir build ile durur. Düzeltmeden sonra aynı soru tekrar sorulduğunda derleyici onunda da <code>WILL_FAIL</code> diyor, yani bir sonraki case de gözden kaçamaz."
     },
     {
-      "id": "h-35b0b48e",
+      "id": "h-6e76aed0",
       "kind": "html",
-      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
-      "tr": "Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın bir reprodüksiyonu ve bir gap numarası var; mantık hataları da TypeScript'te olduğu gibi Glyph'ten de geçiyor. <a href=\"/catches/#not-yet\">Henüz yakalamadıkları &rarr;</a>"
+      "en": "Glyph does not catch everything yet. {{catches:gap-count}} known holes have a reproduction and a gap number, and logic errors pass in Glyph as they do in TypeScript. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">The gap log</a> numbers every limitation found by building apps in Glyph, with its status. <a href=\"/catches/#not-yet\">What it does not catch yet &rarr;</a>",
+      "tr": "Glyph henüz her şeyi yakalamıyor. Bilinen {{catches:gap-count}} açığın bir reprodüksiyonu ve bir gap numarası var; mantık hataları da TypeScript'te olduğu gibi Glyph'ten de geçiyor. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md\">Gap kaydı</a>, Glyph ile uygulama yazarken bulunan her sınırlamayı numaralandırır ve durumunu gösterir. <a href=\"/catches/#not-yet\">Henüz yakalamadıkları &rarr;</a>"
     },
     {
       "id": "j-fb30593c",

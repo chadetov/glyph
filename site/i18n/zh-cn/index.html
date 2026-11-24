@@ -1,7 +1,7 @@
 ---
 title: Glyph：一门编译到 TypeScript 的类型化语言，为 AI 智能体设计
 description: Glyph 是一门编译到 TypeScript 的静态类型语言，目的是让 AI 智能体写出的代码可以被阅读、检查和修改，不用靠猜。
-source_hash: 3a419cdee3b04e4b
+source_hash: 77dd26b0cd309cc4
 head: |
   <meta name="keywords" content="glyph, glyph language, glyphlang, 编程语言, typescript, 转译器, AI 智能体, llm" />
   <link rel="stylesheet" href="/catches.css" />
@@ -59,7 +59,7 @@ head: |
       <div class="wrap">
         <div class="h-measured">
           <p class="h-big">{{catches:count}} 个中有 <span>{{catches:none}}</span> 个</p>
-          <p>{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。</p>
+          <p>{{catches:measured}}共有 {{catches:total}} 个经过检验的案例：{{catches:count}} 个 TypeScript 案例、{{catches:trap-count}} 个在 Glyph 中不存在的 JavaScript 陷阱，以及 {{catches:gap-cases}} 个 Glyph 尚未堵上的漏洞。其中 {{catches:refused-all}} 个在构建时就被 Glyph 拒绝（{{catches:refused}} 个 TypeScript 案例和 {{catches:traps-refused}} 个陷阱）。 <a href="/catches/">“能发现什么”页面</a>列出了每个案例的 TypeScript、Glyph 和报错。</p>
         </div>
       </div>
     </section>
@@ -107,7 +107,7 @@ glyph check: tsc --strict passed.</span></pre>
     <section>
       <div class="wrap">
         <p class="h-notyet">
-          Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href="/catches/#not-yet">它目前还发现不了的问题 &rarr;</a>
+          Glyph 目前还不能发现所有问题。已知的 {{catches:gap-count}} 个漏洞都有复现示例和 gap 编号，而逻辑错误在 Glyph 里和在 TypeScript 里一样会被放过。 <a href="https://github.com/chadetov/glyph/blob/main/docs/dogfooding-gaps.md">gap 日志</a>为用 Glyph 构建应用时发现的每个限制编号，并标注其状态。 <a href="/catches/#not-yet">它目前还发现不了的问题 &rarr;</a>
         </p>
       </div>
     </section>

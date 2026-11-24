@@ -16857,8 +16857,8 @@ and is the owner's to confirm.
   `glyph_references` and `glyph_impact` read the gate's view of the file since
   0.1.186 (G506); the server's own sweep does not. Filed by 0.1.186.
 
-  *Reproduced against 0.1.178 (the 0.1.186 branch build, which still prints
-  0.1.178): `global_occurrences` in
+  *Reproduced against 0.1.185 (the 0.1.186 branch build on 0.1.185, which
+  prints 0.1.185): `global_occurrences` in
   `glyph-lsp/src/lib.rs` reads an `Analysis` built from the file alone, and
   `glyph_references` on the same project lists the example call.*
 
@@ -16871,8 +16871,8 @@ and is the owner's to confirm.
   `MATCH_SITES` search names the class under `not_indexed`, so the answer is
   not silent about it. Filed by 0.1.186.
 
-  *Reproduced against 0.1.178 (the 0.1.186 branch build, which still prints
-  0.1.178): `glyph_dependencies` of a declaration
+  *Reproduced against 0.1.185 (the 0.1.186 branch build on 0.1.185, which
+  prints 0.1.185): `glyph_dependencies` of a declaration
   whose `@example` reads a record field lists no `FIELD_ACCESS` edge for it
   and names the class under `not_indexed`.*
 

@@ -850,12 +850,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
               await timers.sleep(1)\n              \
               mut c.n = c.n + 1           // read after the suspension\n            \
             }\n\n\
-            The rule is narrow on purpose. It fires only on a field reached \
+            The rule is narrow on purpose. It fires only on a place reached \
             through a *parameter*, which is the only thing a caller can also \
             have handed to another task. A local counter across an `await` \
             (`mut rounds = rounds + 1`) cannot be raced by anything and is not \
             reported, and rebinding a whole parameter changes this function's \
-            copy rather than the caller's record.",
+            copy rather than the caller's record.\n\n\
+            A place can go through indexes as well as fields: `c[0]`, \
+            `m[\"k\"]`, `a[i].balance`. An index counts when its key is a \
+            literal or a name no `mut` reassigns, because only then is it the \
+            same element at the read and at the write; `c[i + 1]` is not \
+            tracked. A read written `array.get(c, 0)` or `record.get(m, \"k\")` \
+            is a read of that element, and the message names the call.",
 
         // ----- emitter (E03xx) -----
         "E0226" => "E0226: every arm can fail and no arm is a catch-all\n\n\
@@ -2564,8 +2570,8 @@ pub static CODES: &[CodeEntry] = &[
     CodeEntry {
         code: "E0225",
         phase: "typechecker",
-        meaning: "A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await`",
-        fix: "Move the read after the `await`. A local counter across an `await` is fine and is not reported",
+        meaning: "A parameter's field or element (`c.n`, `c[0]`, `m[\"k\"]`, `a[i].n`) is read before an `await` and written after it, so a concurrent write in between is lost. A read through `array.get` or `record.get` counts. Move the read after the `await`",
+        fix: "Move the read after the `await`. A local counter across an `await` is fine and is not reported, and so is an index whose key can change (`c[i + 1]`, or a name some `mut` reassigns)",
     },
     CodeEntry {
         code: "E0226",

@@ -45,15 +45,7 @@ What you get: highlighting from a grammar generated off the compiler's own keywo
 
 The server runs Glyph's own analysis and does not run `tsc`, so an error only TypeScript catches shows up at `glyph build` or `glyph check`, not while you type. Member completion after `.` is not implemented yet.
 
-Cursor, VSCodium and other VS Code forks install extensions from Open VSX, and the extension is not published there yet. You can build the `.vsix` yourself from [`editors/vscode`](https://github.com/chadetov/glyph/tree/main/editors/vscode) and install it with the editor's "Install from VSIX" command, or skip the extension and use the generic LSP setup below.
-
-terminal, in a clone of the repository
-
-```
-cd editors/vscode
-npm ci
-npx @vscode/vsce package --out glyph-vscode.vsix
-```
+Cursor, Windsurf, VSCodium and other VS Code forks install extensions from Open VSX, where the same extension is published as [`chadetov.glyph-vscode`](https://open-vsx.org/extension/chadetov/glyph-vscode). Search for "Glyph" in the editor's extensions view and pick the one from `chadetov`.
 
 ## Any editor with an LSP client
 
@@ -183,8 +175,6 @@ An editor or MCP client that starts `glyph` needs to find it. If you only have t
 There is no Vite plugin yet. One with React Fast Refresh is on the roadmap. Until then a Vite app imports what `glyph build --watch` emits, and a change to a Glyph file reloads the whole page rather than hot-swapping the component. [Using Glyph inside a TypeScript app](https://glyphlang.io/answers/embedding/) has the setup.
 
 GitHub does not highlight `.glyph` files, because Glyph is not a GitHub Linguist language. Linguist already has an unrelated language named Glyph (Tcl-based, extension `.glf`), so this one cannot be submitted under that name. The grammar is mirrored at [github.com/chadetov/glyph-tmlanguage](https://github.com/chadetov/glyph-tmlanguage) for a future submission.
-
-The VS Code extension is not on Open VSX, which is where Cursor and VSCodium look for extensions.
 
 Zed only adds a language through an extension, and there is no Glyph extension for Zed yet, so Zed can't use `glyph lsp` today.
 

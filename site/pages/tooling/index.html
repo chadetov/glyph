@@ -77,18 +77,12 @@ glyph lsp --help                <span class="cm"># the server subcommand is ther
           while you type. Member completion after <code>.</code> is not implemented yet.
         </p>
         <p>
-          Cursor, VSCodium and other VS Code forks install extensions from Open VSX, and the
-          extension is not published there yet. You can build the <code>.vsix</code> yourself from
-          <a href="https://github.com/chadetov/glyph/tree/main/editors/vscode"><code>editors/vscode</code></a>
-          and install it with the editor's "Install from VSIX" command, or skip the extension and
-          use the generic LSP setup below.
+          Cursor, Windsurf, VSCodium and other VS Code forks install extensions from Open VSX,
+          where the same extension is published as
+          <a href="https://open-vsx.org/extension/chadetov/glyph-vscode"><code>chadetov.glyph-vscode</code></a>.
+          Search for "Glyph" in the editor's extensions view and pick the one from
+          <code>chadetov</code>.
         </p>
-      </div>
-      <div class="code">
-        <span class="cap">terminal, in a clone of the repository</span>
-<pre>cd editors/vscode
-npm ci
-npx @vscode/vsce package --out glyph-vscode.vsix</pre>
       </div>
 
       <div class="detail">
@@ -265,10 +259,6 @@ npx glyph check src                  <span class="cm"># type-check only, writes 
           grammar is mirrored at
           <a href="https://github.com/chadetov/glyph-tmlanguage">github.com/chadetov/glyph-tmlanguage</a>
           for a future submission.
-        </p>
-        <p>
-          The VS Code extension is not on Open VSX, which is where Cursor and VSCodium look for
-          extensions.
         </p>
         <p>
           Zed only adds a language through an extension, and there is no Glyph extension for Zed

@@ -1,9 +1,12 @@
 # Glyph for VS Code
 
-Syntax highlighting and the Glyph language server for `.glyph` files.
+Support for Glyph, the language at [glyphlang.io](https://glyphlang.io) that
+compiles to TypeScript: syntax highlighting and the Glyph language server for
+`.glyph` files.
 
-[Glyph](https://glyphlang.io) is a statically typed language that compiles to
-TypeScript, built so code an AI agent writes can be read, checked and changed without guessing.
+Glyph is statically typed and built so code an AI agent writes can be read,
+checked and changed without guessing. It is not the Glyph REST API language
+from glyphlang.dev, whose extension is `GlyphLang.glyphlang`.
 
 ## Setup
 

@@ -1,0 +1,9 @@
+module neg
+
+// `bigint.to_number` takes a `bigint`. `tsc` refuses a `number` here (TS2345).
+import std/bigint
+
+pub fn main() -> void {
+  let _r = bigint.to_number(5)
+  print("done")
+}

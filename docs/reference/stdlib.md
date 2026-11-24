@@ -27,7 +27,7 @@ anywhere and fails at the call.
 
 | Host | Modules |
 |---|---|
-| Any host (a page, a worker, node) | `array`, `bytes`, `collections`, `console`, `decimal`, `intl`, `json`, `log`, `math`, `nullable`, `option`, `random`, `record`, `regex`, `result`, `schema`, `set`, `storage`, `store`, `stream`, `string`, `taint`, `task`, `test`, `time`, `timers`, `url` |
+| Any host (a page, a worker, node) | `array`, `bigint`, `bytes`, `collections`, `console`, `decimal`, `intl`, `json`, `log`, `math`, `nullable`, `option`, `random`, `record`, `regex`, `result`, `schema`, `set`, `storage`, `store`, `stream`, `string`, `taint`, `task`, `test`, `time`, `timers`, `url` |
 | A browser page | `dom` |
 | Node only | `crypto`, `dns`, `fs`, `http`, `io`, `net`, `path`, `sqlite`, `tls`, `websocket` import `node:` modules when they load; `process` and `encoding` load anywhere but call node's `process` and `Buffer` |
 
@@ -1229,6 +1229,37 @@ query that is not a constant can be found. A constant imported from another
 module is a `Sql` only when its module declares it one
 (`pub const BY_ID: sqlite.Sql = "..."`); a plain `string` constant from
 another module is E0239, because this module cannot see its initializer.
+
+## std/bigint
+
+The two conversions between `number` and `bigint` (D38). Glyph keeps the two
+types apart, as `tsc` does, and has no bare `BigInt()` or `Number()`, because
+each goes wrong on part of its input: `BigInt(1.5)` throws a RangeError, and
+`Number(b)` past `Number.MAX_SAFE_INTEGER` rounds to the nearest float without
+saying so. Both functions here return a `Result` instead, and neither throws.
+
+```
+from_number(n: number) -> Result<bigint, string>   // Err for a fraction, NaN, Infinity, -Infinity
+to_number(b: bigint) -> Result<number, string>     // Err when |b| > Number.MAX_SAFE_INTEGER
+```
+
+`from_number(-0)` is `Ok(0n)`. A whole number past 2^53 converts to exactly the
+value the float holds: `from_number(9007199254740992)` is `Ok(9007199254740992n)`.
+`to_number` answers `Ok` for every `bigint` from `-9007199254740991n` to
+`9007199254740991n` and `Err` one past either end. The `Err` text names the
+function and the value.
+
+```glyph
+module ids
+
+import std/bigint
+
+// A count read as a `number`, added to an id held as a `bigint`.
+pub fn next_id(id: bigint, step: number) -> Result<bigint, string> {
+  let n = bigint.from_number(step)?
+  return Ok(id + n)
+}
+```
 
 ## std/decimal
 

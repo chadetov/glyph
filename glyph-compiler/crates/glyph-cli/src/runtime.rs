@@ -167,6 +167,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/decimal.ts"),
     ),
     (
+        ".glyph-runtime/std/bigint.ts",
+        include_str!("../../../runtime/std/bigint.ts"),
+    ),
+    (
         ".glyph-runtime/std/taint.ts",
         include_str!("../../../runtime/std/taint.ts"),
     ),

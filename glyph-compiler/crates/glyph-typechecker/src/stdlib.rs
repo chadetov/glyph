@@ -315,6 +315,9 @@ pub(crate) fn fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<
     if let Some(sig) = math_fn_ty(module_key, field) {
         return Some(sig);
     }
+    if let Some(sig) = bigint_fn_ty(prelude, module_key, field) {
+        return Some(sig);
+    }
     if let Some(sig) = path_fn_ty(prelude, module_key, field) {
         return Some(sig);
     }
@@ -1076,6 +1079,35 @@ pub(crate) fn math_fn_ty(module_key: &str, field: &str) -> Option<Ty> {
     Some(Ty::Fn {
         params: (0..arity).map(|_| required(n())).collect(),
         return_ty: Arc::new(n()),
+        is_async: false,
+        type_params: None,
+    })
+}
+
+/// The signature of a `std/bigint` export (G571, D38): the two conversions
+/// between `number` and `bigint`.
+///
+/// Both return a `Result` because each direction has inputs JavaScript gets
+/// wrong. `BigInt(1.5)` throws a RangeError, and so do `NaN` and the two
+/// infinities, so `from_number` answers `Err` for anything that is not a whole
+/// number. `Number(b)` does not throw past `Number.MAX_SAFE_INTEGER`: it
+/// silently rounds to the nearest float, so `to_number` answers `Err` there
+/// rather than a value that is no longer the one it was given.
+pub(crate) fn bigint_fn_ty(prelude: &Prelude, module_key: &str, field: &str) -> Option<Ty> {
+    if module_key != "std/bigint" {
+        return None;
+    }
+    let number = || Ty::Prim(Primitive::Number);
+    let big = || Ty::Prim(Primitive::BigInt);
+    let string = || Ty::Prim(Primitive::String);
+    let (param, ret) = match field {
+        "from_number" => (number(), result_ty(prelude, big(), string())?),
+        "to_number" => (big(), result_ty(prelude, number(), string())?),
+        _ => return None,
+    };
+    Some(Ty::Fn {
+        params: vec![required(param)],
+        return_ty: Arc::new(ret),
         is_async: false,
         type_params: None,
     })

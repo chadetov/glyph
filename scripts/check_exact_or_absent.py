@@ -2221,6 +2221,30 @@ def case_generic_interface_application_both_tools() -> tuple[bool, str]:
     return True, "a generic interface application gets one answer from impact and from assignable"
 
 
+def case_an_opaque_body_is_undetermined() -> tuple[bool, str]:
+    """A name whose body is `extern_ts` or `typeof` is never judged (G490).
+
+    The checker does not read such a body (D29, D32), so a pairing with one on
+    either side is `tsc`'s to decide. Until G490 the nominal rule read two
+    different names as two declarations and answered WILL_FAIL for
+    `extern_ts("\\"read\\"")` into `"read" | "write"`, and for
+    `extern_ts("any")` into a record, both of which `tsc` accepts. Both
+    directions are UNDETERMINED now, with a reason, and two declarations the
+    checker does read are still refused.
+    """
+    path = {"path": "src/opaque.glyph"}
+    for frm, to in (("Raw", "Mode"), ("Mode", "Raw"), ("Any", "Order"), ("Order", "Any"), ("Raw", "Any")):
+        got = call(CORPUS / ASSIGNABLE, "glyph_assignable", {**path, "from": frm, "to": to})
+        if got.get("verdict") != "UNDETERMINED":
+            return False, f"`{frm}` into `{to}` is {got.get('verdict', got)}, not UNDETERMINED"
+        if not got.get("because"):
+            return False, f"`{frm}` into `{to}` states no reason: {got}"
+    kept = call(CORPUS / ASSIGNABLE, "glyph_assignable", {**path, "from": "Order", "to": "Tag"})
+    if kept.get("verdict") != "WILL_FAIL":
+        return False, f"`Order` into `Tag` is {kept.get('verdict', kept)}, not WILL_FAIL"
+    return True, "an `extern_ts` name is undetermined against a literal union, a record and another name"
+
+
 DEPENDENCIES = pathlib.Path("dependencies")
 EXPORTS = pathlib.Path("exports")
 
@@ -2457,6 +2481,7 @@ HARD = [
     ("a primitive and an interface, both tools", case_interface_against_primitive_both_tools),
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
     ("a generic interface application, both tools", case_generic_interface_application_both_tools),
+    ("assignability: an opaque body is undetermined", case_an_opaque_body_is_undetermined),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
     ("a call in an @example is a site", case_a_site_in_an_example_is_a_site),

@@ -160,9 +160,11 @@ head: |
           sentence. <code>SAFE</code> is <code>glyph_impact</code>'s word, and it means a particular
           site stays correct after a particular edit. This answer is about two types with no site
           and no edit in the question. The third verdict is <code>UNDETERMINED</code>, claimed
-          whenever no rule covers the pairing: two function types come back that way, because the
-          relation underneath compares the returns and says nothing about the parameters. Its
-          silence there is not an acceptance, and the tool won't report it as one.
+          whenever no rule covers the pairing. A function returning <code>void</code> where one
+          returning a value is declared comes back that way, because the relation skips a
+          <code>void</code> return. Its silence there is not an acceptance, and the tool won't
+          report it as one. Two function types are otherwise compared in full since 0.1.185: by
+          kind, by arity, by each parameter and by the return.
         </p>
       </div></details>
 

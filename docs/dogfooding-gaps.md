@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-485 entries, 346 are fixed, 9 are partly fixed, 11 are decided or resolved, and
-119 are open. G144, the D28 boundary cast that never reached the returns a
+486 entries, 348 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+118 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -15688,7 +15688,16 @@ and is the owner's to confirm.
   E0204 on `CFG.n`, and on top of 0.1.163's typed `Store`, E0204 on
   `let y: string = S.get()` with `const S = store.create(0)`.
 
-- **G434. E0211 between two function types names neither of them.** Passing
+- **G434. [FIXED] E0211 between two function types names neither of them.**
+  Fixed in 0.1.185 with G491: a function type prints as its signature
+  (`fn(string) -> string`, `async fn(string) -> number`, `fn<T>(T) -> T`),
+  and a refusal between two function types adds the first position that
+  differs, so `apply(fn(v: string) -> string { return v })` against a
+  `fn(number) -> number` reads ``expected `fn(number) -> number`, found
+  `fn(string) -> string`: parameter 1: the slot passes a `number`, which the
+  function's `string` parameter does not take``.
+
+  Passing
   `fn(v: string) -> string { return v }` where a `fn(number) -> number` is
   declared reports ``argument type mismatch: expected `function`, found
   `function` ``, because `ty_display` renders every `Ty::Fn` as `function`.
@@ -16388,7 +16397,17 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.183 (the release build): with `type Mode = "read" | "write"`, `fn f(r: Raw) -> Mode { return r }` is ``[E0204] type mismatch: expected `Mode`, found `Raw` `` for `type Raw = extern_ts("\"read\"")` and the same for `extern_ts("any")`, under `check --no-tsc` and under `build`.*
 
-- **G491. The parameter types of a function value are never compared.**
+- **G491. [FIXED] The parameter types of a function value are never compared.**
+  Fixed in 0.1.185 (record 196, section 5). A function value's parameters are
+  compared contravariantly through the whole relation, a value taking more
+  required parameters than the slot passes is refused (fewer is accepted, as
+  in `tsc`), and a generic function value is instantiated against the slot by
+  the call-site binder first, undecided when the slot binds nothing. A record
+  field satisfying an interface method member is compared the same way,
+  stricter than `tsc`'s bivariant methods. All four probe lines of `g491b`
+  are E0211/E0204 under `check --no-tsc`; `k3` and `k5` stay accepted, and
+  `takes(id)` and `array.map(xs, id)` stay accepted.
+
   `takes_cb(fn(x: number) -> string { .. })` with `takes_cb(f: fn(string) ->
   string)` passes `check --no-tsc`, and so does `let k2: fn(string) -> void
   = h` with `h: fn(number) -> void`; full `check` refuses both (TS2345,
@@ -16709,3 +16728,19 @@ and is the owner's to confirm.
   `check --no-tsc`.*
 
   *Reproduced against 0.1.184 (the release build): `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under `check --no-tsc`, `Number(b)` is E0103, and `id + n` with `id: bigint` and `n: number` is E0258.*
+
+- **G531. `glyph_impact` does not decide a function read as a value.** Since
+  0.1.185 the checker compares a function value against the type its use
+  context expects (G491), so adding a parameter to `width` or changing its
+  parameter type breaks `pub const sizer: fn(number) -> number = width` with
+  E0204. Impact still answers `NOT_INDEXED` for that site under
+  `change_arity` and `change_signature_type`, because the REFERENCES search
+  does not follow the value to the slot it lands in. The reason now says so,
+  but the site is decidable: the slot is the `let` or `const` annotation, the
+  parameter or the field the value is written into. Filed by the 0.1.185
+  build (record 196, section 5, "file the follow-up from the range").
+
+  *Reproduced against 0.1.178 (the 0.1.185 branch build, before the version
+  bump): `glyph query impact --entity api::width --change change_arity`
+  answers `NOT_INDEXED` for `api::sizer`, and making the edit raises E0204
+  there ("the function takes 2 parameters and the slot passes 1").*

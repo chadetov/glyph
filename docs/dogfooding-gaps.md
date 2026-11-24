@@ -16586,7 +16586,7 @@ and is the owner's to confirm.
   where `Cmp<number>` is declared is E0211, and the F-bound reads
   `a.cmp(a)` returned as `string` as E0204 and `a.cmp(5)` as E0211.
 
-- **G480. `process.exit` is typed as no type at all, not as `never`.** The
+- **G480. [FIXED] `process.exit` is typed as no type at all, not as `never`.** The
   `std/process` row in `stdlib.rs` gives `exit` the return `Ty::Unknown`,
   and its comment says Glyph has no way to write `never`, which stopped
   being true when `-> never` landed (D47). So `let n: number =
@@ -16606,6 +16606,15 @@ and is the owner's to confirm.
   *Reproduced against 0.1.183 (the release build): `let n: string = process.exit(1)` passes `check --no-tsc` with only unused-import and unused-variable warnings, and the `std/process` row in `stdlib.rs` still gives `exit` the return `Ty::Unknown`.*
 
   *Reproduced against 0.1.189 (the release build): `let n: string = process.exit(1)` passes `check --no-tsc` with only unused-import and unused-variable warnings, and the `std/process` row in `stdlib.rs` still gives `exit` the return `Ty::Unknown`.*
+
+  Fixed in 0.1.193 (decision record 208, R12; record 211, section 3). The `std/process` row
+  types `exit` as `never`, and the stale comment is gone. A `match` arm that
+  exits contributes nothing to the arm join (D47), so in record 208's probe
+  `g480.glyph` the match is a `number` and `let s: string = x` on line 10 is
+  E0204, the refusal `tsc` makes there (TS2322). `let n: string =
+  process.exit(1)` stays accepted, as it is under `tsc`. The corpus run over
+  375 units changed no diagnostic: its three calls to `process.exit` are
+  statements, not match arms.
 
 - **G470. [FIXED] A `match` used as a value is not compared arm by arm with the
   type declared where it stands.** `return match f { true => s, false => 0, }`

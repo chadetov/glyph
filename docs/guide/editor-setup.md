@@ -2,8 +2,8 @@
 
 Glyph ships a language server built into the compiler: `glyph lsp`. It speaks
 the Language Server Protocol over stdio, so any LSP-capable editor can use it.
-VS Code has a ready-made extension in this repository; other editors point their
-generic LSP client at the same `glyph lsp` command.
+VS Code has an extension on the Marketplace; other editors point their generic
+LSP client at the same `glyph lsp` command.
 
 What the server provides:
 
@@ -49,10 +49,22 @@ not for the editor features above.
 
 ## VS Code
 
-The extension is not on the Marketplace yet. Run it from source, or package a
-`.vsix` and install that.
+Install the extension from the Marketplace. Its id is `chadetov.glyph-vscode`
+and its display name is "Glyph (glyphlang.io)":
 
-### Option A — run from source (fastest)
+```sh
+code --install-extension chadetov.glyph-vscode
+```
+
+or run `ext install chadetov.glyph-vscode` from the Quick Open box (Ctrl+P /
+Cmd+P). Open any `.glyph` file and the language server starts.
+
+"Glyph Language Support" (`GlyphLang.glyphlang`), which a Marketplace search
+for "glyph" also finds, is an unrelated language with a similar name.
+
+### Run it from source
+
+To work on the extension itself:
 
 ```sh
 cd editors/vscode
@@ -61,24 +73,8 @@ code .             # open this folder in VS Code
 ```
 
 Press **F5**. VS Code opens an Extension Development Host window with the
-extension loaded. Open any `.glyph` file there and the language server starts
-automatically.
-
-The extension is plain CommonJS (`extension.js`), so there is no compile step.
-
-### Option B — install a packaged extension
-
-To install it into your normal VS Code (not just the dev host), package a
-`.vsix`:
-
-```sh
-cd editors/vscode
-npm install
-npx @vscode/vsce package          # produces glyph-vscode-0.1.0.vsix
-code --install-extension glyph-vscode-0.1.0.vsix
-```
-
-Reload VS Code and open a `.glyph` file.
+extension loaded. The extension is plain CommonJS (`extension.js`), so there is
+no compile step. `editors/vscode/PUBLISHING.md` covers packaging a `.vsix`.
 
 ### Point the extension at your binary
 
@@ -102,7 +98,7 @@ save. Add to `settings.json`:
 ```json
 {
   "[glyph]": {
-    "editor.defaultFormatter": "glyph.glyph-vscode",
+    "editor.defaultFormatter": "chadetov.glyph-vscode",
     "editor.formatOnSave": true
   }
 }
@@ -167,9 +163,7 @@ vim.api.nvim_create_autocmd("FileType", {
 
 ## Not yet
 
-Rename, find-references (both v1.1), and member completion after `.` are not
-implemented. A Marketplace listing for the VS Code extension is planned but not
-published; until then use Option A or B above.
+Member completion after `.` is not implemented.
 
 ## See also
 

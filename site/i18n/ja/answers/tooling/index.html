@@ -1,7 +1,7 @@
 ---
 title: エディタ、デバッグ、エラーの使い勝手はどうですか？ · Glyph
 description: どのエディタでも使える言語サーバー、VS Code 拡張、安定したコード付きのエラーメッセージ、そして glyph --explain。デバッグは出力された読みやすい TypeScript に対して行います。
-source_hash: 6673445690cb5116
+source_hash: f61bf6b499f93d2e
 prev: /answers/generated-docs/ | &larr; 前へ | エージェントが読むドキュメントは生成されたものですか。それとも手書きで、内容が古くなっていますか。
 next: /answers/early-errors/ | 次へ &rarr; | tsc が検出するものを、なぜ Glyph はより早く検出するのか
 ---
@@ -9,7 +9,7 @@ next: /answers/early-errors/ | 次へ &rarr; | tsc が検出するものを、�
       <h1 class="q-title">エディタ、デバッグ、エラーの使い勝手はどうですか？</h1>
 
       <p class="short-answer">
-        <code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張はリポジトリにありますが、まだ Marketplace には公開していないので、ソースからビルドしてください。どのエラーにも、安定したコード、直し方、理由が付いています。
+        <code>glyph lsp</code> は stdio 上で Language Server Protocol を話すので、LSP クライアントを持つエディタならどれでも、診断、hover による型表示、定義へのジャンプ、補完、保存時の整形が使えます。VS Code 拡張は Marketplace に <code>chadetov.glyph-vscode</code> として公開されています。どのエラーにも、安定したコード、直し方、理由が付いています。
       </p>
 
       <figure class="ak-hero" id="see-it">
@@ -51,7 +51,7 @@ next: /answers/early-errors/ | 次へ &rarr; | tsc が検出するものを、�
         同梱の VS Code 拡張はその薄いクライアントですが、VS Code 固有の部分はありません。Neovim、Helix、Zed、Emacs（eglot）など、LSP に対応した<strong>どの</strong>エディタでも <code>glyph lsp</code> を指定すれば同じように動きます。
       </p></div>
       <p>
-        すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。
+        すでにインストールしたのと同じバイナリ（<code>npx @glyphlang/glyph lsp</code>）なので、別途サーバーを取得する必要はありません。VS Code、Neovim、Helix、Emacs のインストール手順と設定は<a href="/tooling/">エディタと連携</a>にあります。
       </p>
 
       <h3 class="ak-h3" id="what-the-server-implements">サーバーが実装しているもの<a class="ak-anchor" href="#what-the-server-implements" aria-label="このセクションへのリンク"><svg class="ak-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M6.6 9.4l2.8-2.8M7.2 4.6l.9-.9a2.7 2.7 0 013.8 3.8l-.9.9M8.8 11.4l-.9.9a2.7 2.7 0 01-3.8-3.8l.9-.9"/></svg></a></h3>

@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "pt-br",
-  "source_hash": "afa9668b9f2c7e17",
+  "source_hash": "88cafa720928cdcc",
   "segments": [
     {
       "id": "title",
@@ -173,10 +173,10 @@
       "tr": "3 &middot; Rode"
     },
     {
-      "id": "h-168ebd5f",
+      "id": "h-2420f0a6",
       "kind": "html",
-      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
-      "tr": "O <code>glyph run</code> checou os tipos, compilou para TypeScript e executou. Esse é o ciclo que você repete no resto desta página."
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page. To see errors and types in your editor while you follow along, <a href=\"/tooling/\">Editors and integrations</a> has the setup.",
+      "tr": "O <code>glyph run</code> checou os tipos, compilou para TypeScript e executou. Esse é o ciclo que você repete no resto desta página. Para ver erros e tipos no seu editor enquanto acompanha, a configuração está em <a href=\"/tooling/\">Editores e integrações</a>."
     },
     {
       "id": "h-e7d3d489",

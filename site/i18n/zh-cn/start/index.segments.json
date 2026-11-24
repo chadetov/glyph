@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "start/index.html",
   "locale": "zh-cn",
-  "source_hash": "afa9668b9f2c7e17",
+  "source_hash": "88cafa720928cdcc",
   "segments": [
     {
       "id": "title",
@@ -173,10 +173,10 @@
       "tr": "3 &middot; 运行"
     },
     {
-      "id": "h-168ebd5f",
+      "id": "h-2420f0a6",
       "kind": "html",
-      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page.",
-      "tr": "<code>glyph run</code> 对它做了类型检查，编译成 TypeScript，然后执行。本页接下来就是重复这个循环。"
+      "en": "<code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That is the loop you repeat for the rest of this page. To see errors and types in your editor while you follow along, <a href=\"/tooling/\">Editors and integrations</a> has the setup.",
+      "tr": "<code>glyph run</code> 对它做了类型检查，编译成 TypeScript，然后执行。本页接下来就是重复这个循环。如果想在跟着做的同时在编辑器里看到错误和类型，设置方法见<a href=\"/tooling/\">编辑器与集成</a>。"
     },
     {
       "id": "h-e7d3d489",

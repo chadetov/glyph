@@ -80,7 +80,8 @@
         "start",
         "answers",
         "contribute",
-        "mcp"
+        "mcp",
+        "tooling"
       ],
       "columns": [
         {
@@ -91,6 +92,12 @@
               "href": "/start/",
               "icon": "start",
               "desc": "Install it, write a program, run it"
+            },
+            {
+              "label": "Editors and integrations",
+              "href": "/tooling/",
+              "icon": "code",
+              "desc": "VS Code, any LSP editor, MCP and the CLI"
             },
             {
               "label": "Answers",

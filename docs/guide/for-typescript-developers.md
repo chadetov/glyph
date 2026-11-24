@@ -271,6 +271,13 @@ set of member signatures, like a TypeScript `interface`, whose main job is to
 constrain a generic. Any value with the members satisfies it, no declaration
 needed.
 
+It does not work the other way round. A value whose type is an interface,
+written plain (`HasV`) or applied (`Box<number>`), is not a declared record, so
+it is refused where one is declared even when it has the fields; TypeScript
+would accept it, but the record's `parse` never saw the value. It is refused
+where a `Record<string, V>` is declared too, as TypeScript refuses it, because
+an interface has no index signature.
+
 ```glyph
 interface Named {
   fn name() -> string

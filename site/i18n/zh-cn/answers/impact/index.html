@@ -66,9 +66,11 @@ next: /answers/ask-the-compiler/ | 下一篇 &rarr; | 我的智能体能在写�
       "diagnostic": null,
       "because": "this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"
     }
   ]
 }</pre>

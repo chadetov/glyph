@@ -78,9 +78,11 @@ head: |
       "diagnostic": null,
       "because": "this site reads the name rather than
         applying it, so no argument is paired with a
-        parameter here, and Glyph does not compare a
-        function value's parameter types against the type
-        its use context expects"
+        parameter here. The checker compares a function
+        value's parameter types against the type its use
+        context expects (G491), but impact does not decide
+        this site: it does not follow the value to the slot
+        it lands in"
     }
   ]
 }</pre>
@@ -93,8 +95,10 @@ head: |
             This mirrors the compiler's
             own test for the change (<code>a_signature_type_change_gets_one_verdict_per_kind_of_site</code>
             in <code>glyph-cli/tests/agent_loop.rs</code>): the test makes the edit afterward and
-            checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would, and that the
-            compiler stays silent at the other two.
+            checks that E0211 lands exactly where <code>WILL_FAIL</code> said it would and that the
+            compiler stays silent at the <code>UNDETERMINED</code> one. The <code>NOT_INDEXED</code>
+            value read gets E0204 from the checker since 0.1.185, which compares a function value with
+            the type it is stored as; impact does not follow the value there yet.
           </p>
         </div></details>
       </figure>

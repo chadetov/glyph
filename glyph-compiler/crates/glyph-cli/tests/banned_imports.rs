@@ -188,7 +188,7 @@ fn each_malformed_glyph_key_is_e0116_at_the_manifest() {
     let cases: [(&str, &str, &str); 5] = [
         ("\"allow_in\"", "\"alow_in\"", "`glyph.banned_imports.std/fs.alow_in` is not a field Glyph reads (known: `use`, `reason`, `allow_in`); did you mean `allow_in`?"),
         ("\"banned_imports\"", "\"banned_import\"", "did you mean `banned_imports`?"),
-        ("\"http/client\"", "\"http/clinet\"", "`glyph.banned_imports.axios.use` names `http/clinet`, which is not a module of this project"),
+        ("\"http/client\"", "\"http/clinet\"", "`glyph.banned_imports.axios.use` names `http/clinet`, which is neither a module of this project nor a package declared in package.json's dependencies"),
         ("\"migrations/\"", "\"nope\"", "`glyph.banned_imports.std/fs.allow_in` names `nope`, which is not a module of this project"),
         ("\"use\": \"storage\"", "\"use\": \"axios\"", "`glyph.banned_imports.std/fs.use` names `axios`, which is itself banned"),
     ];
@@ -272,4 +272,123 @@ fn checking_one_file_applies_its_projects_bans() {
     let json: Value = serde_json::from_slice(&out.stdout).expect("json");
     assert_eq!(out.status.code(), Some(1), "{json}");
     assert_eq!(json["diagnostics"][0]["code"], "E0115", "{json}");
+}
+
+/// Record 205: a scoped package and a Node builtin reach the ban in the
+/// spellings Glyph accepts for them. A scoped package is written as npm
+/// spells it (`@scope/pkg/sub`). A Node builtin is written by its bare name
+/// (`import fs`; `node:` is not a legal import path), and raw TypeScript in an
+/// `extern_ts` body may spell it `node:fs`, which a ban on `fs` covers too.
+#[test]
+fn a_scoped_package_and_a_node_builtin_reach_the_ban() {
+    let manifest = r#"{
+  "name": "p",
+  "glyph": {
+    "src": "src",
+    "banned_imports": {
+      "@scope/pkg": { "use": "http/client" },
+      "fs": { "use": "std/fs" }
+    }
+  }
+}
+"#;
+    let cases: [(&str, &str); 4] = [
+        (
+            "module main\n\nimport @scope/pkg/sub { x }\n\npub fn main() -> void {\n  print(x)\n}\n",
+            "`@scope/pkg/sub` is banned in this project (it is under `@scope/pkg`)",
+        ),
+        (
+            "module main\n\nimport @scope/pkg { default as p }\n\npub fn main() -> void {\n  print(p)\n}\n",
+            "`@scope/pkg` is banned in this project",
+        ),
+        (
+            "module main\n\nimport fs { readFileSync }\n\npub fn main() -> void {\n  print(readFileSync)\n}\n",
+            "`fs` is banned in this project",
+        ),
+        (
+            "module main\n\npub fn main() -> void {\n  let f = extern_ts(\"require('node:fs')\")\n  print(\"${f}\")\n}\n",
+            "`fs` is banned in this project",
+        ),
+    ];
+    for (main, message) in cases {
+        let dir = fixture("scoped_node");
+        write(&dir, "package.json", manifest);
+        write(&dir, "src/main.glyph", main);
+        let (code, d) = both(&dir);
+        assert_eq!(code, 1, "{main}: {d:?}");
+        let e0115: Vec<_> = d.iter().filter(|x| x.0 == "E0115").collect();
+        assert_eq!(e0115.len(), 1, "{main}: {d:?}");
+        assert_eq!(e0115[0].1, message, "{main}");
+    }
+}
+
+/// Record 205, ruling (4): a `std/` replacement gets the exports hint, which
+/// `glyph query exports` answers for it.
+#[test]
+fn a_std_replacement_gets_the_exports_hint() {
+    let dir = fixture("std_hint");
+    write(
+        &dir,
+        "package.json",
+        "{\"name\": \"p\", \"glyph\": {\"src\": \"src\", \"banned_imports\": {\"fs\": {\"use\": \"std/fs\"}}}}\n",
+    );
+    write(&dir, "src/main.glyph", "module main\n\nimport fs { readFileSync }\n\npub fn main() -> void {\n  print(readFileSync)\n}\n");
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["check", "--no-tsc", "--no-test", "--json", "."])
+        .output()
+        .expect("run");
+    let json: Value = serde_json::from_slice(&out.stdout).expect("json");
+    let e = json["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .find(|d| d["code"] == "E0115")
+        .expect("E0115");
+    assert_eq!(
+        e["help"],
+        "import `std/fs` instead; `glyph query exports --module std/fs` lists what it offers. The ban is set in `glyph.banned_imports` in package.json."
+    );
+}
+
+/// Record 205, ruling (2): an npm `use` that is not declared names both
+/// readings the rule allows, and an npm `use` gets no exports hint.
+#[test]
+fn an_undeclared_package_use_names_both_remedies() {
+    let dir = fixture("luxon");
+    write(&dir, "package.json", &MANIFEST.replace("\"http/client\"", "\"luxon\""));
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["check", "--no-tsc", "--no-test", "--json", "."])
+        .output()
+        .expect("run");
+    let json: Value = serde_json::from_slice(&out.stdout).expect("json");
+    let e = &json["diagnostics"][0];
+    assert_eq!(e["code"], "E0116", "{json}");
+    assert_eq!(
+        e["message"],
+        "`glyph.banned_imports.axios.use` names `luxon`, which is neither a module of this project nor a package declared in package.json's dependencies"
+    );
+    let help = e["help"].as_str().expect("help");
+    assert!(help.contains("module under the source root") && help.contains("`dependencies`"), "{help}");
+
+    write(
+        &dir,
+        "package.json",
+        &MANIFEST
+            .replace("\"http/client\"", "\"luxon\"")
+            .replace("\"name\": \"p\",", "\"name\": \"p\", \"dependencies\": { \"luxon\": \"^3\" },"),
+    );
+    write(&dir, "src/main.glyph", "module main\n\nimport axios { default as ax }\n\npub fn main() -> void {\n  print(ax)\n}\n");
+    let out = Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .current_dir(&dir)
+        .args(["check", "--no-tsc", "--no-test", "--json", "."])
+        .output()
+        .expect("run");
+    let json: Value = serde_json::from_slice(&out.stdout).expect("json");
+    assert_eq!(json["diagnostics"][0]["code"], "E0115", "{json}");
+    assert_eq!(
+        json["diagnostics"][0]["help"],
+        "import `luxon` instead. The ban is set in `glyph.banned_imports` in package.json."
+    );
 }

@@ -55,7 +55,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-484 entries, 344 are fixed, 9 are partly fixed, 11 are decided or resolved, and
+485 entries, 345 are fixed, 9 are partly fixed, 11 are decided or resolved, and
 120 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -16338,7 +16338,7 @@ and is the owner's to confirm.
   `s.concat(u)` are E0211, and so are `push`, `unshift` and the items of
   `splice` and `toSpliced`.
 
-- **G500. A `bigint` is typed as `number` by Glyph's checker.** `1n` is a
+- **G500. [FIXED] A `bigint` is typed as `number` by Glyph's checker.** `1n` is a
   `number` to the checker, and so is a value declared `bigint`, because the
   prelude `bigint` lowers to the same type as `number`. `fn f() -> number {
   return 5n }`, `let y: number = x` with `x: bigint`, and the annotated
@@ -16357,6 +16357,21 @@ and is the owner's to confirm.
   three programs; full `check` reports TS2322 for each.*
 
   *Reproduced against 0.1.178 (the release build) with record 187's t3 and t2's annotated `bigint` comparator (t2's `[1n, 2n]` with `mut xs.sort()` now draws E0243, whose help writes the `number` comparator): `check --no-tsc` exits 0 on the three programs; full `check` reports TS2322 for each; `let x = 1n` returned under `-> string` is E0204 "found `number`".*
+
+  Fixed in 0.1.183 (decision record 200, ruling 1). The checker holds
+  `bigint` as a primitive of its own (D38): `1n` and a value declared `bigint`
+  are `bigint`, and `bigint` and `number` (an `int` included) are refused
+  where the other is declared, in both directions (E0204, E0211), as `tsc`
+  refuses them. `return 5n` under `-> number` exits 1 under `check --no-tsc`
+  where the published 0.1.178 exits 0, and `let x = 1n` returned under
+  `-> string` now says ``found `bigint` ``. Arithmetic on two bigints is a
+  `bigint`, so the annotated comparator `return a - b` under `-> number` is
+  E0204; mixing a `bigint` with a `number` in an operator, and `>>>` on a
+  `bigint`, is the new E0258 (TS2365). Member reads use TypeScript's `BigInt`
+  members, read from the pinned TypeScript by `check_builtin_members.py`, so
+  `x.toFixed(2)` is E0210. E0243's help for `[1n, 2n]` writes a comparator
+  that compares with `<` and `>`. `glyph_assignable` answers WILL_FAIL for
+  `bigint` against `number`. The missing conversion between the two is G571.
 
 
 - **G501. [FIXED] A value written by `mut` is not compared with its place.** With
@@ -16580,3 +16595,17 @@ and is the owner's to confirm.
 
   *Reproduced against 0.1.182 (the branch build, dev-0.1.182): `check
   --no-tsc` exits 0; full `check` under 0.1.178 reports TS2322.*
+
+- **G571. Glyph has no conversion between `number` and `bigint`.** With
+  `bigint` its own type (G500), `id + n` with `id: bigint` and `n: number` is
+  E0258, and nothing in the language or the standard library turns one into
+  the other: `BigInt(n)` and `Number(b)` are E0103 (unresolved name), and no
+  `std/*` function takes or returns a `bigint`. A program that reads a count
+  as a `number` and an id as a `bigint` cannot combine them. JavaScript's
+  `BigInt(n)` throws on a fraction and `Number(b)` loses precision past 2^53,
+  so the conversion wants a decision about which failures are values. Filed
+  by the G500 builder.
+
+  *Reproduced against 0.1.178 (the published release) and the G500 branch build:
+  `pub fn c1(x: number) -> bigint { return BigInt(x) }` is E0103 under
+  `check --no-tsc`.*

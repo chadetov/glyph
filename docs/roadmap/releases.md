@@ -8746,6 +8746,10 @@ concrete follow-ups, in priority order:
 
 ## Rolling · Ergonomics & polish
 
+**G516, E0225 fires only when a value read before the `await` reaches the write** (record 197): `let now = c[0]` after the `await`, then `mut c[0] = now + f`, is refused today, and so is `mut a.balance = a.balance + f` after it, though both write a fresh value. A false refusal, so it goes early in the lane. It removes refusals from the shipped field rule, so it ships on its own release; measure with the two-binary run.
+
+**G517, E0225 looks inside async lambdas** (record 197): `check_await_straddle` visits only top-level `async fn` declarations, so a read, `await`, write in `async fn() { ... }` is silent. Schedule beside G516, after it, so the lambda walk starts from the corrected rule.
+
 **G480, `process.exit` returns `never`** (record 189): the `std/process` row types `exit` as `Ty::Unknown` under a stale comment saying Glyph cannot write `never`. Type it `never` (D47), and measure the corpus first: a `match` with an exiting arm then joins differently, which changes what a let-bound or returned `match` is typed as.
 
 **G490, an `extern_ts` value where a string-literal union is declared** (filed with 0.1.176): `extern_ts("\"read\"")` returned as `"read" | "write"` is refused by `string_literal_union_verdict`, though `tsc` accepts it. A false refusal that predates D65; an `extern_ts` value is not judged anywhere else, so it should not be judged here. Measure with the two-binary run.

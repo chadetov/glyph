@@ -55,8 +55,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-477 entries, 339 are fixed, 10 are partly fixed, 11 are decided or resolved, and
-117 are open. G144, the D28 boundary cast that never reached the returns a
+479 entries, 339 are fixed, 10 are partly fixed, 11 are decided or resolved, and
+119 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -16383,3 +16383,28 @@ and is the owner's to confirm.
   literals, a written string or a `match` of them, in this module or a
   sibling through a named import or a namespace. Filed by the 0.1.179
   builder.
+
+- **G516. E0225 fires though the value written was read after the `await`.**
+  `let first = c[0]`, `let f = await fee()`, `let now = c[0]`, `mut c[0] =
+  now + f` is E0225, and so is `mut a.balance = a.balance + f` after the
+  `await` when `a.balance` was also read before it. The write uses a fresh
+  read, which is the fix the help names, so this is a false refusal. The check
+  keys on "the place was read before the `await`" rather than on "a value read
+  before the `await` reaches the write". The field rule has done this since it
+  shipped; 0.1.180 carried it to indexes. The fix removes refusals from the
+  shipped field rule, so it ships on its own. Filed by decision record 197.
+
+  *Reproduced against 0.1.178 (the published release) and the 0.1.180 branch
+  build by record 197's probe `fld.glyph`: `reread` (L12) and `reread_fld`
+  (L28) are E0225 under both; `reread_idx` (L20) is E0225 under the branch
+  build and silent under 0.1.178, which does not track indexes.*
+
+- **G517. E0225 does not look inside an async lambda.** `check_await_straddle`
+  visits only top-level `async fn` declarations, so a read, an `await` and a
+  write of the same place inside `async fn() -> number { ... }` report
+  nothing, for fields and for indexes. Filed by decision record 197.
+
+  *Reproduced against 0.1.178 (the published release) and the 0.1.180 branch
+  build by record 197's probe `adv.glyph`: `lam` (L103, `let first = c[0]`,
+  `await fee()`, `mut c[0] = first + f` inside an async lambda) draws no
+  E0225 under either.*

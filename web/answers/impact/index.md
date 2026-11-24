@@ -145,4 +145,4 @@ The change is required, because a verdict is a fact about an edit; with no edit 
 
 - `ABSORBS` is the one to watch: the site keeps compiling and is proved wrong anyway, which a green build will never show you.
 
-Code examples on this page are checked against Glyph 0.1.176 on every build. Last changed 23 Nov 2026.
+Code examples on this page are checked against Glyph 0.1.177 on every build. Last changed 23 Nov 2026.

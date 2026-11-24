@@ -16376,7 +16376,7 @@ and is the owner's to confirm.
   bounded by an interface there through its bound. All three reproductions
   are E0204, the `Box<Named>` one through the map's field comparison.
 
-- **G461. A generic interface's members are never checked on any value.**
+- **G461. [FIXED] A generic interface's members are never checked on any value.**
   With `interface Cmp<X> { fn cmp(o: X) -> number  v: X }` and `c:
   Cmp<string>`, `return c.cmp("a")` where `string` is declared, `return
   c.v` where `number` is declared, `c.nope` and `c.cmp(5)` all pass
@@ -16394,6 +16394,13 @@ and is the owner's to confirm.
   *Reproduced against 0.1.176 (the release build) with record 184's probe b3: `check --no-tsc` reports nothing for `c0`, `c1` and `c2` (full `check` is TS2322, TS2322, TS2339), nor for `c.cmp(5)` where `Cmp<string>` is declared (full `check` is TS2345).*
 
   *Reproduced against 0.1.182 (the release build) with record 184's probe b3: `check --no-tsc` reports nothing for `c0`, `c1` and `c2` (full `check` is TS2322, TS2322, TS2339), nor for `c.cmp(5)` where `Cmp<string>` is declared (full `check` is TS2345).*
+  Fixed in 0.1.188 (record 196, section 6): an application `I<A..>` reads
+  `I`'s members with each type parameter replaced by its argument (D34),
+  and that one member set serves member reads, method calls and the
+  relation. With record 196's probe `c0`, `c1` and `c.cmp(5)` are E0204,
+  E0204 and E0211, `c.nope` is E0210, `want(o)` with `Ord` or `Plain`
+  where `Cmp<number>` is declared is E0211, and the F-bound reads
+  `a.cmp(a)` returned as `string` as E0204 and `a.cmp(5)` as E0211.
 
 - **G480. `process.exit` is typed as no type at all, not as `never`.** The
   `std/process` row in `stdlib.rs` gives `exit` the return `Ty::Unknown`,
@@ -16966,3 +16973,23 @@ and is the owner's to confirm.
   *Reproduced against 0.1.186 (the 0.1.187 branch build on 0.1.186, before
   the version bump): no verb `glyph query --help` lists reads
   `glyph.banned_imports`.*
+
+- **G536. An interface's value is judged by spelling where a record or a
+  map is declared.** With `interface HasV { v: number }`, `interface
+  Box<X> { v: X }` and `type Ord = { v: number, }`, a `HasV` returned
+  where `Ord` is declared is E0204 (D49 holds an interface value apart
+  from a declared record, a refusal `tsc` does not make), and a
+  `Box<number>` there is silent. Where `Record<string, number>` is
+  declared it is the other way round: `Box<number>` is E0204, because the
+  relation compares two applications base against base, and `HasV` is
+  silent; `tsc` refuses both (TS2322, an interface has no index
+  signature). G461 reads an application through its arguments where one
+  is declared; this is the found side, which still reads an application
+  as its base. Deciding it means choosing whether D49's Glyph-only
+  refusal extends to an interface application, which no record has
+  ruled on. Filed by the 0.1.188 builder.
+
+  *Reproduced against 0.1.179 (the main build) and the dev-0.1.188-g461
+  build: `check --no-tsc` gives E0204 for `HasV` into `Ord` and for
+  `Box<number>` into `Record<string, number>`, and nothing for the other
+  two.*

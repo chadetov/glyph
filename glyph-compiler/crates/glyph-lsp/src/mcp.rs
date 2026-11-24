@@ -16396,8 +16396,9 @@ pub fn f() -> number {
     /// are decided by running the relation, so each is WILL_FAIL whichever
     /// way the relation came out and none says the checker has no rule. Run
     /// against the checker: `named(s)` is E0211 and the other three compile.
-    /// A member the table types only by its return leaves the pairing
-    /// without a rule, so `trims(s)` stays UNDETERMINED.
+    /// A method member is compared in full since G491, so `trims(s)` is
+    /// decided too: the relation accepts a `string` where `Trims` is
+    /// declared.
     #[test]
     fn signature_type_primitive_against_a_local_interface_runs_the_relation() {
         let program = "module api\n\
@@ -16416,7 +16417,7 @@ pub fn f() -> number {
             ("api::named", "api::by_name", "WILL_FAIL", Some("E0211")),
             ("api::sized", "api::by_len", "WILL_FAIL", None),
             ("api::text", "api::from_iface", "WILL_FAIL", Some("E0211")),
-            ("api::trims", "api::by_trim", "UNDETERMINED", None),
+            ("api::trims", "api::by_trim", "WILL_FAIL", None),
         ] {
             let entry = signature_call_entry(program, entity, caller);
             assert_eq!(entry["verdict"], verdict, "{entity}: {entry}");

@@ -55,6 +55,7 @@
     "footer.source": "Quellcode",
     "footer.issues": "Issues",
     "footer.contribute": "Mitmachen",
+    "footer.maintainers": "Wer Glyph pflegt",
     "footer.gh_releases": "Releases auf GitHub",
     "footer.edit": "Diese Seite bearbeiten",
     "footer.tagline": "Glyph: TypeScript, das deine Agenten nicht unbemerkt kaputtmachen können.",

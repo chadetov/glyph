@@ -55,6 +55,7 @@
     "footer.source": "ซอร์สโค้ด",
     "footer.issues": "Issues",
     "footer.contribute": "ร่วมพัฒนา",
+    "footer.maintainers": "ผู้ดูแลโครงการ",
     "footer.gh_releases": "Releases บน GitHub",
     "footer.edit": "แก้ไขหน้านี้",
     "footer.tagline": "Glyph: TypeScript ที่เอเจนต์ของคุณทำพังแบบเงียบๆ ไม่ได้",

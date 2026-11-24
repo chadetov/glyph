@@ -2,7 +2,7 @@
   "_about": "Translate each \"tr\" from its \"en\"; leave \"id\", \"kind\" and \"en\" alone. Keep every tag, every <code> element's content and every {{...}} placeholder; words may move around them. was_en/was_tr show what an edited English segment said before. Then run scripts/i18n_apply.py. See site/i18n/README.md.",
   "page": "teams/index.html",
   "locale": "pt-br",
-  "source_hash": "e671c7332b99f6a8",
+  "source_hash": "e091eea38f6b5238",
   "segments": [
     {
       "id": "title",
@@ -257,10 +257,10 @@
       "tr": "Status"
     },
     {
-      "id": "h-33711ac1",
+      "id": "h-3a6d82eb",
       "kind": "html",
-      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today.",
-      "tr": "O Glyph é pré-1.0. Antes da 1.0, a sintaxe, a biblioteca padrão e o formato do TypeScript gerado podem mudar, e uma release pode recusar código que compilava antes. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> diz o que pode mudar e o que é mantido estável. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> diz com clareza que hoje o projeto é mantido principalmente por uma pessoa."
+      "en": "Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> says what may change and what is held stable. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> says plainly that the project is maintained primarily by one person today. <a href=\"/maintainers/\">Who maintains Glyph</a> covers what happens if that person steps away, how decisions are made and how to report a security issue.",
+      "tr": "O Glyph é pré-1.0. Antes da 1.0, a sintaxe, a biblioteca padrão e o formato do TypeScript gerado podem mudar, e uma release pode recusar código que compilava antes. <a href=\"https://github.com/chadetov/glyph/blob/main/docs/stability.md\">docs/stability.md</a> diz o que pode mudar e o que é mantido estável. <a href=\"https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md\">MAINTAINERS.md</a> diz com clareza que hoje o projeto é mantido principalmente por uma pessoa. <a href=\"/maintainers/\">Quem mantém o Glyph</a> explica o que acontece se essa pessoa se afastar, como as decisões são tomadas e como reportar um problema de segurança."
     },
     {
       "id": "h-731f8c8c",

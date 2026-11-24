@@ -55,6 +55,7 @@
     "footer.source": "Código fuente",
     "footer.issues": "Issues",
     "footer.contribute": "Contribuir",
+    "footer.maintainers": "Quién lo mantiene",
     "footer.gh_releases": "Releases en GitHub",
     "footer.edit": "Editar esta página",
     "footer.tagline": "Glyph: TypeScript que tus agentes no pueden romper sin que te enteres.",

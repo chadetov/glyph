@@ -55,6 +55,7 @@
     "footer.source": "ソースコード",
     "footer.issues": "Issues",
     "footer.contribute": "コントリビュート",
+    "footer.maintainers": "メンテナー",
     "footer.gh_releases": "GitHub のリリース",
     "footer.edit": "このページを編集する",
     "footer.tagline": "Glyph: エージェントが気づかれずに壊すことのできない TypeScript。",

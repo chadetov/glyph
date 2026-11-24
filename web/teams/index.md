@@ -71,7 +71,7 @@ The example apps are the project's own code, kept compiling release by release, 
 
 ## Status
 
-Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md) says what may change and what is held stable. [MAINTAINERS.md](https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md) says plainly that the project is maintained primarily by one person today.
+Glyph is pre-1.0. Before 1.0, syntax, the standard library and the shape of the emitted TypeScript may change, and a release may reject code that compiled before. [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md) says what may change and what is held stable. [MAINTAINERS.md](https://github.com/chadetov/glyph/blob/main/.github/MAINTAINERS.md) says plainly that the project is maintained primarily by one person today. [Who maintains Glyph](https://glyphlang.io/maintainers/) covers what happens if that person steps away, how decisions are made and how to report a security issue.
 
 ## Objections, answered
 

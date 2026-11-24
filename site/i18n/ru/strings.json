@@ -55,6 +55,7 @@
     "footer.source": "Исходный код",
     "footer.issues": "Issues",
     "footer.contribute": "Участие в разработке",
+    "footer.maintainers": "Кто поддерживает Glyph",
     "footer.gh_releases": "Релизы на GitHub",
     "footer.edit": "Редактировать эту страницу",
     "footer.tagline": "Glyph: TypeScript, который агенты не сломают незаметно для вас.",

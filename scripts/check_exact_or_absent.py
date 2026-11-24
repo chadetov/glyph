@@ -2174,6 +2174,53 @@ def case_bigint_is_not_a_number() -> tuple[bool, str]:
     return True, "`bigint` and `number` are refused both ways, and a `bigint` meets an interface by its own members"
 
 
+def case_generic_interface_application_both_tools() -> tuple[bool, str]:
+    """A generic interface application: impact and assignable give one answer.
+
+    Until 0.1.188 both tools answered UNDETERMINED for a value against
+    `Cmp<number>`, because the relation never read an interface application
+    (G461). It now compares a value against the interface's members with
+    each type parameter replaced by its argument. So `Ord` (no `cmp`) into
+    `Cmp<number>` and `Cmp<string>` into `Cmp<number>` are refusals, and the
+    impact cell at each call site is the relation's own answer: WILL_FAIL
+    with E0211 at a refused one. A record that carries the substituted
+    members is not refused, and stays UNDETERMINED in both tools, since no
+    rule of the relation claims an acceptance where an interface is declared.
+    """
+    project = CORPUS / ASSIGNABLE
+    path = {"path": "src/generic_iface.glyph"}
+    want = {
+        ("Ord", "Cmp<number>"): "WILL_FAIL",
+        ("Cmp<string>", "Cmp<number>"): "WILL_FAIL",
+        ("Rec", "Cmp<number>"): "UNDETERMINED",
+    }
+    for (frm, to), verdict in want.items():
+        got = call(project, "glyph_assignable", {**path, "from": frm, "to": to})
+        if got.get("verdict") != verdict:
+            return False, f"assignable `{frm}` into `{to}` is {got.get('verdict')}, not {verdict}: {got}"
+    a = impact(project, "generic_iface::want", {"kind": "change_signature_type"})
+    if "error" in a:
+        return False, f"impact on generic_iface::want refused: {a['error'][:120]}"
+    for caller, frm, code in (
+        ("generic_iface::by_ord", "Ord", "E0211"),
+        ("generic_iface::by_rec", "Rec", None),
+    ):
+        entries = [e for e in a.get("impact") or []
+                   if e.get("entity") == caller and e.get("relation") == "CALLS"]
+        if len(entries) != 1:
+            return False, f"no one CALLS site of generic_iface::want in {caller}: {entries}"
+        cell = (entries[0].get("arguments") or [{}])[0]
+        pairing = want[(frm, "Cmp<number>")]
+        if cell.get("verdict") != pairing:
+            return False, (f"impact says {cell.get('verdict')} and assignable says {pairing} "
+                           f"about `{frm}` into `Cmp<number>`: {cell}")
+        if "no rule" in (cell.get("because") or ""):
+            return False, f"the cell for `{frm}` into `Cmp<number>` still says no rule: {cell}"
+        if entries[0].get("diagnostic") != code:
+            return False, f"the site in {caller} names {entries[0].get('diagnostic')}, not {code}: {entries[0]}"
+    return True, "a generic interface application gets one answer from impact and from assignable"
+
+
 DEPENDENCIES = pathlib.Path("dependencies")
 EXPORTS = pathlib.Path("exports")
 
@@ -2409,6 +2456,7 @@ HARD = [
     ("assignability: no rule is not compatible", case_assignable_has_no_rule_and_says_so),
     ("a primitive and an interface, both tools", case_interface_against_primitive_both_tools),
     ("assignability: a bigint is not a number", case_bigint_is_not_a_number),
+    ("a generic interface application, both tools", case_generic_interface_application_both_tools),
     ("an edge out of a declaration is exact or unclaimed", case_dependencies_out_of_an_unreadable_module),
     ("an export surface is never [] by accident", case_exports_are_never_an_empty_list_by_accident),
     ("a call in an @example is a site", case_a_site_in_an_example_is_a_site),

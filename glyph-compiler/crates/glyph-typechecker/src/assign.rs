@@ -15271,8 +15271,10 @@ mod tests {
 
     #[test]
     fn match_whose_arms_all_diverge_stays_unknown() {
-        // No `Never`/bottom type exists in Glyph; an all-divergent match keeps
-        // `Unknown` rather than inventing one.
+        // An arm that ends in `return` is skipped by the join, not typed
+        // `never`, so a match whose arms all return has no arm to take a type
+        // from and stays `Unknown`. Arms whose value is `never` (a call to
+        // `process.exit`) join to `never` instead (G480).
         let (m, _, tm) = type_map_of(
             "module x\ntype Tier = \"free\" | \"pro\"\n\
              fn pick(t: Tier) -> number {\n  let v = match t {\n    \"free\" => return 1,\n    \"pro\" => return 2,\n  }\n  return 0\n}\n",
@@ -15333,6 +15335,64 @@ mod tests {
             "{:?}",
             errors_of(still)
         );
+    }
+
+    /// G480. `process.exit` returns `never` (D47), so a `match` arm that
+    /// exits contributes nothing to the join and the arm beside it decides
+    /// the match's type, in either order. The type that decides it is then
+    /// compared where the match is used: `let s: string = x` is E0204, as
+    /// `tsc` refuses it (TS2322). Before, the exiting arm had no type and
+    /// sank the join to `Unknown`, so the line was silent.
+    #[test]
+    fn an_arm_that_exits_lets_the_other_arm_decide_the_match() {
+        for arms in [
+            "true => 5,\n    false => process.exit(1),",
+            "true => process.exit(1),\n    false => 5,",
+        ] {
+            let src = format!(
+                "module x\nimport std/process\n\
+                 pub fn a(b: bool) -> number {{\n  let x = match b {{\n    {arms}\n  }}\n  let s: string = x\n  return x\n}}\n"
+            );
+            let (m, _, tm) = type_map_of(&src);
+            assert!(
+                matches!(tm.get(first_let_value_span_anywhere(&m)), Ty::Prim(Primitive::Number)),
+                "{arms}: got {:?}",
+                tm.get(first_let_value_span_anywhere(&m))
+            );
+            let errs: Vec<String> = errors_of(&src)
+                .iter()
+                .filter(|e| e.code() == "E0204")
+                .map(|e| e.to_string())
+                .collect();
+            assert_eq!(
+                errs,
+                vec!["type mismatch: expected `string`, found `number`".to_string()],
+                "{arms}"
+            );
+        }
+    }
+
+    /// G480. `never` fits wherever a value is wanted, so the call itself is
+    /// accepted under any annotation, as `tsc` accepts it; a match whose arms
+    /// all exit is `never` and is accepted under one too. A returned match
+    /// with an exiting arm is compared through its other arm.
+    #[test]
+    fn process_exit_is_never_and_fits_anywhere() {
+        let ok = "module x\nimport std/process\n\
+                  pub fn c() -> number {\n  let n: string = process.exit(1)\n  return 0\n}\n\
+                  pub fn d(b: bool) -> number {\n  let v = match b {\n    true => process.exit(1),\n    false => process.exit(2),\n  }\n  let s: string = v\n  return 0\n}\n\
+                  pub fn e(b: bool) -> number {\n  return match b {\n    true => 5,\n    false => process.exit(1),\n  }\n}\n";
+        let errs: Vec<&str> = errors_of(ok).iter().map(TypeError::code).collect();
+        assert!(!errs.contains(&"E0204"), "{:?}", errors_of(ok));
+
+        let wrong = "module x\nimport std/process\n\
+                     pub fn e(b: bool) -> string {\n  return match b {\n    true => 5,\n    false => process.exit(1),\n  }\n}\n";
+        let errs: Vec<String> = errors_of(wrong)
+            .iter()
+            .filter(|e| e.code() == "E0204")
+            .map(|e| e.to_string())
+            .collect();
+        assert_eq!(errs, vec!["type mismatch: expected `string`, found `number`".to_string()]);
     }
 
     #[test]

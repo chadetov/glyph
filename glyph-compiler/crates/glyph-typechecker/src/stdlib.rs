@@ -758,12 +758,11 @@ pub(crate) fn process_fn_ty(prelude: &Prelude, module_key: &str, field: &str) ->
     let string = || Ty::Prim(Primitive::String);
     let (params, ret): (Vec<FnParam>, Ty) = match field {
         "args" => (Vec::new(), array_ty(prelude, string())?),
-        // The parameter is a number and the return is `never`, which Glyph
-        // has no way to write. `void` would be the wrong answer, not a
-        // rounder one: it would make a `match` arm that exits disagree with
-        // the arm beside it that produces a value, and that program is
-        // correct. The return stays unmodeled until there is a bottom type.
-        "exit" => (vec![required(n())], Ty::Unknown),
+        // The return is `never` (D47): the call does not come back. A `match`
+        // arm that exits contributes nothing to the arms' join, so the arm
+        // beside it decides the match's type, which is what `tsc` reads too.
+        // `void` would make that arm disagree with a value-producing one.
+        "exit" => (vec![required(n())], Ty::Never),
         "set_exit_code" => (vec![required(n())], Ty::Prim(Primitive::Void)),
         "exit_code" => (Vec::new(), n()),
         "env" => (
